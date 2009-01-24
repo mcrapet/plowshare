@@ -1,0 +1,75 @@
+#!/bin/bash
+set -e
+
+# Check that $1 is equal to $2.
+assert_equal() {
+  if ! test "$1" = "$2"; then
+    echo "assert_equal failed: $1 != $2"
+    return 1
+  fi
+}
+
+# Check that $1 is not a empty string
+assert() {
+  if ! test "$1"; then
+    echo "assert failed"
+    return 1
+  fi
+}
+
+# Run a test
+# $1..N: Function to run
+run() {
+  echo -n "$1... "
+  "$@" && echo " ok" || echo " failed!"
+}
+
+### Tests
+ 
+RAPIDSHARE_URL1="http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar"
+MEGAUPLOAD_URL1="http://www.megaupload.com/?d=ieo1g52v"
+
+download() {
+    ./download.sh "$@" 2>/dev/null
+}
+
+upload() {
+    ./upload.sh "$@" 2>/dev/null
+}
+
+# Build lines of filenames (only basename)
+build() {
+    echo "$@" | xargs -n1 basename
+}
+
+test_rapidshare_download_anonymous() {
+    assert_equal "Tux-Trainer_25-01-2008.rar" "$(download $RAPIDSHARE_URL1)"
+}        
+
+test_megaupload_download_anonymous() {
+    assert_equal "testmotion2.mp4" "$(download $MEGAUPLOAD_URL1)"
+}        
+
+test_megaupload_download_member() {
+    AUTH=$(cat .megaupload.auth)
+    assert_equal "testmotion2.mp4" "$(download -a "$AUTH" $MEGAUPLOAD_URL1)"
+}        
+
+test_megaupload_upload_anonymous() {
+    URL="$(upload megaupload <(echo '1234') 'Plowshare test')"
+    assert "$(echo $URL | grep -o 'http://www.megaupload.com/?d=')" 
+}        
+
+test_megaupload_upload_member() {
+    AUTH=$(cat .megaupload.auth)
+    URL=$(upload -a "$AUTH" megaupload <(echo '1234') 'Plowshare test')
+    assert_equal "http://www.megaupload.com/?d=RT1N8HKM" "$URL"
+}        
+
+
+run "test_rapidshare_download_anonymous"
+
+run "test_megaupload_download_anonymous"
+run "test_megaupload_download_member"
+run "test_megaupload_upload_anonymous"
+run "test_megaupload_upload_member"
