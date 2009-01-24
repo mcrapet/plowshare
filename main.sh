@@ -24,9 +24,9 @@ LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
 source $LIBDIR/lib.sh
 
 # Modules
-source $LIBDIR/rapidshare.sh
-source $LIBDIR/megaupload.sh
-source $LIBDIR/2shared.sh
+source $LIBDIR/module_rapidshare.sh
+source $LIBDIR/module_megaupload.sh
+source $LIBDIR/module_2shared.sh
 
 VARPREFIX="DOWNSHARE_"
 

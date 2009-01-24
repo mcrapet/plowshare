@@ -9,6 +9,7 @@ LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
 source $LIBDIR/lib.sh
 
 DOWNSHARE_MEGAUPLOAD="http://\(www\.\)\?megaupload.com/"
+
 LOGINURL="http://www.megaupload.com"
 BASEURL="http://www.megaupload.com"
 

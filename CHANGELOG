@@ -1,4 +1,16 @@
-plowshare (0.1) stable; urgency=low
+plowshare (0.1.2) unstable; urgency=high
+
+  * Upload script was missing 
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 24 Jan 2009 18:55:16 +0100
+
+plowshare (0.1.1) unstable; urgency=high
+
+  * Add tests
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 24 Jan 2009 18:54:17 +0100
+
+plowshare (0.1) unstable; urgency=high
  
   * First release
 
