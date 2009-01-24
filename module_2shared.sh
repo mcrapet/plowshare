@@ -4,7 +4,7 @@
 LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
 source $LIBDIR/lib.sh
 
-DOWNSHARE_2SHARED="http://\(www\.\)\?2shared.com/file/"
+PLOWSHARE_2SHARED="http://\(www\.\)\?2shared.com/file/"
 
 # Output a 2shared file download URL
 #

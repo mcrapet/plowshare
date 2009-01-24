@@ -29,7 +29,10 @@ source $LIBDIR/module_rapidshare.sh
 source $LIBDIR/module_megaupload.sh
 source $LIBDIR/module_2shared.sh
 
-VARPREFIX="DOWNSHARE_"
+# Get supported modules
+VARPREFIX="PLOWSHARE_"
+MODULES=$(set | grep "^$VARPREFIX" | cut -d"=" -f1 | sed "s/^$VARPREFIX//" | \
+    tr '[A-Z]' '[a-z]' | sort | xargs -d"\n" | xargs | sed "s/ /, /g" )        
 
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links
@@ -51,35 +54,34 @@ get_module() {
     done     
 } 
 
-# Main
-#
-
-MODULES=$(set | grep "^$VARPREFIX" | cut -d"=" -f1 | \
-    sed "s/^$VARPREFIX//" | tr '[A-Z]' '[a-z]' | sort | xargs -d"\n")
-    
-if test $# -lt 2; then
-    debug "Download and upload file from file-sharing servers. Usage:"
+usage() {
+    debug "Download and upload files from file sharing servers."
     debug
     debug "  Download: plowdown [OPTIONS] URL|FILE [URL|FILE ...]"
     debug "  Upload: plowup [OPTIONS] module FILE DESCRIPTION"
     debug
     debug "Options:"
     debug 
-    debug "  -a USER:PASSWORD, --a=USER:PASSWORD"
+    debug "  -a USER:PASSWORD, --auth=USER:PASSWORD"
     debug
-    debug "Available modules: $MODULES"
-    exit 1
-fi
+    debug "Available modules: $MODULES."
+}
+
+# Main
+#
+
+test $# -ge 2 || { usage; exit 1; } 
 
 check_exec "curl" "curl not found"
 
 unset USER PASSWORD
-eval set -- "$(getopt -o a: --long authentication: -n '$(basename $0)' -- "$@")"
+eval set -- "$(getopt -o a: --long auth: -n '$(basename $0)' -- "$@")"
 while true; do
     case "$1" in
-        -a|--authentication) 
-            IFS=":" read USER PASSWORD <<< "$2"; shift 2 ;;
-        --) shift ; break ;;
+        -a|--auth) 
+            IFS=":" read USER PASSWORD <<< "$2"; shift 2;;
+        --) 
+            shift; break;;
     esac
 done 
 
@@ -115,11 +117,13 @@ elif test "$OPERATION" = "upload"; then
     fi
     debug "starting upload to $MODULE: $FILE"
     if ! declare -f "$FUNCTION" &>/dev/null; then 
-        debug "module does not currently implement upload: $MODULE"
+        debug "module does not implement upload: $MODULE"
         exit 2
     fi
-    $FUNCTION "$FILE" "$DESCRIPTION" "$USER" "$PASSWORD"
+    $FUNCTION "$FILE" "$USER" "$PASSWORD" "$DESCRIPTION" 
 else
-    debug "unknown command: $OPERATION"
+    debug "Unknown operation: $OPERATION"
+    debug
+    usage
     exit 1  
 fi

@@ -4,7 +4,7 @@
 LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
 source $LIBDIR/lib.sh
 
-DOWNSHARE_RAPIDSHARE="http://\(www\.\)\?rapidshare.com/files/"
+PLOWSHARE_RAPIDSHARE="http://\(www\.\)\?rapidshare.com/files/"
 
 # Output a rapidshare file download URL
 #

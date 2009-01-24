@@ -2,13 +2,13 @@
 #
 # Megaupload module for plowshare.
 #
-# Dependencies: curl, smjs (spidermonkey)
+# Dependencies: curl, smjs (spidermonkey), convert (imagemagick)
 #
 set -e
 LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
 source $LIBDIR/lib.sh
 
-DOWNSHARE_MEGAUPLOAD="http://\(www\.\)\?megaupload.com/"
+PLOWSHARE_MEGAUPLOAD="http://\(www\.\)\?megaupload.com/"
 
 LOGINURL="http://www.megaupload.com"
 BASEURL="http://www.megaupload.com"
@@ -23,10 +23,11 @@ megaupload_download() {
     USER=$2
     PASSWORD=$3
  
-    check_exec "smjs" "smjs not found (install spidermonkey)"       
-    TRY=1
+    check_exec "smjs" "smjs not found (install spidermonkey)"
+    check_exec "convert" "convert not found (install imagemagick)"       
     COOKIES=$(post_login "$USER" "$PASSWORD" "$LOGINURL" \
         "login=$USER&password=$PASSWORD")
+    TRY=1
     while true; do 
         debug "Downloading waiting page (loop $TRY)"
         TRY=$(expr $TRY + 1)
@@ -50,8 +51,10 @@ megaupload_download() {
         debug "Captcha was not accepted"
     done
     WAITTIME=$(echo "$WAITPAGE" | parse "$SECVAR=" "=\(.*\);")
+    test "$WAITTIME" || { debug "error getting wait time"; WAITTIME=50; }
     # We could easily parse the Javascript code, but it's nicer 
     # and more robust to tell a JS interpreter to run the code for us.
+    # The only downside: adding the spidermonkey dependence.
     JSCODE=$(echo "$WAITPAGE" | grep -B2 'ById("dlbutton")')    
     URLCODE=$(echo "$JSCODE" | parse 'dlbutton' 'href="\([^"]*\)"')
     FILEURL=$({ echo "$JSCODE" | head -n2; echo "print('$URLCODE');"; } | smjs)
@@ -69,9 +72,9 @@ megaupload_download() {
 #
 megaupload_upload() {
     FILE=$1
-    DESCRIPTION=$2    
-    USER=$3
-    PASSWORD=$4        
+    USER=$2
+    PASSWORD=$3        
+    DESCRIPTION=$4    
     UPLOADURL="http://www.megaupload.com"
 
     COOKIES=$(post_login "$USER" "$PASSWORD" "$LOGINURL" \

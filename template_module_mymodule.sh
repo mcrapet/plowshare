@@ -5,7 +5,7 @@
 LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
 source $LIBDIR/lib.sh
 
-DOWNSHARE_MYMODULE="http://\(www\.\)\?server.com/files/"
+PLOWSHARE_MYMODULE="http://\(www\.\)\?server.com/files/"
 
 # Output a mymodule file download URL
 #
