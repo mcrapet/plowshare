@@ -5,7 +5,7 @@ NAME=plowshare
 MODULES="megaupload rapidshare 2shared"
 INSTALLDIR=/usr/local
 LIBDIR=$INSTALLDIR/share/$NAME
-BINDIR=$INSTALLDIR/local/bin
+BINDIR=$INSTALLDIR/bin
 
 mkdir -p $LIBDIR
 
