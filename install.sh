@@ -3,20 +3,20 @@ set -e
 
 NAME=plowshare
 MODULES="megaupload rapidshare 2shared"
-INSTALLDIR=/usr/local
+INSTALLDIR=${1:-/usr/local}
 LIBDIR=$INSTALLDIR/share/$NAME
 BINDIR=$INSTALLDIR/bin
 
-mkdir -p $LIBDIR
-
 # Common library 
-cp main.sh download.sh upload.sh lib.sh $LIBDIR
+mkdir -p $LIBDIR
+cp -v main.sh download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
 for MODULE in $MODULES; do
-    cp module_$MODULE.sh $LIBDIR
+    cp -v module_$MODULE.sh $LIBDIR
 done
 
-# Binary files 
-ln -sf $LIBDIR/download.sh $BINDIR/plowdown
-ln -sf $LIBDIR/upload.sh $BINDIR/plowup
+# Binary files
+mkdir -p $BINDIR 
+ln -vsf $(readlink -f $LIBDIR/download.sh) $BINDIR/plowdown
+ln -vsf $(readlink -f $LIBDIR/upload.sh) $BINDIR/plowup
