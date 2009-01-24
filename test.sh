@@ -28,6 +28,8 @@ run() {
  
 RAPIDSHARE_URL1="http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar"
 MEGAUPLOAD_URL1="http://www.megaupload.com/?d=ieo1g52v"
+SHARED_URL1="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
+
 
 download() {
     ./download.sh "$@" 2>/dev/null
@@ -66,10 +68,19 @@ test_megaupload_upload_member() {
     assert_equal "http://www.megaupload.com/?d=RT1N8HKM" "$URL"
 }        
 
+test_2shared_download_anonymous() {
+    assert_equal "Test.mp3" "$(download $SHARED_URL1)"
+}        
 
+
+# Rapidshare
 run "test_rapidshare_download_anonymous"
 
+# Megaupload
 run "test_megaupload_download_anonymous"
 run "test_megaupload_download_member"
 run "test_megaupload_upload_anonymous"
 run "test_megaupload_upload_member"
+
+# 2Shared
+run "test_2shared_download_anonymous"

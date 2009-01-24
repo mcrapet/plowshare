@@ -97,7 +97,7 @@ if test "$OPERATION" = "download"; then
                 continue
             fi
             FILE_URL=$($FUNCTION "$URL" "$USER" "$PASSWORD") && 
-                FILENAME=$(basename "$FILE_URL") && 
+                FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//") && 
                 curl -o "$FILENAME" "$FILE_URL" && 
                 echo $FILENAME ||
                 debug "could not download: $URL" 
