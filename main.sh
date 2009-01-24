@@ -2,11 +2,12 @@
 #
 # Download files from file-sharing servers. Currently supported:
 #
-# - Rapidshare (download)
 # - Megaupload (download & upload)
+# - Rapidshare (download)
 # - 2Shared (download)
 #
-# Output files downloaded to standard output (one per line).
+# In download mode, output files downloaded to standard output (one per line).
+# In upload mode, output generated URL.
 #
 # Dependencies: curl.
 #

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Library for downshare
+#
+# Library for downshare.
 
 # Echo text to standard error.
 #
@@ -48,16 +49,17 @@ post_login() {
     fi
 }
 
-# OCR of an image. Write image contents to standard input
-# 
+# OCR of an image. Write OCRed text to standard input
+#
+# Standard input: image to OCR 
 ocr() {
     check_exec "convert" "convert not found (install imagemagick)"
-    check_exec "tesseract" "convert not found"
+    check_exec "tesseract" "tesseract not found (install tesseract-ocr)"
     TEMP=$(tempfile -s ".tif")
     TEMP2=$(tempfile -s ".txt")
     convert - tif:- > $TEMP
     tesseract $TEMP ${TEMP2/%.txt}
-    CAPTCHA=$(cat $TEMP2 | xargs)
+    TEXT=$(cat $TEMP2 | xargs)
     rm -f $TEMP $TEMP2
-    echo $CAPTCHA
+    echo $TEXT
 }

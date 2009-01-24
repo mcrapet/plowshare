@@ -26,11 +26,6 @@ run() {
 
 ### Tests
  
-RAPIDSHARE_URL1="http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar"
-MEGAUPLOAD_URL1="http://www.megaupload.com/?d=ieo1g52v"
-SHARED_URL1="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
-
-
 download() {
     ./download.sh "$@" 2>/dev/null
 }
@@ -39,22 +34,23 @@ upload() {
     ./upload.sh "$@" 2>/dev/null
 }
 
-# Build lines of filenames (only basename)
-build() {
-    echo "$@" | xargs -n1 basename
-}
+### Tests
+
+RAPIDSHARE_URL="http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar"
+MEGAUPLOAD_URL="http://www.megaupload.com/?d=ieo1g52v"
+SHARED_URL="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
 
 test_rapidshare_download_anonymous() {
-    assert_equal "Tux-Trainer_25-01-2008.rar" "$(download $RAPIDSHARE_URL1)"
+    assert_equal "Tux-Trainer_25-01-2008.rar" "$(download $RAPIDSHARE_URL)"
 }        
 
 test_megaupload_download_anonymous() {
-    assert_equal "testmotion2.mp4" "$(download $MEGAUPLOAD_URL1)"
+    assert_equal "testmotion2.mp4" "$(download $MEGAUPLOAD_URL)"
 }        
 
 test_megaupload_download_member() {
     AUTH=$(cat .megaupload.auth)
-    assert_equal "testmotion2.mp4" "$(download -a "$AUTH" $MEGAUPLOAD_URL1)"
+    assert_equal "testmotion2.mp4" "$(download -a "$AUTH" $MEGAUPLOAD_URL)"
 }        
 
 test_megaupload_upload_anonymous() {
@@ -69,7 +65,7 @@ test_megaupload_upload_member() {
 }        
 
 test_2shared_download_anonymous() {
-    assert_equal "Test.mp3" "$(download $SHARED_URL1)"
+    assert_equal "Test.mp3" "$(download $SHARED_URL)"
 }        
 
 
