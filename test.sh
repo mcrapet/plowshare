@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+SRCDIR=src/
+
 # Check that $1 is equal to $2.
 assert_equal() {
   if ! test "$1" = "$2"; then
@@ -27,11 +29,11 @@ run() {
 ### Tests
  
 download() {
-    ./download.sh "$@" 2>/dev/null
+    $SRCDIR/download.sh "$@" 2>/dev/null
 }
 
 upload() {
-    ./upload.sh "$@" 2>/dev/null
+    $SRCDIR/upload.sh "$@" 2>/dev/null
 }
 
 ### Tests

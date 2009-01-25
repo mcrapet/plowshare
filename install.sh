@@ -7,6 +7,9 @@ INSTALLDIR=${1:-/usr/local}
 LIBDIR=$INSTALLDIR/share/$NAME
 BINDIR=$INSTALLDIR/bin
 
+# Enter to source directory
+cd src
+
 # Common library 
 mkdir -p $LIBDIR
 cp -v main.sh download.sh upload.sh lib.sh $LIBDIR
