@@ -1,0 +1,59 @@
+= Introduction =
+
+Plowshare is a command-line downloader for many file-sharing servers. The sites currently supported are:
+
+  * Megaupload (download & upload)
+  * Rapidshare (download)
+  * 2Shared (download)
+
+= Dependencies =
+
+To run plowshare you will need:
+
+  * [http://www.gnu.org/software/bash/ bash]
+  * [http://curl.haxx.se/ curl]
+  * [http://www.mozilla.org/js/spidermonkey/ Spidermonkey] (only for megaupload downloader)
+
+= Download & Install =
+
+Download last version from:
+
+http://code.google.com/p/plowshare/downloads/list
+
+Uncompress and install:
+
+{{{
+tar xvzf plowshare-VERSION
+cd plowshare-VERSION
+sudo bash install.sh
+}}}
+
+= Usage =
+
+== Download ==
+
+Example of anonymous download on rapidshare:
+
+{{{
+plowdown http://rapidshare.com/files/123123123/a.jpg
+}}}
+
+Example of anonymous download on rapidshare with a file of links (one per line):
+
+{{{
+plowdown file_with_links.txt
+}}}
+
+Example of member download on megaupload:
+
+{{{
+plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
+}}}
+
+== Upload ==
+
+Example of member upload on megaupload:
+
+{{{
+plowup -a myuser:mypassword megaupload myfile.txt "My description"
+}}}
