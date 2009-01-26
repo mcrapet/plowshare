@@ -1,10 +1,10 @@
 #!/bin/bash
-# Rapidshare module for downshare.
 #
-LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
-source $LIBDIR/lib.sh
-
-PLOWSHARE_RAPIDSHARE="http://\(www\.\)\?rapidshare.com/files/"
+# Rapidshare module for plowshare.
+#
+#
+#
+MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare.com/files/"
 
 # Output a rapidshare file download URL
 #

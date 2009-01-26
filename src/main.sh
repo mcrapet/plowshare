@@ -1,10 +1,6 @@
 #!/bin/bash
 #
-# Download files from file-sharing servers. Currently supported:
-#
-# - Megaupload (download & upload)
-# - Rapidshare (download)
-# - 2Shared (download)
+# Download and upload files from file sharing servers. 
 #
 # In download mode, output files downloaded to standard output (one per line).
 # In upload mode, output generated URL.
@@ -18,21 +14,20 @@
 #
 set -e
 
+# Supported modules
+MODULES="rapidshare megaupload 2shared"
+
 # Get library directory
 LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
+MODULESDIR=$LIBDIR/modules
 
 # Common library
 source $LIBDIR/lib.sh
 
-# Modules
-source $LIBDIR/module_rapidshare.sh
-source $LIBDIR/module_megaupload.sh
-source $LIBDIR/module_2shared.sh
-
-# Get supported modules
-VARPREFIX="PLOWSHARE_"
-MODULES=$(set | grep "^$VARPREFIX" | cut -d"=" -f1 | sed "s/^$VARPREFIX//" | \
-    tr '[A-Z]' '[a-z]' | sort | xargs -d"\n" | xargs | sed "s/ /, /g" )        
+# Load modules
+for MODULE in $MODULES; do
+    source $MODULESDIR/$MODULE.sh
+done
 
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links
@@ -46,14 +41,19 @@ process_item() {
     fi
 }
 
+# Get module name from URL
+#
+# $1: URL 
 get_module() {
-    set | grep "^$VARPREFIX" | cut -d"=" -f1 | while read VARNAME; do
-        REGEXP="${!VARNAME}"
-        MODULE=$(echo $VARNAME | sed "s/^$VARPREFIX//" | tr '[A-Z]' '[a-z]')
-        match "$REGEXP" "$1" && { echo $MODULE; return; } || true    
+    URL=$1
+    for MODULE in $MODULES; do
+        VAR=MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_REGEXP_URL
+        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
     done     
 } 
 
+# Print usage
+#
 usage() {
     debug "Download and upload files from file sharing servers."
     debug
@@ -72,10 +72,10 @@ usage() {
 
 test $# -ge 2 || { usage; exit 1; } 
 
-check_exec "curl" "curl not found"
+check_exec "curl" || { debug "curl not found"; exit 2; }
 
 unset USER PASSWORD
-eval set -- "$(getopt -o a: --long auth: -n '$(basename $0)' -- "$@")"
+eval set -- "$(getopt -o a: --long auth: -n 'plowshare' -- "$@")"
 while true; do
     case "$1" in
         -a|--auth) 
@@ -91,17 +91,17 @@ shift
 if test "$OPERATION" = "download"; then
     for ITEM in "$@"; do
         process_item "$ITEM" | while read URL; do
-            debug "start download: $URL"
             MODULE=$(get_module "$URL")
             test "$MODULE" || { debug "no module recognizes URL: $URL"; continue; }
             FUNCTION=${MODULE}_download 
-            if ! declare -f "$FUNCTION" &>/dev/null; then 
+            if ! check_function "$FUNCTION"; then 
                 debug "module does not currently implement download: $MODULE"
                 continue
             fi
+            debug "start download ($MODULE): $URL"
             FILE_URL=$($FUNCTION "$URL" "$USER" "$PASSWORD") && 
                 FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//") && 
-                curl -o "$FILENAME" "$FILE_URL" && 
+                curl --globoff -o "$FILENAME" "$FILE_URL" && 
                 echo $FILENAME ||
                 debug "could not download: $URL" 
         done
@@ -115,14 +115,14 @@ elif test "$OPERATION" = "upload"; then
         debug "unsupported module: $MODULE"
         exit 2        
     fi
-    debug "starting upload to $MODULE: $FILE"
-    if ! declare -f "$FUNCTION" &>/dev/null; then 
+    if ! check_function "$FUNCTION"; then 
         debug "module does not implement upload: $MODULE"
-        exit 2
+        exit 3
     fi
+    debug "starting upload ($MODULE): $FILE"
     $FUNCTION "$FILE" "$USER" "$PASSWORD" "$DESCRIPTION" 
 else
-    debug "Unknown operation: $OPERATION"
+    debug "Unknown operation: $OPERATION (valid: download | upload)"
     debug
     usage
     exit 1  

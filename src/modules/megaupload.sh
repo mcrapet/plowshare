@@ -4,14 +4,10 @@
 #
 # Dependencies: curl, smjs (spidermonkey), convert (imagemagick)
 #
-set -e
-LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
-source $LIBDIR/lib.sh
-
-PLOWSHARE_MEGAUPLOAD="http://\(www\.\)\?megaupload.com/"
+#
+MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 
 LOGINURL="http://www.megaupload.com"
-BASEURL="http://www.megaupload.com"
 
 # Output a megaupload file download URL
 #
@@ -22,9 +18,14 @@ megaupload_download() {
     URL=$1
     USER=$2
     PASSWORD=$3
+    BASEURL="http://www.megaupload.com"
  
-    check_exec "smjs" "smjs not found (install spidermonkey)"
-    check_exec "convert" "convert not found (install imagemagick)"       
+    check_exec "js" || check_exec "smjs" || 
+        { debug "no javascript interpreter (js/smjs) found"; return 1; }
+    check_exec "convert" || 
+        { debug "convert not found (install imagemagick)"; return 1; }       
+    check_exec "tesseract" ||
+        { debug "tesseract not found (install tesseract-ocr)"; return 1; }
     COOKIES=$(post_login "$USER" "$PASSWORD" "$LOGINURL" \
         "login=$USER&password=$PASSWORD")
     TRY=1
@@ -34,10 +35,8 @@ megaupload_download() {
         PAGE=$(curl -b <(echo "$COOKIES") "$URL")
         CAPTCHA_URL=$(echo "$PAGE" | parse "capgen" 'src="\(.*\)"')
         test "$CAPTCHA_URL" || { debug "file not found"; return 1; }    
-        CAPTCHA=$(curl "$BASEURL/$CAPTCHA_URL" | convert - txt:- | \
-            sed "s/rgba$/rgb/" | \
-            sed "s/(255,255,255,255).*$/(255,255,255)/;" | \
-            sed "/,  0)/ s/: .*$/: (1,1,1)/" | ocr)
+        CAPTCHA=$(curl "$BASEURL/$CAPTCHA_URL" | \
+            convert - -alpha off -colorspace gray gif:- | ocr)
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 3 || 
             { debug "Captcha length invalid"; continue; } 
@@ -54,7 +53,7 @@ megaupload_download() {
     test "$WAITTIME" || { debug "error getting wait time"; WAITTIME=50; }
     # We could easily parse the Javascript code, but it's nicer 
     # and more robust to tell a JS interpreter to run the code for us.
-    # The only downside: adding the spidermonkey dependence.
+    # The only downside: this adds the spidermonkey dependence.
     JSCODE=$(echo "$WAITPAGE" | grep -B2 'ById("dlbutton")')    
     URLCODE=$(echo "$JSCODE" | parse 'dlbutton' 'href="\([^"]*\)"')
     FILEURL=$({ echo "$JSCODE" | head -n2; echo "print('$URLCODE');"; } | smjs)

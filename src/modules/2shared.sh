@@ -1,10 +1,8 @@
 #!/bin/bash
 #
-# 2shared module for downshare.
-LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
-source $LIBDIR/lib.sh
-
-PLOWSHARE_2SHARED="http://\(www\.\)\?2shared.com/file/"
+# 2shared module for plowshare.
+#
+MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
 
 # Output a 2shared file download URL
 #

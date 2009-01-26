@@ -6,6 +6,12 @@ MODULES="megaupload rapidshare 2shared"
 INSTALLDIR=${1:-/usr/local}
 LIBDIR=$INSTALLDIR/share/$NAME
 BINDIR=$INSTALLDIR/bin
+DOCSDIR=$INSTALLDIR/share/doc/$NAME
+MODULESDIR=$LIBDIR/modules
+
+# Documentation
+mkdir -p $DOCSDIR
+cp -v CHANGELOG COPYING README $DOCSDIR 
 
 # Enter to source directory
 cd src
@@ -15,8 +21,9 @@ mkdir -p $LIBDIR
 cp -v main.sh download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
+mkdir -p $MODULESDIR
 for MODULE in $MODULES; do
-    cp -v module_$MODULE.sh $LIBDIR
+    cp -v modules/$MODULE.sh $MODULESDIR
 done
 
 # Binary files
