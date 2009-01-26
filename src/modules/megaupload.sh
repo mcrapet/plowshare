@@ -2,7 +2,7 @@
 #
 # Megaupload module for plowshare.
 #
-# Dependencies: curl, smjs (spidermonkey), convert (imagemagick)
+# Dependencies: curl, js/smjs (spidermonkey), convert (imagemagick), tesseract
 #
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
@@ -53,10 +53,11 @@ megaupload_download() {
     test "$WAITTIME" || { debug "error getting wait time"; WAITTIME=50; }
     # We could easily parse the Javascript code, but it's nicer 
     # and more robust to tell a JS interpreter to run the code for us.
-    # The only downside: this adds the spidermonkey dependence.
+    # The only downside: adding the js/smjs dependence.
     JSCODE=$(echo "$WAITPAGE" | grep -B2 'ById("dlbutton")')    
     URLCODE=$(echo "$JSCODE" | parse 'dlbutton' 'href="\([^"]*\)"')
-    FILEURL=$({ echo "$JSCODE" | head -n2; echo "print('$URLCODE');"; } | smjs)
+    JSSHELL=$(type -P js smjs | head -n1)
+    FILEURL=$({ echo "$JSCODE" | head -n2; echo "print('$URLCODE');"; } | $JSSHELL)
     debug "File URL: $FILEURL"
     debug "Waiting $WAITTIME seconds"
     sleep "$WAITTIME"
