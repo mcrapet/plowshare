@@ -33,3 +33,33 @@ rapidshare_download() {
     sleep $(($SLEEP + 1))
     echo $FILE_URL    
 }
+
+# Upload a file to Rapidshare
+#
+# $1: File path
+# $2/$3: User/password (optional)
+#
+rapidshare_upload() {
+    FILE=$1
+    USER=$2
+    PASSWORD=$3        
+    LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
+    ANONYMOUS_URL="http://www.rapidshare.com"
+    FREEZONE_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
+    
+    COOKIES=$(post_login "$USER" "$PASSWORD" "$LOGIN_URL" \
+        "username=$USER&password=$PASSWORD") ||
+        { debug "cannot complete login process"; return 2; }
+    test "$COOKIES" && STARTURL=$FREEZONE_URL || STARTURL=$ANONYMOUS_URL
+    debug "downloading upload page: $STARTURL"
+    ACTION=$(curl -b <(echo "$COOKIES") "$STARTURL" \
+        | parse '<form name="ul"' 'action="\([^"]*\)') ||
+        { debug "can't get upload action url"; return 2; }
+    debug "upload to: $ACTION"    
+    INFO=$(curl -b <(echo "$COOKIES") \
+        -F "filecontent=@$FILE;filename=$(basename "$FILE")" \
+        "$ACTION") || { debug "can't upload file"; return 2; }
+    URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<")
+    KILL=$(echo "$INFO" | parse "loeschlink" ">\(.*\)<")
+    echo "$URL ($KILL)"       
+}
