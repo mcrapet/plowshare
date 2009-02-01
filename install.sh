@@ -10,14 +10,14 @@ DOCSDIR=$INSTALLDIR/share/doc/$NAME
 MODULESDIR=$LIBDIR/modules
 
 # Documentation
-mkdir -p $DOCSDIR
+mkdir --verbose -p $DOCSDIR
 cp -v CHANGELOG COPYING README $DOCSDIR 
 
 # Enter to source directory
 cd src
 
 # Common library 
-mkdir -p $LIBDIR
+mkdir --verbose -p $LIBDIR
 cp -v main.sh download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
@@ -27,6 +27,6 @@ for MODULE in $MODULES; do
 done
 
 # Binary files
-mkdir -p $BINDIR 
+mkdir --verbose -p $BINDIR 
 ln -vsf $(readlink -f $LIBDIR/download.sh) $BINDIR/plowdown
 ln -vsf $(readlink -f $LIBDIR/upload.sh) $BINDIR/plowup
