@@ -15,7 +15,8 @@ debug() {
 # $2: POSIX-regexp to match (use parentheses) on the matched line.
 #
 parse() { 
-    sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1 
+    S=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
+        test "$S" && echo "$S" || return 1 
 }
 
 # Check if a string ($2) matches a regexp ($1)
