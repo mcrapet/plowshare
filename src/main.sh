@@ -3,7 +3,7 @@
 # Download and upload files from file sharing servers. 
 #
 # In download mode, output files downloaded to standard output (one per line).
-# In upload mode, output generated URL.
+# In upload mode, output generated URLs.
 #
 # Dependencies: curl.
 #
@@ -18,7 +18,7 @@ set -e
 MODULES="rapidshare megaupload 2shared"
 
 # Get library directory
-LIBDIR=$(dirname "$(readlink -f "$(type -P $0)")")
+LIBDIR=$(dirname "$(readlink -f "$(type -P $0 || echo $0)")")
 MODULESDIR=$LIBDIR/modules
 
 # Common library
@@ -58,10 +58,11 @@ usage() {
     debug "Download and upload files from file sharing servers."
     debug
     debug "  Download: plowdown [OPTIONS] URL|FILE [URL|FILE ...]"
-    debug "  Upload: plowup [OPTIONS] module FILE DESCRIPTION"
+    debug "  Upload: plowup [OPTIONS] MODULE FILE"
     debug
     debug "Options:"
-    debug 
+    debug
+    debug "  -q, --quiet: Don't print debug or error messages" 
     debug "  -a USER:PASSWORD, --auth=USER:PASSWORD"
     debug
     debug "Available modules: $MODULES."
@@ -75,27 +76,40 @@ test $# -ge 2 || { usage; exit 1; }
 check_exec "curl" || { debug "curl not found"; exit 2; }
 
 unset USER PASSWORD
-eval set -- "$(getopt -o a: --long auth: -n 'plowshare' -- "$@")"
+eval set -- "$(getopt -o 'a:qd:' --long 'auth: quiet' \
+    -n 'plowshare' -- "$@")"
 while true; do
     case "$1" in
+        -q|--quiet)
+            debug() { :; }
+            curl() { $(type -P curl) -s "$@"; }
+            shift 1;;
         -a|--auth) 
-            IFS=":" read USER PASSWORD <<< "$2"; shift 2;;
+            IFS=":" read USER PASSWORD <<< "$2"
+            shift 2;;
         --) 
-            shift; break;;
+            shift
+            break;;
     esac
 done 
 
 OPERATION=$1
 shift
 
-if test "$OPERATION" = "download"; then
+if test "$OPERATION" = "download"; then    
+    RETVAL=0
     for ITEM in "$@"; do
         process_item "$ITEM" | while read URL; do
             MODULE=$(get_module "$URL")
-            test "$MODULE" || { debug "no module recognizes URL: $URL"; continue; }
+            if ! test "$MODULE"; then 
+                debug "no module recognizes this URL: $URL"
+                RETVAL=4
+                continue
+            fi
             FUNCTION=${MODULE}_download 
             if ! check_function "$FUNCTION"; then 
-                debug "module does not currently implement download: $MODULE"
+                debug "module does not implement download: $MODULE"
+                RETVAL=4
                 continue
             fi
             debug "start download ($MODULE): $URL"
@@ -103,15 +117,16 @@ if test "$OPERATION" = "download"; then
                 FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//") && 
                 curl --globoff -o "$FILENAME" "$FILE_URL" && 
                 echo $FILENAME ||
-                debug "could not download: $URL" 
+                { debug "error downloading: $URL"; RETVAL=4; } 
         done
     done
+    exit $RETVAL
 elif test "$OPERATION" = "upload"; then
     MODULE=$1    
     FILE=$2
     DESCRIPTION=$3
     FUNCTION=${MODULE}_upload
-    if ! echo "$MODULES" | grep -q "\<$MODULE\>"; then
+    if ! match "\<$MODULE\>" "$MODULES"; then
         debug "unsupported module: $MODULE"
         exit 2        
     fi
@@ -120,9 +135,9 @@ elif test "$OPERATION" = "upload"; then
         exit 3
     fi
     debug "starting upload ($MODULE): $FILE"
-    $FUNCTION "$FILE" "$USER" "$PASSWORD" "$DESCRIPTION" 
+    $FUNCTION "$FILE" "$USER" "$PASSWORD" "$DESCRIPTION" || exit 4
 else
-    debug "Unknown operation: $OPERATION (valid: download | upload)"
+    debug "Unknown operation: $OPERATION (valid values: download | upload)"
     debug
     usage
     exit 1  
