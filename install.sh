@@ -18,7 +18,7 @@ cd src
 
 # Common library 
 mkdir --verbose -p $LIBDIR
-cp -v main.sh download.sh upload.sh lib.sh $LIBDIR
+cp -v download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
 mkdir -p $MODULESDIR
