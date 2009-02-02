@@ -25,7 +25,7 @@ megaupload_download() {
     URL=$1
     BASEURL="http://www.megaupload.com"
  
-    check_exec "js" || check_exec "smjs" || check_exec "rhyno" || 
+    check_exec "js" || check_exec "smjs" || check_exec "rhino" || 
         { debug "no javascript interpreter (js/smjs) found"; return 1; }
     check_exec "convert" || 
         { debug "convert not found (install imagemagick)"; return 1; }       
