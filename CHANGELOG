@@ -1,26 +1,39 @@
+plowshare (0.2) unstable; urgency=low
+
+  * Simplify captcha decoding in megaupload (thanks to George Averill)
+  * Use js or smjs (idem)
+  * Disable glob in curl file download (idem)
+  * Restructure code directories
+  * Add -q,--quiet global option
+  * 2Shared upload
+  * Add independent options to module's functions
+  * Rapidshare upload (anonymous and free-zone)
+
+ -- Arnau Sanchez <tokland@gmail.com>  Tue, 27 Jan 2009 23:05:02 +0100
+
 plowshare (0.1.4) unstable; urgency=low
 
   * Correct upload process 
 
- -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 24 Jan 2009 19:40:38 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 24 Jan 2009 19:40:38 +0100
 
 plowshare (0.1.3) unstable; urgency=low
 
-  * Minor correction for 2Shared
+  * Minor correction for 2shared
 
- -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 24 Jan 2009 19:36:35 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 24 Jan 2009 19:36:35 +0100
 
 plowshare (0.1.2) unstable; urgency=high
 
   * Upload script was missing 
 
- -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 24 Jan 2009 18:55:16 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 24 Jan 2009 18:55:16 +0100
 
 plowshare (0.1.1) unstable; urgency=high
 
   * Add tests
 
- -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 24 Jan 2009 18:54:17 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 24 Jan 2009 18:54:17 +0100
 
 plowshare (0.1) unstable; urgency=high
  

@@ -3,6 +3,8 @@
 # 2shared module for plowshare.
 #
 MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
+MODULE_2SHARED_DOWNLOAD_OPTIONS=
+MODULE_2SHARED_UPLOAD_OPTIONS=
 
 # Output a 2shared file download URL
 #
@@ -10,9 +12,8 @@ MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
 #
 2shared_download() {
     URL=$1   
-    FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\";")
-    test "$FILE_URL" || { debug "file not found"; return 1; }
-    echo $FILE_URL    
+    curl "$URL" | parse "window.location" "location = \"\(.*\)\";" || 
+        { debug "file not found"; return 1; }
 }
 
 # Upload a file to 2shared
@@ -25,7 +26,8 @@ MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
 
     debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")
-    ACTION=$(echo "$DATA" | parse "uploadForm" 'action="\([^"]*\)"')
+    ACTION=$(echo "$DATA" | parse "uploadForm" 'action="\([^"]*\)"') ||
+        { debug "cannot get upload form URL"; return 1; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
     debug "starting file upload: $FILE"
     STATUS=$(curl -F "mainDC=1" \
@@ -33,5 +35,8 @@ MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
         "$ACTION")
     match "upload has successfully completed" "$STATUS" ||
         { debug "error on upload"; return 1; }
-    curl "$UPLOADURL/$COMPLETE" | parse 'name="downloadLink"' "\(http:[^<]*\)"
+    DONE=$(curl "$UPLOADURL/$COMPLETE")
+    URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
+    ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
+    echo "$URL ($ADMIN)"   
 }

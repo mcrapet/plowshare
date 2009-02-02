@@ -1,26 +1,25 @@
 = Introduction =
 
-Plowshare is a command-line downloader for many file-sharing servers. The sites currently supported are:
+Plowshare is a command-line downloader and uploader for some file-sharing websites. Sites currently supported:
 
-  * Megaupload (download & upload)
-  * Rapidshare (download)
-  * 2Shared (download)
+|| *Website* || *Download* || *Upload* ||
+|| [http://www.megaupload.com Megaupload] || anonymous and free membership || anonymous and free membership ||
+|| [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
+|| [http://www.2shared.com 2Shared] || yes || yes ||
 
 = Dependencies =
 
 To run plowshare you will need:
 
-  * [http://www.gnu.org/software/bash/ bash]
-  * [http://curl.haxx.se/ curl]
-  * [http://www.mozilla.org/js/spidermonkey/ Spidermonkey] (only for megaupload downloader)
+  * [http://www.gnu.org/software/bash/ Bash]
+  * [http://curl.haxx.se/ Curl]
+  * [http://www.mozilla.org/rhino/ Rhino], [http://www.mozilla.org/js/spidermonkey/ Spidermonkey] or any other command-line !JavaScript interpreter (only for megaupload downloader)
+  * [http://www.imagemagick.org/ ImageMagick] (only for megaupload downloader)
+  * [http://code.google.com/p/tesseract-ocr Tesseract OCR] (only for megaupload downloader)
 
 = Download & Install =
 
-Download last version from:
-
-http://code.google.com/p/plowshare/downloads/list
-
-Uncompress and install:
+[http://code.google.com/p/plowshare/downloads/list Download] the last version, uncompress and install:
 
 {{{
 tar xvzf plowshare-VERSION
@@ -32,28 +31,47 @@ sudo bash install.sh
 
 == Download ==
 
-Example of anonymous download on rapidshare:
+Download a file from rapidshare:
 
 {{{
 plowdown http://rapidshare.com/files/123123123/a.jpg
 }}}
 
-Example of anonymous download on rapidshare with a file of links (one per line):
+Download a list of links (one link per line):
 
 {{{
 plowdown file_with_links.txt
 }}}
 
-Example of member download on megaupload:
+Download from megaupload with a free membership account:
 
 {{{
 plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 }}}
 
-== Upload ==
-
-Example of member upload on megaupload:
+A more complex example for advanced users: you have a found a webpage containing a bunch of megaupload files and want to download, let's say, the first ten links. You could then write:
 
 {{{
-plowup -a myuser:mypassword megaupload myfile.txt "My description"
+curl http://some-website.com/page.html | \
+    grep -o "http://www.megaupload.com/[^\"< ]*" | head -n10 | plowdown -
 }}}
+
+== Upload ==
+
+Upload a file to megaupload with a free membership:
+
+{{{
+plowup megaupload -- -a myuser:mypassword -d "My description" myfile.txt
+}}}
+
+Upload a file to rapidshare (free zone):
+
+{{{
+plowup rapidshare -- -a myuser:mypassword myfile.txt
+}}}
+
+= Creating new modules =
+
+Plowshare is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own based on this [http://code.google.com/p/plowshare/source/browse/trunk/examples/mymodule.sh template]. 
+
+New modules will be added to plowshare as long as they are released under a GNU/GPL v3 compatible license.
