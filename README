@@ -72,6 +72,6 @@ plowup rapidshare -- -a myuser:mypassword myfile.txt
 
 = Creating new modules =
 
-Plowshare is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own based on this [http://code.google.com/p/plowshare/source/browse/trunk/examples/mymodule.sh template]. 
+Plowshare is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
 
 New modules will be added to plowshare as long as they are released under a GNU/GPL v3 compatible license.
