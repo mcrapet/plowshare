@@ -38,17 +38,62 @@ check_function() {
     declare -F "$1" &>/dev/null
 }
 
+# Straighforward options/arguments processing using getopt style
+#
+# Example:
+#
+# set -- "-a user:password -q arg1 arg2"
+# $ eval "$(process_options "a:,auth:,AUTH q,quiet,QUIET" "$@")"
+# $ echo "$AUTH / $QUIET / $1 / $2"
+# user:password / 1 / arg1 / arg2
+#
+process_options() {
+    OPTIONS=$1
+    shift
+    get_field() { for ARG in $2; do echo $ARG | cut -d"," -f$1; done | xargs; }
+    VARS=$(get_field 3 "$OPTIONS")
+    ARGUMENTS="$(getopt -o "$(get_field 1 "$OPTIONS")" \
+        --long "$(get_field 2 "$OPTIONS")" -n 'plowshare' -- "$@")"        
+    eval set -- "$ARGUMENTS"
+    unset $VARS
+    while true; do
+        for OPTION in $OPTIONS; do
+            IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
+            if [ "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}" ]; then
+                if [ "${SHORT:${#SHORT}-1:1}" = ":" -o \
+                        "${LONG:${#LONG}-1:1}" = ":" ]; then
+                    echo "$VAR='$2'"
+                    shift 2
+                else
+                    echo "$VAR=1"
+                    shift
+                fi
+                break
+            elif [ "$1" = "--" ]; then
+                shift
+                break 2
+            fi
+        done
+    done
+    echo "set -- $(for ARG in "$@"; do echo "'$ARG'"; done | xargs -d"\n")"
+}
+
 # Login and return cookies
 #
-# $1: URL to post
-# $2: data to post
+# $1: User field
+# $2: Password field
+# $3: String 'username:password'
+# $4: URL to post
 post_login() {
-    USER=$1
-    PASSWORD=$2   
-    LOGINURL=$3
-    DATA=$4
-    if test "$USER" -a "$PASSWORD"; then
+    USERFIELD=$1
+    PASSWORDFIELD=$2
+    AUTH=$3
+    LOGINURL=$4
+    
+    if test "$AUTH"; then
+        IFS=":" read USER PASSWORD <<< "$AUTH" 
         debug "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+        DATA="$USERFIELD=$USER&$PASSWORDFIELD=$PASSWORD"
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
         test "$COOKIES" || { debug "login error"; return 1; }
         echo "$COOKIES"
@@ -72,4 +117,37 @@ ocr() {
     TEXT=$(cat $TEMP2 | xargs)
     rm -f $TEMP $TEMP2
     echo "$TEXT"
+}
+
+# Get module name from URL
+#
+# $1: URL 
+get_module() {
+    URL=$1
+    MODULES=$2
+    for MODULE in $MODULES; do
+        VAR=MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_REGEXP_URL
+        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
+    done     
+} 
+
+# Show usage info for modules
+debug_options_for_modules() {
+    MODULES=$1
+    NAME=$2
+    for MODULE in $MODULES; do
+        VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
+        OPTIONS=${!VAR}
+        if test "$OPTIONS"; then
+            debug
+            debug "  Options for module <$MODULE>:"
+            debug
+            for OPTION in $OPTIONS; do
+                IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
+                echo "$HELP" | while read LINE; do
+                    debug "    -${SHORT%:} $VALUE, --${LONG%:}=$VALUE"
+                done
+            done
+        fi        
+    done
 }
