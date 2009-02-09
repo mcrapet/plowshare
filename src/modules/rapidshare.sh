@@ -77,8 +77,7 @@ rapidshare_upload() {
             -F "fileid1=$FILEID" \
             -F "username=$USER" \
             -F "password=$PASSWORD" \
-            "$MOVE_URL") || 
-            debug "can't transfer to collectors zone"
+            "$MOVE_URL") || debug "can't transfer to collectors zone"
     fi    
     echo "$URL ($KILL)"
 }

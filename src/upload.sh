@@ -56,8 +56,8 @@ fi
 test $# -ge 2 || { usage; exit 1; } 
 
 MODULE=$1    
-shift
 FUNCTION=${MODULE}_upload
+shift
 if ! match "\<$MODULE\>" "$MODULES"; then
     debug "unsupported module: $MODULE"
     exit 2        
