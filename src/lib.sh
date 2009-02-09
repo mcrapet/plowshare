@@ -97,8 +97,6 @@ post_login() {
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
         test "$COOKIES" || { debug "login error"; return 1; }
         echo "$COOKIES"
-    else 
-        debug "no login info: anonymous upload"
     fi
 }
 
