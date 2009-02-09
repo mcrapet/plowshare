@@ -64,33 +64,31 @@ fi
 
 test $# -ge 1 || { usage; exit 1; } 
 
-OPTIONS=
-if [ "$AUTH" ]; then
-    OPTIONS="-a $AUTH"
-fi
+test "$AUTH" && OPTIONS="-a $AUTH" || OPTIONS=
 
-# Exit with code 0 if all links are downloaded succesfuly (4 otherwise) 
+# Exit with code 0 if all links are downloaded succesfuly (4 otherwise)
+DERROR=4
 RETVAL=0
-
 for ITEM in "$@"; do
     process_item "$ITEM" | while read URL; do
         MODULE=$(get_module "$URL" "$MODULES")
         if ! test "$MODULE"; then 
             debug "no module recognizes this URL: $URL"
-            RETVAL=4
+            RETVAL=$DERROR
             continue
         fi
         FUNCTION=${MODULE}_download 
         if ! check_function "$FUNCTION"; then 
             debug "module does not implement download: $MODULE"
-            RETVAL=4
+            RETVAL=$DERROR
             continue
         fi
         debug "start download ($MODULE): $URL"
         FILE_URL=$($FUNCTION $OPTIONS "$URL") && 
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//") && 
             curl --globoff -o "$FILENAME" "$FILE_URL" && 
-            echo $FILENAME || { debug "error downloading: $URL"; RETVAL=4; } 
+            echo $FILENAME || 
+            { debug "error downloading: $URL"; RETVAL=$DERROR; } 
     done
 done
 
