@@ -1,3 +1,9 @@
+plowshare (0.2.1) unstable; urgency=low
+
+  * Fix rapidshare freezone upload
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 14 Feb 2009 18:52:25 +0100
+
 plowshare (0.2) unstable; urgency=low
 
   * Simplify captcha decoding in megaupload (thanks to George Averill)
