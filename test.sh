@@ -29,7 +29,7 @@ assert() {
 
 # Run a test
 run() {
-  echo -n "$1... "
+  echo -n "$1: "
   "$@" && echo " ok" || echo " failed!"
 }
 

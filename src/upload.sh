@@ -66,5 +66,5 @@ if ! check_function "$FUNCTION"; then
     debug "module does not implement upload: $MODULE"
     exit 3
 fi
-debug "starting upload ($MODULE): $FILE"
+debug "starting upload ($MODULE)"
 $FUNCTION "$@"|| exit 4
