@@ -17,7 +17,7 @@ set -e
 MODULES="rapidshare megaupload 2shared"
 
 # Get library directory
-LIBDIR=$(dirname "$(readlink -f "$(type -P $0 || echo $0)")")
+LIBDIR=$(dirname "$(readlink -f "$(which $0)")")
 source $LIBDIR/lib.sh
 for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
@@ -37,7 +37,6 @@ usage() {
     debug
     debug "  -q, --quiet: Don't print debug or error messages" 
     debug
-    debug "Module options:"
     debug_options_for_modules "$MODULES" "UPLOAD"    
     debug
 }

@@ -138,12 +138,12 @@ debug_options_for_modules() {
         OPTIONS=${!VAR}
         if test "$OPTIONS"; then
             debug
-            debug "  Options for module <$MODULE>:"
+            debug "Options for module <$MODULE>:"
             debug
             for OPTION in $OPTIONS; do
                 IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
                 echo "$HELP" | while read LINE; do
-                    debug "    -${SHORT%:} $VALUE, --${LONG%:}=$VALUE"
+                    debug "  -${SHORT%:} $VALUE, --${LONG%:}=$VALUE"
                 done
             done
         fi        
