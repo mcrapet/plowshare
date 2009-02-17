@@ -2,8 +2,7 @@
 #
 # Megaupload module for plowshare.
 #
-# Dependencies: curl, JS interpreter (rhino, spidermonkey, ...), 
-#               convert (imagemagick), tesseract-ocr
+# Dependencies: curl, convert (imagemagick), tesseract-ocr
 #
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
@@ -21,12 +20,11 @@ LOGINURL="http://www.megaupload.com"
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
 #
 megaupload_download() {
+    set -e
     eval "$(process_options "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"             
     URL=$1
     BASEURL="http://www.megaupload.com"
  
-    check_exec "js" || check_exec "smjs" || check_exec "rhino" || 
-        { debug "no javascript interpreter (js/smjs) found"; return 1; }
     check_exec "convert" || 
         { debug "convert not found (install imagemagick)"; return 1; }       
     check_exec "tesseract" ||
@@ -38,31 +36,25 @@ megaupload_download() {
         debug "Downloading waiting page (loop $TRY)"
         TRY=$(expr $TRY + 1)
         PAGE=$(curl -b <(echo "$COOKIES") "$URL")
-        CAPTCHA_URL=$(echo "$PAGE" | parse "capgen" 'src="\(.*\)"') ||
-            { debug "file not found"; return 1; }    
-        CAPTCHA=$(curl "$BASEURL/$CAPTCHA_URL" | \
-            convert - -alpha off -colorspace gray gif:- | ocr)
+        CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
+            { debug "file not found"; return 1; }
+        CAPTCHA=$(curl "$CAPTCHA_URL" | \
+            convert - -alpha off -colorspace gray -level 0,0 gif:- | \
+            ocr | tr -d -c '[A-Z0-9]')
         debug "Decoded captcha: $CAPTCHA"
-        test $(echo -n $CAPTCHA | wc -c) -eq 3 || 
+        test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
-        IMAGECODE=$(echo "$PAGE" | parse "imagecode" 'value="\(.*\)\"')
+        IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
-        D=$(echo "$PAGE" | parse 'name="d"' 'value="\(.*\)\"')
-        DATA="imagestring=$CAPTCHA&d=$D&imagecode=$IMAGECODE&megavar=$MEGAVAR"
-        WAITPAGE=$(curl -b <(echo "$COOKIES") --data "$DATA" "$BASEURL")
-        SECVAR=$(echo "$WAITPAGE" | parse "Please wait" "'+\([^+]*\)+'")
-        test "$SECVAR" && break;
+        DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
+        WAITPAGE=$(curl -b <(echo "$COOKIES") --data "$DATA" "$URL")
+        WAITTIME=$(echo "$WAITPAGE" | parse " seconds" \
+            ">\([[:digit:]]\+\) seconds<" || true)
+        test "$WAITTIME" && break;
         debug "Captcha was not accepted"
     done
-    WAITTIME=$(echo "$WAITPAGE" | parse "$SECVAR=" "=\(.*\);") ||
-        { debug "error getting wait time"; WAITTIME=50; }
-    # We could easily parse the Javascript code, but it's nicer 
-    # and more robust to tell a JS interpreter to run the code for us.
-    JSCODE=$(echo "$WAITPAGE" | grep -B2 'ById("dlbutton")')    
-    URLCODE=$(echo "$JSCODE" | parse 'dlbutton' 'href="\([^"]*\)"')
-    JSSHELL=$(type -P js smjs rhino | head -n1)
-    FILEURL=$({ echo "$JSCODE" | head -n2; \
-        echo "print('$URLCODE');"; } | $JSSHELL)
+    FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
+        parse 'id="downloadlink"' 'href="\([^"]*\)"')
     debug "File URL: $FILEURL"
     debug "Waiting $WAITTIME seconds"
     sleep $(($WAITTIME + 1))
