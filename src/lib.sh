@@ -80,20 +80,18 @@ process_options() {
 
 # Login and return cookies
 #
-# $1: User field
-# $2: Password field
-# $3: String 'username:password'
-# $4: URL to post
+# $1: String 'username:password'
+# $2: Postdata string (ex: 'user=\$USER&password=\$PASSWORD')
+# $3: URL to post
 post_login() {
-    USERFIELD=$1
-    PASSWORDFIELD=$2
-    AUTH=$3
-    LOGINURL=$4
+    AUTH=$1
+    POSTDATA=$2
+    LOGINURL=$3
     
     if test "$AUTH"; then
         IFS=":" read USER PASSWORD <<< "$AUTH" 
         debug "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
-        DATA="$USERFIELD=$USER&$PASSWORDFIELD=$PASSWORD"
+        DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
         test "$COOKIES" || { debug "login error"; return 1; }
         echo "$COOKIES"

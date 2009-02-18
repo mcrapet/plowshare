@@ -10,7 +10,7 @@ MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD"
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
 d:,description:,DESCRIPTION,DESCRIPTION"
 
-LOGINURL="http://www.megaupload.com"
+LOGINURL="http://www.megaupload.com/?c=login"
 
 # Output a megaupload file download URL
 #
@@ -29,8 +29,9 @@ megaupload_download() {
         { debug "convert not found (install imagemagick)"; return 1; }       
     check_exec "tesseract" ||
         { debug "tesseract not found (install tesseract-ocr)"; return 1; }
-    COOKIES=$(post_login "login" "password" "$AUTH" "$LOGINURL") ||
-        { debug "error on login process"; return 1; }
+    LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
+    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
+        { debug "error on login process"; return 1; }    
     TRY=1
     while true; do 
         debug "Downloading waiting page (loop $TRY)"
@@ -74,7 +75,8 @@ megaupload_upload() {
     FILE=$1
     UPLOADURL="http://www.megaupload.com"
 
-    COOKIES=$(post_login "login" "password" "$AUTH" "$LOGINURL") ||
+    LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
+    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }
     debug "downloading upload page: $UPLOADURL"
     DONE=$(curl "$UPLOADURL" | parse "upload_done.php" 'action="\([^\"]*\)"') ||

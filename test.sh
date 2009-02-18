@@ -58,7 +58,8 @@ test_rapidshare_upload_anonymous() {
 test_rapidshare_upload_freezone() {
     FREEZONE_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
     AUTH=$(cat .rapidshare-auth)
-    COOKIES=$(post_login "username" "password" "$AUTH" "$FREEZONE_URL" 2>/dev/null)
+    LOGIN_DATA='username=$USER&password=$PASSWORD'
+    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_URL" 2>/dev/null)
     PARSE="<td>Files: <b>\(.*\)<\/b>"
     FILES1=$(curl -s -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
     URL=$(upload rapidshare -- -a "$AUTH" $UPFILE)

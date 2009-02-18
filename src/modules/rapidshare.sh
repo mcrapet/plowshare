@@ -86,9 +86,9 @@ rapidshare_upload_freezone() {
     FILE=$1
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
        
-    COOKIES=$(post_login "username" "password" \
-        "$AUTH_FREEZONE" "$FREEZONE_LOGIN_URL")
-    test "$COOKIES" || { debug "error on login process"; return 1; }
+    LOGIN_DATA='username=$USER&password=$PASSWORD'
+    COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
+        { debug "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
     debug "downloading upload page: $UPLOAD_URL"
     UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL)
