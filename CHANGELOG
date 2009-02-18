@@ -1,3 +1,10 @@
+plowshare (0.3) unstable; urgency=high
+
+  * Update megaupload module to the new 4-char captcha
+  * Update login to megaupload
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Wed, 18 Feb 2009 01:27:16 +0100
+
 plowshare (0.2.1) unstable; urgency=low
 
   * Fix rapidshare freezone upload
