@@ -33,6 +33,8 @@ run() {
   "$@" && echo " ok" || echo " failed!"
 }
 
+#####
+
 download() {
     $SRCDIR/download.sh "$@" 2>/dev/null
 }
@@ -104,8 +106,8 @@ test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload 2shared "$UPFILE")"
 }        
 
-### Main
 
+### Main
 
 TESTS=$(set | grep "^test_" | awk '$2 == "()"' | awk '{print $1}' | xargs)
 test $# -eq 0 || TESTS="$@" 

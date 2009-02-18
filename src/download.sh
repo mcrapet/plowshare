@@ -24,14 +24,14 @@ for MODULE in $MODULES; do
 done
 
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
-# or a file with links
+# or a file with links (discard empty/repeated lines and comments) 
 #
 process_item() {
     ITEM=$1
     if match "^\(http://\)" "$ITEM"; then
         echo "$ITEM"
     else
-        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM"
+        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | uniq
     fi
 }
 

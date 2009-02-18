@@ -2,8 +2,7 @@
 #
 # Megaupload module for plowshare.
 #
-# Dependencies: curl, convert (imagemagick), tesseract-ocr
-#
+# Dependencies: curl, convert (imagemagick), tesseract (tesseract-ocr)
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD"
@@ -35,7 +34,7 @@ megaupload_download() {
     TRY=1
     while true; do 
         debug "Downloading waiting page (loop $TRY)"
-        TRY=$(expr $TRY + 1)
+        TRY=$(($TRY + 1))
         PAGE=$(curl -b <(echo "$COOKIES") "$URL")
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
@@ -49,8 +48,8 @@ megaupload_download() {
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
         WAITPAGE=$(curl -b <(echo "$COOKIES") --data "$DATA" "$URL")
-        WAITTIME=$(echo "$WAITPAGE" | parse " seconds" \
-            ">\([[:digit:]]\+\) seconds<" || true)
+        WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
+            "count=\([[:digit:]]\+\);" || true)
         test "$WAITTIME" && break;
         debug "Captcha was not accepted"
     done
@@ -71,6 +70,7 @@ megaupload_download() {
 #   -d DESCRIPTION, --description=DESCRIPTION
 #
 megaupload_upload() {
+    set -e
     eval "$(process_options "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
     FILE=$1
     UPLOADURL="http://www.megaupload.com"

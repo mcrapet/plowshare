@@ -66,4 +66,4 @@ if ! check_function "$FUNCTION"; then
     exit 3
 fi
 debug "starting upload ($MODULE)"
-$FUNCTION "$@"|| exit 4
+$FUNCTION "$@" || exit 4
