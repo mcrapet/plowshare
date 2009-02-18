@@ -1,6 +1,7 @@
+﻿#labels Featured,tutorial,manual,usage
 = Introduction =
 
-Plowshare is a command-line downloader and uploader for some file-sharing websites. Sites currently supported:
+_Plowshare_ is a command-line downloader and uploader for some file-sharing websites. Sites currently supported:
 
 || *Website* || *Download* || *Upload* ||
 || [http://www.megaupload.com Megaupload] || anonymous and free membership || anonymous and free membership ||
@@ -9,11 +10,11 @@ Plowshare is a command-line downloader and uploader for some file-sharing websit
 
 = Dependencies =
 
-To run plowshare you will need:
+To run _plowshare_ you will need:
 
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX] Operating system (GNU/Linux, BSD, Cygwin, ...)
   * [http://www.gnu.org/software/bash/ Bash]
   * [http://curl.haxx.se/ Curl]
-  * [http://www.mozilla.org/rhino/ Rhino], [http://www.mozilla.org/js/spidermonkey/ Spidermonkey] or any other command-line !JavaScript interpreter (only for megaupload downloader)
   * [http://www.imagemagick.org/ ImageMagick] (only for megaupload downloader)
   * [http://code.google.com/p/tesseract-ocr Tesseract OCR] (only for megaupload downloader)
 
@@ -72,6 +73,6 @@ plowup rapidshare -- -a myuser:mypassword myfile.txt
 
 = Creating new modules =
 
-Plowshare is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
+_Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
 
-New modules will be added to plowshare as long as they are released under a GNU/GPL v3 compatible license.
+New modules will be added to _plowshare_ as long as they are released under a GNU GPL v3 compatible license.
