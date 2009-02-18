@@ -1,3 +1,10 @@
+plowshare (0.3.2) unstable; urgency=low
+
+  * Fix time-wait get in megaupload free-membership
+  * Create our own tempfile function
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Wed, 18 Feb 2009 10:32:44 +0100
+
 plowshare (0.3) unstable; urgency=high
 
   * Update megaupload module to the new 4-char captcha

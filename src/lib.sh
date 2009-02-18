@@ -98,6 +98,17 @@ post_login() {
     fi
 }
 
+# Create a tempfile and return path
+#
+# $1: Suffix
+#
+create_tempfile() {
+    SUFFIX=$1
+    FILE=${TMPDIR:-/tmp}/plowshare-lib.$$.$RANDOM$SUFFIX
+    : > "$FILE"
+    echo "$FILE"
+}
+
 # OCR of an image. Write OCRed text to standard input
 #
 # Standard input: image 
@@ -106,8 +117,8 @@ ocr() {
         { debug "convert not found (install imagemagick)"; return; }
     check_exec "tesseract" ||
         { debug "tesseract not found (install tesseract-ocr)"; return; }
-    TEMP=$(tempfile -s ".tif")
-    TEMP2=$(tempfile -s ".txt")
+    TEMP=$(create_tempfile ".tif")
+    TEMP2=$(create_tempfile ".txt")
     convert - tif:- > $TEMP
     tesseract $TEMP ${TEMP2/%.txt}
     TEXT=$(cat $TEMP2 | xargs)
