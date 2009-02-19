@@ -117,13 +117,12 @@ ocr() {
         { debug "convert not found (install imagemagick)"; return; }
     check_exec "tesseract" ||
         { debug "tesseract not found (install tesseract-ocr)"; return; }
-    TEMP=$(create_tempfile ".tif")
-    TEMP2=$(create_tempfile ".txt")
-    convert - tif:- > $TEMP
-    tesseract $TEMP ${TEMP2/%.txt}
-    TEXT=$(cat $TEMP2 | xargs)
-    rm -f $TEMP $TEMP2
-    echo "$TEXT"
+    TIFF=$(create_tempfile ".tif")
+    TEXT=$(create_tempfile ".txt")
+    convert - tif:- > $TIFF
+    tesseract $TIFF ${TEXT/%.txt}
+    xargs < $TEXT
+    rm -f $TIFF $TEXT
 }
 
 # Get module name from URL
