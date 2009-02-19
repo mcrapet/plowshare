@@ -43,6 +43,11 @@ upload() {
     $SRCDIR/upload.sh "$@" 2>/dev/null
 }
 
+download_with_debug() {
+    $SRCDIR/download.sh "$@"
+}
+
+
 UPFILE="/etc/services"
 
 ## Rapidshare
@@ -80,7 +85,10 @@ test_megaupload_download_anonymous() {
 
 test_megaupload_download_member() {
     AUTH=$(cat .megaupload-auth)
-    assert_equal "testmotion2.mp4" "$(download -a "$AUTH" $MEGAUPLOAD_URL)"
+    OUTPUT=$(download_with_debug -a "$AUTH" $MEGAUPLOAD_URL 2>&1)
+    assert_match "^Waiting 26 seconds" "$OUTPUT"
+    URL=$(echo "$OUTPUT" | tail -n1)
+    assert_equal "testmotion2.mp4" "$URL"
 }        
 
 test_megaupload_upload_anonymous() {
