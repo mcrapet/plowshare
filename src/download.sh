@@ -4,7 +4,7 @@
 #
 # Output filenames path to standard output (one per line).
 #
-# Dependencies: curl, getopt
+# Dependencies: curl, getopt, recode
 #
 # Web: http://code.google.com/p/plowshare
 # Contact: Arnau Sanchez <tokland@gmail.com>.
@@ -55,6 +55,7 @@ usage() {
 #
 
 check_exec "curl" || { debug "curl not found"; exit 2; }
+check_exec "recode" || { debug "curl not found"; exit 2; }
 eval "$(process_options "a:,auth:,AUTH q,quiet,QUIET" "$@")"
 
 if test "$QUIET"; then
@@ -85,7 +86,7 @@ for ITEM in "$@"; do
         fi
         debug "start download ($MODULE): $URL"
         FILE_URL=$($FUNCTION $OPTIONS "$URL") && 
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//") && 
+            FILENAME=$(basename "$FILE_URL" | recode html..) && 
             curl --globoff -o "$FILENAME" "$FILE_URL" && 
             echo $FILENAME || 
             { debug "error downloading: $URL"; RETVAL=$DERROR; } 
