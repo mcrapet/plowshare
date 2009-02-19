@@ -12,8 +12,9 @@ MODULE_2SHARED_UPLOAD_OPTIONS=
 #
 2shared_download() {
     URL=$1   
-    curl "$URL" | parse "window.location" "location = \"\(.*\)\";" || 
+    FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
         { debug "file not found"; return 1; }
+    echo "$FILE_URL" | sed "s/?tsid=.*$//"
 }
 
 # Upload a file to 2shared
