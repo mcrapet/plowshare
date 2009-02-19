@@ -55,7 +55,7 @@ usage() {
 #
 
 check_exec "curl" || { debug "curl not found"; exit 2; }
-check_exec "recode" || { debug "curl not found"; exit 2; }
+check_exec "recode" || { debug "recode not found"; exit 2; }
 eval "$(process_options "a:,auth:,AUTH q,quiet,QUIET" "$@")"
 
 if test "$QUIET"; then
