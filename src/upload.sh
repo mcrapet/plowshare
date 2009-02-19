@@ -36,7 +36,6 @@ usage() {
     debug "Options:"
     debug
     debug "  -q, --quiet: Don't print debug or error messages" 
-    debug
     debug_options_for_modules "$MODULES" "UPLOAD"    
     debug
 }

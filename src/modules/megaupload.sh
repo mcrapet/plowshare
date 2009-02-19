@@ -6,7 +6,7 @@
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD"
-MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
+MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth-freemembership:,AUTH,USER:PASSWORD
 d:,description:,DESCRIPTION,DESCRIPTION"
 
 LOGINURL="http://www.megaupload.com/?c=login"
@@ -51,13 +51,13 @@ megaupload_download() {
         WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
             "count=\([[:digit:]]\+\);" || true)
         test "$WAITTIME" && break;
-        debug "Captcha was not accepted"
+        debug "Wrong captcha"
     done
     FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     debug "File URL: $FILEURL"
     debug "Waiting $WAITTIME seconds"
-    sleep $(($WAITTIME + 1))
+    sleep $WAITTIME
     echo "$FILEURL"    
 }
 

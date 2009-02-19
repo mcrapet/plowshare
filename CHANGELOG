@@ -1,3 +1,9 @@
+plowshare (0.3.3) unstable; urgency=low
+
+  * Use recode to allow filenames with unicode chars.
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Thu, 19 Feb 2009 10:24:45 +0100
+
 plowshare (0.3.2) unstable; urgency=low
 
   * Fix time-wait get in megaupload free-membership
