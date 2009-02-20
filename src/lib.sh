@@ -2,6 +2,8 @@
 #
 # Library for plowshare.
 #
+# License: GNU GPL v3.0: http://www.gnu.org/licenses/gpl-3.0-standalone.html
+#
 
 # Echo text to standard error.
 #
@@ -16,7 +18,8 @@ debug() {
 #
 parse() { 
     S=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
-        test "$S" && echo "$S" || return 1 
+        test "$S" && echo "$S" || 
+        { debug "parse failed: /$1/ $2"; return 1; } 
 }
 
 # Check if a string ($2) matches a regexp ($1)
