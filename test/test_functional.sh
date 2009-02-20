@@ -1,39 +1,9 @@
 #!/bin/bash
 set -e
-SRCDIR=src/
-source $SRCDIR/lib.sh
-
-# Check that $1 is equal to $2.
-assert_equal() {
-  if ! test "$1" = "$2"; then
-    echo "assert_equal failed: $1 != $2"
-    return 1
-  fi
-}
-
-# Check that regexp $1 matches $2.
-assert_match() {
-  if ! grep -q "$1" <<< "$2"; then
-    echo "assert_match failed: regexp $1 does not match $2"
-    return 1
-  fi
-}
-
-# Check that $1 is not a empty string
-assert() {
-  if ! test "$1"; then
-    echo "assert failed"
-    return 1
-  fi
-}
-
-# Run a test
-run() {
-  echo -n "$1 ..."
-  "$@" && echo " ok" || echo " failed!"
-}
-
-#####
+ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
+SRCDIR=$ROOTDIR/src
+source $ROOTDIR/src/lib.sh
+source $ROOTDIR/test/lib.sh
 
 download() {
     $SRCDIR/download.sh "$@" 2>/dev/null
@@ -114,11 +84,4 @@ test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload 2shared "$UPFILE")"
 }        
 
-
-### Main
-
-TESTS=$(set | grep "^test_" | awk '$2 == "()"' | awk '{print $1}' | xargs)
-test $# -eq 0 || TESTS="$@" 
-for TEST in $TESTS; do
-    run $TEST
-done
+run_tests "$@"

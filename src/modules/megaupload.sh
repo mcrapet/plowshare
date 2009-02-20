@@ -2,6 +2,8 @@
 #
 # Megaupload module for plowshare.
 #
+# License: GNU GPL v3.0: http://www.gnu.org/licenses/gpl-3.0-standalone.html
+#
 # Dependencies: curl, convert (imagemagick), tesseract (tesseract-ocr)
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
@@ -39,7 +41,7 @@ megaupload_download() {
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         CAPTCHA=$(curl "$CAPTCHA_URL" | \
-            convert - -alpha off -colorspace gray -level 0,0 gif:- | \
+            convert - -alpha off -colorspace gray -level 1%,1% gif:- | \
             ocr | tr -d -c '[A-Z0-9]')
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
