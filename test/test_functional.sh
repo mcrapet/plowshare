@@ -9,14 +9,13 @@ download() {
     $SRCDIR/download.sh "$@" 2>/dev/null
 }
 
-upload() {
-    $SRCDIR/upload.sh "$@" 2>/dev/null
-}
-
 download_with_debug() {
     $SRCDIR/download.sh "$@"
 }
 
+upload() {
+    $SRCDIR/upload.sh "$@" 2>/dev/null
+}
 
 UPFILE="/etc/services"
 
@@ -25,7 +24,9 @@ UPFILE="/etc/services"
 RAPIDSHARE_URL="http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar"
 
 test_rapidshare_download_anonymous() {
-    assert_equal "Tux-Trainer_25-01-2008.rar" "$(download $RAPIDSHARE_URL)"
+    FILENAME="Tux-Trainer_25-01-2008.rar"
+    assert_equal "$FILENAME" "$(download $RAPIDSHARE_URL)"
+    rm -f $FILENAME
 }        
 
 test_rapidshare_upload_anonymous() {
@@ -50,7 +51,9 @@ test_rapidshare_upload_freezone() {
 MEGAUPLOAD_URL="http://www.megaupload.com/?d=ieo1g52v"
 
 test_megaupload_download_anonymous() {
-    assert_equal "testmotion2.mp4" "$(download $MEGAUPLOAD_URL)"
+    FILENAME="testmotion2.mp4"
+    assert_equal "$FILENAME" "$(download $MEGAUPLOAD_URL)"
+    rm -f $FILENAME
 }        
 
 test_megaupload_download_member() {
@@ -58,7 +61,9 @@ test_megaupload_download_member() {
     OUTPUT=$(download_with_debug -a "$AUTH" $MEGAUPLOAD_URL 2>&1)
     assert_match "^Waiting 26 seconds" "$OUTPUT"
     URL=$(echo "$OUTPUT" | tail -n1)
-    assert_equal "testmotion2.mp4" "$URL"
+    FILENAME="testmotion2.mp4"
+    assert_equal "$FILENAME" "$URL"
+    rm -f $FILENAME
 }        
 
 test_megaupload_upload_anonymous() {
@@ -77,7 +82,9 @@ test_megaupload_upload_member() {
 SHARED_URL="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
 
 test_2shared_download() {
+    FILENAME="Test.mp3"
     assert_equal "Test.mp3" "$(download $SHARED_URL)"
+    rm -f $FILENAME
 }        
 
 test_2shared_upload() {
