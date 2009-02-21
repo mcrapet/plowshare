@@ -17,8 +17,8 @@ debug() {
 # $2: POSIX-regexp to match (use parentheses) on the matched line.
 #
 parse() { 
-    S=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
-        test "$S" && echo "$S" || 
+    STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
+        test "$STRING" && echo "$STRING" || 
         { debug "parse failed: /$1/ $2"; return 1; } 
 }
 
@@ -41,12 +41,12 @@ check_function() {
     declare -F "$1" &>/dev/null
 }
 
-# Straighforward options/arguments processing using getopt style
+# Straighforward options and arguments processing using getopt style
 #
 # Example:
 #
-# set -- "-a user:password -q arg1 arg2"
-# $ eval "$(process_options "a:,auth:,AUTH q,quiet,QUIET" "$@")"
+# set -- -a user:password -q arg1 arg2
+# $ eval "$(process_options "a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET" "$@")"
 # $ echo "$AUTH / $QUIET / $1 / $2"
 # user:password / 1 / arg1 / arg2
 #
@@ -107,7 +107,7 @@ post_login() {
 #
 create_tempfile() {
     SUFFIX=$1
-    FILE=${TMPDIR:-/tmp}/plowshare-lib.$$.$RANDOM$SUFFIX
+    FILE="${TMPDIR:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
     : > "$FILE"
     echo "$FILE"
 }
@@ -116,19 +116,15 @@ create_tempfile() {
 #
 # Standard input: image 
 ocr() {
-    check_exec "convert" ||
-        { debug "convert not found (install imagemagick)"; return; }
-    check_exec "tesseract" ||
-        { debug "tesseract not found (install tesseract-ocr)"; return; }
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
     convert - tif:- > $TIFF
     tesseract $TIFF ${TEXT/%.txt}
-    xargs < $TEXT
+    cat $TEXT
     rm -f $TIFF $TEXT
 }
 
-# Get module name from URL
+# Get module name from URL link
 #
 # $1: URL 
 get_module() {
@@ -137,26 +133,6 @@ get_module() {
     for MODULE in $MODULES; do
         VAR=MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_REGEXP_URL
         match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
-    done     
-} 
-
-# Show usage info for modules
-debug_options_for_modules() {
-    MODULES=$1
-    NAME=$2
-    for MODULE in $MODULES; do
-        VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
-        OPTIONS=${!VAR}
-        if test "$OPTIONS"; then
-            debug
-            debug "Options for module <$MODULE>:"
-            debug
-            for OPTION in $OPTIONS; do
-                IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
-                echo "$HELP" | while read LINE; do
-                    debug "  -${SHORT%:} $VALUE, --${LONG%:}=$VALUE"
-                done
-            done
-        fi        
     done
-}
+    return 1     
+} 

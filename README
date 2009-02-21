@@ -1,7 +1,6 @@
-﻿#labels Featured,tutorial,manual,usage
 = Introduction =
 
-_Plowshare_ is a command-line downloader and uploader for some file-sharing websites. Sites currently supported:
+_Plowshare_ is a command-line downloader and uploader for some file sharing websites. Sites currently supported:
 
 || *Website* || *Download* || *Upload* ||
 || [http://www.megaupload.com Megaupload] || anonymous and free membership || anonymous and free membership ||
@@ -12,9 +11,10 @@ _Plowshare_ is a command-line downloader and uploader for some file-sharing webs
 
 To run _plowshare_ you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX] Operating system (GNU/Linux, BSD, Cygwin, ...)
-  * [http://www.gnu.org/software/bash/ Bash]
-  * [http://curl.haxx.se/ Curl]
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX] operating system (GNU/Linux, BSD, Cygwin, ...)
+  * [http://www.gnu.org/software/bash/ bash]
+  * [http://curl.haxx.se/ curl]
+  * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org/ ImageMagick] (only for megaupload downloader)
   * [http://code.google.com/p/tesseract-ocr Tesseract OCR] (only for megaupload downloader)
 
@@ -38,13 +38,13 @@ Download a file from rapidshare:
 plowdown http://rapidshare.com/files/123123123/a.jpg
 }}}
 
-Download a list of links (one link per line):
+Download a list of files (one link per line):
 
 {{{
 plowdown file_with_links.txt
 }}}
 
-Download from megaupload with a free membership account:
+Download a file from megaupload using a free membership account:
 
 {{{
 plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
@@ -59,19 +59,19 @@ curl http://some-website.com/page.html | \
 
 == Upload ==
 
-Upload a file to megaupload with a free membership:
+Upload a file to megaupload using a free membership:
 
 {{{
 plowup megaupload -- -a myuser:mypassword -d "My description" myfile.txt
 }}}
 
-Upload a file to rapidshare (free zone):
+Upload a file to rapidshare using the free-zone user:
 
 {{{
 plowup rapidshare -- -a myuser:mypassword myfile.txt
 }}}
 
-= Creating new modules =
+= Create new modules =
 
 _Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
 

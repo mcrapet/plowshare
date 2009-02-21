@@ -23,6 +23,26 @@ for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
 done
 
+# Show usage info for modules
+debug_options_for_modules() {
+    MODULES=$1
+    NAME=$2
+    for MODULE in $MODULES; do
+        VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
+        OPTIONS=${!VAR}
+        if test "$OPTIONS"; then
+            debug
+            debug "Options for module <$MODULE>:"
+            debug
+            for OPTION in $OPTIONS; do
+                IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
+                echo "$HELP" | while read LINE; do
+                    debug "  -${SHORT%:} $VALUE, --${LONG%:}=$VALUE"
+                done
+            done
+        fi        
+    done
+}
 
 # Print usage
 #
