@@ -8,8 +8,14 @@
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD"
-MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth-freemembership:,AUTH,USER:PASSWORD
-d:,description:,DESCRIPTION,DESCRIPTION"
+MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
+d:,description:,DESCRIPTION,DESCRIPTION
+f:,email-from:,FROMEMAIL,EMAIL
+t:,email-to:,TOEMAIL,EMAIL
+p:,link-password:,PASSWORD,STRING
+,traffic-url:,TRAFFIC_URL,URL
+m:,multiemail:,MULTIEMAIL,EMAIL1[,EMAIL2,...]
+"
 
 LOGINURL="http://www.megaupload.com/?c=login"
 
@@ -34,6 +40,15 @@ megaupload_download() {
         debug "Downloading waiting page (loop $TRY)"
         TRY=$(($TRY + 1))
         PAGE=$(curl -b <(echo "$COOKIES") "$URL")
+        # Test if we are using a premium account, try to get downloadlink
+        FILEURL=$(echo "$PAGE" |grep -A1 'id="downloadlink"' | \
+            tail -n1 | parse "<a" 'href="\([^"]*\)"')
+        if test "$FILEURL"; then
+            debug "Premium account, there is no need to wait"
+            debug "File URL: $FILEURL"
+            echo "$FILEURL"
+            return
+        fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         CAPTCHA=$(curl "$CAPTCHA_URL" | \
@@ -86,5 +101,10 @@ megaupload_upload() {
         -F "sessionid=$UPLOAD_IDENTIFIER" \
         -F "file=@$FILE;filename=$(basename "$FILE")" \
         -F "message=$DESCRIPTION" \
-        "$DONE" | parse "downloadurl" "url = '\(.*\)';"        
+        -F "toemail=$TOEMAIL" \
+        -F "fromemail=$FROMEMAIL" \
+        -F "password=$PASSWORD" \
+        -F "trafficurl=$TRAFFIC_URL" \
+        -F "multiemail=$MULTIEMAIL" \
+        "$DONE" | parse "downloadurl" "url = '\(.*\)';"
 }
