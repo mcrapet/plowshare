@@ -7,7 +7,8 @@
 # Dependencies: curl, convert (imagemagick), tesseract (tesseract-ocr)
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
-MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD"
+MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
+p:,file-password:,FILEPASSWORD,STRING"
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
 d:,description:,DESCRIPTION,DESCRIPTION
 f:,email-from:,FROMEMAIL,EMAIL
@@ -40,11 +41,26 @@ megaupload_download() {
         debug "Downloading waiting page (loop $TRY)"
         TRY=$(($TRY + 1))
         PAGE=$(curl -b <(echo "$COOKIES") "$URL")
+        # Test if the file is password protected
+        if echo "$PAGE" | grep -q 'name="filepassword"'; then
+            debug "File is password protected"
+            if ! test "$FILEPASSWORD"; then
+                debug "You must give a password"
+                return 1
+            fi
+            PAGE=$(curl -b <(echo "$COOKIES") \
+                -d "filepassword=$FILEPASSWORD" "$URL")
+            if match 'name="filepassword"' "$PAGE"; then
+                debug "File password incorrect"
+                return 1 
+            fi
+        fi        
+        echo "$PAGE" > /tmp/page
         # Test if we are using a premium account, try to get downloadlink
-        FILEURL=$(echo "$PAGE" |grep -A1 'id="downloadlink"' | \
-            tail -n1 | parse "<a" 'href="\([^"]*\)"')
+        FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
+            parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
-            debug "Premium account, there is no need to wait"
+            debug "The link is there, no need to wait"
             debug "File URL: $FILEURL"
             echo "$FILEURL"
             return
@@ -53,7 +69,7 @@ megaupload_download() {
             { debug "file not found"; return 1; }
         CAPTCHA=$(curl "$CAPTCHA_URL" | \
             convert - -alpha off -colorspace gray -level 1%,1% gif:- | \
-            ocr | xargs | tr -d -c '[A-Z0-9]')
+            ocr | tr -d -c '[A-Z0-9]')
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 

@@ -15,6 +15,11 @@ set -e
 
 # Supported modules
 MODULES="rapidshare megaupload 2shared"
+OPTIONS="a:,auth:,AUTH,USER:PASSWORD 
+q,quiet,QUIET 
+l,link-only,LINK_ONLY
+p:,file-password:,FILEPASSWORD,STRING
+"
 
 # Get library directory
 LIBDIR=$(dirname "$(readlink -f "$(type -P $0 || echo $0)")")
@@ -46,8 +51,7 @@ usage() {
     debug
     debug "Options:"
     debug
-    debug "  -q, --quiet: Don't print debug or error messages"
-    debug "  -a USER:PASSWORD, --auth=USER:PASSWORD"
+    debug_options "$OPTIONS" "    "
     debug
 }
 
@@ -56,7 +60,7 @@ usage() {
 
 check_exec "curl" || { debug "curl not found"; exit 2; }
 check_exec "recode" || { debug "recode not found"; exit 2; }
-eval "$(process_options "a:,auth:,AUTH q,quiet,QUIET" "$@")"
+eval "$(process_options "$OPTIONS" "$@")"
 
 if test "$QUIET"; then
     function debug() { :; } 
@@ -85,11 +89,15 @@ for ITEM in "$@"; do
             continue
         fi
         debug "start download ($MODULE): $URL"
-        FILE_URL=$($FUNCTION $OPTIONS "$URL") && 
-            FILENAME=$(basename "$FILE_URL" | recode html..) && 
-            curl --globoff -o "$FILENAME" "$FILE_URL" && 
+        FILE_URL=$($FUNCTION $OPTIONS "$URL")         
+        if test "$LINK_ONLY"; then
+            echo $FILE_URL
+        else 
+            FILENAME=$(basename "$FILE_URL" | recode html..) &&
+            curl --globoff -o "$FILENAME" "$FILE_URL" &&
             echo $FILENAME || 
-            { debug "error downloading: $URL"; RETVAL=$DERROR; } 
+            { debug "error downloading: $URL"; RETVAL=$DERROR; }
+        fi 
     done
 done
 
