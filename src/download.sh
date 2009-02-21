@@ -15,9 +15,10 @@ set -e
 
 # Supported modules
 MODULES="rapidshare megaupload 2shared"
-OPTIONS="a:,auth:,AUTH,USER:PASSWORD 
+OPTIONS="
 q,quiet,QUIET 
 l,link-only,LINK_ONLY
+a:,auth:,AUTH,USER:PASSWORD 
 p:,file-password:,FILEPASSWORD,STRING
 "
 
@@ -47,7 +48,7 @@ usage() {
     debug
     debug "  $(basename $0) [OPTIONS] URL|FILE [URL|FILE ...]"
     debug
-    debug "Available modules: $MODULES."
+    debug "Available modules: $MODULES"
     debug
     debug "Options:"
     debug

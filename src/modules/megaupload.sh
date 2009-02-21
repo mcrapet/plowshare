@@ -7,9 +7,11 @@
 # Dependencies: curl, convert (imagemagick), tesseract (tesseract-ocr)
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
-MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
+MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
+a:,auth:,AUTH,USER:PASSWORD
 p:,file-password:,FILEPASSWORD,STRING"
-MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="a:,auth:,AUTH,USER:PASSWORD
+MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
+a:,auth:,AUTH,USER:PASSWORD
 d:,description:,DESCRIPTION,DESCRIPTION
 f:,email-from:,FROMEMAIL,EMAIL
 t:,email-to:,TOEMAIL,EMAIL
@@ -35,28 +37,24 @@ megaupload_download() {
  
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
-        { debug "error on login process"; return 1; }    
+        { debug "error on login process"; return 1; }
+    ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
     TRY=1
     while true; do 
         debug "Downloading waiting page (loop $TRY)"
         TRY=$(($TRY + 1))
-        PAGE=$(curl -b <(echo "$COOKIES") "$URL")
+        PAGE=$(ccurl "$URL")
         # Test if the file is password protected
-        if echo "$PAGE" | grep -q 'name="filepassword"'; then
+        if match 'name="filepassword"' "$PAGE"; then
             debug "File is password protected"
-            if ! test "$FILEPASSWORD"; then
-                debug "You must give a password"
-                return 1
-            fi
-            PAGE=$(curl -b <(echo "$COOKIES") \
-                -d "filepassword=$FILEPASSWORD" "$URL")
-            if match 'name="filepassword"' "$PAGE"; then
-                debug "File password incorrect"
-                return 1 
-            fi
+            test "$FILEPASSWORD" || 
+                { debug "You must give a password"; return 1; }
+            PAGE=$(ccurl -d "filepassword=$FILEPASSWORD" "$URL")
+            match 'name="filepassword"' "$PAGE" &&
+                { debug "File password incorrect"; return 1; } 
         fi        
         echo "$PAGE" > /tmp/page
-        # Test if we are using a premium account, try to get downloadlink
+        # Test if we are using a Premium account, try to get the download link
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
@@ -76,7 +74,7 @@ megaupload_download() {
         IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
-        WAITPAGE=$(curl -b <(echo "$COOKIES") --data "$DATA" "$URL")
+        WAITPAGE=$(ccurl --data "$DATA" "$URL")
         WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
             "count=\([[:digit:]]\+\);" 2>/dev/null || true)
         test "$WAITTIME" && break;

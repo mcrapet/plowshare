@@ -1,8 +1,10 @@
-plowshare (0.3.4) unstable; urgency=low
+plowshare (0.4) unstable; urgency=low
 
-  * Add support for premium account in megaupload (thanks to Eric Soukenka)
-  * Add more options to megaupload upload (from, to, multiemail, trafficurl,
+  * Premium account for megaupload (thanks to Eric Soukenka)
+  * More options to megaupload upload (from, to, multiemail, trafficurl,
     password)
+  * Option to download only the output link (without downloading the file)
+  * Option to download password-protected files
 
  -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 21 Feb 2009 22:58:24 +0100
 

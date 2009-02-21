@@ -3,7 +3,8 @@
 # Check that $1 is equal to $2.
 assert_equal() {
     if ! test "$1" = "$2"; then
-        echo "assert_equal failed: $1 != $2"
+        echo "failed!"
+        echo "  assert_equal failed: $1 != $2"
         return 1
     fi
 }
@@ -11,7 +12,8 @@ assert_equal() {
 # Check that regexp $1 matches $2.
 assert_match() {
     if ! grep -q "$1" <<< "$2"; then
-        echo "assert_match failed: regexp $1 does not match $2"
+        echo "failed!"
+        echo "  assert_match failed: regexp $1 does not match $2"
         return 1
     fi
 }
@@ -21,7 +23,8 @@ assert_return() {
     eval "$2" &>/dev/null
     RETCODE=$?
     if ! test "$1" = "$RETCODE"; then
-        echo "assert_return failed: $1 != $RETCODE" 
+        echo "failed!"
+        echo "  assert_return failed: $1 != $RETCODE" 
         return 1
     fi
 }
@@ -29,7 +32,8 @@ assert_return() {
 # Check that $1 is not a empty stringu
 assert() {
   if ! test "$1"; then
-    echo "assert failed"
+    echo "failed!"
+    echo "  assert failed"
     return 1
   fi
 }

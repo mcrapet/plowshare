@@ -2,6 +2,7 @@
 set -e
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR=$ROOTDIR/src
+TESTSDIR=$ROOTDIR/test
 source $ROOTDIR/src/lib.sh
 source $ROOTDIR/test/lib.sh
 
@@ -35,7 +36,7 @@ test_rapidshare_upload_anonymous() {
 
 test_rapidshare_upload_freezone() {
     FREEZONE_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
-    AUTH=$(cat .rapidshare-auth)
+    AUTH=$(cat $TESTSDIR/.rapidshare-auth)
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_URL" 2>/dev/null)
     PARSE="<td>Files: <b>\(.*\)<\/b>"
@@ -56,13 +57,28 @@ test_megaupload_download_anonymous() {
     rm -f $FILENAME
 }        
 
+test_megaupload_password_protected_file() {
+    URL="http://www.megaupload.com/?d=4YF0D6A3"
+    FILENAME="asound.conf"
+    assert_equal "$FILENAME" "$(download -p test1 $URL)"
+    rm -f $FILENAME
+}
+
 test_megaupload_download_member() {
-    AUTH=$(cat .megaupload-auth)
+    AUTH=$(cat $TESTSDIR/.megaupload-auth)
     OUTPUT=$(download_with_debug -a "$AUTH" $MEGAUPLOAD_URL 2>&1)
     assert_match "^Waiting 26 seconds" "$OUTPUT"
     URL=$(echo "$OUTPUT" | tail -n1)
     FILENAME="testmotion2.mp4"
     assert_equal "$FILENAME" "$URL"
+    rm -f $FILENAME
+}        
+
+test_megaupload_download_premium() {
+    AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
+    OUTPUT=$(download -a "$AUTH" $MEGAUPLOAD_URL)
+    FILENAME="testmotion2.mp4"
+    assert_equal "$FILENAME" "$OUTPUT" || return 1 
     rm -f $FILENAME
 }        
 
@@ -72,9 +88,17 @@ test_megaupload_upload_anonymous() {
 }        
 
 test_megaupload_upload_member() {
-    AUTH=$(cat .megaupload-auth)
+    AUTH=$(cat $TESTSDIR/.megaupload-auth)
     URL=$(upload megaupload -- -a "$AUTH" "$UPFILE" 'Plowshare test')
     assert_equal "http://www.megaupload.com/?d=IDXJG1RN" "$URL"
+}        
+
+test_megaupload_upload_premium() {
+    AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
+    URL=$(upload megaupload -- -a "$AUTH" -p "mypassword" \
+        -d 'Plowshare test' "$UPFILE")
+    assert_equal "http://www.megaupload.com/?d=115BX7GS" "$URL"
+    assert_return 0 'match "name=\"filepassword\"" "$(curl $URL)"'
 }        
 
 ## 2Shared
@@ -83,8 +107,13 @@ SHARED_URL="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
 
 test_2shared_download() {
     FILENAME="Test.mp3"
-    assert_equal "Test.mp3" "$(download $SHARED_URL)"
+    assert_equal "$FILENAME" "$(download $SHARED_URL)"
     rm -f $FILENAME
+}        
+
+test_2shared_download_and_get_only_link() {
+    URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
+    assert_match "$URL" "$(download -l $SHARED_URL)"    
 }        
 
 test_2shared_upload() {

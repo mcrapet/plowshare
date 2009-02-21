@@ -5,6 +5,7 @@ MODULES="rapidshare megaupload 2shared"
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 PICSDIR=$ROOTDIR/test/pics
 MODULESDIR=$ROOTDIR/src/modules
+TESTSDIR=$ROOTDIR/test
 
 source $ROOTDIR/src/lib.sh
 source $ROOTDIR/test/lib.sh
@@ -69,7 +70,7 @@ test_create_tempfile() {
 }
 
 test_post_login() {
-    AUTH=$(cat .rapidshare-auth)
+    AUTH=$(cat $TESTSDIR/.rapidshare-auth)
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"       
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL" 2>/dev/null)
