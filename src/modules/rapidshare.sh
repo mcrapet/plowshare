@@ -21,12 +21,13 @@ rapidshare_download() {
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { debug "can't get wait URL contents"; return 1; }
         if echo "$DATA" | grep -o "Your IP address.*file" >&2; then
-            debug "Sleeping 1 minute and trying again"
-            sleep 60
+            WAITTIME=1
+            debug "Sleeping $WAITTIME minute(s) before trying again"
+            sleep $((WAITTIME*60))
             continue
         fi
-        LIMIT=$(echo "$DATA" | \
-            parse "try again" "[[:space:]]\([[:digit:]]\+\) minutes" || true)
+        CAPTURE="[[:space:]]\([[:digit:]]\+\) minutes"
+        LIMIT=$(echo "$DATA" | parse "try again" "$CAPTURE" 2>/dev/null || true)
         test -z "$LIMIT" && break
         debug "download limit reached: waiting $LIMIT minutes"
         sleep $((LIMIT*60))
@@ -49,16 +50,16 @@ rapidshare_download() {
 rapidshare_upload() {
     set -e
     eval "$(process_options "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"    
-    if [ "$AUTH_FREEZONE" ]; then
+    if test "$AUTH_FREEZONE"; then
         rapidshare_upload_freezone "$@"
     else
         rapidshare_upload_anonymous "$@" 
     fi
 }
 
-# Upload a file to Rapidshare anonymously
+# Upload a file to Rapidshare anonymously and return link and kill URLs
 #
-# rapidshare_upload FILE
+# rapidshare_upload_anonymous FILE
 #
 rapidshare_upload_anonymous() {
     set -e
@@ -75,7 +76,7 @@ rapidshare_upload_anonymous() {
 
 # Upload a file to Rapidshare (free zone)
 #
-# rapidshare_upload [OPTIONS] FILE
+# rapidshare_upload_freezone [OPTIONS] FILE
 #
 # Options:
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
@@ -111,7 +112,7 @@ rapidshare_upload_freezone() {
     FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"")
     # There is a killcode in the HTML, but it's not used to build a URL
     # but as a param in a POST, so I assume there is no kill URL for
-    # freezone. Therefore, output only the file URL.    
+    # freezone files. Therefore, this function outputs just the file URL.    
     URL="http://rapidshare.com/files/$FILEID/$FILENAME.html"
     echo "$URL"
 }

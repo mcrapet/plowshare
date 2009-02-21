@@ -19,7 +19,7 @@ MODULE_2SHARED_UPLOAD_OPTIONS=
     echo "$FILE_URL" | sed "s/?tsid=.*$//"
 }
 
-# Upload a file to 2shared
+# Upload a file to 2shared and upload URL (ADMIN_URL)
 #
 # $1: File path
 #
@@ -33,7 +33,8 @@ MODULE_2SHARED_UPLOAD_OPTIONS=
         { debug "cannot get upload form URL"; return 1; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
     debug "starting file upload: $FILE"
-    STATUS=$(curl -F "mainDC=1" \
+    STATUS=$(curl \
+        -F "mainDC=1" \
         -F "fff=@$FILE;filename=$(basename "$FILE")" \
         "$ACTION")
     match "upload has successfully completed" "$STATUS" ||

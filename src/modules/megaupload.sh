@@ -26,10 +26,6 @@ megaupload_download() {
     URL=$1
     BASEURL="http://www.megaupload.com"
  
-    check_exec "convert" || 
-        { debug "convert not found (install imagemagick)"; return 1; }       
-    check_exec "tesseract" ||
-        { debug "tesseract not found (install tesseract-ocr)"; return 1; }
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }    
@@ -42,7 +38,7 @@ megaupload_download() {
             { debug "file not found"; return 1; }
         CAPTCHA=$(curl "$CAPTCHA_URL" | \
             convert - -alpha off -colorspace gray -level 1%,1% gif:- | \
-            ocr | tr -d -c '[A-Z0-9]')
+            ocr | xargs | tr -d -c '[A-Z0-9]')
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
@@ -51,7 +47,7 @@ megaupload_download() {
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
         WAITPAGE=$(curl -b <(echo "$COOKIES") --data "$DATA" "$URL")
         WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
-            "count=\([[:digit:]]\+\);" || true)
+            "count=\([[:digit:]]\+\);" 2>/dev/null || true)
         test "$WAITTIME" && break;
         debug "Wrong captcha"
     done
@@ -63,7 +59,7 @@ megaupload_download() {
     echo "$FILEURL"    
 }
 
-# Upload a file to megaupload
+# Upload a file to megaupload and upload url link
 #
 # megaupload_upload [OPTIONS] FILE
 #
