@@ -4,7 +4,7 @@
 #
 # License: GNU GPL v3.0: http://www.gnu.org/licenses/gpl-3.0-standalone.html
 #
-MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare.com/files/"
+MODULE_RAPIDSHARE_REGEXP_URL="http://\(\w\+\.\)\?rapidshare.com/"
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS=
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="a:,auth-freezone:,AUTH_FREEZONE,USER:PASSWORD"
 
