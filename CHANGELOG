@@ -1,3 +1,11 @@
+plowshare (0.3.4) unstable; urgency=low
+
+  * Add support for premium account in megaupload (thanks to Eric Soukenka)
+  * Add more options to megaupload upload (from, to, multiemail, trafficurl,
+    password)
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 21 Feb 2009 22:58:24 +0100
+
 plowshare (0.3.3) unstable; urgency=low
 
   * Use recode to allow filenames with unicode chars.

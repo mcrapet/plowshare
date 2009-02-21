@@ -116,6 +116,8 @@ create_tempfile() {
 #
 # Standard input: image 
 ocr() {
+    # Tesseract is somewhat "peculiar" and it's impossible to use pipes
+    # or process substitution. So let's use temporal files instead (*sigh*).
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
     convert - tif:- > $TIFF
