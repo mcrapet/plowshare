@@ -49,10 +49,11 @@ test_check_function() {
 }
 
 test_process_options() {
-    OPTIONS="a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET"
-    eval "$(process_options "$OPTIONS" -a user:password -q arg1 arg2)"
+    OPTIONS="a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET ,level:,LEVEL,INTEGER"
+    eval "$(process_options "$OPTIONS" --auth=user:password -q arg1 arg2 --level=5)"
     assert_equal user:password $AUTH
     assert_equal 1 $QUIET
+    assert_equal 5 $LEVEL
     assert_equal arg1 $1
     assert_equal arg2 $2
 }

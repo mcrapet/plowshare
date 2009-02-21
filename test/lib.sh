@@ -36,8 +36,8 @@ assert() {
 
 # Run a test
 run() {
-  echo -n "$1..."
-  "$@" && echo " ok" || echo " failed!"
+  echo -n "$1... "
+  "$@" && echo "ok" || echo "failed!"
 }
 
 # Run tests (run all if none is given)
