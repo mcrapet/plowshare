@@ -137,4 +137,29 @@ get_module() {
         match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
     done
     return 1     
-} 
+}
+
+# Show help info for options
+#
+# $1: options
+# $2: indent string
+debug_options() {
+    OPTIONS=$1
+    INDENTING=$2
+    for OPTION in $OPTIONS; do
+        IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
+        echo "$HELP" | while read LINE; do
+            STRING="$INDENTING"
+            test "$SHORT" && {
+                STRING="$STRING-${SHORT%:}"
+                test "$VALUE" && STRING="$STRING $VALUE"
+            }
+            test "$LONG" -a "$SHORT" && STRING="$STRING, "
+            test "$LONG" && {
+                STRING="$STRING--${LONG%:}"
+                test "$VALUE" && STRING="$STRING=$VALUE"
+            } 
+            debug "$STRING"
+        done
+    done
+}
