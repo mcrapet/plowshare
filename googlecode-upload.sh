@@ -25,4 +25,4 @@ EOF
 
 BRANCH="RELEASE-$VERSION"
 echo "creating branch: $BRANCH"
-svn copy $TRUNK $BRANCHES/$BRANCH
+svn copy -m "$LOG" $TRUNK $BRANCHES/$BRANCH

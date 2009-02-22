@@ -56,7 +56,7 @@ q,quiet,QUIET
 !,level:,LEVEL,INTEGER
 "
     eval "$(process_options testmod "$OPTIONS" \
-        --auth="user : password" -q --level="5 a" arg1 arg2)"
+        --auth="user : password" -q "--level=5 a" arg1 arg2)"    
     assert_equal "user : password" "$AUTH"
     assert_equal 1 $QUIET
     assert_equal "" $LEVEL
@@ -82,15 +82,5 @@ test_post_login() {
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL" 2>/dev/null)
     assert_match "\.rapidshare\.com" "$COOKIES"
 }
-
-#test_filter_options() {
-#    OPTIONS="a:,auth:,AUTH,USER:PASSWORD b,batch,BATCH"
-#    eval "$(filter_options "$OPTIONS" \
-#        -a 'user:password test' -q --level=1 --batch arg1 arg2)"
-#    assert_equal 3 $#
-#    assert_equal "-a" "$1"
-#    assert_equal "user:password test" "$2"
-#    assert_equal "--batch" "$3"
-#}
 
 run_tests "$@"

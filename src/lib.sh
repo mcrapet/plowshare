@@ -185,7 +185,11 @@ process_options() {
                     if [ "$UNUSED" = 0 ]; then
                         echo "$VAR=\"$2\""
                     else
-                        UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1" "$2")
+                        if [ ${1:0:2} = "--" ]; then
+                            UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1=$2")
+                        else
+                            UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1" "$2")
+                        fi
                     fi
                     shift
                 else
@@ -207,44 +211,3 @@ process_options() {
                echo "'$ARG'"
           done | xargs -d"\n")"
 }
-
-# Filter options not contained in $1
-
-#filter_options() {
-#    OPTIONS=$1
-#    RETURN_ARGUMENTS=$2
-#    shift 2
-#    SHORT_OPTIONS=$(get_field 1 "$OPTIONS")
-#    LONG_OPTIONS=$(get_field 2 "$OPTIONS")
-#    OUTPUT=()
-#    while test $# -gt 0; do    
-#        STRING=$1
-#        if test ${STRING:0:2} = "--"; then
-#            OPT=$(echo ${STRING:2} | sed "s/=/:/" | sed "s/:.*$/:/")
-#            if match "\<$OPT\>" "$LONG_OPTIONS"; then
-#                OUTPUT=("${OUTPUT[@]}" "$STRING")
-#            fi
-#            shift
-#        elif test ${STRING:0:1} = "-"; then
-#            OPT=${STRING:1}
-#            if match "\<$OPT:\?\>" "$SHORT_OPTIONS"; then
-#                if match "\(^\|[[:space:]]\)$OPT:\([[:space:]]\|$\)" "$SHORT_OPTIONS"; then
-#                    OUTPUT=("${OUTPUT[@]}" "$STRING")
-#                    shift
-#                    OUTPUT=("${OUTPUT[@]}" "$1")
-#                else
-#                    OUTPUT=("${OUTPUT[@]}" "$STRING")
-#                fi
-#            fi
-#            shift
-#        else
-#            if test $RETURN_ARGUMENTS = 1; then
-#                OUTPUT=("${OUTPUT[@]}" "$STRING")
-#                shift
-#            else
-#                break
-#            fi
-#        fi 
-#    done
-#    echo "set -- $(for ARG in "${OUTPUT[@]}"; do echo -n "'$ARG' "; done)"
-#}
