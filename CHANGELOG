@@ -1,8 +1,8 @@
 plowshare (0.4) unstable; urgency=low
 
-  * Premium account for megaupload (thanks to Eric Soukenka)
-  * More options to megaupload upload (from, to, multiemail, trafficurl,
-    password)
+  * Premium account support for megaupload (thanks to Eric Soukenka)
+  * More options to megaupload upload (email-from, email-to, multiemail, 
+    trafficurl, password)
   * Option to download only the output link (without downloading the file)
   * Option to download password-protected files
 
