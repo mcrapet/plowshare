@@ -3,7 +3,7 @@
 _Plowshare_ is a command-line downloader and uploader for some file sharing websites. Sites currently supported:
 
 || *Website* || *Download* || *Upload* ||
-|| [http://www.megaupload.com Megaupload] || anonymous and free membership || anonymous and free membership ||
+|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium ||
 || [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
 || [http://www.2shared.com 2Shared] || yes || yes ||
 
@@ -73,6 +73,6 @@ plowup rapidshare -- -a myuser:mypassword myfile.txt
 
 = Create new modules =
 
-_Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
+_Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/2shared.sh 2shared]) and create you own. 
 
 New modules will be added to _plowshare_ as long as they are released under a GNU GPL v3 compatible license.
