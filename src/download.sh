@@ -72,7 +72,7 @@ test $# -ge 1 || { usage; exit 1; }
 
 test "$AUTH" && OPTIONS="-a $AUTH" || OPTIONS=
 
-# Exit with code 0 if all links are downloaded succesfuly (4 otherwise)
+# Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
 DERROR=4
 RETVAL=0
 for ITEM in "$@"; do
