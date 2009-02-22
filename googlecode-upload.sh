@@ -14,16 +14,15 @@ FILE=$DIRECTORY.tgz
 rm -rf $DIRECTORY
 svn export $TRUNK $DIRECTORY --username $USERNAME --force
 tar -zcf $FILE $DIRECTORY
+echo "tgz: $FILE"
 
-echo $FILE
-
-if test "$LOG"; then 
-    expect << EOF 
-        spawn googlecode-upload.py -s "$LOG" -p $PROJECT -u $USERNAME $FILE
-        expect "Password:"
-        send "$PASSWORD\r"
-        expect
+expect << EOF 
+    spawn googlecode-upload.py -s "$LOG" -p $PROJECT -u $USERNAME $FILE
+    expect "Password:"
+    send "$PASSWORD\r"
+    expect
 EOF
-	svn copy $TRUNK $BRANCHES/$DIRECTORY
-fi
-echo done
+
+BRANCH="RELEASE-$VERSION"
+echo "creating branch: $BRANCH"
+svn copy $TRUNK $BRANCHES/$BRANCH
