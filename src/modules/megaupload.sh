@@ -31,7 +31,7 @@ LOGINURL="http://www.megaupload.com/?c=login"
 #
 megaupload_download() {
     set -e
-    eval "$(process_options "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"             
+    eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     BASEURL="http://www.megaupload.com"
  
@@ -58,7 +58,7 @@ megaupload_download() {
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
-            debug "The link is there, no need to wait"
+            debug "Link found in HTML, no need to wait"
             debug "File URL: $FILEURL"
             echo "$FILEURL"
             return
@@ -98,7 +98,7 @@ megaupload_download() {
 #
 megaupload_upload() {
     set -e
-    eval "$(process_options "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
+    eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
     FILE=$1
     UPLOADURL="http://www.megaupload.com"
 

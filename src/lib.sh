@@ -41,46 +41,6 @@ check_function() {
     declare -F "$1" &>/dev/null
 }
 
-# Straighforward options and arguments processing using getopt style
-#
-# Example:
-#
-# set -- -a user:password -q arg1 arg2
-# $ eval "$(process_options "a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET" "$@")"
-# $ echo "$AUTH / $QUIET / $1 / $2"
-# user:password / 1 / arg1 / arg2
-#
-process_options() {
-    OPTIONS=$1
-    shift
-    get_field() { for ARG in $2; do echo $ARG | cut -d"," -f$1; done | xargs; }
-    VARS=$(get_field 3 "$OPTIONS")
-    ARGUMENTS="$(getopt -o "$(get_field 1 "$OPTIONS")" \
-        --long "$(get_field 2 "$OPTIONS")" -n 'plowshare' -- "$@")"        
-    eval set -- "$ARGUMENTS"
-    unset $VARS
-    while true; do
-        for OPTION in $OPTIONS; do
-            IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
-            if [ "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}" ]; then
-                if [ "${SHORT:${#SHORT}-1:1}" = ":" -o \
-                        "${LONG:${#LONG}-1:1}" = ":" ]; then
-                    echo "$VAR='$2'"
-                    shift 2
-                else
-                    echo "$VAR=1"
-                    shift
-                fi
-                break
-            elif [ "$1" = "--" ]; then
-                shift
-                break 2
-            fi
-        done
-    done
-    echo "set -- $(for ARG in "$@"; do echo "'$ARG'"; done | xargs -d"\n")"
-}
-
 # Login and return cookies
 #
 # $1: String 'username:password'
@@ -121,27 +81,15 @@ ocr() {
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
     convert - tif:- > $TIFF
-    tesseract $TIFF ${TEXT/%.txt}
+    tesseract $TIFF ${TEXT/%.txt} || 
+        { rm -f $TIFF $TEXT; return 1; }
     cat $TEXT
     rm -f $TIFF $TEXT
 }
 
-# Get module name from URL link
-#
-# $1: URL 
-get_module() {
-    URL=$1
-    MODULES=$2
-    for MODULE in $MODULES; do
-        VAR=MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_REGEXP_URL
-        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
-    done
-    return 1     
-}
-
 # Show help info for options
 #
-# $1: options
+# $1: options${STRING:2}
 # $2: indent string
 debug_options() {
     OPTIONS=$1
@@ -163,3 +111,140 @@ debug_options() {
         done
     done
 }
+
+get_modules_options() {
+    MODULES=$1
+    NAME=$2
+    for MODULE in $MODULES; do
+        get_options_for_module "$MODULE" "$NAME" | xargs -n1 | while read OPTION; do
+            if test "$OPTION"; then echo "!$OPTION"; fi
+        done
+    done
+}
+
+get_options_for_module() {
+    MODULE=$1
+    NAME=$2    
+    VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
+    echo ${!VAR}
+}
+
+# Show usage info for modules
+debug_options_for_modules() {
+    MODULES=$1
+    NAME=$2
+    for MODULE in $MODULES; do
+        OPTIONS=$(get_options_for_module "$MODULE" "$NAME")
+        if test "$OPTIONS"; then
+            debug; debug "Options for module <$MODULE>:"; debug
+            debug_options "$OPTIONS" "    "
+        fi        
+    done
+}
+
+get_field() { 
+    for ARG in $2; do echo $ARG | cut -d"," -f$1; done | xargs; 
+}
+
+# Straighforward options and arguments processing using getopt style
+#
+# Example:
+#
+# set -- -a user:password -q arg1 arg2
+# $ eval "$(process_options module "a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET" "$@")"
+# $ echo "$AUTH / $QUIET / $1 / $2"
+# user:password / 1 / arg1 / arg2
+#
+process_options() {
+    NAME=$1
+    OPTIONS=$2    
+    shift 2
+        
+    VARS=$(get_field 3 "$OPTIONS")
+    ARGUMENTS="$(getopt -o "$(get_field 1 "$OPTIONS")" \
+        --long "$(get_field 2 "$OPTIONS")" -n "$NAME" -- "$@")"        
+    eval set -- "$ARGUMENTS"
+    unset $VARS
+    UNUSED_OPTIONS=()
+    while true; do
+        if [ "$1" = "--" ]; then
+            shift
+            break
+        fi
+        for OPTION in $OPTIONS; do
+            IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
+            if test ${SHORT:0:1} = "!"; then
+                UNUSED=1
+                SHORT=${SHORT:1}
+            else
+                UNUSED=0
+            fi
+            if [ "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}" ]; then
+                if [ "${SHORT:${#SHORT}-1:1}" = ":" -o \
+                        "${LONG:${#LONG}-1:1}" = ":" ]; then
+                    if [ "$UNUSED" = 0 ]; then
+                        echo "$VAR=\"$2\""
+                    else
+                        UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1" "$2")
+                    fi
+                    shift
+                else
+                    if [ "$UNUSED" = 0 ]; then
+                        echo "$VAR=1"
+                    else
+                        UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1")
+                    fi
+                fi
+                break
+            fi
+        done
+        shift
+    done
+    echo "UNUSED_OPTIONS=($(for ARG in "${UNUSED_OPTIONS[@]}"; do 
+               echo "'$ARG'"
+          done | xargs -d"\n"))"
+    echo "set -- $(for ARG in "$@"; do 
+               echo "'$ARG'"
+          done | xargs -d"\n")"
+}
+
+# Filter options not contained in $1
+
+#filter_options() {
+#    OPTIONS=$1
+#    RETURN_ARGUMENTS=$2
+#    shift 2
+#    SHORT_OPTIONS=$(get_field 1 "$OPTIONS")
+#    LONG_OPTIONS=$(get_field 2 "$OPTIONS")
+#    OUTPUT=()
+#    while test $# -gt 0; do    
+#        STRING=$1
+#        if test ${STRING:0:2} = "--"; then
+#            OPT=$(echo ${STRING:2} | sed "s/=/:/" | sed "s/:.*$/:/")
+#            if match "\<$OPT\>" "$LONG_OPTIONS"; then
+#                OUTPUT=("${OUTPUT[@]}" "$STRING")
+#            fi
+#            shift
+#        elif test ${STRING:0:1} = "-"; then
+#            OPT=${STRING:1}
+#            if match "\<$OPT:\?\>" "$SHORT_OPTIONS"; then
+#                if match "\(^\|[[:space:]]\)$OPT:\([[:space:]]\|$\)" "$SHORT_OPTIONS"; then
+#                    OUTPUT=("${OUTPUT[@]}" "$STRING")
+#                    shift
+#                    OUTPUT=("${OUTPUT[@]}" "$1")
+#                else
+#                    OUTPUT=("${OUTPUT[@]}" "$STRING")
+#                fi
+#            fi
+#            shift
+#        else
+#            if test $RETURN_ARGUMENTS = 1; then
+#                OUTPUT=("${OUTPUT[@]}" "$STRING")
+#                shift
+#            else
+#                break
+#            fi
+#        fi 
+#    done
+#    echo "set -- $(for ARG in "${OUTPUT[@]}"; do echo -n "'$ARG' "; done)"
+#}

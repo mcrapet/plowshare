@@ -13,6 +13,7 @@ MODULE_2SHARED_UPLOAD_OPTIONS=
 # $1: A 2shared URL
 #
 2shared_download() {
+    eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
     URL=$1   
     FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
         { debug "file not found"; return 1; }
@@ -24,6 +25,7 @@ MODULE_2SHARED_UPLOAD_OPTIONS=
 # $1: File path
 #
 2shared_upload() {
+    eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
     FILE=$1
     UPLOADURL="http://www.2shared.com/"
 

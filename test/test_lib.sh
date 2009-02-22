@@ -50,11 +50,17 @@ test_check_function() {
 }
 
 test_process_options() {
-    OPTIONS="a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET ,level:,LEVEL,INTEGER"
-    eval "$(process_options "$OPTIONS" --auth=user:password -q arg1 arg2 --level=5)"
-    assert_equal user:password $AUTH
+    OPTIONS="
+a:,auth:,AUTH,USER:PASSWORD 
+q,quiet,QUIET 
+!,level:,LEVEL,INTEGER
+"
+    eval "$(process_options testmod "$OPTIONS" \
+        --auth="user : password" -q --level="5 a" arg1 arg2)"
+    assert_equal "user : password" "$AUTH"
     assert_equal 1 $QUIET
-    assert_equal 5 $LEVEL
+    assert_equal "" $LEVEL
+    assert_equal '--level=5 a' "$UNUSED_OPTIONS"
     assert_equal arg1 $1
     assert_equal arg2 $2
 }
@@ -77,14 +83,14 @@ test_post_login() {
     assert_match "\.rapidshare\.com" "$COOKIES"
 }
 
-test_get_module() {
-    RAPIDSHARE_URL="http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar"
-    MEGAUPLOAD_URL="http://www.megaupload.com/?d=ieo1g52v"
-    SHARED_URL="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
-    for SCRIPT in $MODULESDIR/*; do
-        source $SCRIPT
-    done    
-    assert_equal "rapidshare" $(get_module $RAPIDSHARE_URL "$MODULES") 
-}
+#test_filter_options() {
+#    OPTIONS="a:,auth:,AUTH,USER:PASSWORD b,batch,BATCH"
+#    eval "$(filter_options "$OPTIONS" \
+#        -a 'user:password test' -q --level=1 --batch arg1 arg2)"
+#    assert_equal 3 $#
+#    assert_equal "-a" "$1"
+#    assert_equal "user:password test" "$2"
+#    assert_equal "--batch" "$3"
+#}
 
 run_tests "$@"

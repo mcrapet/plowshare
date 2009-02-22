@@ -18,8 +18,7 @@ MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 q,quiet,QUIET 
 l,link-only,LINK_ONLY
-a:,auth:,AUTH,USER:PASSWORD 
-p:,file-password:,FILEPASSWORD,STRING
+m,mark-downloaded,MARK_DOWNLOADED
 "
 
 # Get library directory
@@ -29,15 +28,35 @@ for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
 done
 
+# Get module name from URL link
+#
+# $1: URL 
+get_module() {
+    URL=$1
+    MODULES=$2
+    for MODULE in $MODULES; do
+        VAR=MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_REGEXP_URL
+        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
+    done
+    return 1     
+}
+
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments) 
 #
 process_item() {
     ITEM=$1
     if match "^\(http://\)" "$ITEM"; then
-        echo "$ITEM"
+        echo "url" "$ITEM"
     else
-        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | uniq
+        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read LINE; do
+            if test "$ITEM" != "-" -a -f "$ITEM"; then
+                TYPE="file"
+            else
+                TYPE="url"
+            fi 
+            echo "$TYPE" $LINE
+        done
     fi
 }
 
@@ -46,13 +65,14 @@ process_item() {
 usage() {
     debug "Download files from file sharing servers."
     debug
-    debug "  $(basename $0) [OPTIONS] URL|FILE [URL|FILE ...]"
+    debug "  $(basename $0) [OPTIONS] -- [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     debug
     debug "Available modules: $MODULES"
     debug
     debug "Options:"
     debug
     debug_options "$OPTIONS" "    "
+    debug_options_for_modules "$MODULES" "DOWNLOAD"    
     debug
 }
 
@@ -61,7 +81,9 @@ usage() {
 
 check_exec "curl" || { debug "curl not found"; exit 2; }
 check_exec "recode" || { debug "recode not found"; exit 2; }
-eval "$(process_options "$OPTIONS" "$@")"
+
+MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
+eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 
 if test "$QUIET"; then
     function debug() { :; } 
@@ -70,13 +92,11 @@ fi
 
 test $# -ge 1 || { usage; exit 1; } 
 
-test "$AUTH" && OPTIONS="-a $AUTH" || OPTIONS=
-
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
 DERROR=4
 RETVAL=0
 for ITEM in "$@"; do
-    process_item "$ITEM" | while read URL; do
+    process_item "$ITEM" | while read TYPE URL; do
         MODULE=$(get_module "$URL" "$MODULES")
         if ! test "$MODULE"; then 
             debug "no module recognizes this URL: $URL"
@@ -90,14 +110,20 @@ for ITEM in "$@"; do
             continue
         fi
         debug "start download ($MODULE): $URL"
-        FILE_URL=$($FUNCTION $OPTIONS "$URL")         
+        MODULE_OPTIONS=$(get_options_for_module "$MODULE" "DOWNLOAD")
+        FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL")
         if test "$LINK_ONLY"; then
             echo $FILE_URL
         else 
             FILENAME=$(basename "$FILE_URL" | recode html..) &&
             curl --globoff -o "$FILENAME" "$FILE_URL" &&
             echo $FILENAME || 
-            { debug "error downloading: $URL"; RETVAL=$DERROR; }
+            { debug "error downloading: $URL"; RETVAL=$DERROR; continue; }
+        fi
+        if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
+            sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
+            debug "link marked as downloaded in input file: $ITEM" ||
+            debug "error marking link as downloaded in input file: $ITEM"
         fi 
     done
 done

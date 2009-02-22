@@ -11,7 +11,7 @@ _Plowshare_ is a command-line downloader and uploader for some file sharing webs
 
 To run _plowshare_ you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX] operating system (GNU/Linux, BSD, Cygwin, ...)
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX] compliant operating system (GNU/Linux -Debian/Ubuntu/Fedora/Suse/PcLinuxOS/Gentoo/Mandriva/...-, `*`BSD, Mac OS X, Cygwin, ...)
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
@@ -50,11 +50,23 @@ Download a file from megaupload using a free membership account:
 plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 }}}
 
+Download a password-protected file from megaupload:
+
+{{{
+plowdown -p somepassword http://www.megaupload.com/?d=1234556
+}}}
+
 A more complex example for advanced users: you have a found a webpage containing a bunch of megaupload files and want to download, let's say, the first ten links. You could then write:
 
 {{{
 curl http://some-website.com/page.html | \
     grep -o "http://www.megaupload.com/[^\"< ]*" | head -n10 | plowdown -
+}}}
+
+Get the file URL for a file on 2shared:
+
+{{{
+plowdown --link-only http://rapidshare.com/files/123123123/a.jpg
 }}}
 
 == Upload ==

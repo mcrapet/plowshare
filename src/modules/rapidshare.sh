@@ -14,6 +14,7 @@ MODULE_RAPIDSHARE_UPLOAD_OPTIONS="a:,auth-freezone:,AUTH_FREEZONE,USER:PASSWORD"
 #
 rapidshare_download() {
     set -e
+    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     while true; do
         WAIT_URL=$(curl "$URL" | parse '<form' 'action="\(.*\)"') ||
@@ -49,7 +50,7 @@ rapidshare_download() {
 #
 rapidshare_upload() {
     set -e
-    eval "$(process_options "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"    
+    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"    
     if test "$AUTH_FREEZONE"; then
         rapidshare_upload_freezone "$@"
     else
@@ -83,7 +84,7 @@ rapidshare_upload_anonymous() {
 #
 rapidshare_upload_freezone() {
     set -e
-    eval "$(process_options "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
+    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     FILE=$1
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
        

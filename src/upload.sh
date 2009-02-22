@@ -15,6 +15,7 @@ set -e
 
 # Supported modules
 MODULES="rapidshare megaupload 2shared"
+OPTIONS="q,quiet,QUIET"
 
 # Get library directory
 LIBDIR=$(dirname "$(readlink -f "$(which $0)")")
@@ -23,28 +24,12 @@ for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
 done
 
-# Show usage info for modules
-debug_options_for_modules() {
-    MODULES=$1
-    NAME=$2
-    for MODULE in $MODULES; do
-        VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
-        OPTIONS=${!VAR}
-        if test "$OPTIONS"; then
-            debug
-            debug "Options for module <$MODULE>:"
-            debug
-            debug_options "$OPTIONS" "    "
-        fi        
-    done
-}
-
 # Print usage
 #
 usage() {
     debug "Upload a file to file sharing server."
     debug
-    debug "  $(basename $0) [OPTIONS] MODULE -- [MODULE_OPTIONS] FILE"
+    debug "  $(basename $0) [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
     debug
     debug "Available modules: $MODULES."
     debug
@@ -59,16 +44,18 @@ usage() {
 #
 
 check_exec "curl" || { debug "curl not found"; exit 2; }
-eval "$(process_options "q,quiet,QUIET" "$@")" 
+MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
+eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
+
 
 if test "$QUIET"; then
     function debug() { :; } 
     function curl() { $(type -P curl) -s "$@"; }
 fi
 
-test $# -ge 2 || { usage; exit 1; } 
+test $# -eq 1 || { usage; exit 1; } 
 
-MODULE=$1    
+IFS=":" read MODULE FILE <<< "$@"
 FUNCTION=${MODULE}_upload
 shift
 if ! match "\<$MODULE\>" "$MODULES"; then
@@ -80,4 +67,4 @@ if ! check_function "$FUNCTION"; then
     exit 3
 fi
 debug "starting upload ($MODULE)"
-$FUNCTION "$@" || exit 4
+$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" || exit 4
