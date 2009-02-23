@@ -42,7 +42,7 @@ get_module() {
 }
 
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
-# or a file with links (discard empty/repeated lines and comments) 
+# or a file with links (discard empty/repeated lines and comments)- 
 #
 process_item() {
     ITEM=$1
@@ -65,13 +65,13 @@ process_item() {
 usage() {
     debug "Download files from file sharing servers."
     debug
-    debug "  $(basename $0) [OPTIONS] -- [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
+    debug "  $(basename $0) [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     debug
     debug "Available modules: $MODULES"
     debug
-    debug "Options:"
+    debug "Global options:"
     debug
-    debug_options "$OPTIONS" "    "
+    debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "DOWNLOAD"    
     debug
 }

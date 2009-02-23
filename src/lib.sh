@@ -137,7 +137,7 @@ debug_options_for_modules() {
         OPTIONS=$(get_options_for_module "$MODULE" "$NAME")
         if test "$OPTIONS"; then
             debug; debug "Options for module <$MODULE>:"; debug
-            debug_options "$OPTIONS" "    "
+            debug_options "$OPTIONS" "  "
         fi        
     done
 }

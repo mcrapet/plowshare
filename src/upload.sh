@@ -33,9 +33,9 @@ usage() {
     debug
     debug "Available modules: $MODULES."
     debug
-    debug "Options:"
+    debug "Global options:"
     debug
-    debug "  -q, --quiet: Don't print debug or error messages" 
+    debug_options "$OPTIONS" "  " 
     debug_options_for_modules "$MODULES" "UPLOAD"    
     debug
 }
