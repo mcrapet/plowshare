@@ -76,8 +76,9 @@ create_tempfile() {
 #
 # Standard input: image 
 ocr() {
-    # Tesseract is somewhat "peculiar" and it's impossible to use pipes
-    # or process substitution. So let's use temporal files instead (*sigh*).
+    # Tesseract somewhat "peculiar" arguments requirement makes impossible 
+    # to use pipes or process substitution. Create temporal files 
+    # instead (*sigh*).
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
     convert - tif:- > $TIFF
@@ -94,39 +95,44 @@ ocr() {
 debug_options() {
     OPTIONS=$1
     INDENTING=$2
-    for OPTION in $OPTIONS; do
-        IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
-        echo "$HELP" | while read LINE; do
-            STRING="$INDENTING"
-            test "$SHORT" && {
-                STRING="$STRING-${SHORT%:}"
-                test "$VALUE" && STRING="$STRING $VALUE"
-            }
-            test "$LONG" -a "$SHORT" && STRING="$STRING, "
-            test "$LONG" && {
-                STRING="$STRING--${LONG%:}"
-                test "$VALUE" && STRING="$STRING=$VALUE"
-            } 
-            debug "$STRING"
-        done
-    done
+    while read OPTION; do
+        test "$OPTION" || continue
+        IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
+        STRING="$INDENTING"
+        test "$SHORT" && {
+            STRING="$STRING-${SHORT%:}"
+            test "$VALUE" && STRING="$STRING $VALUE"
+        }
+        test "$LONG" -a "$SHORT" && STRING="$STRING, "
+        test "$LONG" && {
+            STRING="$STRING--${LONG%:}"
+            test "$VALUE" && STRING="$STRING=$VALUE"
+        } 
+        debug "$STRING: $HELP"
+    done <<< "$OPTIONS"
 }
 
 get_modules_options() {
     MODULES=$1
     NAME=$2
     for MODULE in $MODULES; do
-        get_options_for_module "$MODULE" "$NAME" | xargs -n1 | while read OPTION; do
+        get_options_for_module "$MODULE" "$NAME" | while read OPTION; do
             if test "$OPTION"; then echo "!$OPTION"; fi
         done
     done
+}
+
+can_module_continue_downloads() {
+    MODULE=$1
+    VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_DOWNLOAD_CONTINUE"
+    test "${!VAR}" = "yes"
 }
 
 get_options_for_module() {
     MODULE=$1
     NAME=$2    
     VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
-    echo ${!VAR}
+    echo "${!VAR}"
 }
 
 # Show usage info for modules
@@ -143,7 +149,9 @@ debug_options_for_modules() {
 }
 
 get_field() { 
-    for ARG in $2; do echo $ARG | cut -d"," -f$1; done | xargs; 
+    echo "$2" | while IFS="," read LINE; do 
+        echo "$LINE" | cut -d"," -f$1
+    done 
 }
 
 # Straighforward options and arguments processing using getopt style
@@ -157,12 +165,14 @@ get_field() {
 #
 process_options() {
     NAME=$1
-    OPTIONS=$2    
+    OPTIONS=$2   
     shift 2
-        
-    VARS=$(get_field 3 "$OPTIONS")
-    ARGUMENTS="$(getopt -o "$(get_field 1 "$OPTIONS")" \
-        --long "$(get_field 2 "$OPTIONS")" -n "$NAME" -- "$@")"        
+    # Clean trailing space in options
+    OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
+        sed "s/^[[:space:]]*//; s/[[:space:]]$//")
+    VARS=$(get_field 1 "$OPTIONS" | sed "s/^!//" | xargs)
+    ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
+        --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"        
     eval set -- "$ARGUMENTS"
     unset $VARS
     UNUSED_OPTIONS=()
@@ -172,12 +182,11 @@ process_options() {
             break
         fi
         for OPTION in $OPTIONS; do
-            IFS="," read SHORT LONG VAR VALUE <<< "$OPTION"
-            if test ${SHORT:0:1} = "!"; then
+            IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
+            UNUSED=0
+            if test "${SHORT:0:1}" = "!"; then
                 UNUSED=1
                 SHORT=${SHORT:1}
-            else
-                UNUSED=0
             fi
             if [ "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}" ]; then
                 if [ "${SHORT:${#SHORT}-1:1}" = ":" -o \

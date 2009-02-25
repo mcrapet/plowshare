@@ -16,13 +16,13 @@ set -e
 # Supported modules
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
-q,quiet,QUIET 
-l,link-only,LINK_ONLY
-m,mark-downloaded,MARK_DOWNLOADED
+QUIET,q,quiet,,Don't print error nor debug messages 
+LINK_ONLY,l,link-only,,Return only file link 
+MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in FILE arguments
 "
 
 # Get library directory
-LIBDIR=$(dirname "$(readlink -f "$(type -P $0 || echo $0)")")
+LIBDIR=$(dirname "$(readlink -f "$(which "$0")")")
 source $LIBDIR/lib.sh
 for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
@@ -49,13 +49,10 @@ process_item() {
     if match "^\(http://\)" "$ITEM"; then
         echo "url" "$ITEM"
     else
-        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read LINE; do
-            if test "$ITEM" != "-" -a -f "$ITEM"; then
-                TYPE="file"
-            else
-                TYPE="url"
-            fi 
-            echo "$TYPE" $LINE
+        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read URL; do
+            test "$ITEM" != "-" -a -f "$ITEM" &&
+                TYPE="file" || TYPE="url"
+            echo "$TYPE" "$URL"
         done
     fi
 }
@@ -115,8 +112,10 @@ for ITEM in "$@"; do
         if test "$LINK_ONLY"; then
             echo $FILE_URL
         else 
+            can_module_continue_downloads "$MODULE" && 
+                CURL="curl -C -" || CURL="curl"
             FILENAME=$(basename "$FILE_URL" | recode html..) &&
-            curl --globoff -o "$FILENAME" "$FILE_URL" &&
+            $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
             echo $FILENAME || 
             { debug "error downloading: $URL"; RETVAL=$DERROR; continue; }
         fi

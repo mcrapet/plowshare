@@ -8,17 +8,19 @@
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
-a:,auth:,AUTH,USER:PASSWORD
-p:,file-password:,FILEPASSWORD,STRING"
-MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
-a:,auth:,AUTH,USER:PASSWORD
-d:,description:,DESCRIPTION,DESCRIPTION
-f:,email-from:,FROMEMAIL,EMAIL
-t:,email-to:,TOEMAIL,EMAIL
-p:,link-password:,PASSWORD,STRING
-,traffic-url:,TRAFFIC_URL,URL
-m:,multiemail:,MULTIEMAIL,EMAIL1[,EMAIL2,...]
+AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
+LINKPASSWORD,p:,link-password:,STRING,Used in password-protected files
 "
+MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description
+FROMEMAIL,f:,email-from:,EMAIL,<From> field for notification email
+TOEMAIL,t:,email-to:,EMAIL,<To> field for notification email
+PASSWORD,p:,link-password:,STRING,Protect a link with a password
+TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
+MULTIEMAIL,m:,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
+"
+MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=yes
 
 LOGINURL="http://www.megaupload.com/?c=login"
 
@@ -47,11 +49,11 @@ megaupload_download() {
         # Test if the file is password protected
         if match 'name="filepassword"' "$PAGE"; then
             debug "File is password protected"
-            test "$FILEPASSWORD" || 
+            test "$LINKPASSWORD" || 
                 { debug "You must give a password"; return 1; }
-            PAGE=$(ccurl -d "filepassword=$FILEPASSWORD" "$URL")
+            PAGE=$(ccurl -d "filepassword=$LINKPASSWORD" "$URL")
             match 'name="filepassword"' "$PAGE" &&
-                { debug "File password incorrect"; return 1; } 
+                { debug "Link password incorrect"; return 1; } 
         fi        
         echo "$PAGE" > /tmp/page
         # Test if we are using a Premium account, try to get the download link

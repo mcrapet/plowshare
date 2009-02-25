@@ -15,10 +15,12 @@ set -e
 
 # Supported modules
 MODULES="rapidshare megaupload 2shared"
-OPTIONS="q,quiet,QUIET"
+OPTIONS="
+QUIET,q,quiet,,Don't print error nor debug messages
+"
 
 # Get library directory
-LIBDIR=$(dirname "$(readlink -f "$(which $0)")")
+LIBDIR=$(dirname "$(readlink -f "$(which "$0")")")
 source $LIBDIR/lib.sh
 for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
