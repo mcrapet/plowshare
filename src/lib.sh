@@ -159,7 +159,8 @@ get_field() {
 # Example:
 #
 # set -- -a user:password -q arg1 arg2
-# $ eval "$(process_options module "a:,auth:,AUTH,USER:PASSWORD q,quiet,QUIET" "$@")"
+# $ eval "$(process_options module "AUTH,a:,auth:,USER:PASSWORD,Help for auth
+#           QUIET,q,quiet,,Help for quiet" "$@")"
 # $ echo "$AUTH / $QUIET / $1 / $2"
 # user:password / 1 / arg1 / arg2
 #
@@ -167,34 +168,31 @@ process_options() {
     NAME=$1
     OPTIONS=$2   
     shift 2
-    # Clean trailing space in options
+    # Strip spaces in options
     OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
         sed "s/^[[:space:]]*//; s/[[:space:]]$//")
     VARS=$(get_field 1 "$OPTIONS" | sed "s/^!//" | xargs)
     ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
-        --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"        
+        --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"
     eval set -- "$ARGUMENTS"
     unset $VARS
     UNUSED_OPTIONS=()
     while true; do
-        if [ "$1" = "--" ]; then
-            shift
-            break
-        fi
+        test "$1" = "--" && { shift; break; }
         for OPTION in $OPTIONS; do
             IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
             UNUSED=0
-            if test "${SHORT:0:1}" = "!"; then
+            if test "${VAR:0:1}" = "!"; then
                 UNUSED=1
-                SHORT=${SHORT:1}
+                VAR=${VAR:1}
             fi
-            if [ "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}" ]; then
-                if [ "${SHORT:${#SHORT}-1:1}" = ":" -o \
-                        "${LONG:${#LONG}-1:1}" = ":" ]; then
-                    if [ "$UNUSED" = 0 ]; then
+            if test "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}"; then
+                if test "${SHORT:${#SHORT}-1:1}" = ":" -o \
+                        "${LONG:${#LONG}-1:1}" = ":"; then
+                    if test "$UNUSED" = 0; then
                         echo "$VAR=\"$2\""
                     else
-                        if [ ${1:0:2} = "--" ]; then
+                        if test "${1:0:2}" = "--"; then
                             UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1=$2")
                         else
                             UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1" "$2")
@@ -202,7 +200,7 @@ process_options() {
                     fi
                     shift
                 else
-                    if [ "$UNUSED" = 0 ]; then
+                    if test "$UNUSED" = 0; then
                         echo "$VAR=1"
                     else
                         UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1")

@@ -115,7 +115,7 @@ rapidshare_upload_freezone() {
     KILLCODE=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "killcode\"\] = '\(.*\)'")
     FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"")
     # There is a killcode in the HTML, but it's not used to build a URL
-    # but as a param in a POST, so I assume there is no kill URL for
+    # but as a param in a POST submit, so I assume there is no kill URL for
     # freezone files. Therefore, output just the file URL.    
     URL="http://rapidshare.com/files/$FILEID/$FILENAME.html"
     echo "$URL"

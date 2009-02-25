@@ -51,12 +51,12 @@ test_check_function() {
 
 test_process_options() {
     OPTIONS="
-a:,auth:,AUTH,USER:PASSWORD 
-q,quiet,QUIET 
-!,level:,LEVEL,INTEGER
+AUTH,a:,auth:,USER:PASSWORD,Authentication 
+QUIET,q,quiet,,Don't print errors 
+!LEVEL,l:,level:,INTEGER,Set level
 "
     eval "$(process_options testmod "$OPTIONS" \
-        --auth="user : password" -q "--level=5 a" arg1 arg2)"    
+        --auth="user : password" -q "--level=5 a" arg1 arg2)"
     assert_equal "user : password" "$AUTH"
     assert_equal 1 $QUIET
     assert_equal "" $LEVEL

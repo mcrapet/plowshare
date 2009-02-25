@@ -112,8 +112,12 @@ for ITEM in "$@"; do
         if test "$LINK_ONLY"; then
             echo $FILE_URL
         else 
-            can_module_continue_downloads "$MODULE" && 
-                CURL="curl -C -" || CURL="curl"
+            if can_module_continue_downloads "$MODULE"; then
+                debug "download continuation enabled this module"                
+                CURL="curl -C -" 
+            else
+                CURL="curl"
+            fi
             FILENAME=$(basename "$FILE_URL" | recode html..) &&
             $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
             echo $FILENAME || 

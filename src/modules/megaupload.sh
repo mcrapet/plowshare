@@ -9,18 +9,18 @@
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
-LINKPASSWORD,p:,link-password:,STRING,Used in password-protected files
+LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 FROMEMAIL,f:,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,t:,email-to:,EMAIL,<To> field for notification email
-PASSWORD,p:,link-password:,STRING,Protect a link with a password
+PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
 MULTIEMAIL,m:,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 "
-MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=yes
+MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
 LOGINURL="http://www.megaupload.com/?c=login"
 

@@ -114,7 +114,17 @@ test_2shared_download() {
 test_2shared_download_and_get_only_link() {
     URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
     assert_match "$URL" "$(download -l $SHARED_URL)"    
+}
+
+test_2shared_download_and_from_file_and_mark_download() {
+    URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
+    TEMP=$(create_tempfile)
+    echo "$SHARED_URL" > $TEMP
+    assert_match "$URL" "$(download -l -m "$TEMP")"
+    assert_match "^#$SHARED_URL" "$(cat $TEMP)"
+    rm -f "$TEMP"    
 }        
+        
 
 test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload 2shared:$UPFILE)"
