@@ -3,11 +3,18 @@ set -e
 
 NAME=plowshare
 MODULES="megaupload rapidshare 2shared"
-INSTALLDIR=${1:-/usr/local}
+INSTALLDIR=${INSTALLDIR:-/usr/local}
 LIBDIR=$INSTALLDIR/share/$NAME
 BINDIR=$INSTALLDIR/bin
 DOCSDIR=$INSTALLDIR/share/doc/$NAME
 MODULESDIR=$LIBDIR/modules
+
+# Uninstall
+if [ "$1" = "uninstall" ]; then
+    rm -vrf $LIBDIR $DOCSDIR
+    rm -vf $BINDIR/{plowdown,plowup}
+    exit 0
+fi
 
 # Documentation
 mkdir --verbose -p $DOCSDIR
