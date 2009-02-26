@@ -1,10 +1,14 @@
 #!/usr/bin/python
+"""Decode the net 4-character with rotation captcha used in Megaupload.
+
+This is a proof of concept, the code is veeery slow, no optimizations
+have been made.
+"""
 import string
 import glob
 import os
 import sys
 from StringIO import StringIO
-
 
 # Third-party modules
 from PIL import Image, ImageFont, ImageDraw
@@ -102,7 +106,7 @@ def get_errors(image, chars, zones):
                         (x, y, x+char_width, y+char_height))
                     error = compare_images(char_image_rotated, cropped_image)
 #                    print error, char, (x, y), angle
-#                    print_image(substract_images(image, char_image_rotated, (x, y)))
+#                    debug_image(substract_images(image, char_image_rotated, (x, y)))
 #                    sys.stdin.read(1)
                     yield (error, char, (x, y), angle)
     debug("")
@@ -114,7 +118,7 @@ zones = [
     [(45, 55), (20, 35)],
 ]
 
-def print_image(image, step=1, outputfd=sys.stderr):
+def debug_image(image, step=1, outputfd=sys.stderr):
     """Print image to outputfd (standard error by default)."""
     ip = image.load()
     width, height = image.size
@@ -129,7 +133,7 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
     captcha_length = 4
     chars = build_chars(fontfile, 36, excluded_chars="1IL")
     image = open_image(captcha_imagefile)
-    print_image(image, 2)
+    debug_image(image, 2)
     result = []
     while len(result) < captcha_length:
         debug("start iteration %d/%d " % (len(result)+1, captcha_length), False)
@@ -138,7 +142,7 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
         max_info = errors[0]
         #max_info = min(get_errors(image, chars))
         result.append(max_info)
-        print max_info
+        debug(max_info)
         min_error, char, pos, angle = max_info
         x, y = pos        
         for index, ((xstart, xend), (angle_start, angle_end)) in enumerate(zones):
@@ -147,7 +151,7 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
                 break
         char_image_rotated = rotate_and_crop(chars[char], angle)
         image = substract_images(image, char_image_rotated, pos)
-        print_image(image, 2)
+        debug_image(image, 2)
         
     sorted_by_position = sorted(result, key=lambda x: x[2])
     errors = sum(get_at(sorted_by_position, 0)) / 4.0
@@ -158,4 +162,4 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
 if __name__ == '__main__':
     captcha_file = StringIO(open(sys.argv[1]).read())
     fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
-    print sys.exit(decode_megaupload_captcha(captcha_file, fontfile))
+    print decode_megaupload_captcha(captcha_file, fontfile)

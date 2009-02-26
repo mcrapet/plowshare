@@ -113,7 +113,7 @@ for ITEM in "$@"; do
             echo $FILE_URL
         else 
             if can_module_continue_downloads "$MODULE"; then
-                debug "download continuation enabled this module"                
+                debug "download continuation is enabled for module $MODULE"
                 CURL="curl -C -" 
             else
                 CURL="curl"

@@ -68,7 +68,9 @@ megaupload_download() {
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
-        CAPTCHA=$(python $EXTRASDIR/megaupload_captcha.py <(curl "$CAPTCHA_URL"))
+        CAPTCHA=$(python $EXTRASDIR/megaupload_captcha.py \
+            <(curl "$CAPTCHA_URL")) || 
+            { debug "error running captcha decoder (check that python and python-imaging are installed)"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
