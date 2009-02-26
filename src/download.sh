@@ -60,11 +60,9 @@ process_item() {
 # Print usage
 #
 usage() {
-    debug "Download files from file sharing servers."
+    debug "Usage: $(basename $0) [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     debug
-    debug "  $(basename $0) [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
-    debug
-    debug "Available modules: $MODULES"
+    debug "  Download files from file sharing servers (available modules: $MODULES)"
     debug
     debug "Global options:"
     debug
@@ -118,7 +116,7 @@ for ITEM in "$@"; do
             else
                 CURL="curl"
             fi
-            FILENAME=$(basename "$FILE_URL" | recode html..) &&
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
             $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
             echo $FILENAME || 
             { debug "error downloading: $URL"; RETVAL=$DERROR; continue; }

@@ -74,13 +74,13 @@ curl http://some-website.com/page.html | \
   * Upload a file to megaupload with a free membership account:
 
 {{{
-plowup megaupload -a myuser:mypassword -d "My description" myfile.txt
+plowup -a myuser:mypassword -d "My description" megaupload:myfile.txt
 }}}
 
   * Upload a file to rapidshare with a free-zone user:
 
 {{{
-plowup rapidshare -a myuser:mypassword myfile.txt
+plowup -a myuser:mypassword rapidshare:myfile.txt
 }}}
 
 = Create new modules =

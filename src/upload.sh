@@ -29,11 +29,9 @@ done
 # Print usage
 #
 usage() {
-    debug "Upload a file to file sharing server."
+    debug "$(basename $0) [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
     debug
-    debug "  $(basename $0) [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
-    debug
-    debug "Available modules: $MODULES."
+    debug "  Upload a file to file sharing server (available modules: $MODULES)"
     debug
     debug "Global options:"
     debug

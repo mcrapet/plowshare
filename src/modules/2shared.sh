@@ -18,7 +18,8 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     URL=$1   
     FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
         { debug "file not found"; return 1; }
-    echo "$FILE_URL" | sed "s/?tsid=.*$//"
+    debug "file URL: $FILE_URL"
+    echo "$FILE_URL"
 }
 
 # Upload a file to 2shared and upload URL (ADMIN_URL)

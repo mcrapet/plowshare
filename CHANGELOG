@@ -1,3 +1,12 @@
+plowshare (0.3.5) unstable; urgency=low
+
+  * Fix long options bug
+  * Add continuation option for download 
+  * Add mark option for download (comment downloaded links in FILE arguments)
+  * Megaupload captcha still broken
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Thu, 26 Feb 2009 13:36:17 +0100
+
 plowshare (0.3.4) unstable; urgency=low
 
   * Premium account support for megaupload (thanks to Eric Soukenka)
