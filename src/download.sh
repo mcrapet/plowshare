@@ -13,9 +13,10 @@
 #
 set -e
 
-# Supported modules
+VERSION="0.3.5"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
+GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print error nor debug messages 
 LINK_ONLY,l,link-only,,Return only file link 
 MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in FILE arguments
@@ -80,6 +81,7 @@ check_exec "recode" || { debug "recode not found"; exit 2; }
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 if test "$QUIET"; then
     function debug() { :; } 
     function curl() { $(type -P curl) -s "$@"; }

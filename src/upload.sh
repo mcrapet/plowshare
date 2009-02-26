@@ -13,9 +13,10 @@
 #
 set -e
 
-# Supported modules
+VERSION="0.3.5"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
+GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print error nor debug messages
 "
 
@@ -47,7 +48,7 @@ check_exec "curl" || { debug "curl not found"; exit 2; }
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
-
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 if test "$QUIET"; then
     function debug() { :; } 
     function curl() { $(type -P curl) -s "$@"; }
@@ -60,11 +61,15 @@ FUNCTION=${MODULE}_upload
 shift
 if ! match "\<$MODULE\>" "$MODULES"; then
     debug "unsupported module: $MODULE"
-    exit 2        
+    exit 3
 fi
 if ! check_function "$FUNCTION"; then 
     debug "module does not implement upload: $MODULE"
-    exit 3
+    exit 4
+fi
+if ! test -f "$FILE"; then
+    debug "file does not exist: $FILE"
+    exit 5
 fi
 debug "starting upload ($MODULE)"
-$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" || exit 4
+$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" || exit 2
