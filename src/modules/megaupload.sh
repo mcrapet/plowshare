@@ -4,8 +4,9 @@
 #
 # License: GNU GPL v3.0: http://www.gnu.org/licenses/gpl-3.0-standalone.html
 #
-# Dependencies: curl, convert (imagemagick), tesseract (tesseract-ocr)
+# Dependencies: curl, python, python-imaging
 #
+EXTRASDIR=$LIBDIR/modules/extras
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
@@ -49,7 +50,7 @@ megaupload_download() {
         # Test if the file is password protected
         if match 'name="filepassword"' "$PAGE"; then
             debug "File is password protected"
-            test "$LINKPASSWORD" || 
+            test "$LINKPALIBDIR=$(dirname "$(readlink -f "$(which "$0")")")SSWORD" || 
                 { debug "You must give a password"; return 1; }
             PAGE=$(ccurl -d "filepassword=$LINKPASSWORD" "$URL")
             match 'name="filepassword"' "$PAGE" &&
@@ -67,9 +68,7 @@ megaupload_download() {
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
-        CAPTCHA=$(curl "$CAPTCHA_URL" | \
-            convert - -alpha off -colorspace gray -level 1%,1% gif:- | \
-            ocr | tr -d -c '[A-Z0-9]')
+        CAPTCHA=$(python $EXTRASDIR/megaupload_captcha.py <(curl "$CAPTCHA_URL"))
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
