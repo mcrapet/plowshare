@@ -50,7 +50,7 @@ megaupload_download() {
         # Test if the file is password protected
         if match 'name="filepassword"' "$PAGE"; then
             debug "File is password protected"
-            test "$LINKPALIBDIR=$(dirname "$(readlink -f "$(which "$0")")")SSWORD" || 
+            test "$LINKPASSWORD" || 
                 { debug "You must give a password"; return 1; }
             PAGE=$(ccurl -d "filepassword=$LINKPASSWORD" "$URL")
             match 'name="filepassword"' "$PAGE" &&
