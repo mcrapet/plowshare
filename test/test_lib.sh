@@ -5,6 +5,7 @@ MODULES="rapidshare megaupload 2shared"
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 PICSDIR=$ROOTDIR/test/pics
 MODULESDIR=$ROOTDIR/src/modules
+EXTRASDIR=$MODULESDIR/extras
 TESTSDIR=$ROOTDIR/test
 
 source $ROOTDIR/src/lib.sh
@@ -82,5 +83,10 @@ test_post_login() {
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL" 2>/dev/null)
     assert_match "\.rapidshare\.com" "$COOKIES"
 }
+
+test_megaupload_ocr() {
+    CAPTCHA=$(megaupload_ocr "$PICSDIR/GFH6.gif" 2>/dev/null)
+    assert_equal "GFH6" $CAPTCHA
+} 
 
 run_tests "$@"

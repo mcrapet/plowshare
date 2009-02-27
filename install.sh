@@ -25,7 +25,7 @@ cd src
 
 # Common library 
 mkdir --verbose -p $LIBDIR
-cp -v download.sh upload.sh lib.sh $LIBDIR
+cp -pv download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
 mkdir -p $MODULESDIR
@@ -33,7 +33,7 @@ for MODULE in $MODULES; do
     cp -v modules/$MODULE.sh $MODULESDIR
 done
 mkdir -p $MODULESDIR/extras
-cp -v modules/extras/{megaupload_captcha.py,*.ttf} $MODULESDIR/extras
+cp -pv modules/extras/{megaupload_captcha.py,*.ttf} $MODULESDIR/extras
 
 # Binary files
 mkdir --verbose -p $BINDIR 

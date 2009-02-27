@@ -6,7 +6,6 @@
 #
 # Dependencies: curl, python, python-imaging
 #
-EXTRASDIR=$LIBDIR/modules/extras
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
@@ -51,12 +50,11 @@ megaupload_download() {
         if match 'name="filepassword"' "$PAGE"; then
             debug "File is password protected"
             test "$LINKPASSWORD" || 
-                { debug "You must give a password"; return 1; }
+                { debug "You must provide a password"; return 1; }
             PAGE=$(ccurl -d "filepassword=$LINKPASSWORD" "$URL")
             match 'name="filepassword"' "$PAGE" &&
                 { debug "Link password incorrect"; return 1; } 
         fi        
-        echo "$PAGE" > /tmp/page
         # Test if we are using a Premium account, try to get the download link
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
@@ -68,9 +66,10 @@ megaupload_download() {
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
-        CAPTCHA=$(python $EXTRASDIR/megaupload_captcha.py \
-            <(curl "$CAPTCHA_URL")) || 
-            { debug "error running captcha decoder (check that python and python-imaging are installed)"; return 1; }
+        echo "$QUIET" > /tmp/log
+        test "$QUIET" = 1 && OCR="megaupload_ocr -q" || OCR="megaupload_ocr"
+        CAPTCHA=$($OCR <(curl "$CAPTCHA_URL")) || 
+            { debug "error running OCR (is python-imaging installed?)"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 

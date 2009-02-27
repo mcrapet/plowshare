@@ -1,11 +1,9 @@
 #!/usr/bin/python
 """Decode the net 4-character with rotation captcha used in Megaupload.
 
-This is a proof of concept, the code is veeery slow, no optimizations
-have been made.
+Note: It's ver slow and it has only a 10% of accuracy.
 """
 import string
-import glob
 import os
 import sys
 from StringIO import StringIO
@@ -13,10 +11,10 @@ from StringIO import StringIO
 # Third-party modules
 from PIL import Image, ImageFont, ImageDraw
 
-def debug(line, linefeed=True):
+def debug(line, linefeed=True, stream=sys.stderr):
     """Write line to standard error."""
-    sys.stderr.write(str(line)+("\n" if linefeed else ""))
-    sys.stderr.flush()
+    stream.write(str(line)+("\n" if linefeed else ""))
+    stream.flush()
     
 def get_at(lst, nfield):
     """Return nfield of lst."""
@@ -96,7 +94,8 @@ def get_errors(image, chars, zones):
     image_width, image_height = image.size
     for char, char_image in sorted(chars.iteritems(), key=lambda (k, v): k):
         debug(".", linefeed=False)
-        for (xstart, xend), (angle_start, angle_end) in zones: 
+#        zones2 = ([zones[0], zones[-1]] if len(zones) > 2 else zones[:])
+        for (xstart, xend), (angle_start, angle_end) in zones:
             for angle in range(angle_start, angle_end+1, 1):
                 char_image_rotated = rotate_and_crop(char_image, angle)
                 char_width, char_height = char_image_rotated.size
@@ -111,15 +110,14 @@ def get_errors(image, chars, zones):
                     yield (error, char, (x, y), angle)
     debug("")
 
-def debug_image(image, step=1, outputfd=sys.stderr):
-    """Print image to outputfd (standard error by default)."""
+def debug_image(image, step=1, stream=sys.stderr):
+    """Output image to stream (standard error by default)."""
     ip = image.load()
     width, height = image.size
     for y in range(0, height, step):
         for x in range(0, width, step):
-            outputfd.write("*" if ip[x, y] == 0 else " ")
-        outputfd.write("\n")
-    outputfd.flush()
+            debug("*" if ip[x, y] == 0 else " ", stream=stream, linefeed=False)
+        debug("", stream=stream)
             
 def decode_megaupload_captcha(captcha_imagefile, fontfile):
     """Return decoded captcha string."""
@@ -150,15 +148,29 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
                 break
         char_image_rotated = rotate_and_crop(chars[char], angle)
         image = substract_images(image, char_image_rotated, pos)
-        debug_image(image, 2)
+        #debug_image(image, 2)
         
     sorted_by_position = sorted(result, key=lambda x: x[2])
     errors = sum(get_at(sorted_by_position, 0)) / 4.0
     captcha = "".join(s[0] for s in get_at(sorted_by_position, 1)).upper()
     debug((errors, captcha))
     return captcha
-    
-if __name__ == '__main__':
-    captcha_file = StringIO(open(sys.argv[1]).read())
+
+def main(args):
+    import optparse
+    usage = """usage: megaupload_captcha [options]
+
+    """ 
+    parser = optparse.OptionParser(usage)
+    parser.add_option('-q', '--quiet', dest='quiet',
+          action="store_true", default=False, help='Be quiet')
+    options, args0 = parser.parse_args(args)
+    if options.quiet:
+        global debug
+        debug = lambda *args, **kwargs: None
+    captcha_file = StringIO(open(args0[0]).read())
     fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
     print decode_megaupload_captcha(captcha_file, fontfile)
+            
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

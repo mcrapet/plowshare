@@ -12,6 +12,7 @@ IFS=":" read USERNAME PASSWORD < "$AUTHFILE"
 FILE=$DIRECTORY.tgz
 
 test $# -ne 0 || { echo "Usage: $0 LOG"; exit 1; }
+
 rm -rf $DIRECTORY
 svn export $TRUNK $DIRECTORY --username $USERNAME --force
 tar -zcf $FILE $DIRECTORY

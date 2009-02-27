@@ -88,6 +88,12 @@ ocr() {
     rm -f $TIFF $TEXT
 }
 
+# Decode the 4-char (rotated) megaupload captcha
+#
+megaupload_ocr() {
+    $EXTRASDIR/megaupload_captcha.py "$@"
+}
+
 # Show help info for options
 #
 # $1: options${STRING:2}

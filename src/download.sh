@@ -13,7 +13,7 @@
 #
 set -e
 
-VERSION="0.3.5"
+VERSION="0.4"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
@@ -24,6 +24,8 @@ MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in FILE arguments
 
 # Get library directory
 LIBDIR=$(dirname "$(readlink -f "$(which "$0")")")
+EXTRASDIR=$LIBDIR/modules/extras
+
 source $LIBDIR/lib.sh
 for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh

@@ -2,6 +2,7 @@
 set -e
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR=$ROOTDIR/src
+EXTRASDIR=$ROOTDIR/src/modules/extras
 TESTSDIR=$ROOTDIR/test
 source $ROOTDIR/src/lib.sh
 source $ROOTDIR/test/lib.sh
@@ -51,7 +52,7 @@ test_rapidshare_upload_freezone() {
 
 MEGAUPLOAD_URL="http://www.megaupload.com/?d=ieo1g52v"
 
-Xtest_megaupload_download_anonymous() {
+test_megaupload_download_anonymous() {
     FILENAME="testmotion2.mp4"
     assert_equal "$FILENAME" "$(download $MEGAUPLOAD_URL)"
     rm -f $FILENAME
@@ -64,7 +65,7 @@ test_megaupload_password_protected_file() {
     rm -f $FILENAME
 }
 
-Xtest_megaupload_download_member() {
+test_megaupload_download_member() {
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
     OUTPUT=$(download_with_debug -a "$AUTH" $MEGAUPLOAD_URL 2>&1)
     assert_match "^Waiting 26 seconds" "$OUTPUT"
