@@ -66,7 +66,6 @@ megaupload_download() {
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
-        echo "$QUIET" > /tmp/log
         test "$QUIET" = 1 && OCR="megaupload_ocr -q" || OCR="megaupload_ocr"
         CAPTCHA=$($OCR <(curl "$CAPTCHA_URL")) || 
             { debug "error running OCR (is python-imaging installed?)"; return 1; }
