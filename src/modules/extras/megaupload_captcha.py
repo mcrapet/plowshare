@@ -111,13 +111,6 @@ def get_errors(image, chars, zones):
                     yield (error, char, (x, y), angle)
     debug("")
 
-zones = [
-    [(0, 10), (-35, -20)],
-    [(15, 25), (20, 35)],
-    [(30, 40), (-35, -20)],
-    [(45, 55), (20, 35)],
-]
-
 def debug_image(image, step=1, outputfd=sys.stderr):
     """Print image to outputfd (standard error by default)."""
     ip = image.load()
@@ -129,7 +122,13 @@ def debug_image(image, step=1, outputfd=sys.stderr):
     outputfd.flush()
             
 def decode_megaupload_captcha(captcha_imagefile, fontfile):
-    """Return decoded captcha string."""            
+    """Return decoded captcha string."""
+    zones = [
+        [(0, 10), (-35, -20)],
+        [(15, 25), (20, 35)],
+        [(30, 40), (-35, -20)],
+        [(45, 55), (20, 35)],
+    ]                
     captcha_length = 4
     chars = build_chars(fontfile, 36, excluded_chars="1IL")
     image = open_image(captcha_imagefile)
@@ -137,10 +136,10 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
     result = []
     while len(result) < captcha_length:
         debug("start iteration %d/%d " % (len(result)+1, captcha_length), False)
+        #max_info = min(get_errors(image, chars))
         errors = list(sorted(get_errors(image, chars, zones)))
         #debug(errors[:5])
         max_info = errors[0]
-        #max_info = min(get_errors(image, chars))
         result.append(max_info)
         debug(max_info)
         min_error, char, pos, angle = max_info
