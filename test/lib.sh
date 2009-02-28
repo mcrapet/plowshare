@@ -9,6 +9,16 @@ assert_equal() {
     fi
 }
 
+# Check that $1 is not equal to $2.
+assert_not_equal() {
+    if test "$1" = "$2"; then
+        echo "failed!"
+        echo "  assert_not_equal failed: $1 == $2"
+        return 1
+    fi
+}
+
+
 # Check that regexp $1 matches $2.
 assert_match() {
     if ! grep -q "$1" <<< "$2"; then
