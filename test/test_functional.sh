@@ -131,4 +131,11 @@ test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload 2shared:$UPFILE)"
 }        
 
+test_megaupload_captchas_upload() {
+    DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
+    OLDTS=$(stat -c %Z "$DB_CACHE")
+    assert_return 0 "download -q -u"
+    assert_not_equal $OLDTS $(stat -c %Z "$DB_CACHE")
+}
+
 run_tests "$@"
