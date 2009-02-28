@@ -201,11 +201,12 @@ process_options() {
     # Strip spaces in options
     OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
         sed "s/^[[:space:]]*//; s/[[:space:]]$//")
-    VARS=$(get_field 1 "$OPTIONS" | sed "s/^!//" | xargs)
+    while read VAR; do
+        unset $VAR
+    done < <(get_field 1 "$OPTIONS" | sed "s/^!//")
     ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
         --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"
     eval set -- "$ARGUMENTS"
-    unset $VARS
     UNUSED_OPTIONS=()
     while true; do
         test "$1" = "--" && { shift; break; }
