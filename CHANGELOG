@@ -1,3 +1,9 @@
+plowshare (0.4.2) unstable; urgency=low
+
+  * Update megaupload captchas is now manual (plowdown -u) 
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 28 Feb 2009 21:36:30 +0100
+
 plowshare (0.4.1) unstable; urgency=low
 
   * Use JDownloader database for megaupload captchas (OCR can also be used)
