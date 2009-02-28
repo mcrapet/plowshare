@@ -98,23 +98,19 @@ megaupload_ocr() {
 #
 megaupload_captcha_db() {
     FILE=$1
-    FORCE=$2
+    DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
+    MD5SUM=$(md5sum < $FILE | awk '{print $1}')
+    debug "using JDownloader captchas: $DB_CACHE"
+    awk "\$1 == \"$MD5SUM\" {print \$2}" < "$DB_CACHE" | head -c4 | uppercase 
+}
+
+update_megaupload_captchas() {
     DB_URL="https://www.syncom.org/svn/jdownloader/trunk/ressourcen/jd/captcha/methods/megaupload.com/c.zip"
     DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
-    UPDATE_INTERVAL=$((3600*24))
-    
-    MD5SUM=$(md5sum < $FILE | awk '{print $1}')
-    NOW=$(date +%s)
-    DB_CACHE_LASTMOD=$(stat -c %Z "$DB_CACHE" 2>/dev/null) && 
-        DB_CACHE_AGE=$((NOW - DB_CACHE_LASTMOD)) ||
-        DB_CACHE_AGE=$UPDATE_INTERVAL
-    if test "$FORCE" != "force" -a $DB_CACHE_AGE -lt $UPDATE_INTERVAL; then
-        debug "using cached database: $DB_CACHE"
-        cat $DB_CACHE
-    else
-        debug "updating database: $DB_CACHE (from $DB_URL)"
-        curl -s --insecure "$DB_URL" | funzip | tee $DB_CACHE
-    fi | awk -F";" "\$1 == \"$MD5SUM\" {print \$2}" | head -c4 | uppercase 
+    debug "updating captchas: $DB_URL"
+    curl --insecure "$DB_URL" | funzip | \
+        sed -n "s/^\([[:alnum:]]\{32\}\);\([[:alnum:]]\{4\}\)/\1 \2/p" > $DB_CACHE
+    debug "capchas updated: $DB_CACHE"
 }
 
 # Show help info for options
