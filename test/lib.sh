@@ -51,17 +51,19 @@ assert() {
 # Run a test
 run() {
   echo -n "$1... "
-  "$@" && echo "ok" || echo "failed!"
+  "$@" && echo "ok" || { echo "failed!"; return 1; }
 }
 
 # Run tests (run all if none is given)
 run_tests() {
+    RETVAL=0
     if test $# -eq 0; then 
         TESTS=$(set | grep "^test_" | awk '$2 == "()"' | awk '{print $1}' | xargs)
     else        
         TESTS="$@"
     fi 
     for TEST in $TESTS; do
-        run $TEST
+        run $TEST || RETVAL=2
     done
+    return $RETVAL
 }
