@@ -94,7 +94,7 @@ test_megaupload_upload_member() {
     assert_equal "http://www.megaupload.com/?d=IDXJG1RN" "$URL"
 }        
 
-test_megaupload_upload_premium() {
+XYZtest_megaupload_upload_premium() {
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" -p "mypassword" \
         -d 'Plowshare test' megaupload:$UPFILE)
@@ -126,16 +126,15 @@ test_2shared_download_using_file_argument_and_mark_as_downloaded() {
     rm -f "$TEMP"    
 }        
         
-
 test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload 2shared:$UPFILE)"
 }        
 
-test_megaupload_captchas_upload() {
+test_megaupload_captchas_update() {
     DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
-    OLDTS=$(stat -c %Z "$DB_CACHE")
+    OLDTS=$(stat -c %Y "$DB_CACHE")
     assert_return 0 "download -q -u"
-    assert_not_equal $OLDTS $(stat -c %Z "$DB_CACHE")
+    assert_not_equal $OLDTS $(stat -c %Y "$DB_CACHE")
 }
 
 run_tests "$@"
