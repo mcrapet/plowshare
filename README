@@ -11,12 +11,17 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 
 To run _plowshare_ you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX] compliant operating system (GNU/Linux -Debian/Ubuntu/Fedora/Suse/PcLinuxOS/Gentoo/Mandriva/...-, `*`BSD, MacOSX, Cygwin, ...)
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX] operating system: GNU/Linux (Debian/Ubuntu/Fedora/Suse/PcLinuxOS/Gentoo/...), `*`BSD, OSX, Cygwin, ...
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
-  * [http://www.imagemagick.org/ imagemagick] (only for megaupload downloader)
-  * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (only for megaupload downloader)
+  * [http://www.info-zip.org/UnZip.html unzip]
+
+For Debian/Ubuntu users this should suffice:
+
+{{{
+apt-get install curl recode unzip
+}}}
 
 = Download & Install =
 
@@ -85,6 +90,6 @@ plowup -a myuser:mypassword rapidshare:myfile.txt
 
 = Create new modules =
 
-_Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
+_Plowshare_ is designed with modularity in mind, so it's easy to create new  modules. Study the code of any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
 
 New modules will be added to _plowshare_ as long as they are released under a GNU GPL v3 compatible license.
