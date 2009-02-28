@@ -32,7 +32,9 @@ done
 usage() {
     debug "$(basename $0) [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
     debug
-    debug "  Upload a file to file sharing server (available modules: $MODULES)"
+    debug "  Upload a file to file sharing server."
+    debug
+    debug "  Available modules: $MODULES"
     debug
     debug "Global options:"
     debug

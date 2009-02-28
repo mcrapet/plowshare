@@ -94,8 +94,8 @@ megaupload_ocr() {
     $EXTRASDIR/megaupload_captcha.py "$@"
 }
 
-# Use extern DB to get correct captcha
-# Use jdownload (c.zip)
+# Use external JDownloader DB to reply with the correct captcha
+#
 megaupload_captcha_db() {
     FILE=$1
     FORCE=$2
@@ -116,6 +116,7 @@ megaupload_captcha_db() {
         curl -s --insecure "$DB_URL" | funzip | tee $DB_CACHE
     fi | awk -F";" "\$1 == \"$MD5SUM\" {print \$2}" | head -c4 | uppercase 
 }
+
 # Show help info for options
 #
 # $1: options${STRING:2}
@@ -191,7 +192,7 @@ get_field() {
 #
 # Example:
 #
-# set -- -a user:password -q arg1 arg2
+# $ set -- -a user:password -q arg1 arg2
 # $ eval "$(process_options module "AUTH,a:,auth:,USER:PASSWORD,Help for auth
 #           QUIET,q,quiet,,Help for quiet" "$@")"
 # $ echo "$AUTH / $QUIET / $1 / $2"

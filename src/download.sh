@@ -38,7 +38,7 @@ get_module() {
     URL=$1
     MODULES=$2
     for MODULE in $MODULES; do
-        VAR=MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_REGEXP_URL
+        VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
         match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
     done
     return 1     
@@ -65,7 +65,9 @@ process_item() {
 usage() {
     debug "Usage: $(basename $0) [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     debug
-    debug "  Download files from file sharing servers (available modules: $MODULES)"
+    debug "  Download files from file sharing servers."
+    debug
+    debug "  Available modules: $MODULES"
     debug
     debug "Global options:"
     debug
