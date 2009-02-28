@@ -94,6 +94,28 @@ megaupload_ocr() {
     $EXTRASDIR/megaupload_captcha.py "$@"
 }
 
+# Use extern DB to get correct captcha
+# Use jdownload (c.zip)
+megaupload_captcha_db() {
+    FILE=$1
+    FORCE=$2
+    DB_URL="https://www.syncom.org/svn/jdownloader/trunk/ressourcen/jd/captcha/methods/megaupload.com/c.zip"
+    DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
+    UPDATE_INTERVAL=$((3600*24))
+    
+    MD5SUM=$(md5sum < $FILE | awk '{print $1}')
+    NOW=$(date +%s)
+    DB_CACHE_LASTMOD=$(stat -c %Z "$DB_CACHE" 2>/dev/null) && 
+        DB_CACHE_AGE=$((NOW - DB_CACHE_LASTMOD)) ||
+        DB_CACHE_AGE=$UPDATE_INTERVAL
+    if test "$FORCE" != "force" -a $DB_CACHE_AGE -lt $UPDATE_INTERVAL; then
+        debug "using cache database: $DB_CACHE"
+        cat $DB_CACHE
+    else
+        debug "updating database: $DB_CACHE (from $DB_URL)"
+        curl -s --insecure "$DB_URL" | funzip | tee $DB_CACHE
+    fi | awk -F";" "\$1 == \"$MD5SUM\" {print \$2}" | head -c4 | uppercase 
+}
 # Show help info for options
 #
 # $1: options${STRING:2}
@@ -128,16 +150,21 @@ get_modules_options() {
     done
 }
 
+# Return uppercase string
+uppercase() {
+    tr '[a-z]' '[A-Z]'
+}
+
 can_module_continue_downloads() {
     MODULE=$1
-    VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_DOWNLOAD_CONTINUE"
+    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_CONTINUE"
     test "${!VAR}" = "yes"
 }
 
 get_options_for_module() {
     MODULE=$1
     NAME=$2    
-    VAR="MODULE_$(echo $MODULE | tr '[a-z]' '[A-Z]')_${NAME}_OPTIONS"
+    VAR="MODULE_$(echo $MODULE | uppercase)_${NAME}_OPTIONS"
     echo "${!VAR}"
 }
 
