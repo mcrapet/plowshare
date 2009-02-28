@@ -109,7 +109,7 @@ megaupload_captcha_db() {
         DB_CACHE_AGE=$((NOW - DB_CACHE_LASTMOD)) ||
         DB_CACHE_AGE=$UPDATE_INTERVAL
     if test "$FORCE" != "force" -a $DB_CACHE_AGE -lt $UPDATE_INTERVAL; then
-        debug "using cache database: $DB_CACHE"
+        debug "using cached database: $DB_CACHE"
         cat $DB_CACHE
     else
         debug "updating database: $DB_CACHE (from $DB_URL)"

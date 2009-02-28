@@ -2,7 +2,7 @@
 set -e
 PROJECT=$(basename "$PWD" | sed "s/-[0-9.-]*//")
 TRUNK="https://$PROJECT.googlecode.com/svn/trunk/"
-BRANCHES="https://$PROJECT.googlecode.com/svn/branches/"
+TAGS_URL="https://$PROJECT.googlecode.com/svn/tags/"
 AUTHFILE=".googlecode-auth"
 VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
 LOG="$1"
@@ -25,6 +25,6 @@ expect << EOF
     expect
 EOF
 
-BRANCH="RELEASE-$VERSION"
-echo "creating branch: $BRANCH"
-svn copy -m "$LOG" $TRUNK $BRANCHES/$BRANCH
+TAG="RELEASE-$VERSION"
+echo "creating tag: $TAG"
+svn copy -m "$LOG" $TRUNK $TAGS_URL/$TAG
