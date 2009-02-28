@@ -33,7 +33,8 @@ for MODULE in $MODULES; do
     cp -v modules/$MODULE.sh $MODULESDIR
 done
 mkdir -p $MODULESDIR/extras
-cp -pv modules/extras/{megaupload_captcha.py,*.ttf} $MODULESDIR/extras
+cp -pv modules/extras/{jdownloader_captchas.db,megaupload_captcha.py,*.ttf} \
+    $MODULESDIR/extras
 
 # Binary files
 mkdir --verbose -p $BINDIR 
