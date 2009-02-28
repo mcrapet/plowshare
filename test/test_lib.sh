@@ -76,14 +76,6 @@ test_create_tempfile() {
     rm -f $TEMP
 }
 
-test_post_login() {
-    AUTH=$(cat $TESTSDIR/.rapidshare-auth)
-    FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"       
-    LOGIN_DATA='username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL" 2>/dev/null)
-    assert_match "\.rapidshare\.com" "$COOKIES"
-}
-
 test_megaupload_ocr() {
     CAPTCHA=$(megaupload_ocr "$PICSDIR/GFH6.gif" 2>/dev/null)
     assert_equal "GFH6" $CAPTCHA
