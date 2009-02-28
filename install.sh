@@ -17,14 +17,14 @@ if [ "$1" = "uninstall" ]; then
 fi
 
 # Documentation
-mkdir --verbose -p $DOCSDIR
+mkdir -p $DOCSDIR
 cp -v CHANGELOG COPYING README $DOCSDIR 
 
 # Enter to source directory
 cd src
 
 # Common library 
-mkdir --verbose -p $LIBDIR
+mkdir -p $LIBDIR
 cp -pv download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
@@ -37,6 +37,6 @@ cp -pv modules/extras/{jdownloader_captchas.db,megaupload_captcha.py,*.ttf} \
     $MODULESDIR/extras
 
 # Binary files
-mkdir --verbose -p $BINDIR 
+mkdir -p $BINDIR 
 ln -vsf $(readlink -f $LIBDIR/download.sh) $BINDIR/plowdown
 ln -vsf $(readlink -f $LIBDIR/upload.sh) $BINDIR/plowup
