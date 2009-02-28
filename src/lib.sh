@@ -242,9 +242,9 @@ process_options() {
         shift
     done
     echo "UNUSED_OPTIONS=($(for ARG in "${UNUSED_OPTIONS[@]}"; do 
-               echo "'$ARG'"
-          done | xargs -d"\n"))"
+               echo -n "'$ARG' "
+          done))"
     echo "set -- $(for ARG in "$@"; do 
-               echo "'$ARG'"
-          done | xargs -d"\n")"
+               echo -n "'$ARG' "
+          done)"
 }
