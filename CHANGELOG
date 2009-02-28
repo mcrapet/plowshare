@@ -1,6 +1,12 @@
+plowshare (0.4.1) unstable; urgency=low
+
+  * Use JDownloader database for megaupload captchas (OCR can also be used)
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 28 Feb 2009 15:52:43 +0100
+
 plowshare (0.4) unstable; urgency=low
 
-  * Decode (slowly and low accuracy) new Megaupload captcha (4-chars with rotation). 
+  * Decode (slow and low accuracy code) new Megaupload captcha (4-chars with rotation). 
 
  -- Arnau Sanchez <pyarnau@gmail.com>  Fri, 27 Feb 2009 21:23:10 +0100
 

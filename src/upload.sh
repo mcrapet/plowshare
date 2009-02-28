@@ -13,7 +13,7 @@
 #
 set -e
 
-VERSION="0.4"
+VERSION="0.4.1"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
