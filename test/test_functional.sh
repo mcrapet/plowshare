@@ -131,8 +131,8 @@ test_2shared_upload() {
 }        
 
 test_megaupload_captchas_update() {
-    DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
-    OLDTS=$(stat -c %Y "$DB_CACHE")
+    DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
+    OLDTS=$(stat -c %Y "$DB_CACHE" 2>/dev/null)
     assert_return 0 "download -q -u"
     assert_not_equal $OLDTS $(stat -c %Y "$DB_CACHE")
 }
