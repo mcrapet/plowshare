@@ -55,13 +55,16 @@ test_process_options() {
 AUTH,a:,auth:,USER:PASSWORD,Authentication 
 QUIET,q,quiet,,Don't print errors 
 !LEVEL,l:,level:,INTEGER,Set level
+!VALUE,v:,value:,STRING,Set value
 "
-    eval "$(process_options testmod "$OPTIONS" \
-        --auth="user : password" -q "--level=5 a" arg1 arg2)"
+    eval "$(process_options test_lib "$OPTIONS" \
+        -a "user : password" -q --level="5 a" --value="1 '\" 2" arg1 arg2)"
     assert_equal "user : password" "$AUTH"
-    assert_equal 1 $QUIET
-    assert_equal "" $LEVEL
-    assert_equal '--level=5 a' "$UNUSED_OPTIONS"
+    assert_equal 1 "$QUIET"
+    assert_equal "" "$LEVEL"
+    assert_equal 2 "${#UNUSED_OPTIONS[@]}"
+    assert_equal '--level=5 a' "${UNUSED_OPTIONS[0]}"
+    assert_equal "--value=1 '\" 2" "${UNUSED_OPTIONS[1]}"
     assert_equal arg1 $1
     assert_equal arg2 $2
 }
