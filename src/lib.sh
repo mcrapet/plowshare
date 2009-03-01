@@ -98,18 +98,19 @@ megaupload_ocr() {
 #
 megaupload_captcha_db() {
     FILE=$1
-    DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
+    DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
     MD5SUM=$(md5sum < $FILE | awk '{print $1}')
     debug "using JDownloader captchas: $DB_CACHE"
-    awk "\$1 == \"$MD5SUM\" {print \$2}" < "$DB_CACHE" | head -c4 | uppercase 
+    zcat "$DB_CACHE" | awk "\$1 == \"$MD5SUM\" {print \$2}" | head -c4 | uppercase 
 }
 
 update_megaupload_captchas() {
     DB_URL="https://www.syncom.org/svn/jdownloader/trunk/ressourcen/jd/captcha/methods/megaupload.com/c.zip"
-    DB_CACHE=$EXTRASDIR/jdownloader_captchas.db
+    DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
     debug "updating captchas: $DB_URL"
     curl --insecure "$DB_URL" | funzip | \
-        sed -n "s/^\([[:alnum:]]\{32\}\);\([[:alnum:]]\{4\}\)/\1 \2/p" > $DB_CACHE
+        sed -n "s/^\([[:alnum:]]\{32\}\);\([[:alnum:]]\{4\}\)/\1 \2/p" | \
+        gzip > $DB_CACHE
     debug "capchas updated: $DB_CACHE"
 }
 
@@ -195,6 +196,11 @@ get_field() {
 # user:password / 1 / arg1 / arg2
 #
 process_options() {
+    quote() { 
+        for ARG in "$@"; do 
+            echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") " 
+        done | sed "s/ $//"
+    }
     NAME=$1
     OPTIONS=$2   
     shift 2
@@ -221,7 +227,7 @@ process_options() {
                 if test "${SHORT:${#SHORT}-1:1}" = ":" -o \
                         "${LONG:${#LONG}-1:1}" = ":"; then
                     if test "$UNUSED" = 0; then
-                        echo "$VAR=\"$2\""
+                        echo "$VAR=$(quote "$2")"
                     else
                         if test "${1:0:2}" = "--"; then
                             UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1=$2")
@@ -242,10 +248,6 @@ process_options() {
         done
         shift
     done
-    echo "UNUSED_OPTIONS=($(for ARG in "${UNUSED_OPTIONS[@]}"; do 
-               echo -n "'$ARG' "
-          done))"
-    echo "set -- $(for ARG in "$@"; do 
-               echo -n "'$ARG' "
-          done)"
+    echo "$(declare -p UNUSED_OPTIONS)" 
+    echo "set -- $(quote "$@")"
 }
