@@ -98,7 +98,6 @@ RETVAL=0
 for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
-        python $EXTRASDIR/megaupload_captcha.py -i gencap.php\?44681d3841e0ef30.gif
         MODULE=$(get_module "$URL" "$MODULES")
         if ! test "$MODULE"; then 
             debug "no module recognizes this URL: $URL"
