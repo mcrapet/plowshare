@@ -3,6 +3,7 @@
 
 Note: It's ver slow and it has only a 10% of accuracy.
 """
+import select
 import string
 import os
 import sys
@@ -10,6 +11,14 @@ from StringIO import StringIO
 
 # Third-party modules
 from PIL import Image, ImageFont, ImageDraw
+
+class UserInput(Exception):
+    pass
+
+def check_user_input():
+    if select.select([sys.stdin], [], [], 0)[0]:
+        value = sys.stdin.read(4).strip().upper()
+        raise UserInput, value
 
 def debug(line, linefeed=True, stream=sys.stderr):
     """Write line to standard error."""
@@ -88,7 +97,7 @@ def invert_image(image):
 def rotate_and_crop(image, angle):
     """Rotate, crop and invert an image."""
     return invert_image(autocrop_image(image.rotate(angle, expand=True)))
-
+  
 def get_errors(image, chars, zones):
     """Compare an image against a dictionary of chars."""
     image_width, image_height = image.size
@@ -96,6 +105,7 @@ def get_errors(image, chars, zones):
         debug(".", linefeed=False)
 #        zones2 = ([zones[0], zones[-1]] if len(zones) > 2 else zones[:])
         for (xstart, xend), (angle_start, angle_end) in zones:
+            check_user_input()
             for angle in range(angle_start, angle_end+1, 1):
                 char_image_rotated = rotate_and_crop(char_image, angle)
                 char_width, char_height = char_image_rotated.size
@@ -130,7 +140,7 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
     captcha_length = 4
     chars = build_chars(fontfile, 36, excluded_chars="1IL")
     image = open_image(captcha_imagefile)
-    debug_image(image, 2)
+    debug_image(image)
     result = []
     while len(result) < captcha_length:
         debug("start iteration %d/%d " % (len(result)+1, captcha_length), False)
@@ -148,7 +158,7 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
                 break
         char_image_rotated = rotate_and_crop(chars[char], angle)
         image = substract_images(image, char_image_rotated, pos)
-        #debug_image(image, 2)
+        #debug_image(image)
         
     sorted_by_position = sorted(result, key=lambda x: x[2])
     errors = sum(get_at(sorted_by_position, 0)) / 4.0
@@ -158,19 +168,24 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
 
 def main(args):
     import optparse
-    usage = """usage: megaupload_captcha [options]
-
-    """ 
+    usage = """usage: megaupload_captcha [OPTIONS] IMAGE"""
     parser = optparse.OptionParser(usage)
     parser.add_option('-q', '--quiet', dest='quiet',
           action="store_true", default=False, help='Be quiet')
     options, args0 = parser.parse_args(args)
+    if not args0:
+        parser.print_help()
+        return 1
     if options.quiet:
         global debug
         debug = lambda *args, **kwargs: None
     captcha_file = StringIO(open(args0[0]).read())
     fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
-    print decode_megaupload_captcha(captcha_file, fontfile)
+    try:
+        print decode_megaupload_captcha(captcha_file, fontfile)
+    except UserInput, value:
+        print value
+        
             
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
