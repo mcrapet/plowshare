@@ -2,7 +2,6 @@
 set -e
 
 NAME=plowshare
-MODULES="megaupload rapidshare 2shared"
 INSTALLDIR=${INSTALLDIR:-/usr/local}
 LIBDIR=$INSTALLDIR/share/$NAME
 BINDIR=$INSTALLDIR/bin
@@ -29,12 +28,11 @@ cp -pv download.sh upload.sh lib.sh $LIBDIR
 
 # Modules
 mkdir -p $MODULESDIR
-for MODULE in $MODULES; do
-    cp -v modules/$MODULE.sh $MODULESDIR
-done
+cp -v modules/*.sh $MODULESDIR
 mkdir -p $MODULESDIR/extras
-cp -pv modules/extras/{jdownloader_captchas.db,megaupload_captcha.py,*.ttf} \
+cp -pv modules/extras/{jdownloader_captchas_db.gz,megaupload_captcha.py,*.ttf} \
     $MODULESDIR/extras
+chmod +x $MODULESDIR/extras/megaupload_captcha.py
 
 # Binary files
 mkdir -p $BINDIR 
