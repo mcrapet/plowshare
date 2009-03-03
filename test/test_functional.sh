@@ -58,7 +58,13 @@ test_megaupload_download_anonymous() {
     rm -f $FILENAME
 }        
 
-test_megaupload_password_protected_file() {
+test_megaupload_download_anonymous_with_ocr() {
+    FILENAME="testmotion2.mp4"
+    assert_equal "$FILENAME" "$(download -o $MEGAUPLOAD_URL)"
+    rm -f $FILENAME
+}        
+
+test_megaupload_download_a_password_protected_file() {
     URL="http://www.megaupload.com/?d=4YF0D6A3"
     FILENAME="asound.conf"
     assert_equal "$FILENAME" "$(download -p test1 $URL)"
@@ -136,5 +142,15 @@ test_megaupload_captchas_update() {
     assert_return 0 "download -q -u"
     assert_not_equal $OLDTS $(stat -c %Y "$DB_CACHE")
 }
+
+## Badongo
+
+BADONGO_URL="http://www.badongo.com/file/13153017"
+
+test_badongo_download() {
+    FILENAME="Kandinsky_Wassily_-_De_lo_espiritual_en_el_arte.rar"
+    assert_equal "$FILENAME" "$(download $BADONGO_URL)"
+    rm -f $FILENAME
+}        
 
 run_tests "$@"
