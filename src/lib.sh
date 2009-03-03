@@ -101,7 +101,7 @@ megaupload_captcha_db() {
     DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
     MD5SUM=$(md5sum < $FILE | awk '{print $1}')
     debug "using JDownloader captchas: $DB_CACHE"
-    zcat "$DB_CACHE" | awk "\$1 == \"$MD5SUM\" {print \$2}" | head -c4 | uppercase 
+    zcat "$DB_CACHE" | awk "\$1 == \"$MD5SUM\" {print \$2}" | head -n1
 }
 
 update_megaupload_captchas() {
@@ -109,8 +109,7 @@ update_megaupload_captchas() {
     DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
     debug "updating captchas: $DB_URL"
     curl --insecure "$DB_URL" | funzip | \
-        sed -n "s/^\([[:alnum:]]\{32\}\);\([[:alnum:]]\{4\}\)/\1 \2/p" | \
-        gzip > $DB_CACHE
+        sed "s/;\([[:alnum:]]\{4\}\).*$/ \U\1/" | gzip > $DB_CACHE
     debug "capchas updated: $DB_CACHE"
 }
 
@@ -216,7 +215,7 @@ process_options() {
     UNUSED_OPTIONS=()
     while true; do
         test "$1" = "--" && { shift; break; }
-        for OPTION in $OPTIONS; do
+        while read OPTION; do
             IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
             UNUSED=0
             if test "${VAR:0:1}" = "!"; then
@@ -245,7 +244,7 @@ process_options() {
                 fi
                 break
             fi
-        done
+        done <<< "$OPTIONS"
         shift
     done
     echo "$(declare -p UNUSED_OPTIONS)" 
