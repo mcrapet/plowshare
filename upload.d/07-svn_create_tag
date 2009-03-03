@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+DIR=$(dirname $0)
+source $DIR/vars
+
+TAG="RELEASE-$VERSION"
+svn copy -m "$LOG" $TRUNK $TAGS_URL/$TAG

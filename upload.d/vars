@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PROJECT=$(basename "$PWD" | sed "s/-[0-9.-]*//")
+TRUNK="https://$PROJECT.googlecode.com/svn/trunk/"
+TAGS_URL="https://$PROJECT.googlecode.com/svn/tags/"
+AUTHFILE=".googlecode-auth"
+VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
+LOG="$1"
+DIRECTORY=$PROJECT-$VERSION
+IFS=":" read USERNAME PASSWORD < "$AUTHFILE"
+FILE=$DIRECTORY.tgz

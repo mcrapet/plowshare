@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+DIR=$(dirname $0)
+source $DIR/vars
+
+cd $DIR/..
+rm -rf $DIRECTORY
+svn export $TRUNK $DIRECTORY --username $USERNAME --force
+tar -zcf $FILE $DIRECTORY

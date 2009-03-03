@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+test -z "$(svn diff)" || 
+    { echo "SVN Diff is not empty!"; exit 1; }
+

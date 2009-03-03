@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+DIR=$(dirname $0)
+source $DIR/vars
+
+cd $DIR/..
+LOG=$(cat CHANGELOG  |grep "^  *" | head -n1 | sed "s/^  \* //")
+expect << EOF 
+    spawn googlecode-upload.py -s "$LOG" -p $PROJECT -u $USERNAME $FILE
+    expect "Password:"
+    send "$PASSWORD\r"
+    expect
+EOF

@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+
+svn up wiki/
+cat wiki/Readme.wiki | grep -v "#labels" > README
