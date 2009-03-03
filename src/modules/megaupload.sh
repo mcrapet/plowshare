@@ -39,6 +39,7 @@ megaupload_download() {
     BASEURL="http://www.megaupload.com"
  
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
+    MAXDBTRIES=5
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
@@ -46,6 +47,11 @@ megaupload_download() {
     while true; do 
         debug "Downloading waiting page (loop $TRY)"
         TRY=$(($TRY + 1))
+        if [ $TRY -gt $MAXDBTRIES ]; then
+            debug "After $MAXDBTRIES no captcha was found in database"
+            debug "Swith to OCR mode"
+            USEOCR=1
+        fi
         PAGE=$(ccurl "$URL")
         # Test if the file is password protected
         if match 'name="filepassword"' "$PAGE"; then
@@ -74,7 +80,8 @@ megaupload_download() {
                 { debug "error running OCR (is python-imaging installed?)"; return 1; }
             debug "Decoded captcha: $CAPTCHA"
         else
-            CAPTCHA=$(megaupload_captcha_db <(curl "$CAPTCHA_URL"))
+            CAPTCHA=$(megaupload_captcha_db <(curl "$CAPTCHA_URL")) ||
+                { debug "cannot find captcha in database"; continue; }
             debug "Captcha: $CAPTCHA"
         fi
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
