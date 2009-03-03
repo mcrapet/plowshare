@@ -153,4 +153,12 @@ test_badongo_download() {
     rm -f $FILENAME
 }        
 
+### Install script
+
+test_install_script() {
+    TEMPDIR=$(mktemp -d)
+    assert_return 0 "INSTALLDIR=$TEMPDIR $ROOTDIR/install.sh"
+    rm -rf $TEMPDIR
+}
+
 run_tests "$@"

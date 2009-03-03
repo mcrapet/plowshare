@@ -1,3 +1,10 @@
+plowshare (0.4.4) unstable; urgency=low
+
+  * Fix some setup.sh bugs (thanks to karkoma)
+  * Add input-captcha option to megaupload download allowing user input (suggested by pwang07)
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Wed, 04 Mar 2009 00:10:42 +0100
+
 plowshare (0.4.3) unstable; urgency=low
 
   * Add badongo module (download implemented)

@@ -13,7 +13,7 @@
 #
 set -e
 
-VERSION="0.4.3"
+VERSION="0.4.4"
 MODULES="rapidshare megaupload 2shared badongo"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
