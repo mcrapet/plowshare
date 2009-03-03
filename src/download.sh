@@ -13,8 +13,8 @@
 #
 set -e
 
-VERSION="0.4.2"
-MODULES="rapidshare megaupload 2shared"
+VERSION="0.4.3"
+MODULES="rapidshare megaupload 2shared badongo"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print error nor debug messages 
@@ -42,7 +42,6 @@ get_module() {
         VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
         match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
     done
-    return 1     
 }
 
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
@@ -91,11 +90,7 @@ if test "$QUIET"; then
 fi
 
 test "$UPDATE_MEGAUPLOAD_CAPTCHAS" && { update_megaupload_captchas; exit 0; } 
-
 test $# -ge 1 || { usage; exit 1; } 
-
-check_exec "curl" || { debug "Fatal error: curl is not installed"; exit 2; }
-check_exec "recode" || { debug "Fatal error: recode is not installed"; exit 2; }
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
 DERROR=4
@@ -115,26 +110,23 @@ for ITEM in "$@"; do
             continue
         fi
         debug "start download ($MODULE): $URL"
-        MODULE_OPTIONS=$(get_options_for_module "$MODULE" "DOWNLOAD")
         FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL")
+        test "$FILE_URL" || 
+            { echo "error on function: $FUNCTION"; RETVAL=$DERROR; continue; }
         if test "$LINK_ONLY"; then
-            echo $FILE_URL
+            echo "$FILE_URL"
         else 
-            if can_module_continue_downloads "$MODULE"; then
-                debug "download continuation is enabled for module $MODULE"
-                CURL="curl -C -" 
-            else
-                CURL="curl"
-            fi
+            can_module_continue_downloads "$MODULE" &&
+                CURL="curl -C -"|| CURL="curl"
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
-            $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
-            echo $FILENAME || 
-            { debug "error downloading: $URL"; RETVAL=$DERROR; continue; }
+                $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
+                echo $FILENAME || 
+                { debug "error downloading: $URL"; RETVAL=$DERROR; continue; }
         fi
         if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
             sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
-            debug "link marked as downloaded in input file: $ITEM" ||
-            debug "error marking link as downloaded in input file: $ITEM"
+                debug "link marked as downloaded in input file: $ITEM" ||
+                debug "error marking link as downloaded in input file: $ITEM"
         fi 
     done
 done
