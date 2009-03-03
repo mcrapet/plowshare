@@ -16,6 +16,8 @@ class UserInput(Exception):
     pass
 
 def check_user_input():
+    if not check_user_input_state:
+        return
     if select.select([sys.stdin], [], [], 0)[0]:
         value = sys.stdin.read(4).strip().upper()
         raise UserInput, value
@@ -172,6 +174,9 @@ def main(args):
     parser = optparse.OptionParser(usage)
     parser.add_option('-q', '--quiet', dest='quiet',
           action="store_true", default=False, help='Be quiet')
+    parser.add_option('-i', '--input-from-terminal', dest='from_terminal',
+          action="store_true", default=False, 
+          help='Allow the user to enter captcha manually in the terminal')
     options, args0 = parser.parse_args(args)
     if not args0:
         parser.print_help()
@@ -179,13 +184,14 @@ def main(args):
     if options.quiet:
         global debug
         debug = lambda *args, **kwargs: None
+    global check_user_input_state
+    check_user_input_state = options.from_terminal
     captcha_file = StringIO(open(args0[0]).read())
     fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
     try:
         print decode_megaupload_captcha(captcha_file, fontfile)
     except UserInput, value:
         print value
-        
-            
+                    
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
