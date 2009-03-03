@@ -13,7 +13,7 @@
 #
 set -e
 
-VERSION="0.4.2"
+VERSION="0.4.3"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
@@ -46,7 +46,6 @@ usage() {
 # Main
 #
 
-check_exec "curl" || { debug "curl not found"; exit 2; }
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 

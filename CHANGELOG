@@ -1,3 +1,10 @@
+plowshare (0.4.3) unstable; urgency=low
+
+  * Add badongo module (download implemented)
+  * Fix bug in process_options loop 
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Tue, 03 Mar 2009 12:45:21 +0100
+
 plowshare (0.4.2) unstable; urgency=low
 
   * Update megaupload captchas is now manual (plowdown -u) 

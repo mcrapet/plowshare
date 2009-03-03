@@ -6,6 +6,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium ||
 || [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
 || [http://www.2shared.com 2Shared] || yes || yes ||
+|| [http://www.badongo.com Badongo] || yes || no ||
 
 = Dependencies =
 
@@ -16,11 +17,13 @@ To run _plowshare_ you will need:
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.info-zip.org/UnZip.html unzip]
+  * [http://www.imagemagick.org imagemagick]
+  * [http://coge.google.com/p/tesseract-ocr tesseract-ocr]
 
 For Debian/Ubuntu users this should suffice:
 
 {{{
-apt-get install curl recode unzip
+apt-get install curl recode unzip imagemagick tesseract-ocr
 }}}
 
 = Download & Install =
