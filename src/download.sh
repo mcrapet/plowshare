@@ -50,12 +50,12 @@ get_module() {
 process_item() {
     ITEM=$1
     if match "^\(http://\)" "$ITEM"; then
-        echo "url" "$ITEM"
+        echo "url|$ITEM"
     else
         grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read URL; do
             test "$ITEM" != "-" -a -f "$ITEM" &&
                 TYPE="file" || TYPE="url"
-            echo "$TYPE" "$URL"
+            echo "$TYPE|$URL"
         done
     fi
 }
@@ -96,7 +96,9 @@ test $# -ge 1 || { usage; exit 1; }
 DERROR=4
 RETVAL=0
 for ITEM in "$@"; do
-    process_item "$ITEM" | while read TYPE URL; do
+    for INFO in $(process_item "$ITEM"); do
+        IFS="|" read TYPE URL <<< "$INFO"
+        python $EXTRASDIR/megaupload_captcha.py -i gencap.php\?44681d3841e0ef30.gif
         MODULE=$(get_module "$URL" "$MODULES")
         if ! test "$MODULE"; then 
             debug "no module recognizes this URL: $URL"
@@ -110,6 +112,7 @@ for ITEM in "$@"; do
             continue
         fi
         debug "start download ($MODULE): $URL"
+        
         FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL")
         test "$FILE_URL" || 
             { echo "error on function: $FUNCTION"; RETVAL=$DERROR; continue; }
