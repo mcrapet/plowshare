@@ -11,6 +11,7 @@ MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
 USEOCR,o,ocr,,Use OCR to decode captcha (by default JDownloader DB is used)
+INPUTOCR,,input-captcha,,The user may enter the captcha manually in the terminal (bypassing OCR process)
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
@@ -43,15 +44,15 @@ megaupload_download() {
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
-    TRY=1
+    TRY=0
     while true; do 
-        debug "Downloading waiting page (loop $TRY)"
-        TRY=$(($TRY + 1))
-        if [ $TRY -gt $MAXDBTRIES ]; then
+        if [ $TRY -eq $MAXDBTRIES ]; then
             debug "After $MAXDBTRIES no captcha was found in database"
-            debug "Swith to OCR mode"
+            debug "Switch to OCR mode"
             USEOCR=1
         fi
+        TRY=$(($TRY + 1))
+        debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL")
         # Test if the file is password protected
         if match 'name="filepassword"' "$PAGE"; then
@@ -76,6 +77,7 @@ megaupload_download() {
         debug "captcha URL: $CAPTCHA_URL"
         if test "$USEOCR"; then        
             test "$QUIET" = 1 && OCR="megaupload_ocr -q" || OCR="megaupload_ocr"
+            test "$INPUTOCR" = 1 && OCR="$OCR -i"
             CAPTCHA=$($OCR <(curl "$CAPTCHA_URL")) || 
                 { debug "error running OCR (is python-imaging installed?)"; return 1; }
             debug "Decoded captcha: $CAPTCHA"
