@@ -110,7 +110,8 @@ update_megaupload_captchas() {
     debug "updating captchas: $DB_URL"
     curl --insecure "$DB_URL" | funzip | \
         sed "s/;\([[:alnum:]]\{4\}\).*$/ \U\1/" | gzip > $DB_CACHE
-    debug "capchas updated: $DB_CACHE"
+    LINES=$(zcat $DB_CACHE | wc -l)    
+    debug "capchas updated: $DB_CACHE ($LINES)"
 }
 
 # Show help info for options
