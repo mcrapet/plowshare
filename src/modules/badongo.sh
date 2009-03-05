@@ -11,7 +11,7 @@ MODULE_BADONGO_DOWNLOAD_OPTIONS=
 MODULE_BADONGO_UPLOAD_OPTIONS=
 MODULE_BADONGO_DOWNLOAD_CONTINUE=yes
 
-# Output a badongo file download URL
+# Output a file URL to download from Badongo
 #
 # badongo_download [OPTIONS] BADONGO_URL
 #
@@ -35,7 +35,7 @@ badongo_download() {
         MTIME="$(date +%s)000"
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \
             convert - -alpha off -colorspace gray -level 40%,40% gif:- | \
-            ocr | tr -c -d "[A-Z]" | uppercase)
+            ocr | tr -c -d "[a-zA-Z]" | uppercase)
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; }             
