@@ -94,26 +94,6 @@ megaupload_ocr() {
     $EXTRASDIR/megaupload_captcha.py "$@"
 }
 
-# Use external JDownloader DB to reply with the correct captcha
-#
-megaupload_captcha_db() {
-    FILE=$1
-    DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
-    MD5SUM=$(md5sum < $FILE | awk '{print $1}')
-    debug "using JDownloader captchas: $DB_CACHE"
-    zcat "$DB_CACHE" | awk "\$1 == \"$MD5SUM\" {print \$2}" | head -n1
-}
-
-update_megaupload_captchas() {
-    DB_URL="https://www.syncom.org/svn/jdownloader/trunk/ressourcen/jd/captcha/methods/megaupload.com/c.zip"
-    DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
-    debug "updating captchas: $DB_URL"
-    curl --insecure "$DB_URL" | funzip | \
-        sed "s/;\([[:alnum:]]\{4\}\).*$/ \U\1/" | gzip > $DB_CACHE
-    LINES=$(zcat $DB_CACHE | wc -l)    
-    debug "capchas updated: $DB_CACHE ($LINES)"
-}
-
 # Show help info for options
 #
 # $1: options${STRING:2}

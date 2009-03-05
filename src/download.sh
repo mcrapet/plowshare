@@ -20,7 +20,6 @@ GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print error nor debug messages 
 LINK_ONLY,l,link-only,,Return only file link 
 MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in FILE arguments
-UPDATE_MEGAUPLOAD_CAPTCHAS,u,update-megaupload-captchas,,Update captchas from JDownloader
 "
 
 # Get library directory
@@ -89,7 +88,6 @@ if test "$QUIET"; then
     function curl() { $(type -P curl) -s "$@"; }
 fi
 
-test "$UPDATE_MEGAUPLOAD_CAPTCHAS" && { update_megaupload_captchas; exit 0; } 
 test $# -ge 1 || { usage; exit 1; } 
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)

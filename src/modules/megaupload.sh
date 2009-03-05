@@ -10,7 +10,6 @@ MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
-USEDB,,use-captcha-database,,Use JDownloader catpcha database (if fails, switch to OCR moe)
 INPUT_CAPTCHA,,input-captcha,,Prompt user to enter the captcha manually
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
@@ -50,17 +49,11 @@ megaupload_download() {
     BASEURL="http://www.megaupload.com"
  
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    MAXDBTRIES=5
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
     TRY=0
     while true; do 
-        if [ "$USEDB" -a $TRY -eq $MAXDBTRIES ]; then
-            debug "After $MAXDBTRIES no captcha was found in database"
-            debug "Switch to OCR mode"
-            USEDB=
-        fi
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL")
@@ -90,10 +83,6 @@ megaupload_download() {
             echo -n "Enter captcha: " >&2
             read CAPTCHA
             debug "User captcha: $CAPTCHA"
-        elif test "$USEDB"; then
-            CAPTCHA=$(megaupload_captcha_db <(curl "$CAPTCHA_URL")) ||
-                { debug "cannot find captcha in database"; continue; }
-            debug "Captcha from database: $CAPTCHA"
         else
             OCR="megaupload_ocr"        
             test "$QUIET" = 1 && OCR="megaupload_ocr -q"
