@@ -158,7 +158,7 @@ test_badongo_download() {
 test_setup_script() {
     TEMPDIR=$(mktemp -d)
     assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install"
-    assert_equal 23 $(find $TEMPDIR | wc -l)
+    assert_equal 22 $(find $TEMPDIR | wc -l)
     assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall"
     assert_equal 4 $(find $TEMPDIR | wc -l)
     rm -rf $TEMPDIR

@@ -29,7 +29,7 @@ elif [ "$1" = "install" ]; then
     mkdir -p $MODULESDIR
     cp -v src/modules/*.sh $MODULESDIR
     mkdir -p $MODULESDIR/extras
-    cp -pv src/modules/extras/{jdownloader_captchas_db.gz,megaupload_captcha.py,*.ttf} \
+    cp -pv src/modules/extras/{megaupload_captcha.py,*.ttf} \
         $MODULESDIR/extras
     chmod +x $MODULESDIR/extras/megaupload_captcha.py
 

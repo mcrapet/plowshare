@@ -1,3 +1,11 @@
+plowshare (0.4.5) unstable; urgency=low
+
+  * Improve speed of Megaupload catpcha OCR
+  * Remove JDownloader database
+  * Reimplemente input-captcha option (uses aview) 
+   
+ -- Arnau Sanchez <pyarnau@gmail.com>  Fri, 06 Mar 2009 00:36:34 +0100
+
 plowshare (0.4.4) unstable; urgency=low
 
   * Fix some setup.sh bugs (thanks to karkoma)
