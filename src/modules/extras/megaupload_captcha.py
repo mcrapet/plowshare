@@ -169,6 +169,11 @@ def main(args):
     if options.quiet:
         global debug
         debug = lambda *args, **kwargs: None
+    try:
+        import psyco
+        psyco.full()
+    except ImportError:
+        debug("Warning: install python-pysco to speed up the OCR")        
     captcha_file = StringIO(open(args0[0]).read())
     fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
     print decode_megaupload_captcha(captcha_file, fontfile)
