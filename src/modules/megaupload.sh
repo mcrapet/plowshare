@@ -4,14 +4,14 @@
 #
 # License: GNU GPL v3.0: http://www.gnu.org/licenses/gpl-3.0-standalone.html
 #
-# Dependencies: curl, python, python-imaging
+# Dependencies: curl, python, python-imaging, aview (for manual captcha)
 #
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
-USEOCR,o,ocr,,Use OCR to decode the captcha instead of JDownloader database
-INPUTOCR,,input-captcha,,User may enter the captcha manually (thus bypassing the OCR)
+USEDB,,use-captcha-database,,Use JDownloader catpcha database (if fails, switch to OCR moe)
+INPUT_CAPTCHA,,input-captcha,,Prompt user to enter the captcha manually
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
@@ -25,6 +25,16 @@ MULTIEMAIL,m:,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
 LOGINURL="http://www.megaupload.com/?c=login"
+
+# Output image in ascii chars (uses aview)
+#
+ascii_image() {
+    asciiview -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" | \
+        awk 'BEGIN { part = 0; }
+            /\014/ { part++; next; }
+            // { if (part == 2) print $0; }'  | \
+        grep -v "^[[:space:]]*$"
+}
 
 # Output a megaupload file download URL
 #
@@ -46,10 +56,10 @@ megaupload_download() {
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
     TRY=0
     while true; do 
-        if [ $TRY -eq $MAXDBTRIES ]; then
+        if [ "$USEDB" -a $TRY -eq $MAXDBTRIES ]; then
             debug "After $MAXDBTRIES no captcha was found in database"
             debug "Switch to OCR mode"
-            USEOCR=1
+            USEDB=
         fi
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
@@ -75,17 +85,21 @@ megaupload_download() {
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         debug "captcha URL: $CAPTCHA_URL"
-        if test "$USEOCR"; then
-            OCR="megaupload_ocr"        
-            test "$QUIET" = 1 && OCR="megaupload_ocr -q"
-            test "$INPUTOCR" = 1 && OCR="$OCR -i"
-            CAPTCHA=$($OCR <(curl "$CAPTCHA_URL")) || 
-                { debug "error running OCR (is python-imaging installed?)"; return 1; }
-            debug "Decoded captcha: $CAPTCHA"
-        else
+        if test "$INPUT_CAPTCHA"; then
+            curl "$CAPTCHA_URL" | ascii_image >&2
+            echo -n "Enter captcha: " >&2
+            read CAPTCHA
+            debug "User captcha: $CAPTCHA"
+        elif test "$USEDB"; then
             CAPTCHA=$(megaupload_captcha_db <(curl "$CAPTCHA_URL")) ||
                 { debug "cannot find captcha in database"; continue; }
             debug "Captcha from database: $CAPTCHA"
+        else
+            OCR="megaupload_ocr"        
+            test "$QUIET" = 1 && OCR="megaupload_ocr -q"
+            CAPTCHA=$($OCR <(curl "$CAPTCHA_URL")) || 
+                { debug "error running OCR (is python-imaging installed?)"; return 1; }
+            debug "Decoded captcha: $CAPTCHA"
         fi
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
@@ -98,6 +112,7 @@ megaupload_download() {
         test "$WAITTIME" && break;
         debug "Wrong captcha"
     done
+    debug "Correct captch (try $TRY)"
     FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     debug "File URL: $FILEURL"
