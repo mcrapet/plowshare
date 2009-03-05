@@ -3,7 +3,6 @@
 
 Note: It's ver slow and it has only a 10% of accuracy.
 """
-import select
 import string
 import os
 import sys
@@ -11,16 +10,6 @@ from StringIO import StringIO
 
 # Third-party modules
 from PIL import Image, ImageFont, ImageDraw
-
-class UserInput(Exception):
-    pass
-
-def check_user_input():
-    if not check_user_input_state:
-        return
-    if select.select([sys.stdin], [], [], 0)[0]:
-        value = sys.stdin.read(4).strip().upper()
-        raise UserInput, value
 
 def debug(line, linefeed=True, stream=sys.stderr):
     """Write line to standard error."""
@@ -103,12 +92,12 @@ def rotate_and_crop(image, angle):
 def get_errors(image, chars, zones):
     """Compare an image against a dictionary of chars."""
     image_width, image_height = image.size
+    minerror = None
     for char, char_image in sorted(chars.iteritems(), key=lambda (k, v): k):
         debug(".", linefeed=False)
-#        zones2 = ([zones[0], zones[-1]] if len(zones) > 2 else zones[:])
-        for (xstart, xend), (angle_start, angle_end) in zones:
-            check_user_input()
-            for angle in range(angle_start, angle_end+1, 1):
+        zones2 = ([zones[0], zones[-1]] if len(zones) > 2 else zones[:])
+        for (xstart, xend), (angle_start, angle_end) in zones2:
+            for angle in range(angle_start, angle_end+1, 2):
                 char_image_rotated = rotate_and_crop(char_image, angle)
                 char_width, char_height = char_image_rotated.size
                 y = max(0, (image_height - char_height) / 2)
@@ -119,8 +108,10 @@ def get_errors(image, chars, zones):
 #                    print error, char, (x, y), angle
 #                    debug_image(substract_images(image, char_image_rotated, (x, y)))
 #                    sys.stdin.read(1)
-                    yield (error, char, (x, y), angle)
+                    if minerror is None or error < minerror[0]:
+                        minerror = (error, char, (x, y), angle)                        
     debug("")
+    return minerror
 
 def debug_image(image, step=1, stream=sys.stderr):
     """Output image to stream (standard error by default)."""
@@ -134,25 +125,22 @@ def debug_image(image, step=1, stream=sys.stderr):
 def decode_megaupload_captcha(captcha_imagefile, fontfile):
     """Return decoded captcha string."""
     zones = [
-        [(0, 10), (-35, -20)],
-        [(15, 25), (20, 35)],
-        [(30, 40), (-35, -20)],
-        [(45, 55), (20, 35)],
+        [(0, 4), (-33, -20)],
+        [(15, 25), (20, 33)],
+        [(30, 40), (-33, -20)],
+        [(45, 55), (20, 33)],
     ]                
     captcha_length = 4
-    chars = build_chars(fontfile, 36, excluded_chars="1IL")
+    chars = build_chars(fontfile, 36, excluded_chars="ILJ")
     image = open_image(captcha_imagefile)
     debug_image(image)
     result = []
     while len(result) < captcha_length:
-        debug("start iteration %d/%d " % (len(result)+1, captcha_length), False)
-        #max_info = min(get_errors(image, chars))
-        errors = list(sorted(get_errors(image, chars, zones)))
-        #debug(errors[:5])
-        max_info = errors[0]
-        result.append(max_info)
-        debug(max_info)
-        min_error, char, pos, angle = max_info
+        debug("iteration %d/%d " % (len(result)+1, captcha_length), False)
+        min_info = get_errors(image, chars, zones)
+        min_error, char, pos, angle = min_info
+        result.append(min_info)
+        debug(min_info)
         x, y = pos        
         for index, ((xstart, xend), (angle_start, angle_end)) in enumerate(zones):
             if xstart <= x <= xend:
@@ -174,9 +162,6 @@ def main(args):
     parser = optparse.OptionParser(usage)
     parser.add_option('-q', '--quiet', dest='quiet',
           action="store_true", default=False, help='Be quiet')
-    parser.add_option('-i', '--input-from-terminal', dest='from_terminal',
-          action="store_true", default=False, 
-          help='Allow the user to enter captcha manually in the terminal')
     options, args0 = parser.parse_args(args)
     if not args0:
         parser.print_help()
@@ -184,14 +169,9 @@ def main(args):
     if options.quiet:
         global debug
         debug = lambda *args, **kwargs: None
-    global check_user_input_state
-    check_user_input_state = options.from_terminal
     captcha_file = StringIO(open(args0[0]).read())
     fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
-    try:
-        print decode_megaupload_captcha(captcha_file, fontfile)
-    except UserInput, value:
-        print value
+    print decode_megaupload_captcha(captcha_file, fontfile)
                     
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
