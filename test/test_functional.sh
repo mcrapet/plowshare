@@ -136,13 +136,6 @@ test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload 2shared:$UPFILE)"
 }        
 
-test_megaupload_captchas_update() {
-    DB_CACHE=$EXTRASDIR/jdownloader_captchas_db.gz
-    OLDTS=$(stat -c %Y "$DB_CACHE" 2>/dev/null)
-    assert_return 0 "download -q -u"
-    assert_not_equal $OLDTS $(stat -c %Y "$DB_CACHE")
-}
-
 ## Badongo
 
 BADONGO_URL="http://www.badongo.com/file/13153017"

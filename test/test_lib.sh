@@ -84,9 +84,4 @@ test_megaupload_ocr() {
     assert_equal "GFH6" $CAPTCHA
 } 
 
-test_megaupload_captcha_db() {
-    CAPTCHA=$(megaupload_captcha_db "$PICSDIR/GFH6.gif" 2>/dev/null)
-    assert_equal "GFH6" $CAPTCHA
-}
-
 run_tests "$@"
