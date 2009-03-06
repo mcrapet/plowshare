@@ -3,5 +3,5 @@ set -e
 DIR=$(dirname $0)
 source $DIR/vars
 
-TAG="RELEASE-$VERSION"
-svn copy -m "$LOG" $TRUNK $TAGS_URL/$TAG
+svn copy -m "$LOG" $TRUNK $TAGS_URL/RELEASE-$VERSION
+svn copy -m "$LOG" $TAGS_URL/$TAG $TAGS_URL/RELEASE-LAST
