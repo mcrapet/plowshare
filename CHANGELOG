@@ -1,8 +1,14 @@
+plowshare (0.4.6) unstable; urgency=low
+
+  * Add GNU GPL notices to all sources
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Fri, 06 Mar 2009 23:34:22 +0100
+
 plowshare (0.4.5) unstable; urgency=low
 
-  * Improve speed of Megaupload catpcha OCR
-  * Remove JDownloader database
-  * Reimplemente input-captcha option (uses aview) 
+  * Improved speed of Megaupload catpcha OCR
+  * Removed JDownloader database
+  * Refactored input-captcha option (now uses aview) 
    
  -- Arnau Sanchez <pyarnau@gmail.com>  Fri, 06 Mar 2009 00:36:34 +0100
 

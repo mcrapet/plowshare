@@ -1,5 +1,9 @@
 #!/bin/bash
 set -e
+
+# Note that *-auth files are not in the source code, you need to create
+# them with your accounts if you want to run the function test suite.
+
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR=$ROOTDIR/src
 EXTRASDIR=$ROOTDIR/src/modules/extras
