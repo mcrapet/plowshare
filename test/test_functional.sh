@@ -104,7 +104,7 @@ test_megaupload_upload_member() {
     assert_equal "http://www.megaupload.com/?d=IDXJG1RN" "$URL"
 }        
 
-XYZtest_megaupload_upload_premium() {
+test_megaupload_upload_premium() {
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" -p "mypassword" \
         -d 'Plowshare test' megaupload:$UPFILE)

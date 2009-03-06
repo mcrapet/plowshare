@@ -19,7 +19,7 @@ set -e
 
 NAME=plowshare
 DESTDIR=${DESTDIR:-}
-USRDIR=${DESTDIR:-/usr/local}
+USRDIR=$DESTDIR/usr/local
 LIBDIR=$USRDIR/share/$NAME
 BINDIR=$USRDIR/bin
 DOCSDIR=$USRDIR/share/doc/$NAME
@@ -32,7 +32,6 @@ test $# -eq 0 && { echo "$USAGE"; exit 1; }
 if [ "$1" = "uninstall" ]; then
     rm -vrf $LIBDIR $DOCSDIR
     rm -vf $BINDIR/{plowdown,plowup}
-    exit 0
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCSDIR
