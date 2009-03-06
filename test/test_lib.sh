@@ -35,7 +35,6 @@ test_match() {
 
 test_ocr() {
     assert_equal "Hello world" "$(ocr < $PICSDIR/hello_world.gif 2>/dev/null)"
-    assert_equal "PEZ3" "$(ocr < $PICSDIR/captcha_pez3.gif 2>/dev/null)"
 }
 
 test_check_exec() {
