@@ -73,19 +73,10 @@ fi
 test $# -eq 1 || { usage; exit 1; } 
 
 IFS=":" read MODULE FILE <<< "$@"
+test -f "$FILE" ||
+    { error "file does not exist: $FILE"; exit 3; }
+match "\<$MODULE\>" "$MODULES" ||
+    { error "unsupported module: $MODULE"; exit 4; }
 FUNCTION=${MODULE}_upload
-shift
-if ! match "\<$MODULE\>" "$MODULES"; then
-    debug "unsupported module: $MODULE"
-    exit 3
-fi
-if ! check_function "$FUNCTION"; then 
-    debug "module does not implement upload: $MODULE"
-    exit 4
-fi
-if ! test -f "$FILE"; then
-    debug "file does not exist: $FILE"
-    exit 5
-fi
 debug "starting upload ($MODULE)"
 $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" || exit 2

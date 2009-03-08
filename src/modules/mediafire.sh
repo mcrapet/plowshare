@@ -39,7 +39,7 @@ mediafire_download() {
     JS_CODE=$(curl -b $COOKIES "$JS_URL" | sed "s/;/;\n/g")
     rm -f $COOKIES
     # The File URL is ofuscated using a somewhat childish javascript code. 
-    # Ask the javascript interpreter (js) to do the job. 
+    # Use the javascript interpreter (js) to do the job. 
     debug "running Javascript code"
     VARS=$(echo "$JS_CODE" | grep "^[[:space:]]*var")
     HREF=$(echo "$JS_CODE" | parse "href=" "href=\\\\\(\"http.*\)+'\">")

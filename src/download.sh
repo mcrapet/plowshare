@@ -118,11 +118,6 @@ for ITEM in "$@"; do
             continue
         fi
         FUNCTION=${MODULE}_download 
-        if ! check_function "$FUNCTION"; then 
-            debug "module does not implement download: $MODULE"
-            RETVAL=$DERROR
-            continue
-        fi
         debug "start download ($MODULE): $URL"
         
         FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL")
@@ -136,12 +131,12 @@ for ITEM in "$@"; do
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
                 $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
                 echo $FILENAME || 
-                { debug "error downloading: $URL"; RETVAL=$DERROR; continue; }
+                { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
         fi
         if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
             sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
                 debug "link marked as downloaded in input file: $ITEM" ||
-                debug "error marking link as downloaded in input file: $ITEM"
+                error "error marking link as downloaded in input file: $ITEM"
         fi 
     done
 done

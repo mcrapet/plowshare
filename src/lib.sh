@@ -21,6 +21,11 @@ debug() {
     echo "$@" >&2
 }
 
+error() { 
+    echo "Error: $@" >&2
+}
+
+
 # Get first line that matches a regular expression and extract string from it.
 #
 # $1: POSIX-regexp to filter (get only the first matching line).
