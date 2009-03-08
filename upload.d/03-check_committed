@@ -2,4 +2,5 @@
 set -e
 test -z "$(svn diff)" || 
     { echo "SVN Diff is not empty!"; exit 1; }
-
+test -z "$(svn diff wiki)" || 
+    { echo "SVN Diff is not empty for wiki/!"; exit 1; }

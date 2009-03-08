@@ -22,7 +22,7 @@ MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=yes
 
 # Output a mediafire file download URL
 #
-# $1: A mediafire URL
+# meadifire_download URL
 #
 mediafire_download() {
     set -e
@@ -38,8 +38,8 @@ mediafire_download() {
     debug "Javascript URL: $JS_URL"
     JS_CODE=$(curl -b $COOKIES "$JS_URL" | sed "s/;/;\n/g")
     rm -f $COOKIES
-    # The File URL is ofuscated using a somewhat childish javascript code. 
-    # Use the javascript interpreter (js) to do the job. 
+    # The File URL is ofuscated using a somewhat childish javascript code, 
+    # we use the default javascript interpreter (js) to run it. 
     debug "running Javascript code"
     VARS=$(echo "$JS_CODE" | grep "^[[:space:]]*var")
     HREF=$(echo "$JS_CODE" | parse "href=" "href=\\\\\(\"http.*\)+'\">")
