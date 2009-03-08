@@ -25,6 +25,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 # $1: A 2shared URL
 #
 2shared_download() {
+    set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
     URL=$1   
     FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
@@ -38,6 +39,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 # $1: File path
 #
 2shared_upload() {
+    set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
     FILE=$1
     UPLOADURL="http://www.2shared.com/"

@@ -180,7 +180,8 @@ get_field() {
 # Example:
 #
 # $ set -- -a user:password -q arg1 arg2
-# $ eval "$(process_options module "AUTH,a:,auth:,USER:PASSWORD,Help for auth
+# $ eval "$(process_options module "
+#           AUTH,a:,auth:,USER:PASSWORD,Help for auth
 #           QUIET,q,quiet,,Help for quiet" "$@")"
 # $ echo "$AUTH / $QUIET / $1 / $2"
 # user:password / 1 / arg1 / arg2

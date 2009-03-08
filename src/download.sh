@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.4.5"
-MODULES="rapidshare megaupload 2shared badongo"
+MODULES="rapidshare megaupload 2shared badongo mediafire"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print error nor debug messages 
