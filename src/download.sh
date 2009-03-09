@@ -32,7 +32,7 @@ VERSION="0.4.5"
 MODULES="rapidshare megaupload 2shared badongo mediafire"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
-QUIET,q,quiet,,Don't print error nor debug messages 
+QUIET,q,quiet,,Don't print debug messages 
 LINK_ONLY,l,link-only,,Return only file link 
 MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in FILE arguments
 "
@@ -77,7 +77,7 @@ process_item() {
 # Print usage
 #
 usage() {
-    debug "Usage: $(basename $0) [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
+    debug "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     debug
     debug "  Download files from file sharing servers."
     debug
@@ -123,6 +123,7 @@ for ITEM in "$@"; do
         FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL")
         test "$FILE_URL" || 
             { echo "error on function: $FUNCTION"; RETVAL=$DERROR; continue; }
+        debug "file URL: $FILE_URL"
         if test "$LINK_ONLY"; then
             echo "$FILE_URL"
         else 
