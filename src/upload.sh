@@ -32,7 +32,7 @@ VERSION="0.4.5"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version
-QUIET,q,quiet,,Don't print error nor debug messages
+QUIET,q,quiet,,Don't print debug messages
 "
 
 # Get library directory
@@ -45,9 +45,9 @@ done
 # Print usage
 #
 usage() {
-    debug "$(basename $0) [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
+    debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
     debug
-    debug "  Upload a file to file sharing server."
+    debug "  Upload a file to a file sharing site."
     debug
     debug "  Available modules: $MODULES"
     debug

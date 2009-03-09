@@ -44,6 +44,5 @@ mediafire_download() {
     VARS=$(echo "$JS_CODE" | grep "^[[:space:]]*var")
     HREF=$(echo "$JS_CODE" | parse "href=" "href=\\\\\(\"http.*\)+'\">")
     FILE_URL=$(echo "$VARS; print($HREF);" | js)
-    debug "file URL: $FILE_URL"
     echo "$FILE_URL"
 }
