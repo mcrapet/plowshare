@@ -19,7 +19,6 @@ MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
-INPUT_CAPTCHA,,input-captcha,,Prompt user to enter the captcha manually
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
@@ -80,25 +79,16 @@ megaupload_download() {
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
             debug "Link found in HTML, no need to wait"
-            debug "File URL: $FILEURL"
             echo "$FILEURL"
             return
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         debug "captcha URL: $CAPTCHA_URL"
-        if test "$INPUT_CAPTCHA"; then
-            curl "$CAPTCHA_URL" | ascii_image >&2
-            echo -n "Enter captcha: " >&2
-            read CAPTCHA
-            debug "User captcha: $CAPTCHA"
-        else
-            OCR="megaupload_ocr"        
-            test "$QUIET" = 1 && OCR="megaupload_ocr -q"
-            CAPTCHA=$($OCR <(curl "$CAPTCHA_URL")) || 
-                { debug "error running OCR (is python-imaging installed?)"; return 1; }
-            debug "Decoded captcha: $CAPTCHA"
-        fi
+        CAPTCHA=$(curl "$CAPTCHA_URL" | convert - -alpha off -level 1%,1% gif:- | \
+            ocr | tr -c -d "[0-9A-Z]" | uppercase) || 
+            { debug "error running OCR (is tesseract installed?)"; return 1; }
+        debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
         IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
