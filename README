@@ -1,3 +1,4 @@
+
 = Introduction =
 
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file sharing websites. It currently supports:
@@ -5,25 +6,26 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || *Website* || *Download* || *Upload* ||
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium ||
 || [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
-|| [http://www.2shared.com 2Shared] || yes || yes ||
-|| [http://www.badongo.com Badongo] || yes || no ||
+|| [http://www.2shared.com 2Shared] || anonymous || anonymous ||
+|| [http://www.badongo.com Badongo] || anonymous || no ||
+|| [http://www.mediafire.com Mediafire] || anonymous || no ||
 
 = Dependencies =
 
-To run _plowshare_ you will need:
+To run _plowshare_ scripts you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX] operating system: GNU/Linux (Debian/Ubuntu/Fedora/Suse/PcLinuxOS/Gentoo/...), `*`BSD, OSX, Cygwin, ...
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Suse/PcLinuxOS/Gentoo), `*`BSD (untested), OSX (needs some patches), Cygwin (may need some patches), ...
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
-  * [http://www.info-zip.org/UnZip.html unzip]
   * [http://www.imagemagick.org imagemagick]
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr]
+  * A Javascript interpreter (for example: spidermonkey-js)
 
 For Debian/Ubuntu users this should suffice:
 
 {{{
-apt-get install curl recode unzip imagemagick tesseract-ocr
+$ sudo apt-get install curl recode imagemagick tesseract-ocr python-imaging python-psyco spidermonkey-bin
 }}}
 
 = Download & Install =
@@ -31,9 +33,9 @@ apt-get install curl recode unzip imagemagick tesseract-ocr
 [http://code.google.com/p/plowshare/downloads/list Download] the last version, uncompress and install:
 
 {{{
-tar xvzf plowshare-VERSION.tgz
-cd plowshare-VERSION
-bash install.sh
+$ tar xvzf plowshare-VERSION.tgz
+$ cd plowshare-VERSION
+$ bash setup.sh install
 }}}
 
 = Usage =
@@ -43,37 +45,37 @@ bash install.sh
   * Download a file from rapidshare:
 
 {{{
-plowdown http://rapidshare.com/files/123123123/a.jpg
+$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
   * Download a list of files (one link per line):
 
 {{{
-plowdown file_with_links.txt
+$ plowdown file_with_links.txt
 }}}
 
   * Download a file from megaupload using a free membership account:
 
 {{{
-plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
+$ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 }}}
 
   * Download a password-protected file from megaupload:
 
 {{{
-plowdown -p somepassword http://www.megaupload.com/?d=1234556
+$ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
 }}}
 
   * Get the file URL of a 2shared link without download the file:
 
 {{{
-plowdown --link-only http://rapidshare.com/files/123123123/a.jpg
+$ plowdown --link-only http://www.2shared.com/file/4446939/c9fd70d6/Test.html
 }}}
 
   * A more complex example for advanced users: you have a found a webpage containing a bunch of megaupload files and want to download, let's say, the first ten links. You could then write:
 
 {{{
-curl http://some-website.com/page.html | \
+$ curl http://some-website.com/page.html | \
     grep -o "http://www.megaupload.com/[^\"< ]*" | head -n10 | plowdown -
 }}}
 
@@ -82,17 +84,24 @@ curl http://some-website.com/page.html | \
   * Upload a file to megaupload with a free membership account:
 
 {{{
-plowup -a myuser:mypassword -d "My description" megaupload:myfile.txt
+$ plowup -a myuser:mypassword -d "My description" megaupload:/path/myfile.txt
 }}}
 
-  * Upload a file to rapidshare with a free-zone user:
+  * Upload a file to rapidshare anonymously:
 
 {{{
-plowup -a myuser:mypassword rapidshare:myfile.txt
+$ plowup rapidshare:/path/myfile.txt
+}}}
+
+= Uninstall =
+
+{{{
+$ cd plowshare-VERSION
+$ bash setup.sh uninstall
 }}}
 
 = Create new modules =
 
-_Plowshare_ is designed with modularity in mind, so it's easy to create new  modules. Study the code of any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/trunk/src/modules/megaupload.sh megaupload]) and create you own. 
+_Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code of any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/tags/RELEASE-LAST/src/modules/2shared.sh 2shared]) and create you own. 
 
 New modules will be added to _plowshare_ as long as they are released under a GNU GPL v3 compatible license.
