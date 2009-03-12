@@ -78,7 +78,7 @@ test_create_tempfile() {
     rm -f $TEMP
 }
 
-test_megaupload_ocr() {
+XXXtest_megaupload_ocr() {
     CAPTCHA=$(megaupload_ocr "$PICSDIR/GFH6.gif" 2>/dev/null)
     assert_equal "GFH6" $CAPTCHA
 } 

@@ -1,4 +1,4 @@
-#!/bin/sh
+# Configuration settings for Google Code projects
 
 PROJECT=plowshare
 TRUNK="https://$PROJECT.googlecode.com/svn/trunk/"
@@ -6,5 +6,5 @@ TAGS_URL="https://$PROJECT.googlecode.com/svn/tags/"
 AUTHFILE=".googlecode-auth"
 VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
 DIRECTORY=$PROJECT-$VERSION
-IFS=":" read USERNAME PASSWORD < "$AUTHFILE"
 FILE=$DIRECTORY.tgz
+IFS=":" read USERNAME PASSWORD < "$AUTHFILE"

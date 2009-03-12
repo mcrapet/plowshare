@@ -32,6 +32,7 @@ test $# -eq 0 && { echo "$USAGE"; exit 1; }
 if [ "$1" = "uninstall" ]; then
     rm -vrf $LIBDIR $DOCSDIR
     rm -vf $BINDIR/{plowdown,plowup}
+
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCSDIR
@@ -44,15 +45,16 @@ elif [ "$1" = "install" ]; then
     # Modules
     mkdir -p $MODULESDIR
     cp -v src/modules/*.sh $MODULESDIR
-    mkdir -p $MODULESDIR/extras
-    cp -pv src/modules/extras/{megaupload_captcha.py,*.ttf} \
-        $MODULESDIR/extras
-    chmod +x $MODULESDIR/extras/megaupload_captcha.py
+    #mkdir -p $MODULESDIR/extras
+    #cp -pv src/modules/extras/{megaupload_captcha.py,*.ttf} \
+    #    $MODULESDIR/extras
+    #chmod +x $MODULESDIR/extras/megaupload_captcha.py
 
     # Binary files
     mkdir -p $BINDIR 
     ln -vsf $BIN2LIB/download.sh $BINDIR/plowdown
     ln -vsf $BIN2LIB/upload.sh $BINDIR/plowup
+
 else
     echo "$USAGE"
     exit 1
