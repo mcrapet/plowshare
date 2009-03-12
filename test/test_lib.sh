@@ -35,6 +35,8 @@ test_match() {
 
 test_ocr() {
     assert_equal "Hello world" "$(ocr < $PICSDIR/hello_world.gif 2>/dev/null)"
+    assert_equal "ABW5" "$(ocr < $PICSDIR/megaupload_abw5.gif 2>/dev/null)"
+    assert_equal "XGXD" "$(ocr < $PICSDIR/badongo_xgxd.gif 2>/dev/null)"
 }
 
 test_check_exec() {
