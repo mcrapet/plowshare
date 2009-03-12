@@ -1,3 +1,10 @@
+plowshare (0.6) unstable; urgency=low
+
+  * Remove old Megaupload captcha OCR
+  * Add support for 4shared download
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Thu, 12 Mar 2009 15:56:18 +0100
+
 plowshare (0.5) unstable; urgency=low
 
   * Support new megaupload captcha (4 non-rotated chars)

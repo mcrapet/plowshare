@@ -1,4 +1,3 @@
-
 = Introduction =
 
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file sharing websites. It currently supports:
@@ -14,18 +13,18 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 
 To run _plowshare_ scripts you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Suse/PcLinuxOS/Gentoo), `*`BSD (untested), OSX (needs some patches), Cygwin (may need some patches), ...
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/Arch), `*`BSD (untested), OSX (needs some patches), Cygwin (may need some patches), ...
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick]
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr]
-  * A Javascript interpreter (for example: spidermonkey-js)
+  * A Javascript interpreter (for example: [http://www.mozilla.org/js/spidermonkey/ spidermonkey-js])
 
-For Debian/Ubuntu users this should suffice:
+Debian/Ubuntu users should try:
 
 {{{
-$ sudo apt-get install curl recode imagemagick tesseract-ocr python-imaging python-psyco spidermonkey-bin
+$ sudo apt-get install curl recode imagemagick tesseract-ocr spidermonkey-bin
 }}}
 
 = Download & Install =
@@ -37,6 +36,8 @@ $ tar xvzf plowshare-VERSION.tgz
 $ cd plowshare-VERSION
 $ bash setup.sh install
 }}}
+
+Plowshare has been packaged for [http://aur.archlinux.org/packages.php?ID=24601 ArchLinux].
 
 = Usage =
 
@@ -66,10 +67,10 @@ $ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 $ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
 }}}
 
-  * Get the file URL of a 2shared link without download the file:
+  * Get the file URL of a 2shared link without download the file to use your favorite downloader:
 
 {{{
-$ plowdown --link-only http://www.2shared.com/file/4446939/c9fd70d6/Test.html
+$ plowdown --link-only http://www.2shared.com/file/4446939/c9fd70d6/Test.html | xargs -rt wget
 }}}
 
   * A more complex example for advanced users: you have a found a webpage containing a bunch of megaupload files and want to download, let's say, the first ten links. You could then write:
