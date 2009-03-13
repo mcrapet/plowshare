@@ -1,7 +1,6 @@
 #!/usr/bin/python
-"""Decode the net 4-character with rotation captcha used in Megaupload.
-
-Note: It's ver slow and it has only a 10% of accuracy.
+"""
+Decode the 4-rotated-bold-characters captcha used in Megaupload since 2009/03/13
 """
 import string
 import os
