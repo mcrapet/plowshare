@@ -57,13 +57,13 @@ rapidshare_download() {
 
 # Upload a file to Rapidshare (anonymously or free zone, NOT PREMIUM)
 #
-# rapidshare_upload [OPTIONS] FILE
+# rapidshare_upload [OPTIONS] FILE [DESTFILE]
 #
 # Options:
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
 #
 rapidshare_upload() {
-    set -e
+    set -e    
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"    
     if test "$AUTH_FREEZONE"; then
         rapidshare_upload_freezone "$@"
@@ -74,16 +74,17 @@ rapidshare_upload() {
 
 # Upload a file to Rapidshare anonymously and return link and kill URLs
 #
-# rapidshare_upload_anonymous FILE
+# rapidshare_upload_anonymous FILE [DESTFILE]
 #
 rapidshare_upload_anonymous() {
     set -e
     FILE=$1
+    DESTFILE=${2:-$FILE}
     UPLOAD_URL="http://www.rapidshare.com"
     debug "downloading upload page: $UPLOAD_URL"
     ACTION=$(curl "$UPLOAD_URL" | parse 'form name="ul"' 'action="\([^"]*\)')
     debug "upload to: $ACTION"    
-    INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$FILE")" "$ACTION")
+    INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION")
     URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<")     
     KILL=$(echo "$INFO" | parse "loeschlink" ">\(.*\)<")
     echo "$URL ($KILL)"
@@ -91,7 +92,7 @@ rapidshare_upload_anonymous() {
 
 # Upload a file to Rapidshare (free zone)
 #
-# rapidshare_upload_freezone [OPTIONS] FILE
+# rapidshare_upload_freezone [OPTIONS] FILE [DESTFILE]
 #
 # Options:
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
@@ -100,8 +101,9 @@ rapidshare_upload_freezone() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     FILE=$1
-    FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
-       
+    DESTFILE=${2:-$FILE}
+    
+    FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"       
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
         { debug "error on login process"; return 1; }
@@ -114,7 +116,7 @@ rapidshare_upload_freezone() {
     IFS=":" read USER PASSWORD <<< "$AUTH_FREEZONE"
     debug "uploading file: $FILE"
     UPLOADED_PAGE=$(ccurl \
-        -F "filecontent=@$FILE;filename=$(basename "$FILE")" \
+        -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "freeaccountid=$ACCOUNTID" \
         -F "password=$PASSWORD" \
         -F "mirror=on" $ACTION)

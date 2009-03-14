@@ -120,8 +120,7 @@ for ITEM in "$@"; do
         FUNCTION=${MODULE}_download 
         debug "start download ($MODULE): $URL"
         
-        FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL")
-        test "$FILE_URL" || 
+        FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL") && test "$FILE_URL" || 
             { echo "error on function: $FUNCTION"; RETVAL=$DERROR; continue; }
         debug "file URL: $FILE_URL"
         if test "$LINK_ONLY"; then

@@ -30,18 +30,18 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     URL=$1   
     FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
         { debug "file not found"; return 1; }
-    debug "file URL: $FILE_URL"
     echo "$FILE_URL"
 }
 
 # Upload a file to 2shared and upload URL (ADMIN_URL)
 #
-# $1: File path
+# 2shared_upload FILE [DESTFILE]
 #
 2shared_upload() {
     set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
     FILE=$1
+    DESTFILE=${2:-$FILE}    
     UPLOADURL="http://www.2shared.com/"
 
     debug "downloading upload page: $UPLOADURL"
@@ -52,7 +52,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     debug "starting file upload: $FILE"
     STATUS=$(curl \
         -F "mainDC=1" \
-        -F "fff=@$FILE;filename=$(basename "$FILE")" \
+        -F "fff=@$FILE;filename=$(basename "$DESTFILE")" \
         "$ACTION")
     match "upload has successfully completed" "$STATUS" ||
         { debug "error on upload"; return 1; }

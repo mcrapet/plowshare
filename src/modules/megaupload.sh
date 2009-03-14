@@ -65,8 +65,18 @@ megaupload_download() {
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL")
+        REDIRECT=$(echo "$PAGE" | parse "document.location" \
+          "location = \"\(.*\)\"" 2>/dev/null || true)
+        if test "$REDIRECT"; then
+          debug "server returned an error page"
+          WAITIME=$(curl "$REDIRECT" | parse "Please check back" \
+            "back in \([[:digit:]]\+\) minute" 2>/dev/null || true)
+          test "$WAITTIME" || { debug "unknown error page"; return 1; }
+          debug "waiting $WAITTIME minutes before trying again"
+          sleep $((WAITTIME*60))
+          continue          
         # Test if the file is password protected
-        if match 'name="filepassword"' "$PAGE"; then
+        elif match 'name="filepassword"' "$PAGE"; then
             debug "File is password protected"
             test "$LINKPASSWORD" || 
                 { debug "You must provide a password"; return 1; }
@@ -74,20 +84,20 @@ megaupload_download() {
             match 'name="filepassword"' "$PAGE" &&
                 { debug "Link password incorrect"; return 1; } 
         fi        
-        # Test if we are using a Premium account, try to get the download link
+        # Look for a download link (either Premium account or password
+        # protected file)
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
-            debug "Link found in HTML, no need to wait"
+            debug "Link found, no need to wait"
             echo "$FILEURL"
             return
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         debug "captcha URL: $CAPTCHA_URL"
-        CAPTCHA=$(curl "$CAPTCHA_URL" | convert - -alpha off -level 1%,1% gif:- | \
-            ocr | tr -c -d "[0-9A-Z]" | uppercase) || 
-            { debug "error running OCR (is tesseract installed?)"; return 1; }
+        CAPTCHA=$(curl "$CAPTCHA_URL" | megaupload_ocr $(test "$QUIET" && echo -q)) || 
+            { debug "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 
@@ -111,7 +121,7 @@ megaupload_download() {
 
 # Upload a file to megaupload and upload url link
 #
-# megaupload_upload [OPTIONS] FILE
+# megaupload_upload [OPTIONS] FILE [DESTFILE]
 #
 # Options:
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
@@ -121,6 +131,7 @@ megaupload_upload() {
     set -e
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
     FILE=$1
+    DESTFILE=${2:-$FILE}
     UPLOADURL="http://www.megaupload.com"
 
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
@@ -134,7 +145,7 @@ megaupload_upload() {
     curl -b <(echo "$COOKIES") \
         -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
         -F "sessionid=$UPLOAD_IDENTIFIER" \
-        -F "file=@$FILE;filename=$(basename "$FILE")" \
+        -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "message=$DESCRIPTION" \
         -F "toemail=$TOEMAIL" \
         -F "fromemail=$FROMEMAIL" \
