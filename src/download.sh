@@ -28,7 +28,7 @@
 #
 set -e
 
-VERSION="0.6"
+VERSION="0.5.1"
 MODULES="rapidshare megaupload 2shared badongo mediafire"
 OPTIONS="
 GETVERSION,v,version,,Return plowdown version

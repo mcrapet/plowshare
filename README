@@ -85,13 +85,13 @@ $ curl http://some-website.com/page.html | \
   * Upload a file to megaupload with a free membership account:
 
 {{{
-$ plowup -a myuser:mypassword -d "My description" megaupload:/path/myfile.txt
+$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
 }}}
 
-  * Upload a file to rapidshare anonymously:
+  * Upload a file to rapidshare anonymously changing uploaded file name:
 
 {{{
-$ plowup rapidshare:/path/myfile.txt
+$ plowup /path/myfile.txt rapidshare:anothername.txt
 }}}
 
 = Uninstall =

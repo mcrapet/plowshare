@@ -1,9 +1,9 @@
-plowshare (0.6) unstable; urgency=low
+plowshare (0.5.1) unstable; urgency=low
 
-  * Remove old Megaupload captcha OCR
-  * Add support for 4shared download
+  * Add suport for the new 4-rotated-bold-character megaupload captcha
+  * Change arguments order for plowup
 
- -- Arnau Sanchez <pyarnau@gmail.com>  Thu, 12 Mar 2009 15:56:18 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 14 Mar 2009 23:38:31 +0100
 
 plowshare (0.5) unstable; urgency=low
 
