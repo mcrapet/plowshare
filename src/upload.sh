@@ -45,7 +45,7 @@ done
 # Print usage
 #
 usage() {
-    debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] MODULE:FILE"
+    debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE MODULE[:DESTNAME]"
     debug
     debug "  Upload a file to a file sharing site."
     debug
@@ -70,13 +70,15 @@ if test "$QUIET"; then
     function curl() { $(type -P curl) -s "$@"; }
 fi
 
-test $# -eq 1 || { usage; exit 1; } 
+test $# -eq 2 || { usage; exit 1; } 
 
-IFS=":" read MODULE FILE <<< "$@"
+FILE=$1
+DESTINATION=$2
+IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 test -f "$FILE" ||
     { error "file does not exist: $FILE"; exit 3; }
 match "\<$MODULE\>" "$MODULES" ||
     { error "unsupported module: $MODULE"; exit 4; }
 FUNCTION=${MODULE}_upload
 debug "starting upload ($MODULE)"
-$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" || exit 2
+$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || exit 2

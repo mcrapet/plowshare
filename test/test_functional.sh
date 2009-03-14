@@ -36,7 +36,7 @@ test_rapidshare_download_anonymous() {
 }        
 
 test_rapidshare_upload_anonymous() {
-    assert_match "http://rapidshare.com/files/" "$(upload rapidshare:$UPFILE)"
+    assert_match "http://rapidshare.com/files/" "$(upload $UPFILE rapidshare)"
 }        
 
 test_rapidshare_upload_freezone() {
@@ -46,7 +46,7 @@ test_rapidshare_upload_freezone() {
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_URL" 2>/dev/null)
     PARSE="<td>Files: <b>\(.*\)<\/b>"
     FILES1=$(curl -s -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
-    URL=$(upload -a "$AUTH" rapidshare:$UPFILE)
+    URL=$(upload -a "$AUTH" $UPFILE rapidshare)
     assert_match "http://rapidshare.com/files/" "$URL" 
     FILES2=$(curl -s -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
     assert_equal $(($FILES1+1)) $FILES2    
@@ -88,20 +88,20 @@ test_megaupload_download_premium() {
 }        
 
 test_megaupload_upload_anonymous() {
-    URL="$(upload -d 'Plowshare test' megaupload:$UPFILE)"
+    URL="$(upload -d 'Plowshare test' $UPFILE megaupload)"
     assert_match "http://www.megaupload.com/?d=" "$URL"
 }        
 
 test_megaupload_upload_member() {
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
-    URL=$(upload -d 'Plowshare test' -a "$AUTH" megaupload:$UPFILE)
+    URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE megaupload)
     assert_equal "http://www.megaupload.com/?d=IDXJG1RN" "$URL"
 }        
 
 test_megaupload_upload_premium() {
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" -p "mypassword" \
-        -d 'Plowshare test' megaupload:$UPFILE)
+        -d 'Plowshare test' $UPFILE megaupload)
     assert_equal "http://www.megaupload.com/?d=115BX7GS" "$URL"
     assert_return 0 'match "name=\"filepassword\"" "$(curl $URL)"'
 }        
@@ -131,7 +131,7 @@ test_2shared_download_using_file_argument_and_mark_as_downloaded() {
 }        
         
 test_2shared_upload() {
-    assert_match "^http://www.2shared.com/file/" "$(upload 2shared:$UPFILE)"
+    assert_match "^http://www.2shared.com/file/" "$(upload $UPFILE 2shared)"
 }        
 
 ## Badongo
