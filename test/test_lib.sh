@@ -35,7 +35,6 @@ test_match() {
 
 test_ocr() {
     assert_equal "Hello world" "$(ocr < $PICSDIR/hello_world.gif 2>/dev/null)"
-    assert_equal "ABW5" "$(ocr < $PICSDIR/megaupload_abw5.gif 2>/dev/null)"
     assert_equal "XGXD" "$(ocr < $PICSDIR/badongo_xgxd.gif 2>/dev/null)"
 }
 
@@ -80,9 +79,9 @@ test_create_tempfile() {
     rm -f $TEMP
 }
 
-XXXtest_megaupload_ocr() {
-    CAPTCHA=$(megaupload_ocr "$PICSDIR/GFH6.gif" 2>/dev/null)
-    assert_equal "GFH6" $CAPTCHA
+test_megaupload_ocr() {
+    CAPTCHA=$(megaupload_ocr -q < "$PICSDIR/megaupload_yke8.gif")
+    assert_equal "YKE8" $CAPTCHA
 } 
 
 run_tests "$@"
