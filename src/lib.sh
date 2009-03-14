@@ -106,7 +106,7 @@ ocr() {
 # Decode the 4-char (rotated) megaupload captcha
 #
 megaupload_ocr() {
-    $EXTRASDIR/megaupload_captcha.py "$@"
+    python $EXTRASDIR/megaupload_captcha.py "$@" <(cat)
 }
 
 # Show help info for options

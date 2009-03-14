@@ -91,7 +91,6 @@ def rotate_and_crop(image, angle):
 def get_errors(image, chars, zones):
     """Compare an image against a dictionary of chars."""
     image_width, image_height = image.size
-    minerror = None
     for char, char_image in sorted(chars.iteritems(), key=lambda (k, v): k):
         debug(".", linefeed=False)
         zones2 = ([zones[0], zones[-1]] if len(zones) > 2 else zones[:])
@@ -104,13 +103,11 @@ def get_errors(image, chars, zones):
                     cropped_image = crop_image(image, 
                         (x, y, x+char_width, y+char_height))
                     error = compare_images(char_image_rotated, cropped_image)
-#                    print error, char, (x, y), angle
-#                    debug_image(substract_images(image, char_image_rotated, (x, y)))
-#                    sys.stdin.read(1)
-                    if minerror is None or error < minerror[0]:
-                        minerror = (error, char, (x, y), angle)                        
+                    #print error, char, (x, y), angle
+                    #debug_image(substract_images(image, char_image_rotated, (x, y)))
+                    #sys.stdin.read(1)
+                    yield (error, char, (x, y), angle)                        
     debug("")
-    return minerror
 
 def debug_image(image, step=1, stream=sys.stderr):
     """Output image to stream (standard error by default)."""
@@ -120,23 +117,43 @@ def debug_image(image, step=1, stream=sys.stderr):
         for x in range(0, width, step):
             debug("*" if ip[x, y] == 0 else " ", stream=stream, linefeed=False)
         debug("", stream=stream)
+
+def build_chars_from_image(fontimagefile, excluded_chars):
+    """Return a dictionary of (char, image) pairs for [A-Z0-9]."""
+    fi = Image.open(fontimagefile)
+    char_offset_x, char_offset_y = 16, 16
+    char_width, char_height = 72, 72  
+    width, height = 711.0/8.0, 1699.0/20.0
+    chars = {}
+    info = zip(string.digits, range(17, 26+1)) + \
+      zip(string.uppercase, range(34, 59+1))
+    for char, index in info:
+        if char in excluded_chars:
+            continue
+        row, col = divmod(index, 8)
+        x = int(col * width)
+        y = int(row * height)  
+        image = crop_image(fi, (x + char_offset_x, y + char_offset_y, 
+            x + char_offset_x + char_width, y + char_offset_x + char_height))
+        chars[char] = autocrop_image(invert_image(image.convert("L")))
+    return chars
             
-def decode_megaupload_captcha(captcha_imagefile, fontfile):
+def decode_megaupload_captcha(captcha_imagefile, chars):
     """Return decoded captcha string."""
-    zones = [
-        [(0, 4), (-33, -20)],
-        [(15, 25), (20, 33)],
-        [(30, 40), (-33, -20)],
-        [(45, 55), (20, 33)],
-    ]                
-    captcha_length = 4
-    chars = build_chars(fontfile, 36, excluded_chars="ILJ")
     image = open_image(captcha_imagefile)
-    debug_image(image)
+    width, height = image.size
+    zones = [
+        [(0, 5), (-30, -15)],
+        [(int(width/4.0 - 10), int(width/4.0 + 10)), (15, 30)],
+        [(int(2.0*width/4.0 - 10), int(2.0*width/4.0 + 10)), (-30, -15)],
+        [(int(3.0*width/4.0 - 10), int(3.0*width/4.0 + 10)), (15, 30)],
+    ]                
+    captcha_length = 4    
+    debug_image(image, 2)
     result = []
     while len(result) < captcha_length:
         debug("iteration %d/%d " % (len(result)+1, captcha_length), False)
-        min_info = get_errors(image, chars, zones)
+        min_info = min(get_errors(image, chars, zones))
         min_error, char, pos, angle = min_info
         result.append(min_info)
         debug(min_info)
@@ -155,6 +172,13 @@ def decode_megaupload_captcha(captcha_imagefile, fontfile):
     debug((errors, captcha))
     return captcha
 
+def load_psyco():
+    try:
+        import psyco
+        psyco.full()
+    except ImportError:
+        debug("Warning: install python-pysco to speed up the OCR")        
+
 def main(args):
     import optparse
     usage = """usage: megaupload_captcha [OPTIONS] IMAGE"""
@@ -165,17 +189,14 @@ def main(args):
     if not args0:
         parser.print_help()
         return 1
+    load_psyco()
     if options.quiet:
         global debug
         debug = lambda *args, **kwargs: None
-    try:
-        import psyco
-        psyco.full()
-    except ImportError:
-        debug("Warning: install python-pysco to speed up the OCR")        
     captcha_file = StringIO(open(args0[0]).read())
-    fontfile = os.path.join(os.path.dirname(sys.argv[0]), "news_gothic_bt.ttf")
-    print decode_megaupload_captcha(captcha_file, fontfile)
+    fontfile = os.path.join(os.path.dirname(sys.argv[0]), "delargo_dt_black.png")
+    chars = build_chars_from_image(fontfile, excluded_chars="ILJ")    
+    print decode_megaupload_captcha(captcha_file, chars)
                     
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
