@@ -1,3 +1,9 @@
+plowshare (0.5.2) unstable; urgency=low
+
+  * Fix setup.sh bugs 
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sun, 15 Mar 2009 01:08:57 +0100
+
 plowshare (0.5.1) unstable; urgency=low
 
   * Add suport for the new 4-rotated-bold-character megaupload captcha

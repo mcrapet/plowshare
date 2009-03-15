@@ -11,7 +11,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 
 = Dependencies =
 
-To run _plowshare_ scripts you will need:
+To run _plowshare_ you will need:
 
   * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/Arch), `*`BSD (untested), OSX (needs some patches), Cygwin (may need some patches), ...
   * [http://www.gnu.org/software/bash/ bash]

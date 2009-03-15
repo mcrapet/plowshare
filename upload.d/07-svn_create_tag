@@ -3,6 +3,6 @@ set -e
 DIR=$(dirname $0)
 source $DIR/vars
 
-svn copy -m "$LOG" $TRUNK $TAGS_URL/RELEASE-$VERSION
-svn rm -m "$LOG" RELEASE-LAST
+svn copy -m "$LOG" $TRUNK $TAGS_URL/RELEASE-$VERSION || true
+svn rm RELEASE-LAST || true
 svn copy -m "$LOG" $TAGS_URL/$TAG $TAGS_URL/RELEASE-LAST
