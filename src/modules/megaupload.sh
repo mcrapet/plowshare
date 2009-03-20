@@ -33,16 +33,6 @@ MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
 LOGINURL="http://www.megaupload.com/?c=login"
 
-# Output image in ascii chars (uses aview)
-#
-ascii_image() {
-    asciiview -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" | \
-        awk 'BEGIN { part = 0; }
-            /\014/ { part++; next; }
-            // { if (part == 2) print $0; }'  | \
-        grep -v "^[[:space:]]*$"
-}
-
 # Output a megaupload file download URL
 #
 # megaupload_download [OPTIONS] MEGAUPLOAD_URL
@@ -96,7 +86,8 @@ megaupload_download() {
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         debug "captcha URL: $CAPTCHA_URL"
-        CAPTCHA=$(curl "$CAPTCHA_URL" | megaupload_ocr $(test "$QUIET" && echo -q)) || 
+        CAPTCHA=$(curl "$CAPTCHA_URL" | \
+                  megaupload_ocr -i1 $(test "$QUIET" && echo -q) -)  || 
             { debug "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
@@ -141,7 +132,7 @@ megaupload_upload() {
     DONE=$(curl "$UPLOADURL" | parse "upload_done.php" 'action="\([^\"]*\)"') ||
         { debug "can't get upload_done page"; return 2; }    
     UPLOAD_IDENTIFIER=$(parse "IDENTIFIER" "IDENTIFIER=\([0-9.]\+\)" <<< $DONE)
-    debug "starting file upload: $DONE"
+    debug "starting file upload: $FILE"
     curl -b <(echo "$COOKIES") \
         -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
         -F "sessionid=$UPLOAD_IDENTIFIER" \
