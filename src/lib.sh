@@ -106,7 +106,7 @@ ocr() {
 # Decode the 4-char (rotated) megaupload captcha
 #
 megaupload_ocr() {
-    python $EXTRASDIR/megaupload_captcha.py "$@" <(cat)
+    python $EXTRASDIR/megaupload_captcha.py "$@"
 }
 
 # Show help info for options
@@ -246,4 +246,15 @@ process_options() {
     done
     echo "$(declare -p UNUSED_OPTIONS)" 
     echo "set -- $(quote "$@")"
+}
+
+# Output image in ascii chars (uses aview)
+#
+ascii_image() {
+    convert - -negate pnm:- | \
+        aview "$@" -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" | \
+        awk 'BEGIN { part = 0; }
+            /\014/ { part++; next; }
+            // { if (part == 2) print $0; }' | \
+        grep -v "^[[:space:]]*$"
 }
