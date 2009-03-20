@@ -1,3 +1,9 @@
+plowshare (0.5.3) unstable; urgency=low
+
+  * [megaupload] Support new 4-rotated-highly-overlapped captcha 
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 21 Mar 2009 00:09:22 +0100
+
 plowshare (0.5.2) unstable; urgency=low
 
   * Fix setup.sh bugs 

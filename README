@@ -3,7 +3,7 @@
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file sharing websites. It currently supports:
 
 || *Website* || *Download* || *Upload* ||
-|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium ||
+|| [http://www.megaupload.com Megaupload] || ~~anonymous~~, ~~free-membership~~ and premium || anonymous, free-membership and premium ||
 || [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
 || [http://www.2shared.com 2Shared] || anonymous || anonymous ||
 || [http://www.badongo.com Badongo] || anonymous || no ||
@@ -13,15 +13,15 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 
 To run _plowshare_ you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/Arch), `*`BSD (untested), OSX (needs some patches), Cygwin (may need some patches), ...
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/Arch), `*`BSD (untested), OSX (needs some patches), Cygwin (is _recode_ available?), ...
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick]
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr]
-  * A Javascript interpreter (for example: [http://www.mozilla.org/js/spidermonkey/ spidermonkey-js])
+  * A Javascript interpreter (for example: [http://www.mozilla.org/js/spidermonkey/ spidermonkey])
 
-Debian/Ubuntu users should try:
+Debian/Ubuntu users may try:
 
 {{{
 $ sudo apt-get install curl recode imagemagick tesseract-ocr spidermonkey-bin
@@ -67,7 +67,7 @@ $ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 $ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
 }}}
 
-  * Get the file URL of a 2shared link without download the file to use your favorite downloader:
+  * Get only the file URL without actually downloading it. Very handy if you want to use another web downloader:
 
 {{{
 $ plowdown --link-only http://www.2shared.com/file/4446939/c9fd70d6/Test.html | xargs -rt wget
@@ -105,4 +105,4 @@ $ bash setup.sh uninstall
 
 _Plowshare_ is designed with modularity in mind, so it should be easy to create new  modules. Study the code of any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/tags/RELEASE-LAST/src/modules/2shared.sh 2shared]) and create you own. 
 
-New modules will be added to _plowshare_ as long as they are released under a GNU GPL v3 compatible license.
+New modules will be added to _plowshare_ as long as they are released under a GNU GPL compatible license.
