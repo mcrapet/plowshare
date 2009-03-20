@@ -3,7 +3,7 @@
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file sharing websites. It currently supports:
 
 || *Website* || *Download* || *Upload* ||
-|| [http://www.megaupload.com Megaupload] || ~~anonymous~~, ~~free-membership~~ and premium || anonymous, free-membership and premium ||
+|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium ||
 || [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
 || [http://www.2shared.com 2Shared] || anonymous || anonymous ||
 || [http://www.badongo.com Badongo] || anonymous || no ||
