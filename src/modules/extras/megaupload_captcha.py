@@ -286,7 +286,7 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
             height = max(i.size[1] for i in images)
             clean_image = smooth(join_images((width, height), images), 0)
             #clean_image.save("out%03d.png" % index)
-            text = ocr(smooth(clean_image, 0))
+            text = ocr(clean_image)
             filtered_text = filter_word(text)
             #debug("%s -> %s" %(text, filtered_text))
             if filtered_text:
