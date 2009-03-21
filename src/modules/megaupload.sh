@@ -86,8 +86,12 @@ megaupload_download() {
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
         debug "captcha URL: $CAPTCHA_URL"
+        COLUMNS=$(tput cols || echo 80)
+        LINES=$(tput lines || echo 25)
         CAPTCHA=$(curl "$CAPTCHA_URL" | \
-                  megaupload_ocr -i1 $(test "$QUIET" && echo -q) -)  || 
+            tee >(test -z "$QUIET" && \
+                  ascii_image -width $COLUMNS -height $LINES >&2) | \
+            megaupload_ocr -i1 $(test "$QUIET" && echo -q) -)  || 
             { debug "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
