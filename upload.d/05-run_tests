@@ -6,5 +6,5 @@ TESTSDIR=test
 tar xvzf $FILE
 cp $TESTSDIR/.*auth $DIRECTORY/$TESTSDIR
 cd $DIRECTORY
-$TESTSDIR/test_lib.sh
-$TESTSDIR/test_functional.sh
+
+bash run_tests.sh | tee $TESTSLOG

@@ -2,7 +2,9 @@
 set -e
 DIR=$(dirname $0)
 source $DIR/vars
+RELEASE_URL=$TAGS_URL/RELEASE-$VERSION
 
 svn rm -m "$LOG" $TAGS_URL/{RELEASE-$VERSION,RELEASE-LAST} || true
-svn copy -m "$LOG" $TRUNK $TAGS_URL/RELEASE-$VERSION
-svn copy -m "$LOG" $TRUNK $TAGS_URL/RELEASE-LAST
+svn copy -m "$LOG" $TRUNK $RELEASE_URL
+svn import -m "$LOG" $TESTSLOG $RELEASE_URL/$(basename $TESTSLOG)
+svn copy -m "$LOG" $RELEASE_URL $TAGS_URL/RELEASE-LAST
