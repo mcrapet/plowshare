@@ -2,25 +2,26 @@
 """
 Decode the captcha being currently used by Megaupload (2009/03/20).
 """
-import string
-import sys
-import subprocess
 import os
+import sys
+import string
 import tempfile
+import subprocess
 from itertools import tee, izip
 from operator import itemgetter
-from StringIO import StringIO
 
 # Third-party modules
 import PIL.Image as Image
 
-DEBUG = True
+# Global debug variable
+
+debug_enabled = True
 
 # Generic functions
 
 def debug(line="", linefeed=True, stream=sys.stderr):
     """Write line to standard error."""
-    if DEBUG:
+    if debug_enabled:
         stream.write(str(line)+("\n" if linefeed else ""))
         stream.flush()
 
@@ -31,7 +32,7 @@ def load_psyco():
         psyco.full()
         return True
     except ImportError:
-        pass        
+        return False        
 
 def replace_chars(s, table):
     """Use dictionary table to replace chare in s."""
@@ -56,11 +57,15 @@ def module2(vector):
 def distance2(vector1, vector2):    
     """Return module^2 of vector"""
     return module2((a-b) for (a, b) in zip(vector1, vector2))
-
-def binary(n):
-    """Return array containing binary digits of n (LSB)."""
-    return n > 0 and [n & 1] + binary(n >> 1) or []
-
+     
+def combinations_no_repetition(seq, k):
+    """Yield combinations of k elements from seq without repetition"""
+    if k > 0:
+        for index, x in enumerate(seq):
+            for y in combinations_no_repetition(seq[index+1:], k-1):
+                yield (x,)+y
+    else: yield ()
+         
 def union_sets(sets):
     """Return union of sets."""
     return reduce(set.union, sets)
@@ -112,7 +117,7 @@ def smooth(image0, value):
                 ipimage[x, y+1] = value
     return image            
 
-def set_pixels(image0, pixels, value):
+def merge_image_with_pixels(image0, pixels, value):
     """Set pixels in image to given value and return new image."""
     image = image0.copy()    
     ipimage = image.load()
@@ -174,10 +179,6 @@ def get_zones(image, seen0, value, minpixels=1):
                 zones.append(filled)
                 seen.update(filled)
     return zones              
-
-def autocrop_image(image):
-    """Return an automatically cropped image."""
-    return image.crop(image.getbbox())
  
 def new_image_from_pixels(pixels, value):
     """Return an image from a group of pixels (remove offset)."""       
@@ -196,24 +197,18 @@ def new_image_from_pixels(pixels, value):
 def filter_word(word0):
     """Check if a word is a valid captcha (try also to make 
     some basic corrections)."""
-    digit_to_letter = {        
-        "1": "T",
-        "2": "Z",
-        "4": "A",
-        "5": "S",
-        "6": "G",
-        "7": "T",
-        "8": "B",
-    }        
-    letter_to_letter = {
-        "{": "C",
-        "(": "C",
-        "[": "C",
-        "I": "C",
-    }
+    def string2dict(s):
+        """Convert pairs in string ('AB CD') to dictionary 
+        ({'A': 'B'}, {'C': 'D'})."""
+        return dict(tuple(pair) for pair in s.split())
+    str_digit_to_letter = "1T 2Z 4A 5S 6G 7T 8B"
+    str_letter_to_letter = "{C (C [C IC"
     allowed_chars = string.uppercase + string.digits
-    letter_to_digit = dict((v, k) for (k, v) in digit_to_letter.items())
-    wordlst1 = [c for c in word0.upper() if c != " "]
+    digit_to_letter = string2dict(str_digit_to_letter)
+    letter_to_letter = string2dict(str_letter_to_letter)
+    letter_to_digit = dict((v, k) for (k, v) in digit_to_letter.iteritems())
+    
+    wordlst1 = list(word0.upper().replace(" ", ""))
     if len(wordlst1) != 4:
         return    
     wordlst2 = [replace_chars(replace_chars(w, digit_to_letter), 
@@ -222,18 +217,19 @@ def filter_word(word0):
     wordlst = [c for c in wordlst2 if c in allowed_chars]    
     if len(wordlst) != 4:
         return        
-    if wordlst[0] not in string.uppercase or wordlst[1] not in string.uppercase \
-            or wordlst[2] not in string.uppercase or wordlst[3] not in string.digits:
+    if (wordlst[0] not in string.uppercase or
+            wordlst[1] not in string.uppercase or 
+            wordlst[2] not in string.uppercase or 
+            wordlst[3] not in string.digits):
         return
     return "".join(wordlst)
 
 def get_error(pixels_list, image):
-    """Return error for a given pixels groups compared 
-    to the expected positions."""
+    """Return error for a given pixels groups againt the expected positions."""
     width, height = image.size
     width8 = width / (2*4.0)
     error = 0.0
-    for n, pixels in enumerate(pixels_list):    
+    for n, pixels in enumerate(pixels_list):
         com_x, com_y = center_of_mass(pixels)
         error += distance2((com_x, com_y), ((2*n+1)*width8, (height/2.0)))
     return error
@@ -260,13 +256,12 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
         rotation=22):
     """Build word candidates from characters and uncertains groups."""       
     for plindex, characters4_pixels in enumerate(characters4_pixels_list):
-        debug("Generating words (%d) %d/%d: " % 
-            (2**len(uncertain_pixels), plindex+1, len(characters4_pixels_list)), 
-            False)
-        for index in range(2**len(uncertain_pixels)):
-            characters4_pixels_test = [x.copy() for x in characters4_pixels] 
-            for active, pixels in zip(binary(index), uncertain_pixels):        
-                if active:
+        debug("Generating words (%d) %d/%d: " % (2**len(uncertain_pixels), 
+            plindex+1, len(characters4_pixels_list)), False)
+        for length in range(len(uncertain_pixels)+1):
+            for groups in combinations_no_repetition(uncertain_pixels, length):
+                characters4_pixels_test = [x.copy() for x in characters4_pixels]
+                for pixels in groups: 
                     pair = get_pair_inclussion(characters4_pixels_test, 
                         center_of_mass(pixels)[0],
                         pred=lambda x: center_of_mass(x)[0])
@@ -275,26 +270,26 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                     char1, char2 = pair
                     char1.update(pixels)
                     char2.update(pixels)
-            images = []
-            for cindex, pixels in enumerate(characters4_pixels_test):
-                image = new_image_from_pixels(pixels, 1)
-                angle = rotation * (+1 if (cindex % 2 == 0) else -1)
-                rotated_image = image.rotate(angle, expand=True)
-                image2 = rotated_image.point(lambda x: 0 if x == 1 else 255)
-                images.append(image2)        
-            width = sum(i.size[0] for i in images)
-            height = max(i.size[1] for i in images)
-            clean_image = smooth(join_images((width, height), images), 0)
-            #clean_image.save("out%03d.png" % index)
-            text = ocr(clean_image)
-            filtered_text = filter_word(text)
-            #debug("%s -> %s" %(text, filtered_text))
-            if filtered_text:
-                yield filtered_text
-            debug(".", linefeed=False)
+                images = []
+                for cindex, pixels in enumerate(characters4_pixels_test):
+                    image = new_image_from_pixels(pixels, 1)
+                    angle = rotation * (+1 if (cindex % 2 == 0) else -1)
+                    rotated_image = image.rotate(angle, expand=True)
+                    image2 = rotated_image.point(lambda x: 0 if x == 1 else 255)
+                    images.append(image2)        
+                width = sum(i.size[0] for i in images)
+                height = max(i.size[1] for i in images)
+                clean_image = smooth(join_images((width, height), images), 0)
+                #clean_image.save("out%03d.png" % index)
+                text = ocr(clean_image)
+                filtered_text = filter_word(text)
+                #debug("%s -> %s" %(text, filtered_text))
+                if filtered_text:
+                    yield filtered_text
+                debug(".", linefeed=False)
         debug()
 
-def decode_megaupload_captcha(original, maxiterations=None):
+def decode_megaupload_captcha(original, maxiterations=1):
     """Decode a Megaupload catpcha image 
     
     Expected 4 letters (LETTER LETTER LETTER NUMBER), rotated and overlapped"""
@@ -351,8 +346,8 @@ def main(args):
         parser.print_help()
         return 1
     if options.quiet:
-        global DEBUG
-        DEBUG = False
+        global debug_enabled
+        debug_enabled = False
     debug("Loading psyco: ", linefeed=False)
     if options.disable_psyco:
         debug("disabled")
@@ -361,7 +356,7 @@ def main(args):
     else: debug("failed")
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
-    captcha_image = Image.open(StringIO(stream.read()))
+    captcha_image = Image.open(stream)
     captcha = decode_megaupload_captcha(captcha_image, options.max_iterations)
     if captcha:
         print captcha
