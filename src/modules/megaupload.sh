@@ -88,6 +88,7 @@ megaupload_download() {
         debug "captcha URL: $CAPTCHA_URL"
         COLUMNS=$(tput cols || echo 80)
         LINES=$(tput lines || echo 25)
+        # OCR captcha and show ascii image to stderr simultaneously
         CAPTCHA=$(curl "$CAPTCHA_URL" | \
             tee >(test -z "$QUIET" && \
                   ascii_image -width $COLUMNS -height $LINES >&2) | \
