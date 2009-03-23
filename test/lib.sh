@@ -66,7 +66,16 @@ assert() {
 # Run a test
 run() {
   echo -n "$1... "
-  "$@" && echo "ok" || { echo "failed!"; return 1; }
+  "$@"
+  RETVAL=$?
+  if test $RETVAL -eq 0; then
+    echo "ok"
+  elif test $RETVAL -eq 255; then
+    echo "skipped"
+  else
+    echo "failed!"
+    return 1
+  fi 
 }
 
 # Run tests (run all if none is given)
