@@ -31,10 +31,11 @@ set -e
 VERSION="0.5.3"
 MODULES="rapidshare megaupload 2shared badongo mediafire"
 OPTIONS="
+HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages 
 LINK_ONLY,l,link-only,,Return only file link 
-MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in FILE arguments
+MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 "
 
 # Get library directory
@@ -96,6 +97,7 @@ usage() {
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 
+test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
  
 if test "$QUIET"; then
@@ -120,8 +122,16 @@ for ITEM in "$@"; do
         FUNCTION=${MODULE}_download 
         debug "start download ($MODULE): $URL"
         
-        FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL") && test "$FILE_URL" || 
-            { echo "error on function: $FUNCTION"; RETVAL=$DERROR; continue; }
+        FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" ) &&
+            DRETVAL=0 || DRETVAL=$?         
+        if test $DRETVAL -eq 255; then 
+            debug "Link active: $URL"
+            continue
+        elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then 
+            echo "error on function: $FUNCTION"
+            RETVAL=$DERROR
+            continue            
+        fi
         debug "file URL: $FILE_URL"
         if test "$LINK_ONLY"; then
             echo "$FILE_URL"
@@ -135,8 +145,8 @@ for ITEM in "$@"; do
         fi
         if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
             sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
-                debug "link marked as downloaded in input file: $ITEM" ||
-                error "error marking link as downloaded in input file: $ITEM"
+                debug "linkmarked as downloaded in file: $ITEM" ||
+                error "error marking link as downloaded in file: $ITEM"
         fi 
     done
 done
