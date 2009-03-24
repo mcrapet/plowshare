@@ -83,4 +83,4 @@ match "\<$MODULE\>" "$MODULES" ||
     { error "unsupported module: $MODULE"; exit 4; }
 FUNCTION=${MODULE}_upload
 debug "starting upload ($MODULE)"
-$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || exit 2
+$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || exit 5

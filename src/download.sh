@@ -108,7 +108,7 @@ fi
 test $# -ge 1 || { usage; exit 1; } 
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
-DERROR=4
+DERROR=5
 RETVAL=0
 for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
