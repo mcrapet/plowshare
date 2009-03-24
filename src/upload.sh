@@ -65,7 +65,7 @@ usage() {
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 if test "$QUIET"; then
     function debug() { :; } 
