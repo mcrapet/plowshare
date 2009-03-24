@@ -1,6 +1,25 @@
 #!/usr/bin/python
+#
+# This file is part of Plowshare.
+#
+# Plowshare is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Plowshare is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 """
-Decode the captcha being currently used by Megaupload (2009/03/20).
+Decode the captcha used by Megaupload (2009/03/20).
+
+4 characters, rotated and overlapped.
 """
 import os
 import sys
@@ -242,8 +261,10 @@ def get_pair_inclussion(seq, value, pred=None):
         if pred(val1) <= value <= pred(val2):
             return val1, val2
 
-def join_images((width, height), images):
+def join_images_horizontal(images):
     """Join images to build a new image with (width, height) size."""
+    width = sum(i.size[0] for i in images)
+    height = max(i.size[1] for i in images)
     gimage = Image.new("L", (width, height), 255)        
     x = 0
     for image in images:
@@ -277,12 +298,10 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                     rotated_image = image.rotate(angle, expand=True)
                     image2 = rotated_image.point(lambda x: 0 if x == 1 else 255)
                     images.append(image2)        
-                width = sum(i.size[0] for i in images)
-                height = max(i.size[1] for i in images)
-                clean_image = smooth(join_images((width, height), images), 0)
-                #clean_image.save("out%03d.png" % index)
+                clean_image = smooth(join_images_horizontal(images), 0)
                 text = ocr(clean_image)
                 filtered_text = filter_word(text)
+                #clean_image.save("out%03d.png" % index)
                 #debug("%s -> %s" %(text, filtered_text))
                 if filtered_text:
                     yield filtered_text
