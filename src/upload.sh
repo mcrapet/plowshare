@@ -31,6 +31,7 @@ set -e
 VERSION="0.5.3"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
+HELP,h,help,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages
 "
@@ -64,6 +65,7 @@ usage() {
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 if test "$QUIET"; then
     function debug() { :; } 
