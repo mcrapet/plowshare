@@ -19,6 +19,7 @@ MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
+CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
@@ -67,6 +68,7 @@ megaupload_download() {
           continue          
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
+            test "$CHECK_LINK" && return 255;
             debug "File is password protected"
             test "$LINKPASSWORD" || 
                 { debug "You must provide a password"; return 1; }
@@ -79,12 +81,14 @@ megaupload_download() {
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
+            test "$CHECK_LINK" && return 255;
             debug "Link found, no need to wait"
             echo "$FILEURL"
             return
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
             { debug "file not found"; return 1; }
+        test "$CHECK_LINK" && return 255;          
         debug "captcha URL: $CAPTCHA_URL"
         COLUMNS=$(tput cols || echo 80)
         LINES=$(tput lines || echo 25)
