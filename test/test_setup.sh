@@ -29,6 +29,7 @@ usr/local/share/plowshare/download.sh
 usr/local/share/plowshare/lib.sh
 usr/local/share/plowshare/modules
 usr/local/share/plowshare/modules/2shared.sh
+usr/local/share/plowshare/modules/4shared.sh
 usr/local/share/plowshare/modules/badongo.sh
 usr/local/share/plowshare/modules/extras
 usr/local/share/plowshare/modules/extras/megaupload_captcha.py
