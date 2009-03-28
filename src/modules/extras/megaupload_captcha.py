@@ -252,11 +252,11 @@ def filter_word(word0):
 def get_error(pixels_list, image):
     """Return error for a given pixels groups againt the expected positions."""
     width, height = image.size
-    width8 = width / (2*4.0)
+    gap_width = width / 6.0
     def error_for_pixels(pixels, n):
         """Return error for pixels (character n in captcha)."""
         com_x, com_y = center_of_mass(pixels)
-        return distance2((com_x, com_y), ((2*n+1)*width8, (height/2.0)))      
+        return distance2((com_x, com_y), ((1.5*n+1)*gap_width, (height/2.0)))      
     return sum(error_for_pixels(pxls, n) for n, pxls in enumerate(pixels_list))
 
 def build_candidates(characters4_pixels_list, uncertain_pixels, 
