@@ -3,7 +3,6 @@ set -e
 source $(dirname $0)/vars
 TESTSDIR=test
 
-tar xvzf $FILE
 cp $TESTSDIR/.*auth $DIRECTORY/$TESTSDIR
 cd $DIRECTORY
 
