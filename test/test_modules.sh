@@ -53,6 +53,10 @@ test_rapidshare_upload_freezone() {
     assert_equal $(($FILES1+1)) $FILES2    
 }        
 
+test_rapidshare_check_active_link() {
+    assert_equal "$RAPIDSHARE_URL" "$(download -c $RAPIDSHARE_URL)"
+}                
+
 ## Megaupload
 
 MEGAUPLOAD_URL="http://www.megaupload.com/?d=ieo1g52v"
@@ -88,7 +92,11 @@ test_megaupload_download_premium() {
     FILENAME="testmotion2.mp4"
     assert_equal "$FILENAME" "$OUTPUT" || return 1 
     rm -f $FILENAME
-}        
+}
+
+test_megaupload_check_active_link() {
+    assert_equal "$MEGAUPLOAD_URL" "$(download -c $MEGAUPLOAD_URL)"
+}                
 
 test_megaupload_upload_anonymous() {
     URL="$(upload -d 'Plowshare test' $UPFILE megaupload)"
@@ -134,6 +142,10 @@ test_2shared_download_using_file_argument_and_mark_as_downloaded() {
     assert_match "^#$SHARED_URL" "$(cat $TEMP)"
     rm -f "$TEMP"    
 }        
+
+test_2shared_check_active_link() {
+    assert_equal "$SHARED_URL" "$(download -c $SHARED_URL)"
+}                
         
 test_2shared_upload() {
     assert_match "^http://www.2shared.com/file/" "$(upload $UPFILE 2shared)"
@@ -149,6 +161,10 @@ test_badongo_download() {
     rm -f $FILENAME
 }        
 
+test_badongo_check_active_link() {
+    assert_equal "$BADONGO_URL" "$(download -c $BADONGO_URL)"
+}                
+
 ## Mediafire
 
 MEDIAFIRE_URL="http://www.mediafire.com/?mokvnz2y43y"
@@ -158,6 +174,10 @@ test_mediafire_download() {
     assert_equal "$FILENAME" "$(download $MEDIAFIRE_URL)"
     rm -f $FILENAME
 }        
+
+test_mediafire_check_active_link() {
+    assert_equal "$MEDIAFIRE_URL" "$(download -c $MEDIAFIRE_URL)"
+}                
 
 ## 4shared
 
