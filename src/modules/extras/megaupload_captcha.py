@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# This file is part of Plowshare.
+# This file is part of plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import os
 import sys
 import string
 import tempfile
+import operator
 import subprocess
 from itertools import tee, izip
 from operator import itemgetter
@@ -34,7 +35,6 @@ from StringIO import StringIO
 import PIL.Image as Image
 
 # Global debug variable
-
 debug_enabled = True
 
 # Generic functions
@@ -70,13 +70,9 @@ def pairwise(iterable):
     b.next()
     return izip(a, b)
   
-def module2(vector):    
-    """Return module^2 of vector"""
-    return sum((x*x) for x in vector)
-
 def distance2(vector1, vector2):    
-    """Return module^2 of vector"""
-    return module2((a-b) for (a, b) in zip(vector1, vector2))
+    """Return quadratic module distance between vector1 and vector2"""
+    return sum((x*x) for x in map(operator.sub, vector1, vector2))
      
 def combinations_no_repetition(seq, k):
     """Yield combinations of k elements from seq without repetition"""
@@ -97,7 +93,7 @@ def segment(seq, k):
             for x in segment(seq[length:], k-1):
                 yield (seq[:length],) + x  
     else: yield (seq,)
-
+    
 def run(command, inputdata=None):
     """Run a command and return standard output"""
     pipe = subprocess.PIPE
@@ -114,12 +110,20 @@ def ocr(image):
     run(["tesseract", temp_tif.name, os.path.splitext(temp_txt.name)[0]])
     return open(temp_txt.name).read().strip()
 
-def histogram(it):
+def histogram(it, reverse=False):
     """Return sorted (ascendent) histogram of elements in iterator."""
     ocurrences = {}
     for x in it:
         ocurrences[x] = ocurrences.get(x, 0) + 1
-    return list(sorted(ocurrences.iteritems(), key=lambda (k, v): v))
+    return sorted(ocurrences.items(), key=lambda (k, v): v, reverse=reverse)
+
+def get_pair_inclussion(seq, value, pred=None):
+    """Given a sequence find the boundaries of value."""
+    if pred is None:
+        pred = lambda x: x
+    for val1, val2 in pairwise(seq):
+        if pred(val1) <= value <= pred(val2):
+            return val1, val2
  
 # Generic PIL functions
 
@@ -191,14 +195,12 @@ def get_zones(image, seen0, value, minpixels=1):
     """     
     seen = seen0.copy()
     pixels = image.load()
-    zones = []
     for x, y in iter_image(image):
         if (x, y) not in seen and pixels[x, y] == value:
             filled = floodfill_image(image, (x, y), 50)[1]                
             if len(filled) > minpixels:
-                zones.append(filled)
                 seen.update(filled)
-    return zones              
+                yield filled
  
 def new_image_from_pixels(pixels, value):
     """Return an image from a group of pixels (remove offset)."""       
@@ -212,7 +214,19 @@ def new_image_from_pixels(pixels, value):
         ipimage[x-x1, y-y1] = value 
     return image
 
-### Megaupload captcha decoder
+def join_images_horizontal(images):
+    """Join images to build a new image with (width, height) size."""
+    width = sum(i.size[0] for i in images)
+    height = max(i.size[1] for i in images)
+    gimage = Image.new("L", (width, height), 255)        
+    x = 0
+    for image in images:
+        w, h = image.size
+        gimage.paste(image, (x, (height -h)/2))
+        x += w
+    return gimage
+
+### Megaupload captcha decoder functions
 
 def filter_word(word0):
     """Check if a word is a valid captcha (try also to make 
@@ -248,38 +262,17 @@ def get_error(pixels_list, image):
     """Return error for a given pixels groups againt the expected positions."""
     width, height = image.size
     width8 = width / (2*4.0)
-    error = 0.0
-    for n, pixels in enumerate(pixels_list):
+    def error_for_pixels(pixels, n):
         com_x, com_y = center_of_mass(pixels)
-        error += distance2((com_x, com_y), ((2*n+1)*width8, (height/2.0)))
-    return error
-
-def get_pair_inclussion(seq, value, pred=None):
-    """Given a sequence find the boundaries of value."""
-    if pred is None:
-        pred = lambda x: x
-    for val1, val2 in pairwise(seq):
-        if pred(val1) <= value <= pred(val2):
-            return val1, val2
-
-def join_images_horizontal(images):
-    """Join images to build a new image with (width, height) size."""
-    width = sum(i.size[0] for i in images)
-    height = max(i.size[1] for i in images)
-    gimage = Image.new("L", (width, height), 255)        
-    x = 0
-    for image in images:
-        w, h = image.size
-        gimage.paste(image, (x, (height -h)/2))
-        x += w
-    return gimage
+        return distance2((com_x, com_y), ((2*n+1)*width8, (height/2.0)))      
+    return sum(error_for_pixels(pxls, n) for n, pxls in enumerate(pixels_list))
 
 def build_candidates(characters4_pixels_list, uncertain_pixels, 
         rotation=22):
     """Build word candidates from characters and uncertains groups."""       
     for plindex, characters4_pixels in enumerate(characters4_pixels_list):
         debug("Generating words (%d) %d/%d: " % (2**len(uncertain_pixels), 
-            plindex+1, len(characters4_pixels_list)), False)
+          plindex+1, len(characters4_pixels_list)), False)
         for length in range(len(uncertain_pixels)+1):
             for groups in combinations_no_repetition(uncertain_pixels, length):
                 characters4_pixels_test = [x.copy() for x in characters4_pixels]
@@ -292,13 +285,14 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                     char1, char2 = pair
                     char1.update(pixels)
                     char2.update(pixels)
-                images = []
-                for cindex, pixels in enumerate(characters4_pixels_test):
+                def rotate_character(pixels, index):
+                    """Rotate captcha character in position index."""
                     image = new_image_from_pixels(pixels, 1)
-                    angle = rotation * (+1 if (cindex % 2 == 0) else -1)
+                    angle = rotation * (+1 if (index % 2 == 0) else -1)
                     rotated_image = image.rotate(angle, expand=True)
-                    image2 = rotated_image.point(lambda x: 0 if x == 1 else 255)
-                    images.append(image2)        
+                    return rotated_image.point(lambda x: 0 if x == 1 else 255)
+                images = [rotate_character(pixels, cindex) 
+                  for cindex, pixels in enumerate(characters4_pixels_test)]
                 clean_image = smooth(join_images_horizontal(images), 0)
                 text = ocr(clean_image)
                 filtered_text = filter_word(text)
@@ -309,42 +303,47 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                 debug(".", linefeed=False)
         debug()
 
-def decode_megaupload_captcha(original, maxiterations=1):
+def decode_megaupload_captcha(imagedata, maxiterations=1):
     """Decode a Megaupload catpcha image 
     
     Expected 4 letters (LETTER LETTER LETTER NUMBER), rotated and overlapped"""
+    original =  Image.open(imagedata)
+    
+    # Get background zone
     width, height = original.size
     image = Image.new("L", (width+2, height+2), 255)
     image.paste(original, (1, 1))
     background_pixels = floodfill_image(image, (0, 0), 155)[1]
     debug("Background pixels: %d" % len(background_pixels))
     
+    # Get characters zones    
     characters_pixels = sorted(get_zones(image, background_pixels, 0, 20),
         key=center_of_mass)
     debug("Characters: %d - %s" % (len(characters_pixels), 
         [len(x) for x in characters_pixels]))    
     assert len(characters_pixels) >= 4, "Cannot find 4 characters in image"
     characters_pixels_list0 = [[union_sets(y) for y in x] 
-        for x in segment(characters_pixels, 4)]
-    
+        for x in segment(characters_pixels, 4)]    
     characters4_pixels_list = sorted(characters_pixels_list0, 
         key=lambda pixels_list: get_error(pixels_list, image))
-
     seen = reduce(set.union, [background_pixels] + characters_pixels)
     max_uncertain_groups = 8
+    
+    # Get uncertain zones
     uncertain_pixels = list(sorted(get_zones(image, seen, 255, 20), 
         key=len))[:max_uncertain_groups]
     debug("Uncertain groups: %d - %s" % (len(uncertain_pixels), 
         [len(x) for x in uncertain_pixels]))
     characters4_pixels_list2 = characters4_pixels_list[:maxiterations]
     candidates = build_candidates(characters4_pixels_list2, uncertain_pixels)
-        
-    best = histogram(candidates)
+    
+    # Return best decoded word    
+    best = list(histogram(candidates, reverse=True))
     if not best:
         debug("No word candidates")
         return                
-    debug("Best words: %s" % best[-5:][::-1])    
-    return best[-1][0]
+    debug("Best words: %s" % best[-5:])    
+    return best[0][0]
         
         
 def main(args):
@@ -365,9 +364,8 @@ def main(args):
     if not args0:
         parser.print_help()
         return 1
-    if options.quiet:
-        global debug_enabled
-        debug_enabled = False
+    global debug_enabled
+    debug_enabled = not options.quiet
     debug("Loading psyco: ", linefeed=False)
     if options.disable_psyco:
         debug("disabled")
@@ -376,8 +374,8 @@ def main(args):
     else: debug("failed")
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
-    captcha_image = Image.open(StringIO(stream.read()))
-    captcha = decode_megaupload_captcha(captcha_image, options.max_iterations)
+    captcha = decode_megaupload_captcha(StringIO(stream.read()), 
+      options.max_iterations)
     if captcha:
         print captcha
 
