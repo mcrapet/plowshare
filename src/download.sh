@@ -28,8 +28,8 @@
 #
 set -e
 
-VERSION="0.5.3"
-MODULES="rapidshare megaupload 2shared badongo mediafire"
+VERSION="0.6"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
@@ -126,6 +126,7 @@ for ITEM in "$@"; do
             DRETVAL=0 || DRETVAL=$?         
         if test $DRETVAL -eq 255; then 
             debug "Link active: $URL"
+            echo "$URL"
             continue
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then 
             echo "error on function: $FUNCTION"
