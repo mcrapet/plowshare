@@ -149,7 +149,7 @@ test_badongo_download() {
     rm -f $FILENAME
 }        
 
-## Badongo
+## Mediafire
 
 MEDIAFIRE_URL="http://www.mediafire.com/?mokvnz2y43y"
 
@@ -158,5 +158,19 @@ test_mediafire_download() {
     assert_equal "$FILENAME" "$(download $MEDIAFIRE_URL)"
     rm -f $FILENAME
 }        
- 
+
+## 4shared
+
+FSHARED_URL="http://www.4shared.com/file/14767114/7939c436/John_Milton_-_Paradise_Lost.html?s=1"
+
+test_4shared_download() {
+    FILENAME="John_Milton_-_Paradise_Lost.pdf"
+    assert_equal "$FILENAME" "$(download $FSHARED_URL)"
+    rm -f $FILENAME
+}        
+
+test_4shared_check_active_link() {
+    assert_equal "$FSHARED_URL" "$(download -c $FSHARED_URL)"
+}        
+
 run_tests "$@"
