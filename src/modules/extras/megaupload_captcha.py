@@ -28,6 +28,7 @@ import tempfile
 import subprocess
 from itertools import tee, izip
 from operator import itemgetter
+from StringIO import StringIO
 
 # Third-party modules
 import PIL.Image as Image
@@ -375,7 +376,7 @@ def main(args):
     else: debug("failed")
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
-    captcha_image = Image.open(stream)
+    captcha_image = Image.open(StringIO(stream.read()))
     captcha = decode_megaupload_captcha(captcha_image, options.max_iterations)
     if captcha:
         print captcha
