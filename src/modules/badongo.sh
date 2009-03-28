@@ -16,7 +16,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo.com/"
-MODULE_BADONGO_DOWNLOAD_OPTIONS=
+MODULE_BADONGO_DOWNLOAD_OPTIONS="
+CHECK_LINK,c,check-link,,Check if a link exists and return"
 MODULE_BADONGO_UPLOAD_OPTIONS=
 MODULE_BADONGO_DOWNLOAD_CONTINUE=yes
 
@@ -38,8 +39,10 @@ badongo_download() {
             -F "rs=refreshImage" \
             -F "rst=" \
             -F "rsrnd=$MTIME" \
-            "$URL" | sed "s/>/>\n/g")
-        ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"')
+            "$URL" | sed "s/>/>\n/g") 
+        ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
+            { debug "file not found"; return 1; }
+        test "$CHECK_LINK" && return 255
         CAP_IMAGE=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
         MTIME="$(date +%s)000"
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \

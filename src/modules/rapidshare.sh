@@ -16,10 +16,10 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(\w\+\.\)\?rapidshare.com/"
-MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS=
+MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
+CHECK_LINK,c,check-link,,Check if a link exists and return"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
-AUTH_FREEZONE,a:,auth-freezone:,USER:PASSWORD,Use a freezone account
-"
+AUTH_FREEZONE,a:,auth-freezone:,USER:PASSWORD,Use a freezone account"
 MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 
 # Output a rapidshare file download URL (anonymous, NOT PREMIUM)
@@ -33,6 +33,7 @@ rapidshare_download() {
     while true; do
         WAIT_URL=$(curl "$URL" | parse '<form' 'action="\(.*\)"') ||
             { debug "file not found"; return 1; }
+        test "$CHECK_LINK" && return 255
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { debug "can't get wait URL contents"; return 1; }
         if echo "$DATA" | grep -o "Your IP address.*file" >&2; then

@@ -16,7 +16,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_MEDIAFIRE_REGEXP_URL="http://\(www\.\)\?mediafire.com/"
-MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS=
+MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
+CHECK_LINK,c,check-link,,Check if a link exists and return"
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS=
 MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=yes
 
@@ -32,8 +33,10 @@ mediafire_download() {
     BASE_URL="http://www.mediafire.com"
     COOKIES=$(create_tempfile)
     MAIN_PAGE=$(curl -c $COOKIES "$URL" | sed "s/>/>\n/g")
-    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu('\([^)]*\));" | tr -d "'")
-    IFS="," read QK PK R <<< "$JS_CALL"
+    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu('\([^)]*\));") ||
+      { debug "file not found"; return 1; }
+    test "$CHECK_LINK" && return 255
+    IFS="," read QK PK R <<< "$(echo "$JS_CALL" | tr -d "'")"
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     debug "Javascript URL: $JS_URL"
     JS_CODE=$(curl -b $COOKIES "$JS_URL" | sed "s/;/;\n/g")

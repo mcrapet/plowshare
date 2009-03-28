@@ -81,7 +81,7 @@ megaupload_download() {
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
-            test "$CHECK_LINK" && return 255;
+            test "$CHECK_LINK" && return 255
             debug "Link found, no need to wait"
             echo "$FILEURL"
             return
