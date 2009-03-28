@@ -6,4 +6,4 @@ TESTSDIR=test
 cp $TESTSDIR/.*auth $DIRECTORY/$TESTSDIR
 cd $DIRECTORY
 
-bash run_tests.sh | tee $TESTSLOG
+bash run_tests.sh | tee TESTSLOG

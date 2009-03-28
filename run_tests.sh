@@ -45,7 +45,7 @@ $TESTSDIR/test_setup.sh
 echo
 echo "--- Library tests"
 $TESTSDIR/test_lib.sh
+echo 
 echo "--- Modules tests"
-echo
-$TESTSDIR/test_modules.sh
+  $TESTSDIR/test_modules.sh
 echo done
