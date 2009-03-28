@@ -8,12 +8,13 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.2shared.com 2Shared] || anonymous || anonymous ||
 || [http://www.badongo.com Badongo] || anonymous || no ||
 || [http://www.mediafire.com Mediafire] || anonymous || no ||
+|| [http://www.4shared.com 4Shared] || anonymous || no ||
 
 = Dependencies =
 
 To run _plowshare_ you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/Arch), `*`BSD (untested), OSX (needs some patches), Cygwin (is _recode_ available?), ...
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/[http://aur.archlinux.org/packages.php?ID=24601 ArchLinux]), BSD (untested), OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches]), Cygwin (is [http://cygwin.com/cgi-bin2/package-grep.cgi?grep=recode recode] available?), ...
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
@@ -24,20 +25,18 @@ To run _plowshare_ you will need:
 Debian/Ubuntu users may try:
 
 {{{
-$ sudo apt-get install curl recode imagemagick tesseract-ocr spidermonkey-bin
+$ sudo apt-get install curl recode imagemagick tesseract-ocr spidermonkey-bin python python-imaging aview
 }}}
 
 = Download & Install =
 
-[http://code.google.com/p/plowshare/downloads/list Download] the last version, uncompress and install:
+[http://code.google.com/p/plowshare/downloads/list Download] the latest version, uncompress and install:
 
 {{{
 $ tar xvzf plowshare-VERSION.tgz
 $ cd plowshare-VERSION
 $ bash setup.sh install
 }}}
-
-Plowshare has been packaged for [http://aur.archlinux.org/packages.php?ID=24601 ArchLinux].
 
 = Usage =
 

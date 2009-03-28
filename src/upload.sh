@@ -28,7 +28,7 @@
 #
 set -e
 
-VERSION="0.5.3"
+VERSION="0.6"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 HELP,h,help,Show help info

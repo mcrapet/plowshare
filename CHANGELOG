@@ -1,3 +1,11 @@
+plowshare (0.6) unstable; urgency=low
+
+  * [4shared] add download support for 4shared
+  * [megaupload] increase slightly the succesful rate (~ 40%)
+  * [megaupload] add support for check link option
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 28 Mar 2009 15:51:48 +0100
+
 plowshare (0.5.3) unstable; urgency=low
 
   * [megaupload] Support new 4-rotated-highly-overlapped captcha 
