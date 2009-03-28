@@ -45,15 +45,6 @@ def debug(line="", linefeed=True, stream=sys.stderr):
         stream.write(str(line)+("\n" if linefeed else ""))
         stream.flush()
 
-def load_psyco():
-    """Enabled psyco if module is installed."""
-    try:
-        import psyco
-        psyco.full()
-        return True
-    except ImportError:
-        return False        
-
 def replace_chars(s, table):
     """Use dictionary table to replace chare in s."""
     for key, value in table.iteritems():
@@ -263,6 +254,7 @@ def get_error(pixels_list, image):
     width, height = image.size
     width8 = width / (2*4.0)
     def error_for_pixels(pixels, n):
+        """Return error for pixels (character n in captcha)."""
         com_x, com_y = center_of_mass(pixels)
         return distance2((com_x, com_y), ((2*n+1)*width8, (height/2.0)))      
     return sum(error_for_pixels(pxls, n) for n, pxls in enumerate(pixels_list))
@@ -325,7 +317,7 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     characters_pixels_list0 = [[union_sets(y) for y in x] 
         for x in segment(characters_pixels, 4)]    
     characters4_pixels_list = sorted(characters_pixels_list0, 
-        key=lambda pixels_list: get_error(pixels_list, image))
+        key=lambda pixels_list: get_error(pixels_list, image))[:maxiterations]
     seen = reduce(set.union, [background_pixels] + characters_pixels)
     max_uncertain_groups = 8
     
@@ -334,8 +326,7 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
         key=len))[:max_uncertain_groups]
     debug("Uncertain groups: %d - %s" % (len(uncertain_pixels), 
         [len(x) for x in uncertain_pixels]))
-    characters4_pixels_list2 = characters4_pixels_list[:maxiterations]
-    candidates = build_candidates(characters4_pixels_list2, uncertain_pixels)
+    candidates = build_candidates(characters4_pixels_list, uncertain_pixels)
     
     # Return best decoded word    
     best = list(histogram(candidates, reverse=True))
@@ -355,8 +346,6 @@ def main(args):
     parser = optparse.OptionParser(usage)
     parser.add_option('-q', '--quiet', dest='quiet',
         action="store_true", default=False, help='Be quiet')
-    parser.add_option('-d', '--disable-psyco', dest='disable_psyco',
-        action="store_true", default=False, help='Be quiet')
     parser.add_option('-i', '--max-iterations', dest='max_iterations',
         default=1, metavar='INTEGER', type='int', 
         help='Maximum iterations on characters agrupations')
@@ -366,18 +355,13 @@ def main(args):
         return 1
     global debug_enabled
     debug_enabled = not options.quiet
-    debug("Loading psyco: ", linefeed=False)
-    if options.disable_psyco:
-        debug("disabled")
-    elif load_psyco():
-        debug("ok")
-    else: debug("failed")
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
     captcha = decode_megaupload_captcha(StringIO(stream.read()), 
-      options.max_iterations)
-    if captcha:
-        print captcha
+        options.max_iterations)
+    if not captcha:
+        return 1
+    print captcha
 
 
 if __name__ == '__main__':
