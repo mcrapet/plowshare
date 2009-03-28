@@ -47,5 +47,4 @@ echo "--- Library tests"
 $TESTSDIR/test_lib.sh
 echo 
 echo "--- Modules tests"
-  $TESTSDIR/test_modules.sh
-echo done
+$TESTSDIR/test_modules.sh
