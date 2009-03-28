@@ -49,7 +49,7 @@ megaupload_download() {
  
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
-        { debug "error on login process"; return 1; }
+        { error "login process failed"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
     TRY=0
     while true; do 
@@ -62,7 +62,7 @@ megaupload_download() {
           debug "server returned an error page"
           WAITIME=$(curl "$REDIRECT" | parse "Please check back" \
             "back in \([[:digit:]]\+\) minute" 2>/dev/null || true)
-          test "$WAITTIME" || { debug "unknown error page"; return 1; }
+          test "$WAITTIME" || { error "unknown error page"; return 1; }
           debug "waiting $WAITTIME minutes before trying again"
           sleep $((WAITTIME*60))
           continue          
@@ -71,10 +71,10 @@ megaupload_download() {
             test "$CHECK_LINK" && return 255;
             debug "File is password protected"
             test "$LINKPASSWORD" || 
-                { debug "You must provide a password"; return 1; }
+                { error "You must provide a password"; return 1; }
             PAGE=$(ccurl -d "filepassword=$LINKPASSWORD" "$URL")
             match 'name="filepassword"' "$PAGE" &&
-                { debug "Link password incorrect"; return 1; } 
+                { error "Link password incorrect"; return 1; } 
         fi        
         # Look for a download link (either Premium account or password
         # protected file)
@@ -87,7 +87,7 @@ megaupload_download() {
             return
         fi 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
-            { debug "file not found"; return 1; }
+            { error "file not found"; return 1; }
         test "$CHECK_LINK" && return 255;          
         debug "captcha URL: $CAPTCHA_URL"
         COLUMNS=$(tput cols || echo 80)
@@ -97,7 +97,7 @@ megaupload_download() {
             tee >(test -z "$QUIET" && \
                   ascii_image -width $COLUMNS -height $LINES >&2) | \
             megaupload_ocr -i1 $(test "$QUIET" && echo -q) -)  || 
-            { debug "error running OCR"; return 1; }
+            { error "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; } 

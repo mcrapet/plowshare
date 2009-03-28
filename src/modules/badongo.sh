@@ -41,7 +41,7 @@ badongo_download() {
             -F "rsrnd=$MTIME" \
             "$URL" | sed "s/>/>\n/g") 
         ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
-            { debug "file not found"; return 1; }
+            { error "file not found"; return 1; }
         test "$CHECK_LINK" && return 255
         CAP_IMAGE=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
         MTIME="$(date +%s)000"

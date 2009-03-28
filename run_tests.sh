@@ -3,6 +3,7 @@ set -e
 
 TESTSDIR=$(dirname "$(readlink -f "$0")")/test
 PACKAGES="
+kernel, uname -r -s
 bash, --version, 4
 sed, --version, NF
 curl, --version, 2
@@ -18,7 +19,6 @@ aview, --version, 5
 basic_info() {
     VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
     echo "plowshare: $VERSION"
-    echo "kernel: $(uname -a)"
 }
 
 version_info() {
