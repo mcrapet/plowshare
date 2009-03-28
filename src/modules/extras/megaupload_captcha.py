@@ -309,7 +309,7 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     debug("Background pixels: %d" % len(background_pixels))
     
     # Get characters zones    
-    characters_pixels = sorted(get_zones(image, background_pixels, 0, 20),
+    characters_pixels = sorted(get_zones(image, background_pixels, 0, 10),
         key=center_of_mass)
     debug("Characters: %d - %s" % (len(characters_pixels), 
         [len(x) for x in characters_pixels]))    
@@ -333,7 +333,7 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     if not best:
         debug("No word candidates")
         return                
-    debug("Best words: %s" % best[-5:])    
+    debug("Best words: %s" % best[:5])    
     return best[0][0]
         
         
