@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+WIKI=wiki
+
+process() {
+  grep -v "#\(labels\|summary\)" < "$1" > "$2"
+}
+
+svn up $WIKI/
+process $WIKI/Readme.wiki README
+process $WIKI/BreakingMegauploadCaptcha.wiki src/modules/extras/README

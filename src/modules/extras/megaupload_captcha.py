@@ -35,7 +35,7 @@ from StringIO import StringIO
 import PIL.Image as Image
 
 # Global debug variable
-debug_enabled = True
+debug_enabled = False
 
 # Generic functions
 
@@ -348,7 +348,7 @@ def main(args):
         action="store_true", default=False, help='Be quiet')
     parser.add_option('-i', '--max-iterations', dest='max_iterations',
         default=1, metavar='INTEGER', type='int', 
-        help='Maximum iterations on characters agrupations')
+        help='Maximum iterations for characters agrupations')
     options, args0 = parser.parse_args(args)
     if not args0:
         parser.print_help()

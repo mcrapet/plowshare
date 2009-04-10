@@ -35,7 +35,7 @@ rapidshare_download() {
             { error "file not found"; return 1; }
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
-            { debug "can't get wait URL contents"; return 1; }
+            { error "can't get wait URL contents"; return 1; }
         if echo "$DATA" | grep -o "Your IP address.*file" >&2; then
             WAITTIME=1
             debug "Sleeping $WAITTIME minute(s) before trying again"
@@ -107,7 +107,7 @@ rapidshare_upload_freezone() {
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"       
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
-        { debug "error on login process"; return 1; }
+        { error "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
     debug "downloading upload page: $UPLOAD_URL"
     UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL)

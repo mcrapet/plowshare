@@ -20,7 +20,9 @@ To run _plowshare_ you will need:
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick]
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr]
-  * A Javascript interpreter (for example: [http://www.mozilla.org/js/spidermonkey/ spidermonkey])
+  * A Javascript interpreter (for example [http://www.mozilla.org/js/spidermonkey/ spidermonkey])
+  * [http://www.python.org Python] and [http://www.pythonware.com/products/pil/ Python Imaging Library]
+  * [http://aa-project.sourceforge.net/aview/ aview]
 
 Debian/Ubuntu users may try:
 
