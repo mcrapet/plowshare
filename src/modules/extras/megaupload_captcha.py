@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# This file is part of plowshare.
+# This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
+# Author: Arnau Sanchez <tokland@gmail.com> 
 
 """
-Decode the captcha used by Megaupload (2009/03/20).
+Decode the captcha used by Megaupload (2009/03/20): 4 bold characters 
+(letter-letter-letter-digit), rotated and overlapped.
 
-4 characters, rotated and overlapped.
+Dependencies: tesseract-ocr, Python Imaging Library
 """
 import os
 import sys
+import logging
 import string
 import tempfile
 import operator
@@ -34,16 +37,17 @@ from StringIO import StringIO
 # Third-party modules
 import PIL.Image as Image
 
-# Global debug variable
-debug_enabled = False
+# Verbose levels
+
+_VERBOSE_LEVELS = {
+    0: logging.CRITICAL,
+    1: logging.ERROR,
+    2: logging.WARNING,
+    3: logging.INFO,
+    4: logging.DEBUG,
+}
 
 # Generic functions
-
-def debug(line="", linefeed=True, stream=sys.stderr):
-    """Write line to standard error."""
-    if debug_enabled:
-        stream.write(str(line)+("\n" if linefeed else ""))
-        stream.flush()
 
 def replace_chars(s, table):
     """Use dictionary table to replace chare in s."""
@@ -99,7 +103,7 @@ def ocr(image):
     temp_txt = tempfile.NamedTemporaryFile(suffix=".txt")
     image.save(temp_tif, format="TIFF")
     run(["tesseract", temp_tif.name, os.path.splitext(temp_txt.name)[0]])
-    return open(temp_txt.name).read().strip()
+    return open(temp_txt.name).read()
 
 def histogram(it, reverse=False):
     """Return sorted (ascendent) histogram of elements in iterator."""
@@ -263,8 +267,8 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
         rotation=22):
     """Build word candidates from characters and uncertains groups."""       
     for plindex, characters4_pixels in enumerate(characters4_pixels_list):
-        debug("Generating words (%d) %d/%d: " % (2**len(uncertain_pixels), 
-          plindex+1, len(characters4_pixels_list)), False)
+        logging.debug("Generating words (%d) %d/%d" % (2**len(uncertain_pixels), 
+          plindex+1, len(characters4_pixels_list)))
         for length in range(len(uncertain_pixels)+1):
             for groups in combinations_no_repetition(uncertain_pixels, length):
                 characters4_pixels_test = [x.copy() for x in characters4_pixels]
@@ -286,14 +290,12 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                 images = [rotate_character(pixels, cindex) 
                   for cindex, pixels in enumerate(characters4_pixels_test)]
                 clean_image = smooth(join_images_horizontal(images), 0)
-                text = ocr(clean_image)
+                text = ocr(clean_image).strip()
                 filtered_text = filter_word(text)
                 #clean_image.save("out%03d.png" % index)
-                #debug("%s -> %s" %(text, filtered_text))
+                #logging.debug("%s -> %s" %(text, filtered_text))
                 if filtered_text:
                     yield filtered_text
-                debug(".", linefeed=False)
-        debug()
 
 def decode_megaupload_captcha(imagedata, maxiterations=1):
     """Decode a Megaupload catpcha image 
@@ -306,15 +308,15 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     image = Image.new("L", (width+2, height+2), 255)
     image.paste(original, (1, 1))
     background_pixels = floodfill_image(image, (0, 0), 155)[1]
-    debug("Background pixels: %d" % len(background_pixels))
+    logging.debug("Background pixels: %d" % len(background_pixels))
     
     # Get characters zones    
     characters_pixels = sorted(get_zones(image, background_pixels, 0, 10),
         key=center_of_mass)
-    debug("Characters: %d - %s" % (len(characters_pixels), 
+    logging.debug("Characters: %d - %s" % (len(characters_pixels), 
         [len(x) for x in characters_pixels]))    
     assert len(characters_pixels) >= 4, "Cannot find 4 characters in image"
-    characters_pixels_list0 = [[union_sets(y) for y in x] 
+    characters_pixels_list0 = [[union_sets(sets) for sets in x] 
         for x in segment(characters_pixels, 4)]    
     characters4_pixels_list = sorted(characters_pixels_list0, 
         key=lambda pixels_list: get_error(pixels_list, image))[:maxiterations]
@@ -324,19 +326,27 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     # Get uncertain zones
     uncertain_pixels = list(sorted(get_zones(image, seen, 255, 20), 
         key=len))[:max_uncertain_groups]
-    debug("Uncertain groups: %d - %s" % (len(uncertain_pixels), 
+    logging.debug("Uncertain groups: %d - %s" % (len(uncertain_pixels), 
         [len(x) for x in uncertain_pixels]))
     candidates = build_candidates(characters4_pixels_list, uncertain_pixels)
     
     # Return best decoded word    
     best = list(histogram(candidates, reverse=True))
     if not best:
-        debug("No word candidates")
+        logging.warning("No word candidates")
         return                
-    debug("Best words: %s" % best[:5])    
+    logging.info("Best words: %s" % best[:5])    
     return best[0][0]
-        
-        
+
+def set_verbose_level(verbose_level):
+    """Set verbose level for logging.
+    
+    See _VERBOSE_LEVELS constant for allowed values."""
+    level = _VERBOSE_LEVELS[max(0, min(verbose_level, len(_VERBOSE_LEVELS)-1))]
+    logging.basicConfig(level=level, 
+        format='%(levelname)s: %(message)s',
+        stream=sys.stderr)
+                    
 def main(args):
     """Main function for megaupload captcha decoder."""
     import optparse
@@ -344,25 +354,25 @@ def main(args):
     
     Decode Megaupload captcha."""
     parser = optparse.OptionParser(usage)
-    parser.add_option('-q', '--quiet', dest='quiet',
-        action="store_true", default=False, help='Be quiet')
+    parser.add_option('-v', '--verbose', dest='verbose_level',
+        action="count", default=None, 
+        help='Increate verbose level (0: CRITICAL ... 4: DEBUG)')
     parser.add_option('-i', '--max-iterations', dest='max_iterations',
-        default=1, metavar='INTEGER', type='int', 
+        default=1, metavar='NUM', type='int', 
         help='Maximum iterations for characters agrupations')
     options, args0 = parser.parse_args(args)
     if not args0:
         parser.print_help()
         return 1
-    global debug_enabled
-    debug_enabled = not options.quiet
+    set_verbose_level((1 if options.verbose_level is None 
+        else options.verbose_level))
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
     captcha = decode_megaupload_captcha(StringIO(stream.read()), 
         options.max_iterations)
     if not captcha:
         return 1
-    print captcha
-
+    sys.stdout.write(captcha+"\n")
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
