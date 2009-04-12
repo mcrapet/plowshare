@@ -21,7 +21,7 @@
 Decode the captcha used by Megaupload (2009/03/20): 4 bold characters 
 (letter-letter-letter-digit), rotated and overlapped.
 
-Dependencies: tesseract-ocr, Python Imaging Library
+Dependencies: Tesseract-ocr, Python Imaging Library
 """
 import os
 import sys
@@ -146,15 +146,12 @@ def merge_image_with_pixels(image0, pixels, value):
 
 def floodfill_image(image0, (x, y), fill_color, threshold=0):
     """Flood fill image with fill color in given position.    
-    Return filled image and pixels that have been filled.
+    Return a tuple with filled image and list of positions of filled pixels.
     
     See http://mail.python.org/pipermail/image-sig/2005-September/003559.html
     """    
     image = image0.copy()    
     width, height = image.size
-    def get_color_distance(p1, p2):
-        """Return color distance between value p1 and p2.""" 
-        return abs(p1-p2)
     def is_within((x, y)):
         """Return True if  (x, y) is inside image"""
         return (0 <= x < width and 0 <= y < height)
@@ -170,7 +167,7 @@ def floodfill_image(image0, (x, y), fill_color, threshold=0):
                 if (s, t) in filled or not is_within((s, t)): 
                     continue
                 pixel = ipimage[s, t]
-                if get_color_distance(pixel, background_value) <= threshold:
+                if abs(pixel - background_value) <= threshold:
                     ipimage[s, t] = fill_color
                     newedge.append((s, t))
         filled.update(newedge)
@@ -213,13 +210,13 @@ def join_images_horizontal(images):
     """Join images to build a new image with (width, height) size."""
     width = sum(i.size[0] for i in images)
     height = max(i.size[1] for i in images)
-    gimage = Image.new("L", (width, height), 255)        
+    himage = Image.new("L", (width, height), 255)
     x = 0
     for image in images:
         w, h = image.size
-        gimage.paste(image, (x, (height -h)/2))
+        himage.paste(image, (x, (height - h)/2))
         x += w
-    return gimage
+    return himage
 
 ### Megaupload captcha decoder functions
 
@@ -227,8 +224,8 @@ def filter_word(word0):
     """Check if a word is a valid captcha (try also to make 
     some basic corrections)."""
     def string2dict(s):
-        """Convert pairs in string ('AB CD') to dictionary 
-        ({'A': 'B'}, {'C': 'D'})."""
+        """Convert pairs of chars in string to dictionary.
+        Example: ('AB CD') -> {'A': 'B'}, {'C': 'D'}."""
         return dict(tuple(pair) for pair in s.split())
     str_digit_to_letter = "1T 2Z 4A 5S 6G 7T 8B"
     str_letter_to_letter = "{C (C [C IC"
@@ -244,14 +241,11 @@ def filter_word(word0):
         letter_to_letter) for w in wordlst1[:3]] + \
         [replace_chars(wordlst1[3], letter_to_digit)]
     wordlst = [c for c in wordlst2 if c in allowed_chars]    
-    if len(wordlst) != 4:
-        return        
-    if (wordlst[0] not in string.uppercase or
-            wordlst[1] not in string.uppercase or 
-            wordlst[2] not in string.uppercase or 
-            wordlst[3] not in string.digits):
-        return
-    return "".join(wordlst)
+    if len(wordlst) == 4 and (wordlst[0] in string.uppercase and
+            wordlst[1] in string.uppercase and
+            wordlst[2] in string.uppercase and
+            wordlst[3] in string.digits):
+        return "".join(wordlst)
 
 def get_error(pixels_list, image):
     """Return error for a given pixels groups againt the expected positions."""
@@ -260,15 +254,15 @@ def get_error(pixels_list, image):
     def error_for_pixels(pixels, n):
         """Return error for pixels (character n in captcha)."""
         com_x, com_y = center_of_mass(pixels)
-        return distance2((com_x, com_y), ((1.5*n+1)*gap_width, (height/2.0)))      
+        return distance2((com_x, com_y), ((1.5*n+1)*gap_width, (height/2.0)))
     return sum(error_for_pixels(pxls, n) for n, pxls in enumerate(pixels_list))
 
 def build_candidates(characters4_pixels_list, uncertain_pixels, 
         rotation=22):
     """Build word candidates from characters and uncertains groups."""       
     for plindex, characters4_pixels in enumerate(characters4_pixels_list):
-        logging.debug("Generating words (%d) %d/%d" % (2**len(uncertain_pixels), 
-          plindex+1, len(characters4_pixels_list)))
+        logging.debug("Generating words (%d) %d/%d", 2**len(uncertain_pixels), 
+          plindex+1, len(characters4_pixels_list))
         for length in range(len(uncertain_pixels)+1):
             for groups in combinations_no_repetition(uncertain_pixels, length):
                 characters4_pixels_test = [x.copy() for x in characters4_pixels]
@@ -292,15 +286,15 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                 clean_image = smooth(join_images_horizontal(images), 0)
                 text = ocr(clean_image).strip()
                 filtered_text = filter_word(text)
-                #clean_image.save("out%03d.png" % index)
-                #logging.debug("%s -> %s" %(text, filtered_text))
+                #clean_image.save("candidates-debug%03d.png" % index)
+                #logging.debug("%s -> %s", text, filtered_text)
                 if filtered_text:
                     yield filtered_text
 
 def decode_megaupload_captcha(imagedata, maxiterations=1):
     """Decode a Megaupload catpcha image 
     
-    Expected 4 letters (LETTER LETTER LETTER NUMBER), rotated and overlapped"""
+    Expected 4 letters (LETTER LETTER LETTER DIGIT), rotated and overlapped"""
     original =  Image.open(imagedata)
     
     # Get background zone
@@ -308,26 +302,28 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     image = Image.new("L", (width+2, height+2), 255)
     image.paste(original, (1, 1))
     background_pixels = floodfill_image(image, (0, 0), 155)[1]
-    logging.debug("Background pixels: %d" % len(background_pixels))
+    logging.debug("Background pixels: %d", len(background_pixels))
     
     # Get characters zones    
     characters_pixels = sorted(get_zones(image, background_pixels, 0, 10),
         key=center_of_mass)
-    logging.debug("Characters: %d - %s" % (len(characters_pixels), 
-        [len(x) for x in characters_pixels]))    
+    logging.debug("Characters: %d - %s", len(characters_pixels), 
+        [len(x) for x in characters_pixels])    
     assert len(characters_pixels) >= 4, "Cannot find 4 characters in image"
     characters_pixels_list0 = [[union_sets(sets) for sets in x] 
         for x in segment(characters_pixels, 4)]    
     characters4_pixels_list = sorted(characters_pixels_list0, 
         key=lambda pixels_list: get_error(pixels_list, image))[:maxiterations]
-    seen = reduce(set.union, [background_pixels] + characters_pixels)
-    max_uncertain_groups = 8
     
     # Get uncertain zones
+    seen = union_sets([background_pixels] + characters_pixels)
+    max_uncertain_groups = 8
     uncertain_pixels = list(sorted(get_zones(image, seen, 255, 20), 
         key=len))[:max_uncertain_groups]
-    logging.debug("Uncertain groups: %d - %s" % (len(uncertain_pixels), 
-        [len(x) for x in uncertain_pixels]))
+    logging.debug("Uncertain groups: %d - %s", len(uncertain_pixels), 
+        [len(pixels) for pixels in uncertain_pixels])
+        
+    # Build candidates
     candidates = build_candidates(characters4_pixels_list, uncertain_pixels)
     
     # Return best decoded word    
@@ -335,7 +331,7 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     if not best:
         logging.warning("No word candidates")
         return                
-    logging.info("Best words: %s" % best[:5])    
+    logging.info("Best words: %s", best[:5])    
     return best[0][0]
 
 def set_verbose_level(verbose_level):
@@ -343,9 +339,8 @@ def set_verbose_level(verbose_level):
     
     See _VERBOSE_LEVELS constant for allowed values."""
     level = _VERBOSE_LEVELS[max(0, min(verbose_level, len(_VERBOSE_LEVELS)-1))]
-    logging.basicConfig(level=level, 
-        format='%(levelname)s: %(message)s',
-        stream=sys.stderr)
+    logging.basicConfig(level=level, stream=sys.stderr,  
+        format='%(levelname)s: %(message)s')
                     
 def main(args):
     """Main function for megaupload captcha decoder."""
@@ -371,6 +366,7 @@ def main(args):
     captcha = decode_megaupload_captcha(StringIO(stream.read()), 
         options.max_iterations)
     if not captcha:
+        logging.error("Cannot decode captcha image")
         return 1
     sys.stdout.write(captcha+"\n")
 
