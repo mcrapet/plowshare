@@ -30,8 +30,8 @@ import string
 import tempfile
 import operator
 import subprocess
-from itertools import tee, izip
-from operator import itemgetter
+
+from itertools import tee, izip, groupby
 from StringIO import StringIO
 
 # Third-party modules
@@ -107,10 +107,8 @@ def ocr(image):
 
 def histogram(it, reverse=False):
     """Return sorted (ascendent) histogram of elements in iterator."""
-    ocurrences = {}
-    for x in it:
-        ocurrences[x] = ocurrences.get(x, 0) + 1
-    return sorted(ocurrences.items(), key=lambda (k, v): v, reverse=reverse)
+    pairs = ((value, len(list(grp))) for (value, grp) in groupby(sorted(it)))
+    return sorted(pairs, key=lambda (k, v): v, reverse=reverse)
 
 def get_pair_inclussion(seq, value, pred=None):
     """Given a sequence find the boundaries of value."""
@@ -195,11 +193,10 @@ def get_zones(image, seen0, value, minpixels=1):
                 yield filled
  
 def new_image_from_pixels(pixels, value):
-    """Return an image from a group of pixels (remove offset)."""       
-    x1 = min(pixels, key=itemgetter(0))[0] 
-    y1 = min(pixels, key=itemgetter(1))[1]
-    x2 = max(pixels, key=itemgetter(0))[0]
-    y2 = max(pixels, key=itemgetter(1))[1]
+    """Return an image from a group of pixels (remove offset)."""
+    xs, ys = zip(*pixels)
+    x1, y1 = min(xs), min(ys)
+    x2, y2 = max(xs), max(ys)       
     image = Image.new("L", (x2-x1+1, y2-y1+1), 255)
     ipimage = image.load()
     for (x, y) in pixels:
@@ -221,8 +218,7 @@ def join_images_horizontal(images):
 ### Megaupload captcha decoder functions
 
 def filter_word(word0):
-    """Check if a word is a valid captcha (try also to make 
-    some basic corrections)."""
+    """Check if a word is a valid captcha (make also some basic corrections)."""
     def string2dict(s):
         """Convert pairs of chars in string to dictionary.
         Example: ('AB CD') -> {'A': 'B'}, {'C': 'D'}."""
@@ -286,7 +282,6 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                 clean_image = smooth(join_images_horizontal(images), 0)
                 text = ocr(clean_image).strip()
                 filtered_text = filter_word(text)
-                #clean_image.save("candidates-debug%03d.png" % index)
                 #logging.debug("%s -> %s", text, filtered_text)
                 if filtered_text:
                     yield filtered_text
@@ -308,8 +303,11 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     characters_pixels = sorted(get_zones(image, background_pixels, 0, 10),
         key=center_of_mass)
     logging.debug("Characters: %d - %s", len(characters_pixels), 
-        [len(x) for x in characters_pixels])    
-    assert len(characters_pixels) >= 4, "Cannot find 4 characters in image"
+        [len(x) for x in characters_pixels])
+    if len(characters_pixels) < 4:
+        logging.error("Need at least 4 characters zones in image (%d found)", 
+            len(characters_pixels))
+        return
     characters_pixels_list0 = [[union_sets(sets) for sets in x] 
         for x in segment(characters_pixels, 4)]    
     characters4_pixels_list = sorted(characters_pixels_list0, 
@@ -317,7 +315,7 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     
     # Get uncertain zones
     seen = union_sets([background_pixels] + characters_pixels)
-    max_uncertain_groups = 8
+    max_uncertain_groups = 6
     uncertain_pixels = list(sorted(get_zones(image, seen, 255, 20), 
         key=len))[:max_uncertain_groups]
     logging.debug("Uncertain groups: %d - %s", len(uncertain_pixels), 
@@ -326,13 +324,15 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
     # Build candidates
     candidates = build_candidates(characters4_pixels_list, uncertain_pixels)
     
-    # Return best decoded word    
-    best = list(histogram(candidates, reverse=True))
-    if not best:
+    # Return best decoded word  
+    candidates_histogram = [histogram(charpos, reverse=True) for charpos in 
+      zip(*[list(candidate) for candidate in candidates])]
+    if not candidates_histogram:
         logging.warning("No word candidates")
-        return                
-    logging.info("Best words: %s", best[:5])    
-    return best[0][0]
+        return                          
+    logging.info("Best words: %s", candidates_histogram)    
+    best = [x[0][0] for x in candidates_histogram]
+    return "".join(best)
 
 def set_verbose_level(verbose_level):
     """Set verbose level for logging.
@@ -363,6 +363,7 @@ def main(args):
         else options.verbose_level))
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
+    logging.debug("Maximum iterations: %s" % options.max_iterations)    
     captcha = decode_megaupload_captcha(StringIO(stream.read()), 
         options.max_iterations)
     if not captcha:

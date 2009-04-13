@@ -80,7 +80,7 @@ test_create_tempfile() {
 }
 
 test_megaupload_ocr() {
-    CAPTCHA=$(megaupload_ocr -i1 -q - < "$PICSDIR/megaupload_prz2.gif")
+    CAPTCHA=$(megaupload_ocr "$PICSDIR/megaupload_prz2.gif")
     assert_equal "PRZ2" $CAPTCHA
 } 
 
