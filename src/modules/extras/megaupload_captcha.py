@@ -82,7 +82,7 @@ def union_sets(sets):
     return reduce(set.union, sets)
 
 def segment(seq, k):
-    """Return a segmentation of elements in seq in groups of k."""
+    """Yield agrupations of elements in seq in k groups."""
     if k > 1:
         for length in range(1, (len(seq)-k+1)+1):
             for x in segment(seq[length:], k-1):
@@ -253,8 +253,7 @@ def get_error(pixels_list, image):
         return distance2((com_x, com_y), ((1.5*n+1)*gap_width, (height/2.0)))
     return sum(error_for_pixels(pxls, n) for n, pxls in enumerate(pixels_list))
 
-def build_candidates(characters4_pixels_list, uncertain_pixels, 
-        rotation=22):
+def build_candidates(characters4_pixels_list, uncertain_pixels, rotation):
     """Build word candidates from characters and uncertains groups."""       
     for plindex, characters4_pixels in enumerate(characters4_pixels_list):
         logging.debug("Generating words (%d) %d/%d", 2**len(uncertain_pixels), 
@@ -286,7 +285,7 @@ def build_candidates(characters4_pixels_list, uncertain_pixels,
                 if filtered_text:
                     yield filtered_text
 
-def decode_megaupload_captcha(imagedata, maxiterations=1):
+def decode_captcha(imagedata, maxiterations=1):
     """Decode a Megaupload catpcha image 
     
     Expected 4 letters (LETTER LETTER LETTER DIGIT), rotated and overlapped"""
@@ -322,15 +321,16 @@ def decode_megaupload_captcha(imagedata, maxiterations=1):
         [len(pixels) for pixels in uncertain_pixels])
         
     # Build candidates
-    candidates = build_candidates(characters4_pixels_list, uncertain_pixels)
+    candidates = list(build_candidates(characters4_pixels_list, 
+        uncertain_pixels, rotation=22))
+    if not candidates:
+        logging.warning("No candidates found")
+        return                          
     
     # Return best decoded word  
     candidates_histogram = [histogram(charpos, reverse=True) for charpos in 
       zip(*[list(candidate) for candidate in candidates])]
-    if not candidates_histogram:
-        logging.warning("No word candidates")
-        return                          
-    logging.info("Best words: %s", candidates_histogram)    
+    logging.info("Best characters: %s", candidates_histogram)    
     best = [x[0][0] for x in candidates_histogram]
     return "".join(best)
 
@@ -342,19 +342,19 @@ def set_verbose_level(verbose_level):
     logging.basicConfig(level=level, stream=sys.stderr,  
         format='%(levelname)s: %(message)s')
                     
-def main(args):
+def _main(args):
     """Main function for megaupload captcha decoder."""
     import optparse
-    usage = """usage: megaupload_captcha [OPTIONS] [IMAGE_FILE]
+    usage = """usage: megaupload_captcha [OPTIONS] IMAGE_FILE
     
     Decode Megaupload captcha."""
     parser = optparse.OptionParser(usage)
     parser.add_option('-v', '--verbose', dest='verbose_level',
         action="count", default=None, 
-        help='Increate verbose level (0: CRITICAL ... 4: DEBUG)')
+        help='Increase verbose level (0: CRITICAL ... 4: DEBUG)')
     parser.add_option('-i', '--max-iterations', dest='max_iterations',
         default=1, metavar='NUM', type='int', 
-        help='Maximum iterations for characters agrupations')
+        help='Maximum iterations for agrupations of characters')
     options, args0 = parser.parse_args(args)
     if not args0:
         parser.print_help()
@@ -364,12 +364,11 @@ def main(args):
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
     logging.debug("Maximum iterations: %s" % options.max_iterations)    
-    captcha = decode_megaupload_captcha(StringIO(stream.read()), 
-        options.max_iterations)
+    captcha = decode_captcha(StringIO(stream.read()), options.max_iterations)
     if not captcha:
-        logging.error("Cannot decode captcha image")
-        return 1
-    sys.stdout.write(captcha+"\n")
+        logging.warning("Cannot decode captcha image")
+    else:
+        sys.stdout.write(captcha+"\n")
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(_main(sys.argv[1:]))

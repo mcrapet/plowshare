@@ -95,7 +95,7 @@ megaupload_download() {
         # OCR captcha and show ascii image to stderr simultaneously
         CAPTCHA=$(curl "$CAPTCHA_URL" | 
             tee >(test -z "$QUIET" && ascii_image -width $COLUMNS -height $LINES >&2) | \
-            megaupload_ocr $(test -z "$QUIET" && echo -vvvv) -)  || 
+            megaupload_ocr $(test -z "$QUIET" && echo -vvvv) -) ||
             { error "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
