@@ -58,7 +58,7 @@ megaupload_download() {
         PAGE=$(ccurl "$URL")
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
           "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
-        if test "$REDIRECT"; then
+        if test "$REDIRECT" = "http://www.megaupload.com/?c=msg"; then
           WAITTIME=60
           debug "Server returned an error page: $REDIRECT"
           debug "Waiting $WAITTIME seconds before trying again"
