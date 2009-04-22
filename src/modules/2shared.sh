@@ -30,7 +30,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
     URL=$1   
     FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
-        { debug "file not found"; return 1; }
+        { error "file not found"; return 1; }
     test "$CHECK_LINK" && return 255
     echo "$FILE_URL"
 }

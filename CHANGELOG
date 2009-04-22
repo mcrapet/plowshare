@@ -1,3 +1,10 @@
+plowshare (0.7) unstable; urgency=low
+
+  * [zshared] add module (download) 
+  * [megaupload] refactor catpcha decoder
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Wed, 15 Apr 2009 18:23:05 +0200
+
 plowshare (0.6) unstable; urgency=low
 
   * [4shared] add module and download support for 4shared

@@ -193,4 +193,19 @@ test_4shared_check_active_link() {
     assert_equal "$FSHARED_URL" "$(download -c $FSHARED_URL)"
 }        
 
+# Zshare
+
+ZSHARE_URL="http://www.zshare.net/download/5065479160b3f7b2/"
+
+test_zshare_download() {
+    FILENAME="swos_fullrip_killer_pepo_absba.part01.rar"
+    assert_match "/$FILENAME$" "$(download -l $ZSHARE_URL)"
+    rm -f $FILENAME
+}        
+
+test_zshare_check_active_link() {
+    assert_equal "$ZSHARE_URL" "$(download -c $ZSHARE_URL)"
+}        
+
+
 run_tests "$@"
