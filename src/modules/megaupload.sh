@@ -46,6 +46,7 @@ megaupload_download() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     BASEURL="http://www.megaupload.com"
+    ERRORURL="http://www.megaupload.com/?c=msg"
  
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
@@ -58,9 +59,9 @@ megaupload_download() {
         PAGE=$(ccurl "$URL")
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
           "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
-        if test "$REDIRECT" = "http://www.megaupload.com/?c=msg"; then
+        if test "$REDIRECT" = "$ERRORURL"; then
           WAITTIME=60
-          debug "Server returned an error page: $REDIRECT"
+          debug "Server returned an error page: $ERRORURL"
           debug "Waiting $WAITTIME seconds before trying again"
           sleep $WAITTIME
           continue          
