@@ -57,14 +57,12 @@ megaupload_download() {
         debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL")
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
-          "location = \"\(.*\)\"" 2>/dev/null || true)
+          "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
         if test "$REDIRECT"; then
-          debug "server returned an error page"
-          WAITIME=$(curl "$REDIRECT" | parse "Please check back" \
-            "back in \([[:digit:]]\+\) minute" 2>/dev/null || true)
-          test "$WAITTIME" || { error "unknown error page"; return 1; }
-          debug "waiting $WAITTIME minutes before trying again"
-          sleep $((WAITTIME*60))
+          WAITTIME=60
+          debug "Server returned an error page: $REDIRECT"
+          debug "Waiting $WAITTIME seconds before trying again"
+          sleep $WAITTIME
           continue          
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
