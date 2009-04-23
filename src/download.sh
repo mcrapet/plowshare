@@ -140,11 +140,11 @@ for ITEM in "$@"; do
             can_module_continue_downloads "$MODULE" &&
                 CURL="curl -C -"|| CURL="curl"
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
-                $CURL --globoff -o "$FILENAME" "$FILE_URL" &&
+                $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
                 echo $FILENAME || 
                 { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
-            test -e "$FILENAME" -a ! -s "$FILENAME" || 
-                { error "empty file: $FILENAME"; RETVAL=$DERROR; continue; }
+#            test -e "$FILENAME" -a ! -s "$FILENAME" || 
+#                { error "empty file: $FILENAME"; RETVAL=$DERROR; continue; }
         fi
         if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
             sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
