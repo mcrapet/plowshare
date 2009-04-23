@@ -117,7 +117,7 @@ megaupload_download() {
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     debug "File URL: $FILEURL"
     debug "Waiting $WAITTIME seconds"
-    sleep $WAITTIME
+    sleep $((WAITTIME+1))
     echo "$FILEURL"    
 }
 
