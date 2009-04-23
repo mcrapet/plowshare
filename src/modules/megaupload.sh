@@ -60,10 +60,14 @@ megaupload_download() {
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
           "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
         if test "$REDIRECT" = "$ERRORURL"; then
-          WAITTIME=60
-          debug "Server returned an error page: $ERRORURL"
-          debug "Waiting $WAITTIME seconds before trying again"
-          sleep $WAITTIME
+          debug "Server returned an error page: $REDIRECT"
+          WAITTIME=$(curl "$REDIRECT" | parse 'check back in' \
+            'check back in \([[:digit:]]\+\) minute')
+          # Fragile parsing, set a default waittime if something went wrong            
+          test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 || 
+            WAITTIME=2
+          debug "Waiting $WAITTIME minutes before trying again"
+          sleep $((WAITTIME*60))
           continue          
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
