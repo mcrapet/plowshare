@@ -51,6 +51,8 @@ megaupload_download() {
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { error "login process failed"; return 1; }
+    echo $URL | grep -q "megaupload.com/?d=" ||
+      URL=$(curl -I "$URL" | grep "^location" | cut -d":" -f2- | xargs)
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
     TRY=0
     while true; do 
