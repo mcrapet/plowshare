@@ -285,7 +285,7 @@ def build_candidates(characters4_pixels_list, uncertain_pixels, rotation):
                 if filtered_text:
                     yield filtered_text
 
-def decode_captcha(imagedata, maxiterations=1):
+def decode_captcha(imagedata, maxiterations=1, method=None):
     """Decode a Megaupload catpcha image 
     
     Expected 4 letters (LETTER LETTER LETTER DIGIT), rotated and overlapped"""
@@ -327,12 +327,18 @@ def decode_captcha(imagedata, maxiterations=1):
         logging.warning("No candidates found")
         return                          
     
-    # Return best decoded word  
-    candidates_histogram = [histogram(charpos, reverse=True) for charpos in 
-      zip(*[list(candidate) for candidate in candidates])]
-    logging.info("Best characters: %s", candidates_histogram)    
-    best = [x[0][0] for x in candidates_histogram]
-    return "".join(best)
+    # Return best decoded word
+    if method == "bychar":  
+      candidates_histogram = [histogram(charpos, reverse=True) for charpos in 
+        zip(*[list(candidate) for candidate in candidates])]
+      logging.info("Best characters: %s", candidates_histogram)    
+      best = [x[0][0] for x in candidates_histogram]
+      return "".join(best)
+    else:
+      # default entire word histogram
+      candidates_histogram = histogram(candidates, reverse=True)
+      logging.info("Best characters: %s", candidates_histogram)
+      return candidates_histogram[0][0]    
 
 def set_verbose_level(verbose_level):
     """Set verbose level for logging.
