@@ -91,6 +91,45 @@ usage() {
     debug
 }
 
+# download MODULE URL FUNCTION_OPTIONS
+download() {
+    MODULE=$1
+    URL=$2
+    LINK_ONLY=$3
+    TYPE=$4
+    MARK_DOWNLOADED=$5
+    shift 5
+    FUNCTION=${MODULE}_download 
+    debug "start download ($MODULE): $URL"
+
+    while true; do      
+      FILE_URL=$($FUNCTION "$@" "$URL" ) && DRETVAL=0 || DRETVAL=$?
+      test $DRETVAL -eq 255 && 
+          { debug "Link active: $URL"; echo "$URL"; break; }
+      test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
+          { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
+      debug "file URL: $FILE_URL"
+      
+      if test "$LINK_ONLY"; then
+          echo "$FILE_URL"
+          break
+      else 
+          can_module_continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
+          FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
+              $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
+              echo $FILENAME || 
+              { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
+      fi
+      
+      if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
+          sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
+              debug "linkmarked as downloaded in file: $ITEM" ||
+              error "error marking link as downloaded in file: $ITEM"
+      fi
+      break
+    done 
+}
+
 # Main
 #
 
@@ -114,43 +153,10 @@ for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
-        if ! test "$MODULE"; then 
-            debug "no module recognizes this URL: $URL"
-            RETVAL=$DERROR
-            continue
-        fi
-        FUNCTION=${MODULE}_download 
-        debug "start download ($MODULE): $URL"
-        
-        FILE_URL=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" ) &&
-            DRETVAL=0 || DRETVAL=$?         
-        if test $DRETVAL -eq 255; then 
-            debug "Link active: $URL"
-            echo "$URL"
-            continue
-        elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then 
-            echo "error on function: $FUNCTION"
-            RETVAL=$DERROR
-            continue            
-        fi
-        debug "file URL: $FILE_URL"
-        if test "$LINK_ONLY"; then
-            echo "$FILE_URL"
-        else 
-            can_module_continue_downloads "$MODULE" &&
-                CURL="curl -C -"|| CURL="curl"
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
-                $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
-                echo $FILENAME || 
-                { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
-#            test -e "$FILENAME" -a ! -s "$FILENAME" || 
-#                { error "empty file: $FILENAME"; RETVAL=$DERROR; continue; }
-        fi
-        if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
-            sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
-                debug "linkmarked as downloaded in file: $ITEM" ||
-                error "error marking link as downloaded in file: $ITEM"
-        fi 
+        test -z "$MODULE" && 
+            { debug "no module recognizes this URL: $URL"; RETVAL=$DERROR; continue; }
+        download "$MODULE" "$URL" "$LINK_ONLY" "$TYPE" \
+            "$MARK_DOWNLOADED" "${UNUSED_OPTIONS[@]}"            
     done
 done
 
