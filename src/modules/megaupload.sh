@@ -56,7 +56,7 @@ megaupload_download() {
     while true; do 
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
-        PAGE=$(ccurl "$URL")
+        PAGE=$(ccurl -L "$URL")
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
           "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
         if test "$REDIRECT" = "$ERRORURL"; then
