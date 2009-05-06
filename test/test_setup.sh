@@ -36,6 +36,7 @@ usr/local/share/plowshare/modules/extras/megaupload_captcha.py
 usr/local/share/plowshare/modules/mediafire.sh
 usr/local/share/plowshare/modules/megaupload.sh
 usr/local/share/plowshare/modules/rapidshare.sh
+usr/local/share/plowshare/modules/zshare.sh
 usr/local/share/plowshare/upload.sh"
 
 UNINSTALLED="usr
