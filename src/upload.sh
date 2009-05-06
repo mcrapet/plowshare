@@ -16,9 +16,9 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Upload a file from file sharing servers. 
+# Upload a file to file sharing servers. 
 #
-# Output URL to standard output (one per line).
+# Output URL to standard output
 #
 # Dependencies: curl, getopt
 #
@@ -31,7 +31,7 @@ set -e
 VERSION="0.7"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
-HELP,h,help,Show help info
+HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages
 "
@@ -56,7 +56,6 @@ usage() {
     debug
     debug_options "$OPTIONS" "  " 
     debug_options_for_modules "$MODULES" "UPLOAD"    
-    debug
 }
 
 # Main
