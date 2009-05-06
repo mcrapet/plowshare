@@ -17,8 +17,10 @@
 
 # Echo text to standard error.
 #
-debug() { 
-    echo "$@" >&2
+debug() {
+    if [ -z "$QUIET" ]; then 
+        echo "$@" >&2
+    fi
 }
 
 error() { 
@@ -148,7 +150,7 @@ uppercase() {
     tr '[a-z]' '[A-Z]'
 }
 
-can_module_continue_downloads() {
+continue_downloads() {
     MODULE=$1
     VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_CONTINUE"
     test "${!VAR}" = "yes"

@@ -34,12 +34,9 @@ MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
 LOGINURL="http://www.megaupload.com/?c=login"
 
-# Output a megaupload file download URL
+# megaupload_download [DOWNLOAD_OPTIONS] URL
 #
-# megaupload_download [OPTIONS] MEGAUPLOAD_URL
-#
-# Options:
-#   -a USER:PASSWORD, --auth=USER:PASSWORD
+# Output file URL
 #
 megaupload_download() {
     set -e
@@ -123,13 +120,7 @@ megaupload_download() {
     echo "$FILEURL"    
 }
 
-# Upload a file to megaupload and upload url link
-#
-# megaupload_upload [OPTIONS] FILE [DESTFILE]
-#
-# Options:
-#   -a USER:PASSWORD, --auth=USER:PASSWORD
-#   -d DESCRIPTION, --description=DESCRIPTION
+# megaupload_upload [UPLOAD_OPTIONS] FILE [DESTFILE]
 #
 megaupload_upload() {
     set -e

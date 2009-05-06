@@ -1,3 +1,9 @@
+plowshare (0.7.1) unstable; urgency=low
+
+  * Improve downloading loop (don't fail on temporal network problems)
+
+ -- Arnau Sanchez <pyarnau@gmail.com>  Sun, 03 May 2009 22:49:31 +0200
+
 plowshare (0.7) unstable; urgency=low
 
   * [zshared] add module (download) 
