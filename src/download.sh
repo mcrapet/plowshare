@@ -35,7 +35,7 @@ HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages 
 LINK_ONLY,l,link-only,,Return only file link 
-MARK_DOWNLOADED,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
+MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 "
 
 # Get library directory
@@ -88,7 +88,6 @@ usage() {
     debug
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "DOWNLOAD"    
-    debug
 }
 
 # download MODULE URL FUNCTION_OPTIONS
@@ -97,37 +96,53 @@ download() {
     URL=$2
     LINK_ONLY=$3
     TYPE=$4
-    MARK_DOWNLOADED=$5
+    MARK_DOWN=$5
     shift 5
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
 
     while true; do      
-      FILE_URL=$($FUNCTION "$@" "$URL" ) && DRETVAL=0 || DRETVAL=$?
-      test $DRETVAL -eq 255 && 
-          { debug "Link active: $URL"; echo "$URL"; break; }
-      test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
-          { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
-      debug "file URL: $FILE_URL"
-      
-      if test "$LINK_ONLY"; then
-          echo "$FILE_URL"
-          break
-      else 
-          can_module_continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
-          FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
-              $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
-              echo $FILENAME || 
-              { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
-      fi
-      
-      if test "$TYPE" = "file" -a "$MARK_DOWNLOADED"; then 
-          sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
-              debug "linkmarked as downloaded in file: $ITEM" ||
-              error "error marking link as downloaded in file: $ITEM"
-      fi
-      break
+        FILE_URL=$($FUNCTION "$@" "$URL" ) && DRETVAL=0 || DRETVAL=$?
+        test $DRETVAL -eq 255 && 
+            { debug "Link active: $URL"; echo "$URL"; break; }
+        test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
+            { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
+        debug "file URL: $FILE_URL"
+        
+        if test "$LINK_ONLY"; then
+            echo "$FILE_URL"
+            break
+        else 
+            continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
+                $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
+                echo $FILENAME || 
+                { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
+        fi
+        
+        if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
+            sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
+                debug "linkmarked as downloaded in file: $ITEM" ||
+                error "error marking link as downloaded in file: $ITEM"
+        fi
+        break
     done 
+}
+
+# Wrapper for curl: debug and infinte loop control
+#
+curl() {
+    OPTIONS=()
+    test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
+    while true; do
+        $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
+        if [ $DRETVAL -ge 5 ]; then
+            debug "curl failed with retcode $DRETVAL >= 5, trying again"
+            continue
+        else
+            return $DRETVAL
+        fi
+    done    
 }
 
 # Main
@@ -139,11 +154,6 @@ eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
  
-if test "$QUIET"; then
-    function debug() { :; } 
-    function curl() { $(type -P curl) -s "$@"; }
-fi
-
 test $# -ge 1 || { usage; exit 1; } 
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
@@ -154,9 +164,9 @@ for ITEM in "$@"; do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
         test -z "$MODULE" && 
-            { debug "no module recognizes this URL: $URL"; RETVAL=$DERROR; continue; }
+            { debug "no module for URL: $URL"; RETVAL=$DERROR; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$TYPE" \
-            "$MARK_DOWNLOADED" "${UNUSED_OPTIONS[@]}"            
+            "$MARK_DOWN" "${UNUSED_OPTIONS[@]}"            
     done
 done
 
