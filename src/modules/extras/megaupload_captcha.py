@@ -93,8 +93,9 @@ def run(command, inputdata=None):
     """Run a command and return standard output"""
     pipe = subprocess.PIPE
     popen = subprocess.Popen(command, stdout=pipe, stderr=pipe)
-    outputdata = popen.communicate(inputdata)[0]
-    assert (popen.returncode == 0), "Error running: %s" % command
+    outputdata, errdata = popen.communicate(inputdata)
+    assert (popen.returncode == 0), \
+        "Error running: %s\n\n%s" % (command, errdata)
     return outputdata
 
 def ocr(image):
@@ -102,7 +103,12 @@ def ocr(image):
     temp_tif = tempfile.NamedTemporaryFile(suffix=".tif")
     temp_txt = tempfile.NamedTemporaryFile(suffix=".txt")
     image.save(temp_tif, format="TIFF")
-    run(["tesseract", temp_tif.name, os.path.splitext(temp_txt.name)[0]])
+    #config = tempfile.NamedTemporaryFile()
+    #config.write("tessedit_char_whitelist %s\n" % (string.digits + string.uppercase))    
+    #config.flush()
+    txt_basename = os.path.splitext(temp_txt.name)[0]
+    run(["tesseract", temp_tif.name, txt_basename])
+    #run(["tesseract", temp_tif.name, txt_basename, "nobatch", config.name])
     return open(temp_txt.name).read()
 
 def histogram(it, reverse=False):
@@ -315,7 +321,7 @@ def decode_captcha(imagedata, maxiterations=1, method=None):
     # Get uncertain zones
     seen = union_sets([background_pixels] + characters_pixels)
     max_uncertain_groups = 6
-    uncertain_pixels = list(sorted(get_zones(image, seen, 255, 20), 
+    uncertain_pixels = list(sorted(get_zones(image, seen, 255, 18), 
         key=len))[:max_uncertain_groups]
     logging.debug("Uncertain groups: %d - %s", len(uncertain_pixels), 
         [len(pixels) for pixels in uncertain_pixels])
@@ -327,18 +333,17 @@ def decode_captcha(imagedata, maxiterations=1, method=None):
         logging.warning("No candidates found")
         return                          
     
-    # Return best decoded word
-    if method == "bychar":  
-      candidates_histogram = [histogram(charpos, reverse=True) for charpos in 
-        zip(*[list(candidate) for candidate in candidates])]
-      logging.info("Best characters: %s", candidates_histogram)    
-      best = [x[0][0] for x in candidates_histogram]
-      return "".join(best)
-    else:
-      # default entire word histogram
-      candidates_histogram = histogram(candidates, reverse=True)
-      logging.info("Best characters: %s", candidates_histogram)
-      return candidates_histogram[0][0]    
+    # Return best decoded word (bychar or byword method)
+    if method == "bychar":        
+        candidates_histogram = [histogram(charpos, reverse=True) for charpos in 
+          zip(*[list(candidate) for candidate in candidates])]
+        logging.info("Best characters: %s", candidates_histogram)    
+        best = [x[0][0] for x in candidates_histogram]
+        return "".join(best)
+    else: # byword
+        candidates_histogram = histogram(candidates, reverse=True)
+        logging.info("Best characters: %s", candidates_histogram)
+        return candidates_histogram[0][0]    
 
 def set_verbose_level(verbose_level):
     """Set verbose level for logging.
@@ -356,7 +361,7 @@ def _main(args):
     Decode Megaupload captcha."""
     parser = optparse.OptionParser(usage)
     parser.add_option('-v', '--verbose', dest='verbose_level',
-        action="count", default=None, 
+        action="count", default=0, 
         help='Increase verbose level (0: CRITICAL ... 4: DEBUG)')
     parser.add_option('-i', '--max-iterations', dest='max_iterations',
         default=1, metavar='NUM', type='int', 
@@ -365,14 +370,13 @@ def _main(args):
     if not args0:
         parser.print_help()
         return 1
-    set_verbose_level((1 if options.verbose_level is None 
-        else options.verbose_level))
+    set_verbose_level(options.verbose_level)
     filename, = args0
     stream = (sys.stdin if filename == "-" else open(filename))
     logging.debug("Maximum iterations: %s" % options.max_iterations)    
     captcha = decode_captcha(StringIO(stream.read()), options.max_iterations)
     if not captcha:
-        logging.warning("Cannot decode captcha image")
+        logging.warning("Captcha image couldn't be decoded")
     else:
         sys.stdout.write(captcha+"\n")
 
