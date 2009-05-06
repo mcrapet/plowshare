@@ -111,7 +111,6 @@ download() {
         
         if test "$LINK_ONLY"; then
             echo "$FILE_URL"
-            break
         else 
             continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
@@ -122,27 +121,11 @@ download() {
         
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
             sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
-                debug "linkmarked as downloaded in file: $ITEM" ||
+                debug "link marked as downloaded in file: $ITEM" ||
                 error "error marking link as downloaded in file: $ITEM"
         fi
         break
     done 
-}
-
-# Wrapper for curl: debug and infinte loop control
-#
-curl() {
-    OPTIONS=()
-    test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
-    while true; do
-        $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
-        if [ $DRETVAL -ge 5 ]; then
-            debug "curl failed with retcode $DRETVAL >= 5, trying again"
-            continue
-        else
-            return $DRETVAL
-        fi
-    done    
 }
 
 # Main

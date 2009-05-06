@@ -15,6 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
+# Global variables:
+#
+# QUIET: If set, debug output is supressed
+#
+
 # Echo text to standard error.
 #
 debug() {
@@ -27,6 +32,21 @@ error() {
     echo "Error: $@" >&2
 }
 
+# Wrapper for curl: debug and infinte loop control
+#
+curl() {
+    OPTIONS=()
+    test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
+    while true; do
+        $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
+        if [ $DRETVAL -ge 5 ]; then
+            debug "curl failed with retcode $DRETVAL >= 5, trying again"
+            continue
+        else
+            return $DRETVAL
+        fi
+    done    
+}
 
 # Get first line that matches a regular expression and extract string from it.
 #
