@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 test -z "$(svn diff)" || 
     { echo "svn diff is not empty for the project"; exit 1; }
