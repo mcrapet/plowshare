@@ -39,8 +39,8 @@ curl() {
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     while true; do
         $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
-        if [ $DRETVAL -ge 5 ]; then
-            debug "curl failed with retcode $DRETVAL >= 5, trying again"
+        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
+            debug "curl failed with retcode $DRETVAL, trying again"
             continue
         else
             return $DRETVAL
