@@ -1,6 +1,8 @@
 plowshare (0.7.1) unstable; urgency=low
 
-  * Improve downloading loop (don't fail on temporal network problems)
+  * Improve download/upload loops (retry on non-fatal network problems)
+  * Fix test library
+  * [mediafire] update module to website changed in HTML
 
  -- Arnau Sanchez <pyarnau@gmail.com>  Sun, 03 May 2009 22:49:31 +0200
 
