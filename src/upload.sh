@@ -66,10 +66,6 @@ eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-if test "$QUIET"; then
-    function debug() { :; } 
-    function curl() { $(type -P curl) -s "$@"; }
-fi
 
 test $# -eq 2 || { usage; exit 1; } 
 
