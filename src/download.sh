@@ -28,7 +28,7 @@
 #
 set -e
 
-VERSION="0.7"
+VERSION="0.7.1"
 MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare"
 OPTIONS="
 HELP,h,help,,Show help info
