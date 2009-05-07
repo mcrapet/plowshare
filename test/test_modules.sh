@@ -23,7 +23,7 @@ upload() {
     $SRCDIR/upload.sh "$@" 2>/dev/null
 }
 
-UPFILE="/etc/services"
+UPFILE="$ROOTDIR/COPYING"
 
 ## Rapidshare
 
