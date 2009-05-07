@@ -35,7 +35,7 @@ error() {
 # Wrapper for curl: debug and infinte loop control
 #
 curl() {
-    OPTIONS=()
+    OPTIONS=(--insecure)
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     while true; do
         $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
