@@ -107,7 +107,7 @@ test_megaupload_upload_member() {
     test -e $TESTSDIR/.megaupload-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
     URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE megaupload)
-    assert_equal "http://www.megaupload.com/?d=IDXJG1RN" "$URL"
+    assert_equal "http://www.megaupload.com/?d=241IDD35" "$URL"
 }        
 
 test_megaupload_upload_premium() {
@@ -115,7 +115,7 @@ test_megaupload_upload_premium() {
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" -p "mypassword" \
         -d 'Plowshare test' $UPFILE megaupload)
-    assert_equal "http://www.megaupload.com/?d=115BX7GS" "$URL"
+    assert_equal "http://www.megaupload.com/?d=MTBPWEF9" "$URL"
     assert_return 0 'match "name=\"filepassword\"" "$(curl $URL)"'
 }        
 
