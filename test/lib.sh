@@ -18,8 +18,7 @@
 # Check that $1 is equal to $2.
 assert_equal() {
     if ! test "$1" = "$2"; then
-        echo "failed!"
-        echo "  assert_equal failed: $1 != $2"
+        echo "assert_equal failed: $1 != $2"
         return 1
     fi
 }
@@ -27,8 +26,7 @@ assert_equal() {
 # Check that $1 is not equal to $2.
 assert_not_equal() {
     if test "$1" = "$2"; then
-        echo "failed!"
-        echo "  assert_not_equal failed: $1 == $2"
+        echo "assert_not_equal failed: $1 == $2"
         return 1
     fi
 }
@@ -37,19 +35,16 @@ assert_not_equal() {
 # Check that regexp $1 matches $2.
 assert_match() {
     if ! grep -q "$1" <<< "$2"; then
-        echo "failed!"
-        echo "  assert_match failed: regexp $1 does not match $2"
+        echo "assert_match failed: regexp $1 does not match $2"
         return 1
     fi
 }
 
 # Check that execution of $2-N return code $1
 assert_return() {
-    eval "$2" &>/dev/null
-    RETCODE=$?
+    eval "$2" &>/dev/null && RETCODE=$? || RETCODE=$?
     if ! test "$1" = "$RETCODE"; then
-        echo "failed!"
-        echo "  assert_return failed: $1 != $RETCODE" 
+        echo "assert_return failed: $1 != $RETCODE" 
         return 1
     fi
 }
@@ -57,37 +52,36 @@ assert_return() {
 # Check that $1 is not a empty stringu
 assert() {
   if ! test "$1"; then
-    echo "failed!"
-    echo "  assert failed"
+    echo "assert failed"
     return 1
   fi
 }
 
 # Run a test
 run() {
-  echo -n "$1... "
-  "$@"
-  RETVAL=$?
-  if test $RETVAL -eq 0; then
-    echo "ok"
-  elif test $RETVAL -eq 255; then
-    echo "skipped"
-  else
-    echo "failed!"
-    return 1
-  fi 
+    echo -n "$1... "
+    "$@"
+    local RETVAL=$?
+    if test $RETVAL -eq 0; then
+        echo "ok"
+    elif test $RETVAL -eq 255; then
+        echo "skipped"
+    else
+        echo "failed!"
+        return 1
+    fi 
 }
 
 # Run tests (run all if none is given)
 run_tests() {
-    RETVAL=0
+    local RETVAL=0
     if test $# -eq 0; then 
         TESTS=$(set | grep "^test_" | awk '$2 == "()"' | awk '{print $1}' | xargs)
     else        
         TESTS="$@"
     fi 
     for TEST in $TESTS; do
-        run $TEST || RETVAL=2
+        run $TEST  
     done
     return $RETVAL
 }
