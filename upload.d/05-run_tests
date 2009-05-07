@@ -6,4 +6,5 @@ TESTSDIR=test
 cp $TESTSDIR/.*auth $DIRECTORY/$TESTSDIR
 cd $DIRECTORY
 
-bash run_tests.sh | tee TESTSLOG
+./run_tests.sh | tee TESTSLOG
+exit ${PIPESTATUS[0]}
