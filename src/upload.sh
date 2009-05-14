@@ -74,8 +74,8 @@ DESTINATION=$2
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 test -f "$FILE" ||
     { error "file does not exist: $FILE"; exit 3; }
-match "\<$MODULE\>" "$MODULES" ||
-    { error "unsupported module: $MODULE"; exit 4; }
+grep -w -q "$MODULE" <<< "$MODULES" ||
+    { error "unsupported module ($MODULE)"; exit 4; }
 FUNCTION=${MODULE}_upload
 debug "starting upload ($MODULE)"
 $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || exit 5
