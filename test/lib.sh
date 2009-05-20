@@ -60,8 +60,8 @@ assert() {
 # Run a test
 run() {
     echo -n "$1... "
-    "$@"
-    local RETVAL=$?
+    local RETVAL=0
+    "$@" || RETVAL=$?
     if test $RETVAL -eq 0; then
         echo "ok"
     elif test $RETVAL -eq 255; then
