@@ -103,18 +103,16 @@ def ocr(image):
     temp_tif = tempfile.NamedTemporaryFile(suffix=".tif")
     temp_txt = tempfile.NamedTemporaryFile(suffix=".txt")
     image.save(temp_tif, format="TIFF")
-    #config = tempfile.NamedTemporaryFile()
-    #config.write("tessedit_char_whitelist %s\n" % (string.digits + string.uppercase))    
-    #config.flush()
     txt_basename = os.path.splitext(temp_txt.name)[0]
     run(["tesseract", temp_tif.name, txt_basename])
-    #run(["tesseract", temp_tif.name, txt_basename, "nobatch", config.name])
     return open(temp_txt.name).read()
 
 def histogram(it, reverse=False):
     """Return sorted (ascendent) histogram of elements in iterator."""
-    pairs = ((value, len(list(grp))) for (value, grp) in groupby(sorted(it)))
-    return sorted(pairs, key=lambda (k, v): v, reverse=reverse)
+    output = {}
+    for value, factor in it:
+        output[value] = output.get(value, 0) + factor
+    return sorted(output.items(), key=lambda (k, v): v, reverse=reverse)              
 
 def get_pair_inclussion(seq, value, pred=None):
     """Given a sequence find the boundaries of value."""
@@ -135,9 +133,11 @@ def smooth(image0, value):
     for x, y in iter_image(image):
         if ipimage0[x, y] == value:
             if x+1 < width:            
-                ipimage[x+1, y] = value
+                ipimage[x+1, y] = value 
             if y+1 < height:
                 ipimage[x, y+1] = value
+            if x+1 < width and y+1 < height:
+                ipimage[x+1, y+1] = 150
     return image            
 
 def merge_image_with_pixels(image0, pixels, value):
@@ -260,7 +260,8 @@ def get_error(pixels_list, image):
     return sum(error_for_pixels(pxls, n) for n, pxls in enumerate(pixels_list))
 
 def build_candidates(characters4_pixels_list, uncertain_pixels, rotation):
-    """Build word candidates from characters and uncertains groups."""       
+    """Build word candidates from characters and uncertains groups."""
+    index = 0       
     for plindex, characters4_pixels in enumerate(characters4_pixels_list):
         logging.debug("Generating words (%d) %d/%d", 2**len(uncertain_pixels), 
           plindex+1, len(characters4_pixels_list))
@@ -285,11 +286,13 @@ def build_candidates(characters4_pixels_list, uncertain_pixels, rotation):
                 images = [rotate_character(pixels, cindex) 
                   for cindex, pixels in enumerate(characters4_pixels_test)]
                 clean_image = smooth(join_images_horizontal(images), 0)
+                #clean_image.save("debug%03d.png" % index)
+                index += 1
                 text = ocr(clean_image).strip()
                 filtered_text = filter_word(text)
                 #logging.debug("%s -> %s", text, filtered_text)
                 if filtered_text:
-                    yield filtered_text
+                    yield (filtered_text, 1.0)
 
 def decode_captcha(imagedata, maxiterations=1, method=None):
     """Decode a Megaupload catpcha image 
@@ -301,7 +304,7 @@ def decode_captcha(imagedata, maxiterations=1, method=None):
     width, height = original.size
     image = Image.new("L", (width+2, height+2), 255)
     image.paste(original, (1, 1))
-    background_pixels = floodfill_image(image, (0, 0), 155)[1]
+    background_pixels = floodfill_image(image, (0, 0), 128)[1]
     logging.debug("Background pixels: %d", len(background_pixels))
     
     # Get characters zones    
@@ -317,11 +320,11 @@ def decode_captcha(imagedata, maxiterations=1, method=None):
         for x in segment(characters_pixels, 4)]    
     characters4_pixels_list = sorted(characters_pixels_list0, 
         key=lambda pixels_list: get_error(pixels_list, image))[:maxiterations]
-    
+           
     # Get uncertain zones
     seen = union_sets([background_pixels] + characters_pixels)
-    max_uncertain_groups = 6
-    uncertain_pixels = list(sorted(get_zones(image, seen, 255, 18), 
+    max_uncertain_groups = 8
+    uncertain_pixels = list(sorted(get_zones(image, seen, 255, 15), 
         key=len))[:max_uncertain_groups]
     logging.debug("Uncertain groups: %d - %s", len(uncertain_pixels), 
         [len(pixels) for pixels in uncertain_pixels])
