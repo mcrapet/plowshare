@@ -36,6 +36,7 @@ GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages 
 LINK_ONLY,l,link-only,,Return only file link 
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
+OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 "
 
 # Get library directory
@@ -92,12 +93,13 @@ usage() {
 
 # download MODULE URL FUNCTION_OPTIONS
 download() {
-    MODULE=$1
-    URL=$2
-    LINK_ONLY=$3
-    TYPE=$4
-    MARK_DOWN=$5
-    shift 5
+    local MODULE=$1
+    local URL=$2
+    local LINK_ONLY=$3
+    local TYPE=$4
+    local MARK_DOWN=$5
+    local OUTPUT_DIR=$6
+    shift 6
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
 
@@ -113,10 +115,11 @@ download() {
             echo "$FILE_URL"
         else 
             continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..) &&
-                $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..)
+            test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+            $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
                 echo $FILENAME || 
-                { error "error downloading: $URL"; RETVAL=$DERROR; continue; }
+                { error "error downloading: $URL"; RETVAL=$DERROR; break; }
         fi
         
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
@@ -137,7 +140,7 @@ eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
  
-test $# -ge 1 || { usage; exit 1; } 
+test $# -ge 1 || { usage; exit 1; }
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
 DERROR=5
@@ -149,7 +152,7 @@ for ITEM in "$@"; do
         test -z "$MODULE" && 
             { debug "no module for URL: $URL"; RETVAL=$DERROR; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$TYPE" \
-            "$MARK_DOWN" "${UNUSED_OPTIONS[@]}"            
+            "$MARK_DOWN" "$OUTPUT_DIR" "${UNUSED_OPTIONS[@]}"            
     done
 done
 
