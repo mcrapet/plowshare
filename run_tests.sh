@@ -10,7 +10,7 @@ curl, --version, 2
 recode, --version, 3
 convert, --version, 3
 smjs, --version, 2
-tesseract, zcat /usr/share/doc/tesseract-ocr/changelog.gz | grep ' - V' | tail -n1 | awk '{print \$5}' | sed 's/^V//'
+tesseract, pacman -Q tesseract | awk '{print \$2}'
 python, --version, 2
 python-imaging, python -c 'import PIL.Image as i; print i.VERSION'
 aview, --version, 5
