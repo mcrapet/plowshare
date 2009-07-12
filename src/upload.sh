@@ -72,8 +72,13 @@ test $# -eq 2 || { usage; exit 1; }
 FILE=$1
 DESTINATION=$2
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
-test -f "$FILE" ||
-    { error "file does not exist: $FILE"; exit 3; }
+
+# Test that file exists (ignore URLs)
+if ! match "^\(http://\)" "$FILE" -a ! test -f "$FILE"; then
+    error "file does not exist: $FILE"
+    exit 3
+fi
+
 grep -w -q "$MODULE" <<< "$MODULES" ||
     { error "unsupported module ($MODULE)"; exit 4; }
 FUNCTION=${MODULE}_upload

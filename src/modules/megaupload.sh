@@ -22,13 +22,14 @@ LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
+MULTIFETCH,m,multifetch,,Use URL multifetch upload
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description
-FROMEMAIL,f:,email-from:,EMAIL,<From> field for notification email
-TOEMAIL,t:,email-to:,EMAIL,<To> field for notification email
 PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description
+FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
+TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
-MULTIEMAIL,m:,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
+MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 "
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
@@ -92,12 +93,9 @@ megaupload_download() {
             { error "file not found"; return 1; }
         test "$CHECK_LINK" && return 255;          
         debug "captcha URL: $CAPTCHA_URL"
-        COLUMNS=$(tput cols || echo 80)
-        LINES=$(tput lines || echo 25)
         # OCR captcha and show ascii image to stderr simultaneously
-        CAPTCHA=$(curl "$CAPTCHA_URL" | 
-            tee >(test -z "$QUIET" && ascii_image -width $COLUMNS -height $LINES >&2) | \
-            megaupload_ocr $(test -z "$QUIET" && echo -vvvv) -) ||
+        CAPTCHA=$(curl "$CAPTCHA_URL" | show_image_and_tee |
+            convert - -alpha off -colorspace gray gif:- | ocr) ||
             { error "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
@@ -123,29 +121,43 @@ megaupload_download() {
 # megaupload_upload [UPLOAD_OPTIONS] FILE [DESTFILE]
 #
 megaupload_upload() {
-    set -e
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
     FILE=$1
-    DESTFILE=${2:-$FILE}
-    UPLOADURL="http://www.megaupload.com"
-
+    DESTFILE=${2:-$FILE}    
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }
-    debug "downloading upload page: $UPLOADURL"
-    DONE=$(curl "$UPLOADURL" | parse "upload_done.php" 'action="\([^\"]*\)"') ||
-        { debug "can't get upload_done page"; return 2; }    
-    UPLOAD_IDENTIFIER=$(parse "IDENTIFIER" "IDENTIFIER=\([0-9.]\+\)" <<< $DONE)
-    debug "starting file upload: $FILE"
-    curl -b <(echo "$COOKIES") \
-        -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
-        -F "sessionid=$UPLOAD_IDENTIFIER" \
-        -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
-        -F "message=$DESCRIPTION" \
-        -F "toemail=$TOEMAIL" \
-        -F "fromemail=$FROMEMAIL" \
-        -F "password=$PASSWORD" \
-        -F "trafficurl=$TRAFFIC_URL" \
-        -F "multiemail=$MULTIEMAIL" \
-        "$DONE" | parse "downloadurl" "url = '\(.*\)';"
+    
+    if [ "$MULTIFETCH" ]; then
+      UPLOADURL="http://www.megaupload.com/?c=multifetch"
+      [ -z "$COOKIES" ] && 
+        { error "Premium account required to use multifetch"; return 2; }
+      debug "starting URL fetch: $FILE"
+      curl -b <(echo "$COOKIES") -L \
+          -F "fetchurl=$FILE" \
+          -F "description=$DESCRIPTION" \
+          -F "youremail=$FROMEMAIL" \
+          -F "receiveremail=$TOEMAIL" \
+          -F "password=$PASSWORD" \
+          -F "multiplerecipients=$MULTIEMAIL" \
+          "$UPLOADURL" | grep downloadurl | parse "<a" "href=[\"']\([^\"']*\)"
+    else            
+      UPLOADURL="http://www.megaupload.com"
+      debug "downloading upload page: $UPLOADURL"
+      DONE=$(curl "$UPLOADURL" | parse "upload_done.php" 'action="\([^\"]*\)"') ||
+          { debug "can't get upload_done page"; return 2; }    
+      UPLOAD_IDENTIFIER=$(parse "IDENTIFIER" "IDENTIFIER=\([0-9.]\+\)" <<< $DONE)
+      debug "starting file upload: $FILE"
+      curl -b <(echo "$COOKIES") \
+          -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
+          -F "sessionid=$UPLOAD_IDENTIFIER" \
+          -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
+          -F "message=$DESCRIPTION" \
+          -F "toemail=$TOEMAIL" \
+          -F "fromemail=$FROMEMAIL" \
+          -F "password=$PASSWORD" \
+          -F "trafficurl=$TRAFFIC_URL" \
+          -F "multiemail=$MULTIEMAIL" \
+          "$DONE" | parse "downloadurl" "url = '\(.*\)';"
+    fi
 }
