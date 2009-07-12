@@ -32,7 +32,6 @@ usr/local/share/plowshare/modules/2shared.sh
 usr/local/share/plowshare/modules/4shared.sh
 usr/local/share/plowshare/modules/badongo.sh
 usr/local/share/plowshare/modules/extras
-usr/local/share/plowshare/modules/extras/megaupload_captcha.py
 usr/local/share/plowshare/modules/mediafire.sh
 usr/local/share/plowshare/modules/megaupload.sh
 usr/local/share/plowshare/modules/rapidshare.sh

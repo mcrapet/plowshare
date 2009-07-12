@@ -46,8 +46,6 @@ elif [ "$1" = "install" ]; then
     mkdir -p $MODULESDIR
     cp -v src/modules/*.sh $MODULESDIR
     mkdir -p $MODULESDIR/extras
-    cp -pv src/modules/extras/megaupload_captcha.py $MODULESDIR/extras
-    chmod +x $MODULESDIR/extras/megaupload_captcha.py
 
     # Binary files
     mkdir -p $BINDIR 
