@@ -23,6 +23,7 @@ CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 MULTIFETCH,m,multifetch,,Use URL multifetch upload
+CLEAR_LOG,,clear-log,,Clear upload log after upload process 
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
 PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
@@ -33,6 +34,7 @@ MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 "
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
+BASEURL="http://www.megaupload.com"
 LOGINURL="http://www.megaupload.com/?c=login"
 
 # megaupload_download [DOWNLOAD_OPTIONS] URL
@@ -43,7 +45,6 @@ megaupload_download() {
     set -e
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
-    BASEURL="http://www.megaupload.com"
     ERRORURL="http://www.megaupload.com/?c=msg"
  
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
@@ -130,17 +131,38 @@ megaupload_upload() {
     
     if [ "$MULTIFETCH" ]; then
       UPLOADURL="http://www.megaupload.com/?c=multifetch"
+      STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
+      STATUSLOOPTIME=5
       [ -z "$COOKIES" ] && 
         { error "Premium account required to use multifetch"; return 2; }
-      debug "starting URL fetch: $FILE"
-      curl -b <(echo "$COOKIES") -L \
+      debug "spawn URL fetch process: $FILE"
+      UPLOADID=$(curl -b <(echo "$COOKIES") -L \
           -F "fetchurl=$FILE" \
           -F "description=$DESCRIPTION" \
           -F "youremail=$FROMEMAIL" \
           -F "receiveremail=$TOEMAIL" \
           -F "password=$PASSWORD" \
           -F "multiplerecipients=$MULTIEMAIL" \
-          "$UPLOADURL" | grep downloadurl | parse "<a" "href=[\"']\([^\"']*\)"
+          "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) || 
+              { error "cannot start multifetch upload"; return 2; }
+      while true; do
+        STATUS=$(curl -s -b <(echo "$COOKIES") "$STATUSURL")
+        echo "$STATUS" | grep "completed_$UPLOADID" | \
+            grep -q "display:[[:space:]]*none" || break  
+        INFO=$(echo "$STATUS" | parse "estimated_$UPLOADID" \
+            "estimated_$UPLOADID\">\(.*\)<\/div>" | xargs)
+        debug "waiting for the upload $UPLOADID to finish: $INFO"
+        sleep $STATUSLOOPTIME
+      done  
+      debug "fetching process finished"
+      STATUS=$(curl -b <(echo "$COOKIES") "$STATUSURL")
+      if [ "$CLEAR_LOG" ]; then
+        debug "clearing upload log for task $UPLOADID"
+        CLEARURL=$(echo "$STATUS" | parse "cancel=$UPLOADID" "href=[\"']\([^\"']*\)")
+        debug "clear URL: $BASEURL/$CLEARURL"
+        curl -b <(echo "$COOKIES") "$BASEURL/$CLEARURL" > /dev/null
+      fi
+      echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
     else            
       UPLOADURL="http://www.megaupload.com"
       debug "downloading upload page: $UPLOADURL"
