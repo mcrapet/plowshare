@@ -74,7 +74,7 @@ DESTINATION=$2
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 
 # Test that file exists (ignore URLs)
-if ! match "^\(http://\)" "$FILE" -a ! test -f "$FILE"; then
+if ! match "^\(http://\)" "$FILE" && ! test -f "$FILE"; then
     error "file does not exist: $FILE"
     exit 3
 fi

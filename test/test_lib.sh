@@ -79,9 +79,9 @@ test_create_tempfile() {
     rm -f $TEMP
 }
 
-test_megaupload_ocr() {
-    CAPTCHA=$(megaupload_ocr "$PICSDIR/megaupload_prz2.gif")
-    assert_equal "PRZ2" $CAPTCHA
-} 
+#test_megaupload_ocr() {
+#    CAPTCHA=$(megaupload_ocr "$PICSDIR/megaupload_prz2.gif")
+#    assert_equal "PRZ2" $CAPTCHA
+#} 
 
 run_tests "$@"
