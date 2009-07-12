@@ -35,7 +35,7 @@ error() {
 # Wrapper for curl: debug and infinte loop control
 #
 curl() {
-    OPTIONS=(--insecure)
+    local OPTIONS=(--insecure)
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     while true; do
         $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
@@ -54,7 +54,7 @@ curl() {
 # $2: POSIX-regexp to match (use parentheses) on the matched line.
 #
 parse() { 
-    STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
+    local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
         test "$STRING" && echo "$STRING" || 
         { debug "parse failed: /$1/ $2"; return 1; } 
 }
@@ -219,19 +219,19 @@ process_options() {
             echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") " 
         done | sed "s/ $//"
     }
-    NAME=$1
-    OPTIONS=$2   
+    local NAME=$1
+    local OPTIONS=$2   
     shift 2
     # Strip spaces in options
-    OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
+    local OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
         sed "s/^[[:space:]]*//; s/[[:space:]]$//")
     while read VAR; do
         unset $VAR
     done < <(get_field 1 "$OPTIONS" | sed "s/^!//")
-    ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
+    local ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
         --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"
     eval set -- "$ARGUMENTS"
-    UNUSED_OPTIONS=()
+    local UNUSED_OPTIONS=()
     while true; do
         test "$1" = "--" && { shift; break; }
         while read OPTION; do
@@ -279,4 +279,10 @@ ascii_image() {
             /\014/ { part++; next; }
             // { if (part == 2) print $0; }' | \
         grep -v "^[[:space:]]*$"
+}
+
+show_image_and_tee() {
+  local COLUMNS=$(tput cols || echo 80)
+  local LINES=$(tput lines || echo 30)
+  tee >(test -z "$QUIET" && ascii_image -width $COLUMNS -height $LINES >&2)
 }
