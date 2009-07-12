@@ -42,8 +42,9 @@ rapidshare_download() {
             sleep $((WAITTIME*60))
             continue
         fi
-        CAPTURE="[[:space:]]\([[:digit:]]\+\) minutes"
-        LIMIT=$(echo "$DATA" | parse "try again" "$CAPTURE" 2>/dev/null || true)
+        CAPTURE="[[:space:]]\([[:digit:]]\+\) minute"
+        LIMIT=$(echo "$DATA" | parse "minute" "$CAPTURE" 2>/dev/null || true)
+        echo "$DATA" > /tmp/log
         test -z "$LIMIT" && break
         debug "download limit reached: waiting $LIMIT minutes"
         sleep $((LIMIT*60))
