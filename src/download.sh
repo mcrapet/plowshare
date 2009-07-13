@@ -65,7 +65,7 @@ get_module() {
 #
 process_item() {
     ITEM=$1
-    if match "^\(http://\)" "$ITEM"; then
+    if match "^http://" "$ITEM"; then
         echo "url|$ITEM"
     else
         grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read URL; do
