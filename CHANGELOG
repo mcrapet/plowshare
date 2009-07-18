@@ -1,4 +1,4 @@
-plowshare (0.7.2) unstable; urgency=low
+plowshare (0.7.2) stable; urgency=low
 
   * [download] New option -o DIR, --output-directory DIR
   * [megaupload] Use tesseract as OCR for the new simplier captcha

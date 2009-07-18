@@ -36,11 +36,15 @@ error() {
 #
 curl() {
     local OPTIONS=(--insecure)
+    local DRETVAL=0
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     while true; do
-        $(type -P curl) "${OPTIONS[@]}" "$@" && DRETVAL=0 || DRETVAL=$?
+        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
         if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
-            debug "curl failed with retcode $DRETVAL, trying again"
+            local WAIT=60
+            debug "curl failed with non-fatal retcode $DRETVAL"
+            debug "retry after a safety wait ($WAIT seconds)"
+            sleep $WAIT
             continue
         else
             return $DRETVAL

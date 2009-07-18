@@ -117,9 +117,20 @@ download() {
             continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+            local DRETVAL=0
             $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
-                echo $FILENAME || 
-                { error "error downloading: $URL"; RETVAL=$DERROR; break; }
+                echo $FILENAME || DRETVAL=$?
+            if [ $DRETVAL -eq 22 ]; then
+                local WAIT=60
+                debug "curl failed with retcode $DRETVAL"
+                debug "retry after a safety wait ($WAIT seconds)"
+                sleep $WAIT
+                continue
+            elif [ $DRETVAL -ne 0 ]; then
+                error "error downloading: $URL"
+                RETVAL=$DERROR
+                break
+            fi            
         fi
         
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
