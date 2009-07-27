@@ -57,14 +57,20 @@ megaupload_download() {
     while true; do 
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
-        PAGE=$(ccurl -L "$URL")
+        PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
+        if [ -z "$PAGE" ]; then
+          # A void page means this is a Premium account, get the URL
+          ccurl -I "$URL" | grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
+          return
+        fi
+          
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
           "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
         if test "$REDIRECT" = "$ERRORURL"; then
           debug "Server returned an error page: $REDIRECT"
           WAITTIME=$(curl "$REDIRECT" | parse 'check back in' \
             'check back in \([[:digit:]]\+\) minute')
-          # Fragile parsing, set a default waittime if something went wrong            
+          # Fragile parsing, set a default waittime if something went wrong
           test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 || 
             WAITTIME=2
           debug "Waiting $WAITTIME minutes before trying again"
@@ -80,8 +86,7 @@ megaupload_download() {
             match 'name="filepassword"' "$PAGE" &&
                 { error "Link password incorrect"; return 1; } 
         fi        
-        # Look for a download link (either Premium account or password
-        # protected file)
+        # Look for a download link (usually a password protected file)
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then

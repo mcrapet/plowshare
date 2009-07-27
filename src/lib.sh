@@ -137,7 +137,7 @@ megaupload_ocr() {
 
 # Show help info for options
 #
-# $1: options${STRING:2}
+# $1: options
 # $2: indent string
 debug_options() {
     OPTIONS=$1
