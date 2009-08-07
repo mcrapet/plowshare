@@ -115,7 +115,7 @@ download() {
             echo "$FILE_URL"
         else 
             continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..)
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
             $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
