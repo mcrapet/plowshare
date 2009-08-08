@@ -111,13 +111,21 @@ test_megaupload_upload_member() {
     assert_equal "http://www.megaupload.com/?d=241IDD35" "$URL" || return 1
 }        
 
-test_megaupload_upload_premium() {
+test_megaupload_upload_premium_with_password() {
     test -e $TESTSDIR/.megaupload-premium-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" -p "mypassword" \
         -d 'Plowshare test' $UPFILE megaupload)
-    assert_equal "http://www.megaupload.com/?d=MTBPWEF9" "$URL" || return 1
+    assert_equal "http://www.megaupload.com/?d=K9T3O855" "$URL" || return 1
     assert_return 0 'match "name=\"filepassword\"" "$(curl $URL)"' || return 1
+}        
+
+test_megaupload_upload_premium_using_multifetch() {
+    test -e $TESTSDIR/.megaupload-premium-auth || return 255
+    AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
+    URL=$(upload -a "$AUTH" --multifetch --clear-log \
+        -d 'Plowshare test' "http://www.gnu.org/licenses/gpl.txt" megaupload)
+    assert_equal "http://www.megaupload.com/?d=K9T3O855" "$URL" || return 1
 }        
 
 ## 2Shared
