@@ -151,9 +151,12 @@ megaupload_upload() {
           "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) || 
               { error "cannot start multifetch upload"; return 2; }
       while true; do
+        CSS="display:[[:space:]]*none"
         STATUS=$(curl -s -b <(echo "$COOKIES") "$STATUSURL")
-        echo "$STATUS" | grep "completed_$UPLOADID" | \
-            grep -q "display:[[:space:]]*none" || break  
+        ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
+            parse "status_$UPLOADID" '>\(.*\)<\/div>' 2>/dev/null | xargs) || true
+        test "$ERROR" && { error "Status reported error: $ERROR"; break; }  
+        echo "$STATUS" | grep "completed_$UPLOADID" | grep -q "$CSS" || break  
         INFO=$(echo "$STATUS" | parse "estimated_$UPLOADID" \
             "estimated_$UPLOADID\">\(.*\)<\/div>" | xargs)
         debug "waiting for the upload $UPLOADID to finish: $INFO"
