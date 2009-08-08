@@ -104,7 +104,7 @@ download() {
     debug "start download ($MODULE): $URL"
 
     while true; do      
-        FILE_URL=$($FUNCTION "$@" "$URL" ) && DRETVAL=0 || DRETVAL=$?
+        FILE_URL=$($FUNCTION "$@" "$URL") && DRETVAL=0 || DRETVAL=$?
         test $DRETVAL -eq 255 && 
             { debug "Link active: $URL"; echo "$URL"; break; }
         test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
@@ -115,11 +115,12 @@ download() {
             echo "$FILE_URL"
         else 
             continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | recode html..utf8)
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
+                recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
             $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
-                echo $FILENAME || DRETVAL=$?
+                echo "$FILENAME" || DRETVAL=$?
             if [ $DRETVAL -eq 22 ]; then
                 local WAIT=60
                 debug "curl failed with retcode $DRETVAL"
