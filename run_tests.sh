@@ -9,10 +9,8 @@ sed, --version, NF
 curl, --version, 2
 recode, --version, 3
 convert, --version, 3
-smjs, --version, 2
+js, --version, 2
 tesseract, pacman -Q tesseract | awk '{print \$2}'
-python, --version, 2
-python-imaging, python -c 'import PIL.Image as i; print i.VERSION'
 aview, --version, 5
 "
 

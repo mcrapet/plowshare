@@ -217,5 +217,27 @@ test_zshare_check_active_link() {
     assert_equal "$ZSHARE_URL" "$(download -c $ZSHARE_URL)" || return 1
 }        
 
+# Depositfiles
+
+DEPOSIT_SMALL_URL="http://depositfiles.com/es/files/sswznjsu2"
+DEPOSIT_BIG_URL="http://depositfiles.com/es/files/vd58vei0y"
+
+test_zshare_check_active_link() {
+    assert_equal "$DEPOSIT_SMALL_URL" "$(download -c $DEPOSIT_SMALL_URL)" || return 1
+    assert_return 5 "download -c ${DEPOSIT_SMALL_URL}wronglink" || return 1
+}        
+
+test_depositfiles_download_small_file() {
+    FILENAME="untitled87.bmp"
+    assert_equal "$FILENAME" "$(download $DEPOSIT_SMALL_URL)" || return 1
+    rm -f $FILENAME
+}        
+
+test_depositfiles_download_big_file() {
+    FILENAME="1002-BIOS-Asus_P5Q_SE_for_MAC_OS_X___VISTA_SLIC_all_OS__incl._by_Juzzi..ROM.zip"
+    assert_equal "$FILENAME" "$(download $DEPOSIT_BIG_URL)" || return 1
+    rm -f $FILENAME
+}        
+
 
 run_tests "$@"
