@@ -31,7 +31,7 @@ depositfiles_download() {
     
     BASEURL="depositfiles.com"
     while true; do        
-        START=$(curl "$URL")
+        START=$(curl -L "$URL")
         echo "$START" | grep -q "no_download_msg" &&
             { debug "file not found"; return 1; }
         test "$CHECK_LINK" && return 255
