@@ -20,7 +20,7 @@ MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
 CHECK_LINK,c,check-link,,Check if a link exists and return"
 MODULE_DEPOSITFILES_DOWNLOAD_CONTINUE=no
 
-# Output a depositfiles file download URL (anonymous, NOT PREMIUM)
+# Output a depositfiles file download URL (free download)
 #
 # depositfiles_download DEPOSITFILES_URL
 #
@@ -39,28 +39,16 @@ depositfiles_download() {
             echo "$START" | parse "download_started" 'action="\([^"]*\)"'
             return
         fi
-        check_ip "$START" && continue    
+        check_ip "$START" || continue    
         WAIT_URL=$(echo "$START" | grep "files/" \
                 | parse '<form' 'action="\([^"]*\)"') ||
             { error "download form not found"; return 1; }
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "gateway_result=1" "${BASEURL}${WAIT_URL}") ||
             { error "can't get wait URL contents"; return 1; }
-        LIMITM=$(echo "$DATA" | grep -A1 "try in" | \
-            parse 'minute' '\([[:digit:]]\+\) minute' 2>/dev/null) || true
-        if test "$LIMITM"; then
-            debug "limit reached, wait $LIMITM minutes"
-            sleep $((LIMITM*60))
-            continue 
-        fi
-        LIMITS=$(echo "$DATA" | grep -A1 "try in" | \
-            parse 'minute' '\([[:digit:]]\+\) second' 2>/dev/null) || true
-        if test "$LIMITS"; then
-            debug "limit reached, wait $LIMITS seconds"
-            sleep $LIMITS
-            continue 
-        fi
-        check_ip "$DATA" && continue
+        check_wait "$DATA" "minute" "60" || continue
+        check_wait "$DATA" "second" "1" || continue
+        check_ip "$DATA" || continue
         break
     done
     FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"') 
@@ -72,13 +60,28 @@ depositfiles_download() {
     echo $FILE_URL    
 }
 
+check_wait() {
+    local HTML=$1
+    local WORD=$2
+    local FACTOR=$3
+    LIMIT=$(echo "$HTML" | grep -A1 "try in" | \
+        parse "$WORD" "\(\<[[:digit:]]\+\>\) $WORD" 2>/dev/null) || true
+    if test "$LIMIT"; then
+        debug "limit reached, waiting $LIMIT ${WORD}s"
+        sleep $((LIMIT*FACTOR))
+        return 1
+    else
+        return 0
+    fi
+}
+
 check_ip() {
     if echo "$1" | grep -q '<div class="ipbg">'; then
-        WAIT=60
+        local WAIT=60
         debug "IP already downloading, waiting $WAIT seconds"
         sleep $WAIT
-        return 0
-    else
         return 1
+    else
+        return 0
     fi
 }
