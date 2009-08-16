@@ -3,7 +3,7 @@
 _Plowshare_ is a command-line downloader/uploader for some of the most popular file-sharing websites. It currently supports:
 
 || *Website* || *Download* || *Upload* ||
-|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium ||
+|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (with multifetch) ||
 || [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
 || [http://www.2shared.com 2Shared] || anonymous || anonymous ||
 || [http://www.badongo.com Badongo] || anonymous || no ||
@@ -16,7 +16,7 @@ _Plowshare_ is a command-line downloader/uploader for some of the most popular f
 
 To run _plowshare_ and all its modules you will need:
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Mandriva/PcLinuxOS/Gentoo/Archlinux), BSD (untested), OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches]), Cygwin (is [http://cygwin.com/cgi-bin2/package-grep.cgi?grep=recode recode] available?), ...
+  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...), BSD (untested), OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches]), Cygwin (is [http://cygwin.com/cgi-bin2/package-grep.cgi?grep=recode recode] available?), ...
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
@@ -36,7 +36,7 @@ $ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bi
   * [http://aur.archlinux.org/packages.php?ID=24601 Archlinux]:
 
 {{{
-yaourt -Sy plowshare
+$ yaourt -Sy plowshare
 }}}
 
   * [http://code.google.com/p/plowshare/downloads/list From sources]:
@@ -85,7 +85,7 @@ $ plowdown --link-only http://www.2shared.com/file/4446939/c9fd70d6/Test.html | 
 
 {{{
 $ curl http://some-website.com/page.html | \
-    grep -o "http://www.megaupload.com/[^\"< ]*" | head -n10 | plowdown -
+    grep -o "http://www.megaupload.com/[^\"< ]*" | uniq | head -n10 | plowdown -
 }}}
 
 == Upload ==
@@ -94,6 +94,12 @@ $ curl http://some-website.com/page.html | \
 
 {{{
 $ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
+}}}
+
+  * Upload a file to megaupload with a Premium account and multifetch upload:
+
+{{{
+$ plowup -a myuser:mypassword -d "My description" --multifetch http://www.somewherefarbeyond.com/somefile megaupload
 }}}
 
   * Upload a file to rapidshare anonymously changing uploaded file name:
