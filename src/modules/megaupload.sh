@@ -58,11 +58,8 @@ megaupload_download() {
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
-        if [ -z "$PAGE" ]; then
-          # A void page means this is a Premium account, get the URL
-          ccurl -I "$URL" | grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
-          return
-        fi
+        # A void page means this is a Premium account, get the URL
+        test -z "$PAGE" && { ccurl -i "$URL" | get_location; return; } 
           
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
           "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
@@ -82,9 +79,12 @@ megaupload_download() {
             debug "File is password protected"
             test "$LINKPASSWORD" || 
                 { error "You must provide a password"; return 1; }
-            PAGE=$(ccurl -d "filepassword=$LINKPASSWORD" "$URL")
+            DATA="filepassword=$LINKPASSWORD"
+            PAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$PAGE" &&
-                { error "Link password incorrect"; return 1; } 
+                { error "Link password incorrect"; return 1; }
+            test -z "$PAGE" && 
+              { ccurl -i -d "$DATA" "$URL" | get_location; return; } 
         fi        
         # Look for a download link (usually a password protected file)
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
@@ -190,4 +190,8 @@ megaupload_upload() {
           -F "multiemail=$MULTIEMAIL" \
           "$DONE" | parse "downloadurl" "url = '\(.*\)';"
     fi
+}
+
+get_location() {
+  grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
 }
