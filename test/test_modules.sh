@@ -75,6 +75,13 @@ test_megaupload_download_a_password_protected_file() {
     rm -f $FILENAME
 }
 
+test_megaupload_download_a_password_protected_file_with_premium_account() {
+    URL="http://www.megaupload.com/?d=4YF0D6A3"
+    FILENAME="asound.conf"
+    assert_equal "$FILENAME" "$(download -a "$AUTH" -p test1 $URL)" || return 1
+    rm -f $FILENAME
+}
+
 test_megaupload_download_member() {
     test -e $TESTSDIR/.megaupload-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
