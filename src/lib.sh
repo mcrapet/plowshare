@@ -40,7 +40,7 @@ curl() {
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     while true; do
         $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
-        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
+        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 -o $DRETVAL -eq 18 ]; then
             local WAIT=60
             debug "curl failed with non-fatal retcode $DRETVAL"
             debug "retry after a safety wait ($WAIT seconds)"
