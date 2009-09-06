@@ -16,6 +16,7 @@ source $ROOTDIR/test/lib.sh
 INSTALLED="usr
 usr/local
 usr/local/bin
+usr/local/bin/plowdelete
 usr/local/bin/plowdown
 usr/local/bin/plowup
 usr/local/share

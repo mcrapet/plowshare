@@ -51,6 +51,7 @@ elif [ "$1" = "install" ]; then
     mkdir -p $BINDIR 
     ln -vsf $BIN2LIB/download.sh $BINDIR/plowdown
     ln -vsf $BIN2LIB/upload.sh $BINDIR/plowup
+    ln -vsf $BIN2LIB/delete.sh $BINDIR/plowdelete
 
 else
     echo "$USAGE"
