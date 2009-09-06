@@ -23,6 +23,11 @@ upload() {
     $SRCDIR/upload.sh "$@" 2>/dev/null
 }
 
+delete() {
+    $SRCDIR/delete.sh "$@" 2>/dev/null
+}
+
+
 UPFILE="$ROOTDIR/COPYING"
 
 ## Rapidshare
@@ -133,6 +138,13 @@ test_megaupload_upload_premium_using_multifetch() {
     URL=$(upload -a "$AUTH" --multifetch --clear-log \
         -d 'Plowshare test' "http://www.gnu.org/licenses/gpl.txt" megaupload)
     assert_equal "http://www.megaupload.com/?d=K9T3O855" "$URL" || return 1
+}        
+
+test_megaupload_delete_member() {
+    test -e $TESTSDIR/.megaupload-auth || return 255
+    AUTH=$(cat $TESTSDIR/.megaupload-auth)
+    URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE megaupload)
+    assert_return 0 "delete -a $AUTH $URL" || return 1
 }        
 
 ## 2Shared

@@ -32,6 +32,9 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
 MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 "
+MODULE_MEGAUPLOAD_DELETE_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account (required)
+"
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
 BASEURL="http://www.megaupload.com"
@@ -190,6 +193,25 @@ megaupload_upload() {
           -F "multiemail=$MULTIEMAIL" \
           "$DONE" | parse "downloadurl" "url = '\(.*\)';"
     fi
+}
+
+# megaupload_delete [DELETE_OPTIONS] URL
+#
+megaupload_delete() {
+    eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
+    URL=$1
+    
+    AJAXURL="http://www.megaupload.com/?ajax=1"
+    test "$AUTH" || 
+        { error "anonymous users cannot delete links"; return 1; }
+    LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
+    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
+        { error "error on login process"; return 1; }
+    FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
+    DATA="action=deleteItems&items_list[]=file_$FILEID&mode=modeAll&parent_id=0"
+    JSCODE=$(curl -b <(echo "$COOKIES") -d "$DATA" "$AJAXURL")
+    echo "$JSCODE" | grep -q "file_$FILEID" ||
+        { error "error deleting link"; return 1; } 
 }
 
 get_location() {
