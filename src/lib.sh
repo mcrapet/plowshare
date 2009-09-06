@@ -40,7 +40,7 @@ curl() {
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     while true; do
         $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
-        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 -o $DRETVAL -eq 18 ]; then
+        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
             local WAIT=60
             debug "curl failed with non-fatal retcode $DRETVAL"
             debug "retry after a safety wait ($WAIT seconds)"
@@ -289,4 +289,16 @@ show_image_and_tee() {
   local COLUMNS=$(tput cols || echo 80)
   local LINES=$(tput lines || echo 30)
   tee >(test -z "$QUIET" && ascii_image -width $COLUMNS -height $LINES >&2)
+}
+
+# Get module name from URL link
+#
+# $1: URL 
+get_module() {
+    URL=$1
+    MODULES=$2
+    for MODULE in $MODULES; do
+        VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
+        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
+    done
 }
