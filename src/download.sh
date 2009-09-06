@@ -48,18 +48,6 @@ for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh
 done
 
-# Get module name from URL link
-#
-# $1: URL 
-get_module() {
-    URL=$1
-    MODULES=$2
-    for MODULE in $MODULES; do
-        VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
-        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
-    done
-}
-
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments)- 
 #
@@ -119,9 +107,9 @@ download() {
                 recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
-            $CURL -f --globoff -o "$FILENAME" "$FILE_URL" &&
+            $CURL -y60 -f --globoff -o "$FILENAME" "$FILE_URL" &&
                 echo "$FILENAME" || DRETVAL=$?
-            if [ $DRETVAL -eq 22 ]; then
+            if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
                 debug "curl failed with retcode $DRETVAL"
                 debug "retry after a safety wait ($WAIT seconds)"
