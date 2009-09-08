@@ -40,7 +40,7 @@ elif [ "$1" = "install" ]; then
 
     # Common library 
     mkdir -p $LIBDIR
-    cp -pv src/download.sh src/upload.sh src/lib.sh $LIBDIR
+    cp -pv src/download.sh src/upload.sh src/delete.sh src/lib.sh $LIBDIR
 
     # Modules
     mkdir -p $MODULESDIR
