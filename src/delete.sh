@@ -45,7 +45,7 @@ done
 usage() {
     debug "Usage: plowdelete [OPTIONS] [MODULE_OPTIONS] URL1 URL2 [...]"
     debug
-    debug "  Delete a file from a file sharing site."
+    debug "  Delete a file-link from a file sharing site."
     debug
     debug "  Available modules: $MODULES"
     debug

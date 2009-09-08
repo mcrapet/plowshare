@@ -33,7 +33,7 @@ TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
 MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 "
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account (required)
+AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)
 "
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
