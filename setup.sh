@@ -31,7 +31,7 @@ test $# -eq 0 && { echo "$USAGE"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
     rm -vrf $LIBDIR $DOCSDIR
-    rm -vf $BINDIR/{plowdown,plowup}
+    rm -vf $BINDIR/{plowdown,plowup,plowdelete}
 
 elif [ "$1" = "install" ]; then
     # Documentation

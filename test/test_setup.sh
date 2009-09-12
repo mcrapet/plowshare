@@ -26,6 +26,7 @@ usr/local/share/doc/plowshare/CHANGELOG
 usr/local/share/doc/plowshare/COPYING
 usr/local/share/doc/plowshare/README
 usr/local/share/plowshare
+usr/local/share/plowshare/delete.sh
 usr/local/share/plowshare/download.sh
 usr/local/share/plowshare/lib.sh
 usr/local/share/plowshare/modules
@@ -48,12 +49,12 @@ usr/local/share/doc"
 
 test_setup_script() {
     TEMPDIR=$(mktemp -d)
-    assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install"
+    assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
     assert_equal "$INSTALLED" \
-        "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)"
-    assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall"
+        "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)" || return 1
+    assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall" || return 1
     assert_equal "$UNINSTALLED" \
-        "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)"
+        "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)" || return 1
     rm -rf $TEMPDIR
 }
 
