@@ -44,7 +44,6 @@ rapidshare_download() {
         fi
         CAPTURE="[[:space:]]\([[:digit:]]\+\) minute"
         LIMIT=$(echo "$DATA" | parse "minute" "$CAPTURE" 2>/dev/null || true)
-        echo "$DATA" > /tmp/log
         test -z "$LIMIT" && break
         debug "download limit reached: waiting $LIMIT minutes"
         sleep $((LIMIT*60))
