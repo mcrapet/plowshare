@@ -37,6 +37,7 @@ QUIET,q,quiet,,Don't print debug messages
 LINK_ONLY,l,link-only,,Return only file link 
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
+LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb) 
 "
 
 # Get library directory
@@ -84,10 +85,12 @@ download() {
     local MODULE=$1
     local URL=$2
     local LINK_ONLY=$3
-    local TYPE=$4
-    local MARK_DOWN=$5
-    local OUTPUT_DIR=$6
-    shift 6
+    local LIMIT_RATE=$4
+    local TYPE=$5
+    local MARK_DOWN=$6
+    local OUTPUT_DIR=$7
+    shift 7
+    
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
 
@@ -101,13 +104,15 @@ download() {
         
         if test "$LINK_ONLY"; then
             echo "$FILE_URL"
-        else 
-            continue_downloads "$MODULE" && CURL="curl -C -"|| CURL="curl"
+        else
+            CURL=("curl") 
+            continue_downloads "$MODULE" && CURL=($CURL "-C -")
+            test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
                 recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
-            $CURL -y60 -f --globoff -o "$FILENAME" "$FILE_URL" &&
+            ${CURL[@]} -y60 -f --globoff -o "$FILENAME" "$FILE_URL" &&
                 echo "$FILENAME" || DRETVAL=$?
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
@@ -151,7 +156,7 @@ for ITEM in "$@"; do
         MODULE=$(get_module "$URL" "$MODULES")
         test -z "$MODULE" && 
             { debug "no module for URL: $URL"; RETVAL=$DERROR; continue; }
-        download "$MODULE" "$URL" "$LINK_ONLY" "$TYPE" \
+        download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$OUTPUT_DIR" "${UNUSED_OPTIONS[@]}"            
     done
 done
