@@ -32,7 +32,7 @@ error() {
     echo "Error: $@" >&2
 }
 
-# Wrapper for curl: debug and infinte loop control
+# Wrapper for curl: debug and infinite loop control
 #
 curl() {
     local OPTIONS=(--insecure)
@@ -127,12 +127,6 @@ ocr() {
         { rm -f $TIFF $TEXT; return 1; }
     cat $TEXT
     rm -f $TIFF $TEXT
-}
-
-# Decode the 4-char (rotated) megaupload captcha
-#
-megaupload_ocr() {
-    python $EXTRASDIR/megaupload_captcha.py "$@"
 }
 
 # Show help info for options
