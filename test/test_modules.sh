@@ -120,7 +120,7 @@ test_megaupload_upload_member() {
     test -e $TESTSDIR/.megaupload-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
     URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE megaupload)
-    assert_equal "http://www.megaupload.com/?d=241IDD35" "$URL" || return 1
+    assert_equal "http://www.megaupload.com/?d=RNXW8998" "$URL" || return 1
 }        
 
 test_megaupload_upload_premium_with_password() {
