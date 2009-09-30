@@ -29,6 +29,7 @@ delete() {
 
 
 UPFILE="$ROOTDIR/COPYING"
+UPFILE2="$ROOTDIR/CHANGELOG"
 
 ## Rapidshare
 
@@ -143,7 +144,7 @@ test_megaupload_upload_premium_using_multifetch() {
 test_megaupload_delete_member() {
     test -e $TESTSDIR/.megaupload-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
-    URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE megaupload)
+    URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE2 megaupload)
     assert_return 0 "delete -a $AUTH $URL" || return 1
 }        
 
