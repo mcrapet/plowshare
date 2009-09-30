@@ -13,39 +13,34 @@ source $ROOTDIR/test/lib.sh
 
 ### Setup script
 
-INSTALLED="usr
-usr/local
-usr/local/bin
-usr/local/bin/plowdelete
-usr/local/bin/plowdown
-usr/local/bin/plowup
-usr/local/share
-usr/local/share/doc
-usr/local/share/doc/plowshare
-usr/local/share/doc/plowshare/CHANGELOG
-usr/local/share/doc/plowshare/COPYING
-usr/local/share/doc/plowshare/README
-usr/local/share/plowshare
-usr/local/share/plowshare/delete.sh
-usr/local/share/plowshare/download.sh
-usr/local/share/plowshare/lib.sh
-usr/local/share/plowshare/modules
-usr/local/share/plowshare/modules/2shared.sh
-usr/local/share/plowshare/modules/4shared.sh
-usr/local/share/plowshare/modules/badongo.sh
-usr/local/share/plowshare/modules/depositfiles.sh
-usr/local/share/plowshare/modules/extras
-usr/local/share/plowshare/modules/mediafire.sh
-usr/local/share/plowshare/modules/megaupload.sh
-usr/local/share/plowshare/modules/rapidshare.sh
-usr/local/share/plowshare/modules/zshare.sh
-usr/local/share/plowshare/upload.sh"
+INSTALLED="bin
+bin/plowdel
+bin/plowdown
+bin/plowup
+share
+share/doc
+share/doc/plowshare
+share/doc/plowshare/CHANGELOG
+share/doc/plowshare/COPYING
+share/doc/plowshare/README
+share/plowshare
+share/plowshare/delete.sh
+share/plowshare/download.sh
+share/plowshare/lib.sh
+share/plowshare/modules
+share/plowshare/modules/2shared.sh
+share/plowshare/modules/4shared.sh
+share/plowshare/modules/badongo.sh
+share/plowshare/modules/depositfiles.sh
+share/plowshare/modules/mediafire.sh
+share/plowshare/modules/megaupload.sh
+share/plowshare/modules/rapidshare.sh
+share/plowshare/modules/zshare.sh
+share/plowshare/upload.sh"
 
-UNINSTALLED="usr
-usr/local
-usr/local/bin
-usr/local/share
-usr/local/share/doc"
+UNINSTALLED="bin
+share
+share/doc"
 
 test_setup_script() {
     TEMPDIR=$(mktemp -d)

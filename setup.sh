@@ -18,8 +18,8 @@
 set -e
 
 NAME=plowshare
-DESTDIR=${DESTDIR:-}
-USRDIR=$DESTDIR/usr/local
+DESTDIR=${DESTDIR:-/usr/local}
+USRDIR=$DESTDIR
 LIBDIR=$USRDIR/share/$NAME
 BINDIR=$USRDIR/bin
 DOCSDIR=$USRDIR/share/doc/$NAME
@@ -31,7 +31,7 @@ test $# -eq 0 && { echo "$USAGE"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
     rm -vrf $LIBDIR $DOCSDIR
-    rm -vf $BINDIR/{plowdown,plowup,plowdelete}
+    rm -vf $BINDIR/{plowdown,plowup,plowdel}
 
 elif [ "$1" = "install" ]; then
     # Documentation
@@ -45,13 +45,12 @@ elif [ "$1" = "install" ]; then
     # Modules
     mkdir -p $MODULESDIR
     cp -v src/modules/*.sh $MODULESDIR
-    mkdir -p $MODULESDIR/extras
 
     # Binary files
     mkdir -p $BINDIR 
     ln -vsf $BIN2LIB/download.sh $BINDIR/plowdown
     ln -vsf $BIN2LIB/upload.sh $BINDIR/plowup
-    ln -vsf $BIN2LIB/delete.sh $BINDIR/plowdelete
+    ln -vsf $BIN2LIB/delete.sh $BINDIR/plowdel
 
 else
     echo "$USAGE"
