@@ -1,3 +1,10 @@
+plowshare (0.8.1) stable; urgency=medium
+
+  * Add plowdel script (supported only for megaupload)
+  * [download] Add new -r RATE/--limit-rate=RATE option
+
+ --  <tokland@gmail.com>  Wed, 30 Sep 2009 22:45:53 +0200
+
 plowshare (0.8) stable; urgency=low
 
   * Added module for depositfiles (download only)
