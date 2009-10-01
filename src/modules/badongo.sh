@@ -46,7 +46,7 @@ badongo_download() {
         CAP_IMAGE=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
         MTIME="$(date +%s)000"
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \
-            convert - -alpha off -colorspace gray -level 40%,40% gif:- | \
+            convert - +matte -colorspace gray -level 40%,40% gif:- | \
             show_image_and_tee | ocr | tr -c -d "[a-zA-Z]" | uppercase)
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
