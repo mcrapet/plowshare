@@ -2,31 +2,34 @@
 set -e
 
 TESTSDIR=$(dirname "$(readlink -f "$0")")/test
+
+# Support ArchLinux and Debian-like distros
 PACKAGES="
 kernel, uname -r -s
-bash, --version, 4
-sed, --version, NF
-curl, --version, 2
-recode, --version, 3
-convert, --version, 3
-js, --version, 2
-tesseract, pacman -Q tesseract | awk '{print \$2}'
-aview, --version, 5
+bash, bash --version, 4
+sed, sed --version, NF
+curl, curl --version, 2
+recode, recode --version, 3
+imagemagick, convert --version, 3
+spidermonkey-js, js --version, 2
+tesseract-ocr, which pacman &>/dev/null && { pacman -Q tesseract | awk '{print \$2}';  } || { dpkg -l tesseract-ocr | grep ^ii | awk '{print \$3}'; }
+aview, aview --version, NF
 "
 
 basic_info() {
     VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
-    echo "plowshare: $VERSION"
+    REVISION=$(LC_ALL=C svn info  | grep ^Revision | cut -d: -f2 | xargs)
+    echo "plowshare: $VERSION (r$REVISION)"
 }
 
 version_info() {
     while read LINE; do
-        IFS="," read APP ARGS FIELD <<< "$LINE"
+        IFS="," read APP COMMAND FIELD <<< "$LINE"
         test "$APP" || continue
         if test "$FIELD"; then
-            VERSION=$($APP $ARGS 2>&1 | head -n1 | awk "{print \$$FIELD}")
+            VERSION=$($COMMAND 2>&1 | head -n1 | awk "{print \$$FIELD}")
         else
-            VERSION=$(bash -c "$ARGS")
+            VERSION=$(bash -c "$COMMAND")
         fi
         echo "$APP: $VERSION"
     done <<< "$1"
@@ -34,15 +37,11 @@ version_info() {
 
 
 basic_info
-echo
-echo "--- Packages info"
+echo -e "\n--- Packages info"
 version_info "$PACKAGES"
-echo
-echo "--- Setup test"
+echo -e "\n--- Setup test"
 $TESTSDIR/test_setup.sh
-echo
-echo "--- Library tests"
+echo -e "\n--- Library tests"
 $TESTSDIR/test_lib.sh
-echo 
-echo "--- Modules tests"
+echo -e "\n--- Modules tests"
 $TESTSDIR/test_modules.sh
