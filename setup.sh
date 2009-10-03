@@ -36,7 +36,7 @@ if [ "$1" = "uninstall" ]; then
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCSDIR
-    cp -v CHANGELOG COPYING README $DOCSDIR 
+    cp -v CHANGELOG README $DOCSDIR 
 
     # Common library 
     mkdir -p $LIBDIR

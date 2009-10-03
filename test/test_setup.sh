@@ -21,7 +21,6 @@ share
 share/doc
 share/doc/plowshare
 share/doc/plowshare/CHANGELOG
-share/doc/plowshare/COPYING
 share/doc/plowshare/README
 share/plowshare
 share/plowshare/delete.sh
