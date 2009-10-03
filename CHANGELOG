@@ -1,7 +1,8 @@
 plowshare (0.8.1) stable; urgency=medium
 
-  * Add plowdel script (supported only for megaupload)
-  * [download] Add new -r RATE/--limit-rate=RATE option
+  * Add plowdel executable
+  * [plowdown] Add new -r RATE/--limit-rate=RATE option
+  * [megaupload] Add delete support
 
  --  <tokland@gmail.com>  Wed, 30 Sep 2009 22:45:53 +0200
 
@@ -192,4 +193,4 @@ plowshare (0.1) unstable; urgency=high
  
   * First release
 
- -- Arnau Sanchez <tokland@gmail.com>  Sat, 24 Jan 2008 22:17:21 +0200
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 24 Jan 2009 12:17:21 +0200
