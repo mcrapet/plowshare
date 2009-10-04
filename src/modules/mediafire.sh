@@ -45,11 +45,8 @@ mediafire_download() {
     # we use the default javascript interpreter (js) to run it. 
     debug "running Javascript code"
     VARS=$(echo "$JS_CODE" | grep "^[[:space:]]*var")
-    echo "$JS_CODE" > /tmp/jscode
-    echo "$VARS" > /tmp/vars
     HREF=$(echo "$JS_CODE" | \
         parse "href=" "href=\\\\\(\"http.*\)+[[:space:]]*'\">")
-    echo "$HREF" > /tmp/href
     FILE_URL=$(echo "$VARS; print($HREF);" | js)
     echo "$FILE_URL"
 }
