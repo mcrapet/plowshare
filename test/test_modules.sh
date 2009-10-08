@@ -121,7 +121,7 @@ test_megaupload_upload_member() {
     test -e $TESTSDIR/.megaupload-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
     URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE megaupload)
-    assert_equal "http://www.megaupload.com/?d=RNXW8998" "$URL" || return 1
+    assert_match "http://www.megaupload.com/?d=" "$URL" || return 1
 }        
 
 test_megaupload_upload_premium_with_password() {
@@ -129,7 +129,7 @@ test_megaupload_upload_premium_with_password() {
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" -p "mypassword" \
         -d 'Plowshare test' $UPFILE megaupload)
-    assert_equal "http://www.megaupload.com/?d=K9T3O855" "$URL" || return 1
+    assert_match "http://www.megaupload.com/?d=" "$URL" || return 1
     assert_return 0 'match "name=\"filepassword\"" "$(curl $URL)"' || return 1
 }        
 
@@ -138,7 +138,7 @@ test_megaupload_upload_premium_using_multifetch() {
     AUTH=$(cat $TESTSDIR/.megaupload-premium-auth)
     URL=$(upload -a "$AUTH" --multifetch --clear-log \
         -d 'Plowshare test' "http://www.gnu.org/licenses/gpl.txt" megaupload)
-    assert_equal "http://www.megaupload.com/?d=K9T3O855" "$URL" || return 1
+    assert_match "http://www.megaupload.com/?d=" "$URL" || return 1
 }        
 
 test_megaupload_delete_member() {
