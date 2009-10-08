@@ -4,7 +4,7 @@ plowshare (0.8.1) stable; urgency=medium
   * [plowdown] Add new -r RATE/--limit-rate=RATE option
   * [megaupload] Add delete support
 
- --  <tokland@gmail.com>  Wed, 30 Sep 2009 22:45:53 +0200
+ -- Arnau Sanchez <tokland@gmail.com>  Wed, 07 Oct 2009 22:45:53 +0200
 
 plowshare (0.8) stable; urgency=low
 
