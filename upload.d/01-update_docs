@@ -8,4 +8,4 @@ process() {
 
 svn up $WIKI/
 process $WIKI/Readme.wiki README
-process $WIKI/BreakingMegauploadCaptcha.wiki src/modules/extras/README
+#process $WIKI/BreakingMegauploadCaptcha.wiki src/modules/extras/README
