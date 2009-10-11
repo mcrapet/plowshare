@@ -29,7 +29,7 @@ VERSION="0.8"
 MODULES="megaupload"
 OPTIONS="
 HELP,h,help,,Show help info
-GETVERSION,v,version,,Return plowdown version
+GETVERSION,v,version,,Return plowdel version
 QUIET,q,quiet,,Don't print debug messages
 "
 
