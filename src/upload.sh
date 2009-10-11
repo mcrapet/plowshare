@@ -32,7 +32,7 @@ VERSION="0.8.1"
 MODULES="rapidshare megaupload 2shared"
 OPTIONS="
 HELP,h,help,,Show help info
-GETVERSION,v,version,,Return plowdown version
+GETVERSION,v,version,,Return plowup version
 QUIET,q,quiet,,Don't print debug messages
 "
 
@@ -46,9 +46,9 @@ done
 # Print usage
 #
 usage() {
-    debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE MODULE[:DESTNAME]"
+    debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
     debug
-    debug "  Upload a file to a file sharing site."
+    debug "  Upload a file (or filees) to a file-sharing site."
     debug
     debug "  Available modules: $MODULES"
     debug
@@ -59,28 +59,37 @@ usage() {
 }
 
 # Main
-#
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+test $# -ge 2 || { usage; exit 1; } 
 
-test $# -eq 2 || { usage; exit 1; } 
-
-FILE=$1
-DESTINATION=$2
+# *FILES, DESTINATION = $@
+FILES=${@:(1):$#-1}
+DESTINATION=${@:(-1)}
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 
-# Test that file exists (ignore URLs)
-if ! match "^\(http://\)" "$FILE" && ! test -f "$FILE"; then
-    error "file does not exist: $FILE"
-    exit 3
-fi
+# ignore DESTFILE when uploading multiple files (it makes no sense there)
+test $# -eq 2 || DESTFILE="" 
 
-grep -w -q "$MODULE" <<< "$MODULES" ||
-    { error "unsupported module ($MODULE)"; exit 4; }
-FUNCTION=${MODULE}_upload
-debug "starting upload ($MODULE)"
-$FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || exit 5
+RETVAL=0
+for FILE in ${FILES[@]}; do
+  # Check that file exists (ignore URLs)
+  if ! match "^\(http://\)" "$FILE" && ! test -f "$FILE"; then
+      error "file does not exist: $FILE"
+      RETVAL=3
+      continue
+  elif ! grep -w -q "$MODULE" <<< "$MODULES"; then
+      error "unsupported module ($MODULE)"
+      RETVAL=3
+      continue
+  fi
+  FUNCTION=${MODULE}_upload
+  debug "starting upload ($MODULE): $FILE"
+  $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || RETVAL=3
+done
+
+exit $RETVAL
