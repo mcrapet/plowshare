@@ -47,7 +47,7 @@ badongo_download() {
         MTIME="$(date +%s)000"
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \
             convert - +matte -colorspace gray -level 40%,40% gif:- | \
-            show_image_and_tee | ocr | tr -c -d "[a-zA-Z]" | uppercase)
+            show_image_and_tee | ocr | sed "s/[^a-zA-Z]//g" | uppercase)
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
             { debug "Captcha length invalid"; continue; }             

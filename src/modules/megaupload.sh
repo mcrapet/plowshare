@@ -104,7 +104,7 @@ megaupload_download() {
         debug "captcha URL: $CAPTCHA_URL"
         # OCR captcha and show ascii image to stderr simultaneously
         CAPTCHA=$(curl "$CAPTCHA_URL" | show_image_and_tee |
-            convert - +matte gif:- | ocr | tr -c -d '[a-zA-Z0-9]') ||
+            convert - +matte gif:- | ocr | sed "s/[^a-zA-Z0-9]//g") ||
             { error "error running OCR"; return 1; }
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
