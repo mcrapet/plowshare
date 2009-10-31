@@ -102,12 +102,14 @@ download() {
           echo "$URL"
           break
         elif test $DRETVAL -eq 254; then
-          error "Module reported that the file link was not alive"
+          error "Module reported that the file link is not alive"
           if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
               sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" && 
                   debug "link marked as non-downloadable in file: $ITEM" ||
                   error "error marking link as non-downloadable in file: $ITEM"
-          fi        
+          fi
+          # Don't set RETVAL, a non-found file is not regarded as an error
+          break        
         fi        
         test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
             { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
