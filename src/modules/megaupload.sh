@@ -19,7 +19,6 @@ MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
-CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 MULTIFETCH,m,multifetch,,Use URL multifetch upload

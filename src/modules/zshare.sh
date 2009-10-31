@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_ZSHARE_REGEXP_URL="http://\(www\.\)\?zshare.net/download"
-MODULE_ZSHARE_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZSHARE_UPLOAD_OPTIONS=
 MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 

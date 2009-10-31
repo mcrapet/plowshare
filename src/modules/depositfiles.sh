@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles.com/"
-MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS=""
 MODULE_DEPOSITFILES_DOWNLOAD_CONTINUE=no
 
 # Output a depositfiles file download URL (free download)

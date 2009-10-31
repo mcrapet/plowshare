@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo.com/"
-MODULE_BADONGO_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_BADONGO_DOWNLOAD_OPTIONS=""
 MODULE_BADONGO_UPLOAD_OPTIONS=
 MODULE_BADONGO_DOWNLOAD_CONTINUE=yes
 

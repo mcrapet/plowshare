@@ -38,6 +38,7 @@ LINK_ONLY,l,link-only,,Return only file link
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb) 
+CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
 # Get library directory
@@ -89,7 +90,8 @@ download() {
     local TYPE=$5
     local MARK_DOWN=$6
     local OUTPUT_DIR=$7
-    shift 7
+    local CHECK_LINK=$8
+    shift 8
     
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
@@ -97,18 +99,18 @@ download() {
     while true; do  
         local DRETVAL=0    
         FILE_URL=$($FUNCTION "$@" "$URL") || DRETVAL=$?
-        if test $DRETVAL -eq 255; then 
+        if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then 
           debug "Link active: $URL"
           echo "$URL"
           break
         elif test $DRETVAL -eq 254; then
-          error "Module reported that the file link is not alive"
+          debug "warning: file link is not alive"
           if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
               sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" && 
                   debug "link marked as non-downloadable in file: $ITEM" ||
                   error "error marking link as non-downloadable in file: $ITEM"
           fi
-          # Don't set RETVAL, a non-found file is not regarded as an error
+          # Don't set RETVAL, a non-found file is not considerer an error
           break        
         fi        
         test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
@@ -170,7 +172,7 @@ for ITEM in "$@"; do
         test -z "$MODULE" && 
             { debug "no module for URL: $URL"; RETVAL=$DERROR; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
-            "$MARK_DOWN" "$OUTPUT_DIR" "${UNUSED_OPTIONS[@]}"            
+            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "${UNUSED_OPTIONS[@]}"            
     done
 done
 

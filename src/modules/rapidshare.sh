@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(\w\+\.\)\?rapidshare.com/"
-MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS=""
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_FREEZONE,a:,auth-freezone:,USER:PASSWORD,Use a freezone account"
 MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no

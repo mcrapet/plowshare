@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
-MODULE_2SHARED_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_2SHARED_DOWNLOAD_OPTIONS=""
 MODULE_2SHARED_UPLOAD_OPTIONS=
 MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 

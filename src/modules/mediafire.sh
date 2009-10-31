@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_MEDIAFIRE_REGEXP_URL="http://\(www\.\)\?mediafire.com/"
-MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS=""
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS=
 MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 

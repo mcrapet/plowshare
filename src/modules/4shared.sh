@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared.com/file/"
-MODULE_4SHARED_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_4SHARED_DOWNLOAD_OPTIONS=""
 MODULE_4SHARED_UPLOAD_OPTIONS=
 MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
