@@ -78,7 +78,7 @@ test $# -eq 2 || DESTFILE=""
 RETVAL=0
 for FILE in ${FILES[@]}; do
   # Check that file exists (ignore URLs)
-  if ! match "^\(http://\)" "$FILE" && ! test -f "$FILE"; then
+  if ! match "^[[:alpha:]]\+://" "$FILE" && ! test -f "$FILE"; then
       error "file does not exist: $FILE"
       RETVAL=3
       continue
