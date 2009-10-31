@@ -33,7 +33,7 @@ depositfiles_download() {
     while true; do        
         START=$(curl -L "$URL")
         echo "$START" | grep -q "no_download_msg" &&
-            { debug "file not found"; return 1; }
+            { debug "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
         if echo "$START" | grep -q "download_started"; then
             echo "$START" | parse "download_started" 'action="\([^"]*\)"'

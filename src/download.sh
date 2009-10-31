@@ -94,10 +94,21 @@ download() {
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
 
-    while true; do      
-        FILE_URL=$($FUNCTION "$@" "$URL") && DRETVAL=0 || DRETVAL=$?
-        test $DRETVAL -eq 255 && 
-            { debug "Link active: $URL"; echo "$URL"; break; }
+    while true; do  
+        local DRETVAL=0    
+        FILE_URL=$($FUNCTION "$@" "$URL") || DRETVAL=$?
+        if test $DRETVAL -eq 255; then 
+          debug "Link active: $URL"
+          echo "$URL"
+          break
+        elif test $DRETVAL -eq 254; then
+          error "Module reported that the file link was not alive"
+          if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
+              sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" && 
+                  debug "link marked as non-downloadable in file: $ITEM" ||
+                  error "error marking link as non-downloadable in file: $ITEM"
+          fi        
+        fi        
         test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
             { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
         debug "file URL: $FILE_URL"

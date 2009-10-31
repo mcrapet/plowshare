@@ -31,7 +31,7 @@ zshare_download() {
     URL=$1   
     WAITPAGE=$(curl -L --data "download=1" "$URL")
     echo "$WAITPAGE" | grep -q "File Not Found" && 
-      { error "file not found"; return 1; }
+      { error "file not found"; return 254; }
     test "$CHECK_LINK" && return 255
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
       "||here|\([[:digit:]]\+\)")    

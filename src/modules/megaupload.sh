@@ -98,9 +98,8 @@ megaupload_download() {
             echo "$FILEURL"
             return
         fi 
-        CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') ||
-            { error "file not found"; return 1; }
-        test "$CHECK_LINK" && return 255;          
+        CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 254
+        test "$CHECK_LINK" && return 255;
         debug "captcha URL: $CAPTCHA_URL"
         # OCR captcha and show ascii image to stderr simultaneously
         CAPTCHA=$(curl "$CAPTCHA_URL" | show_image_and_tee |

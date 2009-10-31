@@ -34,7 +34,7 @@ mediafire_download() {
     COOKIES=$(create_tempfile)
     MAIN_PAGE=$(curl -c $COOKIES "$URL" | sed "s/>/>\n/g")
     JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu('\([^)]*\));") ||
-      { error "file not found"; return 1; }
+      { error "file not found"; return 254; }
     test "$CHECK_LINK" && return 255
     IFS="," read QK PK R < <(echo "$JS_CALL" | tr -d "'")
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
