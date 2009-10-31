@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?megaupload.com/"
+MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|rotic\|porn\).com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
@@ -36,9 +36,6 @@ AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)
 "
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
-BASEURL="http://www.megaupload.com"
-LOGINURL="http://www.megaupload.com/?c=login"
-
 # megaupload_download [DOWNLOAD_OPTIONS] URL
 #
 # Output file URL
@@ -48,11 +45,13 @@ megaupload_download() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     ERRORURL="http://www.megaupload.com/?c=msg"
- 
+    
+    URL=$(echo $URL | sed "s/rotic\.com/porn\.com/")
+    BASEURL=$(echo "$URL" | grep -o "http://www\.[^.]*\.com") 
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
+    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$BASEURL/?c=login") ||
         { error "login process failed"; return 1; }
-    echo $URL | grep -q "megaupload.com/?d=" ||
+    echo $URL | grep -q "\.com/?d=" ||
       URL=$(curl -I "$URL" | grep "^location" | cut -d":" -f2- | xargs)
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }    
     TRY=0
@@ -130,7 +129,9 @@ megaupload_download() {
 megaupload_upload() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
     FILE=$1
-    DESTFILE=${2:-$FILE}    
+    DESTFILE=${2:-$FILE}
+    LOGINURL="http://www.megaupload.com/?c=login"
+        
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
         { debug "error on login process"; return 1; }
@@ -198,6 +199,7 @@ megaupload_upload() {
 megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
     URL=$1
+    LOGINURL="http://www.megaupload.com/?c=login"
     
     AJAXURL="http://www.megaupload.com/?ajax=1"
     test "$AUTH" || 
