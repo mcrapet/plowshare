@@ -30,12 +30,14 @@ rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     while true; do
-        WAIT_URL=$(curl "$URL" | parse '<form' 'action="\(.*\)"') ||
+        WAIT_URL=$(curl "$URL" | parse '<form' 'action="\([^"]*\)"') ||
             { error "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
-        if echo "$DATA" | grep -o "Your IP address.*file" >&2; then
+        ERR1="no more download slots available for free users right now"
+        ERR2="Your IP address.*file"
+        if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
             WAITTIME=1
             debug "Sleeping $WAITTIME minute(s) before trying again"
             sleep $((WAITTIME*60))
@@ -47,7 +49,7 @@ rapidshare_download() {
         debug "download limit reached: waiting $LIMIT minutes"
         sleep $((LIMIT*60))
     done
-    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^\"]*\)"') 
+    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"') 
     SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);")
     debug "URL File: $FILE_URL" 
     debug "waiting $SLEEP seconds" 
