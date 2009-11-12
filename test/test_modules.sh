@@ -242,9 +242,9 @@ test_zshare_check_active_link() {
 DEPOSIT_SMALL_URL="http://depositfiles.com/es/files/sswznjsu2"
 DEPOSIT_BIG_URL="http://depositfiles.com/es/files/vd58vei0y"
 
-test_zshare_check_active_link() {
+test_depositfiles_check_active_link() {
     assert_equal "$DEPOSIT_SMALL_URL" "$(download -c $DEPOSIT_SMALL_URL)" || return 1
-    assert_return 5 "download -c ${DEPOSIT_SMALL_URL}wronglink" || return 1
+    assert_equal "" "$(download -c ${DEPOSIT_SMALL_URL}wronglink)" || return 1
 }        
 
 test_depositfiles_download_small_file() {
