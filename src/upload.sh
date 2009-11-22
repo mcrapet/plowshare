@@ -36,8 +36,14 @@ GETVERSION,v,version,,Return plowup version
 QUIET,q,quiet,,Don't print debug messages
 "
 
+absolute_path() {
+  WHICHPATH=$(which "$1")
+  FILEPATH=$(readlink "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
+  ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
+  dirname "$ABSPATH"
+}
 # Get library directory
-LIBDIR=$(dirname "$(readlink -f "$(which "$0")")")
+LIBDIR=$(absolute_path "$0")
 source $LIBDIR/lib.sh
 for MODULE in $MODULES; do
     source $LIBDIR/modules/$MODULE.sh

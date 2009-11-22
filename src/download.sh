@@ -41,8 +41,14 @@ LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
+absolute_path() {
+  WHICHPATH=$(which "$1")
+  FILEPATH=$(readlink "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
+  ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
+  dirname "$ABSPATH"
+}
 # Get library directory
-LIBDIR=$(dirname "$(readlink -f "$(which "$0")")")
+LIBDIR=$(absolute_path "$0")
 EXTRASDIR=$LIBDIR/modules/extras
 
 source $LIBDIR/lib.sh
