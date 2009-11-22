@@ -38,18 +38,20 @@ curl() {
     local OPTIONS=(--insecure)
     local DRETVAL=0
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
-    while true; do
-        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
-        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
-            local WAIT=60
-            debug "curl failed with non-fatal retcode $DRETVAL"
-            debug "retry after a safety wait ($WAIT seconds)"
-            sleep $WAIT
-            continue
-        else
-            return $DRETVAL
-        fi
-    done    
+    $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
+    return $DRETVAL    
+#    while true; do
+#        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
+#        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
+#            local WAIT=60
+#            debug "curl failed with non-fatal retcode $DRETVAL"
+#            debug "retry after a safety wait ($WAIT seconds)"
+#            sleep $WAIT
+#            continue
+#        else
+#            return $DRETVAL
+#        fi
+#    done    
 }
 
 # Get first line that matches a regular expression and extract string from it.
