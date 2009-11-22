@@ -282,9 +282,12 @@ ascii_image() {
 }
 
 show_image_and_tee() {
-  local COLUMNS=$(tput cols || echo 80)
-  local LINES=$(tput lines || echo 30)
-  tee >(test -z "$QUIET" && ascii_image -width $COLUMNS -height $LINES >&2)
+  test "$QUIET" && { cat; return; } 
+  local TEMPFILE=$(create_tempfile)
+  cat > $TEMPFILE
+  img2txt -W 60 -H 14 $TEMPFILE >&2
+  cat $TEMPFILE
+  rm -f $TEMPFILE
 }
 
 # Get module name from URL link
