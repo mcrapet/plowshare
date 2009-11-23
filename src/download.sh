@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.8.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles letitbit"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
