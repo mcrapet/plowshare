@@ -74,7 +74,6 @@ letitbit_download() {
 	  FILEURL=$(echo "$WAITPAGE" | parse 'link=' 'link=\([^\"]\+\)\"' 2>/dev/null || true)
 	  test "$FILEURL" && break;
 	  debug 'Wrong captcha, retry'
-	  echo $WAITPAGE > waitpage.htm
 	done
 	debug "Correct captch (try $TRY)"
 	debug "File URL: $FILEURL"
