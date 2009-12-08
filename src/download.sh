@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.8.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles letitbit"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles uploaded_to letitbit"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
@@ -102,9 +102,18 @@ download() {
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
 
+    declare -a RETARR
     while true; do  
-        local DRETVAL=0    
-        FILE_URL=$($FUNCTION "$@" "$URL") || DRETVAL=$?
+        local DRETVAL=0
+
+        OLD_IFS="$IFS"
+        IFS=$'\n'
+        RETARR=( `$FUNCTION "$@" "$URL"` )
+        DRETVAL=$?
+        FILE_URL=${RETARR[0]}
+        FILENAME=${RETARR[1]}
+        IFS="$OLD_IFS"
+
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then 
           debug "Link active: $URL"
           echo "$URL"
@@ -129,8 +138,8 @@ download() {
             CURL=("curl") 
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
-                recode html..utf8)
+            test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
+                sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
             ${CURL[@]} -y60 -f --globoff -o "$FILENAME" "$FILE_URL" &&
