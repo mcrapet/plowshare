@@ -17,7 +17,7 @@
 #
 # Contributed by Matthieu Crapet
 
-MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\uploaded\.to/"
+MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded.to\|ul\.to\)/"
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_UPLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_DOWNLOAD_CONTINUE=no

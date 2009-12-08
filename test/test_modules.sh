@@ -259,5 +259,22 @@ test_depositfiles_download_big_file() {
     rm -f $FILENAME
 }        
 
+# Uploaded.to
+
+UPLOADED_TO_URL1="http://ul.to/t6h61d"
+UPLOADED_TO_URL2="http://uploaded.to/file/t6h61d"
+
+test_uploaded_to_download_short_url() {
+    FILENAME="debian047.jpg"
+    assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL1)" || return 1
+    rm -f $FILENAME
+}        
+
+test_uploaded_to_download_long_url() {
+    FILENAME="debian047.jpg"
+    assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL2)" || return 1
+    rm -f $FILENAME
+}        
+
 
 run_tests "$@"
