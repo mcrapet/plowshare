@@ -102,17 +102,10 @@ download() {
     FUNCTION=${MODULE}_download 
     debug "start download ($MODULE): $URL"
 
-    declare -a RETARR
     while true; do  
         local DRETVAL=0
-
-        OLD_IFS="$IFS"
-        IFS=$'\n'
-        RETARR=( `$FUNCTION "$@" "$URL"` )
-        DRETVAL=$?
-        FILE_URL=${RETARR[0]}
-        FILENAME=${RETARR[1]}
-        IFS="$OLD_IFS"
+        RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
+        read -d "\n" FILE_URL FILENAME <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then 
           debug "Link active: $URL"

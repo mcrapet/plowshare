@@ -15,15 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
+# Contributed by Matthieu Crapet
+
 MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\uploaded\.to/"
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
-MODULE_UPLOADED_TO_UPLOAD_OPTIONS=
+MODULE_UPLOADED_TO_UPLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_DOWNLOAD_CONTINUE=no
-
-# Create temporary file to store HTTP protocol headers
-HEADERS=$(create_tempfile ".tmp")
-HEADERS_KEY="^[Ll]ocation:[[:space:]]\+\/"
-
 
 # Output an uploaded.to file download URL (anonymous, NOT PREMIUM)
 #
@@ -35,6 +32,10 @@ uploaded_to_download() {
 
     set -e
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
+
+    # Create temporary file to store HTTP protocol headers
+    HEADERS=$(create_tempfile ".tmp")
+    HEADERS_KEY="^[Ll]ocation:[[:space:]]\+\/"
 
     while [[ $try -lt 3 ]]; do 
         ((try++))
@@ -83,6 +84,6 @@ uploaded_to_download() {
     # http://s30b0-cb.uploaded.to/dl?id=12391efd1619c525cfe0c25175731572
     # Real filename is also stored in "Content-Disposition" HTTP header
  
-    declare -a return_array=( "$file_url" "$file_real_name" )
-    echo "${return_array[*]}"
+    echo $file_url
+    echo $file_real_name
 }
