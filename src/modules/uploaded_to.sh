@@ -27,9 +27,6 @@ MODULE_UPLOADED_TO_DOWNLOAD_CONTINUE=no
 # uploaded_to_download UPLOADED_TO_URL
 #
 uploaded_to_download() {
-    local try=0
-    local file_url file_real_name
-
     set -e
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
 
@@ -37,9 +34,7 @@ uploaded_to_download() {
     HEADERS=$(create_tempfile ".tmp")
     HEADERS_KEY="^[Ll]ocation:[[:space:]]\+\/"
 
-    while [[ $try -lt 3 ]]; do 
-        ((try++))
- 
+    while true; do  
         DATA=$(curl -L -D "$HEADERS" "$1")
  
         # Location: /?view=error_fileremoved   
@@ -62,17 +57,16 @@ uploaded_to_download() {
             sleep $(($LIMIT * 60))
 
         else
-            file_url=$(echo "$DATA" | parse "download_form" 'action="\([^"]*\)"')
+            local file_url=$(echo "$DATA" | parse "download_form" 'action="\([^"]*\)"')
             SLEEP=$(echo "$DATA" | parse "var[[:space:]]\+secs" "=[[:space:]]*\([[:digit:]]\+\);") ||
                 { debug "ignore sleep time"; SLEEP=0; }
 
-            test "$CHECK_LINK" && return 255;
+            test "$CHECK_LINK" && return 255
 
             debug "URL File: $file_url" 
-            file_real_name=$(echo "$DATA" | parse '<title>'  '>\(.*\) ... at uploaded.to') && \
-                debug "Filename: $file_real_name"
+            local file_real_name=$(echo "$DATA" | parse '<title>'  '>\(.*\) ... at uploaded.to') && \
+            debug "Filename: $file_real_name"
             debug "waiting $SLEEP seconds"
-
             sleep $(($SLEEP + 1))
             break
         fi
