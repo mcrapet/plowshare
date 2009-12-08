@@ -105,7 +105,7 @@ download() {
     while true; do  
         local DRETVAL=0
         RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
-        read -d "\n" FILE_URL FILENAME <<< "$RESULT" || true
+        { read FILE_URL; read FILENAME; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then 
           debug "Link active: $URL"
