@@ -31,9 +31,11 @@ share/plowshare/modules/2shared.sh
 share/plowshare/modules/4shared.sh
 share/plowshare/modules/badongo.sh
 share/plowshare/modules/depositfiles.sh
+share/plowshare/modules/letitbit.sh
 share/plowshare/modules/mediafire.sh
 share/plowshare/modules/megaupload.sh
 share/plowshare/modules/rapidshare.sh
+share/plowshare/modules/uploaded_to.sh
 share/plowshare/modules/zshare.sh
 share/plowshare/upload.sh"
 
