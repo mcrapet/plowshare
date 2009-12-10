@@ -289,9 +289,9 @@ show_image_and_tee() {
   test "$QUIET" && { cat; return; } 
   local TEMPFILE=$(create_tempfile)
   cat > $TEMPFILE
-  if which aview; then
+  if which aview &>/dev/null; then
     aview_ascii_image $TEMPFILE >&2
-  elif which img2txt; then
+  elif which img2txt &>/dev/null; then
     caca_ascii_image $TEMPFILE >&2
   else
     debug "Install aview or libcaca to display captcha image"
