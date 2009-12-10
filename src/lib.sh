@@ -272,20 +272,30 @@ process_options() {
 
 # Output image in ascii chars (uses aview)
 #
-ascii_image() {
-    convert - -negate pnm:- | \
-        aview "$@" -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" | \
-        awk 'BEGIN { part = 0; }
-            /\014/ { part++; next; }
-            // { if (part == 2) print $0; }' | \
-        grep -v "^[[:space:]]*$"
+aview_ascii_image() {
+  convert $1 -negate pnm:- |
+    aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" |
+    awk 'BEGIN { part = 0; }
+      /\014/ { part++; next; }
+      // { if (part == 2) print $0; }' | \
+    grep -v "^[[:space:]]*$"
+}
+
+caca_ascii_image() {
+  img2txt -W 60 -H 14 $1
 }
 
 show_image_and_tee() {
   test "$QUIET" && { cat; return; } 
   local TEMPFILE=$(create_tempfile)
   cat > $TEMPFILE
-  img2txt -W 60 -H 14 $TEMPFILE >&2
+  if which aview; then
+    aview_ascii_image $TEMPFILE >&2
+  elif which img2txt; then
+    caca_ascii_image $TEMPFILE >&2
+  else
+    debug "Install aview or libcaca to display captcha image"
+  fi
   cat $TEMPFILE
   rm -f $TEMPFILE
 }
