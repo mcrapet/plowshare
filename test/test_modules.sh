@@ -259,6 +259,20 @@ test_depositfiles_download_big_file() {
     rm -f $FILENAME
 }        
 
+# Storage.to
+
+STORAGE_TO_URL="http://www.storage.to/get/AMvFJROk/debian032.jpg"
+
+test_storage_to_download() {
+    FILENAME="debian032.jpg"
+    assert_equal "$FILENAME" "$(download $STORAGE_TO_URL)" || return 1
+    rm -f $FILENAME
+}        
+
+test_storage_to_check_active_link() {
+    assert_equal "$STORAGE_TO_URL" "$(download -c $STORAGE_TO_URL)" || return 1
+}        
+
 # Uploaded.to
 
 UPLOADED_TO_URL1="http://ul.to/t6h61d"
@@ -274,6 +288,10 @@ test_uploaded_to_download_long_url() {
     FILENAME="debian047.jpg"
     assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL2)" || return 1
     rm -f $FILENAME
+}        
+
+test_uploaded_to_check_active_link() {
+    assert_equal "$UPLOADED_TO_URL1" "$(download -c $UPLOADED_TO_URL1)" || return 1
 }        
 
 

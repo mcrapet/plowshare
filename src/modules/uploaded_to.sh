@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Contributed by Matthieu Crapet
+# Contributed by Matthieu Crapet <mcrapet@gmail.com>
 
-MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded.to\|ul\.to\)/"
+MODULE_UPLOADED_TO_REGEXP_URL="^http://\(www\.\)\?\(uploaded.to\|ul\.to\)/"
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_UPLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_DOWNLOAD_CONTINUE=no
@@ -42,7 +42,7 @@ uploaded_to_download() {
         then
             rm -f $HEADERS
  
-            test -z $(match '\(premium account\|Premiumaccount\)' "$DATA") && \
+            $(match '\(premium account\|Premiumaccount\)' "$DATA") && \
                 debug "premium user link only" || \
                 debug "file not found"
             return 254

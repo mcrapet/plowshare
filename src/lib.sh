@@ -66,6 +66,7 @@ parse() {
 }
 
 # Check if a string ($2) matches a regexp ($1)
+# $? is zero on success
 #
 match() { 
     grep -q "$1" <<< "$2"
