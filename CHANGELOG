@@ -1,3 +1,11 @@
+plowshare (0.9svn) stable; urgency=low
+
+  * Add letitbit module
+  * Add uploaded_at module
+  * Fallback to img2txt (libcaca) if aview is not found
+
+ --  <tokland@gmail.com>  Thu, 10 Dec 2009 20:23:20 +0100
+
 plowshare (0.8.1) stable; urgency=medium
 
   * Add plowdel executable
