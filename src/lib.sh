@@ -312,3 +312,20 @@ get_module() {
         match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
     done
 }
+
+# Countdown from VALUE (in UNIT units) in STEP values
+#
+countdown() {
+  local VALUE=$1
+  local STEP=$2
+  local UNIT=$3
+  local UNIT_SECS=$4
+  
+  seq $VALUE -$STEP 1 | while read REMAINING; do
+    test $REMAINING = $VALUE && 
+        debug -n "Waiting $VALUE $UNIT... " || debug -n "$REMAINING/"
+    local WAIT=$(expr $STEP \* $UNIT_SECS)
+    test $WAIT \< $REMAINING && sleep $WAIT || sleep $REMAINING
+  done
+  debug 0
+}

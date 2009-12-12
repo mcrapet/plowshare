@@ -71,8 +71,7 @@ megaupload_download() {
           # Fragile parsing, set a default waittime if something went wrong
           test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 || 
             WAITTIME=2
-          debug "Waiting $WAITTIME minutes before trying again"
-          sleep $((WAITTIME*60))
+          countdown $WAITTIME 1 minutes 60
           continue          
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
@@ -119,8 +118,7 @@ megaupload_download() {
     FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     debug "File URL: $FILEURL"
-    debug "Waiting $WAITTIME seconds"
-    sleep $((WAITTIME+1))
+    countdown $((WAITTIME+1)) 10 seconds 1 
     echo "$FILEURL"    
 }
 
