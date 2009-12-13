@@ -321,7 +321,7 @@ countdown() {
   local UNIT=$3
   local UNIT_SECS=$4
   
-  seq $VALUE -$STEP 1 | while read REMAINING; do
+  for REMAINING in $(eval echo "{$VALUE..1..-$STEP}"); do
     test $REMAINING = $VALUE && 
         debug -n "Waiting $VALUE $UNIT... " || debug -n "$REMAINING/"
     local WAIT=$(expr $STEP \* $UNIT_SECS)
