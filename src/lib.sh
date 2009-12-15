@@ -313,19 +313,19 @@ get_module() {
     done
 }
 
-# Countdown from VALUE (in UNIT units) in STEP values
+# Countdown from VALUE (in UNIT_STR units) in STEP values
 #
 countdown() {
   local VALUE=$1
   local STEP=$2
-  local UNIT=$3
+  local UNIT_STR=$3
   local UNIT_SECS=$4
   
   for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
     test $REMAINING = $VALUE && 
-        debug -n "Waiting $VALUE $UNIT... " || debug -n "$REMAINING.. "
+        debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
     local WAIT=$(expr $STEP \* $UNIT_SECS)
-    test $WAIT \< $REMAINING && sleep $WAIT || sleep $REMAINING
+    [[ $WAIT -lt $REMAINING ]] && sleep $WAIT || sleep $REMAINING
   done
   debug 0
 }

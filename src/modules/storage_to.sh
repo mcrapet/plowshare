@@ -30,7 +30,7 @@ storage_to_download() {
     set -e
     eval "$(process_options storage_to "$MODULE_STORAGE_TO_DOWNLOAD_OPTIONS" "$@")"
 
-    MAIN_PAGE=$(curl "$1?language=en") 
+    MAIN_PAGE=$(curl --silent "$1?language=en") 
 
     $(match 'File not found' "$MAIN_PAGE") && \
         { error "file not found"; return 254; }
@@ -40,7 +40,7 @@ storage_to_download() {
     PARAMS_URL=${1/\/get\//\/getlink\/}
 
     while true; do
-        DATA=$(curl -L "$PARAMS_URL")
+        DATA=$(curl --location "$PARAMS_URL")
  
         # Parse JSON object
         # new Object({ 'state' : 'ok', 'countdown' : 60, 'link' : 'http://...', 'linkid' : 'Be5CAkz2' })
@@ -50,15 +50,14 @@ storage_to_download() {
         local count=$(echo "$DATA" | parse 'new Object' "'countdown'[[:space:]]*:[[:space:]]*\([[:digit:]]*\)" 2>/dev/null)
         local  link=$(echo "$DATA" | parse 'new Object' "'link'[[:space:]]*:[[:space:]]*'\([^']*\)'" 2>/dev/null)
 
-        debug "waiting $count seconds" 
-
         if [ $state == "ok" ]
         then
-            sleep $((count+1))
+            countdown $((count+1)) 10 seconds 1
             break
         elif [ $state == "wait" ]
         then
-            sleep $((count+1))
+            debug "Download limit reached!"
+            countdown $((count+1)) 60 seconds 1
             continue
         else
             error "failed state"

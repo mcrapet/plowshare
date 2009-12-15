@@ -35,7 +35,7 @@ uploaded_to_download() {
     HEADERS_KEY="^[Ll]ocation:[[:space:]]\+\/"
 
     while true; do  
-        DATA=$(curl -L -D "$HEADERS" "$1")
+        DATA=$(curl --location --dump-header "$HEADERS" "$1")
  
         # Location: /?view=error_fileremoved   
         if test -n "$(cat "$HEADERS" | parse $HEADERS_KEY '\(error_fileremoved\)' 2>/dev/null)"
@@ -53,8 +53,8 @@ uploaded_to_download() {
             LIMIT=$(echo "$DATA" | parse "\(minutes\|minuti\|Minuten\)" '[[:space:]]\+\([[:digit:]]\+\)[[:space:]]\+') ||
                 { error "can't get wait delay"; return 1; }
 
-            debug "download limit reached: waiting $LIMIT minutes"
-            sleep $(($LIMIT * 60))
+            debug "Download limit reached!"
+            countdown $LIMIT 1 minutes 60
 
         else
             local file_url=$(echo "$DATA" | parse "download_form" 'action="\([^"]*\)"')
@@ -66,8 +66,9 @@ uploaded_to_download() {
             debug "URL File: $file_url" 
             local file_real_name=$(echo "$DATA" | parse '<title>'  '>\(.*\) ... at uploaded.to') && \
             debug "Filename: $file_real_name"
-            debug "waiting $SLEEP seconds"
-            sleep $(($SLEEP + 1))
+
+            # usual wait time is 12 seconds
+            countdown $((SLEEP + 1)) 2 seconds 1
             break
         fi
     done
