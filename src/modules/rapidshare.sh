@@ -30,31 +30,32 @@ rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     while true; do
-        WAIT_URL=$(curl "$URL" | parse '<form' 'action="\([^"]*\)"') ||
+        WAIT_URL=$(curl --silent "$URL" | parse '<form' 'action="\([^"]*\)"' 2>/dev/null) ||
             { error "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
-        ERR1="no more download slots available for free users right now"
+        ERR1="No more download slots available for free users right now"
         ERR2="Your IP address.*file"
         if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
             WAITTIME=1
             debug "Sleeping $WAITTIME minute(s) before trying again"
-            sleep $((WAITTIME*60))
+            countdown $WAITTIME 1 minutes 60
             continue
         fi
-        CAPTURE="[[:space:]]\([[:digit:]]\+\) minute"
-        LIMIT=$(echo "$DATA" | parse "minute" "$CAPTURE" 2>/dev/null || true)
+
+        LIMIT=$(echo "$DATA" | parse "minute" "[[:space:]]\([[:digit:]]\+\) minute" 2>/dev/null || true)
         test -z "$LIMIT" && break
-        debug "download limit reached: waiting $LIMIT minutes"
-        sleep $((LIMIT*60))
+        debug "Download limit reached!"
+        countdown $LIMIT 1 minutes 60
     done
-    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"') 
+
+    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"')
     SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);")
-    debug "URL File: $FILE_URL" 
-    debug "waiting $SLEEP seconds" 
-    sleep $(($SLEEP + 1))
-    echo $FILE_URL    
+    debug "URL File: $FILE_URL"
+    countdown $((SLEEP + 1)) 30 seconds 1
+
+    echo $FILE_URL
 }
 
 # Upload a file to Rapidshare (anonymously or free zone, NOT PREMIUM)
@@ -66,7 +67,7 @@ rapidshare_download() {
 #
 rapidshare_upload() {
     set -e    
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"    
+    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     if test "$AUTH_FREEZONE"; then
         rapidshare_upload_freezone "$@"
     else
@@ -105,7 +106,7 @@ rapidshare_upload_freezone() {
     FILE=$1
     DESTFILE=${2:-$FILE}
     
-    FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"       
+    FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
         { error "error on login process"; return 1; }

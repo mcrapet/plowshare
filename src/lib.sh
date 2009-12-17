@@ -324,8 +324,8 @@ countdown() {
   for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
     test $REMAINING = $VALUE && 
         debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
-    local WAIT=$(expr $STEP \* $UNIT_SECS)
-    [[ $WAIT -lt $REMAINING ]] && sleep $WAIT || sleep $REMAINING
+    local WAIT=$((STEP * UNIT_SECS))
+    [[ $STEP -le $REMAINING ]] && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
   done
   debug 0
 }
