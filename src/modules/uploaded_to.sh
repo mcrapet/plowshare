@@ -34,14 +34,14 @@ uploaded_to_download() {
     HEADERS=$(create_tempfile ".tmp")
     HEADERS_KEY="^[Ll]ocation:[[:space:]]\+\/"
 
-    while true; do  
+    while true; do
         DATA=$(curl --location --dump-header "$HEADERS" "$1")
- 
-        # Location: /?view=error_fileremoved   
+
+        # Location: /?view=error_fileremoved
         if test -n "$(cat "$HEADERS" | parse $HEADERS_KEY '\(error_fileremoved\)' 2>/dev/null)"
         then
             rm -f $HEADERS
- 
+
             $(match '\(premium account\|Premiumaccount\)' "$DATA") && \
                 debug "premium user link only" || \
                 debug "file not found"
@@ -63,7 +63,7 @@ uploaded_to_download() {
 
             test "$CHECK_LINK" && return 255
 
-            debug "URL File: $file_url" 
+            debug "URL File: $file_url"
             local file_real_name=$(echo "$DATA" | parse '<title>'  '>\(.*\) ... at uploaded.to') && \
             debug "Filename: $file_real_name"
 
@@ -78,7 +78,7 @@ uploaded_to_download() {
     # Example of URL:
     # http://s30b0-cb.uploaded.to/dl?id=12391efd1619c525cfe0c25175731572
     # Real filename is also stored in "Content-Disposition" HTTP header
- 
+
     echo $file_url
     echo $file_real_name
 }

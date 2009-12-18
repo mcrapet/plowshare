@@ -30,7 +30,7 @@ storage_to_download() {
     set -e
     eval "$(process_options storage_to "$MODULE_STORAGE_TO_DOWNLOAD_OPTIONS" "$@")"
 
-    MAIN_PAGE=$(curl --silent "$1?language=en") 
+    MAIN_PAGE=$(curl --silent "$1?language=en")
 
     $(match 'File not found' "$MAIN_PAGE") && \
         { error "file not found"; return 254; }
@@ -41,7 +41,7 @@ storage_to_download() {
 
     while true; do
         DATA=$(curl --location "$PARAMS_URL")
- 
+
         # Parse JSON object
         # new Object({ 'state' : 'ok', 'countdown' : 60, 'link' : 'http://...', 'linkid' : 'Be5CAkz2' })
         # new Object({ 'state' : 'wait', 'countdown' : 2554, 'link' : '', 'linkid' : 'Be5CAkz2' })
