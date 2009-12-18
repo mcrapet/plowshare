@@ -28,6 +28,7 @@ MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 rapidshare_download() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
+
     URL=$1
     while true; do
         WAIT_URL=$(curl --silent "$URL" | parse '<form' 'action="\([^"]*\)"' 2>/dev/null) ||
@@ -66,12 +67,12 @@ rapidshare_download() {
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
 #
 rapidshare_upload() {
-    set -e    
+    set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     if test "$AUTH_FREEZONE"; then
         rapidshare_upload_freezone "$@"
     else
-        rapidshare_upload_anonymous "$@" 
+        rapidshare_upload_anonymous "$@"
     fi
 }
 
@@ -86,9 +87,9 @@ rapidshare_upload_anonymous() {
     UPLOAD_URL="http://www.rapidshare.com"
     debug "downloading upload page: $UPLOAD_URL"
     ACTION=$(curl "$UPLOAD_URL" | parse 'form name="ul"' 'action="\([^"]*\)')
-    debug "upload to: $ACTION"    
+    debug "upload to: $ACTION"
     INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION")
-    URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<")     
+    URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<")
     KILL=$(echo "$INFO" | parse "loeschlink" ">\(.*\)<")
     echo "$URL ($KILL)"
 }
@@ -105,7 +106,7 @@ rapidshare_upload_freezone() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     FILE=$1
     DESTFILE=${2:-$FILE}
-    
+
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
@@ -132,7 +133,7 @@ rapidshare_upload_freezone() {
     FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"")
     # There is a killcode in the HTML, but it's not used to build a URL
     # but as a param in a POST submit, so I assume there is no kill URL for
-    # freezone files. Therefore, output just the file URL.    
+    # freezone files. Therefore, output just the file URL.
     URL="http://rapidshare.com/files/$FILEID/$FILENAME.html"
     echo "$URL"
 }

@@ -27,11 +27,22 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 2shared_download() {
     set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1   
-    FILE_URL=$(curl "$URL" | parse "window.location" "location = \"\(.*\)\"") || 
+
+    MAIN_PAGE=$(curl --silent "$1")
+    FILE_URL=$(echo $MAIN_PAGE | parse 'window.location' 'location = "\([^"]\+\)"' 2>/dev/null)
+
+    test -z "$FILE_URL" &&
         { error "file not found"; return 254; }
+
     test "$CHECK_LINK" && return 255
+
+    # Try to figure out real name written on page
+    FILE_REAL_NAME=$(echo $MAIN_PAGE | parse '<div class="header">' \
+		    'header">[[:space:]]*Download[[:space:]]\+\([^ ]\+\)[[:space:]]*' 2>/dev/null)
+
     echo "$FILE_URL"
+    test -n "$FILE_REAL_NAME" &&
+        { debug "Filename: $FILE_REAL_NAME"; echo "$FILE_REAL_NAME"; }
 }
 
 # Upload a file to 2shared and upload URL (ADMIN_URL)
@@ -42,7 +53,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
     FILE=$1
-    DESTFILE=${2:-$FILE}    
+    DESTFILE=${2:-$FILE}
     UPLOADURL="http://www.2shared.com/"
 
     debug "downloading upload page: $UPLOADURL"
@@ -60,5 +71,5 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     DONE=$(curl "$UPLOADURL/$COMPLETE")
     URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
     ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
-    echo "$URL ($ADMIN)"   
+    echo "$URL ($ADMIN)"
 }
