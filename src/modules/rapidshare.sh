@@ -36,16 +36,17 @@ rapidshare_download() {
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
-        ERR1="No more download slots available for free users right now"
+
+        ERR1="[Nn]o more download slots available for free users right now"
         ERR2="Your IP address.*file"
         if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
             WAITTIME=1
-            debug "Sleeping $WAITTIME minute(s) before trying again"
             countdown $WAITTIME 1 minutes 60
             continue
         fi
 
-        LIMIT=$(echo "$DATA" | parse "minute" "[[:space:]]\([[:digit:]]\+\) minute" 2>/dev/null || true)
+        # Test for "Currently a lot of users are downloading files.  Please try again in 2 minutes or become ..."
+        LIMIT=$(echo "$DATA" | parse "minute" "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null || true)
         test -z "$LIMIT" && break
         debug "Download limit reached!"
         countdown $LIMIT 1 minutes 60
