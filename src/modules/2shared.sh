@@ -42,7 +42,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
     echo "$FILE_URL"
     test -n "$FILE_REAL_NAME" &&
-        { debug "Filename: $FILE_REAL_NAME"; echo "$FILE_REAL_NAME"; }
+        { debug "Filename: $FILE_REAL_NAME"; echo "$FILE_REAL_NAME"; } || true
 }
 
 # Upload a file to 2shared and upload URL (ADMIN_URL)

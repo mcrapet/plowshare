@@ -27,16 +27,26 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 4shared_download() {
     set -e
     eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1   
-    WAIT_URL=$(curl "$URL" | parse "4shared.com\/get\/" 'href="\([^"]*\)"') ||
+
+    URL=$1
+    WAIT_URL=$(curl --silent "$URL" | parse "4shared.com\/get\/" 'href="\([^"]*\)"') ||
         { error "file not found"; return 254; }
     WAIT_HTML=$(curl "$WAIT_URL")
-    test "$CHECK_LINK" && return 255 
+
+    test "$CHECK_LINK" && return 255
+
     WAIT_TIME=$(echo "$WAIT_HTML" | parse "id='downloadDelayTimeSec'" \
         ">\([[:digit:]]\+\)<")
-    debug "Waiting $WAIT_TIME seconds" 
-    FILE_URL=$(echo "$WAIT_HTML" | parse "4shared.com\/download\/" \
+    FILE_URL=$(echo "$WAIT_HTML" | parse "\.4shared\.com\/download\/" \
         "href='\([^']*\)'")
-    sleep $WAIT_TIME    
+
+    # Try to figure out real name written on page
+    FILE_REAL_NAME=$(echo $WAIT_HTML | parse '<b class="xlarge blue">' \
+                    'blue">\([^<]\+\)' 2>/dev/null)
+
+    countdown $((WAIT_TIME)) 10 seconds 1
+
     echo "$FILE_URL"
+    test -n "$FILE_REAL_NAME" &&
+        { debug "Filename: $FILE_REAL_NAME"; echo "$FILE_REAL_NAME"; } || true
 }
