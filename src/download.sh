@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Download files from file sharing servers. 
+# Download files from file sharing servers.
 #
 # Output filenames path to standard output (one per line).
 #
@@ -33,11 +33,11 @@ MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositf
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
-QUIET,q,quiet,,Don't print debug messages 
-LINK_ONLY,l,link-only,,Return only file link 
+QUIET,q,quiet,,Don't print debug messages
+LINK_ONLY,l,link-only,,Return only file link
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
-LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb) 
+LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
@@ -51,13 +51,13 @@ absolute_path() {
 LIBDIR=$(absolute_path "$0")
 EXTRASDIR=$LIBDIR/modules/extras
 
-source $LIBDIR/lib.sh
+source "$LIBDIR/lib.sh"
 for MODULE in $MODULES; do
-    source $LIBDIR/modules/$MODULE.sh
+    source "$LIBDIR/modules/$MODULE.sh"
 done
 
 # Guess is item is a rapidshare URL, a generic URL (to start a download)
-# or a file with links (discard empty/repeated lines and comments)- 
+# or a file with links (discard empty/repeated lines and comments)-
 #
 process_item() {
     ITEM=$1
@@ -84,7 +84,7 @@ usage() {
     debug "Global options:"
     debug
     debug_options "$OPTIONS" "  "
-    debug_options_for_modules "$MODULES" "DOWNLOAD"    
+    debug_options_for_modules "$MODULES" "DOWNLOAD"
 }
 
 # download MODULE URL FUNCTION_OPTIONS
@@ -98,37 +98,37 @@ download() {
     local OUTPUT_DIR=$7
     local CHECK_LINK=$8
     shift 8
-    
-    FUNCTION=${MODULE}_download 
+
+    FUNCTION=${MODULE}_download
     debug "start download ($MODULE): $URL"
 
-    while true; do  
+    while true; do
         local DRETVAL=0
         RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
         { read FILE_URL; read FILENAME; } <<< "$RESULT" || true
 
-        if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then 
+        if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
           debug "Link active: $URL"
           echo "$URL"
           break
         elif test $DRETVAL -eq 254; then
           debug "warning: file link is not alive"
-          if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
-              sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" && 
+          if test "$TYPE" = "file" -a "$MARK_DOWN"; then
+              sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" &&
                   debug "link marked as non-downloadable in file: $ITEM" ||
                   error "error marking link as non-downloadable in file: $ITEM"
           fi
           # Don't set RETVAL, a non-found file is not considerer an error
-          break        
-        fi        
-        test $DRETVAL -ne 0 -o -z "$FILE_URL" && 
+          break
+        fi
+        test $DRETVAL -ne 0 -o -z "$FILE_URL" &&
             { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
         debug "file URL: $FILE_URL"
-        
+
         if test "$LINK_ONLY"; then
             echo "$FILE_URL"
         else
-            CURL=("curl") 
+            CURL=("curl")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
@@ -147,16 +147,16 @@ download() {
                 error "error downloading: $URL"
                 RETVAL=$DERROR
                 break
-            fi            
+            fi
         fi
-        
-        if test "$TYPE" = "file" -a "$MARK_DOWN"; then 
-            sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" && 
+
+        if test "$TYPE" = "file" -a "$MARK_DOWN"; then
+            sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" &&
                 debug "link marked as downloaded in file: $ITEM" ||
                 error "error marking link as downloaded in file: $ITEM"
         fi
         break
-    done 
+    done
 }
 
 # Main
@@ -167,7 +167,7 @@ eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
- 
+
 test $# -ge 1 || { usage; exit 1; }
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
@@ -177,10 +177,10 @@ for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
-        test -z "$MODULE" && 
+        test -z "$MODULE" &&
             { debug "no module for URL: $URL"; RETVAL=$DERROR; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
-            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "${UNUSED_OPTIONS[@]}"            
+            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "${UNUSED_OPTIONS[@]}"
     done
 done
 
