@@ -35,7 +35,7 @@ error() {
 # Wrapper for curl: debug and infinite loop control
 #
 curl() {
-    local OPTIONS=(--insecure)
+    local -a OPTIONS=(--insecure)
     local DRETVAL=0
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
@@ -232,7 +232,7 @@ process_options() {
     local ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
         --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"
     eval set -- "$ARGUMENTS"
-    local UNUSED_OPTIONS=()
+    local -a UNUSED_OPTIONS=()
     while true; do
         test "$1" = "--" && { shift; break; }
         while read OPTION; do
