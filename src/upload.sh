@@ -54,7 +54,7 @@ done
 usage() {
     debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
     debug
-    debug "  Upload a file (or filees) to a file-sharing site."
+    debug "  Upload a file (or files) to a file-sharing site."
     debug
     debug "  Available modules: $MODULES"
     debug
