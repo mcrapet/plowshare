@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.8.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to letitbit"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to letitbit uploading"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
@@ -105,7 +105,7 @@ download() {
     while true; do
         local DRETVAL=0
         RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
-        { read FILE_URL; read FILENAME; } <<< "$RESULT" || true
+        { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
           debug "Link active: $URL"
@@ -131,6 +131,7 @@ download() {
             CURL=("curl")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
+            test "$COOKIES" && CURL=($CURL -b $COOKIES)
             test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
                 sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
