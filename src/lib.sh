@@ -23,12 +23,12 @@
 # Echo text to standard error.
 #
 debug() {
-    if [ -z "$QUIET" ]; then 
+    if [ -z "$QUIET" ]; then
         echo "$@" >&2
     fi
 }
 
-error() { 
+error() {
     echo "Error: $@" >&2
 }
 
@@ -39,7 +39,7 @@ curl() {
     local DRETVAL=0
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
     $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
-    return $DRETVAL    
+    return $DRETVAL
 #    while true; do
 #        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
 #        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
@@ -51,7 +51,7 @@ curl() {
 #        else
 #            return $DRETVAL
 #        fi
-#    done    
+#    done
 }
 
 # Get first line that matches a regular expression and extract string from it.
@@ -59,22 +59,22 @@ curl() {
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parentheses) on the matched line.
 #
-parse() { 
-    local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) && 
-        test "$STRING" && echo "$STRING" || 
-        { debug "parse failed: /$1/ $2"; return 1; } 
+parse() {
+    local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) &&
+        test "$STRING" && echo "$STRING" ||
+        { debug "parse failed: /$1/ $2"; return 1; }
 }
 
 # Check if a string ($2) matches a regexp ($1)
 # $? is zero on success
 #
-match() { 
+match() {
     grep -q "$1" <<< "$2"
 }
 
 # Check existance of executable in path
 #
-# $1: Executable to check 
+# $1: Executable to check
 check_exec() {
     type -P $1 > /dev/null
 }
@@ -94,9 +94,9 @@ post_login() {
     AUTH=$1
     POSTDATA=$2
     LOGINURL=$3
-    
+
     if test "$AUTH"; then
-        IFS=":" read USER PASSWORD <<< "$AUTH" 
+        IFS=":" read USER PASSWORD <<< "$AUTH"
         debug "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
         DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
@@ -118,15 +118,20 @@ create_tempfile() {
 
 # OCR of an image. Write OCRed text to standard input
 #
-# Standard input: image 
+# Standard input: image
+# One or two optionnal arguments
 ocr() {
-    # Tesseract somewhat "peculiar" arguments requirement makes impossible 
-    # to use pipes or process substitution. Create temporal files 
+    local OPT_CONFIGFILE=$1
+    local OPT_VARFILE=$2
+    test -z "$OPT_CONFIGFILE" && OPT_VARFILE=''
+
+    # Tesseract somewhat "peculiar" arguments requirement makes impossible
+    # to use pipes or process substitution. Create temporal files
     # instead (*sigh*).
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
     convert - tif:- > $TIFF
-    tesseract $TIFF ${TEXT/%.txt} || 
+    tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE ||
         { rm -f $TIFF $TEXT; return 1; }
     cat $TEXT
     rm -f $TIFF $TEXT
@@ -151,7 +156,7 @@ debug_options() {
         test "$LONG" && {
             STRING="$STRING--${LONG%:}"
             test "$VALUE" && STRING="$STRING=$VALUE"
-        } 
+        }
         debug "$STRING: $HELP"
     done <<< "$OPTIONS"
 }
@@ -179,7 +184,7 @@ continue_downloads() {
 
 get_options_for_module() {
     MODULE=$1
-    NAME=$2    
+    NAME=$2
     VAR="MODULE_$(echo $MODULE | uppercase)_${NAME}_OPTIONS"
     echo "${!VAR}"
 }
@@ -193,14 +198,14 @@ debug_options_for_modules() {
         if test "$OPTIONS"; then
             debug; debug "Options for module <$MODULE>:"; debug
             debug_options "$OPTIONS" "  "
-        fi        
+        fi
     done
 }
 
-get_field() { 
-    echo "$2" | while IFS="," read LINE; do 
+get_field() {
+    echo "$2" | while IFS="," read LINE; do
         echo "$LINE" | cut -d"," -f$1
-    done 
+    done
 }
 
 # Straighforward options and arguments processing using getopt style
@@ -215,13 +220,13 @@ get_field() {
 # user:password / 1 / arg1 / arg2
 #
 process_options() {
-    quote() { 
-        for ARG in "$@"; do 
-            echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") " 
+    quote() {
+        for ARG in "$@"; do
+            echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
         done | sed "s/ $//"
     }
     local NAME=$1
-    local OPTIONS=$2   
+    local OPTIONS=$2
     shift 2
     # Strip spaces in options
     local OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
@@ -267,7 +272,7 @@ process_options() {
         done <<< "$OPTIONS"
         shift
     done
-    echo "$(declare -p UNUSED_OPTIONS)" 
+    echo "$(declare -p UNUSED_OPTIONS)"
     echo "set -- $(quote "$@")"
 }
 
@@ -287,7 +292,7 @@ caca_ascii_image() {
 }
 
 show_image_and_tee() {
-  test "$QUIET" && { cat; return; } 
+  test "$QUIET" && { cat; return; }
   local TEMPFILE=$(create_tempfile)
   cat > $TEMPFILE
   if which aview &>/dev/null; then
@@ -303,13 +308,13 @@ show_image_and_tee() {
 
 # Get module name from URL link
 #
-# $1: URL 
+# $1: URL
 get_module() {
     URL=$1
     MODULES=$2
     for MODULE in $MODULES; do
         VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
-        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true    
+        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true
     done
 }
 
@@ -320,9 +325,9 @@ countdown() {
   local STEP=$2
   local UNIT_STR=$3
   local UNIT_SECS=$4
-  
+
   for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
-    test $REMAINING = $VALUE && 
+    test $REMAINING = $VALUE &&
         debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
     local WAIT=$((STEP * UNIT_SECS))
     [[ $STEP -le $REMAINING ]] && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
