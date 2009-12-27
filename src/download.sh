@@ -131,7 +131,7 @@ download() {
             CURL=("curl")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
-            test "$COOKIES" && CURL=($CURL -b $COOKIES)
+            test -n "$COOKIES" && CURL=($CURL -b $COOKIES)
             test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
                 sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
