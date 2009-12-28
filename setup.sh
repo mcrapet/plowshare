@@ -24,33 +24,40 @@ LIBDIR=$USRDIR/share/$NAME
 BINDIR=$USRDIR/bin
 DOCSDIR=$USRDIR/share/doc/$NAME
 MODULESDIR=$LIBDIR/modules
-BIN2LIB=../share/$NAME
 USAGE="Usage: setup.sh install|uninstall"
+
+CP='cp -v'
+RM='rm -vf'
+LN_S='ln -vsf'
 
 test $# -eq 0 && { echo "$USAGE"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
-    rm -vrf $LIBDIR $DOCSDIR
-    rm -vf $BINDIR/{plowdown,plowup,plowdel}
+    $RM -r $LIBDIR $DOCSDIR
+    $RM $BINDIR/{plowdown,plowup,plowdel}
 
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCSDIR
-    cp -v CHANGELOG README $DOCSDIR 
+    $CP CHANGELOG README $DOCSDIR
 
-    # Common library 
+    # Common library
     mkdir -p $LIBDIR
-    cp -pv src/download.sh src/upload.sh src/delete.sh src/lib.sh $LIBDIR
+    $CP src/download.sh \
+        src/upload.sh   \
+        src/delete.sh   \
+        src/lib.sh      \
+        src/strip_single_color.pl $LIBDIR
 
     # Modules
     mkdir -p $MODULESDIR
-    cp -v src/modules/*.sh $MODULESDIR
+    $CP -p src/modules/*.sh $MODULESDIR
 
     # Binary files
-    mkdir -p $BINDIR 
-    ln -vsf $BIN2LIB/download.sh $BINDIR/plowdown
-    ln -vsf $BIN2LIB/upload.sh $BINDIR/plowup
-    ln -vsf $BIN2LIB/delete.sh $BINDIR/plowdel
+    mkdir -p $BINDIR
+    $LN_S $LIBDIR/download.sh $BINDIR/plowdown
+    $LN_S $LIBDIR/upload.sh $BINDIR/plowup
+    $LN_S $LIBDIR/delete.sh $BINDIR/plowdel
 
 else
     echo "$USAGE"
