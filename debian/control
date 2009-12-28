@@ -1,0 +1,16 @@
+Source: plowshare
+Section: web
+Priority: standard
+Maintainer: Matthieu Crapet <mcrapet@gmail.com>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.0
+Homepage: http://code.google.com/p/plowshare/
+
+Package: plowshare
+Architecture: all
+Depends: bash, curl, recode, imagemagick, tesseract-ocr-eng, spidermonkey-bin, aview, gocr, perlmagick
+Description: command-line downloader/uploader for file-sharing websites
+ Plowshare is a command-line downloader/uploader for some
+ of the most popular file-sharing websites.
+ .
+ This package contains shell scripts files.
