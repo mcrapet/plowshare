@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
