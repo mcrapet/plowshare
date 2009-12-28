@@ -43,7 +43,7 @@ elif [ "$1" = "install" ]; then
 
     # Common library
     mkdir -p $LIBDIR
-    $CP src/download.sh \
+    $CP -p src/download.sh \
         src/upload.sh   \
         src/delete.sh   \
         src/lib.sh      \
@@ -51,7 +51,7 @@ elif [ "$1" = "install" ]; then
 
     # Modules
     mkdir -p $MODULESDIR
-    $CP -p src/modules/*.sh $MODULESDIR
+    $CP src/modules/*.sh $MODULESDIR
 
     # Binary files
     mkdir -p $BINDIR
