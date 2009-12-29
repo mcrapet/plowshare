@@ -52,7 +52,9 @@ binary-indep: build install
 	dh_installdocs README
 	dh_installexamples
 	dh_installman
-	dh_link
+	dh_link usr/share/plowshare/download.sh usr/bin/plowdown
+	dh_link usr/share/plowshare/upload.sh   usr/bin/plowup
+	dh_link usr/share/plowshare/delete.sh   usr/bin/plowdel
 	dh_strip
 	dh_compress
 	dh_fixperms
