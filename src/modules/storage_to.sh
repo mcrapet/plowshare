@@ -30,7 +30,7 @@ storage_to_download() {
     set -e
     eval "$(process_options storage_to "$MODULE_STORAGE_TO_DOWNLOAD_OPTIONS" "$@")"
 
-    MAIN_PAGE=$(curl --silent "$1?language=en")
+    MAIN_PAGE=$(curl "$1?language=en")
 
     $(match 'File not found' "$MAIN_PAGE") && \
         { error "file not found"; return 254; }
