@@ -132,7 +132,7 @@ ocr() {
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
     convert - tif:- > $TIFF
-    tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE ||
+    tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 1>&2 ||
         { rm -f $TIFF $TEXT; return 1; }
     cat $TEXT
     rm -f $TIFF $TEXT
