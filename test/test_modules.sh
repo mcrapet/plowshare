@@ -295,4 +295,14 @@ test_uploaded_to_check_active_link() {
 }        
 
 
+# Uploading.com
+
+UPLOADING_URL="http://uploading.com/files/get/G0JIALR1"
+
+test_uploading_download() {
+    FILENAME="track08.mp3"
+    assert_equal "$FILENAME" "$(download $UPLOADING_URL)" || return 1
+    rm -f $FILENAME
+}
+
 run_tests "$@"
