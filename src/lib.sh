@@ -37,8 +37,8 @@ error() {
 curl() {
     local -a OPTIONS=(--insecure)
     local DRETVAL=0
-    test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
-    test "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
+    test -n "$QUIET" && OPTIONS=(${OPTIONS[@]} "--silent")
+    test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
     $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
     return $DRETVAL
 #    while true; do
@@ -293,7 +293,7 @@ caca_ascii_image() {
 }
 
 show_image_and_tee() {
-  test "$QUIET" && { cat; return; }
+  test -n "$QUIET" && { cat; return; }
   local TEMPFILE=$(create_tempfile)
   cat > $TEMPFILE
   if which aview &>/dev/null; then
