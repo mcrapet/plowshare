@@ -91,11 +91,8 @@ test_megaupload_download_a_password_protected_file_with_premium_account() {
 test_megaupload_download_member() {
     test -e $TESTSDIR/.megaupload-auth || return 255
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
-    OUTPUT=$(download_with_debug -a "$AUTH" $MEGAUPLOAD_URL 2>&1)
-    assert_match "^Waiting 26 seconds" "$OUTPUT" || return 1
-    URL=$(echo "$OUTPUT" | tail -n1)
     FILENAME="testmotion2.mp4"
-    assert_equal "$FILENAME" "$URL" || return 1
+    assert_equal "$FILENAME" "$(download -a "$AUTH" $MEGAUPLOAD_URL)" || return 1
     rm -f $FILENAME
 }        
 
