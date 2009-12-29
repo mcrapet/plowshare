@@ -63,7 +63,7 @@ letitbit_download() {
 
 	  # OCR captcha and show ascii image to stderr simultaneously
 	  CAPTCHA=$(ccurl "$BASEURL/$CAPTCHA_URL" | show_image_and_tee |
-		  convert -contrast-stretch 0%x74% -threshold 80% -crop '59x19+1+1' +repage jpg:- pbm:- | 
+		  convert -contrast-stretch 0%x74% -threshold 80% -crop '59x19+1+1' +repage jpg:- pbm:- |
 		  gocr_ocr | sed 's/ //g' ) ||
 		  { error "error running OCR"; return 1; }
 	  debug "Decoded captcha: $CAPTCHA"
@@ -78,7 +78,7 @@ letitbit_download() {
 	  debug 'Wrong captcha, retry'
 	done
 	debug "Correct captch (try $TRY)"
-	debug "File URL: $FILEURL"
+
 	# wait is not necessary, we can download instantly!
 	echo "$FILEURL"
 }
@@ -86,7 +86,7 @@ letitbit_download() {
 # OCR of an image. Write OCRed text to standard input
 # For ocr gocr used.
 #
-# Standard input: image 
+# Standard input: image
 gocr_ocr(){
   gocr -
 }

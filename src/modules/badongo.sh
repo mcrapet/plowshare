@@ -31,14 +31,14 @@ badongo_download() {
     BASEURL="http://www.badongo.com"
     COOKIES=$(create_tempfile)
     TRY=1
-    while true; do 
+    while true; do
         debug "Downloading captcha page (loop $TRY)"
         TRY=$(($TRY + 1))
         JSCODE=$(curl \
             -F "rs=refreshImage" \
             -F "rst=" \
             -F "rsrnd=$MTIME" \
-            "$URL" | sed "s/>/>\n/g") 
+            "$URL" | sed "s/>/>\n/g")
         ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
             { error "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
@@ -48,8 +48,8 @@ badongo_download() {
             convert - +matte -colorspace gray -level 40%,40% gif:- | \
             show_image_and_tee | ocr | sed "s/[^a-zA-Z]//g" | uppercase)
         debug "Decoded captcha: $CAPTCHA"
-        test $(echo -n $CAPTCHA | wc -c) -eq 4 || 
-            { debug "Captcha length invalid"; continue; }             
+        test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
+            { debug "Captcha length invalid"; continue; }
         CAP_ID=$(echo "$JSCODE" | parse 'cap_id' 'value="\?\([^">]*\)')
         CAP_SECRET=$(echo "$JSCODE" | parse 'cap_secret' 'value="\?\([^">]*\)')
         WAIT_PAGE=$(curl -c $COOKIES \
@@ -58,7 +58,7 @@ badongo_download() {
             -F "user_code=$CAPTCHA" \
             "$ACTION")
         match "var waiting" "$WAIT_PAGE" && break
-        debug "Wrong captcha"          
+        debug "Wrong captcha"
    done
     WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)')
     LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"')
@@ -67,6 +67,6 @@ badongo_download() {
     FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | \
         grep "^Location:" | head -n1 | cut -d" " -f2- | sed "s/[[:space:]]*$//")
     rm -f $COOKIES
-    debug "File URL: $FILE_URL"
-    echo "$FILE_URL"    
+
+    echo "$FILE_URL"
 }
