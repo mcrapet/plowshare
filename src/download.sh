@@ -137,14 +137,13 @@ download() {
                 sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
-            CODE=$(${CURL[@]} -s -I "$FILE_URL" | grep HTTP | awk '{print $2}') || true
-            if test "$CODE" != '200'; then
+            CODE=$(${CURL[@]} -w "%{http_code}" -D $HEADERS -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
+            test $DRETVAL -eq 0 && echo "$FILENAME"
+            test "$COOKIES" && rm $COOKIES
+            if ! match "20." "$CODE"; then
                 error "error HTTP code: $CODE"
                 continue
-            fi              
-            ${CURL[@]} -y60 -f --globoff -o "$FILENAME" "$FILE_URL" &&
-                echo "$FILENAME" || DRETVAL=$?
-            test "$COOKIES" && rm $COOKIES
+            fi            
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
                 debug "curl failed with retcode $DRETVAL"
