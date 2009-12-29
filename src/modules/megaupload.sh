@@ -84,8 +84,14 @@ megaupload_download() {
             PAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$PAGE" &&
                 { error "Link password incorrect"; return 1; }
-            test -z "$PAGE" &&
-              { ccurl -i -d "$DATA" "$URL" | get_location; return; }
+            WAITPAGE=$(ccurl -d "$DATA" "$URL")
+            match 'name="filepassword"' "$WAITPAGE" 2>/dev/null &&
+                { error "Link password incorrect"; return 1; }
+            #test -z "$PAGE" && 
+            #  { ccurl -i -d "$DATA" "$URL" | get_location; return; }
+            WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
+                "count=\([[:digit:]]\+\);" 2>/dev/null) || return 1
+            break
 
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match '<center>The file you are trying to access is temporarily unavailable.</center>' "$PAGE"; then
@@ -123,7 +129,6 @@ megaupload_download() {
         test "$WAITTIME" && break;
         debug "Wrong captcha"
     done
-    debug "Correct captch (try $TRY)"
     FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     countdown $((WAITTIME+1)) 10 seconds 1
