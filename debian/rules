@@ -42,10 +42,8 @@ install: build
 	# Add here commands to install the package into debian/plowshare.
 	DESTDIR=$(CURDIR)/debian/plowshare/usr $(CURDIR)/setup.sh install
 
-
 # Build architecture-independent files here.
 binary-indep: build install
-# We have nothing to do by default.
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs CHANGELOG
