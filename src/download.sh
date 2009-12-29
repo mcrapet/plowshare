@@ -38,6 +38,7 @@ LINK_ONLY,l,link-only,,Return only file link
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+INTERFACE,i:,interface,IFACE,Force IFACE interface 
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 

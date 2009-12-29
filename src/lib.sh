@@ -38,6 +38,7 @@ curl() {
     local -a OPTIONS=(--insecure)
     local DRETVAL=0
     test "$QUIET" && OPTIONS=(${OPTIONS[@]} "-s")
+    test "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
     $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
     return $DRETVAL
 #    while true; do
