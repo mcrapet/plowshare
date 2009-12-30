@@ -38,13 +38,13 @@ LINK_ONLY,l,link-only,,Return only file link
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
-INTERFACE,i:,interface,IFACE,Force IFACE interface 
+INTERFACE,i:,interface,IFACE,Force IFACE interface
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
 absolute_path() {
   WHICHPATH=$(which "$1")
-  FILEPATH=$(readlink "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
+  FILEPATH=$(readlink -f "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
   ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
   dirname "$ABSPATH"
 }
@@ -143,7 +143,7 @@ download() {
             if ! match "20." "$CODE"; then
                 error "error HTTP code: $CODE"
                 continue
-            fi            
+            fi
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
                 debug "curl failed with retcode $DRETVAL"

@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Delete a file from file sharing servers. 
+# Delete a file from file sharing servers.
 #
 # Dependencies: curl, getopt
 #
@@ -35,7 +35,7 @@ QUIET,q,quiet,,Don't print debug messages
 
 absolute_path() {
   WHICHPATH=$(which "$1")
-  FILEPATH=$(readlink "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
+  FILEPATH=$(readlink -f "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
   ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
   dirname "$ABSPATH"
 }
@@ -57,8 +57,8 @@ usage() {
     debug
     debug "Global options:"
     debug
-    debug_options "$OPTIONS" "  " 
-    debug_options_for_modules "$MODULES" "DELETE"    
+    debug_options "$OPTIONS" "  "
+    debug_options_for_modules "$MODULES" "DELETE"
 }
 
 # Main
@@ -69,9 +69,9 @@ eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 1 || { usage; exit 1; } 
+test $# -ge 1 || { usage; exit 1; }
 
-for URL in "$@"; do 
+for URL in "$@"; do
   MODULE=$(get_module "$URL" "$MODULES")
   grep -w -q "$MODULE" <<< "$MODULES" ||
       { error "unsupported module ($MODULE)"; exit 4; }

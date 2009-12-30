@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Upload a file to file sharing servers. 
+# Upload a file to file sharing servers.
 #
 # Output URL to standard output
 #
@@ -38,7 +38,7 @@ QUIET,q,quiet,,Don't print debug messages
 
 absolute_path() {
   WHICHPATH=$(which "$1")
-  FILEPATH=$(readlink "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
+  FILEPATH=$(readlink -f "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
   ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
   dirname "$ABSPATH"
 }
@@ -60,8 +60,8 @@ usage() {
     debug
     debug "Global options:"
     debug
-    debug_options "$OPTIONS" "  " 
-    debug_options_for_modules "$MODULES" "UPLOAD"    
+    debug_options "$OPTIONS" "  "
+    debug_options_for_modules "$MODULES" "UPLOAD"
 }
 
 # Main
@@ -71,7 +71,7 @@ eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 2 || { usage; exit 1; } 
+test $# -ge 2 || { usage; exit 1; }
 
 # *FILES, DESTINATION = $@
 FILES=${@:(1):$#-1}
@@ -79,7 +79,7 @@ DESTINATION=${@:(-1)}
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 
 # ignore DESTFILE when uploading multiple files (it makes no sense there)
-test $# -eq 2 || DESTFILE="" 
+test $# -eq 2 || DESTFILE=""
 
 RETVAL=0
 for FILE in ${FILES[@]}; do
