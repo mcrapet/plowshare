@@ -8,9 +8,9 @@ Homepage: http://code.google.com/p/plowshare/
 
 Package: plowshare
 Architecture: all
-Depends: bash, curl, recode, imagemagick, tesseract-ocr-eng, spidermonkey-bin, aview, gocr, perlmagick
+Depends: bash, curl, recode, imagemagick, tesseract-ocr-eng, spidermonkey-bin, aview | caca-utils, gocr, perlmagick
 Description: command-line downloader/uploader for file-sharing websites
  Plowshare is a command-line downloader/uploader for some
- of the most popular file-sharing websites.
+ of the most popular file-sharing websites (rapidshare, megaupload, ...).
  .
  This package contains shell scripts files.
