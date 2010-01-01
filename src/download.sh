@@ -137,7 +137,7 @@ download() {
                 sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
-            CODE=$(${CURL[@]} -w "%{http_code}" -D $HEADERS -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
+            CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
             test $DRETVAL -eq 0 && echo "$FILENAME"
             test "$COOKIES" && rm $COOKIES
             if ! match "20." "$CODE"; then
