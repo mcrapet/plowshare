@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Contributed by Matthieu Crapet <mcrapet@gmail.com>
 
 MODULE_UPLOADED_TO_REGEXP_URL="^http://\(www\.\)\?\(uploaded.to\|ul\.to\)/"
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
@@ -63,9 +62,15 @@ uploaded_to_download() {
 
             test "$CHECK_LINK" && return 255
 
-            debug "URL File: $file_url"
-            local file_real_name=$(echo "$DATA" | parse '<title>'  '>\(.*\) ... at uploaded.to') && \
-            debug "Filename: $file_real_name"
+            local file_real_name=$(echo "$DATA" | parse '<title>' '>\(.*\) ... at uploaded.to' 2>/dev/null)
+
+            # in title, filename is truncated to 60 characters
+            if [ "${#file_real_name}" -eq 60 ]
+            then
+                local file_real_name_ext=$(echo "$DATA" | parse '[[:space:]]\+' "[[:space:]]\+\(${file_real_name}[^ ]*\)" 2>/dev/null)
+                local extension=$(echo "$DATA" | parse 'Filetype' '<\/td><td>\([^<]*\)<\/td><\/tr>' 2>/dev/null)
+                [ -n "$file_real_name_ext" ] && file_real_name="${file_real_name_ext}${extension}"
+            fi
 
             # usual wait time is 12 seconds
             countdown $((SLEEP + 1)) 2 seconds 1
@@ -80,5 +85,6 @@ uploaded_to_download() {
     # Real filename is also stored in "Content-Disposition" HTTP header
 
     echo $file_url
-    echo $file_real_name
+    test -n "$file_real_name" &&
+        { debug "Filename: $file_real_name"; echo "$file_real_name"; } || true
 }
