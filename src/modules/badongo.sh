@@ -59,14 +59,20 @@ badongo_download() {
             "$ACTION")
         match "var waiting" "$WAIT_PAGE" && break
         debug "Wrong captcha"
-   done
+    done
+
     WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)')
     LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"')
-    debug "Waiting $WAIT_TIME seconds"
-    sleep $WAIT_TIME
-    FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | \
-        grep "^Location:" | head -n1 | cut -d" " -f2- | sed "s/[[:space:]]*$//")
+
+    # usual wait time is 60 seconds
+    countdown $((WAIT_TIME)) 5 seconds 1
+
+    FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | grep_http_header_location)
+
     rm -f $COOKIES
+
+    [ -z "$FILE_URL" ] &&
+        { error "location not found"; return 1; }
 
     echo "$FILE_URL"
 }

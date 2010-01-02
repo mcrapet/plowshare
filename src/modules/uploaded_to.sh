@@ -31,13 +31,13 @@ uploaded_to_download() {
 
     # Create temporary file to store HTTP protocol headers
     HEADERS=$(create_tempfile ".tmp")
-    HEADERS_KEY="^[Ll]ocation:[[:space:]]\+\/"
 
     while true; do
         DATA=$(curl --location --dump-header "$HEADERS" "$1")
+        HEADER_LOC=$(cat "$HEADERS" | grep_http_header_location)
 
         # Location: /?view=error_fileremoved
-        if test -n "$(cat "$HEADERS" | parse $HEADERS_KEY '\(error_fileremoved\)' 2>/dev/null)"
+        if match '\(error_fileremoved\)' "$HEADER_LOC"
         then
             rm -f $HEADERS
 
@@ -47,13 +47,20 @@ uploaded_to_download() {
             return 254
 
         # Location: /?view=error_traffic_exceeded_free&id=abcdef
-        elif test -n "$(cat "$HEADERS" | parse $HEADERS_KEY '\(error_traffic_exceeded_free\)' 2>/dev/null)"
+        elif match '\(error_traffic_exceeded_free\)' "$HEADER_LOC"
         then
             LIMIT=$(echo "$DATA" | parse "\(minutes\|minuti\|Minuten\)" '[[:space:]]\+\([[:digit:]]\+\)[[:space:]]\+') ||
                 { error "can't get wait delay"; return 1; }
 
             debug "Download limit reached!"
             countdown $LIMIT 1 minutes 60
+
+        # Location: /?view=error2&id_a=xxx&id_b=yyy
+        elif match '\(error[[:digit:]]\)' "$HEADER_LOC"
+        then
+            rm -f $HEADERS
+            debug "internal error"
+            return 1
 
         else
             local file_url=$(echo "$DATA" | parse "download_form" 'action="\([^"]*\)"')

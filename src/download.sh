@@ -140,10 +140,6 @@ download() {
             CODE=$(${CURL[@]} -L -w "%{http_code}" -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
             test $DRETVAL -eq 0 && echo "$FILENAME"
             test "$COOKIES" && rm $COOKIES
-            if ! match "20." "$CODE"; then
-                error "error HTTP code: $CODE"
-                continue
-            fi
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
                 debug "curl failed with retcode $DRETVAL"
@@ -154,6 +150,10 @@ download() {
                 error "error downloading: $URL"
                 RETVAL=$DERROR
                 break
+            fi
+            if ! match "20." "$CODE"; then
+                error "error HTTP code: $CODE"
+                continue
             fi
         fi
 

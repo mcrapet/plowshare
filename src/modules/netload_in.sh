@@ -35,7 +35,7 @@ netload_in_download() {
 
     local try=0
     while true; do
-	((try++))
+        ((try++))
         WAIT_URL=$(curl --location -c $COOKIES "$URL" |\
             parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||
             { error "file not found"; return 254; }

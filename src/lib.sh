@@ -66,6 +66,13 @@ parse() {
         { debug "parse failed: /$1/ $2"; return 1; }
 }
 
+# Grep first "Location" (of http header)
+# stdin: result of curl request (with -i/--include or -H/--dump-header flag)
+#
+grep_http_header_location() {
+    sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' | sed "s/\r\?$//"
+}
+
 # Check if a string ($2) matches a regexp ($1)
 # $? is zero on success
 #
