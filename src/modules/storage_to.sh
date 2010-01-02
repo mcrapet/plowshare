@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Contributed by Matthieu Crapet <mcrapet@gmail.com>
 
 MODULE_STORAGE_TO_REGEXP_URL="^http://\(www\.\)\?storage.to/get/"
 MODULE_STORAGE_TO_DOWNLOAD_OPTIONS=""
@@ -60,7 +59,7 @@ storage_to_download() {
             countdown $((count+1)) 60 seconds 1
             continue
         else
-            error "failed state"
+            error "failed state ($state)"
             return 1
         fi
     done

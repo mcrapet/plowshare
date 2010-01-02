@@ -65,8 +65,10 @@ netload_in_download() {
         debug "Decoded captcha: $CAPTCHA"
         rm -f $TEMP_TESSERACT_VARFILE
 
-        test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
-            { debug "Captcha length invalid"; continue; }
+        if [ "${#CAPTCHA}" -ne 4 ]; then
+            debug "Captcha length invalid"
+            continue
+        fi
 
         # Send (post) form
         local form_url=$(echo $WAIT_HTML | parse 'form method=' 'action="\([^"]*\)' 2>/dev/null)
