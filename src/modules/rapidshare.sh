@@ -37,7 +37,7 @@ rapidshare_download() {
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
 
-        ERR1="[Nn]o more download slots available for free users right now"
+        ERR1="[Nn]o more download slots"
         ERR2="Your IP address.*file"
         if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
             WAITTIME=1
