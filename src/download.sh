@@ -64,14 +64,14 @@ process_item() {
     ITEM=$1
     if match "^http://" "$ITEM"; then
         echo "url|$ITEM"
-    else
-        test ! -f "$ITEM" &&
-            { debug "cannot stat '$ITEM': No such file or directory"; return 0; }
+    elif [ -f "$ITEM" ]; then
         grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read URL; do
             test "$ITEM" != "-" -a -f "$ITEM" &&
                 TYPE="file" || TYPE="url"
             echo "$TYPE|$URL"
         done
+    else
+        debug "cannot stat '$ITEM': No such file or directory"
     fi
 }
 
