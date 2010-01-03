@@ -31,6 +31,7 @@ uploading_download() {
 
     URL=$1
     COOKIES=$(create_tempfile)
+
     while true; do
         # Force language to English
         DATA=$(curl --cookie-jar "$COOKIES" --cookie "lang=1" "$URL")
@@ -47,19 +48,30 @@ uploading_download() {
         test "$CHECK_LINK" && return 255
         FILE_ID=$(echo "$DATA" | parse 'input.*name="file_id"' 'value="\([^"]*\)"') ||
             { error "can't get file_id"; return 1; }
-        DATA=$(curl --cookie "$COOKIES" --data "action=second_page&file_id=$FILE_ID" "$WAIT_URL") ||
+        DATA=$(curl --cookie "$COOKIES" --cookie "lang=1" --data "action=second_page&file_id=$FILE_ID" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
         break
     done
 
     WAIT=$(echo "$DATA" | parse 'start_timer([[:digit:]]\+)' 'start_timer(\(.*\))')
     JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
+
+    FILENAME=$(echo "$DATA" | parse '<title>' 'Download \([^ ]*\)' 2>/dev/null)
+
+    # second attempt (note: filename might be truncated in the page)
+    test -z "$FILENAME" &&
+        FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | tail -n1 | parse 'h2' '<h2>\([^<]*\)')
+
     countdown $WAIT 10 seconds 1
-    FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | tail -n1 | parse h2 '<h2>\([^<]*\)')
+
     DATA=$(curl --cookie "$COOKIES" --data "action=get_link&file_id=$FILE_ID&pass=undefined" "$JSURL") ||
         { error "can't get link"; return 1; }
+
+    # example of answer:
+    # { "id": "1268521606000", "js": { "answer": { "link": "http:\/\/up3.uploading.com\/get_file\/%3D%3DwARfyFZ3fKB8rJ ... " } }, "text": "" }
     FILE_URL=$(echo "$DATA" | parse '"answer":' '"link": "\([^"]*\)"') ||
         { error "URL not found"; return 1; }
+
     echo $FILE_URL
     echo $FILENAME
     echo $COOKIES
