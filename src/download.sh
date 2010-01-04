@@ -42,12 +42,34 @@ INTERFACE,i:,interface,IFACE,Force IFACE interface
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
+
+# - Results are similar to "readlink -f" (available on GNU but not BSD)
+# - If '-P' flags (of cp) are removed directory symlinks won't be
+#   translated (but results are correct too)
+# - Assume that $1 is correct (don't check for infinite loop)
 absolute_path() {
-  WHICHPATH=$(which "$1")
-  FILEPATH=$(readlink -f "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
-  ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
-  dirname "$ABSPATH"
+    local saved_pwd="$PWD"
+    TARGET="$1"
+
+    while [ -L "$TARGET" ]; do
+        DIR=$(dirname "$TARGET")
+        TARGET=$(readlink "$TARGET")
+        cd -P "$DIR"
+        DIR="$PWD"
+    done
+
+    if [ -f "$TARGET" ]; then
+        DIR=$(dirname "$TARGET")
+    else
+        DIR="$TARGET"
+    fi
+
+    cd -P "$DIR"
+    TARGET="$PWD"
+    cd $saved_pwd
+    echo "$TARGET"
 }
+
 # Get library directory
 LIBDIR=$(absolute_path "$0")
 EXTRASDIR=$LIBDIR/modules/extras
