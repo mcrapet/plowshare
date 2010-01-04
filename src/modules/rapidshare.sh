@@ -41,7 +41,7 @@ rapidshare_download() {
         ERR2="Your IP address.*file"
         if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
             WAITTIME=1
-            countdown $WAITTIME 1 minutes 60
+            countdown $WAITTIME 2 minutes 60
             continue
         fi
 
@@ -49,7 +49,7 @@ rapidshare_download() {
         LIMIT=$(echo "$DATA" | parse "minute" "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null || true)
         test -z "$LIMIT" && break
         debug "Download limit reached!"
-        countdown $LIMIT 1 minutes 60
+        countdown $LIMIT 2 minutes 60
     done
 
     FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"')
