@@ -18,7 +18,7 @@
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo.com/"
 MODULE_BADONGO_DOWNLOAD_OPTIONS=""
 MODULE_BADONGO_UPLOAD_OPTIONS=
-MODULE_BADONGO_DOWNLOAD_CONTINUE=yes
+MODULE_BADONGO_DOWNLOAD_CONTINUE=no
 
 # Output a file URL to download from Badongo
 #
@@ -29,6 +29,12 @@ badongo_download() {
     eval "$(process_options bandogo "$MODULE_BADONGO_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
     BASEURL="http://www.badongo.com"
+    PAGE=$(curl "$URL")
+    echo "$PAGE" | grep -q '"recycleMessage">' &&
+        { error "file in recycle bin"; return 254; }
+    echo "$PAGE" | grep -q '"fileError">' &&
+        { error "file not found"; return 254; }
+    
     COOKIES=$(create_tempfile)
     TRY=1
     while true; do
@@ -60,19 +66,15 @@ badongo_download() {
         match "var waiting" "$WAIT_PAGE" && break
         debug "Wrong captcha"
     done
-
-    WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)')
-    LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"')
+    
+    WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)') || return 1
+    LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"') || return 1
 
     # usual wait time is 60 seconds
     countdown $((WAIT_TIME)) 5 seconds 1
 
     FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | grep_http_header_location)
-
     rm -f $COOKIES
-
-    [ -z "$FILE_URL" ] &&
-        { error "location not found"; return 1; }
-
+    test "$FILE_URL" || { error "location not found"; return 1; }
     echo "$FILE_URL"
 }
