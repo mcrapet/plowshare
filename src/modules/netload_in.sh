@@ -44,7 +44,7 @@ netload_in_download() {
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
         WAIT_HTML=$(curl -b $COOKIES $WAIT_URL)
-        WAIT_TIME=$(echo $WAIT_HTML |\
+        WAIT_TIME=$(echo "$WAIT_HTML" |\
             parse 'type="text\/javascript">countdown' "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
 
         test -n "$WAIT_TIME" && countdown $((WAIT_TIME / 100)) 5 seconds 1
@@ -102,7 +102,7 @@ netload_in_download() {
     rm -f $COOKIES
 
     FILENAME=$(echo $WAIT_HTML2 |\
-        parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
+        parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)' 2>/dev/null)
     FILE_URL=$(echo $WAIT_HTML2 |\
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
