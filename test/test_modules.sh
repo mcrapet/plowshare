@@ -180,10 +180,10 @@ test_2shared_upload() {
 
 ## Badongo
 
-BADONGO_URL="http://www.badongo.com/file/13153017"
+BADONGO_URL="http://www.badongo.com/file/10855869"
 
 test_badongo_download() {
-    FILENAME="Kandinsky_Wassily_-_De_lo_espiritual_en_el_arte.rar"
+    FILENAME="0906_web_abstract.pdf"
     assert_equal "$FILENAME" "$(download $BADONGO_URL)" || return 1
     rm -f $FILENAME
 }        
@@ -301,5 +301,36 @@ test_uploading_download() {
     assert_equal "$FILENAME" "$(download $UPLOADING_URL)" || return 1
     rm -f $FILENAME
 }
+
+
+# Usershare.net
+
+USERSHARE_URL="http://usershare.net/wzvqgcz6ugn8"
+
+test_usershare_download() {
+    FILENAME="Test.mp3"
+    assert_equal "$FILENAME" "$(download $USERSHARE_URL)" || return 1
+    rm -f $FILENAME
+}        
+
+test_usershare_check_active_link() {
+    assert_equal "$USERSHARE_URL" "$(download -c $USERSHARE_URL)" || return 1
+}                
+        
+
+# Sendspace.net
+
+SENDSPACE_URL="http://www.sendspace.com/file/sjw4sk"
+
+test_sendspace_download() {
+    FILENAME="Test.mp3"
+    assert_equal "$FILENAME" "$(download $SENDSPACE_URL)" || return 1
+    rm -f $FILENAME
+}        
+
+test_sendspace_check_active_link() {
+    assert_equal "$SENDSPACE_URL" "$(download -c $SENDSPACE_URL)" || return 1
+}                
+        
 
 run_tests "$@"
