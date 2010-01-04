@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.8.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to letitbit uploading netload_in"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to letitbit uploading netload_in usershare sendspace"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
@@ -140,7 +140,6 @@ download() {
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
             CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
-            test $DRETVAL -eq 0 && echo "$FILENAME"
             test "$COOKIES" && rm $COOKIES
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
@@ -157,6 +156,7 @@ download() {
                 error "error HTTP code: $CODE"
                 continue
             fi
+            echo "$FILENAME"
         fi
 
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then
