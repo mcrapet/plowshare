@@ -48,7 +48,7 @@ CHECK_LINK,c,check-link,,Check if a link exists and return
 #   translated (but results are correct too)
 # - Assume that $1 is correct (don't check for infinite loop)
 absolute_path() {
-    local saved_pwd="$PWD"
+    local SAVED_PWD="$PWD"
     TARGET="$1"
 
     while [ -L "$TARGET" ]; do
@@ -66,7 +66,7 @@ absolute_path() {
 
     cd -P "$DIR"
     TARGET="$PWD"
-    cd $saved_pwd
+    cd "$SAVED_PWD"
     echo "$TARGET"
 }
 
