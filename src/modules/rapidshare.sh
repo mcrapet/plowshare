@@ -39,9 +39,10 @@ rapidshare_download() {
 
         ERR1="[Nn]o more download slots"
         ERR2="Your IP address.*file"
-        if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
-            WAITTIME=1
-            countdown $WAITTIME 2 minutes 60
+        ERR3="reached the download limit"
+        if echo "$DATA" | grep -o "$ERR1\|$ERR2\|$ERR3" >&2; then
+            WAITTIME=5
+            countdown $WAITTIME 1 minutes 60
             continue
         fi
 
@@ -52,8 +53,8 @@ rapidshare_download() {
         countdown $LIMIT 2 minutes 60
     done
 
-    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"')
-    SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);")
+    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"') || return 1
+    SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
     debug "URL File: $FILE_URL"
     countdown $((SLEEP + 1)) 30 seconds 1
 
