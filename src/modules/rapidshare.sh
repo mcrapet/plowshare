@@ -37,26 +37,22 @@ rapidshare_download() {
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
 
-        ERR1="[Nn]o more download slots"
-        ERR2="Your IP address.*file"
-        ERR3="reached the download limit"
-        if echo "$DATA" | grep -o "$ERR1\|$ERR2\|$ERR3" >&2; then
-            WAITTIME=5
-            countdown $WAITTIME 1 minutes 60
+        LIMIT=$(echo "$DATA" | parse "minute" \
+                "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
+            debug "Server asked to wait $LIMIT minutes"
+            countdown $LIMIT 1 minutes 60
+        }
+        FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"') || {
+            debug "No free slots at this moment"
+            countdown 2 1 minutes 60
             continue
-        fi
-
-        # Test for "Currently a lot of users are downloading files.  Please try again in 2 minutes or become ..."
-        LIMIT=$(echo "$DATA" | parse "minute" "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null || true)
-        test -z "$LIMIT" && break
-        debug "Download limit reached!"
-        countdown $LIMIT 2 minutes 60
+        }
+        break
     done
 
-    FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"') || return 1
     SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
     debug "URL File: $FILE_URL"
-    countdown $((SLEEP + 1)) 30 seconds 1
+    countdown $((SLEEP + 1)) 20 seconds 1
 
     echo $FILE_URL
 }
