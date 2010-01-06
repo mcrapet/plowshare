@@ -34,14 +34,13 @@ OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages
-LINK_ONLY,l,link-only,,Return only file link
+DOWNLOAD_APP,r:,run-download-app:,EXECUTABLE,run 'EXECUTABLE URL FILENAME COOKIES'
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
-
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
 # - If '-P' flags (of cp) are removed directory symlinks won't be
@@ -142,23 +141,27 @@ download() {
                   debug "link marked as non-downloadable in file: $ITEM" ||
                   error "error marking link as non-downloadable in file: $ITEM"
           fi
-          # Don't set RETVAL, a non-found file is not considerer an error
+          # Don't set RETVAL, a dead link is not considerer an error¡
           break
         fi
         test $DRETVAL -ne 0 -o -z "$FILE_URL" &&
             { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
         debug "file URL: $FILE_URL"
 
-        if test "$LINK_ONLY"; then
-            echo "$FILE_URL"
+        test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
+            sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
+        test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+
+        if test "$DOWNLOAD_APP"; then
+            set -- "$DOWNLOAD_APP" "$FILE_URL" "$FILENAME" "$COOKIES"
+            debug "Running download app: $(quote "$@")" 
+            "$@"  
+            test "$COOKIES" && rm $COOKIES
         else
             CURL=("curl")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             test "$COOKIES" && CURL=($CURL -b $COOKIES)
-            test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
-                sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
-            test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local DRETVAL=0
             CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
             test "$COOKIES" && rm $COOKIES

@@ -216,6 +216,12 @@ get_field() {
     done
 }
 
+quote() {
+    for ARG in "$@"; do
+        echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
+    done | sed "s/ $//"
+}
+
 # Straighforward options and arguments processing using getopt style
 #
 # Example:
@@ -228,11 +234,6 @@ get_field() {
 # user:password / 1 / arg1 / arg2
 #
 process_options() {
-    quote() {
-        for ARG in "$@"; do
-            echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
-        done | sed "s/ $//"
-    }
     local NAME=$1
     local OPTIONS=$2
     shift 2
