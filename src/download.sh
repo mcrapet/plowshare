@@ -72,7 +72,6 @@ absolute_path() {
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
-EXTRASDIR=$LIBDIR/modules/extras
 
 source "$LIBDIR/lib.sh"
 for MODULE in $MODULES; do
