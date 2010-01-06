@@ -119,7 +119,7 @@ post_login() {
 #
 create_tempfile() {
     SUFFIX=$1
-    FILE="${TMPDIRo:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
+    FILE="${TMPDIR:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
     : > "$FILE"
     echo "$FILE"
 }
