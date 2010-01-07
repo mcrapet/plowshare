@@ -33,17 +33,37 @@ GETVERSION,v,version,,Return plowdel version
 QUIET,q,quiet,,Don't print debug messages
 "
 
+
+# This function is duplicated from download.sh
 absolute_path() {
-  WHICHPATH=$(which "$1")
-  FILEPATH=$(readlink -f "$WHICHPATH") || { dirname "$WHICHPATH"; return; }
-  ABSPATH=$(test "${FILEPATH:0:1}" = "/" && echo $FILEPATH || echo $(dirname "$1")/$FILEPATH)
-  dirname "$ABSPATH"
+    local SAVED_PWD="$PWD"
+    TARGET="$1"
+
+    while [ -L "$TARGET" ]; do
+        DIR=$(dirname "$TARGET")
+        TARGET=$(readlink "$TARGET")
+        cd -P "$DIR"
+        DIR="$PWD"
+    done
+
+    if [ -f "$TARGET" ]; then
+        DIR=$(dirname "$TARGET")
+    else
+        DIR="$TARGET"
+    fi
+
+    cd -P "$DIR"
+    TARGET="$PWD"
+    cd "$SAVED_PWD"
+    echo "$TARGET"
 }
+
 # Get library directory
 LIBDIR=$(absolute_path "$0")
-source $LIBDIR/lib.sh
+
+source "$LIBDIR/lib.sh"
 for MODULE in $MODULES; do
-    source $LIBDIR/modules/$MODULE.sh
+    source "$LIBDIR/modules/$MODULE.sh"
 done
 
 # Print usage
