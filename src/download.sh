@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.8.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to letitbit uploading netload_in usershare sendspace"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to letitbit uploading netload_in usershare sendspace x7_to"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
@@ -146,7 +146,7 @@ download() {
         fi
         test $DRETVAL -ne 0 -o -z "$FILE_URL" &&
             { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
-        debug "file URL: $FILE_URL"
+        debug "File URL: $FILE_URL"
 
         test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
             sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
@@ -154,8 +154,8 @@ download() {
 
         if test "$DOWNLOAD_APP"; then
             set -- "$DOWNLOAD_APP" "$FILE_URL" "$FILENAME" "$COOKIES"
-            debug "Running download app: $(quote "$@")" 
-            "$@"  
+            debug "Running download app: $(quote "$@")"
+            "$@"
             test "$COOKIES" && rm $COOKIES
         else
             CURL=("curl")

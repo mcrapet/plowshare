@@ -13,6 +13,8 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.depositfiles.com DepositFiles] || anonymous || no ||
 || [http://www.storage.to Storage.to] || anonymous || no ||
 || [http://www.uploaded.to Uploaded.to] || anonymous || no ||
+|| [http://www.netload.in Netload.in] || anonymous || no ||
+|| [http://www.x7.to x7.to] || anonymous || no ||
 
 = Dependencies =
 
@@ -30,6 +32,7 @@ To run _plowshare_ and all its modules you will need:
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr]
   * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] (or a compatible Javascript interpreter)
   * [http://aa-project.sourceforge.net/aview/ aview] (optional)
+  * [http://www.imagemagick.org/script/perl-magick.php] PerlMagick] (used by Netload.in module only)
 
 Debian/Ubuntu users may try:
 

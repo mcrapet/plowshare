@@ -1,8 +1,10 @@
 plowshare (0.9svn) stable; urgency=low
 
   * [letitbit] add module (anonymous download only)
+  * [netload.in] add module (anonymous download only)
   * [storage.to] add module (anonymous download only)
   * [uploaded.to] add module (anonymous download only)
+  * [x7.to] add module (anonymous download only)
   * Fallback to img2txt (libcaca) if aview is not found
 
  --  <tokland@gmail.com>  Thu, 10 Dec 2009 20:23:20 +0100
