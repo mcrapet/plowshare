@@ -157,14 +157,14 @@ test_2shared_download() {
 
 test_2shared_download_and_get_only_link() {
     URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
-    assert_match "$URL" "$(download -l $SHARED_URL)" || return 1    
+    assert_match "http://.*Test.mp3.* Test.mp3" "$(download -r echo $SHARED_URL)" || return 1    
 }
 
 test_2shared_download_using_file_argument_and_mark_as_downloaded() {
     URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
     TEMP=$(create_tempfile)
     echo "$SHARED_URL" > $TEMP
-    assert_match "$URL" "$(download -l -m "$TEMP")" || return 1
+    download -m "$TEMP" || return 1
     assert_match "^#$SHARED_URL" "$(cat $TEMP)" || return 1
     rm -f "$TEMP"    
 }        
@@ -226,7 +226,7 @@ ZSHARE_URL="http://www.zshare.net/download/5065479160b3f7b2/"
 
 test_zshare_download() {
     FILENAME="swos_fullrip_killer_pepo_absba.part01.rar"
-    assert_match "/$FILENAME$" "$(download -l $ZSHARE_URL)" || return 1
+    assert_equal "$FILENAME" "$(download $ZSHARE_URL)" || return 1
     rm -f $FILENAME
 }        
 
