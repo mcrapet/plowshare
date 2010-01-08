@@ -28,7 +28,8 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
 
-    MAIN_PAGE=$(curl "$1")
+    URL=$1
+    MAIN_PAGE=$(curl "$URL") || return 1 
     FILE_URL=$(echo $MAIN_PAGE | parse 'window.location' 'location = "\([^"]\+\)"' 2>/dev/null)
 
     test -z "$FILE_URL" &&
