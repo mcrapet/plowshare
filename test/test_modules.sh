@@ -301,6 +301,10 @@ test_netload_in_download() {
     rm -f $FILENAME
 }
 
+test_netload_in_check_active_link() {
+    assert_equal "$NETLOAD_IN_URL" "$(download -c $NETLOAD_IN_URL)" || return 1
+}
+
 # Uploading.com
 
 UPLOADING_URL="http://uploading.com/files/get/G0JIALR1"
@@ -349,7 +353,7 @@ test_x7_to_download() {
     rm -f $FILENAME
 }
 
-test_sendspace_check_active_link() {
+test_x7_to_check_active_link() {
     assert_equal "$X7_TO_URL" "$(download -c $X7_TO_URL)" || return 1
 }
 
