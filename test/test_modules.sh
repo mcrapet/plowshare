@@ -222,10 +222,10 @@ test_4shared_check_active_link() {
 
 # Zshare
 
-ZSHARE_URL="http://www.zshare.net/download/5065479160b3f7b2/"
+ZSHARE_URL="http://www.zshare.net/download/70515576910ce6fa/"
 
 test_zshare_download() {
-    FILENAME="swos_fullrip_killer_pepo_absba.part01.rar"
+    FILENAME="Malayalam_calendar_2010.pdf"
     assert_equal "$FILENAME" "$(download $ZSHARE_URL)" || return 1
     rm -f $FILENAME
 }
