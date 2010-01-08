@@ -152,17 +152,20 @@ download() {
             sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
         test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
 
+        local DRETVAL=0
         if test "$DOWNLOAD_APP"; then
-            set -- "$DOWNLOAD_APP" "$FILE_URL" "$FILENAME" "$COOKIES"
-            debug "Running download app: $(quote "$@")"
-            "$@"
-            test "$COOKIES" && rm $COOKIES
+            COMMAND=$(echo "$DOWNLOAD_APP" | replace "%url" "$FILE_URL" | \
+                replace "%filename" "$FILENAME" | \
+                replace "%cookies" "$COOKIES")
+            debug "Running command: $COMMAND"
+            eval "$COMMAND" || DRETVAL=$?
+            test "$COOKIES" && rm "$COOKIES"
+            test $DRETVAL -eq 0 || continue
         else
             CURL=("curl")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             test "$COOKIES" && CURL=($CURL -b $COOKIES)
-            local DRETVAL=0
             CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
             test "$COOKIES" && rm $COOKIES
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
@@ -180,9 +183,9 @@ download() {
                 error "error HTTP code: $CODE"
                 continue
             fi
-            echo "$FILENAME"
         fi
 
+        echo "$FILENAME"
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then
             sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" &&
                 debug "link marked as downloaded in file: $ITEM" ||

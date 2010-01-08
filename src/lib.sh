@@ -32,6 +32,10 @@ error() {
     echo "Error: $@" >&2
 }
 
+replace() {
+    sed "s#$1#$2#g"
+}
+
 # Wrapper for curl: debug and infinite loop control
 #
 curl() {
