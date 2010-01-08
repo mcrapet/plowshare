@@ -28,7 +28,7 @@
 #
 set -e
 
-VERSION="0.8.1"
+VERSION="0.9"
 MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to"
 OPTIONS="
 HELP,h,help,,Show help info

@@ -6,6 +6,8 @@ process() {
   grep -v "#\(labels\|summary\)" < "$1" > "$2"
 }
 
+exit 0
+
 svn up $WIKI/
 process $WIKI/Readme.wiki README
 #process $WIKI/BreakingMegauploadCaptcha.wiki src/modules/extras/README

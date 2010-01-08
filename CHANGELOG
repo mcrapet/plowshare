@@ -1,6 +1,5 @@
-plowshare (0.9svn) stable; urgency=low
+plowshare (0.9) stable; urgency=medium
 
-  * [letitbit] add module (anonymous download only)
   * [netload.in] add module (anonymous download only)
   * [storage.to] add module (anonymous download only)
   * [uploaded.to] add module (anonymous download only)
