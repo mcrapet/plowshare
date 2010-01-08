@@ -41,8 +41,8 @@ share/plowshare/modules/storage_to.sh
 share/plowshare/modules/uploaded_to.sh
 share/plowshare/modules/uploading.sh
 share/plowshare/modules/usershare.sh
-share/plowshare/modules/zshare.sh
 share/plowshare/modules/x7_to.sh
+share/plowshare/modules/zshare.sh
 share/plowshare/strip_single_color.pl
 share/plowshare/upload.sh"
 
