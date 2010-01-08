@@ -40,7 +40,7 @@ To run _plowshare_ and all its modules you will need:
 Debian/Ubuntu users may try:
 
 {{{
-$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perl
+$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perlmagick
 }}}
 
 = Download & Install =
@@ -73,6 +73,13 @@ $ sudo bash setup.sh install
   * Download a file from rapidshare:
 
 {{{
+$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
+}}}
+
+  * Download a file from rapidshare with a proxy. _curl_ supports `http_proxy` environment variable (notice that 3128 is the default port).
+
+{{{
+$ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
