@@ -31,8 +31,11 @@ rapidshare_download() {
 
     URL=$1
     while true; do
-        WAIT_URL=$(curl "$URL" | parse '<form' 'action="\([^"]*\)"' 2>/dev/null) ||
-            { error "file not found"; return 254; }
+        PAGE=$(curl "$URL")
+        echo "$PAGE" | grep -q 'file could not be found' &&
+            { error "file not found"; return 254; } 
+        WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
+            return 1
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
