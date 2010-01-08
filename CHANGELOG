@@ -1,10 +1,10 @@
 plowshare (0.9) stable; urgency=medium
 
-  * [netload.in] add module (anonymous download only)
-  * [storage.to] add module (anonymous download only)
-  * [uploaded.to] add module (anonymous download only)
-  * [x7.to] add module (anonymous download only)
-  * Fallback to img2txt (libcaca) if aview is not found
+  * Add 7 new modules (anonymous download): netload.in, storage.to, uploaded.to, 
+    uploading.com, sendspace, usershare, x7.to 
+  * [lib] Fallback to img2txt (libcaca) if aview is not found.
+  * [download] replace -l for -r.
+  * [download] Add -i interface
 
  --  <tokland@gmail.com>  Thu, 10 Dec 2009 20:23:20 +0100
 

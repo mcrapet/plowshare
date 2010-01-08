@@ -14,6 +14,9 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.storage.to Storage.to] || anonymous || no ||
 || [http://www.uploaded.to Uploaded.to] || anonymous || no ||
 || [http://www.netload.in Netload.in] || anonymous || no ||
+|| [http://www.sendspace.com Sendspace] || anonymous || no ||
+|| [http://www.usershare.net Usershare] || anonymous || no ||
+|| [http://www.uploading.com Uploading.com] || anonymous || no ||
 || [http://www.x7.to x7.to] || anonymous || no ||
 
 = Dependencies =
@@ -37,7 +40,7 @@ To run _plowshare_ and all its modules you will need:
 Debian/Ubuntu users may try:
 
 {{{
-$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview
+$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perl
 }}}
 
 = Download & Install =
@@ -91,17 +94,10 @@ $ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 $ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
 }}}
 
-  * Get only the file URL without actually downloading it. Very handy if you want to use another web downloader:
+  * Get only the file URL, file name and cookies without actually downloading it. Very handy if you want to use another web downloader:
 
 {{{
-$ plowdown --link-only http://www.2shared.com/file/4446939/c9fd70d6/Test.html | xargs -rt wget
-}}}
-
-  * A more complex example for advanced users: you have a found a webpage containing a bunch of megaupload files and want to download, let's say, the first ten links. You could then write:
-
-{{{
-$ curl http://some-website.com/page.html | \
-    grep -o "http://www.megaupload.com/[^\"< ]*" | uniq | head -n10 | plowdown -
+$ plowdown -r 'wget -o "%filename" --load-cookies "%cookies" "%url"' http://www.2shared.com/file/4446939/c9fd70d6/Test.html
 }}}
 
   * Filter alive links in a text file

@@ -157,7 +157,7 @@ test_2shared_download() {
 
 test_2shared_download_and_get_only_link() {
     URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
-    assert_match "http://.*Test.mp3.* Test.mp3" "$(download -r echo $SHARED_URL)" || return 1
+    assert_match "http://.*Test.mp3.*" "$(download -r 'echo %url' $SHARED_URL)" || return 1
 }
 
 test_2shared_download_using_file_argument_and_mark_as_downloaded() {
