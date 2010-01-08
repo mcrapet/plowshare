@@ -27,9 +27,9 @@ depositfiles_download() {
     set -e
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
-    
+
     BASEURL="depositfiles.com"
-    while true; do        
+    while true; do
         START=$(curl -L "$URL")
         echo "$START" | grep -q "no_download_msg" &&
             { debug "file not found"; return 254; }
@@ -38,7 +38,7 @@ depositfiles_download() {
             echo "$START" | parse "download_started" 'action="\([^"]*\)"'
             return
         fi
-        check_ip "$START" || continue    
+        check_ip "$START" || continue
         WAIT_URL=$(echo "$START" | grep "files/" \
                 | parse '<form' 'action="\([^"]*\)"') ||
             { error "download form not found"; return 1; }
@@ -50,13 +50,14 @@ depositfiles_download() {
         check_ip "$DATA" || continue
         break
     done
-    FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"') 
+    FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"')
     SLEEP=$(echo "$DATA" | parse "download_waiter_remain" ">\([[:digit:]]\+\)<") ||
         { error "cannot get wait time"; return 1; }
-    debug "URL File: $FILE_URL" 
-    debug "waiting $SLEEP seconds" 
-    sleep $(($SLEEP + 1))
-    echo $FILE_URL    
+
+    # usual wait time is 60 seconds
+    countdown $((SLEEP + 1)) 2 seconds 1
+
+    echo $FILE_URL
 }
 
 check_wait() {
