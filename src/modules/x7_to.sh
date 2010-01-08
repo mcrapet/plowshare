@@ -62,6 +62,7 @@ x7_to_download() {
 
         # Parse JSON object
         # {type:'download',wait:12,url:'http://stor2.x7.to/dl/Z5H3o51QqB'}
+        # {err:"Download denied."}
 
         local type=$(echo "$DATA" | parse '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)" 2>/dev/null)
         local wait=$(echo "$DATA" | parse '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)' 2>/dev/null)
@@ -78,9 +79,8 @@ x7_to_download() {
             countdown $((WAITTIME)) 1 minutes 60
             continue
         else
-            $(match '\(Nothing to do\)' "$DATA") && debug "nothing to do!"
-
-            error "failed state"
+            local error=$(echo "$DATA" | parse 'err:' '{err:"\([^"]*\)"}' 2>/dev/null)
+            error "failed state [$error]"
 
             rm -f $COOKIES
             return 1

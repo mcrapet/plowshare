@@ -339,5 +339,19 @@ test_sendspace_check_active_link() {
     assert_equal "$SENDSPACE_URL" "$(download -c $SENDSPACE_URL)" || return 1
 }
 
+# x7.to
+
+X7_TO_URL="http://x7.to/gns6cw"
+
+test_x7_to_download() {
+    FILENAME="pdfrfc0001-0500.zip"
+    assert_equal "$FILENAME" "$(download $X7_TO_URL)" || return 1
+    rm -f $FILENAME
+}
+
+test_sendspace_check_active_link() {
+    assert_equal "$X7_TO_URL" "$(download -c $X7_TO_URL)" || return 1
+}
+
 
 run_tests "$@"
