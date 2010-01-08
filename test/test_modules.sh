@@ -164,7 +164,7 @@ test_2shared_download_using_file_argument_and_mark_as_downloaded() {
     URL="2shared.com/download/4446939/c9fd70d6/Test.mp3"
     TEMP=$(create_tempfile)
     echo "$SHARED_URL" > $TEMP
-    download -m "$TEMP" || return 1
+    assert_match "Test.mp3" $(download -m "$TEMP") || return 1
     assert_match "^#$SHARED_URL" "$(cat $TEMP)" || return 1
     rm -f "$TEMP"
 }
