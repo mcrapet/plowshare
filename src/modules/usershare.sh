@@ -28,9 +28,12 @@ MODULE_USERSHARE_DOWNLOAD_CONTINUE=no
 usershare_download() {
     set -e
     eval "$(process_options usershare "$MODULE_USERSHARE_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1   
-    FILE_URL=$(curl "$URL" | parse 'download_btn\.jpg' 'href="\([^"]*\)"') || 
-        { error "file not found"; return 1; }
+
+    URL=$1
+    FILE_URL=$(curl "$URL" | parse 'download_btn\.jpg' 'href="\([^"]*\)"' 2>/dev/null) ||
+        { error "file not found"; return 254; }
+
     test "$CHECK_LINK" && return 255
+
     echo "$FILE_URL"
 }
