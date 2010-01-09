@@ -33,7 +33,7 @@ rapidshare_download() {
     while true; do
         PAGE=$(curl "$URL")
         echo "$PAGE" | grep -q 'file could not be found' &&
-            { error "file not found"; return 254; } 
+            { error "file not found"; return 254; }
         WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
             return 1
         test "$CHECK_LINK" && return 255
@@ -54,7 +54,6 @@ rapidshare_download() {
     done
 
     SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
-    debug "URL File: $FILE_URL"
     countdown $((SLEEP + 1)) 20 seconds 1
 
     echo $FILE_URL
