@@ -89,7 +89,7 @@ netload_in_download() {
             if [[ $WAIT_TIME2 -gt 10000 ]]
             then
                 debug "Download limit reached!"
-                countdown $((WAIT_TIME2 / 100)) 30 seconds 1
+                countdown $((WAIT_TIME2 / 100)) 40 seconds 1
             else
                 # Supress this wait will lead to a 400 http error (bad request)
                 countdown $((WAIT_TIME2 / 100)) 5 seconds 1
