@@ -30,12 +30,14 @@ sendspace_download() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
 
-    FILE_URL=$(curl -L --data "download=1" "$URL" | 
-        parse 'spn_download_link' 'href="\([^"]*\)"') || 
-        { error "file not found"; return 1; }
+    FILE_URL=$(curl -L --data "download=1" "$URL" |
+        parse 'spn_download_link' 'href="\([^"]*\)"' 2>/dev/null) ||
+        { error "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
+
     HOST=$(echo "$FILE_URL" | grep -o "^http://[^/]*")
     PATH=$(curl -I "$FILE_URL" | grep_http_header_location) || return 1
-    echo ${HOST}${PATH}
+
+    echo "${HOST}${PATH}"
 }
