@@ -34,7 +34,7 @@ OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages
-DOWNLOAD_APP,r:,run-download-app:,EXECUTABLE,run 'EXECUTABLE URL FILENAME COOKIES'
+DOWNLOAD_APP,r:,run-download:,COMMAND,run download command with interpolations (%filename, %cookies, %url)'
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
