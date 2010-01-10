@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_USERSHARE_REGEXP_URL="http://\(www\.\)\?usershare.net/"
-MODULE_USERSHARE_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_USERSHARE_DOWNLOAD_OPTIONS=""
 MODULE_USERSHARE_UPLOAD_OPTIONS=
 MODULE_USERSHARE_DOWNLOAD_CONTINUE=no
 

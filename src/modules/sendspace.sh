@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace.com/file/"
-MODULE_SENDSPACE_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return"
+MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
 MODULE_SENDSPACE_UPLOAD_OPTIONS=
 MODULE_SENDSPACE_DOWNLOAD_CONTINUE=no
 
