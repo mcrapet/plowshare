@@ -94,7 +94,7 @@ test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -ge 2 || { usage; exit 1; }
 
 # *FILES, DESTINATION = $@
-FILES=${@:(1):$#-1}
+FILES=("${@:(1):$#-1}")
 DESTINATION=${@:(-1)}
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 

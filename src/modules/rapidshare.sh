@@ -86,10 +86,10 @@ rapidshare_upload_anonymous() {
     DESTFILE=${2:-$FILE}
     UPLOAD_URL="http://www.rapidshare.com"
     debug "downloading upload page: $UPLOAD_URL"
-    ACTION=$(curl "$UPLOAD_URL" | parse 'form name="ul"' 'action="\([^"]*\)')
+    ACTION=$(curl "$UPLOAD_URL" | parse 'form name="ul"' 'action="\([^"]*\)') || return 1
     debug "upload to: $ACTION"
-    INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION")
-    URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<")
+    INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION") || return 1
+    URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<") || return 1
     KILL=$(echo "$INFO" | parse "loeschlink" ">\(.*\)<")
     echo "$URL ($KILL)"
 }
@@ -113,7 +113,7 @@ rapidshare_upload_freezone() {
         { error "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
     debug "downloading upload page: $UPLOAD_URL"
-    UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL)
+    UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL) || return 1
     ACCOUNTID=$(echo "$UPLOAD_PAGE" | \
         parse 'name="freeaccountid"' 'value="\([[:digit:]]*\)"')
     ACTION=$(echo "$UPLOAD_PAGE" | parse '<form name="ul"' 'action="\([^"]*\)"')
@@ -123,14 +123,14 @@ rapidshare_upload_freezone() {
         -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "freeaccountid=$ACCOUNTID" \
         -F "password=$PASSWORD" \
-        -F "mirror=on" $ACTION)
+        -F "mirror=on" $ACTION) || return 1
     debug "download upload page to get url: $FREEZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL)
+    UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL) || return 1
     FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | tail -n1 | \
         parse Adliste 'Adliste\["\([[:digit:]]*\)"')
     MATCH="^Adliste\[\"$FILEID\"\]"
-    KILLCODE=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "killcode\"\] = '\(.*\)'")
-    FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"")
+    KILLCODE=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "killcode\"\] = '\(.*\)'") || return 1
+    FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"") || return 1
     # There is a killcode in the HTML, but it's not used to build a URL
     # but as a param in a POST submit, so I assume there is no kill URL for
     # freezone files. Therefore, output just the file URL.
