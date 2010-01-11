@@ -18,12 +18,13 @@
 set -e
 
 NAME=plowshare
-DESTDIR=${DESTDIR:-/usr/local}
-USRDIR=$DESTDIR
-LIBDIR=$USRDIR/share/$NAME
-BINDIR=$USRDIR/bin
-DOCSDIR=$USRDIR/share/doc/$NAME
-MODULESDIR=$LIBDIR/modules
+
+PREFIX=${DESTDIR:-/usr/local}
+BINDIR="$PREFIX/bin"
+DATADIR="$PREFIX/share/$NAME"
+DOCDIR="$PREFIX/share/doc/$NAME"
+
+MODULESDIR="$DATADIR/modules"
 USAGE="Usage: setup.sh install|uninstall"
 
 CP='cp -v'
@@ -31,23 +32,24 @@ RM='rm -vf'
 LN_S='ln -vsf'
 
 test $# -eq 0 && { echo "$USAGE"; exit 1; }
+test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
-    $RM -r $LIBDIR $DOCSDIR
+    $RM -r $DATADIR $DOCDIR
     $RM $BINDIR/{plowdown,plowup,plowdel}
 
 elif [ "$1" = "install" ]; then
     # Documentation
-    mkdir -p $DOCSDIR
-    $CP CHANGELOG README $DOCSDIR
+    mkdir -p $DOCDIR
+    $CP CHANGELOG README $DOCDIR
 
     # Common library
-    mkdir -p $LIBDIR
+    mkdir -p $DATADIR
     $CP -p src/download.sh \
         src/upload.sh   \
         src/delete.sh   \
         src/lib.sh      \
-        src/strip_single_color.pl $LIBDIR
+        src/strip_single_color.pl $DATADIR
 
     # Modules
     mkdir -p $MODULESDIR
@@ -55,9 +57,9 @@ elif [ "$1" = "install" ]; then
 
     # Binary files
     mkdir -p $BINDIR
-    $LN_S $LIBDIR/download.sh $BINDIR/plowdown
-    $LN_S $LIBDIR/upload.sh $BINDIR/plowup
-    $LN_S $LIBDIR/delete.sh $BINDIR/plowdel
+    $LN_S $DATADIR/download.sh $BINDIR/plowdown
+    $LN_S $DATADIR/upload.sh $BINDIR/plowup
+    $LN_S $DATADIR/delete.sh $BINDIR/plowdel
 
 else
     echo "$USAGE"
