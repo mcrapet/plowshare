@@ -47,7 +47,7 @@ megaupload_download() {
     ERRORURL="http://www.megaupload.com/?c=msg"
 
     URL=$(echo $URL | sed "s/rotic\.com/porn\.com/")
-    BASEURL=$(echo "$URL" | grep -o "http://.*\.com")
+    BASEURL=$(echo "$URL" | grep -o "http://[^/]*")
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$BASEURL/?c=login") ||
         { error "login process failed"; return 1; }
