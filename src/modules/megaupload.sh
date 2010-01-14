@@ -96,7 +96,9 @@ megaupload_download() {
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
             debug "File temporarily unavailable"
-            return 1
+            WAITTIME=2
+            countdown $WAITTIME 1 minutes 60
+            continue
         fi
 
         # Look for a download link (usually a password protected file)
