@@ -29,7 +29,7 @@ clean:
 	rm -f build-stamp configure-stamp
 
 	# Add here commands to clean up after the build process.
-	DESTDIR=$(CURDIR)/debian/plowshare/usr $(CURDIR)/setup.sh uninstall
+	DESTDIR=$(CURDIR)/debian/plowshare PREFIX=/usr $(CURDIR)/setup.sh uninstall
 
 	dh_clean 
 
@@ -40,7 +40,7 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/plowshare.
-	DESTDIR=$(CURDIR)/debian/plowshare/usr $(CURDIR)/setup.sh install
+	DESTDIR=$(CURDIR)/debian/plowshare PREFIX=/usr $(CURDIR)/setup.sh install
 
 # Build architecture-independent files here.
 binary-indep: build install

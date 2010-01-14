@@ -19,10 +19,12 @@ set -e
 
 NAME=plowshare
 
-PREFIX=${DESTDIR:-/usr/local}
-BINDIR="$PREFIX/bin"
-DATADIR="$PREFIX/share/$NAME"
-DOCDIR="$PREFIX/share/doc/$NAME"
+DESTDIR=${DESTDIR:-}
+PREFIX=${PREFIX:-/usr/local}
+
+BINDIR="${DESTDIR}${PREFIX}/bin"
+DATADIR="${DESTDIR}${PREFIX}/share/$NAME"
+DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
 
 MODULESDIR="$DATADIR/modules"
 USAGE="Usage: setup.sh install|uninstall"
@@ -32,6 +34,7 @@ RM='rm -vf'
 LN_S='ln -vsf'
 
 test $# -eq 0 && { echo "$USAGE"; exit 1; }
+test -z "$DESTDIR" -o -d "$DESTDIR" || { echo "Error: bad destdir \`$DESTDIR'"; exit 1; }
 test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
