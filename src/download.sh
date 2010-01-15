@@ -148,8 +148,10 @@ download() {
             { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
         debug "File URL: $FILE_URL"
 
-        test -z "$FILENAME" && FILENAME=$(basename "$FILE_URL" |
-            sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
+        if [ -z "$FILENAME" ]; then
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
+        fi
+        debug "Filename: $FILENAME"
         test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
 
         local DRETVAL=0

@@ -39,11 +39,11 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
     # Try to figure out real name written on page
     FILE_REAL_NAME=$(echo $MAIN_PAGE | parse '<div class="header">' \
-		    'header">[[:space:]]*Download[[:space:]]\+\([^ ]\+\)[[:space:]]*' 2>/dev/null)
+        'header">[[:space:]]*Download[[:space:]]\+\([^ ]\+\)[[:space:]]*' 2>/dev/null)
 
     echo "$FILE_URL"
-    test -n "$FILE_REAL_NAME" &&
-        { debug "Filename: $FILE_REAL_NAME"; echo "$FILE_REAL_NAME"; } || true
+    test -n "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
+    return 0
 }
 
 # Upload a file to 2shared and upload URL (ADMIN_URL)

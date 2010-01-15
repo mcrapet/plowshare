@@ -44,9 +44,9 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     FILE_REAL_NAME=$(echo $WAIT_HTML | parse '<b class="xlarge blue">' \
                     'blue">\([^<]\+\)' 2>/dev/null)
 
-    countdown $((WAIT_TIME)) 10 seconds 1
+    countdown $((WAIT_TIME)) 5 seconds 1
 
     echo "$FILE_URL"
-    test -n "$FILE_REAL_NAME" &&
-        { debug "Filename: $FILE_REAL_NAME"; echo "$FILE_REAL_NAME"; } || true
+    test -n "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
+    return 0
 }

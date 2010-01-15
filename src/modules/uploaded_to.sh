@@ -92,6 +92,6 @@ uploaded_to_download() {
     # Real filename is also stored in "Content-Disposition" HTTP header
 
     echo $file_url
-    test -n "$file_real_name" &&
-        { debug "Filename: $file_real_name"; echo "$file_real_name"; } || true
+    test -n "$file_real_name" && echo "$file_real_name"
+    return 0
 }

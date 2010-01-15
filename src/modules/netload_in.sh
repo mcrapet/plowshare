@@ -107,6 +107,6 @@ netload_in_download() {
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
     echo $FILE_URL
-    test -n "$FILENAME" &&
-        { debug "Filename: $FILENAME"; echo "$FILENAME"; } || true
+    test -n "$FILENAME" && echo "$FILENAME"
+    return 0
 }
