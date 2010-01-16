@@ -42,6 +42,8 @@ hotfile_download() {
         local SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
             { error "can't get sleep time"; return 1; }
 
+        test "$CHECK_LINK" && return 255
+
         SLEEP=$((SLEEP / 1000))
         countdown $((SLEEP)) 2 seconds 1
 
