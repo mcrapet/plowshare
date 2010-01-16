@@ -19,6 +19,7 @@ set -e
 
 NAME=plowshare
 
+# DESTDIR is provided for staged installs (used for packagers only)
 DESTDIR=${DESTDIR:-}
 PREFIX=${PREFIX:-/usr/local}
 
@@ -26,6 +27,7 @@ BINDIR="${DESTDIR}${PREFIX}/bin"
 DATADIR="${DESTDIR}${PREFIX}/share/$NAME"
 DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
 
+DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
 USAGE="Usage: setup.sh install|uninstall"
 
@@ -34,7 +36,7 @@ RM='rm -vf'
 LN_S='ln -vsf'
 
 test $# -eq 0 && { echo "$USAGE"; exit 1; }
-test -z "$DESTDIR" -o -d "$DESTDIR" || { echo "Error: bad destdir \`$DESTDIR'"; exit 1; }
+test ! -d "$DESTDIR" && mkdir -p "$DESTDIR"
 test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
@@ -60,9 +62,9 @@ elif [ "$1" = "install" ]; then
 
     # Binary files
     mkdir -p $BINDIR
-    $LN_S $DATADIR/download.sh $BINDIR/plowdown
-    $LN_S $DATADIR/upload.sh $BINDIR/plowup
-    $LN_S $DATADIR/delete.sh $BINDIR/plowdel
+    $LN_S $DATADIR_FINAL/download.sh $BINDIR/plowdown
+    $LN_S $DATADIR_FINAL/upload.sh $BINDIR/plowup
+    $LN_S $DATADIR_FINAL/delete.sh $BINDIR/plowdel
 
 else
     echo "$USAGE"

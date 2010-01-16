@@ -57,13 +57,22 @@ $ yaourt -Sy plowshare
 $ emerge -av plowshare
 }}}
 
-  * [http://code.google.com/p/plowshare/downloads/list From sources]:
+  * [http://code.google.com/p/plowshare/downloads/list From sources] (default installation path is `/usr/local`):
 
 {{{
 $ wget http://plowshare.googlecode.com/files/plowshare-VERSION.tgz
 $ tar xvzf plowshare-VERSION.tgz
 $ cd plowshare-VERSION
 $ sudo bash setup.sh install
+}}}
+
+  * [http://code.google.com/p/plowshare/downloads/list From sources as non-root]:
+
+{{{
+$ wget http://plowshare.googlecode.com/files/plowshare-VERSION.tgz
+$ tar xvzf plowshare-VERSION.tgz
+$ cd plowshare-VERSION
+$ bash PREFIX=/home/$USER setup.sh install
 }}}
 
 = Usage examples =
@@ -87,6 +96,12 @@ $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 
 {{{
 $ plowdown file_with_links.txt
+}}}
+
+  * Limit the download rate to give your bandwidth a break (you can use _curl_ rates: K=Kbps, M=Mbps, G=Gbps):
+
+{{{
+$ plowdown -r 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
   * Download a file from megaupload using a free membership account:
