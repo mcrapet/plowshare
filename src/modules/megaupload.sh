@@ -43,36 +43,40 @@ MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 megaupload_download() {
     set -e
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
-    ERRORURL="http://www.megaupload.com/?c=msg"
 
-    URL=$(echo $URL | sed "s/rotic\.com/porn\.com/")
+    ERRORURL="http://www.megaupload.com/?c=msg"
+    URL=$(echo "$1" | sed "s/rotic\.com/porn\.com/")
     BASEURL=$(echo "$URL" | grep -o "http://[^/]*")
+
+    # Try to login (if $AUTH not null)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$BASEURL/?c=login") ||
         { error "login process failed"; return 1; }
     echo $URL | grep -q "\.com/?d=" ||
-      URL=$(curl -I "$URL" | grep "^location" | cut -d":" -f2- | xargs)
+        URL=$(curl -I "$URL" | grep_http_header_location)
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
+
     TRY=0
     while true; do
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
+
         # A void page means this is a Premium account, get the URL
         test -z "$PAGE" && { ccurl -i "$URL" | get_location; return; }
 
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
-          "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
+            "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
+
         if test "$REDIRECT" = "$ERRORURL"; then
-          debug "Server returned an error page: $REDIRECT"
-          WAITTIME=$(curl "$REDIRECT" | parse 'check back in' \
-            'check back in \([[:digit:]]\+\) minute')
-          # Fragile parsing, set a default waittime if something went wrong
-          test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 ||
-            WAITTIME=2
-          countdown $WAITTIME 1 minutes 60
-          continue
+            debug "Server returned an error page: $REDIRECT"
+            WAITTIME=$(curl "$REDIRECT" | parse 'check back in' \
+                'check back in \([[:digit:]]\+\) minute')
+            # Fragile parsing, set a default waittime if something went wrong
+            test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 ||
+                WAITTIME=2
+            countdown $WAITTIME 1 minutes 60
+            continue
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
@@ -87,8 +91,8 @@ megaupload_download() {
             WAITPAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$WAITPAGE" 2>/dev/null &&
                 { error "Link password incorrect"; return 1; }
-            #test -z "$PAGE" && 
-            #  { ccurl -i -d "$DATA" "$URL" | get_location; return; }
+            #test -z "$PAGE" &&
+            #    { ccurl -i -d "$DATA" "$URL" | get_location; return; }
             WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
                 "count=\([[:digit:]]\+\);" 2>/dev/null) || return 1
             break
@@ -111,8 +115,11 @@ megaupload_download() {
             echo "$FILEURL"
             return
         fi
+
         match 'link you have clicked is not available' "$PAGE" && return 254
+
         test "$CHECK_LINK" && return 255
+
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 1
         debug "captcha URL: $CAPTCHA_URL"
         # OCR captcha and show ascii image to stderr simultaneously
@@ -131,6 +138,7 @@ megaupload_download() {
         test "$WAITTIME" && break;
         debug "Wrong captcha"
     done
+
     FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     countdown $((WAITTIME+1)) 10 seconds 1
@@ -155,7 +163,7 @@ megaupload_upload() {
       STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
       STATUSLOOPTIME=5
       [ -z "$COOKIES" ] &&
-        { error "Premium account required to use multifetch"; return 2; }
+          { error "Premium account required to use multifetch"; return 2; }
       debug "spawn URL fetch process: $FILE"
       UPLOADID=$(curl -b <(echo "$COOKIES") -L \
           -F "fetchurl=$FILE" \
@@ -229,5 +237,5 @@ megaupload_delete() {
 }
 
 get_location() {
-  grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
+    grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
 }
