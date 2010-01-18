@@ -36,20 +36,25 @@ rapidshare_download() {
             { error "file not found"; return 254; }
         WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
             return 1
+
         test "$CHECK_LINK" && return 255
+
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
 
         LIMIT=$(echo "$DATA" | parse "minute" \
                 "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
-            debug "Server asked to wait $LIMIT minutes"
+            debug "Server asked to wait"
             countdown $LIMIT 1 minutes 60
+            continue
         }
-        FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"') || {
+
+        FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"' 2>/dev/null) || {
             debug "No free slots at this moment"
             countdown 2 1 minutes 60
             continue
         }
+
         break
     done
 
