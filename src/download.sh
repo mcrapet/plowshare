@@ -137,7 +137,7 @@ download() {
         elif test $DRETVAL -eq 254; then
           debug "warning: file link is not alive"
           if test "$TYPE" = "file" -a "$MARK_DOWN"; then
-              sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" &&
+              sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" &&
                   debug "link marked as non-downloadable in file: $ITEM" ||
                   error "error marking link as non-downloadable in file: $ITEM"
           fi
@@ -189,7 +189,7 @@ download() {
 
         echo "$FILENAME"
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then
-            sed -i "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" &&
+            sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" &&
                 debug "link marked as downloaded in file: $ITEM" ||
                 error "error marking link as downloaded in file: $ITEM"
         fi
