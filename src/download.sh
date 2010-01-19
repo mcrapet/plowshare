@@ -43,7 +43,7 @@ CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
-# - If '-P' flags (of cp) are removed directory symlinks won't be
+# - If '-P' flags (of cd) are removed directory symlinks won't be
 #   translated (but results are correct too)
 # - Assume that $1 is correct (don't check for infinite loop)
 absolute_path() {
