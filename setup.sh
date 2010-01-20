@@ -36,7 +36,7 @@ RM='rm -vf'
 LN_S='ln -vsf'
 
 test $# -eq 0 && { echo "$USAGE"; exit 1; }
-test ! -d "$DESTDIR" && mkdir -p "$DESTDIR"
+test -n "$DESTDIR" -a ! -d "$DESTDIR" && mkdir -p "$DESTDIR"
 test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
