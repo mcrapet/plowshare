@@ -29,9 +29,9 @@ groupby() {
 }
 
 cleanup() {
-  ps awx > a.a
   local PIDS=($(ps x -o  "%p %r" | awk "\$1 != $$ && \$2 == $$" | 
     awk '{print $1}' | xargs))
+  debug
   debug "cleanup: pids ${PIDS[*]}"
   for PID in ${PIDS[*]}; do
     kill -0 $PID 2>/dev/null && kill -TERM $PID 
