@@ -39,6 +39,7 @@ MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
+GET_MODULE,,get-module,,Get module for URL 
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
@@ -217,6 +218,8 @@ for ITEM in "$@"; do
         MODULE=$(get_module "$URL" "$MODULES")
         test -z "$MODULE" &&
             { debug "no module for URL: $URL"; RETVAL=$DERROR; continue; }
+        test "$GET_MODULE" &&
+            { echo "$MODULE"; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "${UNUSED_OPTIONS[@]}"
     done
