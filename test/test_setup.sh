@@ -51,7 +51,7 @@ share
 share/doc"
 
 test_setup_script() {
-    TEMPDIR=$(mktemp -d)
+    TEMPDIR=$(mktemp -d "${TMPDIR:-/tmp}/plowshare.XXXXXXXX")
     assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
     assert_equal "$INSTALLED" \
         "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)" || return 1
