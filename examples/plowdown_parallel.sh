@@ -28,6 +28,21 @@ groupby() {
   echo
 }
 
+cleanup() {
+  ps awx > a.a
+  local PIDS=($(ps x -o  "%p %r" | awk "\$1 != $$ && \$2 == $$" | 
+    awk '{print $1}' | xargs))
+  debug "cleanup: pids ${PIDS[*]}"
+  for PID in ${PIDS[*]}; do
+    kill -0 $PID 2>/dev/null && kill -TERM $PID 
+  done
+  sleep 2
+  for PID in ${PIDS[*]}; do
+    kill -0 $PID 2>/dev/null && kill -9 $PID 2>/dev/null
+  done
+  debug "cleanup: done"
+}
+
 INFILE=$1
 PIDS=()
 while read MODULE URLS; do
@@ -39,6 +54,8 @@ done < <(cat $INFILE | while read URL; do
            MODULE=$(plowdown --get-module $URL)
             echo "$MODULE $URL"
          done | sort -k1 | groupby "cut -d' ' -f1" "cut -d' ' -f2")
+
+trap cleanup SIGINT SIGTERM
 
 while test ${#PIDS[*]} -ne 0; do
   #debug "Waiting for pids: ${PIDS[*]}"
