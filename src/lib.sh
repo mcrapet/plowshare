@@ -339,7 +339,13 @@ countdown() {
     local STEP=$2
     local UNIT_STR=$3
     local UNIT_SECS=$4
-
+    
+    if echo $- | grep i; then
+        local WAIT=$((VALUE * UNIT_SECS))
+        debug -"Waiting $VALUE $UNIT_STR... "
+        return
+    fi
+    
     for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
         test $REMAINING = $VALUE &&
             debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "

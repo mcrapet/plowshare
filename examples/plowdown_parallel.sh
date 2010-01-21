@@ -2,6 +2,9 @@
 #
 # Launch parallel plowdown processes for different websites
 #
+# plowdown_parallel.sh FILE_WITH_ONE_LINK_PER_LINE
+#
+
 set -e
  
 debug() { echo "$@" >&2; }
@@ -11,6 +14,7 @@ groupby() {
   local RETURN_FUNC=$2
   local LAST=
   local FIRST=1
+  
   while read LINE; do
     local VALUE=$(echo $LINE | eval $PREDICATE)
     local RETURN=$(echo $LINE | eval $RETURN_FUNC)
@@ -25,20 +29,16 @@ groupby() {
     fi
     LAST=$VALUE
   done
-  echo
+  test $FIRST=0 && echo
 }
 
 cleanup() {
-  local PIDS=($(ps x -o  "%p %r" | awk "\$1 != $$ && \$2 == $$" | 
+  local PIDS=($(ps x -o "%p %r" | awk "\$1 != $$ && \$2 == $$" |
     awk '{print $1}' | xargs))
   debug
   debug "cleanup: pids ${PIDS[*]}"
   for PID in ${PIDS[*]}; do
     kill -0 $PID 2>/dev/null && kill -TERM $PID 
-  done
-  sleep 2
-  for PID in ${PIDS[*]}; do
-    kill -0 $PID 2>/dev/null && kill -9 $PID 2>/dev/null
   done
   debug "cleanup: done"
 }
@@ -52,15 +52,16 @@ while read MODULE URLS; do
   PIDS[$PID]=$PID
 done < <(cat $INFILE | while read URL; do
            MODULE=$(plowdown --get-module $URL)
-            echo "$MODULE $URL"
+           echo "$MODULE $URL"
          done | sort -k1 | groupby "cut -d' ' -f1" "cut -d' ' -f2")
 
+debug "Started: ${PIDS[*]}"
 trap cleanup SIGINT SIGTERM
 
 while test ${#PIDS[*]} -ne 0; do
-  #debug "Waiting for pids: ${PIDS[*]}"
   for PID in ${PIDS[*]}; do
-    kill -0 $PID 2>/dev/null || { wait $PID && unset PIDS[$PID]; }
+    kill -0 $PID 2>/dev/null || 
+      { wait $PID && unset PIDS[$PID] && debug "finished: $PID"; }
   done
   sleep 1
-done 
+done
