@@ -74,7 +74,7 @@ parse() {
 # stdin: result of curl request (with -i/--include or -H/--dump-header flag)
 #
 grep_http_header_location() {
-    sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' | sed "s/\r\?$//"
+    sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' | tr -d "\r"
 }
 
 # Check if a string ($2) matches a regexp ($1)
@@ -301,22 +301,23 @@ aview_ascii_image() {
 }
 
 caca_ascii_image() {
-  img2txt -W 60 -H 14 $1
+    img2txt -W 60 -H 14 $1
 }
 
+# $1: image
 show_image_and_tee() {
-  test -n "$QUIET" && { cat; return; }
-  local TEMPFILE=$(create_tempfile)
-  cat > $TEMPFILE
-  if which aview &>/dev/null; then
-    aview_ascii_image $TEMPFILE >&2
-  elif which img2txt &>/dev/null; then
-    caca_ascii_image $TEMPFILE >&2
-  else
-    debug "Install aview or libcaca to display captcha image"
-  fi
-  cat $TEMPFILE
-  rm -f $TEMPFILE
+    test -n "$QUIET" && { cat; return; }
+    local TEMPIMG=$(create_tempfile)
+    cat > $TEMPIMG
+    if which aview &>/dev/null; then
+        aview_ascii_image $TEMPIMG >&2
+    elif which img2txt &>/dev/null; then
+        caca_ascii_image $TEMPIMG >&2
+    else
+        debug "Install aview or libcaca to display captcha image"
+    fi
+    cat $TEMPIMG
+    rm -f $TEMPIMG
 }
 
 # Get module name from URL link
@@ -334,16 +335,16 @@ get_module() {
 # Countdown from VALUE (in UNIT_STR units) in STEP values
 #
 countdown() {
-  local VALUE=$1
-  local STEP=$2
-  local UNIT_STR=$3
-  local UNIT_SECS=$4
+    local VALUE=$1
+    local STEP=$2
+    local UNIT_STR=$3
+    local UNIT_SECS=$4
 
-  for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
-    test $REMAINING = $VALUE &&
-        debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
-    local WAIT=$((STEP * UNIT_SECS))
-    [[ $STEP -le $REMAINING ]] && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
-  done
-  debug 0
+    for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
+        test $REMAINING = $VALUE &&
+            debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
+        local WAIT=$((STEP * UNIT_SECS))
+        [[ $STEP -le $REMAINING ]] && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
+    done
+    debug 0
 }
