@@ -357,5 +357,18 @@ test_x7_to_check_active_link() {
     assert_equal "$X7_TO_URL" "$(download -c $X7_TO_URL)" || return 1
 }
 
+# Divshare.com
+
+DIVSHARE_URL="http://divshare.com/download/10035476-54f"
+
+test_divshare_download() {
+    FILENAME="02 Freedom.mp3"
+    assert_equal "$FILENAME" "$(download $DIVSHARE_URL)" || return 1
+    rm -f "$FILENAME"
+}        
+
+test_divshare_check_active_link() {
+    assert_equal "$DIVSHARE_URL" "$(download -c $DIVSHARE_URL)" || return 1
+}                
 
 run_tests "$@"
