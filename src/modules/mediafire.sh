@@ -27,21 +27,28 @@ MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 mediafire_download() {
     set -e
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
+
     URL=$1
-    
     BASE_URL="http://www.mediafire.com"
     COOKIES=$(create_tempfile)
+
     MAIN_PAGE=$(curl -c $COOKIES "$URL" | sed "s/>/>\n/g")
-    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu('\([^)]*\));") ||
-      { error "file not found"; return 254; }
+    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu(\('[^)]*\));") ||
+        { error "file not found"; return 254; }
+
     test "$CHECK_LINK" && return 255
+
+    # 'mok2nz2y43y','9daf501e5492a2d4311112b7b1c59dca4be854f859546ab7e001b0ecbaffb84f1e0b1a327f6dab2101fb238d079749c7','y2lr2'
     IFS="," read QK PK R < <(echo "$JS_CALL" | tr -d "'")
+
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     debug "Javascript URL: $JS_URL"
+
     JS_CODE=$(curl -b $COOKIES "$JS_URL" | sed "s/;/;\n/g")
     rm -f $COOKIES
-    # The File URL is ofuscated using a somewhat childish javascript code, 
-    # we use the default javascript interpreter (js) to run it. 
+
+    # The File URL is ofuscated using a somewhat childish javascript code,
+    # we use the default javascript interpreter (js) to run it.
     debug "running Javascript code"
     VARS=$(echo "$JS_CODE" | grep "^[[:space:]]*var")
     HREF=$(echo "$JS_CODE" | \
