@@ -33,7 +33,7 @@ mediafire_download() {
     COOKIES=$(create_tempfile)
 
     MAIN_PAGE=$(curl -c $COOKIES "$URL" | sed "s/>/>\n/g")
-    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu(\('[^)]*\));") ||
+    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu(\('[^)]*\));" 2>/dev/null) ||
         { error "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255

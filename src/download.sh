@@ -39,7 +39,7 @@ MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
-GET_MODULE,,get-module,,Get module for URL 
+GET_MODULE,,get-module,,Get module for URL
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 
@@ -136,17 +136,17 @@ download() {
           echo "$URL"
           break
         elif test $DRETVAL -eq 254; then
-          debug "warning: file link is not alive"
+          debug "Warning: file link is not alive"
           if test "$TYPE" = "file" -a "$MARK_DOWN"; then
               sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#NOTFOUND \1|" "$ITEM" &&
                   debug "link marked as non-downloadable in file: $ITEM" ||
-                  error "error marking link as non-downloadable in file: $ITEM"
+                  error "failed marking link as non-downloadable in file $ITEM"
           fi
           # Don't set RETVAL, a dead link is not considerer an error¡
           break
         fi
         test $DRETVAL -ne 0 -o -z "$FILE_URL" &&
-            { error "error on function: $FUNCTION"; RETVAL=$DERROR; break; }
+            { error "failed inside ${FUNCTION}()"; RETVAL=$DERROR; break; }
         debug "File URL: $FILE_URL"
 
         if [ -z "$FILENAME" ]; then
@@ -178,12 +178,12 @@ download() {
                 sleep $WAIT
                 continue
             elif [ $DRETVAL -ne 0 ]; then
-                error "error downloading: $URL"
+                error "failed downloading $URL"
                 RETVAL=$DERROR
                 break
             fi
             if ! match "20." "$CODE"; then
-                error "error HTTP code: $CODE"
+                error "unexpected HTTP code $CODE"
                 continue
             fi
         fi
@@ -192,7 +192,7 @@ download() {
         if test "$TYPE" = "file" -a "$MARK_DOWN"; then
             sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#\1|" "$ITEM" &&
                 debug "link marked as downloaded in file: $ITEM" ||
-                error "error marking link as downloaded in file: $ITEM"
+                error "failed marking link as downloaded in file $ITEM"
         fi
         break
     done
