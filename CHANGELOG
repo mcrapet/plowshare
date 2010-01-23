@@ -1,3 +1,11 @@
+plowshare (1.00svn) stable; urgency=medium
+
+  * Add new modules (anonymous download): hotfile.com (without reCaptcha support),
+    divshare.com. 
+  * [download] Add --get-module option (aimed for wrappers to manage parallel download)
+
+ -- Arnau Sanchez <tokland@gmail.com>  Sat, 23 Jan 2010 13:38:56 +0100
+
 plowshare (0.9) stable; urgency=medium
 
   * Add 7 new modules (anonymous download): netload.in, storage.to, uploaded.to, 
@@ -6,7 +14,7 @@ plowshare (0.9) stable; urgency=medium
   * [download] replace -l for -r.
   * [download] Add -i interface
 
- --  <tokland@gmail.com>  Thu, 10 Dec 2009 20:23:20 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Thu, 10 Dec 2009 20:23:20 +0100
 
 plowshare (0.8.1) stable; urgency=medium
 

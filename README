@@ -3,21 +3,22 @@
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file-sharing websites. It currently supports:
 
 || *Website* || *Download* || *Upload* ||
-|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) ||
-|| [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
 || [http://www.2shared.com 2Shared] || anonymous || anonymous ||
-|| [http://www.badongo.com Badongo] || anonymous || no ||
-|| [http://www.mediafire.com Mediafire] || anonymous || no ||
 || [http://www.4shared.com 4Shared] || anonymous || no ||
-|| [http://www.zshare.net ZShare] || anonymous || no ||
+|| [http://www.badongo.com Badongo] || anonymous || no ||
 || [http://www.depositfiles.com DepositFiles] || anonymous || no ||
+|| [http://www.divshare.com divShare] || anonymous || no ||
+|| [http://www.mediafire.com Mediafire] || anonymous || no ||
+|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) ||
+|| [http://www.netload.in Netload.in] || anonymous || no ||
+|| [http://www.rapidshare.com Rapidshare] || anonymous || anonymous and free zone ||
+|| [http://www.sendspace.com Sendspace] || anonymous || no ||
 || [http://www.storage.to Storage.to] || anonymous || no ||
 || [http://www.uploaded.to Uploaded.to] || anonymous || no ||
-|| [http://www.netload.in Netload.in] || anonymous || no ||
-|| [http://www.sendspace.com Sendspace] || anonymous || no ||
-|| [http://www.usershare.net Usershare] || anonymous || no ||
 || [http://www.uploading.com Uploading.com] || anonymous || no ||
+|| [http://www.usershare.net Usershare] || anonymous || no ||
 || [http://www.x7.to x7.to] || anonymous || no ||
+|| [http://www.zshare.net ZShare] || anonymous || no ||
 
 = Dependencies =
 
