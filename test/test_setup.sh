@@ -31,6 +31,8 @@ share/plowshare/modules/2shared.sh
 share/plowshare/modules/4shared.sh
 share/plowshare/modules/badongo.sh
 share/plowshare/modules/depositfiles.sh
+share/plowshare/modules/divshare.sh
+share/plowshare/modules/hotfile.sh
 share/plowshare/modules/letitbit.sh
 share/plowshare/modules/mediafire.sh
 share/plowshare/modules/megaupload.sh
@@ -52,10 +54,10 @@ share/doc"
 
 test_setup_script() {
     TEMPDIR=$(mktemp -d "${TMPDIR:-/tmp}/plowshare.XXXXXXXX")
-    assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
+    assert_return 0 "PREFIX=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
     assert_equal "$INSTALLED" \
         "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)" || return 1
-    assert_return 0 "DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall" || return 1
+    assert_return 0 "PREFIX=$TEMPDIR $ROOTDIR/setup.sh uninstall" || return 1
     assert_equal "$UNINSTALLED" \
         "$(find $TEMPDIR | sed "s#^$TEMPDIR/\?##" | grep -v "^$" | sort)" || return 1
     rm -rf $TEMPDIR
