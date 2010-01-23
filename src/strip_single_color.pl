@@ -1,4 +1,4 @@
-#!/bin/perl
+#!/usr/bin/perl
 #
 # This file is part of Plowshare.
 #
@@ -20,6 +20,7 @@
 # Usage: $0 [input-file] [output-file]
 # Debian users: apt-get install perlmagick
 
+use strict;
 use Image::Magick;
 
 my $image = new Image::Magick;
@@ -46,8 +47,8 @@ while (@histogram) {
 	push(@uniqcolors, join(',', ($red, $green, $blue, $opacity))) if ($count == 1);
 }
 
-for ($i = 0; $i < $width; $i++) {
-	for ($j = 0; $j < $height; $j++) {
+for (my $i = 0; $i < $width; $i++) {
+	for (my $j = 0; $j < $height; $j++) {
 		my $color = $image->Get("pixel[$i,$j]");
 		if (grep {$_ eq $color} @uniqcolors) {
 			$image->Set("pixel[$i,$j]" => 'white');
