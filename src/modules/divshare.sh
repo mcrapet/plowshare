@@ -27,14 +27,25 @@ MODULE_DIVSHARE_DOWNLOAD_CONTINUE=no
 divshare_download() {
     set -e
     eval "$(process_options divshare "$MODULE_DIVSHARE_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
-    PAGE=$(curl "$URL")   
-    FILE_URL=$(echo "$PAGE" | parse 'download_message' 'href="\([^"]*\)"') ||
-      FILE_URL=$(echo "$PAGE" | parse 'Download Original' 'href="\([^"]*\)"') || 
+
+    PAGE=$(curl "$1")
+    FILE_URL=$(echo "$PAGE" | parse '\(download_message\|Download Original\)' \
+            'href="\([^"]*\)"') ||
         { error "file not found"; return 254; }
-    FILE_NAME=$(curl -I "$FILE_URL" | parse '^Content-Disposition:' 'filename="\(.*\)";') ||
-      return 1
+
     test "$CHECK_LINK" && return 255
+
+    FILE_NAME=$(echo "$PAGE" | sed -n '/"file_name"/,/<\/div>/p' | tr -d "\n" |
+            parse '">' '>[[:space:]]*\(.*\)[[:space:]]*<') ||
+        { debug "can't parse filename, website updated?"; }
+
+    # Real filename is also stored in "Content-Disposition" HTTP header
+    # We are lucky here, we can make an extra http request without being accused of parallel download!
+    if [ -z "$FILE_NAME" ]; then
+        FILE_NAME=$(curl -I "$FILE_URL" | parse '^Content-Disposition:' 'filename="\(.*\)";')
+    fi
+
     echo "$FILE_URL"
-    echo "$FILE_NAME"
+    test -n "$FILE_NAME" && echo "$FILE_NAME"
+    return 0
 }
