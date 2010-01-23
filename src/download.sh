@@ -39,6 +39,7 @@ MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
+TIMEOUT,t:,timeout,SECS,Timeout after SECS seconds of waits
 GET_MODULE,,get-module,,Get module for URL
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
@@ -121,10 +122,13 @@ download() {
     local MARK_DOWN=$6
     local OUTPUT_DIR=$7
     local CHECK_LINK=$8
-    shift 8
+    local TIMEOUT=$9
+    shift 9
 
     FUNCTION=${MODULE}_download
     debug "start download ($MODULE): $URL"
+    timeout_init $TIMEOUT 
+
 
     while true; do
         local DRETVAL=0
@@ -221,7 +225,7 @@ for ITEM in "$@"; do
         test "$GET_MODULE" &&
             { echo "$MODULE"; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
-            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "${UNUSED_OPTIONS[@]}"
+            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "${UNUSED_OPTIONS[@]}"
     done
 done
 

@@ -45,13 +45,13 @@ rapidshare_download() {
         LIMIT=$(echo "$DATA" | parse "minute" \
                 "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
             debug "Server asked to wait"
-            countdown $LIMIT 1 minutes 60
+            countdown $LIMIT 1 minutes 60 || return 2
             continue
         }
 
         FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"' 2>/dev/null) || {
             debug "No free slots at this moment"
-            countdown 2 1 minutes 60
+            countdown 2 1 minutes 60 || return 2
             continue
         }
 
@@ -59,7 +59,7 @@ rapidshare_download() {
     done
 
     SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
-    countdown $((SLEEP + 1)) 20 seconds 1
+    countdown $((SLEEP + 1)) 20 seconds 1 || return 2
 
     echo $FILE_URL
 }

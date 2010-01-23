@@ -332,6 +332,21 @@ get_module() {
     done
 }
 
+timeout_init() {
+    PS_TIMEOUT=$1
+}
+
+timeout_update() {
+    local WAIT=$1
+    test -z "$PS_TIMEOUT" && return
+    debug "Time left to timeout: $PS_TIMEOUT secs" 
+    if test $(expr $PS_TIMEOUT - $WAIT) -lt 0; then
+        error "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
+        return 1
+    fi
+    PS_TIMEOUT=$(expr $PS_TIMEOUT - $WAIT)
+}
+
 # Countdown from VALUE (in UNIT_STR units) in STEP values
 #
 countdown() {
@@ -340,17 +355,14 @@ countdown() {
     local UNIT_STR=$3
     local UNIT_SECS=$4
     
-    if echo $- | grep i; then
-        local WAIT=$((VALUE * UNIT_SECS))
-        debug -"Waiting $VALUE $UNIT_STR... "
-        return
-    fi
-    
+    local TOTAL_WAIT=$((VALUE * UNIT_SECS))
+    timeout_update $TOTAL_WAIT || return 1
+   
     for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
         test $REMAINING = $VALUE &&
             debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
         local WAIT=$((STEP * UNIT_SECS))
-        [[ $STEP -le $REMAINING ]] && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
+        test $STEP -le $REMAINING && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
     done
     debug 0
 }
