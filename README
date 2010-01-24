@@ -93,10 +93,15 @@ $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
-  * Download a list of files (one link per line):
+  * Download a list of links (one link per line):
 
 {{{
 $ plowdown file_with_links.txt
+}}}
+
+  * Download a list of links (one link per line) commenting out (with #) those successfully downloaded:
+{{{
+$ plowdown -m file_with_links.txt
 }}}
 
   * Limit the download rate to give your bandwidth a break (you can use _curl_ rates: K=Kbps, M=Mbps, G=Gbps):
