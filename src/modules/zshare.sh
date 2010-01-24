@@ -28,7 +28,7 @@ MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 #
 zshare_download() {
     set -e
-    eval "$(process_options ZSHARE "$MODULE_ZSHARE_DOWNLOAD_OPTIONS" "$@")"
+    eval "$(process_options zshare "$MODULE_ZSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
     COOKIES=$(create_tempfile)
@@ -64,7 +64,7 @@ zshare_download() {
 #
 zshare_upload() {
     set -e
-    eval "$(process_options 2shared "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
+    eval "$(process_options zshare "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
 
     FILE=$1
     DESTFILE=${2:-$FILE}
