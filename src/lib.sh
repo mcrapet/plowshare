@@ -347,6 +347,17 @@ timeout_update() {
     PS_TIMEOUT=$(expr $PS_TIMEOUT - $WAIT)
 }
 
+retry_limit_init() {
+    PS_RETRY_LIMIT=$1
+}
+
+retry_limit_not_reached() {
+    test -z "$PS_RETRY_LIMIT" && return
+    debug "Retries left: $PS_RETRY_LIMIT" 
+    PS_RETRY_LIMIT=$(expr $PS_RETRY_LIMIT - 1)
+    test $PS_RETRY_LIMIT -ge 0
+}
+
 # Countdown from VALUE (in UNIT_STR units) in STEP values
 #
 countdown() {

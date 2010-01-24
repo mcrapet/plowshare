@@ -30,7 +30,7 @@ rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    while true; do
+    while retry_limit_not_reached || return 3; do
         PAGE=$(curl "$URL")
         echo "$PAGE" | grep -q 'file could not be found' &&
             { error "file not found"; return 254; }

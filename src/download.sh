@@ -40,6 +40,7 @@ OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,--limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout,SECS,Timeout after SECS seconds of waits
+MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 GET_MODULE,,get-module,,Get module for URL
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
@@ -123,13 +124,14 @@ download() {
     local OUTPUT_DIR=$7
     local CHECK_LINK=$8
     local TIMEOUT=$9
-    shift 9
+    local MAXRETRIES=${10}
+    shift 10
 
     FUNCTION=${MODULE}_download
     debug "start download ($MODULE): $URL"
     timeout_init $TIMEOUT 
-
-
+    retry_limit_init $MAXRETRIES
+    
     while true; do
         local DRETVAL=0
         RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
@@ -225,7 +227,8 @@ for ITEM in "$@"; do
         test "$GET_MODULE" &&
             { echo "$MODULE"; continue; }
         download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
-            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "${UNUSED_OPTIONS[@]}"
+            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
+            "$MAXRETRIES" "${UNUSED_OPTIONS[@]}"
     done
 done
 
