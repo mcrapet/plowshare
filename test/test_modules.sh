@@ -1,12 +1,27 @@
 #!/bin/bash
-set -e
-
+#
+# This file is part of Plowshare.
+#
+# Plowshare is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Plowshare is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
+#
 # Note that *-auth files are not in the source code, you need to create
 # them with your accounts if you want to run the function test suite.
 
+set -e
+
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR=$ROOTDIR/src
-EXTRASDIR=$ROOTDIR/src/modules/extras
 TESTSDIR=$ROOTDIR/test
 source $ROOTDIR/src/lib.sh
 source $ROOTDIR/test/lib.sh
@@ -365,10 +380,10 @@ test_divshare_download() {
     FILENAME="02 Freedom.mp3"
     assert_equal "$FILENAME" "$(download $DIVSHARE_URL)" || return 1
     rm -f "$FILENAME"
-}        
+}
 
 test_divshare_check_active_link() {
     assert_equal "$DIVSHARE_URL" "$(download -c $DIVSHARE_URL)" || return 1
-}                
+}
 
 run_tests "$@"

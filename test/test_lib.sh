@@ -1,11 +1,28 @@
 #!/bin/bash
+#
+# This file is part of Plowshare.
+#
+# Plowshare is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Plowshare is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 set -e
+
 MODULES="rapidshare megaupload 2shared"
 
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 PICSDIR=$ROOTDIR/test/pics
 MODULESDIR=$ROOTDIR/src/modules
-EXTRASDIR=$MODULESDIR/extras
 TESTSDIR=$ROOTDIR/test
 
 source $ROOTDIR/src/lib.sh
@@ -53,8 +70,8 @@ test_check_function() {
 
 test_process_options() {
     OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Authentication 
-QUIET,q,quiet,,Don't print errors 
+AUTH,a:,auth:,USER:PASSWORD,Authentication
+QUIET,q,quiet,,Don't print errors
 !LEVEL,l:,level:,INTEGER,Set level
 !VALUE,v:,value:,STRING,Set value
 "
@@ -83,6 +100,6 @@ test_create_tempfile() {
 #test_megaupload_ocr() {
 #    CAPTCHA=$(megaupload_ocr "$PICSDIR/megaupload_prz2.gif")
 #    assert_equal "PRZ2" $CAPTCHA
-#} 
+#}
 
 run_tests "$@"
