@@ -53,7 +53,7 @@ uploaded_to_download() {
                 { error "can't get wait delay"; return 1; }
 
             debug "Download limit reached!"
-            countdown $LIMIT 1 minutes 60
+            countdown $LIMIT 1 minutes 60 || return 2
 
         # Location: /?view=error2&id_a=xxx&id_b=yyy
         elif match '\(error[[:digit:]]\)' "$HEADER_LOC"
@@ -80,7 +80,7 @@ uploaded_to_download() {
             fi
 
             # usual wait time is 12 seconds
-            countdown $((SLEEP + 1)) 2 seconds 1
+            countdown $((SLEEP + 1)) 2 seconds 1 || return 2
             break
         fi
     done

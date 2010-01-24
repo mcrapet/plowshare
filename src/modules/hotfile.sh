@@ -45,7 +45,7 @@ hotfile_download() {
         test "$CHECK_LINK" && return 255
 
         SLEEP=$((SLEEP / 1000))
-        countdown $((SLEEP)) 2 seconds 1
+        countdown $((SLEEP)) 2 seconds 1 || return 2
 
         # Send (post) form
         local form_url=$(echo "$WAIT_HTML" | parse '<form .*name=f>' 'action="\([^"]*\)' 2>/dev/null)
@@ -74,7 +74,7 @@ hotfile_download() {
             local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
                 { error "can't get wait time"; return 1; }
             WAIT_TIME=$((WAIT_TIME / 60000))
-            countdown $((WAIT_TIME)) 1 minutes 60
+            countdown $((WAIT_TIME)) 1 minutes 60 || return 2
             continue
 
         # Captcha page

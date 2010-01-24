@@ -70,13 +70,13 @@ x7_to_download() {
 
         if [ "$type" == "download" ]
         then
-            countdown $((wait)) 1 seconds 1
+            countdown $((wait)) 1 seconds 1 || return 2
             break;
         elif $(match '\(limit-dl\)' "$DATA")
         then
             debug "Download limit reached!"
             WAITTIME=5
-            countdown $((WAITTIME)) 1 minutes 60
+            countdown $((WAITTIME)) 1 minutes 60 || return 2
             continue
         else
             local error=$(echo "$DATA" | parse 'err:' '{err:"\([^"]*\)"}' 2>/dev/null)

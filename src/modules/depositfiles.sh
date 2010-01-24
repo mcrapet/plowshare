@@ -55,7 +55,7 @@ depositfiles_download() {
         { error "cannot get wait time"; return 1; }
 
     # usual wait time is 60 seconds
-    countdown $((SLEEP + 1)) 2 seconds 1
+    countdown $((SLEEP + 1)) 2 seconds 1 || return 2
 
     echo $FILE_URL
 }

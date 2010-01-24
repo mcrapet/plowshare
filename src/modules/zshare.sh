@@ -40,7 +40,7 @@ zshare_download() {
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")
 
-    countdown $((WAITTIME)) 5 seconds 1
+    countdown $((WAITTIME)) 5 seconds 1 || return 2
 
     JSCODE=$(echo "$WAITPAGE" | grep "var link_enc")
 

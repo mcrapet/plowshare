@@ -71,7 +71,7 @@ badongo_download() {
     LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"') || return 1
 
     # usual wait time is 60 seconds
-    countdown $((WAIT_TIME)) 5 seconds 1
+    countdown $((WAIT_TIME)) 5 seconds 1 || return 2
 
     FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | grep_http_header_location)
     rm -f $COOKIES

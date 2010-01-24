@@ -39,7 +39,7 @@ uploading_download() {
         ERR2="Sorry, you have reached your daily download limit."
         if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
             WAITTIME=1
-            countdown $WAITTIME 1 minutes 60
+            countdown $WAITTIME 1 minutes 60 || return 2
             continue
         fi
 
@@ -62,7 +62,7 @@ uploading_download() {
     test -z "$FILENAME" &&
         FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | tail -n1 | parse 'h2' '<h2>\([^<]*\)')
 
-    countdown $WAIT 10 seconds 1
+    countdown $WAIT 10 seconds 1 || return 2
 
     DATA=$(curl --cookie "$COOKIES" --data "action=get_link&file_id=$FILE_ID&pass=undefined" "$JSURL") ||
         { error "can't get link"; return 1; }
