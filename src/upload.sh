@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.9"
-MODULES="rapidshare megaupload 2shared"
+MODULES="rapidshare megaupload 2shared zshare"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowup version

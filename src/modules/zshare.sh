@@ -17,7 +17,9 @@
 #
 MODULE_ZSHARE_REGEXP_URL="^http://\(www\.\)\?zshare.net/download"
 MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
-MODULE_ZSHARE_UPLOAD_OPTIONS=
+MODULE_ZSHARE_UPLOAD_OPTIONS="
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description
+"
 MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 
 # Output a zshare file download URL
@@ -51,4 +53,44 @@ zshare_download() {
     echo $FILE_URL
     echo $FILENAME
     echo $COOKIES
+}
+
+# Upload a file to zshare and upload URL (DELETE_URL)
+#
+# zshare_upload [OPTION] FILE [DESTFILE]
+#
+# Option:
+#   -d DESCRIPTION (useless, not displayed on download page)
+#
+zshare_upload() {
+    set -e
+    eval "$(process_options 2shared "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
+
+    FILE=$1
+    DESTFILE=${2:-$FILE}
+    UPLOADURL="http://www.zshare.net/"
+
+    debug "downloading upload page: $UPLOADURL"
+    DATA=$(curl "$UPLOADURL")
+
+    ACTION=$(echo "$DATA" | parse '<form name="upload"' 'action="\([^"]*\)"') ||
+        { debug "cannot get upload form URL"; return 1; }
+
+    debug "starting file upload: $FILE"
+    INFOPAGE=$(curl -L \
+        -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
+        -F "desc=$DESCRIPTION" \
+        -F "is_private=0"      \
+        -F "TOS=1"             \
+        "$ACTION")
+
+    match "was successfully uploaded" "$INFOPAGE" ||
+        { debug "error on upload"; return 1; }
+
+    DOWNLOAD_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/download" '<a href="\([^"]*\)"') ||
+        { debug "can't parse download link, website updated?"; return 1; }
+    DELETE_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/delete" 'value="\([^"]*\)"') ||
+        { debug "can't parse delete link, website updated?"; return 1; }
+
+    echo "$DOWNLOAD_URL ($DELETE_URL)"
 }
