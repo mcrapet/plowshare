@@ -34,15 +34,15 @@ OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages
-DOWNLOAD_APP,r:,run-download:,COMMAND,run download command with interpolations (%filename, %cookies, %url)'
+CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
+GET_MODULE,,get-module,,Get module(s) for URL(s)
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
-GET_MODULE,,get-module,,Get module for URL
-CHECK_LINK,c,check-link,,Check if a link exists and return
+DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)'
 "
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
