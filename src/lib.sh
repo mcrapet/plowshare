@@ -289,15 +289,13 @@ process_options() {
     echo "set -- $(quote "$@")"
 }
 
-# Output image in ascii chars (uses aview)
+# Output image in ascii chars (aview uses libaa)
 #
 aview_ascii_image() {
-  convert $1 -negate pnm:- |
-    aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" |
-    awk 'BEGIN { part = 0; }
-      /\014/ { part++; next; }
-      // { if (part == 2) print $0; }' | \
-    grep -v "^[[:space:]]*$"
+    convert $1 -negate -depth 8 pnm:- |
+      aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q"|
+        sed  -e '1d;/\x0C/,/\x0C/d' |
+          grep -v "^[[:space:]]*$"
 }
 
 caca_ascii_image() {
