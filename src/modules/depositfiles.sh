@@ -29,7 +29,7 @@ depositfiles_download() {
     URL=$1
 
     BASEURL="depositfiles.com"
-    while true; do
+    while retry_limit_not_reached || return 3; do
         START=$(curl -L "$URL")
         echo "$START" | grep -q "no_download_msg" &&
             { debug "file not found"; return 254; }

@@ -34,7 +34,7 @@ netload_in_download() {
     COOKIES=$(create_tempfile)
 
     local try=0
-    while true; do
+    while retry_limit_not_reached || return 3; do
         ((try++))
         WAIT_URL=$(curl --location -c $COOKIES "$URL" |\
             parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||

@@ -33,7 +33,7 @@ hotfile_download() {
     BASE_URL='http://hotfile.com'
     COOKIES=$(create_tempfile)
 
-    while true; do
+    while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
 
         $(match '\(REGULAR DOWNLOAD\)' "$WAIT_HTML") ||
@@ -96,7 +96,7 @@ hotfile_download() {
             #echo "$VARS" "$WAIT_HTML2" >/tmp/a
 
             debug "Captcha page, give up!"
-            break
+            continue
 
         else
             debug "Unknown state, give up!"

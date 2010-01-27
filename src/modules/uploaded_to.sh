@@ -32,7 +32,7 @@ uploaded_to_download() {
     # Create temporary file to store HTTP protocol headers
     HEADERS=$(create_tempfile ".tmp")
 
-    while true; do
+    while retry_limit_not_reached || return 3; do
         DATA=$(curl --location --dump-header "$HEADERS" "$1")
         HEADER_LOC=$(cat "$HEADERS" | grep_http_header_location)
 

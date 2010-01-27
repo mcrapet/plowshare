@@ -32,7 +32,7 @@ uploading_download() {
     URL=$1
     COOKIES=$(create_tempfile)
 
-    while true; do
+    while retry_limit_not_reached || return 3; do
         # Force language to English
         DATA=$(curl --cookie-jar "$COOKIES" --cookie "lang=1" "$URL")
         ERR1="Your IP address.*file"

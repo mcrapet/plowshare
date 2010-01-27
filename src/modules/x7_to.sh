@@ -33,7 +33,7 @@ x7_to_download() {
     BASE_URL="http://x7.to"
     COOKIES=$(create_tempfile)
 
-    while true; do
+    while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -L -c $COOKIES "$URL")
 
         local ref_fid=$(echo $WAIT_HTML | parse 'document.cookie[[:space:]]=[[:space:]]*' 'ref_file=\([^&]*\)' 2>/dev/null)

@@ -37,7 +37,7 @@ badongo_download() {
     
     COOKIES=$(create_tempfile)
     TRY=1
-    while true; do
+    while retry_limit_not_reached || return 3; do
         debug "Downloading captcha page (loop $TRY)"
         TRY=$(($TRY + 1))
         JSCODE=$(curl \

@@ -38,7 +38,7 @@ storage_to_download() {
 
     PARAMS_URL=${1/\/get\//\/getlink\/}
 
-    while true; do
+    while retry_limit_not_reached || return 3; do
         DATA=$(curl --location "$PARAMS_URL")
 
         # Parse JSON object

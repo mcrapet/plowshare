@@ -57,7 +57,7 @@ megaupload_download() {
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
 
     TRY=0
-    while true; do
+    while retry_limit_not_reached || return 3; do
         TRY=$(($TRY + 1))
         debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
