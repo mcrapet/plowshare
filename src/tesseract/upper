@@ -1,0 +1,4 @@
+# Tesseract "varfile" configuration file
+# Recognize [:upper:] class
+
+tessedit_char_whitelist ABCDEFGHIJKLMNOPQRSTUVWXYZ

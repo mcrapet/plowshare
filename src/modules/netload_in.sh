@@ -56,16 +56,12 @@ netload_in_download() {
 
         debug "Try $try:"
 
-        TEMP_TESSERACT_VARFILE=$(create_tempfile)
-        echo 'tessedit_char_whitelist 0123456789' >$TEMP_TESSERACT_VARFILE
-
         CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | perl $LIBDIR/strip_single_color.pl |
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% -compress none -depth 8 tif:- |
-                show_image_and_tee | ocr nobatch $TEMP_TESSERACT_VARFILE | sed "s/[^0-9]//g") ||
+                show_image_and_tee | ocr digit | sed "s/[^0-9]//g") ||
                 { error "error running OCR"; return 1; }
 
         debug "Decoded captcha: $CAPTCHA"
-        rm -f $TEMP_TESSERACT_VARFILE
 
         if [ "${#CAPTCHA}" -ne 4 ]; then
             debug "Captcha length invalid"

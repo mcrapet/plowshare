@@ -131,11 +131,12 @@ create_tempfile() {
 # OCR of an image. Write OCRed text to standard input
 #
 # Standard input: image
-# One or two optionnal arguments
+# $1: (optionnal) varfile
+#
 ocr() {
-    local OPT_CONFIGFILE=$1
-    local OPT_VARFILE=$2
-    test -z "$OPT_CONFIGFILE" && OPT_VARFILE=''
+    local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
+    local OPT_VARFILE="$LIBDIR/tesseract/$1"
+    test -f "$OPT_VARFILE" || OPT_VARFILE=''
 
     # Tesseract somewhat "peculiar" arguments requirement makes impossible
     # to use pipes or process substitution. Create temporal files

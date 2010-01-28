@@ -27,8 +27,10 @@ MODULE_BADONGO_DOWNLOAD_CONTINUE=no
 badongo_download() {
     set -e
     eval "$(process_options bandogo "$MODULE_BADONGO_DOWNLOAD_OPTIONS" "$@")"
+
     URL=$1
     BASEURL="http://www.badongo.com"
+
     PAGE=$(curl "$URL")
     echo "$PAGE" | grep -q '"recycleMessage">' &&
         { error "file in recycle bin"; return 254; }
@@ -37,6 +39,7 @@ badongo_download() {
     
     COOKIES=$(create_tempfile)
     TRY=1
+
     while retry_limit_not_reached || return 3; do
         debug "Downloading captcha page (loop $TRY)"
         TRY=$(($TRY + 1))
@@ -52,10 +55,11 @@ badongo_download() {
         MTIME="$(date +%s)000"
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \
             convert - +matte -colorspace gray -level 40%,40% gif:- | \
-            show_image_and_tee | ocr | sed "s/[^a-zA-Z]//g" | uppercase)
+            show_image_and_tee | ocr upper | sed "s/[^a-zA-Z]//g" | uppercase)
         debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
             { debug "Captcha length invalid"; continue; }
+
         CAP_ID=$(echo "$JSCODE" | parse 'cap_id' 'value="\?\([^">]*\)')
         CAP_SECRET=$(echo "$JSCODE" | parse 'cap_secret' 'value="\?\([^">]*\)')
         WAIT_PAGE=$(curl -c $COOKIES \
@@ -69,6 +73,8 @@ badongo_download() {
     
     WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)') || return 1
     LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"') || return 1
+
+    debug "Correct captcha!"
 
     # usual wait time is 60 seconds
     countdown $((WAIT_TIME)) 5 seconds 1 || return 2
