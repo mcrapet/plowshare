@@ -43,8 +43,15 @@ uploading_download() {
             continue
         fi
 
+        match "requested file is not found" "$DATA" && return 254
+        if match "Download limit" "$DATA"; then
+            test "$CHECK_LINK" && return 255
+            debug "Another file is being downloaded"
+            countdown 2 1 minutes 60
+            continue
+        fi 
         WAIT_URL=$(echo "$DATA" | parse '<form.*id="downloadform"' 'action="\([^"]*\)"' 2>/dev/null) ||
-            { error "file not found"; return 254; }
+            { error "file not found"; return 1; }
         test "$CHECK_LINK" && return 255
         FILE_ID=$(echo "$DATA" | parse 'input.*name="file_id"' 'value="\([^"]*\)"') ||
             { error "can't get file_id"; return 1; }
