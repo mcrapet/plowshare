@@ -44,10 +44,13 @@ uploading_download() {
         fi
 
         match "requested file is not found" "$DATA" && return 254
-        if match "Download limit" "$DATA"; then
+        	
+        if match "<h2.*Download Limit.*</h2>" "$DATA"; then
             test "$CHECK_LINK" && return 255
-            debug "Another file is being downloaded"
-            countdown 2 1 minutes 60
+            WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
+                WAIT=5
+            debug "Server asked to wait"
+            countdown $WAIT 1 minutes 60
             continue
         fi 
         WAIT_URL=$(echo "$DATA" | parse '<form.*id="downloadform"' 'action="\([^"]*\)"' 2>/dev/null) ||
@@ -63,7 +66,8 @@ uploading_download() {
     WAIT=$(echo "$DATA" | parse 'start_timer([[:digit:]]\+)' 'start_timer(\(.*\))')
     JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
 
-    FILENAME=$(echo "$DATA" | parse '<title>' 'Download \([^ ]*\)' 2>/dev/null)
+    FILENAME=$(echo "$DATA" | 
+        parse '<title>' '<title>Download \(.*\) for free on uploading.com<\/title>' 2>/dev/null)
 
     # second attempt (note: filename might be truncated in the page)
     test -z "$FILENAME" &&
