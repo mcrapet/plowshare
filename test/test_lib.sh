@@ -24,6 +24,7 @@ ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 PICSDIR=$ROOTDIR/test/pics
 MODULESDIR=$ROOTDIR/src/modules
 TESTSDIR=$ROOTDIR/test
+LIBDIR=$ROOTDIR/src
 
 source $ROOTDIR/src/lib.sh
 source $ROOTDIR/test/lib.sh
@@ -53,6 +54,7 @@ test_match() {
 test_ocr() {
     assert_equal "Hello world" "$(ocr < $PICSDIR/hello_world.gif 2>/dev/null)"
     assert_equal "XGXD" "$(ocr < $PICSDIR/badongo_xgxd.gif 2>/dev/null)"
+    assert_equal "XGXD" "$(ocr upper < $PICSDIR/badongo_xgxd.gif 2>/dev/null)"
     assert_equal "DTE5" "$(ocr < $PICSDIR/megaupload_dte5.gif 2>/dev/null)"
 }
 
