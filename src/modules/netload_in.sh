@@ -47,8 +47,8 @@ netload_in_download() {
         WAIT_TIME=$(echo "$WAIT_HTML" |\
             parse 'type="text\/javascript">countdown' "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
 
-        if test -n "$WAIT_TIME"; then 
-          countdown $((WAIT_TIME / 100)) 5 seconds 1 || return 2
+        if test -n "$WAIT_TIME"; then
+            countdown $((WAIT_TIME / 100)) 5 seconds 1 || return 2
         fi
 
         CAPTCHA_URL=$(echo $WAIT_HTML | parse '<img style="vertical-align' 'src="\([^"]*\)" alt="Sicherheitsbild"')
