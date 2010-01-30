@@ -33,6 +33,13 @@ hotfile_download() {
     BASE_URL='http://hotfile.com'
     COOKIES=$(create_tempfile)
 
+    # Warning message
+    debug "##"
+    debug "# Important note: reCaptcha is not handled here."
+    debug "# As captcha challenge request is random and/or linked to specific url,"
+    debug "# some link could be never downloaded."
+    debug "##"
+
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
 
@@ -92,11 +99,11 @@ hotfile_download() {
             local challenge=$(echo "$VARS" | parse 'challenge' "'\([^']*\)'" 2>/dev/null)
 
             # Image dimension: 300x57
-            #$(curl -v "${server}image?c=${challenge}" -o 'img.jpg')
+            #$(curl "${server}image?c=${challenge}" -o "recaptcha-${challenge:0:16}.jpg")
             #echo "$VARS" "$WAIT_HTML2" >/tmp/a
 
             debug "Captcha page, give up!"
-            continue
+            break
 
         else
             debug "Unknown state, give up!"
