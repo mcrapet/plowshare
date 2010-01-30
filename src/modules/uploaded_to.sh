@@ -76,6 +76,13 @@ uploaded_to_download() {
             then
                 local file_real_name_ext=$(echo "$DATA" | parse '[[:space:]]\+' "[[:space:]]\+\(${file_real_name}[^ ]*\)" 2>/dev/null)
                 local extension=$(echo "$DATA" | parse 'Filetype' '<\/td><td>\([^<]*\)<\/td><\/tr>' 2>/dev/null)
+
+                # a part of extension is present in the 60 characters string
+                if [ -z "$file_real_name_ext" ]; then
+                    file_real_name_ext=$(echo "$DATA" | \
+                            parse '[[:space:]]\+' "[[:space:]]\+\(${file_real_name%.*}[^ ]*\)" 2>/dev/null)
+                fi
+
                 [ -n "$file_real_name_ext" ] && file_real_name="${file_real_name_ext}${extension}"
             fi
 
