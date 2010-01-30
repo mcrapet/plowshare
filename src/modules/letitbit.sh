@@ -12,12 +12,13 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-BASEURL="http://letitbit.net"
 MODULE_LETITBIT_DOWNLOAD_OPTIONS="
 CHECK_LINK,c,check-link,,Check if a link exists and return
 "
 MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit.net/"
 MODULE_LETITBIT_DOWNLOAD_CONTINUE=no
+
+BASEURL="http://letitbit.net"
 WAITTIME=60
 
 # letitbit_download [DOWNLOAD_OPTIONS] URL

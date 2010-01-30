@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo.com/"
 MODULE_BADONGO_DOWNLOAD_OPTIONS=""
 MODULE_BADONGO_UPLOAD_OPTIONS=
@@ -36,7 +37,7 @@ badongo_download() {
         { error "file in recycle bin"; return 254; }
     echo "$PAGE" | grep -q '"fileError">' &&
         { error "file not found"; return 254; }
-    
+
     COOKIES=$(create_tempfile)
     TRY=1
 
@@ -70,7 +71,7 @@ badongo_download() {
         match "var waiting" "$WAIT_PAGE" && break
         debug "Wrong captcha"
     done
-    
+
     WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)') || return 1
     LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"') || return 1
 

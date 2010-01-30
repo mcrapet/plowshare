@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 MODULE_USERSHARE_REGEXP_URL="http://\(www\.\)\?usershare.net/"
 MODULE_USERSHARE_DOWNLOAD_OPTIONS=""
 MODULE_USERSHARE_UPLOAD_OPTIONS=

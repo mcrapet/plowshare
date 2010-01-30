@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
 MODULE_2SHARED_DOWNLOAD_OPTIONS=""
 MODULE_2SHARED_UPLOAD_OPTIONS=
@@ -29,7 +30,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    MAIN_PAGE=$(curl "$URL") || return 1 
+    MAIN_PAGE=$(curl "$URL") || return 1
     FILE_URL=$(echo $MAIN_PAGE | parse 'window.location' 'location = "\([^"]\+\)"' 2>/dev/null)
 
     test -z "$FILE_URL" &&

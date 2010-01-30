@@ -15,11 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-BASE_URL="http://uploading.com"
+
 MODULE_UPLOADING_REGEXP_URL="http://\(\w\+\.\)\?uploading.com/"
 MODULE_UPLOADING_DOWNLOAD_OPTIONS=""
-MODULE_UPLOADING_UPLOAD_OPTIONS=""
+MODULE_UPLOADING_UPLOAD_OPTIONS=
 MODULE_UPLOADING_DOWNLOAD_CONTINUE=no
+
+BASE_URL="http://uploading.com"
 
 # Output a uploading file download URL (anonymous, NOT PREMIUM)
 #
@@ -44,7 +46,7 @@ uploading_download() {
         fi
 
         match "requested file is not found" "$DATA" && return 254
-        	
+
         if match "<h2.*Download Limit.*</h2>" "$DATA"; then
             test "$CHECK_LINK" && return 255
             WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
@@ -52,7 +54,7 @@ uploading_download() {
             debug "Server asked to wait"
             countdown $WAIT 1 minutes 60
             continue
-        fi 
+        fi
         WAIT_URL=$(echo "$DATA" | parse '<form.*id="downloadform"' 'action="\([^"]*\)"' 2>/dev/null) ||
             { error "file not found"; return 1; }
         test "$CHECK_LINK" && return 255
@@ -66,7 +68,7 @@ uploading_download() {
     WAIT=$(echo "$DATA" | parse 'start_timer([[:digit:]]\+)' 'start_timer(\(.*\))')
     JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
 
-    FILENAME=$(echo "$DATA" | 
+    FILENAME=$(echo "$DATA" |
         parse '<title>' '<title>Download \(.*\) for free on uploading.com<\/title>' 2>/dev/null)
 
     # second attempt (note: filename might be truncated in the page)
