@@ -25,7 +25,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 To run _plowshare_ and all its modules you will need:
 
   * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: 
-    * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...)
+    * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): [http://www.gnu.org/software/coreutils/ coreutils], [http://www.gnu.org/software/sed sed].
     * BSD (untested)
     * OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches]), 
     * Windows/Cygwin (is [http://cygwin.com/cgi-bin2/package-grep.cgi?grep=recode recode] available?).
