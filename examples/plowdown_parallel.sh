@@ -26,12 +26,11 @@ groupby() {
     elif test "$LAST" = "$VALUE"; then
       echo -n " $RETURN"
     else
-      echo
-      echo -n "$VALUE: $RETURN"
+      echo; echo -n "$VALUE: $RETURN"
     fi
     LAST=$VALUE
   done
-  test $FIRST=0 && echo
+  test $FIRST = 0 && echo
 }
 
 str2array() {
@@ -56,6 +55,8 @@ get_modules() {
     echo "$MODULE $URL"
   done | sort -k1 | groupby "cut -d' ' -f1" "cut -d' ' -f2"
 }
+
+# Main
 
 trap "kill 0" SIGINT
 INFILE=$1
