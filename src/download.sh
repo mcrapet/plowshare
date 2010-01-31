@@ -29,7 +29,7 @@
 set -e
 
 VERSION="0.9"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare freakshare"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
@@ -129,9 +129,9 @@ download() {
 
     FUNCTION=${MODULE}_download
     debug "start download ($MODULE): $URL"
-    timeout_init $TIMEOUT 
+    timeout_init $TIMEOUT
     retry_limit_init $MAXRETRIES
-    
+
     while true; do
         local DRETVAL=0
         RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
