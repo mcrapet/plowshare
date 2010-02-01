@@ -29,6 +29,7 @@ DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
 
 DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
+TESSERACTDIR="$DATADIR/tesseract"
 USAGE="Usage: setup.sh install|uninstall"
 
 CP='cp -v'
@@ -59,6 +60,10 @@ elif [ "$1" = "install" ]; then
     # Modules
     mkdir -p $MODULESDIR
     $CP src/modules/*.sh $MODULESDIR
+
+    # Tesseract
+    mkdir -p $TESSERACTDIR
+    $CP src/tesseract/* $TESSERACTDIR
 
     # Binary files
     mkdir -p $BINDIR

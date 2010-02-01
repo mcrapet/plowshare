@@ -48,6 +48,7 @@ share/plowshare/modules/4shared.sh
 share/plowshare/modules/badongo.sh
 share/plowshare/modules/depositfiles.sh
 share/plowshare/modules/divshare.sh
+share/plowshare/modules/freakshare.sh
 share/plowshare/modules/hotfile.sh
 share/plowshare/modules/letitbit.sh
 share/plowshare/modules/mediafire.sh
@@ -62,6 +63,11 @@ share/plowshare/modules/usershare.sh
 share/plowshare/modules/x7_to.sh
 share/plowshare/modules/zshare.sh
 share/plowshare/strip_single_color.pl
+share/plowshare/tesseract
+share/plowshare/tesseract/digit
+share/plowshare/tesseract/digit_ops
+share/plowshare/tesseract/plowshare_nobatch
+share/plowshare/tesseract/upper
 share/plowshare/upload.sh"
 
 UNINSTALLED="bin
