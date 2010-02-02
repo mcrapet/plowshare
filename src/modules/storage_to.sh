@@ -49,11 +49,11 @@ storage_to_download() {
         local count=$(echo "$DATA" | parse 'new Object' "'countdown'[[:space:]]*:[[:space:]]*\([[:digit:]]*\)" 2>/dev/null)
         local  link=$(echo "$DATA" | parse 'new Object' "'link'[[:space:]]*:[[:space:]]*'\([^']*\)'" 2>/dev/null)
 
-        if [ $state == "ok" ]
+        if [ "$state" == "ok" ]
         then
             countdown $((count+1)) 10 seconds 1 || return 2
             break
-        elif [ $state == "wait" ]
+        elif [ "$state" == "wait" ]
         then
             debug "Download limit reached!"
             countdown $((count+1)) 60 seconds 1 || return 2

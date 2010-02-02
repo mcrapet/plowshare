@@ -38,7 +38,10 @@ zshare_download() {
     echo "$WAITPAGE" | grep -q "File Not Found" &&
         { error "file not found"; return 254; }
 
-    test "$CHECK_LINK" && return 255
+     if test "$CHECK_LINK"; then
+         rm -f $COOKIES
+         return 255
+     fi
 
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")

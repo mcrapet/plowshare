@@ -40,18 +40,22 @@ netload_in_download() {
             parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||
             { error "file not found"; return 254; }
 
-        test "$CHECK_LINK" && return 255
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
         WAIT_HTML=$(curl -b $COOKIES $WAIT_URL)
-        WAIT_TIME=$(echo "$WAIT_HTML" |\
-            parse 'type="text\/javascript">countdown' "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
+        WAIT_TIME=$(echo "$WAIT_HTML" | parse 'type="text\/javascript">countdown' \
+                "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
 
         if test -n "$WAIT_TIME"; then
             countdown $((WAIT_TIME / 100)) 5 seconds 1 || return 2
         fi
 
-        CAPTCHA_URL=$(echo $WAIT_HTML | parse '<img style="vertical-align' 'src="\([^"]*\)" alt="Sicherheitsbild"')
+        CAPTCHA_URL=$(echo "$WAIT_HTML" | parse '<img style="vertical-align' \
+                'src="\([^"]*\)" alt="Sicherheitsbild"')
         CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
         debug "Try $try:"
@@ -69,22 +73,25 @@ netload_in_download() {
         fi
 
         # Send (post) form
-        local form_url=$(echo $WAIT_HTML | parse 'form method=' 'action="\([^"]*\)' 2>/dev/null)
-        local form_fid=$(echo $WAIT_HTML | parse '<input name="file_id"' 'type="hidden"[[:space:]]\+value="\([^"]*\)' 2>/dev/null)
+        local form_url=$(echo "$WAIT_HTML" | parse 'form method=' \
+                'action="\([^"]*\)' 2>/dev/null)
+        local form_fid=$(echo "$WAIT_HTML" | parse '<input name="file_id"' \
+                'type="hidden"[[:space:]]\+value="\([^"]*\)' 2>/dev/null)
 
-        WAIT_HTML2=$(curl -l -b $COOKIES --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" "$BASE_URL/$form_url")
+        WAIT_HTML2=$(curl -l -b $COOKIES --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" \
+                "$BASE_URL/$form_url")
 
         $(match '\(class="InPage_Error"\)' "$WAIT_HTML2") &&
             { debug "Error (bad captcha), retry"; continue; }
 
         debug "Correct captcha!"
 
-        WAIT_TIME2=$(echo $WAIT_HTML2 |\
-            parse 'type="text\/javascript">countdown' "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
+        WAIT_TIME2=$(echo "$WAIT_HTML2" | parse 'type="text\/javascript">countdown' \
+                "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
 
         if [ -n "$WAIT_TIME2" ]
         then
-            if [[ $WAIT_TIME2 -gt 10000 ]]
+            if [[ "$WAIT_TIME2" -gt 10000 ]]
             then
                 debug "Download limit reached!"
                 countdown $((WAIT_TIME2 / 100)) 40 seconds 1 || return 2
@@ -99,9 +106,9 @@ netload_in_download() {
 
     rm -f $COOKIES
 
-    FILENAME=$(echo $WAIT_HTML2 |\
+    FILENAME=$(echo "$WAIT_HTML2" |\
         parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)' 2>/dev/null)
-    FILE_URL=$(echo $WAIT_HTML2 |\
+    FILE_URL=$(echo "$WAIT_HTML2" |\
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
     echo $FILE_URL

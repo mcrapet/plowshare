@@ -41,7 +41,10 @@ freakshare_download() {
             'time[[:space:]]*=[[:space:]]*\([[:digit:]]\+\)\.[[:digit:]]*;') ||
         { error "can't get sleep time"; return 1; }
 
-    test "$CHECK_LINK" && return 255
+    if test "$CHECK_LINK"; then
+        rm -f $COOKIES
+        return 255
+    fi
 
     # Skip first form (Premium Download)
     WAIT_HTML=$(echo "$WAIT_HTML" | sed -n '/<\/form>/,/<\/form>/{//d;p}')

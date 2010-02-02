@@ -36,7 +36,8 @@ x7_to_download() {
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -L -c $COOKIES "$URL")
 
-        local ref_fid=$(echo $WAIT_HTML | parse 'document.cookie[[:space:]]=[[:space:]]*' 'ref_file=\([^&]*\)' 2>/dev/null)
+        local ref_fid=$(echo "$WAIT_HTML" | parse 'document.cookie[[:space:]]=[[:space:]]*' \
+                'ref_file=\([^&]*\)' 2>/dev/null)
 
         if [ -z "$ref_fid" ]; then
             $(match '\([Ff]ile not found\)' "$WAIT_HTML") &&
@@ -48,13 +49,19 @@ x7_to_download() {
                 error "This is a folder list (check $BASE_URL/$textlist)"
             fi
 
+            rm -f $COOKIES
             return 254
         fi
 
-        test "$CHECK_LINK" && return 255
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
 
-        file_real_name=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' '>\([^<]*\)<small' 2>/dev/null)
-        extension=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' '<small[^>]*>\([^<]*\)<\/small>' 2>/dev/null)
+        file_real_name=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
+                '>\([^<]*\)<small' 2>/dev/null)
+        extension=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
+                '<small[^>]*>\([^<]*\)<\/small>' 2>/dev/null)
         file_real_name="$file_real_name$extension"
 
         # according to http://x7.to/js/download.js

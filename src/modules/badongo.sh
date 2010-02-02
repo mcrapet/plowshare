@@ -51,7 +51,12 @@ badongo_download() {
             "$URL" | sed "s/>/>\n/g")
         ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
             { error "file not found"; return 254; }
-        test "$CHECK_LINK" && return 255
+
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
+
         CAP_IMAGE=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
         MTIME="$(date +%s)000"
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \

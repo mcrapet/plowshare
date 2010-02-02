@@ -37,7 +37,10 @@ mediafire_download() {
     JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu(\('[^)]*\));" 2>/dev/null) ||
         { error "file not found"; return 254; }
 
-    test "$CHECK_LINK" && return 255
+    if test "$CHECK_LINK"; then
+        rm -f $COOKIES
+        return 255
+    fi
 
     # 'mok2nz2y43y','9daf501e5492a2d4311112b7b1c59dca4be854f859546ab7e001b0ecbaffb84f1e0b1a327f6dab2101fb238d079749c7','y2lr2'
     IFS="," read QK PK R < <(echo "$JS_CALL" | tr -d "'")
