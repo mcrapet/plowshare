@@ -1,7 +1,24 @@
 #!/bin/bash
+#
+# This file is part of Plowshare.
+#
+# Plowshare is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Plowshare is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
+#
 set -e
 
-TESTSDIR=$(dirname "$(readlink -f "$0")")/test
+ROOTDIR=$(dirname "$(readlink -f "$0")")
+TESTSDIR="$ROOTDIR/test"
 
 # Support ArchLinux and Debian-like distros
 PACKAGES="
@@ -17,8 +34,9 @@ aview, aview --version, NF
 "
 
 basic_info() {
-    VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
-    REVISION=$(LC_ALL=C svn info  | grep ^Revision | cut -d: -f2 | xargs)
+    VERSION=$(cat "$ROOTDIR/CHANGELOG" | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
+    REVISION=$(LC_ALL=C svn info 2>/dev/null | grep ^Revision | cut -d: -f2 | xargs)
+    test -z "$REVISION" && REVISION=UNKNOWN
     echo "plowshare: $VERSION (r$REVISION)"
 }
 
@@ -35,6 +53,16 @@ version_info() {
     done <<< "$1"
 }
 
+
+#
+# Main
+#
+
+if [ ! -d "$TESTSDIR" ]; then
+  echo "Can't find test directory. This script must be called"
+  echo "from root directory of Plowshare."
+  exit 1
+fi
 
 basic_info
 echo -e "\n--- Packages info"
