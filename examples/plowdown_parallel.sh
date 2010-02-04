@@ -58,11 +58,12 @@ get_modules() {
 
 # Main
 
+test $# -ge 1 || { debug "Usage: $(basename $0) FILEWITHLINKS"; exit 1; }
 trap "kill 0" SIGINT
 INFILE=$1
 PIDS=()
 while read MODULE URLS; do
-  debug "Run: plowdown $URLS"
+  debug "Downloading: $URLS"
   plowdown $URLS &
   PIDS=(${PIDS[*]} $!)
 done < <(get_modules "$INFILE")
