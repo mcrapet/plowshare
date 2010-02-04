@@ -33,8 +33,14 @@ rapidshare_download() {
     URL=$1
     while retry_limit_not_reached || return 3; do
         PAGE=$(curl "$URL")
-        echo "$PAGE" | grep -q 'file could not be found' &&
+
+        ERR1='file could not be found'
+        ERR2='suspected to contain illegal content'
+        echo "$PAGE" | grep -q "$ERR1" &&
             { error "file not found"; return 254; }
+        echo "$PAGE" | grep -q "$ERR2" &&
+            { error "file blocked"; return 254; }
+
         WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
             return 1
 
