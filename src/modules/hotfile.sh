@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_HOTFILE_REGEXP_URL="^http://\(www\.\)\?hotfile.com/"
+MODULE_HOTFILE_REGEXP_URL="^http://\(www\.\)\?hotfile\.com/"
 MODULE_HOTFILE_DOWNLOAD_OPTIONS=""
 MODULE_HOTFILE_UPLOAD_OPTIONS=
 MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
@@ -42,6 +42,9 @@ hotfile_download() {
 
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
+
+        $(match '\(hotfile\.com\/list\/\)' "$URL") &&
+            { error "This is a directory list"; return 1; }
 
         $(match '\(REGULAR DOWNLOAD\)' "$WAIT_HTML") ||
             { error "File not found"; return 254; }
