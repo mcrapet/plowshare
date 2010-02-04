@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 #
 # Launch parallel plowdown processes for different websites
 #
