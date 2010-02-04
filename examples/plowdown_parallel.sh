@@ -34,7 +34,9 @@ groupby() {
 }
 
 str2array() {
-  echo $1 | xargs -n1 | xargs -i  echo '[{}]="{}"' | xargs
+  for ITEM in $1; do 
+    echo "[$ITEM]=\"$ITEM\""; 
+  done | xargs
 }
 
 wait_pids() {
@@ -53,7 +55,7 @@ get_modules() {
   cat $1 | while read URL; do
     MODULE=$(plowdown --get-module $URL)
     echo "$MODULE $URL"
-  done | sort -k1 | groupby "cut -d' ' -f1" "cut -d' ' -f2"
+  done | sort -k1 | groupby "cut -d' ' -f1" "cut -d' ' -f2-"
 }
 
 # Main
