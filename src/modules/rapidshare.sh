@@ -49,15 +49,21 @@ rapidshare_download() {
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
 
+        LIMIT=$(match "is already downloading a file" "$DATA") && {
+            debug "Your IP is already downloading a file"
+            countdown 2 1 minutes 60 || return 2
+            continue
+        }
+
         LIMIT=$(echo "$DATA" | parse "minute" \
                 "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
-            debug "Server asked to wait"
+            debug "No free slots, server asked to wait $LIMIT minutes"
             countdown $LIMIT 1 minutes 60 || return 2
             continue
         }
 
         FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"' 2>/dev/null) || {
-            debug "No free slots at this moment"
+            debug "No free slots, waiting 2 minutes (default value)"
             countdown 2 1 minutes 60 || return 2
             continue
         }
