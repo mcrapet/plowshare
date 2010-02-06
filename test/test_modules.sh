@@ -386,4 +386,18 @@ test_divshare_check_active_link() {
     assert_equal "$DIVSHARE_URL" "$(download -c $DIVSHARE_URL)" || return 1
 }
 
+# dl.free.fr
+
+DL_FREE_FR_URL="http://dl.free.fr/jUeq8Ct2K"
+
+test_dl_free_fr_download() {
+    FILENAME="plowshare.txt"
+    assert_equal "$FILENAME" "$(download $DL_FREE_FR_URL)" || return 1
+    rm -f $FILENAME
+}
+
+test_dl_free_fr_check_active_link() {
+    assert_equal "$DL_FREE_FR_URL" "$(download -c $DL_FREE_FR_URL)" || return 1
+}
+
 run_tests "$@"
