@@ -62,46 +62,54 @@ freakshare_download() {
     local form2_section=$(echo "$WAIT_HTML2" | parse '<input\([[:space:]]*[^ ]*\)*name="section"' 'value="\([^"]*\)' 2>/dev/null)
     local form2_did=$(echo "$WAIT_HTML2" | parse '<input\([[:space:]]*[^ ]*\)*name="did"' 'value="\([^"]*\)' 2>/dev/null)
 
-    $(match '\(name="sum"\)' "$WAIT_HTML2") ||
-        { error "can't find form field"; return 1; }
-
-    CAPTCHA_URL=$(echo "$WAIT_HTML2" | parse '\/captcha\/' 'src="\([^"]*\)')
-
     # Clean HTML code: <b> marker is not present!
     # <h1 style="text-align:center;">filename</b></h1>
     FILENAME=$(echo "$WAIT_HTML2" | parse '<h1 style' '">\([^<]*\)<\/')
 
-    local try=0
-    while retry_limit_not_reached || return 3; do
-        ((try++))
-        debug "Try $try:"
+    if match '\(name="sum"\)' "$WAIT_HTML2"
+    then
+        CAPTCHA_URL=$(echo "$WAIT_HTML2" | parse '\/captcha\/' 'src="\([^"]*\)')
 
-        CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | show_image_and_tee | ocr digit_ops) ||
-            { error "error running OCR"; return 1; }
+        local try=0
+        while retry_limit_not_reached || return 3; do
+            ((try++))
+            debug "Try $try:"
 
-        # Expected format: "5+1="
-        CAPTCHA_NUM=$(echo "$CAPTCHA" | cut -d'=' -f1)
+            CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | show_image_and_tee | ocr digit_ops) ||
+                { error "error running OCR"; return 1; }
 
-        if test $(match '\(+\)' "$CAPTCHA_NUM"); then
-            debug "Captcha result is invalid"
-            continue
-        fi
+            # Expected format: "5+1="
+            CAPTCHA_NUM=$(echo "$CAPTCHA" | cut -d'=' -f1)
 
-        CAPTCHA_NUM=$((CAPTCHA_NUM))
-        debug "Decoded captcha: $CAPTCHA$CAPTCHA_NUM"
+            if test $(match '\(+\)' "$CAPTCHA_NUM"); then
+                debug "Captcha result is invalid"
+                continue
+            fi
+
+            CAPTCHA_NUM=$((CAPTCHA_NUM))
+            debug "Decoded captcha: $CAPTCHA$CAPTCHA_NUM"
+
+            # Send (post) form
+            LAST_HTML=$(curl -i -b $COOKIES --data "submit=${form2_submit}&section=${form2_section}&did=${form2_did}&sum=${CAPTCHA_NUM}" \
+                    "$form2_url") || return 1
+
+            FILE_URL=$(echo "$LAST_HTML" | head -n16 | grep_http_header_location 2>/dev/null)
+            if [ -n "$FILE_URL" ]; then
+              debug "Correct captcha!"
+              break
+            fi
+
+            debug "Wrong captcha"
+        done
+
+    else
+        debug "No captcha!"
 
         # Send (post) form
-        LAST_HTML=$(curl -i -b $COOKIES --data "submit=${form2_submit}&section=${form2_section}&did=${form2_did}&sum=${CAPTCHA_NUM}" \
-                "$form_url") || return 1
-
+        LAST_HTML=$(curl -i -b $COOKIES --data "submit=${form2_submit}&section=${form2_section}&did=${form2_did}" \
+                "$form2_url") || return 1
         FILE_URL=$(echo "$LAST_HTML" | head -n16 | grep_http_header_location 2>/dev/null)
-        if [ -n "$FILE_URL" ]; then
-          debug "Correct captcha!"
-          break
-        fi
-
-        debug "Wrong captcha"
-    done
+    fi
 
     rm -f $COOKIES
 

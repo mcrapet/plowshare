@@ -160,7 +160,7 @@ test_megaupload_delete_member() {
     assert_return 0 "delete -a $AUTH $URL" || return 1
 }
 
-# 2Shared
+# 2Shared.com
 
 SHARED_URL="http://www.2shared.com/file/4446939/c9fd70d6/Test.html"
 
@@ -193,7 +193,7 @@ test_2shared_upload() {
         return 1
 }
 
-# Badongo
+# Badongo.com
 
 BADONGO_URL="http://www.badongo.com/file/10855869"
 
@@ -221,7 +221,7 @@ test_mediafire_check_active_link() {
     assert_equal "$MEDIAFIRE_URL" "$(download -c $MEDIAFIRE_URL)" || return 1
 }
 
-# 4shared
+# 4shared.com
 
 FSHARED_URL="http://www.4shared.com/file/14767114/7939c436/John_Milton_-_Paradise_Lost.html?s=1"
 
@@ -235,7 +235,7 @@ test_4shared_check_active_link() {
     assert_equal "$FSHARED_URL" "$(download -c $FSHARED_URL)" || return 1
 }
 
-# Zshare
+# Zshare.net
 
 ZSHARE_URL="http://www.zshare.net/download/70515576910ce6fa/"
 
@@ -249,7 +249,7 @@ test_zshare_check_active_link() {
     assert_equal "$ZSHARE_URL" "$(download -c $ZSHARE_URL)" || return 1
 }
 
-# Depositfiles
+# Depositfiles.com
 
 DEPOSIT_SMALL_URL="http://depositfiles.com/es/files/sswznjsu2"
 DEPOSIT_BIG_URL="http://depositfiles.com/es/files/vd58vei0y"
@@ -386,6 +386,20 @@ test_divshare_check_active_link() {
     assert_equal "$DIVSHARE_URL" "$(download -c $DIVSHARE_URL)" || return 1
 }
 
+# Freakshare.net
+
+FREAKSHARE_URL="http://freakshare.net/files/a384b9fy/RFCs0001-0500.tar.gz.html"
+
+test_freakhare_download() {
+    FILENAME="RFCs0001-0500.tar.gz"
+    assert_equal "$FILENAME" "$(download $FREAKSHARE_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_freakshare_check_active_link() {
+    assert_equal "$FREAKSHARE_URL" "$(download -c $FREAKSHARE_URL)" || return 1
+}
+
 # dl.free.fr
 
 DL_FREE_FR_URL="http://dl.free.fr/jUeq8Ct2K"
@@ -400,7 +414,7 @@ test_dl_free_fr_check_active_link() {
     assert_equal "$DL_FREE_FR_URL" "$(download -c $DL_FREE_FR_URL)" || return 1
 }
 
-# loadfiles
+# Loadfiles.in
 
 LOADFILES_URL="http://loadfiles.in/95thdkxupzyb/MARKOV2.pdf"
 
