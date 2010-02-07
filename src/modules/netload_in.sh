@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_NETLOAD_IN_REGEXP_URL="^http://\(www\.\)\?netload.in/"
+MODULE_NETLOAD_IN_REGEXP_URL="^http://\(www\.\)\?netload\.in/"
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS=""
 MODULE_NETLOAD_IN_UPLOAD_OPTIONS=
 MODULE_NETLOAD_IN_DOWNLOAD_CONTINUE=no
@@ -65,6 +65,7 @@ netload_in_download() {
                 show_image_and_tee | ocr digit | sed "s/[^0-9]//g") ||
                 { error "error running OCR"; return 1; }
 
+        test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
         debug "Decoded captcha: $CAPTCHA"
 
         if [ "${#CAPTCHA}" -ne 4 ]; then
