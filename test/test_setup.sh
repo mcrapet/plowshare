@@ -52,6 +52,7 @@ share/plowshare/modules/dl_free_fr.sh
 share/plowshare/modules/freakshare.sh
 share/plowshare/modules/hotfile.sh
 share/plowshare/modules/letitbit.sh
+share/plowshare/modules/loadfiles.sh
 share/plowshare/modules/mediafire.sh
 share/plowshare/modules/megaupload.sh
 share/plowshare/modules/netload_in.sh
@@ -63,6 +64,7 @@ share/plowshare/modules/uploading.sh
 share/plowshare/modules/usershare.sh
 share/plowshare/modules/x7_to.sh
 share/plowshare/modules/zshare.sh
+share/plowshare/strip_grey.pl
 share/plowshare/strip_single_color.pl
 share/plowshare/tesseract
 share/plowshare/tesseract/digit
