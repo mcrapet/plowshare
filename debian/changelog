@@ -1,12 +1,18 @@
+plowshare (0.9.1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Tue, 09 Feb 2010 21:40:08 +0100
+
 plowshare (0.9.0-2) unstable; urgency=low
 
-  * fix PREFIX and DESTDIR variables in rules file
+  * debian/rules: fix PREFIX and DESTDIR variables.
 
  -- Matthieu Crapet <mcrapet@gmail.com>  Thu, 14 Jan 2010 22:23:32 +0100
 
 plowshare (0.9.0-1) unstable; urgency=low
 
-  * Initial debian release 
+  * Initial Release 
 
  -- Matthieu Crapet <mcrapet@gmail.com>  Mon, 28 Dec 2009 11:21:34 +0100
 
