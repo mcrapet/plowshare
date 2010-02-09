@@ -390,7 +390,7 @@ test_divshare_check_active_link() {
 
 FREAKSHARE_URL="http://freakshare.net/files/a384b9fy/RFCs0001-0500.tar.gz.html"
 
-test_freakhare_download() {
+test_freakshare_download() {
     FILENAME="RFCs0001-0500.tar.gz"
     assert_equal "$FILENAME" "$(download $FREAKSHARE_URL)" || return 1
     rm -f "$FILENAME"
