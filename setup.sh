@@ -55,6 +55,7 @@ elif [ "$1" = "install" ]; then
         src/upload.sh   \
         src/delete.sh   \
         src/lib.sh      \
+        src/strip_grey.pl \
         src/strip_single_color.pl $DATADIR
 
     # Modules
