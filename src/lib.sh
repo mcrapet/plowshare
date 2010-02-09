@@ -78,10 +78,19 @@ grep_http_header_location() {
 }
 
 # Check if a string ($2) matches a regexp ($1)
+# This is case sensitive.
 # $? is zero on success
 #
 match() {
     grep -q "$1" <<< "$2"
+}
+
+# Check if a string ($2) matches a regexp ($1)
+# This is not case sensitive.
+# $? is zero on success
+#
+matchi() {
+    grep -iq "$1" <<< "$2"
 }
 
 # Check existance of executable in path
@@ -338,7 +347,7 @@ timeout_init() {
 timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
-    debug "Time left to timeout: $PS_TIMEOUT secs" 
+    debug "Time left to timeout: $PS_TIMEOUT secs"
     if test $(expr $PS_TIMEOUT - $WAIT) -lt 0; then
         error "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
         return 1
@@ -352,7 +361,7 @@ retry_limit_init() {
 
 retry_limit_not_reached() {
     test -z "$PS_RETRY_LIMIT" && return
-    debug "Retries left: $PS_RETRY_LIMIT" 
+    debug "Retries left: $PS_RETRY_LIMIT"
     PS_RETRY_LIMIT=$(expr $PS_RETRY_LIMIT - 1)
     test $PS_RETRY_LIMIT -ge 0
 }
@@ -364,10 +373,10 @@ countdown() {
     local STEP=$2
     local UNIT_STR=$3
     local UNIT_SECS=$4
-    
+
     local TOTAL_WAIT=$((VALUE * UNIT_SECS))
     timeout_update $TOTAL_WAIT || return 1
-   
+
     for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
         test $REMAINING = $VALUE &&
             debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
