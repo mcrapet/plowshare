@@ -49,7 +49,7 @@ rapidshare_download() {
         DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
 
-        LIMIT=$(match "is already downloading a file" "$DATA") && {
+        match "is already downloading a file" "$DATA" && {
             debug "Your IP is already downloading a file"
             countdown 2 1 minutes 60 || return 2
             continue
