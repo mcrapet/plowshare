@@ -1,10 +1,13 @@
 plowshare (1.00svn) stable; urgency=medium
 
-  * Add new modules (anonymous download): hotfile.com (without reCaptcha support),
-    divshare.com. 
+  * Add 4 new modules (anonymous download): divshare.com, freakshare.net, loadfiles.in,
+    dl.free.fr.
+  * [zshare] Add anonymous upload.
   * [download] Add --get-module option (aimed for wrappers to manage parallel download)
+  * [download] Add -t/--timeout option (restrict time for download a link)
+  * [download] Add --max-retries option (restrict attemps for loop, mostly captchas)
 
- -- Arnau Sanchez <tokland@gmail.com>  Sat, 23 Jan 2010 13:38:56 +0100
+ -- Arnau Sanchez <tokland@gmail.com>  Tue, 09 Feb 2010 12:43:07 +0100
 
 plowshare (0.9) stable; urgency=medium
 
