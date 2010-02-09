@@ -48,19 +48,32 @@ uploading_download() {
         match "requested file is not found" "$DATA" && return 254
 
         if match "<h2.*Download Limit.*</h2>" "$DATA"; then
-            test "$CHECK_LINK" && return 255
+            if test "$CHECK_LINK"; then
+                rm -f $COOKIES
+                return 255
+            fi
+
             WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
                 WAIT=5
             debug "Server asked to wait"
             countdown $WAIT 1 minutes 60
             continue
         fi
+
         WAIT_URL=$(echo "$DATA" | parse '<form.*id="downloadform"' 'action="\([^"]*\)"' 2>/dev/null) ||
-            { error "file not found"; return 1; }
-        test "$CHECK_LINK" && return 255
+            { error "can't get wait url"; return 1; }
+
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
+
         FILE_ID=$(echo "$DATA" | parse 'input.*name="file_id"' 'value="\([^"]*\)"') ||
-            { error "can't get file_id"; return 1; }
-        DATA=$(curl --cookie "$COOKIES" --cookie "lang=1" --data "action=second_page&file_id=$FILE_ID" "$WAIT_URL") ||
+            { error "can't get file_id form field"; return 1; }
+        CODE=$(echo "$DATA" | parse 'input.*name="code"' 'value="\([^"]*\)"') ||
+            { error "can't get code form field"; return 1; }
+
+        DATA=$(curl --cookie "$COOKIES" --cookie "lang=1" --data "action=second_page&file_id=${FILE_ID}&code=${CODE}" "$WAIT_URL") ||
             { error "can't get wait URL contents"; return 1; }
         break
     done
@@ -77,7 +90,7 @@ uploading_download() {
 
     countdown $WAIT 10 seconds 1 || return 2
 
-    DATA=$(curl --cookie "$COOKIES" --data "action=get_link&file_id=$FILE_ID&pass=undefined" "$JSURL") ||
+    DATA=$(curl --cookie "$COOKIES" --data "action=get_link&file_id=${FILE_ID}&code=${CODE}&pass=undefined" "$JSURL") ||
         { error "can't get link"; return 1; }
 
     # example of answer:
