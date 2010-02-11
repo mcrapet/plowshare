@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared.com/file/"
+MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared\.com/file/"
 MODULE_4SHARED_DOWNLOAD_OPTIONS=""
 MODULE_4SHARED_UPLOAD_OPTIONS=
 MODULE_4SHARED_DOWNLOAD_CONTINUE=no
@@ -30,7 +30,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    WAIT_URL=$(curl "$URL" | parse "4shared.com\/get\/" 'href="\([^"]*\)"') ||
+    WAIT_URL=$(curl "$URL" | parse "4shared\.com\/get\/" 'href="\([^"]*\)"') ||
         { error "file not found"; return 254; }
     WAIT_HTML=$(curl "$WAIT_URL")
 
