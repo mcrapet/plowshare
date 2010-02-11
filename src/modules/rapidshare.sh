@@ -17,7 +17,8 @@
 #
 
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(\w\+\.\)\?rapidshare.com/"
-MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS=""
+MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_FREEZONE,a:,auth-freezone:,USER:PASSWORD,Use a freezone account"
 MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
@@ -31,8 +32,18 @@ rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
+
+    # Try to login if account provided ($AUTH not null)
+    # Even if login/passwd are wrong cookie content is returned
+    # Trick to direct downloads for premium users if not used here:
+    # http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
+    LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
+    COOKIE_DATA=$(post_login "$AUTH" "$LOGIN_DATA" \
+            "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi")
+    ccurl() { curl -b <(echo "$COOKIE_DATA") "$@"; }
+
     while retry_limit_not_reached || return 3; do
-        PAGE=$(curl "$URL")
+        PAGE=$(ccurl "$URL")
 
         ERR1='file could not be found'
         ERR2='suspected to contain illegal content'
@@ -46,7 +57,14 @@ rapidshare_download() {
 
         test "$CHECK_LINK" && return 255
 
-        DATA=$(curl --data "dl.start=Free" "$WAIT_URL") ||
+        if [ -z "$AUTH" ]; then
+            DATA=$(ccurl --data "dl.start=Free" "$WAIT_URL")
+        else
+            DATA=$(ccurl --data "dl.start=PREMIUM" "$WAIT_URL")
+            match 'Your Cookie has not been recognized' "$DATA" &&
+                { error "login process failed"; return 1; }
+        fi
+        test -z "$DATA" &&
             { error "can't get wait URL contents"; return 1; }
 
         match "is already downloading a file" "$DATA" && {
@@ -62,7 +80,7 @@ rapidshare_download() {
             continue
         }
 
-        FILE_URL=$(echo "$DATA" | parse "<form " 'action="\([^"]*\)"' 2>/dev/null) || {
+        FILE_URL=$(echo "$DATA" | parse '<form name="dlf"' 'action="\([^"]*\)"' 2>/dev/null) || {
             debug "No free slots, waiting 2 minutes (default value)"
             countdown 2 1 minutes 60 || return 2
             continue
@@ -71,10 +89,21 @@ rapidshare_download() {
         break
     done
 
-    SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
-    countdown $((SLEEP + 1)) 20 seconds 1 || return 2
+    if [ -z "$AUTH" ]; then
+        SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
+        countdown $((SLEEP + 1)) 20 seconds 1 || return 2
 
-    echo $FILE_URL
+        echo $FILE_URL
+    else
+        COOKIE_FILE=$(create_tempfile)
+        echo "$COOKIE_DATA" >$COOKIE_FILE
+
+        echo $FILE_URL
+        echo
+        echo $COOKIE_FILE
+    fi
+
+    return 0
 }
 
 # Upload a file to Rapidshare (anonymously or free zone, NOT PREMIUM)
@@ -149,6 +178,7 @@ rapidshare_upload_freezone() {
     MATCH="^Adliste\[\"$FILEID\"\]"
     KILLCODE=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "killcode\"\] = '\(.*\)'") || return 1
     FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"") || return 1
+
     # There is a killcode in the HTML, but it's not used to build a URL
     # but as a param in a POST submit, so I assume there is no kill URL for
     # freezone files. Therefore, output just the file URL.
