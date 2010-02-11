@@ -18,14 +18,19 @@
 
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(\w\+\.\)\?rapidshare.com/"
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
-AUTH_FREEZONE,a:,auth-freezone:,USER:PASSWORD,Use a freezone account"
+AUTH_FREEZONE,a:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"
 MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 
-# Output a rapidshare file download URL (anonymous, NOT PREMIUM)
+# Output a rapidshare file download URL (anonymous and premium)
 #
 # rapidshare_download RAPIDSHARE_URL
+#
+# Note to premium users: In your account settings, uncheck option:
+# "Direct downloads, requested files are saved without redirection via RapidShare"
+# The trick to direct download (not used here) is to append "directstart=1" to URL.
+# For example: http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
 #
 rapidshare_download() {
     set -e
@@ -35,8 +40,6 @@ rapidshare_download() {
 
     # Try to login if account provided ($AUTH not null)
     # Even if login/passwd are wrong cookie content is returned
-    # Trick to direct downloads for premium users if not used here:
-    # http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
     COOKIE_DATA=$(post_login "$AUTH" "$LOGIN_DATA" \
             "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi")
