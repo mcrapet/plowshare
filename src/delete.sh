@@ -25,7 +25,7 @@
 #
 set -e
 
-VERSION="0.8"
+VERSION="0.9.1"
 MODULES="megaupload"
 OPTIONS="
 HELP,h,help,,Show help info

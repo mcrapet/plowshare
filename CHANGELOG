@@ -1,7 +1,7 @@
-plowshare (1.00svn) stable; urgency=medium
+plowshare (0.9.1) stable; urgency=medium
 
-  * Add 4 new modules (anonymous download): divshare.com, freakshare.net, loadfiles.in,
-    dl.free.fr.
+  * Add 4 new modules (anonymous download): divshare.com, freakshare.net, 
+    loadfiles.in, dl.free.fr.
   * [zshare] Add anonymous upload.
   * [download] Add --get-module option (aimed for wrappers to manage parallel download)
   * [download] Add -t/--timeout option (restrict time for download a link)
