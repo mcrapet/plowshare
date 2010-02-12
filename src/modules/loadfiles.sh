@@ -31,31 +31,18 @@ loadfiles_download() {
 
     URL=$1
     while retry_limit_not_reached || return 3; do
-        PAGE=$(curl "$URL")
+        DATA=$(curl "$URL")
 
         ERR1='No such file with this filename'
-        echo "$PAGE" | grep -q "$ERR1" &&
+        ERR2='File Not Found'
+        echo "$DATA" | grep -q "$ERR1\|$ERR2" &&
             { error "file not found"; return 254; }
 
         test "$CHECK_LINK" && return 255
 
-        DATA_OP=$(echo "$PAGE" | parse '<input type="hidden" name="op"' 'value="\([^"]*\)"') ||
-            return 1
-        DATA_USR_LOGIN=""
-        DATA_ID=$(echo "$PAGE" | parse '<input type="hidden" name="id"' 'value="\([^"]*\)"') ||
-            return 1
-        DATA_FNAME=$(echo "$PAGE" | parse '<input type="hidden" name="fname"' 'value="\([^"]*\)"') ||
-            return 1
-        DATA_REFERER=""
-        DATA_METHOD_FREE="Free Download"
-
-        DATA=$(curl --data "op=${DATA_OP}&usr_login=${DATA_USR_LOGIN}&id=${DATA_ID}&fname=${DATA_FNAME}&\
-referer=${DATA_REFERER}&method_free=${DATA_METHOD_FREE}" "$URL") ||
-            { error "can't get URL contents"; return 1; }
-
         test $(echo "$DATA" | grep 'class="err"' | wc -l) -eq 0 || {
-            HOUR=$(echo "$DATA" | parse 'class="err"' 'wait\ \([0-9]\+\)\ hour') || HOUR=0
-            MINUTES=$(echo "$DATA" | parse 'class="err"' '\ \([0-9]\+\)\ minutes') || MINUTES=0
+            HOUR=$(echo "$DATA" | parse 'class="err"' 'wait\ \([0-9]\+\)\ hour' 2>/dev/null) || HOUR=0
+            MINUTES=$(echo "$DATA" | parse 'class="err"' '\ \([0-9]\+\)\ minutes' 2>/dev/null) || MINUTES=0
             SECONDS=$(echo "$DATA" | parse 'class="err"' '\ \([0-9]\+\)\ seconds')
 
             debug "You have to wait $HOUR hour, $MINUTES minutes, $SECONDS seconds."
