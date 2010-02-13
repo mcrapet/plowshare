@@ -2,10 +2,8 @@
 #
 # Launch parallel plowdown processes for different websites
 #
-# This is file is part of plowshare.
-#
-# plowdown_parallel.sh FILE_WITH_ONE_LINK_PER_LINE
-#
+# Example: plowdown_parallel.sh FILE_WITH_ONE_LINK_PER_LINE
+
 
 set -e
  
@@ -61,7 +59,7 @@ get_modules() {
 # Main
 
 test $# -ge 1 || { debug "Usage: $(basename $0) FILEWITHLINKS"; exit 1; }
-trap "kill 0" SIGINT
+trap "kill 0" SIGINT SIGTERM EXIT
 INFILE=$1
 PIDS=()
 while read MODULE URLS; do
