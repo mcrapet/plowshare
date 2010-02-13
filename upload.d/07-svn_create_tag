@@ -3,6 +3,7 @@ set -e
 DIR=$(dirname $0)
 source $DIR/vars
 RELEASE_URL=$TAGS_URL/RELEASE-$VERSION
+LOG="Release Plowshare $VERSION"
 
 svn rm -m "$LOG" $TAGS_URL/{RELEASE-$VERSION,RELEASE-LAST} || true
 svn copy -m "$LOG" $TRUNK $RELEASE_URL
