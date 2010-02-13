@@ -26,6 +26,7 @@ PREFIX=${PREFIX:-/usr/local}
 BINDIR="${DESTDIR}${PREFIX}/bin"
 DATADIR="${DESTDIR}${PREFIX}/share/$NAME"
 DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
+EXAMPLESDIR="${DATADIR}/examples"
 
 DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
@@ -48,6 +49,10 @@ elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCDIR
     $CP CHANGELOG README $DOCDIR
+
+    # Examples
+    mkdir -p $EXAMPLESDIR
+    $CP examples/* $EXAMPLESDIR
 
     # Common library
     mkdir -p $DATADIR
