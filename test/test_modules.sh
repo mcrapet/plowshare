@@ -180,7 +180,7 @@ test_2shared_download_using_file_argument_and_mark_as_downloaded() {
     TEMP=$(create_tempfile)
     echo "$SHARED_URL" > $TEMP
     assert_match "Test.mp3" $(download -m "$TEMP") || return 1
-    assert_match "^#$SHARED_URL" "$(cat $TEMP)" || return 1
+    assert_match "^# $SHARED_URL" "$(cat $TEMP)" || return 1
     rm -f "$TEMP"
 }
 
