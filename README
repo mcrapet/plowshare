@@ -14,7 +14,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.mediafire.com Mediafire] || anonymous || no ||
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) ||
 || [http://www.netload.in Netload.in] || anonymous || no ||
-|| [http://www.rapidshare.com Rapidshare] || anonymous || anonymous, Free-Zone, Premium-Zone ||
+|| [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone ||
 || [http://www.sendspace.com Sendspace] || anonymous || no ||
 || [http://www.storage.to Storage.to] || anonymous || no ||
 || [http://www.uploaded.to Uploaded.to] || anonymous || no ||
@@ -39,7 +39,7 @@ To run _plowshare_ and all its modules you will need:
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (2.03 works, but 2.04 works better)
   * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] (or a compatible Javascript interpreter)
   * [http://aa-project.sourceforge.net/aview/ aview] (optional)
-  * [http://www.imagemagick.org/script/perl-magick.php] PerlMagick] (used by Netload.in and Loadfiles.in modules)
+  * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used by Netload.in and Loadfiles.in modules)
 
 Debian/Ubuntu users may try:
 

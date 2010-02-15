@@ -6,6 +6,7 @@ plowshare (0.9.1) stable; urgency=medium
   * [download] Add --get-module option (aimed for wrappers to manage parallel download)
   * [download] Add -t/--timeout option (restrict time for download a link)
   * [download] Add --max-retries option (restrict attemps for loop, mostly captchas)
+  * [rapidshare] Add Premium-Zone downoad
 
  -- Arnau Sanchez <tokland@gmail.com>  Tue, 09 Feb 2010 12:43:07 +0100
 
