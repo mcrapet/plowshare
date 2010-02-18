@@ -28,18 +28,18 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 To run _plowshare_ and all its modules you will need:
 
   * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: 
-    * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): [http://www.gnu.org/software/coreutils/ coreutils], [http://www.gnu.org/software/sed/ sed].
+    * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): [http://www.gnu.org/software/coreutils/ coreutils], [http://www.gnu.org/software/sed/ sed]
     * BSD (untested)
-    * OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches]), 
-    * Windows/Cygwin (is [http://cygwin.com/cgi-bin2/package-grep.cgi?grep=recode recode] available?).
+    * OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches])
+    * Windows/Cygwin (reocde is not available as a package but can be recompiled with [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl]
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick] (with GIF and TIFF support)
-  * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (2.03 works, but 2.04 works better)
-  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] (or a compatible Javascript interpreter)
-  * [http://aa-project.sourceforge.net/aview/ aview] (optional)
-  * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used by Netload.in and Loadfiles.in modules)
+  * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (with TIFF support; version 2.03 works, but 2.04 works better)
+  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or a compatible Javascript interpreter (only for zshare and mediafire).
+  * [http://aa-project.sourceforge.net/aview/ aview] or [http://caca.zoy.org/ libcaca] (both optional).
+  * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used only by netload.in and loadfiles.in modules)
 
 Debian/Ubuntu users may try:
 
