@@ -26,7 +26,7 @@
 set -e
 
 VERSION="0.9.1"
-MODULES="megaupload"
+MODULES="megaupload zshare"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdel version
@@ -91,11 +91,20 @@ test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -ge 1 || { usage; exit 1; }
 
+RETVAL=0
+
 for URL in "$@"; do
-  MODULE=$(get_module "$URL" "$MODULES")
-  grep -w -q "$MODULE" <<< "$MODULES" ||
-      { error "unsupported module ($MODULE)"; exit 4; }
-  FUNCTION=${MODULE}_delete
-  debug "starting delete ($MODULE): $URL"
-  $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || exit 5
+    MODULE=$(get_module "$URL" "$MODULES")
+
+    if test -z "$MODULE"; then
+        debug "Skip: no module for URL ($URL)"
+        RETVAL=4
+        continue
+    fi
+
+    FUNCTION=${MODULE}_delete
+    debug "starting delete ($MODULE): $URL"
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || RETVAL=5
 done
+
+exit $RETVAL

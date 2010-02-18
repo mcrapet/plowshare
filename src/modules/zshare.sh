@@ -16,11 +16,12 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_ZSHARE_REGEXP_URL="^http://\(www\.\)\?zshare.net/download"
+MODULE_ZSHARE_REGEXP_URL="^http://\(www\.\)\?zshare\.net/\(download\|delete\)"
 MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZSHARE_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 "
+MODULE_ZSHARE_DELETE_OPTIONS=
 MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 
 # Output a zshare file download URL
@@ -59,9 +60,9 @@ zshare_download() {
     echo $COOKIES
 }
 
-# Upload a file to zshare and upload URL (DELETE_URL)
+# Upload a file to zshare and return upload URL (DELETE_URL)
 #
-# zshare_upload [OPTION] FILE [DESTFILE]
+# zshare_upload [MODULE_ZSHARE_UPLOAD_OPTIONS] FILE [DESTFILE]
 #
 # Option:
 #   -d DESCRIPTION (useless, not displayed on download page)
@@ -97,4 +98,28 @@ zshare_upload() {
         { debug "can't parse delete link, website updated?"; return 1; }
 
     echo "$DOWNLOAD_URL ($DELETE_URL)"
+}
+
+# Delete a file from zshare
+#
+# zshare_delete [MODULE_ZSHARE_DELETE_OPTIONS] URL
+#
+zshare_delete() {
+    eval "$(process_options megaupload "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
+    URL=$1
+
+    DELETE_PAGE=$(curl -L "$URL")
+
+    if matchi 'File Not Found' "$DELETE_PAGE"; then
+        error "File not found"
+        return 254
+    else
+       local form_killcode=$(echo "$DELETE_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="killCode"' 'value="\([^"]*\)' 2>/dev/null)
+
+       RESULT_PAGE=$(curl --data "killCode=$form_killcode" "$URL")
+       if ! matchi 'File Removed' "$RESULT_PAGE"; then
+           error "error on delete"
+           return 1
+       fi
+    fi
 }
