@@ -16,14 +16,14 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo.com/"
+MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo\.com/"
 MODULE_BADONGO_DOWNLOAD_OPTIONS=""
 MODULE_BADONGO_UPLOAD_OPTIONS=
 MODULE_BADONGO_DOWNLOAD_CONTINUE=no
 
 # Output a file URL to download from Badongo
 #
-# badongo_download [OPTIONS] BADONGO_URL
+# badongo_download [MODULE_BADONGO_DOWNLOAD_OPTIONS] BADONGO_URL
 #
 badongo_download() {
     set -e
