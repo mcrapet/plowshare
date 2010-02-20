@@ -81,7 +81,7 @@ freakshare_download() {
             # Expected format: "5+1="
             CAPTCHA_NUM=$(echo "$CAPTCHA" | cut -d'=' -f1)
 
-            if test $(match '\(+\)' "$CAPTCHA_NUM"); then
+            if ! match '\(+\)' "$CAPTCHA_NUM"; then
                 debug "Captcha result is invalid"
                 continue
             fi
