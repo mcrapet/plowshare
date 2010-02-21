@@ -40,7 +40,7 @@ GET_MODULE,,get-module,,Get module(s) for URL(s)
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
-TIMEOUT,t:,timeout,SECS,Timeout after SECS seconds of waits
+TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)'
 "
@@ -113,7 +113,7 @@ usage() {
     debug_options_for_modules "$MODULES" "DOWNLOAD"
 }
 
-# If MARK_DOWN enabled and it's a file, comment out URL (with optional TEXT) 
+# If MARK_DOWN enabled and it's a file, comment out URL (with optional TEXT)
 mark_queue() {
     local TYPE=$1; local MARK_DOWN=$2; FILE=$3; local URL=$4; local TEXT=$5
     test "$TYPE" = "file" -a "$MARK_DOWN" || return
@@ -201,7 +201,7 @@ download() {
             fi
         fi
 
-        echo "$FILENAME"        
+        echo "$FILENAME"
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
         break
     done
