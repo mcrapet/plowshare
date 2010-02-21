@@ -80,7 +80,7 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Guess is item is a rapidshare URL, a generic URL (to start a download)
+# Guess if item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments)-
 #
 process_item() {
@@ -116,7 +116,7 @@ usage() {
 # If MARK_DOWN enabled and it's a file, comment out URL (with optional TEXT)
 mark_queue() {
     local TYPE=$1; local MARK_DOWN=$2; FILE=$3; local URL=$4; local TEXT=$5
-    test "$TYPE" = "file" -a "$MARK_DOWN" || return
+    test "$TYPE" = "file" -a "$MARK_DOWN" || return 0
     sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#$TEXT \1|" "$FILE" &&
         debug "link marked in file: $FILE (#$TEXT)" ||
         error "failed marking link in file: $FILE (#$TEXT)"
