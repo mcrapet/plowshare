@@ -170,13 +170,16 @@ download() {
 
         local DRETVAL=0
         if test "$DOWNLOAD_APP"; then
-            COMMAND=$(echo "$DOWNLOAD_APP" | replace "%url" "$FILE_URL" | \
-                replace "%filename" "$FILENAME" | \
+            test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+            COMMAND=$(echo "$DOWNLOAD_APP" | 
+                replace "%url" "$FILE_URL" |
+                replace "%filename" "$FILENAME" |
                 replace "%cookies" "$COOKIES")
             debug "Running command: $COMMAND"
             eval "$COMMAND" || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
-            test $DRETVAL -eq 0 || continue
+            debug "Command exited with retcode: $DRETVAL" 
+            test $DRETVAL -eq 0 || break
         else
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
@@ -215,7 +218,6 @@ download() {
             test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FILENAME" ||
                 echo "$FILENAME"
         fi
-
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
         break
     done
