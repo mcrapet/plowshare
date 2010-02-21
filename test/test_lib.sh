@@ -59,6 +59,7 @@ test_ocr() {
     assert_equal "3909" "$(cat $PICSDIR/netload.in_3909.png | perl $LIBDIR/strip_single_color.pl | ocr digit 2>/dev/null)"
     #assert_equal "1554" "$(cat $PICSDIR/loadfiles.in_1554.jpg | convert - -crop 36x14+22+5 gif:- | \
     #                       perl $LIBDIR/strip_grey.pl | ocr digit 2>/dev/null | tr -d ' ')"
+    assert_equal "8+2=" "$(cat $PICSDIR/freakshare_8plus2.png | ocr digit_ops 2>/dev/null)"
 }
 
 test_check_exec() {
