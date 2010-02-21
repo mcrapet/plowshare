@@ -38,6 +38,7 @@ CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 GET_MODULE,,get-module,,Get module(s) for URL(s)
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
+TEMP_DIR,o:,temp-directory:,DIRECTORY,Directory where files are saved until completed
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
@@ -131,11 +132,12 @@ download() {
     local LIMIT_RATE=$4
     local TYPE=$5
     local MARK_DOWN=$6
-    local OUTPUT_DIR=$7
-    local CHECK_LINK=$8
-    local TIMEOUT=$9
-    local MAXRETRIES=${10}
-    shift 10
+    local TEMP_DIR=$7
+    local OUTPUT_DIR=$8
+    local CHECK_LINK=$9
+    local TIMEOUT=${10}
+    local MAXRETRIES=${11}
+    shift 11
 
     FUNCTION=${MODULE}_download
     debug "start download ($MODULE): $URL"
@@ -161,11 +163,10 @@ download() {
             { error "failed inside ${FUNCTION}()"; RETVAL=$DERROR; break; }
         debug "File URL: $FILE_URL"
 
-        if [ -z "$FILENAME" ]; then
+        if test -z "$FILENAME"; then
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
         fi
         debug "Filename: $FILENAME"
-        test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
 
         local DRETVAL=0
         if test "$DOWNLOAD_APP"; then
@@ -177,12 +178,19 @@ download() {
             test "$COOKIES" && rm "$COOKIES"
             test $DRETVAL -eq 0 || continue
         else
+            local TEMP_FILENAME
+            if test "$TEMP_DIR"; then
+                TEMP_FILENAME="$TEMP_DIR/$FILENAME"
+                debug "Downloading file to temporal directory: $TEMP_FILENAME" 
+            else
+                TEMP_FILENAME="$FILENAME"
+            fi
             CURL=("curl")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             test "$COOKIES" && CURL=($CURL -b $COOKIES)
             CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
-                              -o "$FILENAME" "$FILE_URL") || DRETVAL=$?
+                              -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
             test "$COOKIES" && rm $COOKIES
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
@@ -199,9 +207,15 @@ download() {
                 error "unexpected HTTP code $CODE"
                 continue
             fi
+            if test "$OUTPUT_DIR" != "$TEMP_DIR"; then
+                debug "Moving file to output directory: ${OUTPUT_DIR:-.}"
+                mv "$TEMP_FILENAME" "${OUTPUT_DIR:-.}" || true
+            fi
+            # Echo downloaded file path
+            test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FILENAME" ||
+                echo "$FILENAME"
         fi
 
-        echo "$FILENAME"
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
         break
     done
@@ -235,7 +249,7 @@ for ITEM in "$@"; do
             continue
         fi
         download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
-            "$MARK_DOWN" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
+            "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
             "$MAXRETRIES" "${UNUSED_OPTIONS[@]}"
     done
 done
