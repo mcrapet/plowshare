@@ -38,7 +38,7 @@ CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 GET_MODULE,,get-module,,Get module(s) for URL(s)
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
-TEMP_DIR,o:,temp-directory:,DIRECTORY,Directory where files are saved until completed
+TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
