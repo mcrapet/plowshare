@@ -3,33 +3,10 @@
 # Launch parallel plowdown processes for different websites
 #
 # Example: plowdown_parallel.sh FILE_WITH_ONE_LINK_PER_LINE
-
-
+#
 set -e
  
 debug() { echo "$@" >&2; }
-
-groupby() {
-  local PREDICATE=$1
-  local RETURN_FUNC=$2
-  local LAST=
-  local FIRST=1
-  
-  while read LINE; do
-    local VALUE=$(echo $LINE | eval $PREDICATE)
-    local RETURN=$(echo $LINE | eval $RETURN_FUNC)
-    if test "$FIRST" = "1"; then
-      echo -n "$VALUE: $RETURN"
-      FIRST=0      
-    elif test "$LAST" = "$VALUE"; then
-      echo -n " $RETURN"
-    else
-      echo; echo -n "$VALUE: $RETURN"
-    fi
-    LAST=$VALUE
-  done
-  test $FIRST = 0 && echo
-}
 
 str2array() {
   for ITEM in $1; do 
@@ -50,10 +27,13 @@ wait_pids() {
 }
 
 get_modules() {
-  cat $1 | while read URL; do
-    MODULE=$(plowdown --get-module $URL)
-    echo "$MODULE $URL"
-  done | sort -k1 | groupby "cut -d' ' -f1" "cut -d' ' -f2-"
+  MODULES=$(plowdown --get-module "$1")
+  INFO=$(echo "$MODULES" | paste - "$1")
+  
+  for MODULE in $(echo "$MODULES" | sort -u); do
+    URLS=$(echo "$INFO" | awk "\$1 == \"$MODULE\"" | cut -f2- | xargs)
+    echo "$MODULE $URLS"
+  done
 }
 
 # Main
