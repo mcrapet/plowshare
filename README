@@ -138,6 +138,12 @@ $ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"'
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
 }}}
 
+  * Safe download. Each URL will be limited in the number of tries (mainly for captchas) and wait delays. Add this alias in your _~/.bashrc_.
+{{{
+$ alias plowdown='plowdown --max-retries=20 --timeout=3600'
+$ plowdown --mark-downloaded file_with_links.txt
+}}}
+
 == Upload ==
 
   * Upload a file to megaupload with a free membership account:
