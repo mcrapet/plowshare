@@ -79,6 +79,88 @@ grep_http_header_location() {
     sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' | tr -d "\r"
 }
 
+# Extract a specific form from a HTML content.
+# We assume here that start marker <form> and end marker </form> are one separate lines.
+# HTML comments are just ignored. But it's enough for our needs.
+#
+# $1: (X)HTML data
+# $2: (optionnal) Nth <form> (default is 1)
+# stdout: result
+#
+grep_form_by_order() {
+    local DATA="$1"
+    local N=${2:-"1"}
+
+     while [ "$N" -gt "1" ]; do
+         ((N--))
+         DATA=$(echo "$DATA" | sed -ne '/<\/form>/,$p' | sed -e '1s/<\/form>/<_form>/1')
+     done
+
+     # FIXME: sed will be greedy, if other forms are remaining they will be returned
+     echo "$DATA" | sed -ne '/<form /,/<\/form>/p'
+}
+
+# Extract a named form from a HTML content.
+# If several forms have the same name, take first one.
+#
+# $1: (X)HTML data
+# $2: "name" attribute of <form> marker
+# stdout: result
+#
+grep_form_by_name() {
+    local DATA="$1"
+
+    if [ -n "$2" ]; then
+        # FIXME: sed will be greedy, if other forms are remaining they will be returned
+        echo "$DATA" | sed -ne "/<form[[:space:]].*name=\"\?$2\"\?/,/<\/form>/p"
+    fi
+}
+
+# Extract a id-specified form from a HTML content.
+# If several forms have the same id, take first one.
+#
+# $1: (X)HTML data
+# $2: "id" attribute of <form> marker
+# stdout: result
+#
+grep_form_by_id() {
+    local DATA="$1"
+
+    if [ -n "$2" ]; then
+        # FIXME: sed will be greedy, if other forms are remaining they will be returned
+        echo "$DATA" | sed -ne "/<form[[:space:]].*id=\"\?$2\"\?/,/<\/form>/p"
+    fi
+}
+
+# Retreive "action" attribute (URL) from a <form> marker
+#
+# stdin: (X)HTML data (idealy, call grep_form_by_xxx before)
+# stdout: result
+#
+parse_form_action() {
+    parse '<form' 'action="\([^"]*\)"'
+}
+
+# Retreive "value" attribute from a named <input> marker
+#
+# $1: name attribute of <input> marker
+# stdin: (X)HTML data
+# stdout: result (can be null string if <input> has no value attribute)
+#
+parse_form_input_by_name() {
+    parse "<input\([[:space:]]*[^ ]*\)*name=\"\?$1\"\?" 'value="\([^"]*\)' 2>/dev/null
+}
+
+# Retreive "value" attribute from a typed <input> marker
+#
+# $1: type attribute of <input> marker (for example: "submit")
+# stdin: (X)HTML data
+# stdout: result (can be null string if <input> has no value attribute)
+#
+parse_form_input_by_type() {
+    parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\([^"]*\)' 2>/dev/null
+}
+
 # Check if a string ($2) matches a regexp ($1)
 # This is case sensitive.
 # $? is zero on success
