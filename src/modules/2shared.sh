@@ -60,9 +60,10 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
     debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")
-    ACTION=$(echo "$DATA" | parse "uploadForm" 'action="\([^"]*\)"') ||
+    ACTION=$(grep_form_by_name "$DATA" "uploadForm" | parse_form_action) ||
         { debug "cannot get upload form URL"; return 1; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
+
     debug "starting file upload: $FILE"
     STATUS=$(curl \
         -F "mainDC=1" \
