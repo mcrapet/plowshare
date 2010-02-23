@@ -14,11 +14,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-
+#
 # Global variables:
-#
-# QUIET: If set, debug output is supressed
-#
+#   - QUIET           If set, debug output is supressed
+#   - INTERFACE       Network interface (used by curl)
+#   - PS_TIMEOUT      Timeout (in seconds) for one URL download
+#   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
+#   - LIBDIR          Absolute patch to plowshare's libdir
 
 # Echo text to standard error.
 #
@@ -62,7 +64,7 @@ curl() {
 # Get first line that matches a regular expression and extract string from it.
 #
 # $1: POSIX-regexp to filter (get only the first matching line).
-# $2: POSIX-regexp to match (use parentheses) on the matched line.
+# $2: POSIX-regexp to match (use parenthesis) on the matched line.
 #
 parse() {
     local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) &&
@@ -361,9 +363,9 @@ retry_limit_init() {
 
 retry_limit_not_reached() {
     test -z "$PS_RETRY_LIMIT" && return
-    debug "Retries left: $PS_RETRY_LIMIT"
-    PS_RETRY_LIMIT=$(expr $PS_RETRY_LIMIT - 1)
-    test $PS_RETRY_LIMIT -ge 0
+    debug "Tries left: $PS_RETRY_LIMIT"
+    (( PS_RETRY_LIMIT-- ))
+    test "$PS_RETRY_LIMIT" -ge 0
 }
 
 # Countdown from VALUE (in UNIT_STR units) in STEP values

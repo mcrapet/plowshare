@@ -150,17 +150,24 @@ download() {
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
-          debug "Link active: $URL"
-          echo "$URL"
-          break
+            debug "Link active: $URL"
+            echo "$URL"
+            break
         elif test $DRETVAL -eq 254; then
-          debug "Warning: file link is not alive"
-          mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
-          # Don't set RETVAL, a dead link is not considerer an error¡
-          break
+            debug "Warning: file link is not alive"
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
+            # Don't set RETVAL, a dead link is not considerer an error¡
+            break
+        elif test $DRETVAL -eq 3; then
+            error "retry limit reached (${FUNCTION})"
+            RETVAL=$DERROR
+            break
+        elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
+            error "failed inside ${FUNCTION}()"
+            RETVAL=$DERROR
+            break
         fi
-        test $DRETVAL -ne 0 -o -z "$FILE_URL" &&
-            { error "failed inside ${FUNCTION}()"; RETVAL=$DERROR; break; }
+
         debug "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
@@ -171,20 +178,20 @@ download() {
         local DRETVAL=0
         if test "$DOWNLOAD_APP"; then
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
-            COMMAND=$(echo "$DOWNLOAD_APP" | 
+            COMMAND=$(echo "$DOWNLOAD_APP" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
                 replace "%cookies" "$COOKIES")
             debug "Running command: $COMMAND"
             eval "$COMMAND" || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
-            debug "Command exited with retcode: $DRETVAL" 
+            debug "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
         else
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
                 TEMP_FILENAME="$TEMP_DIR/$FILENAME"
-                debug "Downloading file to temporal directory: $TEMP_FILENAME" 
+                debug "Downloading file to temporal directory: $TEMP_FILENAME"
             else
                 TEMP_FILENAME="$FILENAME"
             fi
