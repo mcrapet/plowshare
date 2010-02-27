@@ -60,7 +60,8 @@ uploading_download() {
             continue
         fi
 
-        WAIT_URL=$(echo "$DATA" | parse '<form.*id="downloadform"' 'action="\([^"]*\)"' 2>/dev/null) ||
+        HTML_FORM=$(grep_form_by_id "$DATA" 'downloadform')
+        WAIT_URL=$(echo "$HTML_FORM" | parse_form_action) ||
             { error "can't get wait url"; return 1; }
 
         if test "$CHECK_LINK"; then
@@ -68,9 +69,9 @@ uploading_download() {
             return 255
         fi
 
-        FILE_ID=$(echo "$DATA" | parse 'input.*name="file_id"' 'value="\([^"]*\)"') ||
+        FILE_ID=$(echo "$HTML_FORM" | parse_form_input_by_name 'file_id') ||
             { error "can't get file_id form field"; return 1; }
-        CODE=$(echo "$DATA" | parse 'input.*name="code"' 'value="\([^"]*\)"') ||
+        CODE=$(echo "$HTML_FORM" | parse_form_input_by_name 'code') ||
             { error "can't get code form field"; return 1; }
 
         DATA=$(curl --cookie "$COOKIES" --cookie "lang=1" --data "action=second_page&file_id=${FILE_ID}&code=${CODE}" "$WAIT_URL") ||
