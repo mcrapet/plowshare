@@ -74,10 +74,9 @@ netload_in_download() {
         fi
 
         # Send (post) form
-        local form_url=$(echo "$WAIT_HTML" | parse 'form method=' \
-                'action="\([^"]*\)' 2>/dev/null)
-        local form_fid=$(echo "$WAIT_HTML" | parse '<input name="file_id"' \
-                'type="hidden"[[:space:]]\+value="\([^"]*\)' 2>/dev/null)
+        local download_form=$(grep_form_by_order "$WAIT_HTML" 1)
+        local form_url=$(echo "$download_form" | parse_form_action)
+        local form_fid=$(echo "$download_form" | parse_form_input_by_name 'file_id')
 
         WAIT_HTML2=$(curl -l -b $COOKIES --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" \
                 "$BASE_URL/$form_url")
