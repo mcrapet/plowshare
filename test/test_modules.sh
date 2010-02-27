@@ -386,20 +386,6 @@ test_divshare_check_active_link() {
     assert_equal "$DIVSHARE_URL" "$(download -c $DIVSHARE_URL)" || return 1
 }
 
-# Freakshare.net
-
-FREAKSHARE_URL="http://freakshare.net/files/a384b9fy/RFCs0001-0500.tar.gz.html"
-
-test_freakshare_download() {
-    FILENAME="RFCs0001-0500.tar.gz"
-    assert_equal "$FILENAME" "$(download $FREAKSHARE_URL)" || return 1
-    rm -f "$FILENAME"
-}
-
-test_freakshare_check_active_link() {
-    assert_equal "$FREAKSHARE_URL" "$(download -c $FREAKSHARE_URL)" || return 1
-}
-
 # dl.free.fr
 
 DL_FREE_FR_URL="http://dl.free.fr/jUeq8Ct2K"
