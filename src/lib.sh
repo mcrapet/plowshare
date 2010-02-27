@@ -132,6 +132,20 @@ grep_form_by_id() {
     fi
 }
 
+# Return value of html attribute
+break_html_lines() {    
+    sed 's/\(<\/[^>]*>\)/\1\n/g'
+}
+
+get_content_filename() {
+    parse "Content-Disposition:" 'filename="\(.*\)"' 2>/dev/null
+}
+
+# Return value of html attribute
+parse_attr() {    
+    parse "$1" "$2"'="\([^"]*\)"'
+}
+
 # Retreive "action" attribute (URL) from a <form> marker
 #
 # stdin: (X)HTML data (idealy, call grep_form_by_xxx before)
