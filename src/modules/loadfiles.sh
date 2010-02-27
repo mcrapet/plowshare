@@ -64,12 +64,13 @@ loadfiles_download() {
         test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
         debug "Decoded captcha: $CAPTCHA"
 
-        test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
+        test "${#CAPTCHA}" -ne 4 &&
             { debug "Capcha length invalid"; continue; }
 
-        DATA_RAND=$(echo "$DATA" | parse "rand" 'value="\([^"]*\)\"')
-        DATA_OP=$(echo "$DATA" | parse '<input type="hidden" name="op"' 'value="\([^"]*\)"')
-        DATA_ID=$(echo "$DATA" | parse '<input type="hidden" name="id"' 'value="\([^"]*\)"')
+        local download_form=$(grep_form_by_name "$DATA" 'F1')
+        DATA_RAND=$(echo "$download_form" | parse_form_input_by_name 'rand')
+        DATA_OP=$(echo "$download_form" | parse_form_input_by_name 'op')
+        DATA_ID=$(echo "$download_form" | parse_form_input_by_name 'id')
         DATA_REFERER=""
         DATA_DOWN_SCRIPT="1"
         DATA_METHOD_FREE="Free+Download"

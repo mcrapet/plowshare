@@ -112,7 +112,7 @@ grep_form_by_name() {
 
     if [ -n "$2" ]; then
         # FIXME: sed will be greedy, if other forms are remaining they will be returned
-        echo "$DATA" | sed -ne "/<form[[:space:]].*name=\"\?$2\"\?/,/<\/form>/p"
+        echo "$DATA" | sed -ne "/<[Ff][Oo][Rr][Mm][[:space:]].*name=\"\?$2\"\?/,/<\/[Ff][Oo][Rr][Mm]>/p"
     fi
 }
 
@@ -128,7 +128,7 @@ grep_form_by_id() {
 
     if [ -n "$2" ]; then
         # FIXME: sed will be greedy, if other forms are remaining they will be returned
-        echo "$DATA" | sed -ne "/<form[[:space:]].*id=\"\?$2\"\?/,/<\/form>/p"
+        echo "$DATA" | sed -ne "/<[Ff][Oo][Rr][Mm][[:space:]].*id=\"\?$2\"\?/,/<\/[Ff][Oo][Rr][Mm]>/p"
     fi
 }
 
