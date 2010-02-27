@@ -414,4 +414,27 @@ test_loadfiles_check_active_link() {
     assert_equal "$LOADFILES_URL" "$(download -c $LOADFILES_URL)" || return 1
 }
 
+HUMYO_URL="http://www.humyo.com/F/6682655-201576855"
+HUMYO2_URL="http://www.humyo.com/F/9852859-1634190531"
+
+test_humyo_download() {
+    FILENAME="humyo_logo_large.jpg"
+    assert_equal "$FILENAME" "$(download $HUMYO_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_humyo_direct_download() {
+    FILENAME="kop_offenbach_standard.pdf"
+    assert_equal "$FILENAME" "$(download $HUMYO2_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_humyo_check_active_link() {
+    assert_equal "$HUMYO_URL" "$(download -c $HUMYO_URL)" || return 1
+}
+
+test_humyo_check_wrong_link() {
+    assert_equal "" "$(download -c ${HUMYO_URL}xyz)" || return 1
+}
+
 run_tests "$@"

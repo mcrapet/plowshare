@@ -25,11 +25,10 @@
 # Web: http://code.google.com/p/plowshare
 # Contact: Arnau Sanchez <tokland@gmail.com>.
 #
-#
 set -e
 
 VERSION="0.9.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr loadfiles"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr loadfiles humyo"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,v,version,,Return plowdown version
