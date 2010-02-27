@@ -63,7 +63,7 @@ uploaded_to_download() {
             return 1
 
         else
-            local file_url=$(echo "$DATA" | parse "download_form" 'action="\([^"]*\)"')
+            local file_url=$(grep_form_by_name "$DATA" "download_form" | parse_form_action)
             SLEEP=$(echo "$DATA" | parse "var[[:space:]]\+secs" "=[[:space:]]*\([[:digit:]]\+\);") ||
                 { debug "ignore sleep time"; SLEEP=0; }
 
