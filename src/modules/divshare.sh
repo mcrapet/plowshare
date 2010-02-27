@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare.com/download"
+MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare\.com/download"
 MODULE_DIVSHARE_DOWNLOAD_OPTIONS=""
 MODULE_DIVSHARE_UPLOAD_OPTIONS=
 MODULE_DIVSHARE_DOWNLOAD_CONTINUE=no
