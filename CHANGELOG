@@ -2,14 +2,16 @@ plowshare (0.9svn) unstable; urgency=medium
 
   * [rapidshare] Add Premium-Zone upload
   * [zshare] Add delete function
+  * [freakshare] Delete full module (now uses reCaptcha)
+  * [download] Add --temp-directory option (saves partial download here before mv)
 
  -- Arnau Sanchez <tokland@gmail.com>  Sun, 21 Feb 2010 10:45:52 +0100
 
 plowshare (0.9.1) stable; urgency=medium
 
   * Add 4 new modules (anonymous download): divshare.com, freakshare.net, 
-    loadfiles.in, dl.free.fr.
-  * [zshare] Add anonymous upload.
+    loadfiles.in, dl.free.fr
+  * [zshare] Add anonymous upload
   * [download] Add --get-module option (aimed for wrappers to manage parallel download)
   * [download] Add -t/--timeout option (restrict time for download a link)
   * [download] Add --max-retries option (restrict attemps for loop, mostly captchas)
@@ -23,7 +25,7 @@ plowshare (0.9) stable; urgency=medium
     uploading.com, sendspace, usershare, x7.to 
   * [lib] Fallback to img2txt (libcaca) if aview is not found.
   * [download] replace -l for -r.
-  * [download] Add -i interface
+  * [download] Add -i network_interface option
 
  -- Arnau Sanchez <tokland@gmail.com>  Thu, 10 Dec 2009 20:23:20 +0100
 
