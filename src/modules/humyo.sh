@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_HUMYO_REGEXP_URL="http://\(www\.\)\?humyo.com/"
+MODULE_HUMYO_REGEXP_URL="http://\(www\.\)\?humyo\.com/"
 MODULE_HUMYO_DOWNLOAD_OPTIONS=""
 MODULE_HUMYO_UPLOAD_OPTIONS=
 MODULE_HUMYO_DOWNLOAD_CONTINUE=no
@@ -27,18 +27,23 @@ MODULE_HUMYO_DOWNLOAD_CONTINUE=no
 #
 humyo_download() {
     set -e
-    BASEURL="http://www.humyo.com"
     eval "$(process_options humyo "$MODULE_HUMYO_DOWNLOAD_OPTIONS" "$@")"
 
+    BASEURL="http://www.humyo.com"
     URL=$1
-    FILENAME=$(curl -I "$1" | get_content_filename)
+
+    # test for direct download links
+    FILENAME=$(curl -I "$1" | grep_http_header_content_disposition)
     test "$FILENAME" && {
-      echo $URL
-      echo $FILENAME
-      return 0
+        test "$CHECK_LINK" && return 255
+
+        echo $URL
+        echo $FILENAME
+        return 0
     }
+
     PAGE=$(curl "$URL")
-    matchi "<h1>File Not Found</h1>" "$PAGE" && 
+    matchi "<h1>File Not Found</h1>" "$PAGE" &&
       { error "file not found"; return 254; }
     FILE_URL=$(echo "$PAGE" | break_html_lines| parse_attr 'Download this file' "href") ||
         { error "download link not found"; return 1; }

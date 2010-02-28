@@ -73,11 +73,20 @@ parse() {
 }
 
 # Grep first "Location" (of http header)
-# stdin: result of curl request (with -i/--include or -H/--dump-header flag)
+# stdin: result of curl request (with -i/--include, -D/--dump-header or
+#        or -I/--head flag)
 #
 grep_http_header_location() {
-    sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' | tr -d "\r"
+    sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
 }
+
+# Grep first "Content-Disposition" (of http header)
+# stdin: same as grep_http_header_location() below
+#
+grep_http_header_content_disposition() {
+    parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
+}
+
 
 # Extract a specific form from a HTML content.
 # We assume here that start marker <form> and end marker </form> are one separate lines.
@@ -133,16 +142,12 @@ grep_form_by_id() {
 }
 
 # Return value of html attribute
-break_html_lines() {    
+break_html_lines() {
     sed 's/\(<\/[^>]*>\)/\1\n/g'
 }
 
-get_content_filename() {
-    parse "Content-Disposition:" 'filename="\(.*\)"' 2>/dev/null
-}
-
 # Return value of html attribute
-parse_attr() {    
+parse_attr() {
     parse "$1" "$2"'="\([^"]*\)"'
 }
 

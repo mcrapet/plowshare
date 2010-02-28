@@ -90,7 +90,7 @@ down_script=${DATA_DOWN_SCRIPT}&btn_download=${DATA_BTN_DOWNLOAD}&code=$CAPTCHA"
         }
 
         # since the response is a 302 (MOVED), get the new file location
-        FILE_URL=$(echo "$FINAL_PAGE" | grep_http_header_location 2>/dev/null)
+        FILE_URL=$(echo "$FINAL_PAGE" | grep_http_header_location)
 
         if [ -n "$FILE_URL" ]; then
             debug "Correct captcha!"

@@ -36,6 +36,7 @@ dl_free_fr_download() {
     # Important note: If "free.fr" is your ISP, behavior is different.
     # There is no redirection html page, you can directly wget the URL
     # (Content-Type: application/octet-stream)
+    # "curl -I" (http HEAD request) is detected and returns 404 error
 
     ERR1="erreur 500 - erreur interne du serveur"
     ERR2="erreur 404 - document non trouv."
