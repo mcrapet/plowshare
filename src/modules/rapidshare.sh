@@ -51,10 +51,12 @@ rapidshare_download() {
 
         ERR1='file could not be found'
         ERR2='suspected to contain illegal content'
-        echo "$PAGE" | grep -q "$ERR1" &&
+        echo "$PAGE" | grep -q 'file could not be found' &&
             { error "file not found"; return 254; }
-        echo "$PAGE" | grep -q "$ERR2" &&
+        echo "$PAGE" | grep -q 'suspected to contain illegal content' &&
             { error "file blocked"; return 254; }
+        echo "$PAGE" | grep -q 'uploader has removed this file from the server' &&
+            { error "file removed by the uploader"; return 254; }
 
         WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
             return 1

@@ -1,4 +1,4 @@
-plowshare (0.9svn) unstable; urgency=medium
+plowshare (0.9.1svn) unstable; urgency=medium
 
   * [rapidshare] Add Premium-Zone upload
   * [zshare] Add delete function
