@@ -37,7 +37,7 @@ AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)
 "
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
-# megaupload_download [DOWNLOAD_OPTIONS] URL
+# megaupload_download [MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS] URL
 #
 # Output file URL
 #
@@ -47,7 +47,7 @@ megaupload_download() {
 
     ERRORURL="http://www.megaupload.com/?c=msg"
     URL=$(echo "$1" | sed "s/rotic\.com/porn\.com/")
-    BASEURL=$(echo "$URL" | grep -o "http://[^/]*")
+    BASEURL=$(expr match "$URL" '\(http://[^/]*\)')
 
     # Try to login (if $AUTH not null)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
