@@ -43,7 +43,7 @@ divshare_download() {
     # Real filename is also stored in "Content-Disposition" HTTP header
     # We are lucky here, we can make an extra http request without being accused of parallel download!
     if [ -z "$FILE_NAME" ]; then
-        FILE_NAME=$(curl -I "$FILE_URL" | parse '^Content-Disposition:' 'filename="\(.*\)";')
+        FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition)
     fi
 
     echo "$FILE_URL"
