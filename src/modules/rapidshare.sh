@@ -49,8 +49,6 @@ rapidshare_download() {
     while retry_limit_not_reached || return 3; do
         PAGE=$(ccurl "$URL")
 
-        ERR1='file could not be found'
-        ERR2='suspected to contain illegal content'
         echo "$PAGE" | grep -q 'file could not be found' &&
             { error "file not found"; return 254; }
         echo "$PAGE" | grep -q 'suspected to contain illegal content' &&
