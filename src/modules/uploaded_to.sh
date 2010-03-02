@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_UPLOADED_TO_REGEXP_URL="^http://\(www\.\)\?\(uploaded.to\|ul\.to\)/"
+MODULE_UPLOADED_TO_REGEXP_URL="^http://\(www\.\)\?\(uploaded\.to\|ul\.to\)/"
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_UPLOAD_OPTIONS=
 MODULE_UPLOADED_TO_DOWNLOAD_CONTINUE=no
@@ -37,17 +37,17 @@ uploaded_to_download() {
         HEADER_LOC=$(cat "$HEADERS" | grep_http_header_location)
 
         # Location: /?view=error_fileremoved
-        if match '\(error_fileremoved\)' "$HEADER_LOC"
+        if match 'error_fileremoved' "$HEADER_LOC"
         then
             rm -f $HEADERS
 
-            $(match '\(premium account\|Premiumaccount\)' "$DATA") && \
+            matchi 'premium[[:space:]]\+account' "$DATA" && \
                 debug "premium user link only" || \
                 debug "file not found"
             return 254
 
         # Location: /?view=error_traffic_exceeded_free&id=abcdef
-        elif match '\(error_traffic_exceeded_free\)' "$HEADER_LOC"
+        elif match 'error_traffic_exceeded_free' "$HEADER_LOC"
         then
             LIMIT=$(echo "$DATA" | parse "\(minutes\|minuti\|Minuten\)" '[[:space:]]\+\([[:digit:]]\+\)[[:space:]]\+') ||
                 { error "can't get wait delay"; return 1; }
@@ -56,7 +56,7 @@ uploaded_to_download() {
             countdown $LIMIT 1 minutes 60 || return 2
 
         # Location: /?view=error2&id_a=xxx&id_b=yyy
-        elif match '\(error[[:digit:]]\)' "$HEADER_LOC"
+        elif match 'error[[:digit:]]' "$HEADER_LOC"
         then
             rm -f $HEADERS
             debug "internal error"
