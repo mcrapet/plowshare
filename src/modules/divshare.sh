@@ -30,8 +30,8 @@ divshare_download() {
     eval "$(process_options divshare "$MODULE_DIVSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     PAGE=$(curl "$1")
-    FILE_URL=$(echo "$PAGE" | parse '\(download_message\|Download Original\)' \
-            'href="\([^"]*\)"') ||
+    FILE_URL=$(echo "$PAGE" | \
+            parse_attr '\(download_message\|Download Original\)' 'href') ||
         { error "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
