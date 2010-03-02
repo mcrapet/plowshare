@@ -9,6 +9,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.depositfiles.com DepositFiles] || anonymous || no ||
 || [http://www.divshare.com divShare] || anonymous || no ||
 || [http://dl.free.fr dl.free.fr] || anonymous || no ||
+|| [http://www.filefactory.com] || anonymous || no ||
 || [http://www.loadfiles.in Loadfiles.in] || anonymous || no ||
 || [http://www.mediafire.com Mediafire] || anonymous || no ||
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) ||

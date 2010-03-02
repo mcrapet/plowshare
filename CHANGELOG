@@ -4,6 +4,7 @@ plowshare (0.9.1svn) unstable; urgency=medium
   * [zshare] Add delete function
   * [freakshare] Delete full module (now uses reCaptcha)
   * [download] Add --temp-directory option (saves partial download here before mv)
+  * [filefactory] New module (free download)
   * [humyo] New module (free download)
 
  -- Arnau Sanchez <tokland@gmail.com>  Sun, 21 Feb 2010 10:45:52 +0100

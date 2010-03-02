@@ -437,5 +437,19 @@ test_humyo_check_wrong_link() {
     assert_equal "" "$(download -c ${HUMYO_URL}xyz)" || return 1
 }
 
+# Filefactory.com
+
+FILEFACTORY_URL="http://www.filefactory.com/file/b06h7e8/n/pdfrfc0001-0500.zip"
+
+test_filefactory_download() {
+    FILENAME="pdfrfc0001-0500.zip"
+    assert_equal "$FILENAME" "$(download $FILEFACTORY_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_filefactory_check_active_link() {
+    assert_equal "$LOADFILES_URL" "$(download -c $FILEFACTORY_URL)" || return 1
+}
+
 
 run_tests "$@"
