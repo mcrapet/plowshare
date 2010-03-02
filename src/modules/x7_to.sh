@@ -40,10 +40,10 @@ x7_to_download() {
                 'ref_file=\([^&]*\)' 2>/dev/null)
 
         if [ -z "$ref_fid" ]; then
-            $(match '\([Ff]ile not found\)' "$WAIT_HTML") &&
+            matchi 'file not found' "$WAIT_HTML" &&
                 error "File not found"
 
-            if $(match '\(<span id="foldertitle">\)' "$WAIT_HTML")
+            if match '<span id="foldertitle">' "$WAIT_HTML"
             then
                 local textlist=$(echo "$WAIT_HTML" | parse 'listplain' '<a href="\([^"]*\)' 2>/dev/null)
                 error "This is a folder list (check $BASE_URL/$textlist)"
@@ -79,7 +79,7 @@ x7_to_download() {
         then
             countdown $((wait)) 1 seconds 1 || return 2
             break;
-        elif $(match '\(limit-dl\)' "$DATA")
+        elif match 'limit-dl' "$DATA"
         then
             debug "Download limit reached!"
             WAITTIME=5
