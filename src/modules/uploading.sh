@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_UPLOADING_REGEXP_URL="http://\(\w\+\.\)\?uploading.com/"
+MODULE_UPLOADING_REGEXP_URL="http://\(\w\+\.\)\?uploading\.com/"
 MODULE_UPLOADING_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADING_UPLOAD_OPTIONS=
 MODULE_UPLOADING_DOWNLOAD_CONTINUE=no
@@ -39,7 +39,7 @@ uploading_download() {
         DATA=$(curl --cookie-jar "$COOKIES" --cookie "lang=1" "$URL")
         ERR1="Your IP address.*file"
         ERR2="Sorry, you have reached your daily download limit."
-        if echo "$DATA" | grep -o "$ERR1\|$ERR2" >&2; then
+        if match "$ERR1\|$ERR2" "$DATA"; then
             WAITTIME=1
             countdown $WAITTIME 1 minutes 60 || return 2
             continue
