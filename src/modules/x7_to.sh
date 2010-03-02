@@ -45,7 +45,7 @@ x7_to_download() {
 
             if match '<span id="foldertitle">' "$WAIT_HTML"
             then
-                local textlist=$(echo "$WAIT_HTML" | parse 'listplain' '<a href="\([^"]*\)' 2>/dev/null)
+                local textlist=$(echo "$WAIT_HTML" | parse_attr 'listplain' 'href')
                 error "This is a folder list (check $BASE_URL/$textlist)"
             fi
 
