@@ -27,7 +27,7 @@ MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
 #
 hotfile_download() {
     set -e
-    eval "$(process_options x7_to "$MODULE_HOTFILE_DOWNLOAD_CONTINUE" "$@")"
+    eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_CONTINUE" "$@")"
 
     URL=$1
     BASE_URL='http://hotfile.com'
