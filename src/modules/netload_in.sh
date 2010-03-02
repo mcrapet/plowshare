@@ -81,7 +81,7 @@ netload_in_download() {
         WAIT_HTML2=$(curl -l -b $COOKIES --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" \
                 "$BASE_URL/$form_url")
 
-        $(match '\(class="InPage_Error"\)' "$WAIT_HTML2") &&
+        match 'class="InPage_Error"' "$WAIT_HTML2" &&
             { debug "Error (bad captcha), retry"; continue; }
 
         debug "Correct captcha!"
