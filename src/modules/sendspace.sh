@@ -31,7 +31,7 @@ sendspace_download() {
 
     URL=$1
     FILE_URL=$(curl -L --data "download=1" "$URL" |
-        parse 'spn_download_link' 'href="\([^"]*\)"' 2>/dev/null) ||
+        parse_attr 'spn_download_link' 'href' 2>/dev/null) ||
         { error "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
