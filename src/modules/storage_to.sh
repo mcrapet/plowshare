@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_STORAGE_TO_REGEXP_URL="^http://\(www\.\)\?storage.to/get/"
+MODULE_STORAGE_TO_REGEXP_URL="^http://\(www\.\)\?storage\.to/get/"
 MODULE_STORAGE_TO_DOWNLOAD_OPTIONS=""
 MODULE_STORAGE_TO_UPLOAD_OPTIONS=
 MODULE_STORAGE_TO_DOWNLOAD_CONTINUE=no
@@ -31,7 +31,7 @@ storage_to_download() {
 
     MAIN_PAGE=$(curl "$1?language=en")
 
-    $(match 'File not found' "$MAIN_PAGE") && \
+    match 'File not found' "$MAIN_PAGE" && \
         { error "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
