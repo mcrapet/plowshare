@@ -330,7 +330,7 @@ test_uploading_download() {
 
 # Usershare.net
 
-USERSHARE_URL="http://usershare.net/wzvqgcz6ugn8"
+USERSHARE_URL="http://usershare.net/w9ylfullshau"
 
 test_usershare_download() {
     FILENAME="Test.mp3"

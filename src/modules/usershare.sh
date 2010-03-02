@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_USERSHARE_REGEXP_URL="http://\(www\.\)\?usershare.net/"
+MODULE_USERSHARE_REGEXP_URL="http://\(www\.\)\?usershare\.net/"
 MODULE_USERSHARE_DOWNLOAD_OPTIONS=""
 MODULE_USERSHARE_UPLOAD_OPTIONS=
 MODULE_USERSHARE_DOWNLOAD_CONTINUE=no
@@ -30,7 +30,7 @@ usershare_download() {
     eval "$(process_options usershare "$MODULE_USERSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    FILE_URL=$(curl "$URL" | parse 'download_btn\.jpg' 'href="\([^"]*\)"' 2>/dev/null) ||
+    FILE_URL=$(curl "$URL" | parse_attr 'download_btn\.jpg' 'href' 2>/dev/null) ||
         { error "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
