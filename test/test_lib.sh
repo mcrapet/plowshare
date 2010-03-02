@@ -26,8 +26,8 @@ MODULESDIR=$ROOTDIR/src/modules
 TESTSDIR=$ROOTDIR/test
 LIBDIR=$ROOTDIR/src
 
-source $ROOTDIR/src/lib.sh
-source $ROOTDIR/test/lib.sh
+source "$LIBDIR/lib.sh"
+source "$TESTSDIR/lib.sh"
 
 test_parse() {
     TEXT="var1 = 1
@@ -48,7 +48,13 @@ test_debug() {
 test_match() {
     assert_return 0 'match "^abc" "abcdef"'
     assert_return 0 'match "a[0-9]3" "a13"'
+    assert_return 0 'match "a[[:digit:]]3" "a13"'
     assert_return 1 'match "^a[0-9]3" "xa13"'
+    assert_return 0 'match "ab\|cd" "*about*"'
+    assert_return 0 'match "ab\|c d" "--c d--"'
+    assert_return 0 'match "//" "a//b"'
+    assert_return 0 'match "[3-6]\{2\}" "for 567 bar"'
+    assert_return 1 'match "[3-6]\{3\}" "for 567 bar"'
 }
 
 test_ocr() {

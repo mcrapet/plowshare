@@ -255,9 +255,15 @@ ocr() {
     # instead (*sigh*).
     TIFF=$(create_tempfile ".tif")
     TEXT=$(create_tempfile ".txt")
+
     convert - tif:- > $TIFF
-    tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 1>&2 ||
-        { rm -f $TIFF $TEXT; return 1; }
+    LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
+    if [ $? -ne 0 ]; then
+        rm -f $TIFF $TEXT
+        return 1
+    fi
+    debug "$LOG"
+
     cat $TEXT
     rm -f $TIFF $TEXT
 }
