@@ -78,7 +78,7 @@ zshare_upload() {
     debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")
 
-    ACTION=$(echo "$DATA" | parse '<form name="upload"' 'action="\([^"]*\)"') ||
+    ACTION=$(grep_form_by_name "$DATA" 'upload' | parse_form_action) ||
         { debug "cannot get upload form URL"; return 1; }
 
     debug "starting file upload: $FILE"
@@ -90,7 +90,7 @@ zshare_upload() {
         "$ACTION")
 
     match "was successfully uploaded" "$INFOPAGE" ||
-        { debug "error on upload"; return 1; }
+        { error "upload unsuccessful"; return 1; }
 
     DOWNLOAD_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/download" '<a href="\([^"]*\)"') ||
         { debug "can't parse download link, website updated?"; return 1; }
@@ -114,12 +114,16 @@ zshare_delete() {
         error "File not found"
         return 254
     else
-       local form_killcode=$(echo "$DELETE_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="killCode"' 'value="\([^"]*\)' 2>/dev/null)
+        local form_killcode=$(echo "$DELETE_PAGE" | parse_form_input_by_name "killCode")
 
-       RESULT_PAGE=$(curl --data "killCode=$form_killcode" "$URL")
-       if ! matchi 'File Removed' "$RESULT_PAGE"; then
-           error "error on delete"
-           return 1
-       fi
+        RESULT_PAGE=$(curl --data "killCode=$form_killcode" "$URL")
+
+        if match 'Invalid removal code' "$RESULT_PAGE"; then
+            error "bad removal code"
+            return 1
+        elif ! matchi 'File Removed' "$RESULT_PAGE"; then
+            error "unexpected result, file not deleted"
+            return 1
+        fi
     fi
 }
