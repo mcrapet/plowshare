@@ -58,7 +58,7 @@ rapidshare_download() {
         echo "$PAGE" | grep -q 'removed from the server, because the file has not been accessed' &&
             { error "file removed"; return 254; }
 
-        WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
+        WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
             return 1
 
         test "$CHECK_LINK" && return 255
