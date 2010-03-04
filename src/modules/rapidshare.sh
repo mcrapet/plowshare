@@ -55,6 +55,8 @@ rapidshare_download() {
             { error "file blocked"; return 254; }
         echo "$PAGE" | grep -q 'uploader has removed this file from the server' &&
             { error "file removed by the uploader"; return 254; }
+        echo "$PAGE" | grep -q 'removed from the server, because the file has not been accessed' &&
+            { error "file removed"; return 254; }
 
         WAIT_URL=$(echo "$PAGE" | parse '<form' 'action="\([^"]*\)"') ||
             return 1
