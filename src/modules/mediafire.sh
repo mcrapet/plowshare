@@ -31,25 +31,24 @@ mediafire_download() {
 
     URL=$1
     BASE_URL="http://www.mediafire.com"
-    COOKIES=$(create_tempfile)
+    COOKIESFILE=$(create_tempfile)
 
-    MAIN_PAGE=$(curl -c $COOKIES "$URL" | sed "s/>/>\n/g")
-    JS_CALL=$(echo "$MAIN_PAGE" | parse "cu('" "cu(\('[^)]*\));" 2>/dev/null) ||
-        { error "file not found"; return 254; }
-
-    if test "$CHECK_LINK"; then
-        rm -f $COOKIES
-        return 255
-    fi
-
-    # 'mok2nz2y43y','9daf501e5492a2d4311112b7b1c59dca4be854f859546ab7e001b0ecbaffb84f1e0b1a327f6dab2101fb238d079749c7','y2lr2'
+    PAGE=$(curl -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
+    COOKIES=$(< $COOKIESFILE)
+    rm -f $COOKIESFILE
+    
+    echo "$PAGE" | grep -qi "Invalid or Deleted File" && 
+        { error "file not found"; return 255; }
+        
+    JS_CALL=$(echo "$PAGE" | parse "cu('" "cu(\('[^)]*\));" 2>/dev/null) ||
+        { error "error parsing Javascript code"; return 1; }
+    test "$CHECK_LINK" && return 255
+    
     IFS="," read QK PK R < <(echo "$JS_CALL" | tr -d "'")
-
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     debug "Javascript URL: $JS_URL"
 
-    JS_CODE=$(curl -b $COOKIES "$JS_URL" | sed "s/;/;\n/g")
-    rm -f $COOKIES
+    JS_CODE=$(curl -b <(echo $COOKIES) "$JS_URL" | sed "s/;/;\n/g")
 
     # The File URL is ofuscated using a somewhat childish javascript code,
     # we use the default javascript interpreter (js) to run it.
