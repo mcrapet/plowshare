@@ -43,11 +43,17 @@ hotfile_download() {
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
 
-        $(match '\(hotfile\.com\/list\/\)' "$URL") &&
-            { error "This is a directory list"; return 1; }
+        if match 'hotfile\.com\/list\/' "$URL"; then
+            error "This is a directory list"
+            rm -f $COOKIES
+            return 1
+        fi
 
-        $(match '\(REGULAR DOWNLOAD\)' "$WAIT_HTML") ||
-            { error "File not found"; return 254; }
+        if ! match 'REGULAR DOWNLOAD' "$WAIT_HTML"; then
+            error "File not found"
+            rm -f $COOKIES
+            return 254
+        fi
 
         local SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
             { error "can't get sleep time"; return 1; }
@@ -58,30 +64,32 @@ hotfile_download() {
         fi
 
         SLEEP=$((SLEEP / 1000))
-        countdown $((SLEEP)) 2 seconds 1 || return 2
+        countdown $((SLEEP)) 5 seconds 1 || return 2
 
         # Send (post) form
-        local form_url=$(echo "$WAIT_HTML" | parse '<form .*name=f>' 'action="\([^"]*\)' 2>/dev/null)
-        local form_action=$(echo "$WAIT_HTML" | parse '<input [^ ]* name=action' "value=\([^>]*\)" 2>/dev/null)
-        local form_tm=$(echo "$WAIT_HTML" | parse '<input [^ ]* name=tm' "value=\([^>]*\)" 2>/dev/null)
-        local form_tmhash=$(echo "$WAIT_HTML" | parse '<input [^ ]* name=tmhash' "value=\([^>]*\)" 2>/dev/null)
-        local form_wait=$(echo "$WAIT_HTML" | parse '<input [^ ]* name=wait' "value=\([^>]*\)" 2>/dev/null)
-        local form_waithash=$(echo "$WAIT_HTML" | parse '<input [^ ]* name=waithash' "value=\([^>]*\)" 2>/dev/null)
+        local FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f')
+        local form_url=$(echo "$FORM_HTML" | parse_form_action)
+        local form_action=$(echo "$FORM_HTML" | parse_form_input_by_name 'action')
+        local form_tm=$(echo "$FORM_HTML" | parse_form_input_by_name 'tm')
+        local form_tmhash=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
+        local form_wait=$(echo "$FORM_HTML" | parse_form_input_by_name 'wait')
+        local form_waithash=$(echo "$FORM_HTML" | parse_form_input_by_name 'waithash')
 
         # We want "Content-Type: application/x-www-form-urlencoded"
         WAIT_HTML2=$(curl -b $COOKIES --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}" \
             "$BASE_URL/$form_url") || return 1
 
         # Direct download (no captcha)
-        if match '\(Click here to download\)' "$WAIT_HTML2"
+        if match 'Click here to download' "$WAIT_HTML2"
         then
-            rm -f $COOKIES
             local link=$(echo "$WAIT_HTML2" | parse 'Click here to download<\/a>' '<a href="\([^"]*\)' 2>/dev/null)
+            link=$(curl -b $COOKIES --include "$link" | grep_http_header_location)
 
-            echo $link
+            echo "$link"
+            rm -f $COOKIES
             return 0
 
-        elif match '\(You reached your hourly traffic limit\)' "$WAIT_HTML2"
+        elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"
         then
             # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
             local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
@@ -92,7 +100,7 @@ hotfile_download() {
 
         # Captcha page
         # Main engine: http://api.recaptcha.net/js/recaptcha.js
-        elif match '\(recaptcha\.net\)' "$WAIT_HTML2"
+        elif match 'recaptcha\.net' "$WAIT_HTML2"
         then
             local form2_url=$(echo "$WAIT_HTML2" | parse '<form .*\/dl\/' 'action="\([^"]*\)' 2>/dev/null)
             local form2_action=$(echo "$WAIT_HTML2" | parse '<input [^ ]* name="action"' 'value="\([^"]*\)' 2>/dev/null)

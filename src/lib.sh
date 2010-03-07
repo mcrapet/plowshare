@@ -167,7 +167,7 @@ parse_form_action() {
 # stdout: result (can be null string if <input> has no value attribute)
 #
 parse_form_input_by_name() {
-    parse "<input\([[:space:]]*[^ ]*\)*name=\"\?$1\"\?" 'value="\([^"]*\)' 2>/dev/null
+    parse "<input\([[:space:]]*[^ ]*\)*name=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
 }
 
 # Retreive "value" attribute from a typed <input> marker
@@ -177,7 +177,7 @@ parse_form_input_by_name() {
 # stdout: result (can be null string if <input> has no value attribute)
 #
 parse_form_input_by_type() {
-    parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\([^"]*\)' 2>/dev/null
+    parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
 }
 
 # Check if a string ($2) matches a regexp ($1)
