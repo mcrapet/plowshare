@@ -30,7 +30,6 @@ mediafire_download() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    BASE_URL="http://www.mediafire.com"
     COOKIESFILE=$(create_tempfile)
 
     PAGE=$(curl -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
@@ -38,24 +37,55 @@ mediafire_download() {
     rm -f $COOKIESFILE
     
     echo "$PAGE" | grep -qi "Invalid or Deleted File" && 
-        { error "file not found"; return 255; }
-        
-    JS_CALL=$(echo "$PAGE" | parse "cu('" "cu(\('[^)]*\));" 2>/dev/null) ||
-        { error "error parsing Javascript code"; return 1; }
-    test "$CHECK_LINK" && return 255
+        { error "invalid or deleted file"; return 254; }
+    if test "$CHECK"; then
+        match 'class="download_file_title"' "$PAGE" && return 255 || return 1
+    fi
+    FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIES") ||
+        { error "error running Javascript code"; return 1; }
     
-    IFS="," read QK PK R < <(echo "$JS_CALL" | tr -d "'")
+    echo "$FILE_URL"
+}
+
+get_ofuscated_link() {
+    local PAGE=$1
+    local COOKIES=$2
+    BASE_URL="http://www.mediafire.com"
+    
+    FUNCTIONS=$(echo "$PAGE" | grep -o "function [[:alnum:]]\+[[:space:]]*(qk" | 
+                awk '{print $2}' | cut -d"(" -f1 | xargs)
+    test "$FUNCTIONS" ||
+        { error "get_ofuscated_links: error getting JS functions"; return 1; }
+    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | grep 'Eo[[:space:]]*();' -A6 | tail -n+2)
+    test "$JSCODE" ||
+        { error "get_ofuscated_links: error getting JS code"; return 1; }
+    JS_CALL=$({
+        for FUNCTION in $FUNCTIONS; do 
+            echo "function $FUNCTION(qk, pk, r) { 
+                  print('$FUNCTION' + ',' + qk + ',' + pk + ',' + r); }"
+        done
+        echo $JSCODE
+    } | js)
+    IFS="," read FUNCTION QK PK R < <(echo "$JS_CALL" | tr -d "'")
+    debug "function: $FUNCTION"
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     debug "Javascript URL: $JS_URL"
-
-    JS_CODE=$(curl -b <(echo $COOKIES) "$JS_URL" | sed "s/;/;\n/g")
-
-    # The File URL is ofuscated using a somewhat childish javascript code,
-    # we use the default javascript interpreter (js) to run it.
-    debug "running Javascript code"
-    VARS=$(echo "$JS_CODE" | grep "^[[:space:]]*var")
-    HREF=$(echo "$JS_CODE" | \
-        parse "href=" "href=\\\\\(\"http.*\)+[[:space:]]*'\">")
-    FILE_URL=$(echo "$VARS; print($HREF);" | js)
-    echo "$FILE_URL"
+    DIVID=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A10 | 
+            parse innerHTML "('\([^']*\)'")
+    debug "divid: $DIVID"
+    JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
+    {
+        echo "
+        d = {'innerHTML': ''};
+        parent = {
+        document: {'getElementById': function(x) { 
+            print(x); 
+            return d; 
+          } 
+        },
+        };"
+        echo "$JS_CODE" | sed -n "2p" | 
+            sed "s/eval(\([[:alnum:]]*\))/eval(\1); print(d.innerHTML);/g"
+        echo "dz();"
+    } | js | parse "'$DIVID'" 'href="\(.*\)"' 
 }
