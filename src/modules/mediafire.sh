@@ -28,22 +28,21 @@ MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 mediafire_download() {
     set -e
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
-
     URL=$1
+    
     COOKIESFILE=$(create_tempfile)
-
     PAGE=$(curl -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
     COOKIES=$(< $COOKIESFILE)
     rm -f $COOKIESFILE
-    
+
+    test "$PAGE" || return 254    
     echo "$PAGE" | grep -qi "Invalid or Deleted File" && 
         { error "invalid or deleted file"; return 254; }
-    if test "$CHECK"; then
+    if test "$CHECK_LINK"; then
         match 'class="download_file_title"' "$PAGE" && return 255 || return 1
     fi
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIES") ||
-        { error "error running Javascript code"; return 1; }
-    
+        { error "error running Javascript code"; return 1; }    
     echo "$FILE_URL"
 }
 
