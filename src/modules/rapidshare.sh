@@ -70,6 +70,7 @@ rapidshare_download() {
             match 'Your Cookie has not been recognized' "$DATA" &&
                 { error "login process failed"; return 1; }
         fi
+
         test -z "$DATA" &&
             { error "can't get wait URL contents"; return 1; }
 
@@ -86,7 +87,7 @@ rapidshare_download() {
             continue
         }
 
-        FILE_URL=$(echo "$DATA" | parse '<form name="dlf"' 'action="\([^"]*\)"' 2>/dev/null) || {
+        FILE_URL=$(grep_form_by_name "$DATA" 'dlf' | parse_form_action 2>/dev/null) || {
             debug "No free slots, waiting 2 minutes (default value)"
             countdown 2 1 minutes 60 || return 2
             continue
