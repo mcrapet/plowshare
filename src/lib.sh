@@ -35,7 +35,7 @@ error() {
 }
 
 replace() {
-    sed "s#$1#$2#g"
+    sed -e "s#$1#$2#g"
 }
 
 # Wrapper for curl: debug and infinite loop control

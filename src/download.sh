@@ -35,6 +35,7 @@ GETVERSION,v,version,,Return plowdown version
 QUIET,q,quiet,,Don't print debug messages
 CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
+NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 GET_MODULE,,get-module,,Get module(s) for URL(s)
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
@@ -122,6 +123,37 @@ mark_queue() {
         error "failed marking link in file: $FILE (#$TEXT)"
 }
 
+# Create an alternative filename
+# Pattern is filename.1
+#
+# $1: filename (with or withour path)
+# stdout: non existing filename
+#
+create_alt_filename() {
+    local FILENAME="$1"
+    local count=1
+
+    while [ "$count" -le 99 ]; do
+        if [ ! -f "${FILENAME}.$count" ]; then
+            FILENAME="${FILENAME}.$count"
+            break
+        fi
+        ((count++))
+    done
+    echo "$FILENAME"
+}
+
+# Check/Convert an url.
+# Bad encoded URL request can lead to HTTP error 400.
+# curl doesn't do any checks, whereas wget convert provided url.
+#
+# $1: string
+# stdout: URI (nearly complains RFC2396)
+#
+recode_uri() {
+    local URI="$1"
+    echo "$URI" | sed -e "s/\x20/%20/g"
+}
 
 # download MODULE URL FUNCTION_OPTIONS
 download() {
@@ -194,10 +226,15 @@ download() {
             else
                 TEMP_FILENAME="$FILENAME"
             fi
+
             CURL=("curl")
+            FILE_URL=$(recode_uri "$FILE_URL")
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             test "$COOKIES" && CURL=($CURL -b $COOKIES)
+            test "$NOOVERWRITE" -a -f "$TEMP_FILENAME" && \
+                TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
+
             CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
                               -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
             test "$COOKIES" && rm $COOKIES
@@ -220,9 +257,10 @@ download() {
                 debug "Moving file to output directory: ${OUTPUT_DIR:-.}"
                 mv "$TEMP_FILENAME" "${OUTPUT_DIR:-.}" || true
             fi
+
             # Echo downloaded file path
-            test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FILENAME" ||
-                echo "$FILENAME"
+            test "$OUTPUT_DIR" && debug -n "$OUTPUT_DIR"
+            echo "$(basename $TEMP_FILENAME)"
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
         break
