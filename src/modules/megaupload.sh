@@ -46,7 +46,7 @@ megaupload_download() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
     ERRORURL="http://www.megaupload.com/?c=msg"
-    URL=$(echo "$1" | sed "s/rotic\.com/porn\.com/")
+    URL=$(echo "$1" | replace 'rotic\.com/' 'porn\.com/')
     BASEURL=$(expr match "$URL" '\(http://[^/]*\)')
 
     # Try to login (if $AUTH not null)
