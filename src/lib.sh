@@ -477,20 +477,37 @@ retry_limit_not_reached() {
 
 # Countdown from VALUE (in UNIT_STR units) in STEP values
 #
+# $1: Sleep duration (arbitrary unit)
+# $2: Debug message display interval (arbitrary unit)
+# $3: User string naming unit (example: seconds, minutes). Only for debug message display.
+# $4: How many seconds for 1 arbitrary unit
+#
 countdown() {
     local VALUE=$1
     local STEP=$2
     local UNIT_STR=$3
     local UNIT_SECS=$4
 
+    # Values in seconds
     local TOTAL_WAIT=$((VALUE * UNIT_SECS))
+    local TOTAL_STEP=$((STEP * UNIT_SECS))
+
     timeout_update $TOTAL_WAIT || return 1
 
-    for REMAINING in $(seq $VALUE -$STEP 1 2>/dev/null || jot - $VALUE 1 -$STEP); do
-        test $REMAINING = $VALUE &&
-            debug -n "Waiting $VALUE $UNIT_STR... " || debug -n "$REMAINING.. "
-        local WAIT=$((STEP * UNIT_SECS))
-        test $STEP -le $REMAINING && sleep $WAIT || sleep $((REMAINING * UNIT_SECS))
+    REMAINING=$((VALUE))
+    while [ "$REMAINING" -gt 0 ]; do
+        test $REMAINING -eq $VALUE &&
+            debug -n "Waiting $VALUE $UNIT_STR... " ||
+            debug -n "$REMAINING.. "
+
+        if [ $REMAINING -le $STEP ]; then
+            sleep $((REMAINING * UNIT_SECS))
+            break
+        fi
+
+        sleep $TOTAL_STEP
+        ((REMAINING -= STEP))
     done
-    debug 0
+
+    debug "0"
 }
