@@ -29,7 +29,7 @@ source $ROOTDIR/test/lib.sh
 ### Setup script
 
 PREFIX=/usr
-INSTALLED="bin
+EXPECTED_INSTALLED="bin
 bin/plowdel
 bin/plowdown
 bin/plowup
@@ -78,7 +78,7 @@ share/plowshare/tesseract/plowshare_nobatch
 share/plowshare/tesseract/upper
 share/plowshare/upload.sh"
 
-UNINSTALLED="bin
+EXPECTED_UNINSTALLED="bin
 share
 share/doc"
 
@@ -86,10 +86,12 @@ test_setup_script() {
     TEMPDIR=$(mktemp -d "${TMPDIR:-/tmp}/plowshare.XXXXXXXX")
 
     assert_return 0 "PREFIX=$PREFIX DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
-    assert_equal "$INSTALLED" \
-        "$(find "$TEMPDIR$PREFIX" | sed "s#^$TEMPDIR$PREFIX/\?##" | sed '/^$/d' | sort)" || return 1
+    INSTALLED=$(find "$TEMPDIR$PREFIX" | sed "s#^$TEMPDIR$PREFIX/\?##" | sed '/^$/d' | sort)
+    diff -i <(echo "$EXPECTED_INSTALLED") <(echo "$INSTALLED") 
+    assert_equal "$EXPECTED_INSTALLED" \
+        "$INSTALLED" || return 1
     assert_return 0 "PREFIX=$PREFIX DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall" || return 1
-    assert_equal "$UNINSTALLED" \
+    assert_equal "$EXPECTED_UNINSTALLED" \
         "$(find "$TEMPDIR$PREFIX" | sed "s#^$TEMPDIR$PREFIX/\?##" | sed '/^$/d' | sort)" || return 1
 
     rm -rf $TEMPDIR
