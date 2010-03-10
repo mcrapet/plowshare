@@ -37,7 +37,7 @@ zshare_download() {
 
     WAITPAGE=$(curl -L -c $COOKIES --data "download=1" "$URL")
     echo "$WAITPAGE" | grep -q "File Not Found" &&
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
      if test "$CHECK_LINK"; then
          rm -f $COOKIES
@@ -75,13 +75,13 @@ zshare_upload() {
     DESTFILE=${2:-$FILE}
     UPLOADURL="http://www.zshare.net/"
 
-    debug "downloading upload page: $UPLOADURL"
+    log_debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")
 
     ACTION=$(grep_form_by_name "$DATA" 'upload' | parse_form_action) ||
-        { debug "cannot get upload form URL"; return 1; }
+        { log_debug "cannot get upload form URL"; return 1; }
 
-    debug "starting file upload: $FILE"
+    log_debug "starting file upload: $FILE"
     INFOPAGE=$(curl -L \
         -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "desc=$DESCRIPTION" \
@@ -90,12 +90,12 @@ zshare_upload() {
         "$ACTION")
 
     match "was successfully uploaded" "$INFOPAGE" ||
-        { error "upload unsuccessful"; return 1; }
+        { log_error "upload unsuccessful"; return 1; }
 
     DOWNLOAD_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/download" '<a href="\([^"]*\)"') ||
-        { debug "can't parse download link, website updated?"; return 1; }
+        { log_debug "can't parse download link, website updated?"; return 1; }
     DELETE_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/delete" 'value="\([^"]*\)"') ||
-        { debug "can't parse delete link, website updated?"; return 1; }
+        { log_debug "can't parse delete link, website updated?"; return 1; }
 
     echo "$DOWNLOAD_URL ($DELETE_URL)"
 }
@@ -111,7 +111,7 @@ zshare_delete() {
     DELETE_PAGE=$(curl -L "$URL")
 
     if matchi 'File Not Found' "$DELETE_PAGE"; then
-        error "File not found"
+        log_debug "File not found"
         return 254
     else
         local form_killcode=$(echo "$DELETE_PAGE" | parse_form_input_by_name "killCode")
@@ -119,10 +119,10 @@ zshare_delete() {
         RESULT_PAGE=$(curl --data "killCode=$form_killcode" "$URL")
 
         if match 'Invalid removal code' "$RESULT_PAGE"; then
-            error "bad removal code"
+            log_error "bad removal code"
             return 1
         elif ! matchi 'File Removed' "$RESULT_PAGE"; then
-            error "unexpected result, file not deleted"
+            log_error "unexpected result, file not deleted"
             return 1
         fi
     fi

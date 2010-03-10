@@ -34,29 +34,29 @@ hotfile_download() {
     COOKIES=$(create_tempfile)
 
     # Warning message
-    debug "##"
-    debug "# Important note: reCaptcha is not handled here."
-    debug "# As captcha challenge request is random and/or linked to specific url,"
-    debug "# some link could be never downloaded."
-    debug "##"
+    log_debug "##"
+    log_debug "# Important note: reCaptcha is not handled here."
+    log_debug "# As captcha challenge request is random and/or linked to specific url,"
+    log_debug "# some link could be never downloaded."
+    log_debug "##"
 
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
 
         if match 'hotfile\.com\/list\/' "$URL"; then
-            error "This is a directory list"
+            log_error "This is a directory list"
             rm -f $COOKIES
             return 1
         fi
 
         if ! match 'REGULAR DOWNLOAD' "$WAIT_HTML"; then
-            error "File not found"
+            log_debug "File not found"
             rm -f $COOKIES
             return 254
         fi
 
         local SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-            { error "can't get sleep time"; return 1; }
+            { log_error "can't get sleep time"; return 1; }
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
@@ -93,7 +93,7 @@ hotfile_download() {
         then
             # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
             local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-                { error "can't get wait time"; return 1; }
+                { log_error "can't get wait time"; return 1; }
             WAIT_TIME=$((WAIT_TIME / 60000))
             countdown $((WAIT_TIME)) 1 minutes 60 || return 2
             continue
@@ -116,11 +116,11 @@ hotfile_download() {
             #$(curl "${server}image?c=${challenge}" -o "recaptcha-${challenge:0:16}.jpg")
             #echo "$VARS" "$WAIT_HTML2" >/tmp/a
 
-            debug "Captcha page, give up!"
+            log_debug "Captcha page, give up!"
             break
 
         else
-            debug "Unknown state, give up!"
+            log_debug "Unknown state, give up!"
             break
         fi
     done

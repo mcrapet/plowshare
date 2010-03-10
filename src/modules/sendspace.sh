@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace.com/file/"
+MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/file/"
 MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
 MODULE_SENDSPACE_UPLOAD_OPTIONS=
 MODULE_SENDSPACE_DOWNLOAD_CONTINUE=no
@@ -32,7 +32,7 @@ sendspace_download() {
     URL=$1
     FILE_URL=$(curl -L --data "download=1" "$URL" |
         parse_attr 'spn_download_link' 'href' 2>/dev/null) ||
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 

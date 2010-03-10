@@ -95,21 +95,21 @@ process_item() {
             echo "$TYPE|$URL"
         done
     else
-        debug "cannot stat '$ITEM': No such file or directory"
+        log_debug "cannot stat '$ITEM': No such file or directory"
     fi
 }
 
 # Print usage
 #
 usage() {
-    debug "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
-    debug
-    debug "  Download files from file sharing servers."
-    debug
-    debug "  Available modules: $MODULES"
-    debug
-    debug "Global options:"
-    debug
+    log_debug "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
+    log_debug
+    log_debug "  Download files from file sharing servers."
+    log_debug
+    log_debug "  Available modules: $MODULES"
+    log_debug
+    log_debug "Global options:"
+    log_debug
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "DOWNLOAD"
 }
@@ -119,8 +119,8 @@ mark_queue() {
     local TYPE=$1; local MARK_DOWN=$2; FILE=$3; local URL=$4; local TEXT=$5
     test "$TYPE" = "file" -a "$MARK_DOWN" || return 0
     sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#$TEXT \1|" "$FILE" &&
-        debug "link marked in file: $FILE (#$TEXT)" ||
-        error "failed marking link in file: $FILE (#$TEXT)"
+        log_debug "link marked in file: $FILE (#$TEXT)" ||
+        log_error "failed marking link in file: $FILE (#$TEXT)"
 }
 
 # Create an alternative filename
@@ -171,7 +171,7 @@ download() {
     shift 11
 
     FUNCTION=${MODULE}_download
-    debug "start download ($MODULE): $URL"
+    log_debug "start download ($MODULE): $URL"
     timeout_init $TIMEOUT
     retry_limit_init $MAXRETRIES
 
@@ -181,30 +181,30 @@ download() {
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
-            debug "Link active: $URL"
+            log_debug "Link active: $URL"
             echo "$URL"
             break
         elif test $DRETVAL -eq 254; then
-            debug "Warning: file link is not alive"
+            log_debug "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
-            # Don't set RETVAL, a dead link is not considerer an error¡
+            # Don't set RETVAL, a dead link is not considerer an error
             break
         elif test $DRETVAL -eq 3; then
-            error "retry limit reached (${FUNCTION})"
+            log_error "retry limit reached (${FUNCTION})"
             RETVAL=$DERROR
             break
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
-            error "failed inside ${FUNCTION}()"
+            log_error "failed inside ${FUNCTION}()"
             RETVAL=$DERROR
             break
         fi
 
-        debug "File URL: $FILE_URL"
+        log_debug "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
         fi
-        debug "Filename: $FILENAME"
+        log_debug "Filename: $FILENAME"
 
         local DRETVAL=0
         if test "$DOWNLOAD_APP"; then
@@ -213,16 +213,16 @@ download() {
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
                 replace "%cookies" "$COOKIES")
-            debug "Running command: $COMMAND"
+            log_debug "Running command: $COMMAND"
             eval "$COMMAND" || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
-            debug "Command exited with retcode: $DRETVAL"
+            log_debug "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
         else
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
                 TEMP_FILENAME="$TEMP_DIR/$FILENAME"
-                debug "Downloading file to temporal directory: $TEMP_FILENAME"
+                log_debug "Downloading file to temporal directory: $TEMP_FILENAME"
             else
                 TEMP_FILENAME="$FILENAME"
             fi
@@ -240,26 +240,26 @@ download() {
             test "$COOKIES" && rm $COOKIES
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
-                debug "curl failed with retcode $DRETVAL"
-                debug "retry after a safety wait ($WAIT seconds)"
+                log_debug "curl failed with retcode $DRETVAL"
+                log_debug "retry after a safety wait ($WAIT seconds)"
                 sleep $WAIT
                 continue
             elif [ $DRETVAL -ne 0 ]; then
-                error "failed downloading $URL"
+                log_error "failed downloading $URL"
                 RETVAL=$DERROR
                 break
             fi
             if ! match "20." "$CODE"; then
-                error "unexpected HTTP code $CODE"
+                log_error "unexpected HTTP code $CODE"
                 continue
             fi
             if test "$OUTPUT_DIR" != "$TEMP_DIR"; then
-                debug "Moving file to output directory: ${OUTPUT_DIR:-.}"
+                log_debug "Moving file to output directory: ${OUTPUT_DIR:-.}"
                 mv "$TEMP_FILENAME" "${OUTPUT_DIR:-.}" || true
             fi
 
             # Echo downloaded file path
-            test "$OUTPUT_DIR" && debug -n "$OUTPUT_DIR"
+            test "$OUTPUT_DIR" && log_debug -n "$OUTPUT_DIR"
             echo $(basename "$TEMP_FILENAME")
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
@@ -287,7 +287,7 @@ for ITEM in "$@"; do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
         if test -z "$MODULE"; then
-            debug "no module for URL: $URL"
+            log_debug "no module for URL: $URL"
             RETVAL=$DERROR
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
             continue

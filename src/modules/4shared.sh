@@ -31,7 +31,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
     URL=$1
     WAIT_URL=$(curl "$URL" | parse "4shared\.com\/get\/" 'href="\([^"]*\)"') ||
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
     WAIT_HTML=$(curl "$WAIT_URL")
 
     test "$CHECK_LINK" && return 255

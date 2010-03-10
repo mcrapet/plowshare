@@ -36,7 +36,7 @@ loadfiles_download() {
         ERR1='No such file with this filename'
         ERR2='File Not Found'
         echo "$DATA" | grep -q "$ERR1\|$ERR2" &&
-            { error "file not found"; return 254; }
+            { log_debug "file not found"; return 254; }
 
         test "$CHECK_LINK" && return 255
 
@@ -45,13 +45,13 @@ loadfiles_download() {
             MINUTES=$(echo "$DATA" | parse 'class="err"' '\ \([0-9]\+\)\ minutes' 2>/dev/null) || MINUTES=0
             SECONDS=$(echo "$DATA" | parse 'class="err"' '\ \([0-9]\+\)\ seconds')
 
-            debug "You have to wait $HOUR hour, $MINUTES minutes, $SECONDS seconds."
+            log_debug "You have to wait $HOUR hour, $MINUTES minutes, $SECONDS seconds."
             countdown $((HOUR*3600+$MINUTES*60+$SECONDS)) 10 seconds 1
             continue
         }
 
         CAPTCHA_URL=$(echo "$DATA" | parse "<img" 'src="\(http:\/\/loadfiles.in\/captchas\/[^.]*.jpg\)"') || return 1
-        debug "Captcha URL: $CAPTCHA_URL"
+        log_debug "Captcha URL: $CAPTCHA_URL"
 
         # The important thing here is to crop exactly around the 4 digits. Otherwise tesseract will find extra digits.
         # Adding "-blur" does not give better results.
@@ -59,13 +59,13 @@ loadfiles_download() {
 
         CAPTCHA=$(curl "$CAPTCHA_URL"  | perl $LIBDIR/strip_grey.pl | convert - ${CONVERT_OPTS} gif:- |
                 show_image_and_tee | ocr digit |  sed "s/[^0-9]//g") ||
-            { error "error running OCR"; return 1; }
+            { log_error "running OCR"; return 1; }
 
         test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-        debug "Decoded captcha: $CAPTCHA"
+        log_debug "Decoded captcha: $CAPTCHA"
 
         test "${#CAPTCHA}" -ne 4 &&
-            { debug "Capcha length invalid"; continue; }
+            { log_debug "Capcha length invalid"; continue; }
 
         local download_form=$(grep_form_by_name "$DATA" 'F1')
         DATA_RAND=$(echo "$download_form" | parse_form_input_by_name 'rand')
@@ -86,14 +86,14 @@ down_script=${DATA_DOWN_SCRIPT}&btn_download=${DATA_BTN_DOWNLOAD}&code=$CAPTCHA"
         FINAL_PAGE=$(curl -i --data "$CDATA" "$URL")
 
         test $(echo "$FINAL_PAGE" | grep 'class="err"' | wc -l) -eq 0 || {
-            debug "Wrong captcha"; continue;
+            log_debug "Wrong captcha"; continue;
         }
 
         # since the response is a 302 (MOVED), get the new file location
         FILE_URL=$(echo "$FINAL_PAGE" | grep_http_header_location)
 
         if [ -n "$FILE_URL" ]; then
-            debug "Correct captcha!"
+            log_debug "Correct captcha!"
             break
         fi
     done

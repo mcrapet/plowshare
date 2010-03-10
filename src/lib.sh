@@ -24,18 +24,14 @@
 
 # Echo text to standard error.
 #
-debug() {
+log_debug() {
     if [ -z "$QUIET" ]; then
         echo "$@" >&2
     fi
 }
 
-error() {
+log_error() {
     echo "Error: $@" >&2
-}
-
-replace() {
-    sed -e "s#$1#$2#g"
 }
 
 # Wrapper for curl: debug and infinite loop control
@@ -51,14 +47,18 @@ curl() {
 #        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
 #        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
 #            local WAIT=60
-#            debug "curl failed with non-fatal retcode $DRETVAL"
-#            debug "retry after a safety wait ($WAIT seconds)"
+#            log_debug "curl failed with non-fatal retcode $DRETVAL"
+#            log_debug "retry after a safety wait ($WAIT seconds)"
 #            sleep $WAIT
 #            continue
 #        else
 #            return $DRETVAL
 #        fi
 #    done
+}
+
+replace() {
+    sed -e "s#$1#$2#g"
 }
 
 # Get first line that matches a regular expression and extract string from it.
@@ -69,7 +69,7 @@ curl() {
 parse() {
     local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) &&
         test "$STRING" && echo "$STRING" ||
-        { debug "parse failed: /$1/ $2"; return 1; }
+        { log_debug "parse failed: /$1/ $2"; return 1; }
 }
 
 # Grep first "Location" (of http header)
@@ -221,10 +221,10 @@ post_login() {
 
     if test "$AUTH"; then
         IFS=":" read USER PASSWORD <<< "$AUTH"
-        debug "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+        log_debug "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
         DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
-        test "$COOKIES" || { debug "login error"; return 1; }
+        test "$COOKIES" || { log_debug "login error"; return 1; }
         echo "$COOKIES"
     fi
 }
@@ -260,7 +260,7 @@ ocr() {
     LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
     if [ $? -ne 0 ]; then
         rm -f $TIFF $TEXT
-        error "$LOG"
+        log_error "$LOG"
         return 1
     fi
 
@@ -288,7 +288,7 @@ debug_options() {
             STRING="$STRING--${LONG%:}"
             test "$VALUE" && STRING="$STRING=$VALUE"
         }
-        debug "$STRING: $HELP"
+        log_debug "$STRING: $HELP"
     done <<< "$OPTIONS"
 }
 
@@ -327,7 +327,7 @@ debug_options_for_modules() {
     for MODULE in $MODULES; do
         OPTIONS=$(get_options_for_module "$MODULE" "$NAME")
         if test "$OPTIONS"; then
-            debug; debug "Options for module <$MODULE>:"; debug
+            log_debug; log_debug "Options for module <$MODULE>:"; log_debug
             debug_options "$OPTIONS" "  "
         fi
     done
@@ -431,7 +431,7 @@ show_image_and_tee() {
     elif which img2txt &>/dev/null; then
         caca_ascii_image $TEMPIMG >&2
     else
-        debug "Install aview or libcaca to display captcha image"
+        log_debug "Install aview or libcaca to display captcha image"
     fi
     cat $TEMPIMG
     rm -f $TEMPIMG
@@ -456,9 +456,9 @@ timeout_init() {
 timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
-    debug "Time left to timeout: $PS_TIMEOUT secs"
+    log_debug "Time left to timeout: $PS_TIMEOUT secs"
     if test $(expr $PS_TIMEOUT - $WAIT) -lt 0; then
-        error "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
+        log_error "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
         return 1
     fi
     PS_TIMEOUT=$(expr $PS_TIMEOUT - $WAIT)
@@ -470,7 +470,7 @@ retry_limit_init() {
 
 retry_limit_not_reached() {
     test -z "$PS_RETRY_LIMIT" && return
-    debug "Tries left: $PS_RETRY_LIMIT"
+    log_debug "Tries left: $PS_RETRY_LIMIT"
     (( PS_RETRY_LIMIT-- ))
     test "$PS_RETRY_LIMIT" -ge 0
 }
@@ -497,8 +497,8 @@ countdown() {
     REMAINING=$((VALUE))
     while [ "$REMAINING" -gt 0 ]; do
         test $REMAINING -eq $VALUE &&
-            debug -n "Waiting $VALUE $UNIT_STR... " ||
-            debug -n "$REMAINING.. "
+            log_debug -n "Waiting $VALUE $UNIT_STR... " ||
+            log_debug -n "$REMAINING.. "
 
         if [ $REMAINING -le $STEP ]; then
             sleep $((REMAINING * UNIT_SECS))
@@ -509,5 +509,5 @@ countdown() {
         ((REMAINING -= STEP))
     done
 
-    debug "0"
+    log_debug "0"
 }

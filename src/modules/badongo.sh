@@ -34,15 +34,15 @@ badongo_download() {
 
     PAGE=$(curl "$URL")
     echo "$PAGE" | grep -q '"recycleMessage">' &&
-        { error "file in recycle bin"; return 254; }
+        { log_debug "file in recycle bin"; return 254; }
     echo "$PAGE" | grep -q '"fileError">' &&
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
     COOKIES=$(create_tempfile)
     TRY=1
 
     while retry_limit_not_reached || return 3; do
-        debug "Downloading captcha page (loop $TRY)"
+        log_debug "Downloading captcha page (loop $TRY)"
         TRY=$(($TRY + 1))
         JSCODE=$(curl \
             -F "rs=refreshImage" \
@@ -50,7 +50,7 @@ badongo_download() {
             -F "rsrnd=$MTIME" \
             "$URL" | sed "s/>/>\n/g")
         ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
-            { error "file not found"; return 254; }
+            { log_debug "file not found"; return 254; }
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
@@ -62,9 +62,9 @@ badongo_download() {
         CAPTCHA=$(curl $BASEURL$CAP_IMAGE | \
             convert - +matte -colorspace gray -level 40%,40% gif:- | \
             show_image_and_tee | ocr upper | sed "s/[^a-zA-Z]//g" | uppercase)
-        debug "Decoded captcha: $CAPTCHA"
+        log_debug "Decoded captcha: $CAPTCHA"
         test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
-            { debug "Captcha length invalid"; continue; }
+            { log_debug "Captcha length invalid"; continue; }
 
         CAP_ID=$(echo "$JSCODE" | parse 'cap_id' 'value="\?\([^">]*\)')
         CAP_SECRET=$(echo "$JSCODE" | parse 'cap_secret' 'value="\?\([^">]*\)')
@@ -74,19 +74,19 @@ badongo_download() {
             -F "user_code=$CAPTCHA" \
             "$ACTION")
         match "var waiting" "$WAIT_PAGE" && break
-        debug "Wrong captcha"
+        log_debug "Wrong captcha"
     done
 
     WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'var check_n' 'check_n = \([[:digit:]]\+\)') || return 1
     LINK_PAGE=$(echo "$WAIT_PAGE" | parse 'req.open("GET"' '"GET", "\(.*\)\/status"') || return 1
 
-    debug "Correct captcha!"
+    log_debug "Correct captcha!"
 
     # usual wait time is 60 seconds
     countdown $((WAIT_TIME)) 5 seconds 1 || return 2
 
     FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | grep_http_header_location)
     rm -f $COOKIES
-    test "$FILE_URL" || { error "location not found"; return 1; }
+    test "$FILE_URL" || { log_error "location not found"; return 1; }
     echo "$FILE_URL"
 }

@@ -37,12 +37,12 @@ mediafire_download() {
 
     test "$PAGE" || return 254    
     echo "$PAGE" | grep -qi "Invalid or Deleted File" && 
-        { error "invalid or deleted file"; return 254; }
+        { log_debug "invalid or deleted file"; return 254; }
     if test "$CHECK_LINK"; then
         match 'class="download_file_title"' "$PAGE" && return 255 || return 1
     fi
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIES") ||
-        { error "error running Javascript code"; return 1; }    
+        { log_error "error running Javascript code"; return 1; }    
     echo "$FILE_URL"
 }
 
@@ -54,10 +54,10 @@ get_ofuscated_link() {
     FUNCTIONS=$(echo "$PAGE" | grep -o "function [[:alnum:]]\+[[:space:]]*(qk" | 
                 awk '{print $2}' | cut -d"(" -f1 | xargs)
     test "$FUNCTIONS" ||
-        { error "get_ofuscated_links: error getting JS functions"; return 1; }
+        { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
     JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | grep 'Eo[[:space:]]*();' -A6 | tail -n+2)
     test "$JSCODE" ||
-        { error "get_ofuscated_links: error getting JS code"; return 1; }
+        { log_error "get_ofuscated_links: error getting JS code"; return 1; }
     JS_CALL=$({
         for FUNCTION in $FUNCTIONS; do 
             echo "function $FUNCTION(qk, pk, r) { 
@@ -66,12 +66,12 @@ get_ofuscated_link() {
         echo $JSCODE
     } | js)
     IFS="," read FUNCTION QK PK R < <(echo "$JS_CALL" | tr -d "'")
-    debug "function: $FUNCTION"
+    log_debug "function: $FUNCTION"
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
-    debug "Javascript URL: $JS_URL"
+    log_debug "Javascript URL: $JS_URL"
     DIVID=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A10 | 
             parse innerHTML "('\([^']*\)'")
-    debug "divid: $DIVID"
+    log_debug "divid: $DIVID"
     JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
     {
         echo "

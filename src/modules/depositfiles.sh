@@ -34,7 +34,7 @@ depositfiles_download() {
     while retry_limit_not_reached || return 3; do
         START=$(curl -L "$URL")
         echo "$START" | grep -q "no_download_msg" &&
-            { debug "file not found"; return 254; }
+            { log_debug "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
         if echo "$START" | grep -q "download_started"; then
             echo "$START" | parse "download_started" 'action="\([^"]*\)"'
@@ -43,10 +43,10 @@ depositfiles_download() {
         check_ip "$START" || continue
         WAIT_URL=$(echo "$START" | grep "files/" \
                 | parse '<form' 'action="\([^"]*\)"') ||
-            { error "download form not found"; return 1; }
+            { log_error "download form not found"; return 1; }
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "gateway_result=1" "${BASEURL}${WAIT_URL}") ||
-            { error "can't get wait URL contents"; return 1; }
+            { log_error "can't get wait URL contents"; return 1; }
         check_wait "$DATA" "minute" "60" || continue
         check_wait "$DATA" "second" "1" || continue
         check_ip "$DATA" || continue
@@ -54,7 +54,7 @@ depositfiles_download() {
     done
     FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"')
     SLEEP=$(echo "$DATA" | parse "download_waiter_remain" ">\([[:digit:]]\+\)<") ||
-        { error "cannot get wait time"; return 1; }
+        { log_error "cannot get wait time"; return 1; }
 
     # usual wait time is 60 seconds
     countdown $((SLEEP + 1)) 2 seconds 1 || return 2
@@ -69,7 +69,7 @@ check_wait() {
     LIMIT=$(echo "$HTML" | grep -A1 "try in" | \
         parse "$WORD" "\(\<[[:digit:]]\+\>\) $WORD" 2>/dev/null) || true
     if test "$LIMIT"; then
-        debug "limit reached, waiting $LIMIT ${WORD}s"
+        log_debug "limit reached, waiting $LIMIT ${WORD}s"
         sleep $((LIMIT*FACTOR))
         return 1
     else
@@ -80,7 +80,7 @@ check_wait() {
 check_ip() {
     if echo "$1" | grep -q '<div class="ipbg">'; then
         local WAIT=60
-        debug "IP already downloading, waiting $WAIT seconds"
+        log_debug "IP already downloading, waiting $WAIT seconds"
         sleep $WAIT
         return 1
     else

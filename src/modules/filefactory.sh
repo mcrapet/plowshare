@@ -34,7 +34,7 @@ filefactory_download() {
 
     WAIT_URL=$(echo "$HTML_PAGE" | \
             parse_attr 'button\.basic\.jpg\|Download Now' 'href' 2>/dev/null) ||
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 
@@ -42,7 +42,7 @@ filefactory_download() {
 
     WAIT_TIME=$(echo "$HTML_PAGE" | parse '<span class="countdown">' '>\([[:digit:]]*\)<\/span>')
     FILE_URL=$(echo "$HTML_PAGE" | parse_attr 'Download with FileFactory Basic' 'href' 2>/dev/null) ||
-        { error "can't parse filename, website updated?"; return 1; }
+        { log_error "can't parse filename, website updated?"; return 1; }
 
     countdown $((WAIT_TIME)) 10 seconds 1
 

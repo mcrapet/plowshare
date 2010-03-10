@@ -55,14 +55,14 @@ uploading_download() {
 
             WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
                 WAIT=5
-            debug "Server asked to wait"
+            log_debug "Server asked to wait"
             countdown $WAIT 1 minutes 60
             continue
         fi
 
         HTML_FORM=$(grep_form_by_id "$DATA" 'downloadform')
         WAIT_URL=$(echo "$HTML_FORM" | parse_form_action) ||
-            { error "can't get wait url"; return 1; }
+            { log_error "can't get wait url"; return 1; }
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
@@ -70,12 +70,12 @@ uploading_download() {
         fi
 
         FILE_ID=$(echo "$HTML_FORM" | parse_form_input_by_name 'file_id') ||
-            { error "can't get file_id form field"; return 1; }
+            { log_error "can't get file_id form field"; return 1; }
         CODE=$(echo "$HTML_FORM" | parse_form_input_by_name 'code') ||
-            { error "can't get code form field"; return 1; }
+            { log_error "can't get code form field"; return 1; }
 
         DATA=$(curl --cookie "$COOKIES" --cookie "lang=1" --data "action=second_page&file_id=${FILE_ID}&code=${CODE}" "$WAIT_URL") ||
-            { error "can't get wait URL contents"; return 1; }
+            { log_error "can't get wait URL contents"; return 1; }
         break
     done
 
@@ -92,12 +92,12 @@ uploading_download() {
     countdown $WAIT 10 seconds 1 || return 2
 
     DATA=$(curl --cookie "$COOKIES" --data "action=get_link&file_id=${FILE_ID}&code=${CODE}&pass=undefined" "$JSURL") ||
-        { error "can't get link"; return 1; }
+        { log_error "can't get link"; return 1; }
 
     # example of answer:
     # { "id": "1268521606000", "js": { "answer": { "link": "http:\/\/up3.uploading.com\/get_file\/%3D%3DwARfyFZ3fKB8rJ ... " } }, "text": "" }
     FILE_URL=$(echo "$DATA" | parse '"answer":' '"link": "\([^"]*\)"') ||
-        { error "URL not found"; return 1; }
+        { log_error "URL not found"; return 1; }
 
     echo $FILE_URL
     echo $FILENAME

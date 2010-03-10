@@ -38,7 +38,7 @@ netload_in_download() {
         ((try++))
         WAIT_URL=$(curl --location -c $COOKIES "$URL" |\
             parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||
-            { error "file not found"; return 254; }
+            { log_debug "file not found"; return 254; }
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
@@ -58,18 +58,18 @@ netload_in_download() {
                 'src="\([^"]*\)" alt="Sicherheitsbild"')
         CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
-        debug "Try $try:"
+        log_debug "Try $try:"
 
         CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | perl $LIBDIR/strip_single_color.pl |
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% -compress none -depth 8 tif:- |
                 show_image_and_tee | ocr digit | sed "s/[^0-9]//g") ||
-                { error "error running OCR"; return 1; }
+                { log_error "error running OCR"; return 1; }
 
         test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-        debug "Decoded captcha: $CAPTCHA"
+        log_debug "Decoded captcha: $CAPTCHA"
 
         if [ "${#CAPTCHA}" -ne 4 ]; then
-            debug "Captcha length invalid"
+            log_debug "Captcha length invalid"
             continue
         fi
 
@@ -82,9 +82,9 @@ netload_in_download() {
                 "$BASE_URL/$form_url")
 
         match 'class="InPage_Error"' "$WAIT_HTML2" &&
-            { debug "Error (bad captcha), retry"; continue; }
+            { log_debug "Error (bad captcha), retry"; continue; }
 
-        debug "Correct captcha!"
+        log_debug "Correct captcha!"
 
         WAIT_TIME2=$(echo "$WAIT_HTML2" | parse 'type="text\/javascript">countdown' \
                 "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
@@ -93,7 +93,7 @@ netload_in_download() {
         then
             if [[ "$WAIT_TIME2" -gt 10000 ]]
             then
-                debug "Download limit reached!"
+                log_debug "Download limit reached!"
                 countdown $((WAIT_TIME2 / 100)) 40 seconds 1 || return 2
             else
                 # Supress this wait will lead to a 400 http error (bad request)

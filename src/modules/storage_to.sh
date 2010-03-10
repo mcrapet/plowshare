@@ -32,7 +32,7 @@ storage_to_download() {
     MAIN_PAGE=$(curl "$1?language=en")
 
     match 'File not found' "$MAIN_PAGE" && \
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 
@@ -55,11 +55,11 @@ storage_to_download() {
             break
         elif [ "$state" == "wait" ]
         then
-            debug "Download limit reached!"
+            log_debug "Download limit reached!"
             countdown $((count+1)) 60 seconds 1 || return 2
             continue
         else
-            error "failed state ($state)"
+            log_error "failed state ($state)"
             return 1
         fi
     done

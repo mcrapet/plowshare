@@ -32,13 +32,13 @@ divshare_download() {
     PAGE=$(curl "$1")
     FILE_URL=$(echo "$PAGE" | \
             parse_attr '\(download_message\|Download Original\)' 'href') ||
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 
     FILE_NAME=$(echo "$PAGE" | sed -n '/"file_name"/,/<\/div>/p' | tr -d "\n" |
             parse '">' '>[[:space:]]*\(.*\)[[:space:]]*<') ||
-        { debug "can't parse filename, website updated?"; }
+        { log_debug "can't parse filename, website updated?"; }
 
     # Real filename is also stored in "Content-Disposition" HTTP header
     # We are lucky here, we can make an extra http request without being accused of parallel download!

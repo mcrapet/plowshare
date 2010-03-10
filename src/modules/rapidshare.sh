@@ -50,13 +50,13 @@ rapidshare_download() {
         PAGE=$(ccurl "$URL")
 
         echo "$PAGE" | grep -q 'file could not be found' &&
-            { error "file not found"; return 254; }
+            { log_debug "file not found"; return 254; }
         echo "$PAGE" | grep -q 'suspected to contain illegal content' &&
-            { error "file blocked"; return 254; }
+            { log_debug "file blocked"; return 254; }
         echo "$PAGE" | grep -q 'uploader has removed this file from the server' &&
-            { error "file removed by the uploader"; return 254; }
+            { log_debug "file removed by the uploader"; return 254; }
         echo "$PAGE" | grep -q 'removed from the server, because the file has not been accessed' &&
-            { error "file removed"; return 254; }
+            { log_debug "file removed"; return 254; }
 
         WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
             return 1
@@ -68,27 +68,27 @@ rapidshare_download() {
         else
             DATA=$(ccurl --data "dl.start=PREMIUM" "$WAIT_URL")
             match 'Your Cookie has not been recognized' "$DATA" &&
-                { error "login process failed"; return 1; }
+                { log_error "login process failed"; return 1; }
         fi
 
         test -z "$DATA" &&
-            { error "can't get wait URL contents"; return 1; }
+            { log_error "can't get wait URL contents"; return 1; }
 
         match "is already downloading a file" "$DATA" && {
-            debug "Your IP is already downloading a file"
+            log_debug "Your IP is already downloading a file"
             countdown 2 1 minutes 60 || return 2
             continue
         }
 
         LIMIT=$(echo "$DATA" | parse "minute" \
                 "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
-            debug "No free slots, server asked to wait $LIMIT minutes"
+            log_debug "No free slots, server asked to wait $LIMIT minutes"
             countdown $LIMIT 1 minutes 60 || return 2
             continue
         }
 
         FILE_URL=$(grep_form_by_name "$DATA" 'dlf' | parse_form_action 2>/dev/null) || {
-            debug "No free slots, waiting 2 minutes (default value)"
+            log_debug "No free slots, waiting 2 minutes (default value)"
             countdown 2 1 minutes 60 || return 2
             continue
         }
@@ -144,10 +144,10 @@ rapidshare_upload_anonymous() {
     DESTFILE=${2:-$FILE}
 
     UPLOAD_URL="http://www.rapidshare.com"
-    debug "downloading upload page: $UPLOAD_URL"
+    log_debug "downloading upload page: $UPLOAD_URL"
 
     ACTION=$(curl "$UPLOAD_URL" | parse 'form name="ul"' 'action="\([^"]*\)') || return 1
-    debug "upload to: $ACTION"
+    log_debug "upload to: $ACTION"
 
     INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION") || return 1
     URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<") || return 1
@@ -172,23 +172,23 @@ rapidshare_upload_freezone() {
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
     LOGIN_DATA='username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
-        { error "error on login process"; return 1; }
+        { log_error "error on login process"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
 
-    debug "downloading upload page: $FREEZONE_LOGIN_URL"
+    log_debug "downloading upload page: $FREEZONE_LOGIN_URL"
     UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL) || return 1
     ACCOUNTID=$(echo "$UPLOAD_PAGE" | \
         parse 'name="freeaccountid"' 'value="\([[:digit:]]*\)"')
     ACTION=$(echo "$UPLOAD_PAGE" | parse '<form name="ul"' 'action="\([^"]*\)"')
     IFS=":" read USER PASSWORD <<< "$AUTH_FREEZONE"
-    debug "uploading file: $FILE"
+    log_debug "uploading file: $FILE"
     UPLOADED_PAGE=$(ccurl \
         -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "freeaccountid=$ACCOUNTID" \
         -F "password=$PASSWORD" \
         -F "mirror=on" $ACTION) || return 1
 
-    debug "download upload page to get url: $FREEZONE_LOGIN_URL"
+    log_debug "download upload page to get url: $FREEZONE_LOGIN_URL"
     UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL) || return 1
     FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | tail -n1 | \
         parse Adliste 'Adliste\["\([[:digit:]]*\)"')
@@ -220,14 +220,14 @@ rapidshare_upload_premiumzone() {
     # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH_PREMIUMZONE" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL") ||
-        { error "error on login process"; return 1; }
+        { log_error "login process failed"; return 1; }
     ccurl() { curl -b <(echo "$COOKIES") "$@"; }
 
-    debug "downloading upload page: $PREMIUMZONE_LOGIN_URL"
+    log_debug "downloading upload page: $PREMIUMZONE_LOGIN_URL"
     UPLOAD_PAGE=$(ccurl $PREMIUMZONE_LOGIN_URL) || return 1
 
     if test -z "$UPLOAD_PAGE"; then
-        error "login process failed"
+        log_error "login process failed"
         return 1
     fi
 
@@ -238,7 +238,7 @@ rapidshare_upload_premiumzone() {
     local form_login=$(echo "$UPLOAD_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="login"' 'value="\([^"]*\)' 2>/dev/null)
     local form_password=$(echo "$UPLOAD_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="password"' 'value="\([^"]*\)' 2>/dev/null)
 
-    debug "uploading file: $FILE"
+    log_debug "uploading file: $FILE"
     UPLOADED_PAGE=$(ccurl \
         -F "login=$form_login" \
         -F "password=$form_password" \
@@ -246,7 +246,7 @@ rapidshare_upload_premiumzone() {
         -F "mirror=on" \
         -F "u.x=56" -F "u.y=9" "$form_url") || return 1
 
-    debug "download upload page to get url: $PREMIUMZONE_LOGIN_URL"
+    log_debug "download upload page to get url: $PREMIUMZONE_LOGIN_URL"
     UPLOAD_PAGE=$(ccurl $PREMIUMZONE_LOGIN_URL) || return 1
     FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | head -n1 | \
         parse Adliste 'Adliste\["\([[:digit:]]*\)"')

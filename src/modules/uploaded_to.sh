@@ -42,30 +42,30 @@ uploaded_to_download() {
             rm -f $HEADERS
 
             matchi 'premium[[:space:]]\+account' "$DATA" && \
-                debug "premium user link only" || \
-                debug "file not found"
+                log_debug "premium user link only" || \
+                log_debug "file not found"
             return 254
 
         # Location: /?view=error_traffic_exceeded_free&id=abcdef
         elif match 'error_traffic_exceeded_free' "$HEADER_LOC"
         then
             LIMIT=$(echo "$DATA" | parse "\(minutes\|minuti\|Minuten\)" '[[:space:]]\+\([[:digit:]]\+\)[[:space:]]\+') ||
-                { error "can't get wait delay"; return 1; }
+                { log_error "can't get wait delay"; return 1; }
 
-            debug "Download limit reached!"
+            log_debug "Download limit reached!"
             countdown $LIMIT 1 minutes 60 || return 2
 
         # Location: /?view=error2&id_a=xxx&id_b=yyy
         elif match 'error[[:digit:]]' "$HEADER_LOC"
         then
             rm -f $HEADERS
-            debug "internal error"
+            log_debug "internal error"
             return 1
 
         else
             local file_url=$(grep_form_by_name "$DATA" "download_form" | parse_form_action)
             SLEEP=$(echo "$DATA" | parse "var[[:space:]]\+secs" "=[[:space:]]*\([[:digit:]]\+\);") ||
-                { debug "ignore sleep time"; SLEEP=0; }
+                { log_debug "ignore sleep time"; SLEEP=0; }
 
             test "$CHECK_LINK" && return 255
 

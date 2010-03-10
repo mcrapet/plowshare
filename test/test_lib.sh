@@ -41,8 +41,8 @@ var3 = 33
 }
 
 test_debug() {
-    assert_equal "" $(debug "test" 2>/dev/null)
-    assert_equal "test" $(debug "test" 2>&1)
+    assert_equal "" $(log_debug "test" 2>/dev/null)
+    assert_equal "test" $(log_debug "test" 2>&1)
 }
 
 test_match() {

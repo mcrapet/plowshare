@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared.com/file/"
+MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/file/"
 MODULE_2SHARED_DOWNLOAD_OPTIONS=""
 MODULE_2SHARED_UPLOAD_OPTIONS=
 MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
@@ -34,7 +34,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     FILE_URL=$(echo $MAIN_PAGE | parse 'window.location' 'location = "\([^"]\+\)"' 2>/dev/null)
 
     test -z "$FILE_URL" &&
-        { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 
@@ -58,19 +58,19 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     DESTFILE=${2:-$FILE}
     UPLOADURL="http://www.2shared.com/"
 
-    debug "downloading upload page: $UPLOADURL"
+    log_debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")
     ACTION=$(grep_form_by_name "$DATA" "uploadForm" | parse_form_action) ||
-        { debug "cannot get upload form URL"; return 1; }
+        { log_debug "cannot get upload form URL"; return 1; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
 
-    debug "starting file upload: $FILE"
+    log_debug "starting file upload: $FILE"
     STATUS=$(curl \
         -F "mainDC=1" \
         -F "fff=@$FILE;filename=$(basename "$DESTFILE")" \
         "$ACTION")
     match "upload has successfully completed" "$STATUS" ||
-        { debug "error on upload"; return 1; }
+        { log_error "upload failure"; return 1; }
     DONE=$(curl "$UPLOADURL/$COMPLETE")
     URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
     ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")

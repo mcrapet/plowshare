@@ -69,14 +69,14 @@ done
 # Print usage
 #
 usage() {
-    debug "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
-    debug
-    debug "  Delete a file-link from a file sharing site."
-    debug
-    debug "  Available modules: $MODULES"
-    debug
-    debug "Global options:"
-    debug
+    log_debug "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
+    log_debug
+    log_debug "  Delete a file-link from a file sharing site."
+    log_debug
+    log_debug "  Available modules: $MODULES"
+    log_debug
+    log_debug "Global options:"
+    log_debug
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "DELETE"
 }
@@ -97,13 +97,13 @@ for URL in "$@"; do
     MODULE=$(get_module "$URL" "$MODULES")
 
     if test -z "$MODULE"; then
-        debug "Skip: no module for URL ($URL)"
+        log_debug "Skip: no module for URL ($URL)"
         RETVAL=4
         continue
     fi
 
     FUNCTION=${MODULE}_delete
-    debug "starting delete ($MODULE): $URL"
+    log_debug "starting delete ($MODULE): $URL"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || RETVAL=5
 done
 

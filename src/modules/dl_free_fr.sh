@@ -41,7 +41,7 @@ dl_free_fr_download() {
     ERR1="erreur 500 - erreur interne du serveur"
     ERR2="erreur 404 - document non trouv."
     if matchi "$ERR1\|$ERR2" "$HTML_PAGE"; then
-        error "file not found"
+        log_error "file not found"
         rm -f $COOKIES
         return 254
     fi
@@ -52,7 +52,7 @@ dl_free_fr_download() {
     fi
 
     FILE_URL=$(echo "$HTML_PAGE" | parse "charger ce fichier" 'href="\([^"].*\)"') ||
-        { error "Could not parse file URL"; return 1; }
+        { log_error "Could not parse file URL"; return 1; }
 
     echo $FILE_URL
     echo

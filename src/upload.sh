@@ -72,14 +72,14 @@ done
 # Print usage
 #
 usage() {
-    debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
-    debug
-    debug "  Upload a file (or files) to a file-sharing site."
-    debug
-    debug "  Available modules: $MODULES"
-    debug
-    debug "Global options:"
-    debug
+    log_debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
+    log_debug
+    log_debug "  Upload a file (or files) to a file-sharing site."
+    log_debug
+    log_debug "  Available modules: $MODULES"
+    log_debug
+    log_debug "Global options:"
+    log_debug
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "UPLOAD"
 }
@@ -105,16 +105,16 @@ RETVAL=0
 for FILE in "${FILES[@]}"; do
   # Check that file exists (ignore URLs)
   if ! match "^[[:alpha:]]\+://" "$FILE" && ! test -f "$FILE"; then
-      error "file does not exist: $FILE"
+      log_error "file does not exist: $FILE"
       RETVAL=3
       continue
   elif ! grep -w -q "$MODULE" <<< "$MODULES"; then
-      error "unsupported module ($MODULE)"
+      log_error "unsupported module ($MODULE)"
       RETVAL=3
       continue
   fi
   FUNCTION=${MODULE}_upload
-  debug "starting upload ($MODULE): $FILE"
+  log_debug "starting upload ($MODULE): $FILE"
   $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || RETVAL=3
 done
 

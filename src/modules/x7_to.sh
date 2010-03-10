@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_X7_TO_REGEXP_URL="^http://\(www\.\)\?x7.to/"
+MODULE_X7_TO_REGEXP_URL="^http://\(www\.\)\?x7\.to/"
 MODULE_X7_TO_DOWNLOAD_OPTIONS=""
 MODULE_X7_TO_UPLOAD_OPTIONS=
 MODULE_X7_TO_DOWNLOAD_CONTINUE=no
@@ -41,12 +41,12 @@ x7_to_download() {
 
         if [ -z "$ref_fid" ]; then
             matchi 'file not found' "$WAIT_HTML" &&
-                error "File not found"
+                log_error "File not found"
 
             if match '<span id="foldertitle">' "$WAIT_HTML"
             then
                 local textlist=$(echo "$WAIT_HTML" | parse_attr 'listplain' 'href')
-                error "This is a folder list (check $BASE_URL/$textlist)"
+                log_error "This is a folder list (check $BASE_URL/$textlist)"
             fi
 
             rm -f $COOKIES
@@ -81,13 +81,13 @@ x7_to_download() {
             break;
         elif match 'limit-dl' "$DATA"
         then
-            debug "Download limit reached!"
+            log_debug "Download limit reached!"
             WAITTIME=5
             countdown $((WAITTIME)) 1 minutes 60 || return 2
             continue
         else
             local error=$(echo "$DATA" | parse 'err:' '{err:"\([^"]*\)"}' 2>/dev/null)
-            error "failed state [$error]"
+            log_error "failed state [$error]"
 
             rm -f $COOKIES
             return 1

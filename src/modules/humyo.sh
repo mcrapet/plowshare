@@ -44,9 +44,10 @@ humyo_download() {
 
     PAGE=$(curl "$URL")
     matchi "<h1>File Not Found</h1>" "$PAGE" &&
-      { error "file not found"; return 254; }
+        { log_debug "file not found"; return 254; }
+
     FILE_URL=$(echo "$PAGE" | break_html_lines| parse_attr 'Download this file' "href") ||
-        { error "download link not found"; return 1; }
+        { log_error "download link not found"; return 1; }
     test "$CHECK_LINK" && return 255
 
     echo "${BASEURL}${FILE_URL}"
