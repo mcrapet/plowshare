@@ -260,7 +260,7 @@ download() {
 
             # Echo downloaded file path
             test "$OUTPUT_DIR" && debug -n "$OUTPUT_DIR"
-            echo "$(basename $TEMP_FILENAME)"
+            echo $(basename "$TEMP_FILENAME")
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
         break
