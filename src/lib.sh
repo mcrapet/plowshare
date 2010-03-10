@@ -260,9 +260,9 @@ ocr() {
     LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
     if [ $? -ne 0 ]; then
         rm -f $TIFF $TEXT
+        error "$LOG"
         return 1
     fi
-    debug "$LOG"
 
     cat $TEXT
     rm -f $TIFF $TEXT
