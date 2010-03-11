@@ -448,7 +448,7 @@ test_filefactory_download() {
 }
 
 test_filefactory_check_active_link() {
-    assert_equal "$LOADFILES_URL" "$(download -c $FILEFACTORY_URL)" || return 1
+    assert_equal "$FILEFACTORY_URL" "$(download -c $FILEFACTORY_URL)" || return 1
 }
 
 
