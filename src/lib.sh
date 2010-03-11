@@ -15,23 +15,31 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Global variables:
-#   - QUIET           If set, debug output is supressed
+# Global variables used:
+#   - VERBOSE         Verbose log level (0=none, 1, 2, 3)
 #   - INTERFACE       Network interface (used by curl)
 #   - PS_TIMEOUT      Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
 #   - LIBDIR          Absolute patch to plowshare's libdir
 
-# Echo text to standard error.
+
+# Logs are sent to standard error.
+# Policy:
+# - debug: modules messages, curl (intermediate) calls
+# - notice: core messages (ocr, countdown, timeout, retries), lastest plowdown curl call
+# - error: modules errors (when return 1)
 #
 log_debug() {
-    if [ -z "$QUIET" ]; then
-        echo "$@" >&2
-    fi
+    [ "$VERBOSE" -ge "3" ] && echo "dbg: $@" >&2
+    return 0
 }
-
+log_notice() {
+    [ "$VERBOSE" -ge "2" ] && echo "$@" >&2
+    return 0
+}
 log_error() {
-    echo "Error: $@" >&2
+    [ "$VERBOSE" -ge "1" ] && echo "err: $@" >&2
+    return 0
 }
 
 # Wrapper for curl: debug and infinite loop control
@@ -39,7 +47,10 @@ log_error() {
 curl() {
     local -a OPTIONS=(--insecure)
     local DRETVAL=0
-    test -n "$QUIET" && OPTIONS=(${OPTIONS[@]} "--silent")
+
+    # no verbose unless debug level
+    [ "$VERBOSE" -lt 3 ] && OPTIONS=(${OPTIONS[@]} "--silent")
+
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
     $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
     return $DRETVAL
@@ -69,7 +80,7 @@ replace() {
 parse() {
     local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) &&
         test "$STRING" && echo "$STRING" ||
-        { log_debug "parse failed: /$1/ $2"; return 1; }
+        { log_error "parse failed: /$1/ $2"; return 1; }
 }
 
 # Grep first "Location" (of http header)
@@ -221,10 +232,10 @@ post_login() {
 
     if test "$AUTH"; then
         IFS=":" read USER PASSWORD <<< "$AUTH"
-        log_debug "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+        log_notice "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
         DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
-        test "$COOKIES" || { log_debug "login error"; return 1; }
+        test "$COOKIES" || { log_error "login error"; return 1; }
         echo "$COOKIES"
     fi
 }
@@ -243,7 +254,7 @@ create_tempfile() {
 # OCR of an image. Write OCRed text to standard input
 #
 # Standard input: image
-# $1: (optionnal) varfile
+# $1: optional varfile
 #
 ocr() {
     local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
@@ -288,10 +299,13 @@ debug_options() {
             STRING="$STRING--${LONG%:}"
             test "$VALUE" && STRING="$STRING=$VALUE"
         }
-        log_debug "$STRING: $HELP"
+        echo "$STRING: $HELP"
     done <<< "$OPTIONS"
 }
 
+# Look for a configuration module variable
+# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
+#
 get_modules_options() {
     MODULES=$1
     NAME=$2
@@ -327,7 +341,9 @@ debug_options_for_modules() {
     for MODULE in $MODULES; do
         OPTIONS=$(get_options_for_module "$MODULE" "$NAME")
         if test "$OPTIONS"; then
-            log_debug; log_debug "Options for module <$MODULE>:"; log_debug
+            echo
+            echo "Options for module <$MODULE>:"
+            echo
             debug_options "$OPTIONS" "  "
         fi
     done
@@ -423,7 +439,7 @@ caca_ascii_image() {
 
 # $1: image
 show_image_and_tee() {
-    test -n "$QUIET" && { cat; return; }
+    [ "$VERBOSE" -lt 2 ] && { cat; return; }
     local TEMPIMG=$(create_tempfile)
     cat > $TEMPIMG
     if which aview &>/dev/null; then
@@ -431,7 +447,7 @@ show_image_and_tee() {
     elif which img2txt &>/dev/null; then
         caca_ascii_image $TEMPIMG >&2
     else
-        log_debug "Install aview or libcaca to display captcha image"
+        log_notice "Install aview or libcaca to display captcha image"
     fi
     cat $TEMPIMG
     rm -f $TEMPIMG
@@ -456,7 +472,7 @@ timeout_init() {
 timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
-    log_debug "Time left to timeout: $PS_TIMEOUT secs"
+    log_notice "Time left to timeout: $PS_TIMEOUT secs"
     if test $(expr $PS_TIMEOUT - $WAIT) -lt 0; then
         log_error "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
         return 1
@@ -470,7 +486,7 @@ retry_limit_init() {
 
 retry_limit_not_reached() {
     test -z "$PS_RETRY_LIMIT" && return
-    log_debug "Tries left: $PS_RETRY_LIMIT"
+    log_notice "Tries left: $PS_RETRY_LIMIT"
     (( PS_RETRY_LIMIT-- ))
     test "$PS_RETRY_LIMIT" -ge 0
 }
@@ -497,8 +513,8 @@ countdown() {
     REMAINING=$((VALUE))
     while [ "$REMAINING" -gt 0 ]; do
         test $REMAINING -eq $VALUE &&
-            log_debug -n "Waiting $VALUE $UNIT_STR... " ||
-            log_debug -n "$REMAINING.. "
+            log_notice -n "Waiting $VALUE $UNIT_STR... " ||
+            log_notice -n "$REMAINING.. "
 
         if [ $REMAINING -le $STEP ]; then
             sleep $((REMAINING * UNIT_SECS))
@@ -509,5 +525,5 @@ countdown() {
         ((REMAINING -= STEP))
     done
 
-    log_debug "0"
+    log_notice "0"
 }

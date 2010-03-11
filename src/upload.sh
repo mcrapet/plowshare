@@ -32,8 +32,9 @@ VERSION="0.9.1"
 MODULES="rapidshare megaupload 2shared zshare"
 OPTIONS="
 HELP,h,help,,Show help info
-GETVERSION,v,version,,Return plowup version
-QUIET,q,quiet,,Don't print debug messages
+GETVERSION,,version,,Return plowup version
+VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg
+QUIET,q,quiet,,Alias for -v0
 "
 
 
@@ -72,14 +73,14 @@ done
 # Print usage
 #
 usage() {
-    log_debug "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
-    log_debug
-    log_debug "  Upload a file (or files) to a file-sharing site."
-    log_debug
-    log_debug "  Available modules: $MODULES"
-    log_debug
-    log_debug "Global options:"
-    log_debug
+    echo "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
+    echo
+    echo "  Upload a file (or files) to a file-sharing site."
+    echo
+    echo "  Available modules: $MODULES"
+    echo
+    echo "Global options:"
+    echo
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "UPLOAD"
 }
@@ -88,6 +89,15 @@ usage() {
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
+
+# Verify verbose level
+if [ -n "$QUIET" ]; then
+    VERBOSE=0
+elif [ -n "$VERBOSE" ]; then
+    [ "$VERBOSE" -gt "3" ] && VERBOSE=3
+else
+    VERBOSE=2
+fi
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }

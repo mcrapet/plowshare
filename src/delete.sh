@@ -29,8 +29,9 @@ VERSION="0.9.1"
 MODULES="megaupload zshare"
 OPTIONS="
 HELP,h,help,,Show help info
-GETVERSION,v,version,,Return plowdel version
-QUIET,q,quiet,,Don't print debug messages
+GETVERSION,,version,,Return plowdel version
+VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg
+QUIET,q,quiet,,Alias for -v0
 "
 
 
@@ -69,14 +70,14 @@ done
 # Print usage
 #
 usage() {
-    log_debug "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
-    log_debug
-    log_debug "  Delete a file-link from a file sharing site."
-    log_debug
-    log_debug "  Available modules: $MODULES"
-    log_debug
-    log_debug "Global options:"
-    log_debug
+    echo "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
+    echo
+    echo "  Delete a file-link from a file sharing site."
+    echo
+    echo "  Available modules: $MODULES"
+    echo
+    echo "Global options:"
+    echo
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "DELETE"
 }
@@ -86,6 +87,15 @@ usage() {
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DELETE)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
+
+# Verify verbose level
+if [ -n "$QUIET" ]; then
+    VERBOSE=0
+elif [ -n "$VERBOSE" ]; then
+    [ "$VERBOSE" -gt "3" ] && VERBOSE=3
+else
+    VERBOSE=2
+fi
 
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
@@ -97,7 +107,7 @@ for URL in "$@"; do
     MODULE=$(get_module "$URL" "$MODULES")
 
     if test -z "$MODULE"; then
-        log_debug "Skip: no module for URL ($URL)"
+        log_error "Skip: no module for URL ($URL)"
         RETVAL=4
         continue
     fi

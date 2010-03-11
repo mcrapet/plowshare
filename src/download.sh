@@ -31,8 +31,9 @@ VERSION="0.9.1"
 MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr loadfiles humyo filefactory"
 OPTIONS="
 HELP,h,help,,Show help info
-GETVERSION,v,version,,Return plowdown version
-QUIET,q,quiet,,Don't print debug messages
+GETVERSION,,version,,Return plowdown version
+VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg
+QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
@@ -95,21 +96,21 @@ process_item() {
             echo "$TYPE|$URL"
         done
     else
-        log_debug "cannot stat '$ITEM': No such file or directory"
+        log_error "cannot stat '$ITEM': No such file or directory"
     fi
 }
 
 # Print usage
 #
 usage() {
-    log_debug "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
-    log_debug
-    log_debug "  Download files from file sharing servers."
-    log_debug
-    log_debug "  Available modules: $MODULES"
-    log_debug
-    log_debug "Global options:"
-    log_debug
+    echo "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
+    echo
+    echo "  Download files from file sharing servers."
+    echo
+    echo "  Available modules: $MODULES"
+    echo
+    echo "Global options:"
+    echo
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "DOWNLOAD"
 }
@@ -119,7 +120,7 @@ mark_queue() {
     local TYPE=$1; local MARK_DOWN=$2; FILE=$3; local URL=$4; local TEXT=$5
     test "$TYPE" = "file" -a "$MARK_DOWN" || return 0
     sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#$TEXT \1|" "$FILE" &&
-        log_debug "link marked in file: $FILE (#$TEXT)" ||
+        log_notice "link marked in file: $FILE (#$TEXT)" ||
         log_error "failed marking link in file: $FILE (#$TEXT)"
 }
 
@@ -181,11 +182,11 @@ download() {
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
-            log_debug "Link active: $URL"
+            log_notice "Link active: $URL"
             echo "$URL"
             break
         elif test $DRETVAL -eq 254; then
-            log_debug "Warning: file link is not alive"
+            log_notice "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
             # Don't set RETVAL, a dead link is not considerer an error
             break
@@ -199,12 +200,12 @@ download() {
             break
         fi
 
-        log_debug "File URL: $FILE_URL"
+        log_notice "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
             FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
         fi
-        log_debug "Filename: $FILENAME"
+        log_notice "Filename: $FILENAME"
 
         local DRETVAL=0
         if test "$DOWNLOAD_APP"; then
@@ -213,16 +214,16 @@ download() {
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
                 replace "%cookies" "$COOKIES")
-            log_debug "Running command: $COMMAND"
+            log_notice "Running command: $COMMAND"
             eval "$COMMAND" || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
-            log_debug "Command exited with retcode: $DRETVAL"
+            log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
         else
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
                 TEMP_FILENAME="$TEMP_DIR/$FILENAME"
-                log_debug "Downloading file to temporal directory: $TEMP_FILENAME"
+                log_notice "Downloading file to temporal directory: $TEMP_FILENAME"
             else
                 TEMP_FILENAME="$FILENAME"
             fi
@@ -235,13 +236,18 @@ download() {
             test "$NOOVERWRITE" -a -f "$TEMP_FILENAME" && \
                 TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
 
-            CODE=$(${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
-                              -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
+            # Force (temporarily) debug verbose level to dispay curl download progress
+            local TEMP_VERBOSE=3
+            [ "$VERBOSE" -eq "0" ] && TEMP_VERBOSE=0 || true
+            CODE=$(VERBOSE=$TEMP_VERBOSE ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
+                -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
+
             test "$COOKIES" && rm $COOKIES
+
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
-                log_debug "curl failed with retcode $DRETVAL"
-                log_debug "retry after a safety wait ($WAIT seconds)"
+                log_error "curl failed with retcode $DRETVAL"
+                log_error "retry after a safety wait ($WAIT seconds)"
                 sleep $WAIT
                 continue
             elif [ $DRETVAL -ne 0 ]; then
@@ -254,12 +260,12 @@ download() {
                 continue
             fi
             if test "$OUTPUT_DIR" != "$TEMP_DIR"; then
-                log_debug "Moving file to output directory: ${OUTPUT_DIR:-.}"
+                log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
                 mv "$TEMP_FILENAME" "${OUTPUT_DIR:-.}" || true
             fi
 
             # Echo downloaded file path
-            test "$OUTPUT_DIR" && log_debug -n "$OUTPUT_DIR"
+            test "$OUTPUT_DIR" && echo -n "$OUTPUT_DIR"
             echo $(basename "$TEMP_FILENAME")
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
@@ -274,9 +280,17 @@ set -o pipefail
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 
+# Verify verbose level
+if [ -n "$QUIET" ]; then
+    VERBOSE=0
+elif [ -n "$VERBOSE" ]; then
+    [ "$VERBOSE" -gt "3" ] && VERBOSE=3
+else
+    VERBOSE=2
+fi
+
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-
 test $# -ge 1 || { usage; exit 1; }
 
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
@@ -287,7 +301,7 @@ for ITEM in "$@"; do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
         if test -z "$MODULE"; then
-            log_debug "no module for URL: $URL"
+            log_error "no module for URL: $URL"
             RETVAL=$DERROR
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
             continue
