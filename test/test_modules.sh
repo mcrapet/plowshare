@@ -398,20 +398,6 @@ test_dl_free_fr_check_active_link() {
     assert_equal "$DL_FREE_FR_URL" "$(download -c $DL_FREE_FR_URL)" || return 1
 }
 
-# Loadfiles.in
-
-LOADFILES_URL="http://loadfiles.in/95thdkxupzyb/MARKOV2.pdf"
-
-test_loadfiles_download() {
-    FILENAME="MARKOV2.pdf"
-    assert_equal "$FILENAME" "$(download $LOADFILES_URL)" || return 1
-    rm -f "$FILENAME"
-}
-
-test_loadfiles_check_active_link() {
-    assert_equal "$LOADFILES_URL" "$(download -c $LOADFILES_URL)" || return 1
-}
-
 # Humyo.com
 
 HUMYO_URL="http://www.humyo.com/F/6682655-201576855"

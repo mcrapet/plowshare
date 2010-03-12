@@ -3,6 +3,7 @@ plowshare (0.9.1svn) unstable; urgency=medium
   * [rapidshare] Add Premium-Zone upload
   * [zshare] Add delete function
   * [freakshare] Delete full module (now uses reCaptcha)
+  * [loadfiles.in] Delete full module (now uses reCaptcha)
   * [download] Add --temp-directory option (saves partial download here before mv)
   * [download] Add -x/--no-overwrite option (do not overwrite existing files)
   * [filefactory] New module (free download)

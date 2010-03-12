@@ -57,7 +57,6 @@ share/plowshare/modules/filefactory.sh
 share/plowshare/modules/hotfile.sh
 share/plowshare/modules/humyo.sh
 share/plowshare/modules/letitbit.sh
-share/plowshare/modules/loadfiles.sh
 share/plowshare/modules/mediafire.sh
 share/plowshare/modules/megaupload.sh
 share/plowshare/modules/netload_in.sh
@@ -87,7 +86,7 @@ test_setup_script() {
 
     assert_return 0 "PREFIX=$PREFIX DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
     INSTALLED=$(find "$TEMPDIR$PREFIX" | sed "s#^$TEMPDIR$PREFIX/\?##" | sed '/^$/d' | sort)
-    diff -i <(echo "$EXPECTED_INSTALLED") <(echo "$INSTALLED") 
+    diff -i <(echo "$EXPECTED_INSTALLED") <(echo "$INSTALLED")
     assert_equal "$EXPECTED_INSTALLED" \
         "$INSTALLED" || return 1
     assert_return 0 "PREFIX=$PREFIX DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall" || return 1
