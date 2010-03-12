@@ -20,7 +20,7 @@
 #   - INTERFACE       Network interface (used by curl)
 #   - PS_TIMEOUT      Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
-#   - LIBDIR          Absolute patch to plowshare's libdir
+#   - LIBDIR          Absolute path to plowshare's libdir
 
 
 # Logs are sent to standard error.
@@ -41,6 +41,7 @@ log_error() {
     [ "$VERBOSE" -ge "1" ] && echo "err: $@" >&2
     return 0
 }
+
 
 # Wrapper for curl: debug and infinite loop control
 #
@@ -68,8 +69,14 @@ curl() {
 #    done
 }
 
+
 replace() {
     sed -e "s#$1#$2#g"
+}
+
+# Return uppercase string
+uppercase() {
+    tr '[a-z]' '[A-Z]'
 }
 
 # Get first line that matches a regular expression and extract string from it.
@@ -97,7 +104,6 @@ grep_http_header_location() {
 grep_http_header_content_disposition() {
     parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
 }
-
 
 # Extract a specific form from a HTML content.
 # We assume here that start marker <form> and end marker </form> are one separate lines.
@@ -207,6 +213,17 @@ matchi() {
     grep -iq "$1" <<< "$2"
 }
 
+# Create a tempfile and return path
+#
+# $1: Suffix
+#
+create_tempfile() {
+    SUFFIX=$1
+    FILE="${TMPDIR:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
+    : > "$FILE"
+    echo "$FILE"
+}
+
 # Check existance of executable in path
 #
 # $1: Executable to check
@@ -240,21 +257,11 @@ post_login() {
     fi
 }
 
-# Create a tempfile and return path
+# OCR of an image.
 #
-# $1: Suffix
-#
-create_tempfile() {
-    SUFFIX=$1
-    FILE="${TMPDIR:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
-    : > "$FILE"
-    echo "$FILE"
-}
-
-# OCR of an image. Write OCRed text to standard input
-#
-# Standard input: image
 # $1: optional varfile
+# stdin: image (binary)
+# stdout: result OCRed text
 #
 ocr() {
     local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
@@ -278,6 +285,40 @@ ocr() {
     cat $TEXT
     rm -f $TIFF $TEXT
 }
+
+# Output image in ascii chars (aview uses libaa)
+#
+aview_ascii_image() {
+    convert $1 -negate -depth 8 pnm:- |
+      aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q"|
+        sed  -e '1d;/\x0C/,/\x0C/d' |
+          grep -v "^[[:space:]]*$"
+}
+
+caca_ascii_image() {
+    img2txt -W 60 -H 14 $1
+}
+
+# Display image (in ascii) and forward it (like tee command)
+#
+# stdin: image (binary)
+# stdout: same image
+#
+show_image_and_tee() {
+    [ "$VERBOSE" -lt 2 ] && { cat; return; }
+    local TEMPIMG=$(create_tempfile)
+    cat > $TEMPIMG
+    if which aview &>/dev/null; then
+        aview_ascii_image $TEMPIMG >&2
+    elif which img2txt &>/dev/null; then
+        caca_ascii_image $TEMPIMG >&2
+    else
+        log_notice "Install aview or libcaca to display captcha image"
+    fi
+    cat $TEMPIMG
+    rm -f $TEMPIMG
+}
+
 
 # Show help info for options
 #
@@ -314,11 +355,6 @@ get_modules_options() {
             if test "$OPTION"; then echo "!$OPTION"; fi
         done
     done
-}
-
-# Return uppercase string
-uppercase() {
-    tr '[a-z]' '[A-Z]'
 }
 
 continue_downloads() {
@@ -424,35 +460,6 @@ process_options() {
     echo "set -- $(quote "$@")"
 }
 
-# Output image in ascii chars (aview uses libaa)
-#
-aview_ascii_image() {
-    convert $1 -negate -depth 8 pnm:- |
-      aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q"|
-        sed  -e '1d;/\x0C/,/\x0C/d' |
-          grep -v "^[[:space:]]*$"
-}
-
-caca_ascii_image() {
-    img2txt -W 60 -H 14 $1
-}
-
-# $1: image
-show_image_and_tee() {
-    [ "$VERBOSE" -lt 2 ] && { cat; return; }
-    local TEMPIMG=$(create_tempfile)
-    cat > $TEMPIMG
-    if which aview &>/dev/null; then
-        aview_ascii_image $TEMPIMG >&2
-    elif which img2txt &>/dev/null; then
-        caca_ascii_image $TEMPIMG >&2
-    else
-        log_notice "Install aview or libcaca to display captcha image"
-    fi
-    cat $TEMPIMG
-    rm -f $TEMPIMG
-}
-
 # Get module name from URL link
 #
 # $1: URL
@@ -465,6 +472,9 @@ get_module() {
     done
 }
 
+
+# Related to --timeout plowdown command line option)
+#
 timeout_init() {
     PS_TIMEOUT=$1
 }
@@ -480,6 +490,9 @@ timeout_update() {
     PS_TIMEOUT=$(expr $PS_TIMEOUT - $WAIT)
 }
 
+
+# Related to --max-retries plowdown command line option
+#
 retry_limit_init() {
     PS_RETRY_LIMIT=$1
 }
@@ -490,6 +503,7 @@ retry_limit_not_reached() {
     (( PS_RETRY_LIMIT-- ))
     test "$PS_RETRY_LIMIT" -ge 0
 }
+
 
 # Countdown from VALUE (in UNIT_STR units) in STEP values
 #
