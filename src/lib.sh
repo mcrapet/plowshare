@@ -473,7 +473,7 @@ get_module() {
 }
 
 
-# Related to --timeout plowdown command line option)
+# Related to --timeout plowdown command line option
 #
 timeout_init() {
     PS_TIMEOUT=$1
