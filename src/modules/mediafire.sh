@@ -55,7 +55,9 @@ get_ofuscated_link() {
                 awk '{print $2}' | cut -d"(" -f1 | xargs)
     test "$FUNCTIONS" ||
         { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
-    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | grep 'Eo[[:space:]]*();' -A6 | tail -n+2)
+    #echo "$PAGE" > page.html
+    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | awk '/Eo[[:space:]]*\(\);/,/^var jc=Array\(\);/' | 
+        tail -n+2 | head -n"-2" | tr -d '\n')
     test "$JSCODE" ||
         { log_error "get_ofuscated_links: error getting JS code"; return 1; }
     JS_CALL=$({
@@ -64,8 +66,11 @@ get_ofuscated_link() {
                   print('$FUNCTION' + ',' + qk + ',' + pk + ',' + r); }"
         done
         echo $JSCODE
-    } | js)
+    } | js) ||
+        { log_error "get_ofuscated_links: error running main JS code"; return 1; }
     IFS="," read FUNCTION QK PK R < <(echo "$JS_CALL" | tr -d "'")
+    test "$FUNCTION" -a "$QK" -a "$PK" -a "$R" || 
+        { log_error "get_ofuscated_links: error getting query variables"; return 1; }
     log_debug "function: $FUNCTION"
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     log_debug "Javascript URL: $JS_URL"
