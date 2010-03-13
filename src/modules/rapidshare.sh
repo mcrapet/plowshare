@@ -57,6 +57,9 @@ rapidshare_download() {
             { log_debug "file removed by the uploader"; return 254; }
         echo "$PAGE" | grep -q 'removed from the server, because the file has not been accessed' &&
             { log_debug "file removed"; return 254; }
+        # This file is neither allocated to a Premium Account, or a Collector's Account, and can therefore only be downloaded 10 times.
+        echo "$PAGE" | grep -q 'This limit is reached.' &&
+            { log_debug "file blocked"; return 254; }
 
         WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
             return 1
