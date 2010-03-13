@@ -28,7 +28,7 @@
 set -e
 
 VERSION="0.9.1"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo filefactory"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo filefactory data_hu"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdown version

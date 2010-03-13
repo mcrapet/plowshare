@@ -50,6 +50,7 @@ share/plowshare/modules
 share/plowshare/modules/2shared.sh
 share/plowshare/modules/4shared.sh
 share/plowshare/modules/badongo.sh
+share/plowshare/modules/data_hu.sh
 share/plowshare/modules/depositfiles.sh
 share/plowshare/modules/divshare.sh
 share/plowshare/modules/dl_free_fr.sh

@@ -437,5 +437,23 @@ test_filefactory_check_active_link() {
     assert_equal "$FILEFACTORY_URL" "$(download -c $FILEFACTORY_URL)" || return 1
 }
 
+# Data.hu
+
+DATA_HU_URL="http://data.hu/get/941267/Megerte_Ezt_akartad.pdf.html"
+
+test_data_hu_download() {
+    FILENAME="Megerte_Ezt_akartad.pdf"
+    assert_equal "$FILENAME" "$(download $DATA_HU_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_data_hu_check_active_link() {
+    assert_equal "$DATA_HU_URL" "$(download -c $DATA_HU_URL)" || return 1
+}
+
+test_data_hu_check_wrong_link() {
+    assert_equal "" "$(download -c ${DATA_HU_URL/94/wronglink})" || return 1
+}
+
 
 run_tests "$@"
