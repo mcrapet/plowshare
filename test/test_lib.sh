@@ -40,11 +40,6 @@ var3 = 33
     assert_return 1 "echo '$TEXT' | parse '^var5' 'var5 = \([[:alpha:]]*\)'"
 }
 
-test_debug() {
-    assert_equal "" $(log_debug "test" 2>/dev/null)
-    assert_equal "test" $(log_debug "test" 2>&1)
-}
-
 test_match() {
     assert_return 0 'match "^abc" "abcdef"'
     assert_return 0 'match "a[0-9]3" "a13"'
