@@ -26,14 +26,13 @@ MODULE_HUMYO_DOWNLOAD_CONTINUE=no
 # $1: A humyo URL
 #
 humyo_download() {
-    set -e
     eval "$(process_options humyo "$MODULE_HUMYO_DOWNLOAD_OPTIONS" "$@")"
 
     BASEURL="http://www.humyo.com"
     URL=$1
 
     # test for direct download links
-    FILENAME=$(curl -I "$1" | grep_http_header_content_disposition)
+    FILENAME=$(curl -I "$1" | grep_http_header_content_disposition) || true
     test "$FILENAME" && {
         test "$CHECK_LINK" && return 255
 
