@@ -1,0 +1,161 @@
+.TH "plowup" "1" "March 15, 2010" "GPL" "Plowshare 0.9.2"
+
+." ****************************************************************************
+." * Name                                                                     *
+." ****************************************************************************
+
+.SH "NAME"
+plowup \- Command-line uploader for file-sharing websites
+
+." ****************************************************************************
+." * Synopsis                                                                 *
+." ****************************************************************************
+
+.SH "SYNOPSIS"
+.B plowup
+[OPTION]...
+[MODULE_OPTION]...
+FILE...
+MODULE[:DESTNAME]
+
+." ****************************************************************************
+." * Description                                                              *
+." ****************************************************************************
+
+.SH "DESCRIPTION"
+.B plowup
+is a set of bash scripts designed for automatic uploads on file-sharing website.
+It acts like a web browser, retreiving pages and filling html forms (including captchas).
+
+.TP 4
+Currently supported hosting sites are:
+2shared.com
+megaupload.com
+rapidshare.com
+zshare.net
+
+." ****************************************************************************
+." * Options                                                                  *
+." ****************************************************************************
+
+.SH OPTIONS
+
+.SS Logging options
+.TP
+.BI -v, " " --verbose "=LEVEL"
+Set output verbose level:
+.RS 
+\fB0\fR  none,
+.RE
+.RS 
+\fB1\fR  errors,
+.RE
+.RS
+\fB2\fR  notice (default behavior),
+.RE
+.RS
+\fB3\fR  debug.
+.RE
+.TP
+.B -q, --quiet
+Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Generic Program Information
+.TP
+.B -h, --help
+Display this help and exit.
+.TP
+.B "   " --version
+Output version information and exit.
+
+." ****************************************************************************
+." * Modules options                                                          *
+." ****************************************************************************
+
+.SH "MODULE OPTIONS"
+
+.SS Rapidshare
+.TP
+.BI -a, " " --auth "=USER:PASSWORD"
+Use Premium-Zone account.
+.TP
+.BI -b, " " --auth-freezone "=USER:PASSWORD"
+Use Free-Zone account.
+.SS Megaupload
+.TP
+.BI -a, " " --auth "=USER:PASSWORD"
+Use Free-membership or Premium account.
+.TP
+.BI -p, " " --link-password "=PASSWORD"
+Protect a link with a password.
+.TP
+.BI -d, " " --description "=DESCRIPTION"
+Set file description.
+.TP
+.B -m, " " --multifetch 
+Use URL multifetch upload.
+.TP
+.B "   " --clear-log
+Clear upload log after upload process.
+.TP
+.BI "   " " " --email-from "=EMAIL"
+<From> field for notification email
+.TP
+.BI "   " " " --email-to "=EMAIL"
+<To> field for notification email
+.TP
+.BI "   " " " --traffic-url "=URL"
+Set the traffic URL.
+.TP
+.BI "   " " " --multiemail "=EMAIL1[;EMAIL2;...]"
+List of emails to notify upload.
+.SS Zshare
+.TP
+.BI -d, " " --description "=DESCRIPTION"
+Set file description.
+
+." ****************************************************************************
+." * Examples                                                                 *
+." ****************************************************************************
+
+.SH EXAMPLES
+
+.SS 1) Upload a single file anonymously
+.nf
+$ plowup /path/foobar zshare
+.fi
+.SS 2) Upload a single file with authentification
+.nf
+# Add a text description
+$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
+.sp 1
+# Change destination filename
+$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload:anothername.txt
+.fi
+
+." ****************************************************************************
+." * Authors / See Also / Copyright                                           *
+." ****************************************************************************
+
+.SH AUTHORS
+Written by Tokland and Matthieu Crapet.
+
+.SH "SEE ALSO"
+plowdown(1), plowdel(1)
+
+.SH COPYRIGHT
+Copyright (c) 2008\-2010 Plowshare Project.
+
+This program is free software; you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published 
+by the Free Software Foundation; either version 2 of the License, 
+or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License 
+along with this program; if not, write to the Free Software 
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, 
+MA 02111-1307 USA.

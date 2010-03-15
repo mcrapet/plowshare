@@ -1,0 +1,118 @@
+.TH "plowdel" "1" "March 15, 2010" "GPL" "Plowshare 0.9.2"
+
+." ****************************************************************************
+." * Name                                                                     *
+." ****************************************************************************
+
+.SH "NAME"
+plowdel \- Command-line link-deleter for file-sharing websites
+
+." ****************************************************************************
+." * Synopsis                                                                 *
+." ****************************************************************************
+
+.SH "SYNOPSIS"
+.B plowdel
+[OPTION]...
+[MODULE_OPTION]...
+URL...
+
+." ****************************************************************************
+." * Description                                                              *
+." ****************************************************************************
+
+.SH "DESCRIPTION"
+.B plowdel
+is a set of bash scripts designed for deleting files on file-sharing website.
+It acts like a web browser, retreiving pages and filling html forms.
+
+.TP 4
+Currently supported hosting sites are:
+megaupload.com
+zshare.net
+
+." ****************************************************************************
+." * Options                                                                  *
+." ****************************************************************************
+
+.SH OPTIONS
+
+.SS Logging options
+.TP
+.BI -v, " " --verbose "=LEVEL"
+Set output verbose level:
+.RS 
+\fB0\fR  none,
+.RE
+.RS 
+\fB1\fR  errors,
+.RE
+.RS
+\fB2\fR  notice (default behavior),
+.RE
+.RS
+\fB3\fR  debug.
+.RE
+.TP
+.B -q, --quiet
+Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Generic Program Information
+.TP
+.B -h, --help
+Display this help and exit.
+.TP
+.B "   " --version
+Output version information and exit.
+
+." ****************************************************************************
+." * Modules options                                                          *
+." ****************************************************************************
+
+.SH "MODULE OPTIONS"
+
+.SS Megaupload
+.TP
+.BI -a, " " --auth "=USER:PASSWORD"
+Use Free-membership or Premium account. Anonymous users cannot delete links.
+
+." ****************************************************************************
+." * Examples                                                                 *
+." ****************************************************************************
+
+.SH EXAMPLES
+
+.SS 1) Delete one or several files
+.nf
+$ plowdown http://www.zshare.net/delete/1234567890ABCD/
+.sp 1
+# Deletes are successive (not parrallel)
+$ plowdown http://www.zshare.net/delete/1234567890ABCD/ http://www.megaupload.com/?d=ghijklmn
+.fi
+
+." ****************************************************************************
+." * Authors / See Also / Copyright                                           *
+." ****************************************************************************
+
+.SH AUTHORS
+Written by Tokland and Matthieu Crapet.
+
+.SH "SEE ALSO"
+plowdown(1), plowup(1)
+
+.SH COPYRIGHT
+Copyright (c) 2008\-2010 Plowshare Project.
+
+This program is free software; you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published 
+by the Free Software Foundation; either version 2 of the License, 
+or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License 
+along with this program; if not, write to the Free Software 
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, 
+MA 02111-1307 USA.

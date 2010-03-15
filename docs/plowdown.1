@@ -1,0 +1,224 @@
+.TH "plowdown" "1" "March 15, 2010" "GPL" "Plowshare 0.9.2"
+
+." ****************************************************************************
+." * Name                                                                     *
+." ****************************************************************************
+
+.SH "NAME"
+plowdown \- Command-line downloader for file-sharing websites
+
+." ****************************************************************************
+." * Synopsis                                                                 *
+." ****************************************************************************
+
+.SH "SYNOPSIS"
+.B plowdown
+[OPTION]...
+[MODULE_OPTION]...
+URL|FILE
+[URL|FILE]...
+
+." ****************************************************************************
+." * Description                                                              *
+." ****************************************************************************
+
+.SH "DESCRIPTION"
+.B plowdown
+is a set of bash scripts designed for automatic downloads on file-sharing website.
+It acts like a web browser, retreiving pages and filling html forms (including captchas).
+
+.TP 4
+Currently supported hosting sites are:
+2shared.com
+4shared.com
+badongo.com
+data.hu
+depositfiles.com
+divshare.com
+dl.free.fr
+filefactory.com
+humyo.com
+letitbit.com
+mediafire.com
+megaupload.com
+netload.in
+rapidshare.com
+sendspace.com
+storage.to
+uploaded.to
+uploading.com
+usershare.net
+x7.to
+zshare.net
+
+." ****************************************************************************
+." * Options                                                                  *
+." ****************************************************************************
+
+.SH OPTIONS
+
+.SS Common options
+.TP
+.BI -c, " " --check-link "=URL"
+Check if a link exists and exit.
+.TP
+.BI -m, " " --mark-downloaded "=FILE"
+Mark downloaded links in (regular) FILE arguments.
+.TP
+.BI -o, " " --output-directory "=DIRECTORY"
+Directory where files will be saved. Default is current directory.
+.TP
+.B -x, --no-overwrite
+Do not overwrite existing files. Existing file will be preserved and filename will be
+prefixed with .1, .2, and so on.
+.SS Logging options
+.TP
+.BI -v, " " --verbose "=LEVEL"
+Set output verbose level:
+.RS 
+\fB0\fR  none,
+.RE
+.RS 
+\fB1\fR  errors,
+.RE
+.RS
+\fB2\fR  notice (default behavior),
+.RE
+.RS
+\fB3\fR  debug.
+.RE
+.TP
+.B -q, --quiet
+Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Tuning settings
+.TP
+.BI -i, " " --interface "=IFACE"
+If your machine has several network interfaces, force using \fIIFACE\fR interface.
+.TP
+.BI -r, " " --limit-rate "=SPEED"
+Limit download speed in bytes per seconds. Suffixes are:
+.RS 
+\fBk\fR  for kilobytes (Kb),
+.RE
+.RS
+\fBm\fR  for megabytes (Mb),
+.RE
+.RS
+\fBg\fR  for gygabytes (Gb).
+.RE
+.TP
+.BI -t, " " --timeout "=SECS"
+Cancel download after \fISECS\fR seconds of waits.
+.TP
+.BI "   " " " --max-retries "=N"
+Set maximum retries for loops. Option mostly dedicated to hosting sites
+with captchas.
+.TP
+.BI "   " " " --temp-directory "=DIRECTORY"
+Directory where files are temporarily downloaded.
+.SS Miscellaneous options
+.TP
+.B "   " --get-module
+Get module(s) for URL(s) and quit. Useful for wrappers
+.TP
+.BI "   " " " --run-download "=COMMAND"
+Run external HTTP downloader program (like wget).
+Interpolations: %filename, %cookies, %url
+.SS Generic Program Information
+.TP
+.B -h, --help
+Display this help and exit.
+.TP
+.B "   " --version
+Output version information and exit.
+
+." ****************************************************************************
+." * Modules options                                                          *
+." ****************************************************************************
+
+.SH "MODULE OPTIONS"
+
+.SS Rapidshare
+.TP
+.BI -a, " " --auth "=USER:PASSWORD"
+Use Premium-Zone account.
+.SS Megaupload
+.TP
+.BI -a, " " --auth "=USER:PASSWORD"
+Use Free-membership or Premium account.
+.TP
+.BI -p, " " --link-password "=PASSWORD"
+Used in password-protected files.
+
+." ****************************************************************************
+." * Examples                                                                 *
+." ****************************************************************************
+
+.SH EXAMPLES
+
+.SS 1) Download one or several files
+.nf
+$ plowdown http://www.rapidshare.com/files/12345678/foo.rar
+.sp 1
+# Downloads are successive (not parrallel)
+$ plowdown http://x7.to/abcdef http://www.megaupload.com/?d=ghijklmn
+.sp 1
+# Download a password-protected file from megaupload
+$ plowdown -p somepassword http://www.megaupload.com/?d=opqrstuv
+.fi
+.SS 2) Download a list of links (one link per line) commenting out (with #) those successfully downloaded 
+.nf
+$ plowdown -m file_with_links.txt
+.fi
+.SS 3) Download with restrictions
+.fi
+$ plowdown -r 50K -i eth1 http://depositfiles.com/es/files/abcdefghi
+.nf
+.SS 4) Download with a proxy (3128 is the default port)
+.fi
+$ export http_proxy=http://192.168.0.20:80
+.sp 0
+$ plowdown http://www.rapidshare.com/files/12345678/foo.rar
+.nf
+.SS 5) Filter alive links in a text file 
+.nf
+$ plowdown -c file_with_links.txt > file_with_active_links.txt
+.fi
+.SS 6) Use an alternatice web retriever for the final file download
+.nf
+$ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"' http://x7.to/abcdef 
+.fi
+.SS 7) Safe download. Each URL will be limited in the number of tries (mainly for captchas) and wait delays. 
+.nf
+$ alias plowdown='plowdown --no-overwrite --max-retries=20 --timeout=3600'
+.sp 0
+$ plowdown -m file_with_links.txt
+.fi
+
+." ****************************************************************************
+." * Authors / See Also / Copyright                                           *
+." ****************************************************************************
+
+.SH AUTHORS
+Written by Tokland and Matthieu Crapet.
+
+.SH "SEE ALSO"
+plowup(1), plowdel(1)
+
+.SH COPYRIGHT
+Copyright (c) 2008\-2010 Plowshare Project.
+
+This program is free software; you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published 
+by the Free Software Foundation; either version 2 of the License, 
+or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License 
+along with this program; if not, write to the Free Software 
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, 
+MA 02111-1307 USA.
