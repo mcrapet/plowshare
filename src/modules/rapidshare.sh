@@ -22,6 +22,7 @@ AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_PREMIUMZONE,a:,auth:,USER:PASSWORD,Use Premium-Zone account
 AUTH_FREEZONE,b:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"
+MODULE_RAPIDSHARE_DELETE_OPTIONS=
 MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 
 # Output a rapidshare file download URL (anonymous and premium)
@@ -149,7 +150,8 @@ rapidshare_upload_anonymous() {
     UPLOAD_URL="http://www.rapidshare.com"
     log_debug "downloading upload page: $UPLOAD_URL"
 
-    ACTION=$(curl "$UPLOAD_URL" | parse 'form name="ul"' 'action="\([^"]*\)') || return 1
+    local DATA=$(curl "$UPLOAD_URL")
+    ACTION=$(grep_form_by_name "$DATA" 'ul' | parse_form_action) || return 1
     log_debug "upload to: $ACTION"
 
     INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION") || return 1
@@ -259,4 +261,24 @@ rapidshare_upload_premiumzone() {
 
     URL="http://rapidshare.com/files/$FILEID/$FILENAME.html"
     echo "$URL"
+}
+
+# Delete a file from rapidshare
+#
+# rapidshare_delete [MODULE_RAPIDSHARE_DELETE_OPTIONS] URL
+#
+rapidshare_delete() {
+    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
+    URL=$1
+
+    KILL_URL=$(curl "$URL" | parse 'value="Delete this file now"' "href='\([^\"']*\)" 2>/dev/null) ||
+        { log_error "bad kill link"; return 1; }
+
+    log_debug "kill_url=$KILL_URL"
+
+    local RESULT=$(curl "$KILL_URL")
+
+    if ! match 'The following file has been deleted' "$RESULT"; then
+        log_debug "unexpected result"
+    fi
 }

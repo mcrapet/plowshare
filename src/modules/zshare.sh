@@ -105,7 +105,7 @@ zshare_upload() {
 # zshare_delete [MODULE_ZSHARE_DELETE_OPTIONS] URL
 #
 zshare_delete() {
-    eval "$(process_options megaupload "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
+    eval "$(process_options zshare "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
     URL=$1
 
     DELETE_PAGE=$(curl -L "$URL")
