@@ -116,11 +116,11 @@ hotfile_download() {
             #$(curl "${server}image?c=${challenge}" -o "recaptcha-${challenge:0:16}.jpg")
             #echo "$VARS" "$WAIT_HTML2" >/tmp/a
 
-            log_debug "Captcha page, give up!"
+            log_error "Captcha page, give up!"
             break
 
         else
-            log_debug "Unknown state, give up!"
+            log_error "Unknown state, give up!"
             break
         fi
     done
