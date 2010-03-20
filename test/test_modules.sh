@@ -33,11 +33,11 @@ download() {
 }
 
 upload() {
-    $SRCDIR/upload.sh "$@" 2>/dev/null
+    $SRCDIR/upload.sh -q "$@"
 }
 
 delete() {
-    $SRCDIR/delete.sh "$@" 2>/dev/null
+    $SRCDIR/delete.sh -q "$@"
 }
 
 
