@@ -12,14 +12,10 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-MODULE_LETITBIT_DOWNLOAD_OPTIONS="
-CHECK_LINK,c,check-link,,Check if a link exists and return
-"
-MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit.net/"
+MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit\.net/"
+MODULE_LETITBIT_DOWNLOAD_OPTIONS=""
+MODULE_LETITBIT_UPLOAD_OPTIONS=
 MODULE_LETITBIT_DOWNLOAD_CONTINUE=no
-
-BASEURL="http://letitbit.net"
-WAITTIME=60
 
 # letitbit_download [DOWNLOAD_OPTIONS] URL
 # I have not pay account and only free download implemented. Feel free contact
@@ -29,7 +25,10 @@ WAITTIME=60
 letitbit_download() {
     set -e
     eval "$(process_options letitbit "$MODULE_LETITBIT_DOWNLOAD_OPTIONS" "$@")"
+
     URL=$1
+    BASEURL="http://letitbit.net"
+    WAITTIME=60
 
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||

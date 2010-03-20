@@ -21,8 +21,6 @@ MODULE_UPLOADING_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADING_UPLOAD_OPTIONS=
 MODULE_UPLOADING_DOWNLOAD_CONTINUE=no
 
-BASE_URL="http://uploading.com"
-
 # Output a uploading file download URL (anonymous, NOT PREMIUM)
 #
 # uploading_download UPLOADING_URL
@@ -32,6 +30,7 @@ uploading_download() {
     eval "$(process_options uploading "$MODULE_UPLOADING_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
+    BASE_URL="http://uploading.com"
     COOKIES=$(create_tempfile)
 
     while retry_limit_not_reached || return 3; do
