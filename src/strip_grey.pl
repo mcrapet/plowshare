@@ -27,7 +27,6 @@ use Image::Magick;
 # Range [0..65535]
 use constant GREY_LEVEL => 15500;
 
-
 sub is_pixel_white {
 	my($pixel) = shift;
 	my($red, $green, $blue, $opacity) = split ",", $pixel;
