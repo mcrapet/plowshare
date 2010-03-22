@@ -46,6 +46,7 @@ share/plowshare/examples/plowdown_add_remote_loop.sh
 share/plowshare/examples/plowdown_loop.sh
 share/plowshare/examples/plowdown_parallel.sh
 share/plowshare/lib.sh
+share/plowshare/list.sh
 share/plowshare/modules
 share/plowshare/modules/2shared.sh
 share/plowshare/modules/4shared.sh

@@ -43,7 +43,7 @@ test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
     $RM -r $DATADIR $DOCDIR
-    $RM $BINDIR/{plowdown,plowup,plowdel}
+    $RM $BINDIR/{plowdown,plowup,plowdel,plowlist}
 
 elif [ "$1" = "install" ]; then
     # Documentation
@@ -57,10 +57,11 @@ elif [ "$1" = "install" ]; then
     # Common library
     mkdir -p $DATADIR
     $CP -p src/download.sh \
-        src/upload.sh   \
-        src/delete.sh   \
-        src/lib.sh      \
-        src/strip_grey.pl \
+        src/upload.sh      \
+        src/delete.sh      \
+        src/list.sh        \
+        src/lib.sh         \
+        src/strip_grey.pl  \
         src/strip_single_color.pl $DATADIR
 
     # Modules
@@ -76,6 +77,7 @@ elif [ "$1" = "install" ]; then
     $LN_S $DATADIR_FINAL/download.sh $BINDIR/plowdown
     $LN_S $DATADIR_FINAL/upload.sh $BINDIR/plowup
     $LN_S $DATADIR_FINAL/delete.sh $BINDIR/plowdel
+    $LN_S $DATADIR_FINAL/list.sh $BINDIR/plowlist
 
 else
     echo "$USAGE"

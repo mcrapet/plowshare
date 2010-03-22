@@ -166,10 +166,18 @@ $ plowup /path/myfile.txt rapidshare:anothername.txt
 
 == Delete ==
 
-  * Delete a file from megaupload (a free or premium account is required):
+  * Delete a file from megaupload (a premium account may be required):
 
 {{{
 $ plowdel -a myuser:mypassword http://www.megaupload.com/?d=132348234
+}}}
+
+== List ==
+
+  * List single file links from a shared-folder link:
+
+{{{
+$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110
 }}}
 
 

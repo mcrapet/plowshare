@@ -1,41 +1,34 @@
-.TH "plowup" "1" "March 15, 2010" "GPL" "Plowshare 0.9.2"
+.TH "plowlist" "1" "March 15, 2010" "GPL" "Plowshare 0.9.2"
 
 ." ****************************************************************************
 ." * Name                                                                     *
 ." ****************************************************************************
 
 .SH "NAME"
-plowup \- Command-line uploader for file-sharing websites
+plowlist \- Command-line link-lister for file-sharing websites
 
 ." ****************************************************************************
 ." * Synopsis                                                                 *
 ." ****************************************************************************
 
 .SH "SYNOPSIS"
-.B plowup
+.B plowdel
 [OPTION]...
 [MODULE_OPTION]...
-FILE...
-MODULE[:DESTNAME]
+URL...
 
 ." ****************************************************************************
 ." * Description                                                              *
 ." ****************************************************************************
 
 .SH "DESCRIPTION"
-.B plowup
-is a set of bash scripts designed for automatic uploads on file-sharing website.
-It acts like a web browser, retreiving pages and filling html forms (including captchas).
+.B plowdel
+is a set of bash scripts designed for listing links (files) on file-sharing website.
+Provided links can be downloaded with plowdown.
 
 .TP 4
 Currently supported hosting sites are:
-2shared.com
-megaupload.com
-rapidshare.com
-zshare.net
-.PP
-Anonymous upload is not allowed by all sites, some of them may require authentification.
-See specific module options below.
+mediafire.com
 
 ." ****************************************************************************
 ." * Options                                                                  *
@@ -76,45 +69,7 @@ Output version information and exit.
 
 .SH "MODULE OPTIONS"
 
-.SS Rapidshare
-.TP
-.BI -a, " " --auth "=USER:PASSWORD"
-Use Premium-Zone account.
-.TP
-.BI -b, " " --auth-freezone "=USER:PASSWORD"
-Use Free-Zone account.
-.SS Megaupload
-.TP
-.BI -a, " " --auth "=USER:PASSWORD"
-Use Free-membership or Premium account.
-.TP
-.BI -p, " " --link-password "=PASSWORD"
-Protect a link with a password.
-.TP
-.BI -d, " " --description "=DESCRIPTION"
-Set file description.
-.TP
-.B -m, " " --multifetch 
-Use URL multifetch upload.
-.TP
-.B "   " --clear-log
-Clear upload log after upload process.
-.TP
-.BI "   " " " --email-from "=EMAIL"
-<From> field for notification email
-.TP
-.BI "   " " " --email-to "=EMAIL"
-<To> field for notification email
-.TP
-.BI "   " " " --traffic-url "=URL"
-Set the traffic URL.
-.TP
-.BI "   " " " --multiemail "=EMAIL1[;EMAIL2;...]"
-List of emails to notify upload.
-.SS Zshare
-.TP
-.BI -d, " " --description "=DESCRIPTION"
-Set file description.
+None yet!
 
 ." ****************************************************************************
 ." * Examples                                                                 *
@@ -122,17 +77,12 @@ Set file description.
 
 .SH EXAMPLES
 
-.SS 1) Upload a single file anonymously
+.SS 1) list links one shared-folder page
 .nf
-$ plowup /path/foobar zshare
-.fi
-.SS 2) Upload a single file with authentification
-.nf
-# Add a text description
-$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
+$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110
 .sp 1
-# Change destination filename
-$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload:anothername.txt
+# Deletes are successive (not parrallel)
+$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110 http://www.mediafire.com/?sharekey=695c8c1ed055a
 .fi
 
 ." ****************************************************************************
@@ -143,7 +93,7 @@ $ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload:an
 Written by Arnau Sanchez and Matthieu Crapet.
 
 .SH "SEE ALSO"
-plowdown(1), plowdel(1), plowlist(1)
+plowdown(1), plowup(1), plowdel(1)
 
 .SH COPYRIGHT
 Copyright (c) 2008\-2010 Plowshare Project.

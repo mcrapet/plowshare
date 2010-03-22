@@ -9,6 +9,7 @@ plowshare (0.9.1svn) unstable; urgency=medium
   * [download] Add -x/--no-overwrite option (do not overwrite existing files)
   * [download] Add -v1/-v2/-v3 verbosity message level
   * [data.hu] Add module (anonymous download)
+  * Add plowlist executable
 
  -- Arnau Sanchez <tokland@gmail.com>  Sun, 21 Feb 2010 10:45:52 +0100
 
