@@ -15,16 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 # Download files from file sharing servers.
-#
-# Output filenames path to standard output (one per line).
-#
-# Dependencies: curl, getopt, recode
-#
-# Web: http://code.google.com/p/plowshare
-# Contact: Arnau Sanchez <tokland@gmail.com>.
-#
+# Output filenames are printed on standard output (one per line).
+
 set -e
 
 VERSION="0.9.1"

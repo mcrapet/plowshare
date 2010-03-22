@@ -15,17 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 # Upload a file to file sharing servers.
-#
 # Output URL to standard output
-#
-# Dependencies: curl, getopt
-#
-# Web: http://code.google.com/p/plowshare
-# Contact: Arnau Sanchez <tokland@gmail.com>.
-#
-#
+
 set -e
 
 VERSION="0.9.1"
