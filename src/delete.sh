@@ -113,7 +113,7 @@ for URL in "$@"; do
     fi
 
     FUNCTION=${MODULE}_delete
-    log_debug "starting delete ($MODULE): $URL"
+    log_notice "Starting delete ($MODULE): $URL"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || RETVAL=5
 done
 

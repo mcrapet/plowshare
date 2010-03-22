@@ -506,6 +506,7 @@ retry_limit_not_reached() {
 
 
 # Countdown from VALUE (in UNIT_STR units) in STEP values
+# Used by plowdown.
 #
 # $1: Sleep duration (arbitrary unit)
 # $2: Debug message display interval (arbitrary unit)

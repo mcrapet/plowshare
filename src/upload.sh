@@ -124,7 +124,7 @@ for FILE in "${FILES[@]}"; do
       continue
   fi
   FUNCTION=${MODULE}_upload
-  log_debug "starting upload ($MODULE): $FILE"
+  log_notice "Starting upload ($MODULE): $FILE"
   $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || RETVAL=3
 done
 
