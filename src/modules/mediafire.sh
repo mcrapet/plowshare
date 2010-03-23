@@ -57,8 +57,7 @@ get_ofuscated_link() {
                 awk '{print $2}' | cut -d"(" -f1 | xargs)
     test "$FUNCTIONS" ||
         { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
-
-    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | awk '/Eo[[:space:]]*\(\);/,/^var jc=Array\(\);/' |
+    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | awk '/Eo[[:space:]]*\(\);/,/^var jc=Array\(\);/' | 
         tail -n+2 | head -n"-2" | tr -d '\n')
     test "$JSCODE" ||
         { log_error "get_ofuscated_links: error getting JS code"; return 1; }
@@ -83,15 +82,16 @@ get_ofuscated_link() {
     JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
     {
         echo "
-        d = {'innerHTML': ''};
-        parent = {
-        document: {'getElementById': function(x) {
-            print(x);
-            return d;
-          }
-        },
-        };"
-        echo "$JS_CODE" | sed -n "2p" |
+          d = {'innerHTML': ''};
+          parent = {
+            document: {'getElementById': function(x) { 
+                print(x); 
+                return d; 
+              } 
+            },
+          };
+        "
+        echo "$JS_CODE" | tail -n "+2" | head -n "-1" |  
             sed "s/eval(\([[:alnum:]]*\))/eval(\1); print(d.innerHTML);/g"
         echo "dz();"
     } | js | parse "'$DIVID'" 'href="\(.*\)"'
