@@ -439,10 +439,10 @@ test_filefactory_check_active_link() {
 
 # Data.hu
 
-DATA_HU_URL="http://data.hu/get/941267/Megerte_Ezt_akartad.pdf.html"
+DATA_HU_URL="http://data.hu/get/2341285/Telekia.part01.rar.html"
 
 test_data_hu_download() {
-    FILENAME="Megerte_Ezt_akartad.pdf"
+    FILENAME="Telekia.part01.rar"
     assert_equal "$FILENAME" "$(download $DATA_HU_URL)" || return 1
     rm -f "$FILENAME"
 }
@@ -452,7 +452,7 @@ test_data_hu_check_active_link() {
 }
 
 test_data_hu_check_wrong_link() {
-    assert_equal "" "$(download -c ${DATA_HU_URL/94/wronglink})" || return 1
+    assert_equal "" "$(download -c ${DATA_HU_URL/234/wronglink})" || return 1
 }
 
 
