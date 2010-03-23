@@ -82,19 +82,19 @@ get_ofuscated_link() {
     JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
     {
         echo "
-          d = {'innerHTML': ''};
+          var d = {'innerHTML': ''};
           parent = {
             document: {'getElementById': function(x) { 
-                print(x); 
+                print(x);
+                print(d.innerHTML); 
                 return d; 
               } 
             },
           };
         "
-        echo "$JS_CODE" | tail -n "+2" | head -n "-1" |  
-            sed "s/eval(\([[:alnum:]]*\))/eval(\1); print(d.innerHTML);/g"
+        echo "$JS_CODE" | tail -n "+2" | head -n "-1"
         echo "dz();"
-    } | js | parse "'$DIVID'" 'href="\(.*\)"'
+    } | tee a.js | js | parse "'$DIVID'" 'href="\(.*\)"'
 }
 
 # List a mediafire shared file folder URL
