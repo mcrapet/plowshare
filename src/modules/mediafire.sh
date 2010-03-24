@@ -57,7 +57,7 @@ get_ofuscated_link() {
                 awk '{print $2}' | cut -d"(" -f1 | xargs)
     test "$FUNCTIONS" ||
         { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
-    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | awk '/Eo[[:space:]]*\(\);/,/^var jc=Array\(\);/' | 
+    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | awk '/Eo[[:space:]]*\(\);/,/^var jc=Array\(\);/' |
         tail -n+2 | head -n"-2" | tr -d '\n')
     test "$JSCODE" ||
         { log_error "get_ofuscated_links: error getting JS code"; return 1; }
@@ -84,17 +84,17 @@ get_ofuscated_link() {
         echo "
           var d = {'innerHTML': ''};
           parent = {
-            document: {'getElementById': function(x) { 
+            document: {'getElementById': function(x) {
                 print(x);
-                print(d.innerHTML); 
-                return d; 
-              } 
+                print(d.innerHTML);
+                return d;
+              }
             },
           };
         "
         echo "$JS_CODE" | tail -n "+2" | head -n "-1"
         echo "dz();"
-    } | tee a.js | js | parse "'$DIVID'" 'href="\(.*\)"'
+    } | js | parse "'$DIVID'" 'href="\(.*\)"'
 }
 
 # List a mediafire shared file folder URL
