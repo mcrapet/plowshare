@@ -239,7 +239,7 @@ check_function() {
 
 # Login and return cookies
 #
-# $1: String 'username:password'
+# $1: String 'username:password' (password can contain semicolons)
 # $2: Postdata string (ex: 'user=\$USER&password=\$PASSWORD')
 # $3: URL to post
 post_login() {
@@ -247,9 +247,18 @@ post_login() {
     POSTDATA=$2
     LOGINURL=$3
 
-    if test "$AUTH"; then
-        IFS=":" read USER PASSWORD <<< "$AUTH"
-        log_notice "starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+    if [ -n "$AUTH" ]; then
+        USER="${AUTH%%:*}"
+        PASSWORD="${AUTH#*:}"
+
+        if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
+            log_notice "No password specified, enter it now"
+            stty -echo
+            read -p "Enter password: " PASSWORD
+            stty echo
+        fi
+
+        log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
         DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
         COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
         test "$COOKIES" || { log_error "login error"; return 1; }
