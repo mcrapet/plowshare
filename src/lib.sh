@@ -30,15 +30,15 @@
 # - error: modules errors (when return 1)
 #
 log_debug() {
-    [ "$VERBOSE" -ge "3" ] && echo "dbg: $@" >&2
+    [ ${VERBOSE:-0} -ge "3" ] && echo "dbg: $@" >&2
     return 0
 }
 log_notice() {
-    [ "$VERBOSE" -ge "2" ] && echo "$@" >&2
+    [ ${VERBOSE:-0} -ge "2" ] && echo "$@" >&2
     return 0
 }
 log_error() {
-    [ "$VERBOSE" -ge "1" ] && echo "err: $@" >&2
+    [ ${VERBOSE:-0} -ge "1" ] && echo "err: $@" >&2
     return 0
 }
 
@@ -50,7 +50,7 @@ curl() {
     local DRETVAL=0
 
     # no verbose unless debug level
-    [ "$VERBOSE" -lt 3 ] && OPTIONS=(${OPTIONS[@]} "--silent")
+    [ ${VERBOSE:-0} -lt 3 ] && OPTIONS=(${OPTIONS[@]} "--silent")
 
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
     $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
@@ -314,7 +314,7 @@ caca_ascii_image() {
 # stdout: same image
 #
 show_image_and_tee() {
-    [ "$VERBOSE" -lt 2 ] && { cat; return; }
+    [ ${VERBOSE:-0} -lt 2 ] && { cat; return; }
     local TEMPIMG=$(create_tempfile)
     cat > $TEMPIMG
     if which aview &>/dev/null; then
