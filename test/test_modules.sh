@@ -285,17 +285,17 @@ test_storage_to_check_active_link() {
 
 # Uploaded.to
 
-UPLOADED_TO_URL1="http://ul.to/t6h61d"
-UPLOADED_TO_URL2="http://uploaded.to/file/t6h61d"
+UPLOADED_TO_URL1="http://ul.to/w39pb6"
+UPLOADED_TO_URL2="http://uploaded.to/?id=w39pb6"
 
 test_uploaded_to_download_short_url() {
-    FILENAME="debian047.jpg"
+    FILENAME="River_Flows_In_You.pdf"
     assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL1)" || return 1
     rm -f $FILENAME
 }
 
 test_uploaded_to_download_long_url() {
-    FILENAME="debian047.jpg"
+    FILENAME="River_Flows_In_You.pdf"
     assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL2)" || return 1
     rm -f $FILENAME
 }
