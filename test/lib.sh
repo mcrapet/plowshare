@@ -23,6 +23,15 @@ assert_equal() {
     fi
 }
 
+# Check that $1 is equal to $2 and show diff if different.
+assert_equal_with_diff() {
+    if ! test "$1" = "$2"; then
+        echo "assert_equal_with_diff failed"
+        diff -u -i <(echo "$1") <(echo "$2")
+        return 1
+    fi
+}
+
 # Check that $1 is not equal to $2.
 assert_not_equal() {
     if test "$1" = "$2"; then
