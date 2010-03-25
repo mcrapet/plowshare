@@ -32,6 +32,7 @@ PREFIX=/usr
 EXPECTED_INSTALLED="bin
 bin/plowdel
 bin/plowdown
+bin/plowlist
 bin/plowup
 share
 share/doc
@@ -88,9 +89,7 @@ test_setup_script() {
 
     assert_return 0 "PREFIX=$PREFIX DESTDIR=$TEMPDIR $ROOTDIR/setup.sh install" || return 1
     INSTALLED=$(find "$TEMPDIR$PREFIX" | sed "s#^$TEMPDIR$PREFIX/\?##" | sed '/^$/d' | sort)
-    diff -i <(echo "$EXPECTED_INSTALLED") <(echo "$INSTALLED")
-    assert_equal "$EXPECTED_INSTALLED" \
-        "$INSTALLED" || return 1
+    assert_equal_with_diff "$EXPECTED_INSTALLED"  "$INSTALLED" || return 1
     assert_return 0 "PREFIX=$PREFIX DESTDIR=$TEMPDIR $ROOTDIR/setup.sh uninstall" || return 1
     assert_equal "$EXPECTED_UNINSTALLED" \
         "$(find "$TEMPDIR$PREFIX" | sed "s#^$TEMPDIR$PREFIX/\?##" | sed '/^$/d' | sort)" || return 1
