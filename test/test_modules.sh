@@ -67,7 +67,7 @@ test_rapidshare_upload_freezone() {
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_URL" 2>/dev/null)
     PARSE="<td>Files: <b>\(.*\)<\/b>"
     FILES1=$(curl -s -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
-    URL=$(upload -a "$AUTH" $UPFILE rapidshare)
+    URL=$(upload -b "$AUTH" $UPFILE rapidshare)
     assert_match "http://rapidshare.com/files/" "$URL" || return 1
     FILES2=$(curl -s -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
     assert_equal $(($FILES1+1)) $FILES2 || return 1
