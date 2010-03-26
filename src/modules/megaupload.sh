@@ -177,7 +177,7 @@ megaupload_upload() {
               { log_error "cannot start multifetch upload"; return 2; }
       while true; do
         CSS="display:[[:space:]]*none"
-        STATUS=$(curl -s -b <(echo "$COOKIES") "$STATUSURL")
+        STATUS=$(curl -b <(echo "$COOKIES") "$STATUSURL")
         ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
             parse "status_$UPLOADID" '>\(.*\)<\/div>' 2>/dev/null | xargs) || true
         test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
