@@ -333,7 +333,7 @@ test_uploading_download() {
 USERSHARE_URL="http://usershare.net/w9ylfullshau"
 
 test_usershare_download() {
-    FILENAME="Test.mp3"
+    FILENAME="RFCs0001-0500.tar.gz"
     assert_equal "$FILENAME" "$(download $USERSHARE_URL)" || return 1
     rm -f $FILENAME
 }
