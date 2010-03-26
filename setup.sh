@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
+# This script installs files in usual linux paths. It is kept simple
+# for portability purpose (`install' from GNU coreutils is not used here).
+
 set -e
 
 NAME=plowshare
@@ -26,6 +29,8 @@ PREFIX=${PREFIX:-/usr/local}
 BINDIR="${DESTDIR}${PREFIX}/bin"
 DATADIR="${DESTDIR}${PREFIX}/share/$NAME"
 DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
+MANDIR="${DESTDIR}${PREFIX}/share/man/man1"
+
 EXAMPLESDIR="${DATADIR}/examples"
 
 DATADIR_FINAL="${PREFIX}/share/$NAME"
@@ -44,11 +49,13 @@ test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 if [ "$1" = "uninstall" ]; then
     $RM -r $DATADIR $DOCDIR
     $RM $BINDIR/{plowdown,plowup,plowdel,plowlist}
+    $RM $MANDIR/{plowdown,plowup,plowdel,plowlist}.1
 
 elif [ "$1" = "install" ]; then
     # Documentation
-    mkdir -p $DOCDIR
+    mkdir -p $DOCDIR $MANDIR
     $CP CHANGELOG README $DOCDIR
+    $CP docs/{plowdown,plowup,plowdel,plowlist}.1 $MANDIR
 
     # Examples
     mkdir -p $EXAMPLESDIR
