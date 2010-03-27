@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 MODULE_X7_TO_REGEXP_URL="^http://\(www\.\)\?x7\.to/"
 MODULE_X7_TO_DOWNLOAD_OPTIONS=""

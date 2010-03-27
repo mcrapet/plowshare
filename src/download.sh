@@ -77,7 +77,6 @@ done
 
 # Guess if item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments)-
-#
 process_item() {
     ITEM=$1
     if match "^http://" "$ITEM"; then
@@ -94,7 +93,6 @@ process_item() {
 }
 
 # Print usage
-#
 usage() {
     echo "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     echo
@@ -122,7 +120,6 @@ mark_queue() {
 #
 # $1: filename (with or withour path)
 # stdout: non existing filename
-#
 create_alt_filename() {
     local FILENAME="$1"
     local count=1
@@ -143,7 +140,6 @@ create_alt_filename() {
 #
 # $1: string
 # stdout: URI (nearly complains RFC2396)
-#
 recode_uri() {
     local URI="$1"
     echo "$URI" | sed -e "s/\x20/%20/g"
@@ -266,6 +262,7 @@ download() {
     done
 }
 
+#
 # Main
 #
 

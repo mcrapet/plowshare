@@ -63,7 +63,6 @@ for MODULE in $MODULES; do
 done
 
 # Print usage
-#
 usage() {
     echo "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
     echo
@@ -77,7 +76,9 @@ usage() {
     debug_options_for_modules "$MODULES" "UPLOAD"
 }
 
+#
 # Main
+#
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"

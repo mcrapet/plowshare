@@ -16,7 +16,6 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: StalkR <plowshare@stalkr.net>
-#
 
 MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""

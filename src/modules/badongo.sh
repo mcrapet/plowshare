@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo\.com/"
 MODULE_BADONGO_DOWNLOAD_OPTIONS=""

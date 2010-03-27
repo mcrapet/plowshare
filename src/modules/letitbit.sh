@@ -10,7 +10,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit\.net/"
 MODULE_LETITBIT_DOWNLOAD_OPTIONS=""

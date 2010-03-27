@@ -28,7 +28,6 @@
 # - debug: modules messages, curl (intermediate) calls
 # - notice: core messages (ocr, countdown, timeout, retries), lastest plowdown curl call
 # - error: modules errors (when return 1)
-#
 log_debug() {
     [ ${VERBOSE:-0} -ge "3" ] && echo "dbg: $@" >&2
     return 0
@@ -42,9 +41,7 @@ log_error() {
     return 0
 }
 
-
 # Wrapper for curl: debug and infinite loop control
-#
 curl() {
     local -a OPTIONS=(--insecure)
     local DRETVAL=0
@@ -69,7 +66,6 @@ curl() {
 #    done
 }
 
-
 replace() {
     sed -e "s#$1#$2#g"
 }
@@ -83,7 +79,6 @@ uppercase() {
 #
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
-#
 parse() {
     local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) &&
         test "$STRING" && echo "$STRING" ||
@@ -91,16 +86,16 @@ parse() {
 }
 
 # Grep first "Location" (of http header)
+#
 # stdin: result of curl request (with -i/--include, -D/--dump-header or
 #        or -I/--head flag)
-#
 grep_http_header_location() {
     sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
 }
 
 # Grep first "Content-Disposition" (of http header)
-# stdin: same as grep_http_header_location() below
 #
+# stdin: same as grep_http_header_location() below
 grep_http_header_content_disposition() {
     parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
 }
@@ -112,7 +107,6 @@ grep_http_header_content_disposition() {
 # $1: (X)HTML data
 # $2: (optionnal) Nth <form> (default is 1)
 # stdout: result
-#
 grep_form_by_order() {
     local DATA="$1"
     local N=${2:-"1"}
@@ -132,7 +126,6 @@ grep_form_by_order() {
 # $1: (X)HTML data
 # $2: "name" attribute of <form> marker
 # stdout: result
-#
 grep_form_by_name() {
     local DATA="$1"
 
@@ -148,7 +141,6 @@ grep_form_by_name() {
 # $1: (X)HTML data
 # $2: "id" attribute of <form> marker
 # stdout: result
-#
 grep_form_by_id() {
     local DATA="$1"
 
@@ -182,7 +174,6 @@ parse_form_action() {
 # $1: name attribute of <input> marker
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
-#
 parse_form_input_by_name() {
     parse "<input\([[:space:]]*[^ ]*\)*name=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
 }
@@ -192,23 +183,22 @@ parse_form_input_by_name() {
 # $1: type attribute of <input> marker (for example: "submit")
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
-#
 parse_form_input_by_type() {
     parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
 }
 
 # Check if a string ($2) matches a regexp ($1)
 # This is case sensitive.
-# $? is zero on success
 #
+# $? is zero on success
 match() {
     grep -q "$1" <<< "$2"
 }
 
 # Check if a string ($2) matches a regexp ($1)
 # This is not case sensitive.
-# $? is zero on success
 #
+# $? is zero on success
 matchi() {
     grep -iq "$1" <<< "$2"
 }
@@ -216,7 +206,6 @@ matchi() {
 # Create a tempfile and return path
 #
 # $1: Suffix
-#
 create_tempfile() {
     SUFFIX=$1
     FILE="${TMPDIR:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
@@ -232,7 +221,6 @@ check_exec() {
 }
 
 # Check if function is defined
-#
 check_function() {
     declare -F "$1" &>/dev/null
 }
@@ -271,7 +259,6 @@ post_login() {
 # $1: optional varfile
 # stdin: image (binary)
 # stdout: result OCRed text
-#
 ocr() {
     local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
     local OPT_VARFILE="$LIBDIR/tesseract/$1"
@@ -296,7 +283,6 @@ ocr() {
 }
 
 # Output image in ascii chars (aview uses libaa)
-#
 aview_ascii_image() {
     convert $1 -negate -depth 8 pnm:- |
       aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q"|
@@ -312,7 +298,6 @@ caca_ascii_image() {
 #
 # stdin: image (binary)
 # stdout: same image
-#
 show_image_and_tee() {
     [ ${VERBOSE:-0} -lt 2 ] && { cat; return; }
     local TEMPIMG=$(create_tempfile)
@@ -355,7 +340,6 @@ debug_options() {
 
 # Look for a configuration module variable
 # Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
-#
 get_modules_options() {
     MODULES=$1
     NAME=$2
@@ -416,7 +400,6 @@ quote() {
 #           QUIET,q,quiet,,Help for quiet" "$@")"
 # $ echo "$AUTH / $QUIET / $1 / $2"
 # user:password / 1 / arg1 / arg2
-#
 process_options() {
     local NAME=$1
     local OPTIONS=$2
@@ -483,7 +466,6 @@ get_module() {
 
 
 # Related to --timeout plowdown command line option
-#
 timeout_init() {
     PS_TIMEOUT=$1
 }
@@ -501,7 +483,6 @@ timeout_update() {
 
 
 # Related to --max-retries plowdown command line option
-#
 retry_limit_init() {
     PS_RETRY_LIMIT=$1
 }
@@ -521,7 +502,6 @@ retry_limit_not_reached() {
 # $2: Debug message display interval (arbitrary unit)
 # $3: User string naming unit (example: seconds, minutes). Only for debug message display.
 # $4: How many seconds for 1 arbitrary unit
-#
 countdown() {
     local VALUE=$1
     local STEP=$2

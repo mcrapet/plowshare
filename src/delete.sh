@@ -62,7 +62,6 @@ for MODULE in $MODULES; do
 done
 
 # Print usage
-#
 usage() {
     echo "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
     echo
@@ -76,6 +75,7 @@ usage() {
     debug_options_for_modules "$MODULES" "DELETE"
 }
 
+#
 # Main
 #
 

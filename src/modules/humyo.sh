@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 MODULE_HUMYO_REGEXP_URL="http://\(www\.\)\?humyo\.com/"
 MODULE_HUMYO_DOWNLOAD_OPTIONS=""
