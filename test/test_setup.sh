@@ -71,7 +71,6 @@ share/plowshare/modules/uploading.sh
 share/plowshare/modules/usershare.sh
 share/plowshare/modules/x7_to.sh
 share/plowshare/modules/zshare.sh
-share/plowshare/strip_grey.pl
 share/plowshare/strip_single_color.pl
 share/plowshare/tesseract
 share/plowshare/tesseract/digit
