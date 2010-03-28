@@ -39,6 +39,12 @@ share/doc
 share/doc/plowshare
 share/doc/plowshare/CHANGELOG
 share/doc/plowshare/README
+share/man
+share/man/man1
+share/man/man1/plowdel.1
+share/man/man1/plowdown.1
+share/man/man1/plowlist.1
+share/man/man1/plowup.1
 share/plowshare
 share/plowshare/delete.sh
 share/plowshare/download.sh
