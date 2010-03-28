@@ -6,6 +6,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.2shared.com 2Shared] || anonymous || anonymous ||
 || [http://www.4shared.com 4Shared] || anonymous || no ||
 || [http://www.badongo.com Badongo] || anonymous || no ||
+|| [http://www.data.hu Data.hu] || anonymous || no ||
 || [http://www.depositfiles.com DepositFiles] || anonymous || no ||
 || [http://www.divshare.com divShare] || anonymous || no ||
 || [http://dl.free.fr dl.free.fr] || anonymous || no ||
@@ -81,6 +82,8 @@ $ bash PREFIX=/home/$USER setup.sh install
 
 = Usage examples =
 
+The four scripts are sharing the same verbose options: `-v0` (or `-q`),  `-v1` (errors only), `-v2` (default), `-v3` (show all debug messages).
+
 == Download ==
 
   * Download a file from rapidshare:
@@ -114,7 +117,7 @@ $ plowdown -m file_with_links.txt
 $ plowdown -r 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
-  * Download a file from megaupload using a free membership account:
+  * Download a file from megaupload using a free membership account (semicolon character is the separator):
 
 {{{
 $ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234

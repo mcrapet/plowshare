@@ -1,6 +1,6 @@
 plowshare (0.9.1svn) unstable; urgency=medium
 
-  * Add 2 new modules (free download): filefactory, humyo
+  * Add 2 new modules (free download): filefactory, humyo, data.hu
   * Deleted 2 modules (now uses reCaptcha): loadfiles.in, freakshare.net
   * [rapidshare] Add Premium-Zone upload
   * [zshare] Add delete function
@@ -8,7 +8,6 @@ plowshare (0.9.1svn) unstable; urgency=medium
   * [download] Add --temp-directory option (saves partial download here before mv)
   * [download] Add -x/--no-overwrite option (do not overwrite existing files)
   * [download] Add -v1/-v2/-v3 verbosity message level
-  * [data.hu] Add module (anonymous download)
   * Add plowlist executable
 
  -- Arnau Sanchez <tokland@gmail.com>  Sun, 21 Feb 2010 10:45:52 +0100
