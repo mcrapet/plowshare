@@ -230,10 +230,12 @@ check_function() {
 # $1: String 'username:password' (password can contain semicolons)
 # $2: Postdata string (ex: 'user=\$USER&password=\$PASSWORD')
 # $3: URL to post
+# $4: Additional curl arguments (optional)
 post_login() {
     AUTH=$1
     POSTDATA=$2
     LOGINURL=$3
+    CURL_ARGS=$4
 
     if [ -n "$AUTH" ]; then
         USER="${AUTH%%:*}"
@@ -247,8 +249,10 @@ post_login() {
         fi
 
         log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+
         DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
-        COOKIES=$(curl -o /dev/null -c - -d "$DATA" "$LOGINURL")
+        # Yes, no quote around $CURL_ARGS
+        COOKIES=$(curl -o /dev/null -c - $CURL_ARGS --data "$DATA" "$LOGINURL")
         test "$COOKIES" || { log_error "login error"; return 1; }
         echo "$COOKIES"
     fi

@@ -16,24 +16,36 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_X7_TO_REGEXP_URL="^http://\(www\.\)\?x7\.to/"
-MODULE_X7_TO_DOWNLOAD_OPTIONS=""
+MODULE_X7_TO_DOWNLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Use Free account"
 MODULE_X7_TO_UPLOAD_OPTIONS=
 MODULE_X7_TO_DOWNLOAD_CONTINUE=no
 
-# Output an x7.to file download URL (anonymous, NOT PREMIUM)
+# Output an x7.to file download URL
 #
-# x7_to_download X7_TO_URL
+# Usage: x7_to_download X7_TO_URL
+# Options:
+#   -b USER:PASSWORD, --auth-free=USER:PASSWORD
 #
 x7_to_download() {
-    set -e
-    eval "$(process_options x7_to "$MODULE_X7_TO_DOWNLOAD_CONTINUE" "$@")"
+    eval "$(process_options x7_to "$MODULE_X7_TO_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
     BASE_URL="http://x7.to"
     COOKIES=$(create_tempfile)
 
+    if [ -z "$AUTH_FREE" ]; then
+        $(curl -c $COOKIES -o /dev/null "$URL")
+    else
+        # Do the secure HTTP login! Adding --referer is mandatory.
+        LOGIN_DATA='id=$USER&pw=$PASSWORD'
+        COOKIE_DATA=$(post_login "$AUTH_FREE" "$LOGIN_DATA" \
+                "${BASE_URL}/james/login" "--referer ${BASE_URL}")
+        echo "$COOKIE_DATA" >$COOKIES
+    fi
+
     while retry_limit_not_reached || return 3; do
-        WAIT_HTML=$(curl -L -c $COOKIES "$URL")
+        WAIT_HTML=$(curl -L -b $COOKIES "$URL")
 
         local ref_fid=$(echo "$WAIT_HTML" | parse 'document.cookie[[:space:]]=[[:space:]]*' \
                 'ref_file=\([^&]*\)' 2>/dev/null)
@@ -63,8 +75,11 @@ x7_to_download() {
                 '<small[^>]*>\([^<]*\)<\/small>' 2>/dev/null)
         file_real_name="$file_real_name$extension"
 
-        # according to http://x7.to/js/download.js
-        DATA=$(curl -b $COOKIES "$BASE_URL/james/ticket/dl/$ref_fid")
+        # According to http://x7.to/js/download.js
+        DATA=$(curl -b $COOKIES -b "cookie_test=enabled; ref=ref_user=6649&ref_file=${ref_fid}&url=&date=1234567890" \
+                    --data-binary ""                      \
+                    --referer "$URL"                      \
+                    "$BASE_URL/james/ticket/dl/$ref_fid")
 
         # Parse JSON object
         # {type:'download',wait:12,url:'http://stor2.x7.to/dl/Z5H3o51QqB'}
@@ -78,7 +93,7 @@ x7_to_download() {
         then
             countdown $((wait)) 1 seconds 1 || return 2
             break;
-        elif match 'limit-dl' "$DATA"
+        elif match 'limit-dl\|limit-parallel' "$DATA"
         then
             log_debug "Download limit reached!"
             WAITTIME=5
