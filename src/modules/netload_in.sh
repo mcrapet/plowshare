@@ -26,7 +26,7 @@ MODULE_NETLOAD_IN_DOWNLOAD_CONTINUE=no
 #
 netload_in_download() {
     set -e
-    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_CONTINUE" "$@")"
+    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
     BASE_URL="http://netload.in"
