@@ -87,7 +87,9 @@ share/plowshare/upload.sh"
 
 EXPECTED_UNINSTALLED="bin
 share
-share/doc"
+share/doc
+share/man
+share/man/man1"
 
 test_setup_script() {
     TEMPDIR=$(mktemp -d "${TMPDIR:-/tmp}/plowshare.XXXXXXXX")
