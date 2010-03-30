@@ -511,11 +511,13 @@ countdown() {
     local STEP=$2
     local UNIT_STR=$3
     local UNIT_SECS=$4
+    test "$VALUE" -a "$STEP" -a "$UNIT_STR" -a "$UNIT_SECS" || 
+      { log_error "countdown arguments error: $@"; return 1; }
 
     # Values in seconds
     local TOTAL_WAIT=$((VALUE * UNIT_SECS))
     local TOTAL_STEP=$((STEP * UNIT_SECS))
-
+    
     timeout_update $TOTAL_WAIT || return 1
 
     REMAINING=$((VALUE))
