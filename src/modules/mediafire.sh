@@ -22,9 +22,8 @@ MODULE_MEDIAFIRE_LIST_OPTIONS=
 MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 
 # Output a mediafire file download URL
-#
-# mediafire_download URL
-#
+# $1: MEDIAFIRE_URL
+# stdout: real file download link
 mediafire_download() {
     set -e
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
@@ -36,8 +35,12 @@ mediafire_download() {
     rm -f $COOKIESFILE
 
     test "$PAGE" || return 254
-    echo "$PAGE" | grep -qi "Invalid or Deleted File" &&
-        { log_debug "invalid or deleted file"; return 254; }
+
+    if matchi 'Invalid or Deleted File' "$PAGE"; then
+        log_debug "invalid or deleted file"
+        return 254
+    fi
+
     if test "$CHECK_LINK"; then
         match 'class="download_file_title"' "$PAGE" && return 255 || return 1
     fi
@@ -97,9 +100,8 @@ get_ofuscated_link() {
 }
 
 # List a mediafire shared file folder URL
-#
-# mediafire_list URL
-#
+# $1: MEDIAFIRE_URL
+# stdout: list of links
 mediafire_list() {
     set -e
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_LIST_OPTIONS" "$@")"
