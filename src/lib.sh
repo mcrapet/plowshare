@@ -50,7 +50,14 @@ curl() {
     [ ${VERBOSE:-0} -lt 3 ] && OPTIONS=(${OPTIONS[@]} "--silent")
 
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
-    $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
+    set -- $(type -P curl) "${OPTIONS[@]}" "$@"
+    if test "$DEBUG"; then
+        TMPFILE=$(create_tempfile)
+        log_debug "Saving file: $TMPFILE"
+      { "$@" || DRETVAL=$?; } | tee $TMPFILE 
+    else
+      "$@" || DRETVAL=$?
+    fi 
     return $DRETVAL
 #    while true; do
 #        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
@@ -100,7 +107,7 @@ grep_http_header_content_disposition() {
     parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
 }
 
-# Extract a specific form from a HTML content.
+# Extract a specific form frocreate_tempfilem a HTML content.
 # We assume here that start marker <form> and end marker </form> are one separate lines.
 # HTML comments are just ignored. But it's enough for our needs.
 #
