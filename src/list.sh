@@ -21,7 +21,7 @@
 set -e
 
 VERSION="0.9.1"
-MODULES="mediafire"
+MODULES="mediafire hotfile"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowlist version

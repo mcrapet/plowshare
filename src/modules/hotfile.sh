@@ -18,12 +18,12 @@
 MODULE_HOTFILE_REGEXP_URL="^http://\(www\.\)\?hotfile\.com/"
 MODULE_HOTFILE_DOWNLOAD_OPTIONS=""
 MODULE_HOTFILE_UPLOAD_OPTIONS=
+MODULE_HOTFILE_LIST_OPTIONS=
 MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
 
 # Output an hotfile.com file download URL (anonymous, NOT PREMIUM)
-#
-# hotfile_download HOTFILE_URL
-#
+# $1: HOTFILE_URL
+# stdout: real file download link
 hotfile_download() {
     set -e
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
@@ -43,7 +43,7 @@ hotfile_download() {
         WAIT_HTML=$(curl -c $COOKIES "$URL")
 
         if match 'hotfile\.com\/list\/' "$URL"; then
-            log_error "This is a directory list"
+            log_error "This is a directory list, use plowlist!"
             rm -f $COOKIES
             return 1
         fi
@@ -126,4 +126,34 @@ hotfile_download() {
 
     rm -f $COOKIES
     return 1
+}
+
+# List a hotfile shared file folder URL
+# $1: HOTFILE_URL
+# stdout: list of links
+hotfile_list() {
+    set -e
+    eval "$(process_options mediafire "$MODULE_HOTFILE_LIST_OPTIONS" "$@")"
+    URL=$1
+
+    if ! match 'hotfile\.com\/list\/' "$URL"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    PAGE=$(curl "$URL" | grep 'hotfile.com/dl/')
+
+    # First pass : print debug message
+    echo "$PAGE" | while read LINE; do
+        FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILENAME"
+    done
+
+    # Second pass : print links (stdout)
+    echo "$PAGE" | while read LINE; do
+        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$LINK"
+    done
+
+    return 0
 }
