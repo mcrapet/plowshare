@@ -358,10 +358,10 @@ test_sendspace_check_active_link() {
 
 # x7.to
 
-X7_TO_URL="http://x7.to/gns6cw"
+X7_TO_URL="http://x7.to/o3jzxb"
 
 test_x7_to_download() {
-    FILENAME="pdfrfc0001-0500.zip"
+    FILENAME="LB043WQ1-TD01.pdf"
     assert_equal "$FILENAME" "$(download $X7_TO_URL)" || return 1
     rm -f $FILENAME
 }
