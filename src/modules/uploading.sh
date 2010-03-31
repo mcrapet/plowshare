@@ -79,6 +79,10 @@ uploading_download() {
 
     WAIT=$(echo "$DATA" | parse 'var[[:space:]]*timer_count' \
            'timer_count[[:space:]]*=[[:space:]]*\([[:digit:]]\+\);')
+    test -z "$WAIT" &&
+      WAIT=$(echo "$DATA" | parse 'start_timer([[:digit:]]\+)' \
+             'start_timer(\([[:digit:]]\+\))')
+           
     test "$WAIT" || { log_error "Cannot get wait time"; return 1; }
     JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
 
