@@ -53,7 +53,7 @@ curl() {
     set -- $(type -P curl) "${OPTIONS[@]}" "$@"
     if test "$DEBUG"; then
         TMPFILE=$(create_tempfile)
-        log_debug "Saving file: $TMPFILE"
+        log_notice "Saving file: $TMPFILE"
       { "$@" || DRETVAL=$?; } | tee $TMPFILE
     else
       "$@" || DRETVAL=$?
