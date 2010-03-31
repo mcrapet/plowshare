@@ -54,10 +54,10 @@ curl() {
     if test "$DEBUG"; then
         TMPFILE=$(create_tempfile)
         log_debug "Saving file: $TMPFILE"
-      { "$@" || DRETVAL=$?; } | tee $TMPFILE 
+      { "$@" || DRETVAL=$?; } | tee $TMPFILE
     else
       "$@" || DRETVAL=$?
-    fi 
+    fi
     return $DRETVAL
 #    while true; do
 #        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
@@ -107,7 +107,7 @@ grep_http_header_content_disposition() {
     parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
 }
 
-# Extract a specific form frocreate_tempfilem a HTML content.
+# Extract a specific form from a HTML content.
 # We assume here that start marker <form> and end marker </form> are one separate lines.
 # HTML comments are just ignored. But it's enough for our needs.
 #
@@ -518,13 +518,14 @@ countdown() {
     local STEP=$2
     local UNIT_STR=$3
     local UNIT_SECS=$4
-    test "$VALUE" -a "$STEP" -a "$UNIT_STR" -a "$UNIT_SECS" || 
-      { log_error "countdown arguments error: $@"; return 1; }
+
+    test "$VALUE" -a "$STEP" -a "$UNIT_STR" -a "$UNIT_SECS" ||
+        { log_error "countdown arguments error: $@"; return 1; }
 
     # Values in seconds
     local TOTAL_WAIT=$((VALUE * UNIT_SECS))
     local TOTAL_STEP=$((STEP * UNIT_SECS))
-    
+
     timeout_update $TOTAL_WAIT || return 1
 
     REMAINING=$((VALUE))
