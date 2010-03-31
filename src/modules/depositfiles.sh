@@ -35,6 +35,10 @@ depositfiles_download() {
         echo "$START" | grep -q "no_download_msg" &&
             { log_debug "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
+        if echo "$START" | grep -q "download_started()"; then
+            echo "$START" | parse "download_started()" 'action="\([^"]*\)"'
+            return
+        fi
         check_ip "$START" || continue
         WAIT_URL=$(echo "$START" | grep "files/" \
                 | parse '<form' 'action="\([^"]*\)"') ||
