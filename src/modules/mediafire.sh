@@ -56,11 +56,12 @@ get_ofuscated_link() {
     BASE_URL="http://www.mediafire.com"
 
     FUNCTIONS=$(echo "$PAGE" | grep -o "function [[:alnum:]]\+[[:space:]]*(qk" |
-                awk '{print $2}' | cut -d"(" -f1 | xargs)
+                sed -n 's/^.*function[[:space:]]\+\([^(]\+\).*$/\1/p')
     test "$FUNCTIONS" ||
         { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
-    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | awk '/Eo[[:space:]]*\(\);/,/^var jc=Array\(\);/' |
-        tail -n+2 | head -n"-2" | tr -d '\n')
+    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | 
+             sed -n '/Eo[[:space:]]*();/,/^var jc=Array();/p' |
+             tail -n"+2" | head -n"-2" | tr -d '\n')
     test "$JSCODE" ||
         { log_error "get_ofuscated_links: error getting JS code"; return 1; }
     JS_CALL=$({
