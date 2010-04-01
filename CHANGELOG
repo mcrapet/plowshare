@@ -1,14 +1,14 @@
-plowshare (0.9.1svn) unstable; urgency=medium
+plowshare (0.9.2) unstable; urgency=medium
 
-  * Add 2 new modules (free download): filefactory, humyo, data.hu
-  * Deleted 2 modules (now uses reCaptcha): loadfiles.in, freakshare.net
-  * [rapidshare] Add Premium-Zone upload
+  * Add 3 new modules (free download): filefactory, humyo, data.hu
+  * Deleted 2 modules (now use recaptcha): loadfiles.in, freakshare.net
+  * [rapidshare] Add premium-zone upload
   * [zshare] Add delete function
-  * [mediafire] Update to website changes in free download
+  * [mediafire] Fix free download (website keeps changing ofuscated javascript code)
   * [download] Add --temp-directory option (saves partial download here before mv)
   * [download] Add -x/--no-overwrite option (do not overwrite existing files)
   * [download] Add -v1/-v2/-v3 verbosity message level
-  * Add plowlist executable
+  * Add plowlist: Download a list of links inside folder/containers
 
  -- Arnau Sanchez <tokland@gmail.com>  Sun, 21 Feb 2010 10:45:52 +0100
 
