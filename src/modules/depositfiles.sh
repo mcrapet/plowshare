@@ -35,10 +35,13 @@ depositfiles_download() {
         echo "$START" | grep -q "no_download_msg" &&
             { log_debug "file not found"; return 254; }
         test "$CHECK_LINK" && return 255
-        if echo "$START" | grep -q "download_started()"; then
+        match "download_started()" "$START" && {
+            log_debug "direct download"
             echo "$START" | parse "download_started()" 'action="\([^"]*\)"'
             return
-        fi
+        }
+        check_wait "$START" "minute" "60" || continue
+        check_wait "$START" "second" "1" || continue
         check_ip "$START" || continue
         WAIT_URL=$(echo "$START" | grep "files/" \
                 | parse '<form' 'action="\([^"]*\)"') ||
@@ -68,8 +71,8 @@ check_wait() {
     LIMIT=$(echo "$HTML" | grep -A1 "try in" | \
         parse "$WORD" "\(\<[[:digit:]]\+\>\) $WORD" 2>/dev/null) || true
     if test "$LIMIT"; then
-        log_debug "limit reached, waiting $LIMIT ${WORD}s"
-        sleep $((LIMIT*FACTOR))
+        log_debug "limit reached: waiting $LIMIT ${WORD}s"
+        countdown $((LIMIT*FACTOR)) 20 seconds 1
         return 1
     else
         return 0
@@ -77,12 +80,9 @@ check_wait() {
 }
 
 check_ip() {
-    if echo "$1" | grep -q '<div class="ipbg">'; then
-        local WAIT=60
-        log_debug "IP already downloading, waiting $WAIT seconds"
-        sleep $WAIT
-        return 1
-    else
-        return 0
-    fi
+    echo "$1" | grep -q '<div class="ipbg">' || return 0
+    local WAIT=60
+    log_debug "IP already downloading, waiting $WAIT seconds"
+    countdown $WAIT 10 seconds 1
+    return 1
 }
