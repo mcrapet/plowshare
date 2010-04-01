@@ -38,7 +38,6 @@ INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)
-DEBUG,d,debug,,Enable debug mode
 "
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)

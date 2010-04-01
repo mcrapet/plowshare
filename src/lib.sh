@@ -51,13 +51,7 @@ curl() {
 
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
     set -- $(type -P curl) "${OPTIONS[@]}" "$@"
-    if test "$DEBUG"; then
-        TMPFILE=$(create_tempfile)
-        log_notice "Saving file: $TMPFILE"
-      { "$@" || DRETVAL=$?; } | tee $TMPFILE
-    else
-      "$@" || DRETVAL=$?
-    fi
+    "$@" || DRETVAL=$?
     return $DRETVAL
 #    while true; do
 #        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
