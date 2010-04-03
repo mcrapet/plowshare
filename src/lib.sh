@@ -524,9 +524,9 @@ countdown() {
 
     REMAINING=$((VALUE))
     while [ "$REMAINING" -gt 0 ]; do
-        test $REMAINING -eq $VALUE &&
-            log_notice -n "Waiting $VALUE $UNIT_STR... " ||
-            log_notice -n "$REMAINING.. "
+        MSG="Waiting $REMAINING $UNIT_STR..." 
+        log_notice -n "$MSG"
+        BS=$(echo "$MSG" | sed -e 's/./\\b/g')
 
         if [ $REMAINING -le $STEP ]; then
             sleep $((REMAINING * UNIT_SECS))
@@ -535,7 +535,10 @@ countdown() {
 
         sleep $TOTAL_STEP
         ((REMAINING -= STEP))
+
+        log_notice -ne "\b $BS"
     done
 
-    log_notice "0"
+    log_notice -ne "$BS"
+    log_notice "Waiting 0 $UNIT_STR... Done!" 
 }
