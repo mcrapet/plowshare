@@ -104,4 +104,11 @@ test_setup_script() {
     rm -rf $TEMPDIR
 }
 
+test_man_pages() {
+    find "$ROOTDIR/docs" -name "*.1" | while read PAGE; do
+        RES=$(LANG=C MANWIDTH=80 man --warnings -l "$PAGE" 2>&1 1>/dev/null)
+        assert_equal "${#RES}" 0 || return 1
+    done
+}
+
 run_tests "$@"

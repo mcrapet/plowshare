@@ -58,7 +58,7 @@ assert_return() {
     fi
 }
 
-# Check that $1 is not a empty stringu
+# Check that $1 is not a empty string
 assert() {
   if ! test "$1"; then
     echo "assert failed"
