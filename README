@@ -21,7 +21,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.uploaded.to Uploaded.to] || anonymous || no ||
 || [http://www.uploading.com Uploading.com] || anonymous || no ||
 || [http://www.usershare.net Usershare] || anonymous || no ||
-|| [http://www.x7.to x7.to] || anonymous || no ||
+|| [http://www.x7.to x7.to] || anonymous, free account || no ||
 || [http://www.zshare.net ZShare] || anonymous || anonymous ||
 
 = Dependencies =
@@ -34,7 +34,7 @@ To run _plowshare_ and all its modules you will need:
     * OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches])
     * Windows/Cygwin (recode is not available as a package but can be recompiled with [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
   * [http://www.gnu.org/software/bash/ bash]
-  * [http://curl.haxx.se/ curl]
+  * [http://curl.haxx.se/ curl] (with SSL support, usually required for premium account)
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick] (with GIF and TIFF support)
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (with TIFF support; version 2.03 works, but 2.04 works better)
@@ -142,6 +142,7 @@ $ plowdown -c file_with_links.txt > file_with_active_links.txt
 }}}
 
   * Safe download. Each URL will be limited in the number of tries (mainly for captchas) and wait delays. Add this alias in your _~/.bashrc_.
+
 {{{
 $ alias plowdown='plowdown --max-retries=20 --timeout=3600'
 $ plowdown --mark-downloaded file_with_links.txt
