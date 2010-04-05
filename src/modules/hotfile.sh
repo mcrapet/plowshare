@@ -28,7 +28,7 @@ hotfile_download() {
     set -e
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    URL="${1}&lang=en"
     BASE_URL='http://hotfile.com'
     COOKIES=$(create_tempfile)
 
