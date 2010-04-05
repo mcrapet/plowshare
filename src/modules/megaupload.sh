@@ -150,9 +150,9 @@ megaupload_download() {
 #
 megaupload_upload() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
-    FILE=$1
-    DESTFILE=${2:-$FILE}
-    LOGINURL="http://www.megaupload.com/?c=login"
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local LOGINURL="http://www.megaupload.com/?c=login"
 
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
