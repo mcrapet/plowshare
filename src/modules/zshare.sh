@@ -70,9 +70,9 @@ zshare_upload() {
     set -e
     eval "$(process_options zshare "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
 
-    FILE=$1
-    DESTFILE=${2:-$FILE}
-    UPLOADURL="http://www.zshare.net/"
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local UPLOADURL="http://www.zshare.net/"
 
     log_debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")

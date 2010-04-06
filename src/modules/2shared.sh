@@ -53,9 +53,9 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 2shared_upload() {
     set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
-    FILE=$1
-    DESTFILE=${2:-$FILE}
-    UPLOADURL="http://www.2shared.com/"
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local UPLOADURL="http://www.2shared.com/"
 
     log_debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL")

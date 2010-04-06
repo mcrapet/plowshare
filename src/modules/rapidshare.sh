@@ -170,8 +170,8 @@ rapidshare_upload_anonymous() {
 rapidshare_upload_freezone() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
-    FILE=$1
-    DESTFILE=${2:-$FILE}
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
 
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
     LOGIN_DATA='username=$USER&password=$PASSWORD'
@@ -217,8 +217,8 @@ rapidshare_upload_freezone() {
 rapidshare_upload_premiumzone() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
-    FILE=$1
-    DESTFILE=${2:-$FILE}
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
 
     PREMIUMZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi"
     # Even if login/passwd are wrong cookie content is returned
