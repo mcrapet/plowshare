@@ -118,6 +118,7 @@ for FILE in "${FILES[@]}"; do
   fi
   FUNCTION=${MODULE}_upload
   log_notice "Starting upload ($MODULE): $FILE"
+  test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
   $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || RETVAL=3
 done
 
