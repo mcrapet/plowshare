@@ -37,8 +37,10 @@ depositfiles_download() {
         test "$CHECK_LINK" && return 255
         match "download_started()" "$START" && {
             log_debug "direct download"
-            echo "$START" | parse "download_started()" 'action="\([^"]*\)"'
-            return
+            FILE_URL=$(echo "$START" | parse "download_started()" 'action="\([^"]*\)"') ||
+                { log_error "form parse error in direct download"; return 1; }
+            echo "$FILE_URL"
+            return 0
         }
         check_wait "$START" "minute" "60" || continue
         check_wait "$START" "second" "1" || continue
