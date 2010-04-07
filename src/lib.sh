@@ -522,9 +522,11 @@ countdown() {
 
     timeout_update $TOTAL_WAIT || return 1
 
+    log_notice -n "Waiting $VALUE $UNIT_STR... "
+
     REMAINING=$((VALUE))
     while [ "$REMAINING" -gt 0 ]; do
-        MSG="Waiting $REMAINING $UNIT_STR..." 
+        MSG="$REMAINING left"
         log_notice -n "$MSG"
         BS=$(echo "$MSG" | sed -e 's/./\\b/g')
 
@@ -540,5 +542,7 @@ countdown() {
     done
 
     log_notice -ne "$BS"
-    log_notice "Waiting 0 $UNIT_STR... Done!" 
+
+    # Put some extra spaces to overwrite previous "x left" message
+    log_notice "done!   "
 }
