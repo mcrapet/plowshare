@@ -28,18 +28,14 @@ set -o pipefail
 # - debug: modules messages, curl (intermediate) calls
 # - notice: core messages (ocr, countdown, timeout, retries), lastest plowdown curl call
 # - error: modules errors (when return 1)
-log_debug() {
-    [ ${VERBOSE:-0} -ge "3" ] && echo "dbg: $@" >&2
-    return 0
-}
-log_notice() {
-    [ ${VERBOSE:-0} -ge "2" ] && echo "$@" >&2
-    return 0
-}
-log_error() {
-    [ ${VERBOSE:-0} -ge "1" ] && echo "err: $@" >&2
-    return 0
-}
+
+verbose_level() { echo ${VERBOSE:-0}; }
+ 
+log_debug() { test $(verbose_level) -ge 3 && debug "dbg: $@" || true; }
+
+log_notice() { test $(verbose_level) -ge 2 && debug "$@" || true; }
+
+log_error() { test $(verbose_level) -ge 1 && debug "$@" || true; }
 
 # Wrapper for curl: debug and infinite loop control
 curl() {
@@ -47,7 +43,7 @@ curl() {
     local DRETVAL=0
 
     # no verbose unless debug level
-    [ ${VERBOSE:-0} -lt 3 ] && OPTIONS=(${OPTIONS[@]} "--silent")
+    test $(verbose_level) -lt 3 && OPTIONS=(${OPTIONS[@]} "--silent")
 
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
     set -- $(type -P curl) "${OPTIONS[@]}" "$@"
@@ -314,7 +310,7 @@ caca_ascii_image() {
 # stdin: image (binary)
 # stdout: same image
 show_image_and_tee() {
-    [ ${VERBOSE:-0} -lt 3 ] && { cat; return; }
+    test $(verbose_level) -lt 3 && { cat; return; }
     local TEMPIMG=$(create_tempfile)
     cat > $TEMPIMG
     if which aview &>/dev/null; then
