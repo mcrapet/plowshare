@@ -29,15 +29,28 @@ set -o pipefail
 # - notice: core messages (ocr, countdown, timeout, retries), lastest plowdown curl call
 # - error: modules errors (when return 1)
 
-verbose_level() { echo ${VERBOSE:-0}; }
+verbose_level() { 
+  echo ${VERBOSE:-0} 
+}
 
-debug() { echo "$@" >&2; }
+debug() { 
+  echo "$@" >&2; 
+}
  
-log_debug() { test $(verbose_level) -ge 3 && debug "dbg: $@" || true; }
+log_debug() { 
+  test $(verbose_level) -ge 3 && debug "dbg: $@"
+  return 0 
+}
 
-log_notice() { test $(verbose_level) -ge 2 && debug "$@" || true; }
+log_notice() { 
+  test $(verbose_level) -ge 2 && debug "$@"
+  return 0 
+}
 
-log_error() { test $(verbose_level) -ge 1 && debug "$@" || true; }
+log_error() { 
+  test $(verbose_level) -ge 1 && debug "$@"
+  return 0 
+}
 
 # Wrapper for curl: debug and infinite loop control
 curl() {
