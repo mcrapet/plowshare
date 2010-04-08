@@ -30,6 +30,8 @@ set -o pipefail
 # - error: modules errors (when return 1)
 
 verbose_level() { echo ${VERBOSE:-0}; }
+
+debug() { echo "$@" >&2; }
  
 log_debug() { test $(verbose_level) -ge 3 && debug "dbg: $@" || true; }
 
