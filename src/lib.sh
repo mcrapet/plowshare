@@ -49,18 +49,6 @@ curl() {
     set -- $(type -P curl) "${OPTIONS[@]}" "$@"
     "$@" || DRETVAL=$?
     return $DRETVAL
-#    while true; do
-#        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
-#        if [ $DRETVAL -eq 6 -o $DRETVAL -eq 7 ]; then
-#            local WAIT=60
-#            log_debug "curl failed with non-fatal retcode $DRETVAL"
-#            log_debug "retry after a safety wait ($WAIT seconds)"
-#            sleep $WAIT
-#            continue
-#        else
-#            return $DRETVAL
-#        fi
-#    done
 }
 
 replace() {
