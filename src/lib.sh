@@ -21,7 +21,7 @@
 #   - PS_TIMEOUT      Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
 #   - LIBDIR          Absolute path to plowshare's libdir
-
+set -o pipefail
 
 # Logs are sent to standard error.
 # Policy:
@@ -80,10 +80,15 @@ uppercase() {
 #
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
-parse() {
-    local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p" | head -n1) &&
+parse_all() {
+    local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p") &&
         test "$STRING" && echo "$STRING" ||
         { log_error "parse failed: /$1/ $2"; return 1; }
+}
+
+# Like parse_all, but get only first match
+parse() {
+    parse_all "$@" | head -n1
 }
 
 # Grep first "Location" (of http header)
@@ -159,6 +164,11 @@ break_html_lines() {
 # Return value of html attribute
 parse_attr() {
     parse "$1" "$2"'="\([^"]*\)"'
+}
+
+# Return value of html attribute
+parse_all_attr() {
+    parse_all "$1" "$2"'="\([^"]*\)"'
 }
 
 # Retreive "action" attribute (URL) from a <form> marker
@@ -304,7 +314,7 @@ caca_ascii_image() {
 # stdin: image (binary)
 # stdout: same image
 show_image_and_tee() {
-    [ ${VERBOSE:-0} -lt 2 ] && { cat; return; }
+    [ ${VERBOSE:-0} -lt 3 ] && { cat; return; }
     local TEMPIMG=$(create_tempfile)
     cat > $TEMPIMG
     if which aview &>/dev/null; then
