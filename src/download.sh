@@ -266,7 +266,6 @@ download() {
 # Main
 #
 
-set -o pipefail
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
 
