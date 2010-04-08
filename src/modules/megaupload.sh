@@ -34,6 +34,7 @@ MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)
 "
+MODULE_MEGAUPLOAD_LIST_OPTIONS=""
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
 # megaupload_download [MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS] URL
@@ -217,7 +218,6 @@ megaupload_upload() {
 }
 
 # megaupload_delete [DELETE_OPTIONS] URL
-#
 megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
     URL=$1
@@ -234,6 +234,19 @@ megaupload_delete() {
     JSCODE=$(curl -b <(echo "$COOKIES") -d "$DATA" "$AJAXURL")
     echo "$JSCODE" | grep -q "file_$FILEID" ||
         { log_error "error deleting link"; return 1; }
+}
+
+# List links contained in a Megaupload list URL ($1)
+megaupload_list() {
+    eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_LIST_OPTIONS" "$@")"
+    URL=$1
+    XMLURL="http://www.megaupload.com/xml/folderfiles.php"
+    FOLDERID=$(echo "$URL" | grep -o "f=[^=]\+$" | cut -d"=" -f2-) ||
+      { log_error "cannot parse url: $URL"; return 1; }         
+    XML=$(curl "$XMLURL/?folderid=$FOLDERID")
+    match "<FILES></FILES>" "$XML" && 
+      { log_notice "Folder link not found"; return 254; }
+    echo "$XML" | parse_all_attr "<ROW" "url" 
 }
 
 get_location() {

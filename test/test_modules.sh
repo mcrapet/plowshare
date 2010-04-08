@@ -27,19 +27,13 @@ TESTSDIR=$ROOTDIR/test
 source "$SRCDIR/lib.sh"
 source "$TESTSDIR/lib.sh"
 
-# No debug messages (-q)
-download() {
-    $SRCDIR/download.sh -q "$@"
-}
+download() { $SRCDIR/download.sh -q "$@"; }
 
-upload() {
-    $SRCDIR/upload.sh -q "$@"
-}
+upload() { $SRCDIR/upload.sh -q "$@"; }
 
-delete() {
-    $SRCDIR/delete.sh -q "$@"
-}
+delete() { $SRCDIR/delete.sh -q "$@"; }
 
+list() { $SRCDIR/list.sh -q "$@"; }
 
 UPFILE="$ROOTDIR/COPYING"
 UPFILE2="$ROOTDIR/CHANGELOG"
@@ -156,6 +150,14 @@ test_megaupload_delete_member() {
     AUTH=$(cat $TESTSDIR/.megaupload-auth)
     URL=$(upload -d 'Plowshare test' -a "$AUTH" $UPFILE2 megaupload)
     assert_return 0 "delete -a $AUTH $URL" || return 1
+}
+
+MEGAUPLOAD_FOLDER_URL="http://www.megaupload.com/?f=M7L4UC3G"
+
+test_megaupload_list() {
+    URLS=$(list $MEGAUPLOAD_FOLDER_URL)
+    assert_equal 12 "$(echo "$URLS" | wc -l)" 
+    assert_equal "http://www.megaupload.com/?d=BIVNP2SM" "$(echo "$URLS" | head -n1)"
 }
 
 # 2Shared.com
