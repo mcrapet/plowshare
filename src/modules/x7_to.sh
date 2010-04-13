@@ -39,9 +39,8 @@ x7_to_download() {
     else
         # Do the secure HTTP login! Adding --referer is mandatory.
         LOGIN_DATA='id=$USER&pw=$PASSWORD'
-        COOKIE_DATA=$(post_login "$AUTH_FREE" "$LOGIN_DATA" \
-                "${BASE_URL}/james/login" "--referer ${BASE_URL}")
-        echo "$COOKIE_DATA" >$COOKIES
+        post_login "$AUTH_FREE" "$COOKIES" "$LOGIN_DATA" \
+                "${BASE_URL}/james/login" "--referer ${BASE_URL}" >/dev/null
     fi
 
     while retry_limit_not_reached || return 3; do

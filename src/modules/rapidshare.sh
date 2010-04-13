@@ -38,16 +38,16 @@ rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
+    COOKIES=$(create_tempfile)
 
     # Try to login if account provided ($AUTH not null)
     # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    COOKIE_DATA=$(post_login "$AUTH" "$LOGIN_DATA" \
-            "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi")
-    ccurl() { curl -b <(echo "$COOKIE_DATA") "$@"; }
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" \
+            "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi" >/dev/null
 
     while retry_limit_not_reached || return 3; do
-        PAGE=$(ccurl "$URL")
+        PAGE=$(curl -b $COOKIES "$URL")
 
         echo "$PAGE" | grep -q 'file could not be found' &&
             { log_debug "file not found"; return 254; }
@@ -64,12 +64,15 @@ rapidshare_download() {
         WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
             return 1
 
-        test "$CHECK_LINK" && return 255
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
 
         if [ -z "$AUTH" ]; then
-            DATA=$(ccurl --data "dl.start=Free" "$WAIT_URL")
+            DATA=$(curl -b $COOKIES --data "dl.start=Free" "$WAIT_URL")
         else
-            DATA=$(ccurl --data "dl.start=PREMIUM" "$WAIT_URL")
+            DATA=$(curl -b $COOKIES --data "dl.start=PREMIUM" "$WAIT_URL")
             match 'Your Cookie has not been recognized' "$DATA" &&
                 { log_error "login process failed"; return 1; }
         fi
@@ -102,15 +105,11 @@ rapidshare_download() {
     if [ -z "$AUTH" ]; then
         SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
         countdown $((SLEEP + 1)) 20 seconds 1 || return 2
-
         echo $FILE_URL
     else
-        COOKIE_FILE=$(create_tempfile)
-        echo "$COOKIE_DATA" >$COOKIE_FILE
-
         echo $FILE_URL
         echo
-        echo $COOKIE_FILE
+        echo $COOKIES
     fi
 
     return 0
@@ -173,27 +172,35 @@ rapidshare_upload_freezone() {
     local FILE=$1
     local DESTFILE=${2:-$FILE}
 
+    COOKIES=$(create_tempfile)
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
+
     LOGIN_DATA='username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH_FREEZONE" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") ||
-        { log_error "error on login process"; return 1; }
-    ccurl() { curl -b <(echo "$COOKIES") "$@"; }
+    LOGIN_RESULT=$(post_login "$AUTH_FREEZONE" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL")
+    if [ "$?" -eq 1 ]; then
+        log_error "login process failed"
+        rm -f $COOKIES
+        return 1
+    fi
 
     log_debug "downloading upload page: $FREEZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL) || return 1
+    UPLOAD_PAGE=$(curl -b $COOKIES $FREEZONE_LOGIN_URL) || return 1
     ACCOUNTID=$(echo "$UPLOAD_PAGE" | \
         parse 'name="freeaccountid"' 'value="\([[:digit:]]*\)"')
     ACTION=$(echo "$UPLOAD_PAGE" | parse '<form name="ul"' 'action="\([^"]*\)"')
     IFS=":" read USER PASSWORD <<< "$AUTH_FREEZONE"
     log_debug "uploading file: $FILE"
-    UPLOADED_PAGE=$(ccurl \
+    UPLOADED_PAGE=$(curl -b $COOKIES \
         -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "freeaccountid=$ACCOUNTID" \
         -F "password=$PASSWORD" \
         -F "mirror=on" $ACTION) || return 1
 
     log_debug "download upload page to get url: $FREEZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(ccurl $FREEZONE_LOGIN_URL) || return 1
+    UPLOAD_PAGE=$(curl -b $COOKIES $FREEZONE_LOGIN_URL) || return 1
+
+    rm -f $COOKIES
+
     FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | tail -n1 | \
         parse Adliste 'Adliste\["\([[:digit:]]*\)"')
     MATCH="^Adliste\[\"$FILEID\"\]"
@@ -220,15 +227,19 @@ rapidshare_upload_premiumzone() {
     local FILE=$1
     local DESTFILE=${2:-$FILE}
 
+    COOKIES=$(create_tempfile)
     PREMIUMZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi"
-    # Even if login/passwd are wrong cookie content is returned
+
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH_PREMIUMZONE" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL") ||
-        { log_error "login process failed"; return 1; }
-    ccurl() { curl -b <(echo "$COOKIES") "$@"; }
+    LOGIN_RESULT=$(post_login "$AUTH_PREMIUMZONE" "$COOKIES" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL")
+    if [ "$?" -eq 1 ]; then
+        log_error "login process failed"
+        rm -f $COOKIES
+        return 1
+    fi
 
     log_debug "downloading upload page: $PREMIUMZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(ccurl $PREMIUMZONE_LOGIN_URL) || return 1
+    UPLOAD_PAGE=$(curl -b $COOKIES $PREMIUMZONE_LOGIN_URL) || return 1
 
     if test -z "$UPLOAD_PAGE"; then
         log_error "login process failed"
@@ -243,7 +254,7 @@ rapidshare_upload_premiumzone() {
     local form_password=$(echo "$UPLOAD_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="password"' 'value="\([^"]*\)' 2>/dev/null)
 
     log_debug "uploading file: $FILE"
-    UPLOADED_PAGE=$(ccurl \
+    UPLOADED_PAGE=$(curl -b $COOKIES \
         -F "login=$form_login" \
         -F "password=$form_password" \
         -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
@@ -251,7 +262,10 @@ rapidshare_upload_premiumzone() {
         -F "u.x=56" -F "u.y=9" "$form_url") || return 1
 
     log_debug "download upload page to get url: $PREMIUMZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(ccurl $PREMIUMZONE_LOGIN_URL) || return 1
+    UPLOAD_PAGE=$(curl -b $COOKIES $PREMIUMZONE_LOGIN_URL) || return 1
+
+    rm -f $COOKIES
+
     FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | head -n1 | \
         parse Adliste 'Adliste\["\([[:digit:]]*\)"')
     MATCH="^Adliste\[\"$FILEID\"\]"

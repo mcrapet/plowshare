@@ -45,17 +45,24 @@ megaupload_download() {
     set -e
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
+    COOKIES=$(create_tempfile)
     ERRORURL="http://www.megaupload.com/?c=msg"
     URL=$(echo "$1" | replace 'rotic\.com/' 'porn\.com/')
     BASEURL=$(expr match "$URL" '\(http://[^/]*\)')
 
     # Try to login (if $AUTH not null)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$BASEURL/?c=login") ||
-        { log_error "login process failed"; return 1; }
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null
+    if [ "$?" -eq 1 ]; then
+        log_error "login process failed"
+        rm -f $COOKIES
+        return 1
+    fi
+
     echo $URL | grep -q "\.com/?d=" ||
         URL=$(curl -I "$URL" | grep_http_header_location)
-    ccurl() { curl -b <(echo "$COOKIES") "$@"; }
+
+    ccurl() { curl -b <(cat "$COOKIES") "$@"; }
 
     TRY=0
     while retry_limit_not_reached || return 3; do
@@ -81,7 +88,11 @@ megaupload_download() {
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
-            test "$CHECK_LINK" && return 255;
+            if test "$CHECK_LINK"; then
+                rm -f $COOKIES
+                return 255
+            fi
+
             log_debug "File is password protected"
             test "$LINKPASSWORD" ||
                 { log_error "You must provide a password"; return 1; }
@@ -101,7 +112,11 @@ megaupload_download() {
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
             log_debug "File temporarily unavailable"
-            test "$CHECK_LINK" && return 255
+            if test "$CHECK_LINK"; then
+                rm -f $COOKIES
+                return 255
+            fi
+
             WAITTIME=2
             countdown $WAITTIME 1 minutes 60
             continue
@@ -111,7 +126,11 @@ megaupload_download() {
         FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
             parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
         if test "$FILEURL"; then
-            test "$CHECK_LINK" && return 255
+            if test "$CHECK_LINK"; then
+                rm -f $COOKIES
+                return 255
+            fi
+
             log_debug "Link found, no need to wait"
             echo "$FILEURL"
             return
@@ -119,7 +138,10 @@ megaupload_download() {
 
         match 'link you have clicked is not available' "$PAGE" && return 254
 
-        test "$CHECK_LINK" && return 255
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 1
         log_debug "captcha URL: $CAPTCHA_URL"
@@ -144,6 +166,8 @@ megaupload_download() {
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     countdown $((WAITTIME+1)) 10 seconds 1
 
+    rm -f $COOKIES
+
     echo "$FILEURL"
 }
 
@@ -155,18 +179,26 @@ megaupload_upload() {
     local DESTFILE=${2:-$FILE}
     local LOGINURL="http://www.megaupload.com/?c=login"
 
+    COOKIES=$(create_tempfile)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
-        { log_debug "error on login process"; return 1; }
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null
+    if [ "$?" -eq 1 ]; then
+        log_error "login process failed"
+        rm -f $COOKIES
+        return 1
+    fi
 
     if [ "$MULTIFETCH" ]; then
       UPLOADURL="http://www.megaupload.com/?c=multifetch"
       STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
       STATUSLOOPTIME=5
+
+      # FIXME: this is not good, cookie will contain sessionid
       [ -z "$COOKIES" ] &&
           { log_error "Premium account required to use multifetch"; return 2; }
+
       log_debug "spawn URL fetch process: $FILE"
-      UPLOADID=$(curl -b <(echo "$COOKIES") -L \
+      UPLOADID=$(curl -b $COOKIES -L \
           -F "fetchurl=$FILE" \
           -F "description=$DESCRIPTION" \
           -F "youremail=$FROMEMAIL" \
@@ -177,7 +209,7 @@ megaupload_upload() {
               { log_error "cannot start multifetch upload"; return 2; }
       while true; do
         CSS="display:[[:space:]]*none"
-        STATUS=$(curl -b <(echo "$COOKIES") "$STATUSURL")
+        STATUS=$(curl -b $COOKIES "$STATUSURL")
         ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
             parse "status_$UPLOADID" '>\(.*\)<\/div>' 2>/dev/null | xargs) || true
         test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
@@ -188,12 +220,12 @@ megaupload_upload() {
         sleep $STATUSLOOPTIME
       done
       log_debug "fetching process finished"
-      STATUS=$(curl -b <(echo "$COOKIES") "$STATUSURL")
+      STATUS=$(curl -b $COOKIES "$STATUSURL")
       if [ "$CLEAR_LOG" ]; then
         log_debug "clearing upload log for task $UPLOADID"
         CLEARURL=$(echo "$STATUS" | parse "cancel=$UPLOADID" "href=[\"']\([^\"']*\)")
         log_debug "clear URL: $BASEURL/$CLEARURL"
-        curl -b <(echo "$COOKIES") "$BASEURL/$CLEARURL" > /dev/null
+        curl -b $COOKIES "$BASEURL/$CLEARURL" > /dev/null
       fi
       echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
     else
@@ -203,7 +235,7 @@ megaupload_upload() {
           { log_debug "can't get upload_done page"; return 2; }
       UPLOAD_IDENTIFIER=$(parse "IDENTIFIER" "IDENTIFIER=\([0-9.]\+\)" <<< $DONE)
       log_debug "starting file upload: $FILE"
-      curl -b <(echo "$COOKIES") \
+      curl -b $COOKIES \
           -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
           -F "sessionid=$UPLOAD_IDENTIFIER" \
           -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
@@ -215,23 +247,35 @@ megaupload_upload() {
           -F "multiemail=$MULTIEMAIL" \
           "$DONE" | parse "downloadurl" "url = '\(.*\)';"
     fi
+    rm -f $COOKIES
 }
 
 # megaupload_delete [DELETE_OPTIONS] URL
 megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
+
     URL=$1
     LOGINURL="http://www.megaupload.com/?c=login"
-
     AJAXURL="http://www.megaupload.com/?ajax=1"
+
     test "$AUTH" ||
         { log_error "anonymous users cannot delete links"; return 1; }
+
+    COOKIES=$(create_tempfile)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
-        { log_error "error on login process"; return 1; }
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null
+    if [ "$?" -eq 1 ]; then
+        log_error "login process failed"
+        rm -f $COOKIES
+        return 1
+    fi
+
     FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
     DATA="action=deleteItems&items_list[]=file_$FILEID&mode=modeAll&parent_id=0"
-    JSCODE=$(curl -b <(echo "$COOKIES") -d "$DATA" "$AJAXURL")
+    JSCODE=$(curl -b $COOKIES -d "$DATA" "$AJAXURL")
+
+    rm -f $COOKIES
+
     echo "$JSCODE" | grep -q "file_$FILEID" ||
         { log_error "error deleting link"; return 1; }
 }
@@ -242,11 +286,11 @@ megaupload_list() {
     URL=$1
     XMLURL="http://www.megaupload.com/xml/folderfiles.php"
     FOLDERID=$(echo "$URL" | grep -o "f=[^=]\+$" | cut -d"=" -f2-) ||
-      { log_error "cannot parse url: $URL"; return 1; }         
+      { log_error "cannot parse url: $URL"; return 1; }
     XML=$(curl "$XMLURL/?folderid=$FOLDERID")
-    match "<FILES></FILES>" "$XML" && 
+    match "<FILES></FILES>" "$XML" &&
       { log_notice "Folder link not found"; return 254; }
-    echo "$XML" | parse_all_attr "<ROW" "url" 
+    echo "$XML" | parse_all_attr "<ROW" "url"
 }
 
 get_location() {

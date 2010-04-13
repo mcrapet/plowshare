@@ -28,20 +28,24 @@ letitbit_download() {
     URL=$1
     BASEURL="http://letitbit.net"
     WAITTIME=60
+    COOKIES=$(create_tempfile)
 
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$LOGINURL") ||
-        { log_error "login process failed"; return 1; }
+    post_login "$AUTH" "COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null
+    if [ "$?" -eq 1 ]; then
+        log_error "login process failed"
+        rm -f $COOKIES
+        return 1
+    fi
+
     echo $URL | grep -q "letitbit.net" ||
     URL=$(curl -I "$URL" | grep_http_header_location)
-
-    ccurl() { curl -b <(echo "$COOKIES") "$@"; }
 
     TRY=0
     while retry_limit_not_reached || return 3; do
         (( TRY++ ))
         log_debug "Downloading first page (loop $TRY)"
-        PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
+        PAGE=$(curl -b $COOKIES "$URL") || { echo "Error getting page: $URL"; return 1; }
         uid=$(echo "$PAGE" | parse '\"uid\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
         md5crypt=$(echo "$PAGE" | parse '\"md5crypt\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
         test "$uid" || { log_error "Error parse uid and md5crypt"; return 1; }
@@ -51,17 +55,22 @@ letitbit_download() {
         # @TODO error handling
         #debug DeBase64: $( echo $md5crypt | base64 -d )
 
-        PAGE=$(ccurl --data "$data" "$BASEURL/download4.php")
+        PAGE=$(curl -b $COOKIES --data "$data" "$BASEURL/download4.php")
         uid=$(echo "$PAGE" | parse '\"uid\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
         md5crypt=$(echo "$PAGE" | parse '\"md5crypt\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
 
         CAPTCHA_URL=$(echo "$PAGE" | parse 'cap.php?jpg=' "\(cap.php?jpg=[^']\+\)'" ) ||
-            { log_error 'Captcha URL not found'; return 1; } #'
-        test "$CHECK_LINK" && return 255;
+            { log_error 'Captcha URL not found'; return 1; }
+
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
+
         log_debug "captcha URL: $CAPTCHA_URL"
 
         # OCR captcha and show ascii image to stderr simultaneously
-        CAPTCHA=$(ccurl "$BASEURL/$CAPTCHA_URL" | show_image_and_tee |
+        CAPTCHA=$(curl -b $COOKIES "$BASEURL/$CAPTCHA_URL" | show_image_and_tee |
                 convert -contrast-stretch 0%x74% -threshold 80% -crop '59x19+1+1' +repage jpg:- pbm:- |
                 gocr_ocr | sed 's/ //g' ) ||
             { log_error "running OCR"; return 1; }
@@ -71,7 +80,7 @@ letitbit_download() {
 
         data="cap=$CAPTCHA&uid2=$uid&md5crypt=$md5crypt&fix=1"
         log_debug "Data: $data";
-        WAITPAGE=$(ccurl --data "$data" "$BASEURL/download3.php" 2>/dev/null )
+        WAITPAGE=$(curl -b $COOKIES --data "$data" "$BASEURL/download3.php" 2>/dev/null )
         # <span name="errt" id="errt">60</span>
         FILEURL=$(echo "$WAITPAGE" | parse 'link=' 'link=\([^\"]\+\)\"' 2>/dev/null || true)
         test "$FILEURL" && break;
@@ -79,6 +88,7 @@ letitbit_download() {
     done
 
     log_debug "Correct captch (try $TRY)"
+    rm -f $COOKIES
 
     # wait is not necessary, we can download instantly!
     echo "$FILEURL"

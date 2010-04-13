@@ -29,27 +29,34 @@ set -o pipefail
 # - notice: core messages (ocr, countdown, timeout, retries), lastest plowdown curl call
 # - error: modules errors (when return 1)
 
-verbose_level() { 
-  echo ${VERBOSE:-0} 
+verbose_level() {
+  echo ${VERBOSE:-0}
 }
 
-debug() { 
-  echo "$@" >&2; 
+debug() {
+  echo "$@" >&2;
 }
- 
-log_debug() { 
+
+log_debug() {
   test $(verbose_level) -ge 3 && debug "dbg: $@"
-  return 0 
+  return 0
 }
 
-log_notice() { 
+# log_debug for a file
+logcat_debug() {
+  local STRING=$(cat $1 | sed -e 's/^/dbg:/')
+  test $(verbose_level) -ge 3 && debug "$STRING"
+  return 0
+}
+
+log_notice() {
   test $(verbose_level) -ge 2 && debug "$@"
-  return 0 
+  return 0
 }
 
-log_error() { 
+log_error() {
   test $(verbose_level) -ge 1 && debug "$@"
-  return 0 
+  return 0
 }
 
 # Wrapper for curl: debug and infinite loop control
@@ -235,17 +242,21 @@ check_function() {
     declare -F "$1" &>/dev/null
 }
 
-# Login and return cookies
+# Login and return cookie.
+# A non empty cookie file does not means that login is successful.
 #
 # $1: String 'username:password' (password can contain semicolons)
-# $2: Postdata string (ex: 'user=\$USER&password=\$PASSWORD')
-# $3: URL to post
-# $4: Additional curl arguments (optional)
+# $2: Cookie filename (see create_tempfile() modules)
+# $3: Postdata string (ex: 'user=\$USER&password=\$PASSWORD')
+# $4: URL to post
+# $5: Additional curl arguments (optional)
+# stdout: html result (can be null string)
 post_login() {
     AUTH=$1
-    POSTDATA=$2
-    LOGINURL=$3
-    CURL_ARGS=$4
+    COOKIE=$2
+    POSTDATA=$3
+    LOGINURL=$4
+    CURL_ARGS=$5
 
     if [ -n "$AUTH" ]; then
         USER="${AUTH%%:*}"
@@ -261,11 +272,26 @@ post_login() {
         log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
 
         DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
+
         # Yes, no quote around $CURL_ARGS
-        COOKIES=$(curl -o /dev/null -c - $CURL_ARGS --data "$DATA" "$LOGINURL")
-        test "$COOKIES" || { log_error "login error"; return 1; }
-        echo "$COOKIES"
+        RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL")
+
+        # For now "-z" test is kept.
+        # There is no known case of a null $RESULT on successful login.
+        if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
+            log_error "login error"
+            return 1
+        fi
+
+        log_debug "=== COOKIE BEGIN ==="
+        logcat_debug "$COOKIE"
+        log_debug "=== COOKIE END ==="
+
+        echo "$RESULT"
+        return 0
     fi
+
+    return 254
 }
 
 # OCR of an image.
