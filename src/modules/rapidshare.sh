@@ -32,7 +32,6 @@ MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 # "Direct downloads, requested files are saved without redirection via RapidShare"
 # The trick to direct download (not used here) is to append "directstart=1" to URL.
 # For example: http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
-#
 rapidshare_download() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
@@ -47,7 +46,20 @@ rapidshare_download() {
             "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi" >/dev/null
 
     while retry_limit_not_reached || return 3; do
-        PAGE=$(curl -b $COOKIES "$URL")
+        if [ -z "$AUTH" ]; then
+            PAGE=$(curl "$URL")
+        else
+            PAGE=$(curl -b $COOKIES "$URL")
+        fi
+
+        # Detect "Direct downloads" (premium user) option
+        if [ -n "$AUTH" -a -z "$PAGE" -a ! "$CHECK_LINK" ]; then
+            FILE_URL=$(curl -b $COOKIES -i "$URL" | grep_http_header_location)
+            echo $FILE_URL
+            echo
+            echo $COOKIES
+            return 0
+        fi
 
         echo "$PAGE" | grep -q 'file could not be found' &&
             { log_debug "file not found"; return 254; }
@@ -61,16 +73,16 @@ rapidshare_download() {
         echo "$PAGE" | grep -q 'This limit is reached.' &&
             { log_debug "file blocked"; return 254; }
 
-        WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
-            return 1
-
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
             return 255
         fi
 
+        WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
+            return 1
+
         if [ -z "$AUTH" ]; then
-            DATA=$(curl -b $COOKIES --data "dl.start=Free" "$WAIT_URL")
+            DATA=$(curl --data "dl.start=Free" "$WAIT_URL")
         else
             DATA=$(curl -b $COOKIES --data "dl.start=PREMIUM" "$WAIT_URL")
             match 'Your Cookie has not been recognized' "$DATA" &&
@@ -105,6 +117,7 @@ rapidshare_download() {
     if [ -z "$AUTH" ]; then
         SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
         countdown $((SLEEP + 1)) 20 seconds 1 || return 2
+        rm -f $COOKIES
         echo $FILE_URL
     else
         echo $FILE_URL
@@ -230,28 +243,25 @@ rapidshare_upload_premiumzone() {
     COOKIES=$(create_tempfile)
     PREMIUMZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi"
 
+    # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    LOGIN_RESULT=$(post_login "$AUTH_PREMIUMZONE" "$COOKIES" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL")
-    if [ "$?" -eq 1 ]; then
-        log_error "login process failed"
-        rm -f $COOKIES
-        return 1
-    fi
+    post_login "$AUTH_PREMIUMZONE" "$COOKIES" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL" >/dev/null
 
     log_debug "downloading upload page: $PREMIUMZONE_LOGIN_URL"
     UPLOAD_PAGE=$(curl -b $COOKIES $PREMIUMZONE_LOGIN_URL) || return 1
 
     if test -z "$UPLOAD_PAGE"; then
         log_error "login process failed"
+        rm -f $COOKIES
         return 1
     fi
 
     # Extract upload form part
-    UPLOAD_PAGE=$(echo "$UPLOAD_PAGE" | sed -n '/<form .*name="ul"/,/<\/form>/p')
+    UPLOAD_PAGE=$(grep_form_by_name "$UPLOAD_PAGE" 'ul')
 
-    local form_url=$(echo "$UPLOAD_PAGE" | parse '<form .*name="ul"' 'action="\([^"]*\)' 2>/dev/null)
-    local form_login=$(echo "$UPLOAD_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="login"' 'value="\([^"]*\)' 2>/dev/null)
-    local form_password=$(echo "$UPLOAD_PAGE" | parse '<input\([[:space:]]*[^ ]*\)*name="password"' 'value="\([^"]*\)' 2>/dev/null)
+    local form_url=$(echo "$UPLOAD_PAGE" | parse_form_action)
+    local form_login=$(echo "$UPLOAD_PAGE" | parse_form_input_by_name "login")
+    local form_password=$(echo "$UPLOAD_PAGE" | parse_form_input_by_name "password")
 
     log_debug "uploading file: $FILE"
     UPLOADED_PAGE=$(curl -b $COOKIES \
