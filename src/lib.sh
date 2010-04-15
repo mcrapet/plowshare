@@ -220,6 +220,16 @@ matchi() {
     grep -iq "$1" <<< "$2"
 }
 
+# Return base of URL
+# Example: http://www.host.com/a/b/c/d => http://www.host.com
+# $1: URL
+basename_url()
+{
+    # If your shell does not support regexp, use this:
+    # echo $(expr match "$1" '\(http://[^/]*\)'|| echo "$1")
+    [[ "$1" =~ (http://[^/]*) ]] && echo "${BASH_REMATCH[1]}" || echo "$1"
+}
+
 # Create a tempfile and return path
 #
 # $1: Suffix

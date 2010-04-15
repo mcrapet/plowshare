@@ -48,7 +48,7 @@ megaupload_download() {
     COOKIES=$(create_tempfile)
     ERRORURL="http://www.megaupload.com/?c=msg"
     URL=$(echo "$1" | replace 'rotic\.com/' 'porn\.com/')
-    BASEURL=$(expr match "$URL" '\(http://[^/]*\)')
+    BASEURL=$(basename_url "$URL")
 
     # Try to login (if $AUTH not null)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'

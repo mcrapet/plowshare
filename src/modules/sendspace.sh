@@ -35,7 +35,7 @@ sendspace_download() {
 
     test "$CHECK_LINK" && return 255
 
-    HOST=$(expr match "$FILE_URL" '\(http://[^/]*\)')
+    HOST=$(basename_url "$FILE_URL")
     PATH=$(curl -I "$FILE_URL" | grep_http_header_location) || return 1
 
     echo "${HOST}${PATH}"
