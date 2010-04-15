@@ -61,17 +61,27 @@ rapidshare_download() {
             return 0
         fi
 
-        echo "$PAGE" | grep -q 'file could not be found' &&
-            { log_debug "file not found"; return 254; }
-        echo "$PAGE" | grep -q 'suspected to contain illegal content' &&
-            { log_debug "file blocked"; return 254; }
-        echo "$PAGE" | grep -q 'uploader has removed this file from the server' &&
-            { log_debug "file removed by the uploader"; return 254; }
-        echo "$PAGE" | grep -q 'removed from the server, because the file has not been accessed' &&
-            { log_debug "file removed"; return 254; }
-        # This file is neither allocated to a Premium Account, or a Collector's Account, and can therefore only be downloaded 10 times.
-        echo "$PAGE" | grep -q 'This limit is reached.' &&
-            { log_debug "file blocked"; return 254; }
+        # Check for errors:
+        # - This file has been removed from the server, because the file has not been accessed in a long time.
+        # - This file is neither allocated to a Premium Account, or a Collector's Account, and can therefore only be downloaded 10 times.
+        # - Due to a violation of our terms of use, the file has been removed from the server.
+        if match "<h1>Error</h1>" "$PAGE"; then
+            match 'file could not be found' "$PAGE" &&
+                log_debug "file not found"
+            match 'suspected to contain illegal content' "$PAGE" &&
+                log_debug "file blocked"
+            match 'uploader has removed this file from the server' "$PAGE" &&
+                log_debug "file removed by the uploader"
+            match 'removed from the server, because the file has not been accessed' "$PAGE" &&
+                log_debug "file removed"
+            match 'This limit is reached.' "$PAGE" &&
+                log_debug "file blocked"
+            match 'violation of our terms' "$PAGE" &&
+                log_debug "file removed"
+
+            rm -f $COOKIES
+            return 254
+        fi
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
