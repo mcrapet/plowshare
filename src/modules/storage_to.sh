@@ -50,12 +50,12 @@ storage_to_download() {
 
         if [ "$state" == "ok" ]
         then
-            countdown $((count+1)) 10 seconds 1 || return 2
+            wait $((count+1)) seconds || return 2
             break
         elif [ "$state" == "wait" ]
         then
             log_debug "Download limit reached!"
-            countdown $((count+1)) 60 seconds 1 || return 2
+            wait $((count+1)) seconds || return 2
             continue
         else
             log_error "failed state ($state)"

@@ -50,7 +50,7 @@ netload_in_download() {
                 "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
 
         if test -n "$WAIT_TIME"; then
-            countdown $((WAIT_TIME / 100)) 5 seconds 1 || return 2
+            wait $((WAIT_TIME / 100)) seconds || return 2
         fi
 
         CAPTCHA_URL=$(echo "$WAIT_HTML" | parse '<img style="vertical-align' \
@@ -93,10 +93,10 @@ netload_in_download() {
             if [[ "$WAIT_TIME2" -gt 10000 ]]
             then
                 log_debug "Download limit reached!"
-                countdown $((WAIT_TIME2 / 100)) 40 seconds 1 || return 2
+                wait $((WAIT_TIME2 / 100)) seconds || return 2
             else
                 # Supress this wait will lead to a 400 http error (bad request)
-                countdown $((WAIT_TIME2 / 100)) 5 seconds 1 || return 2
+                wait $((WAIT_TIME2 / 100)) seconds || return 2
                 break
             fi
         fi

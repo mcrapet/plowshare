@@ -82,7 +82,7 @@ badongo_download() {
     log_debug "Correct captcha!"
 
     # usual wait time is 60 seconds
-    countdown $((WAIT_TIME)) 5 seconds 1 || return 2
+    wait $((WAIT_TIME)) seconds || return 2
 
     FILE_URL=$(curl -i -b $COOKIES $LINK_PAGE | grep_http_header_location)
     rm -f $COOKIES

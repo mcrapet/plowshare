@@ -43,7 +43,7 @@ filefactory_download() {
     FILE_URL=$(echo "$HTML_PAGE" | parse_attr 'Download with FileFactory Basic' 'href' 2>/dev/null) ||
         { log_error "can't parse filename, website updated?"; return 1; }
 
-    countdown $((WAIT_TIME)) 10 seconds 1
+    wait $((WAIT_TIME)) seconds
 
     echo $FILE_URL
 }

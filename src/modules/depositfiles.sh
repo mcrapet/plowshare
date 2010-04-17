@@ -61,7 +61,7 @@ depositfiles_download() {
         { log_error "cannot get wait time"; return 1; }
 
     # usual wait time is 60 seconds
-    countdown $((SLEEP + 1)) 2 seconds 1 || return 2
+    wait $((SLEEP + 1)) seconds || return 2
 
     echo $FILE_URL
 }
@@ -74,7 +74,7 @@ check_wait() {
         parse "$WORD" "\(\<[[:digit:]]\+\>\) $WORD" 2>/dev/null) || true
     if test "$LIMIT"; then
         log_debug "limit reached: waiting $LIMIT ${WORD}s"
-        countdown $((LIMIT*FACTOR)) 20 seconds 1
+        wait $((LIMIT*FACTOR)) seconds
         return 1
     else
         return 0
@@ -85,6 +85,6 @@ check_ip() {
     echo "$1" | grep -q '<div class="ipbg">' || return 0
     local WAIT=60
     log_debug "IP already downloading, waiting $WAIT seconds"
-    countdown $WAIT 10 seconds 1
+    wait $WAIT seconds
     return 1
 }

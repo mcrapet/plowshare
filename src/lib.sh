@@ -26,7 +26,7 @@ set -o pipefail
 # Logs are sent to standard error.
 # Policy:
 # - debug: modules messages, curl (intermediate) calls
-# - notice: core messages (ocr, countdown, timeout, retries), lastest plowdown curl call
+# - notice: core messages (ocr, wait, timeout, retries), lastest plowdown curl call
 # - error: modules errors (when return 1)
 
 verbose_level() {
@@ -545,49 +545,52 @@ retry_limit_not_reached() {
 }
 
 
-# Countdown from VALUE (in UNIT_STR units) in STEP values
-# Used by plowdown.
+splitseconds() {
+    local S=$1
+    local UNITS=("h" "m" "s")
+    local OUTPUT=("$((S/3600))" "$(((S%3600)/60))" "$((S%60))")
+    for ((N=0; N<3; N++)); do
+        test ${OUTPUT[N]} -ne 0 && echo -n "${OUTPUT[N]}${UNITS[N]}"
+    done
+    echo
+}
+
+# Wait some time
 #
-# $1: Sleep duration (arbitrary unit)
-# $2: Debug message display interval (arbitrary unit)
-# $3: User string naming unit (example: seconds, minutes). Only for debug message display.
-# $4: How many seconds for 1 arbitrary unit
-countdown() {
+# $1: Sleep duration
+# $2: Unit (seconds | minutes)
+wait() {
     local VALUE=$1
-    local STEP=$2
-    local UNIT_STR=$3
-    local UNIT_SECS=$4
+    local UNIT=$2
 
-    test "$VALUE" -a "$STEP" -a "$UNIT_STR" -a "$UNIT_SECS" ||
-        { log_error "countdown arguments error: $@"; return 1; }
+    if [ "$UNIT" = "minutes" ]; then
+        UNIT_SECS=60
+        UNIT_STR=minutes
+    else
+        UNIT_SECS=1
+        UNIT_STR=seconds
+    fi
+    local TOTAL_SECS=$((VALUE * UNIT_SECS))
 
-    # Values in seconds
-    local TOTAL_WAIT=$((VALUE * UNIT_SECS))
-    local TOTAL_STEP=$((STEP * UNIT_SECS))
-
-    timeout_update $TOTAL_WAIT || return 1
-
+    timeout_update $TOTAL_SECS || return 1
     log_notice -n "Waiting $VALUE $UNIT_STR... "
 
-    REMAINING=$((VALUE))
+    REMAINING=$VALUE
+    STEP=1
+    local BS=""
     while [ "$REMAINING" -gt 0 ]; do
-        MSG="$REMAINING left"
+        MSG="$(splitseconds $REMAINING) left"
         log_notice -n "$MSG"
-        BS=$(echo "$MSG" | sed -e 's/./\\b/g')
-
+        BS=$(echo "$MSG" | sed -e 's/./\\b \\b/g')
         if [ $REMAINING -le $STEP ]; then
             sleep $((REMAINING * UNIT_SECS))
             break
         fi
-
-        sleep $TOTAL_STEP
-        ((REMAINING -= STEP))
-
-        log_notice -ne "\b $BS"
+        sleep $STEP
+        REMAINING=$((REMAINING - STEP))
+        log_notice -ne "$BS"
     done
-
+  
     log_notice -ne "$BS"
-
-    # Put some extra spaces to overwrite previous "x left" message
-    log_notice "done!   "
+    log_notice "done"
 }

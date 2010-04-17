@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_RAPIDSHARE_REGEXP_URL="http://\(\w\+\.\)\?rapidshare\.com/"
+MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare\.com/"
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
@@ -105,20 +105,20 @@ rapidshare_download() {
 
         match "is already downloading a file" "$DATA" && {
             log_debug "Your IP is already downloading a file"
-            countdown 2 1 minutes 60 || return 2
+            wait 2 minutes || return 2
             continue
         }
 
         LIMIT=$(echo "$DATA" | parse "minute" \
                 "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
             log_debug "No free slots, server asked to wait $LIMIT minutes"
-            countdown $LIMIT 1 minutes 60 || return 2
+            wait $LIMIT minutes || return 2
             continue
         }
 
         FILE_URL=$(grep_form_by_name "$DATA" 'dlf' | parse_form_action 2>/dev/null) || {
             log_debug "No free slots, waiting 2 minutes (default value)"
-            countdown 2 1 minutes 60 || return 2
+            wait 2 minutes || return 2
             continue
         }
 
@@ -127,7 +127,7 @@ rapidshare_download() {
 
     if [ -z "$AUTH" ]; then
         SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
-        countdown $((SLEEP + 1)) 20 seconds 1 || return 2
+        wait $((SLEEP + 1)) seconds || return 2
         rm -f $COOKIES
         echo $FILE_URL
     else
@@ -309,7 +309,6 @@ rapidshare_delete() {
         { log_error "bad kill link"; return 1; }
 
     log_debug "kill_url=$KILL_URL"
-
     local RESULT=$(curl "$KILL_URL")
 
     if ! match 'The following file has been deleted' "$RESULT"; then
