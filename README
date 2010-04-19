@@ -2,27 +2,27 @@
 
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file-sharing websites. It currently supports:
 
-|| *Website* || *Download* || *Upload* ||
-|| [http://www.2shared.com 2Shared] || anonymous || anonymous ||
-|| [http://www.4shared.com 4Shared] || anonymous || no ||
-|| [http://www.badongo.com Badongo] || anonymous || no ||
-|| [http://www.data.hu Data.hu] || anonymous || no ||
-|| [http://www.depositfiles.com DepositFiles] || anonymous || no ||
-|| [http://www.divshare.com divShare] || anonymous || no ||
-|| [http://dl.free.fr dl.free.fr] || anonymous || no ||
-|| [http://www.filefactory.com FileFactory] || anonymous || no ||
-|| [http://www.humyo.com Humyo] || anonymous || no ||
-|| [http://www.mediafire.com Mediafire] || anonymous || no ||
-|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) ||
-|| [http://www.netload.in Netload.in] || anonymous || no ||
-|| [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone ||
-|| [http://www.sendspace.com Sendspace] || anonymous || no ||
-|| [http://www.storage.to Storage.to] || anonymous || no ||
-|| [http://www.uploaded.to Uploaded.to] || anonymous || no ||
-|| [http://www.uploading.com Uploading.com] || anonymous || no ||
-|| [http://www.usershare.net Usershare] || anonymous || no ||
-|| [http://www.x7.to x7.to] || anonymous, free account || no ||
-|| [http://www.zshare.net ZShare] || anonymous || anonymous ||
+|| *Website* || *Download* || *Upload* || *Delete* || *List* ||
+|| [http://www.2shared.com 2Shared] || anonymous || anonymous || no || no ||
+|| [http://www.4shared.com 4Shared] || anonymous || no || no || no ||
+|| [http://www.badongo.com Badongo] || anonymous || no || no || no ||
+|| [http://www.data.hu Data.hu] || anonymous || no || no || no ||
+|| [http://www.depositfiles.com DepositFiles] || anonymous || no || no || no ||
+|| [http://www.divshare.com divShare] || anonymous || no || no || no ||
+|| [http://dl.free.fr dl.free.fr] || anonymous || no || no || no ||
+|| [http://www.filefactory.com FileFactory] || anonymous || no || no || no ||
+|| [http://www.humyo.com Humyo] || anonymous || no || no || no ||
+|| [http://www.mediafire.com Mediafire] || anonymous || no || no || yes ||
+|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) || yes || yes ||
+|| [http://www.netload.in Netload.in] || anonymous || no || no || no ||
+|| [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone || yes || no ||
+|| [http://www.sendspace.com Sendspace] || anonymous || no || no || no ||
+|| [http://www.storage.to Storage.to] || anonymous || no || no || no ||
+|| [http://www.uploaded.to Uploaded.to] || anonymous || no || no || no ||
+|| [http://www.uploading.com Uploading.com] || anonymous || no || no || no ||
+|| [http://www.usershare.net Usershare] || anonymous || no || no || no ||
+|| [http://www.x7.to x7.to] || anonymous, free account || no || no || no ||
+|| [http://www.zshare.net ZShare] || anonymous || anonymous || yes || no ||
 
 = Dependencies =
 
@@ -30,9 +30,9 @@ To run _plowshare_ and all its modules you will need:
 
   * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: 
     * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): [http://www.gnu.org/software/coreutils/ coreutils], [http://www.gnu.org/software/sed/ sed]
-    * BSD (untested)
-    * OSX (needs some [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches])
-    * Windows/Cygwin (recode is not available as a package but can be recompiled with [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
+    * BSD ([http://code.google.com/p/plowshare/issues/detail?id=55 needs modifications])
+    * OSX (needs [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches] to use GNU tools)
+    * Windows/Cygwin (_recode_ is not available as a package but can be recompiled from [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl] (with SSL support, usually required for premium account)
   * [http://www.gnu.org/software/recode/ recode]
@@ -82,17 +82,17 @@ $ bash PREFIX=/home/$USER setup.sh install
 
 = Usage examples =
 
-The four scripts are sharing the same verbose options: `-v0` (or `-q`),  `-v1` (errors only), `-v2` (default), `-v3` (show all debug messages).
+All four scripts share the same verbose options: `-v0` (alias: `-q`),  `-v1` (errors only), `-v2` (infos message; default), `-v3` (show all messages).
 
 == Download ==
 
-  * Download a file from rapidshare:
+  * Download a file from Rapidshare:
 
 {{{
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
-  * Download a file from rapidshare with a proxy. _curl_ supports `http_proxy` and `https_proxy` environment variables (notice that 3128 is the default port).
+  * Download a file from Rapidshare with a proxy. _curl_ supports `http_proxy` and `https_proxy` environment variables (notice that 3128 is the default port).
 
 {{{
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
@@ -111,19 +111,19 @@ $ plowdown file_with_links.txt
 $ plowdown -m file_with_links.txt
 }}}
 
-  * Limit the download rate to give your bandwidth a break (you can use _curl_ rates: K=Kbps, M=Mbps, G=Gbps):
+  * Limit the download rate (you can use _curl_ rates: K=Kbps, M=Mbps, G=Gbps):
 
 {{{
 $ plowdown -r 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 }}}
 
-  * Download a file from megaupload using a free membership account (semicolon character is the separator):
+  * Download a file from Megaupload using a free membership account (note ':' is used to separate user from password):
 
 {{{
 $ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
 }}}
 
-  * Download a password-protected file from megaupload:
+  * Download a password-protected file from Megaupload:
 
 {{{
 $ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
@@ -141,40 +141,39 @@ $ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"'
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
 }}}
 
-  * Safe download. Each URL will be limited in the number of tries (mainly for captchas) and wait delays. Add this alias in your _~/.bashrc_.
+  * Avoid never-ending downloads: limited the number of tries (mainly for captchas) and wait delays for each link:
 
 {{{
-$ alias plowdown='plowdown --max-retries=20 --timeout=3600'
-$ plowdown --mark-downloaded file_with_links.txt
+$ plowdown --max-retries=20 --timeout=3600 ...
 }}}
 
 == Upload ==
 
-  * Upload a file to the rapidshare collector zone
+  * Upload a file to the Rapidshare collector zone
 
 {{{
 $ plowup --auth-freezone=myuser:mypassword /path/myfile.txt rapidshare
 }}}
 
-  * Upload a file to rapidshare anonymously changing uploaded file name:
+  * Upload a file to Rapidshare anonymously changing uploaded file name:
 
 {{{
 $ plowup /path/myfile.txt rapidshare:anothername.txt
 }}}
 
-  * Upload a file to megaupload with a free membership account:
+  * Upload a file to Megaupload with a free membership account:
 
 {{{
 $ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
 }}}
 
-  * Upload a file to megaupload with a premium account and multifetch upload:
+  * Upload a file to Megaupload with a premium account and multifetch upload:
 
 {{{
 $ plowup -a myuser:mypassword -d "My description" --multifetch http://www.somewherefarbeyond.com/somefile megaupload
 }}}
 
-  * Upload a file to zshare anonymously with a proxy.
+  * Upload a file to Zshare anonymously with a proxy.
 
 {{{
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
@@ -182,7 +181,7 @@ $ export https_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowup /path/myfile.txt zshare
 }}}
 
-Be aware that _curl_ is not capable of uploading files containing a comma (_,_) in their name, so make sure you rename them before using _plowup_.
+Be aware that _curl_ is not capable of uploading files containing a comma (,) in their name, so make sure to rename them before using _plowup_.
 
 == Delete ==
 
@@ -194,10 +193,11 @@ $ plowdel -a myuser:mypassword http://www.megaupload.com/?d=132348234
 
 == List ==
 
-  * List single file links from a shared-folder link:
+  * List links contained in a shared-folder link and download them all safely:
 
 {{{
-$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110
+$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110 > links.txt
+$ plowdown -m links.txt
 }}}
 
 
@@ -208,7 +208,3 @@ _Plowshare_ is designed with modularity in mind, so it sh ould be easy to create
 = Feedback =
 
 If you find a bug in plowshare or want to propose an enhancement open a new [http://code.google.com/p/plowshare/issues/ issue]. For other comments, suggestions, whatever, you can email me: tokland AT gmail.com.
-
-== Request for new modules ==
-
-Plowshare has reached a pretty mature state, and I am fairly satisfied with what it currently does. However, there are dozens of file-sharing websites out there, and naturally users ask for their favorite to be implemented. As you can easily understand, I don't have the time to add support for every one of these websites, so I've decided to establish a quid-pro-quo agreement with plowshare users: if you send me a book/comic -- any language, second hand, something you liked, please ;-) -- I will implement (download only) your favorite website. If you cannot afford to send a book, a postcard would be also ok. Contact me for further information.
