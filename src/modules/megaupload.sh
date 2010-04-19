@@ -52,17 +52,17 @@ megaupload_download() {
 
     # Try to login (if $AUTH not null)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null
-    if [ "$?" -eq 1 ]; then
-        log_error "login process failed"
-        rm -f $COOKIES
-        return 1
-    fi
-
+    test "$AUTH" && { 
+        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || {
+            log_error "login process failed"
+            rm -f $COOKIES
+            return 1
+        }
+    }
     echo $URL | grep -q "\.com/?d=" ||
         URL=$(curl -I "$URL" | grep_http_header_location)
 
-    ccurl() { curl -b <(cat "$COOKIES") "$@"; }
+    ccurl() { curl -b "$COOKIES" "$@"; }
 
     TRY=0
     while retry_limit_not_reached || return 3; do
