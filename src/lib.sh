@@ -575,17 +575,13 @@ wait() {
     timeout_update $TOTAL_SECS || return 1
     log_notice -n "Waiting $VALUE $UNIT_STR... "
 
-    REMAINING=$VALUE
+    REMAINING=$TOTAL_SECS
     STEP=1
     local BS=""
     while [ "$REMAINING" -gt 0 ]; do
         MSG="$(splitseconds $REMAINING) left"
         log_notice -n "$MSG"
         BS=$(echo "$MSG" | sed -e 's/./\\b \\b/g')
-        if [ $REMAINING -le $STEP ]; then
-            sleep $((REMAINING * UNIT_SECS))
-            break
-        fi
         sleep $STEP
         REMAINING=$((REMAINING - STEP))
         log_notice -ne "$BS"
