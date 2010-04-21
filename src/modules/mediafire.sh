@@ -27,8 +27,8 @@ MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 mediafire_download() {
     set -e
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
 
+    URL=$1
     COOKIESFILE=$(create_tempfile)
     PAGE=$(curl -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
     COOKIES=$(< $COOKIESFILE)
@@ -55,11 +55,13 @@ get_ofuscated_link() {
     local COOKIES=$2
     BASE_URL="http://www.mediafire.com"
 
+    JS_PRG=$(detect_javascript) || return 1
+
     FUNCTIONS=$(echo "$PAGE" | grep -o "function [[:alnum:]]\+[[:space:]]*(qk" |
                 sed -n 's/^.*function[[:space:]]\+\([^(]\+\).*$/\1/p')
     test "$FUNCTIONS" ||
         { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
-    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" | 
+    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" |
              sed -n '/Eo[[:space:]]*();/,/^var jc=Array();/p' |
              tail -n"+2" | head -n"-2" | tr -d '\n')
     test "$JSCODE" ||
@@ -70,7 +72,7 @@ get_ofuscated_link() {
                   print('$FUNCTION' + ',' + qk + ',' + pk + ',' + r); }"
         done
         echo $JSCODE
-    } | js) ||
+    } | $JS_PRG) ||
         { log_error "get_ofuscated_links: error running main JS code"; return 1; }
     IFS="," read FUNCTION QK PK R < <(echo "$JS_CALL" | tr -d "'")
     test "$FUNCTION" -a "$QK" -a "$PK" -a "$R" ||
@@ -97,7 +99,7 @@ get_ofuscated_link() {
         "
         echo "$JS_CODE" | tail -n "+2" | head -n "-1"
         echo "dz();"
-    } | js | parse "'$DIVID'" 'href="\(.*\)"'
+    } | $JS_PRG | parse "'$DIVID'" 'href="\(.*\)"'
 }
 
 # List a mediafire shared file folder URL

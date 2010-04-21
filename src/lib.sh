@@ -304,6 +304,19 @@ post_login() {
     return 254
 }
 
+# Dectect if a JavaScript interpreter is installed
+#
+# stdout: path of executable
+# $?: boolean (0 means found)
+detect_javascript() {
+    if ! which js &>/dev/null; then
+        log_notice "Javascript interpreter not found"
+        return 1
+    fi
+    echo "js"
+    return 0
+}
+
 # OCR of an image.
 #
 # $1: optional varfile
@@ -586,7 +599,7 @@ wait() {
         REMAINING=$((REMAINING - STEP))
         log_notice -ne "$BS"
     done
-  
+
     log_notice -ne "$BS"
     log_notice "done"
 }

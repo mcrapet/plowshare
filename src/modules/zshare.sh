@@ -49,8 +49,9 @@ zshare_download() {
     wait $((WAITTIME)) seconds || return 2
 
     JSCODE=$(echo "$WAITPAGE" | grep "var link_enc")
+    JS_PRG=$(detect_javascript) || return 1
 
-    FILE_URL=$(echo "$JSCODE" "; print(link);" | js)
+    FILE_URL=$(echo "$JSCODE" "; print(link);" | $JS_PRG)
     FILENAME=$(echo "$WAITPAGE" |\
         parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
 
