@@ -116,9 +116,7 @@ megaupload_download() {
                 rm -f $COOKIES
                 return 255
             fi
-
-            WAITTIME=2
-            wait $WAITTIME minutes
+            wait 2 minutes
             continue
         fi
 

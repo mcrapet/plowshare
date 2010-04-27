@@ -370,7 +370,7 @@ show_image_and_tee() {
     elif which img2txt &>/dev/null; then
         caca_ascii_image $TEMPIMG >&2
     else
-        log_notice "Install aview or libcaca to display captcha image"
+        log_notice "Install aview or img2txt (libcaca) to display captcha image"
     fi
     cat $TEMPIMG
     rm -f $TEMPIMG
@@ -586,20 +586,13 @@ wait() {
     local TOTAL_SECS=$((VALUE * UNIT_SECS))
 
     timeout_update $TOTAL_SECS || return 1
-    log_notice -n "Waiting $VALUE $UNIT_STR... "
-
-    REMAINING=$TOTAL_SECS
-    STEP=1
-    local BS=""
+    
+    local REMAINING=$TOTAL_SECS
+    local MSG="Waiting $VALUE $UNIT_STR..."
     while [ "$REMAINING" -gt 0 ]; do
-        MSG="$(splitseconds $REMAINING) left"
-        log_notice -n "$MSG"
-        BS=$(echo "$MSG" | sed -e 's/./\\b \\b/g')
-        sleep $STEP
-        REMAINING=$((REMAINING - STEP))
-        log_notice -ne "$BS"
-    done
-
-    log_notice -ne "$BS"
-    log_notice "done"
+        log_notice -ne "\r$MSG $(splitseconds $REMAINING) left"
+        sleep 1
+        REMAINING=$((REMAINING - 1))
+    done  
+    log_notice -e "\r$MSG done"
 }
