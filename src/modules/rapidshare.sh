@@ -42,8 +42,14 @@ rapidshare_download() {
     # Try to login if account provided ($AUTH not null)
     # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" \
-            "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi" >/dev/null
+    test "$AUTH" && {
+        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" \
+                "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi" >/dev/null || {
+            log_error "login process failed"
+            rm -f $COOKIES
+            return 1
+        }
+    }
 
     while retry_limit_not_reached || return 3; do
         if [ -z "$AUTH" ]; then
