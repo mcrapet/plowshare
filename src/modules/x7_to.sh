@@ -39,8 +39,18 @@ x7_to_download() {
     else
         # Do the secure HTTP login! Adding --referer is mandatory.
         LOGIN_DATA='id=$USER&pw=$PASSWORD'
-        post_login "$AUTH_FREE" "$COOKIES" "$LOGIN_DATA" \
-                "${BASE_URL}/james/login" "--referer ${BASE_URL}" >/dev/null
+        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIES" "$LOGIN_DATA" \
+                "${BASE_URL}/james/login" "--referer ${BASE_URL}") || {
+            rm -f $COOKIES
+            return 1
+        }
+
+        # {err:"Benutzer und Passwort stimmen nicht überein."}
+        if match '^{err:' "$LOGIN_RESULT"; then
+            log_error "login process failed"
+            rm -f $COOKIES
+            return 1
+        fi
     fi
 
     while retry_limit_not_reached || return 3; do
@@ -76,8 +86,8 @@ x7_to_download() {
 
         # According to http://x7.to/js/download.js
         DATA=$(curl -b $COOKIES -b "cookie_test=enabled; ref=ref_user=6649&ref_file=${ref_fid}&url=&date=1234567890" \
-                    --data-binary ""                      \
-                    --referer "$URL"                      \
+                    --data-binary "" \
+                    --referer "$URL" \
                     "$BASE_URL/james/ticket/dl/$ref_fid")
 
         # Parse JSON object

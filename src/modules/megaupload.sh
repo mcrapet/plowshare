@@ -48,17 +48,17 @@ megaupload_download() {
     COOKIES=$(create_tempfile)
     ERRORURL="http://www.megaupload.com/?c=msg"
     URL=$(echo "$1" | replace 'rotic\.com/' 'porn\.com/')
-    BASEURL=$(basename_url "$URL")
 
     # Try to login (if $AUTH not null)
-    LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    test "$AUTH" && { 
+    if [ -n "$AUTH" ]; then
+        LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
+        BASEURL=$(basename_url "$URL")
         post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || {
-            log_error "login process failed"
             rm -f $COOKIES
             return 1
         }
-    }
+    fi
+
     echo $URL | grep -q "\.com/?d=" ||
         URL=$(curl -I "$URL" | grep_http_header_location)
 
@@ -176,14 +176,15 @@ megaupload_upload() {
     local FILE=$1
     local DESTFILE=${2:-$FILE}
     local LOGINURL="http://www.megaupload.com/?c=login"
+    local BASEURL=$(basename_url "$LOGINURL")
 
     COOKIES=$(create_tempfile)
-    LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null
-    if [ "$?" -eq 1 ]; then
-        log_error "login process failed"
-        rm -f $COOKIES
-        return 1
+    if [ -n "$AUTH" ]; then
+        LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
+        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null || {
+            rm -f $COOKIES
+            return 1
+        }
     fi
 
     if [ "$MULTIFETCH" ]; then
@@ -191,8 +192,8 @@ megaupload_upload() {
       STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
       STATUSLOOPTIME=5
 
-      # FIXME: this is not good, cookie will contain sessionid
-      [ -z "$COOKIES" ] &&
+      # Cookie file must contain sessionid
+      [ -s "$COOKIES" ] ||
           { log_error "Premium account required to use multifetch"; return 2; }
 
       log_debug "spawn URL fetch process: $FILE"
@@ -261,12 +262,10 @@ megaupload_delete() {
 
     COOKIES=$(create_tempfile)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null
-    if [ "$?" -eq 1 ]; then
-        log_error "login process failed"
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null || {
         rm -f $COOKIES
         return 1
-    fi
+    }
 
     FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
     DATA="action=deleteItems&items_list[]=file_$FILEID&mode=modeAll&parent_id=0"
@@ -284,13 +283,14 @@ megaupload_list() {
     URL=$1
     XMLURL="http://www.megaupload.com/xml/folderfiles.php"
     FOLDERID=$(echo "$URL" | grep -o "f=[^=]\+$" | cut -d"=" -f2-) ||
-      { log_error "cannot parse url: $URL"; return 1; }
+        { log_error "cannot parse url: $URL"; return 1; }
     XML=$(curl "$XMLURL/?folderid=$FOLDERID")
     match "<FILES></FILES>" "$XML" &&
-      { log_notice "Folder link not found"; return 254; }
+        { log_notice "Folder link not found"; return 254; }
     echo "$XML" | parse_all_attr "<ROW" "url"
 }
 
+# FIXME: get rid of this
 get_location() {
     grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
 }

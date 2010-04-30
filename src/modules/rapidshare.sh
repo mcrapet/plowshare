@@ -39,17 +39,16 @@ rapidshare_download() {
     URL=$1
     COOKIES=$(create_tempfile)
 
-    # Try to login if account provided ($AUTH not null)
+    # Try to login if account provided
     # Even if login/passwd are wrong cookie content is returned
-    LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    test "$AUTH" && {
+    if [ -n "$AUTH" ]; then
+        LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
         post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" \
                 "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi" >/dev/null || {
-            log_error "login process failed"
             rm -f $COOKIES
             return 1
         }
-    }
+    fi
 
     while retry_limit_not_reached || return 3; do
         if [ -z "$AUTH" ]; then
@@ -206,15 +205,20 @@ rapidshare_upload_freezone() {
     FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
 
     LOGIN_DATA='username=$USER&password=$PASSWORD'
-    LOGIN_RESULT=$(post_login "$AUTH_FREEZONE" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL")
-    if [ "$?" -eq 1 ]; then
-        log_error "login process failed"
+    LOGIN_RESULT=$(post_login "$AUTH_FREEZONE" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") || {
+        rm -f $COOKIES
+        return 1
+    }
+
+    if match 'The Account has been found, password incorrect' "$LOGIN_RESULT"; then
+        log_error "login process failed (wrong password)"
         rm -f $COOKIES
         return 1
     fi
 
     log_debug "downloading upload page: $FREEZONE_LOGIN_URL"
     UPLOAD_PAGE=$(curl -b $COOKIES $FREEZONE_LOGIN_URL) || return 1
+
     ACCOUNTID=$(echo "$UPLOAD_PAGE" | \
         parse 'name="freeaccountid"' 'value="\([[:digit:]]*\)"')
     ACTION=$(echo "$UPLOAD_PAGE" | parse '<form name="ul"' 'action="\([^"]*\)"')
@@ -262,7 +266,10 @@ rapidshare_upload_premiumzone() {
 
     # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    post_login "$AUTH_PREMIUMZONE" "$COOKIES" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL" >/dev/null
+    post_login "$AUTH_PREMIUMZONE" "$COOKIES" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL" >/dev/null || {
+        rm -f $COOKIES
+        return 1
+    }
 
     log_debug "downloading upload page: $PREMIUMZONE_LOGIN_URL"
     UPLOAD_PAGE=$(curl -b $COOKIES $PREMIUMZONE_LOGIN_URL) || return 1

@@ -261,6 +261,7 @@ check_function() {
 # $4: URL to post
 # $5: Additional curl arguments (optional)
 # stdout: html result (can be null string)
+# $? is zero on success
 post_login() {
     AUTH=$1
     COOKIE=$2
@@ -268,40 +269,36 @@ post_login() {
     LOGINURL=$4
     CURL_ARGS=$5
 
-    if [ -n "$AUTH" ]; then
-        USER="${AUTH%%:*}"
-        PASSWORD="${AUTH#*:}"
+    USER="${AUTH%%:*}"
+    PASSWORD="${AUTH#*:}"
 
-        if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
-            log_notice "No password specified, enter it now"
-            stty -echo
-            read -p "Enter password: " PASSWORD
-            stty echo
-        fi
-
-        log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
-
-        DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
-
-        # Yes, no quote around $CURL_ARGS
-        RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL")
-
-        # For now "-z" test is kept.
-        # There is no known case of a null $RESULT on successful login.
-        if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
-            log_error "login error"
-            return 1
-        fi
-
-        log_debug "=== COOKIE BEGIN ==="
-        logcat_debug "$COOKIE"
-        log_debug "=== COOKIE END ==="
-
-        echo "$RESULT"
-        return 0
+    if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
+        log_notice "No password specified, enter it now"
+        stty -echo
+        read -p "Enter password: " PASSWORD
+        stty echo
     fi
 
-    return 254
+    log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+
+    DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
+
+    # Yes, no quote around $CURL_ARGS
+    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL")
+
+    # For now "-z" test is kept.
+    # There is no known case of a null $RESULT on successful login.
+    if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
+        log_error "login request failed"
+        return 1
+    fi
+
+    log_debug "=== COOKIE BEGIN ==="
+    logcat_debug "$COOKIE"
+    log_debug "=== COOKIE END ==="
+
+    echo "$RESULT"
+    return 0
 }
 
 # Dectect if a JavaScript interpreter is installed
@@ -586,14 +583,14 @@ wait() {
     local TOTAL_SECS=$((VALUE * UNIT_SECS))
 
     timeout_update $TOTAL_SECS || return 1
-    
+
     local REMAINING=$TOTAL_SECS
     local MSG="Waiting $VALUE $UNIT_STR..."
     local CLEAR="     \b\b\b\b\b"
     while [ "$REMAINING" -gt 0 ]; do
         log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
         sleep 1
-        REMAINING=$((REMAINING - 1))
-    done  
+        (( REMAINING-- ))
+    done
     log_notice -e "\r$MSG done${CLEAR}"
 }
