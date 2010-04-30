@@ -78,7 +78,7 @@ done
 # Guess if item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments)-
 process_item() {
-    ITEM=$1
+    local ITEM=$1    
     if match "^http://" "$ITEM"; then
         echo "url|$ITEM"
     elif [ -f "$ITEM" ]; then
@@ -108,7 +108,7 @@ usage() {
 
 # If MARK_DOWN is enable, mark status of link (inside file or to stdout).
 mark_queue() {
-    local TYPE=$1; local MARK_DOWN=$2; ITEM=$3; local URL=$4; local TEXT=$5
+    local TYPE=$1; local MARK_DOWN=$2; local ITEM=$3; local URL=$4; local TEXT=$5
     test -z "$MARK_DOWN" && return 0
     if test "$TYPE" = "file"; then
         local FILE=$ITEM
@@ -171,8 +171,8 @@ download() {
     retry_limit_init $MAXRETRIES
 
     while true; do
-        local DRETVAL=0
-        RESULT=$($FUNCTION "$@" "$URL") || DRETVAL=$?
+        local DRETVAL=0        
+        RESULT=$($FUNCTION "$@" "$(strip "$URL")") || DRETVAL=$?
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then

@@ -77,6 +77,11 @@ replace() {
     sed -e "s#$1#$2#g"
 }
 
+# Delete leading and trailing spaces, tabs, \r, ... 
+strip() {
+    echo "$1" | sed "s/^[[:space:]]*//; s/[[:space:]]*$//"
+}
+
 # Return uppercase string
 uppercase() {
     tr '[a-z]' '[A-Z]'
