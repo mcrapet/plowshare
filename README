@@ -16,7 +16,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) || yes || yes ||
 || [http://www.netload.in Netload.in] || anonymous || no || no || no ||
 || [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone || yes || no ||
-|| [http://www.sendspace.com Sendspace] || anonymous || no || no || no ||
+|| [http://www.sendspace.com Sendspace] || anonymous || no || no || yes ||
 || [http://www.storage.to Storage.to] || anonymous || no || no || no ||
 || [http://www.uploaded.to Uploaded.to] || anonymous || no || no || no ||
 || [http://www.uploading.com Uploading.com] || anonymous || no || no || no ||

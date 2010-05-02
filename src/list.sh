@@ -21,7 +21,7 @@
 set -e
 
 VERSION="0.9.2"
-MODULES="mediafire hotfile megaupload"
+MODULES="mediafire hotfile megaupload sendspace"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowlist version

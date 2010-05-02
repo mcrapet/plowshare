@@ -156,7 +156,7 @@ MEGAUPLOAD_FOLDER_URL="http://www.megaupload.com/?f=M7L4UC3G"
 
 test_megaupload_list() {
     URLS=$(list $MEGAUPLOAD_FOLDER_URL)
-    assert_equal 12 "$(echo "$URLS" | wc -l)" 
+    assert_equal 12 "$(echo "$URLS" | wc -l)"
     assert_equal "http://www.megaupload.com/?d=BIVNP2SM" "$(echo "$URLS" | head -n1)"
 }
 
@@ -356,6 +356,14 @@ test_sendspace_download() {
 
 test_sendspace_check_active_link() {
     assert_equal "$SENDSPACE_URL" "$(download -c $SENDSPACE_URL)" || return 1
+}
+
+SENDSPACE_FOLDER_URL="http://www.sendspace.com/folder/w0uxuo"
+
+test_sendspace_list() {
+    URLS=$(list $SENDSPACE_FOLDER_URL)
+    assert_equal 8 "$(echo "$URLS" | wc -l)"
+    assert_equal "http://www.sendspace.com/file/lpcqke" "$(echo "$URLS" | head -n1)"
 }
 
 # x7.to
