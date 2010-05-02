@@ -70,7 +70,7 @@ sendspace_list() {
         return 0
     fi
 
-    # Stay at depth=1 (we do not recurse intro directories)
+    # Stay at depth=1 (we do not recurse into directories)
     LINKS=$(echo "$LINKS" "$SUBDIRS")
 
     # First pass : print debug message
