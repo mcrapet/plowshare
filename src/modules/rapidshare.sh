@@ -68,6 +68,7 @@ rapidshare_download() {
 
         # Check for errors:
         # - The file could not be found. Please check the download link.
+        # - The uploader has removed this file from the server.
         # - This file has been removed from the server, because the file has not been accessed in a long time.
         # - This file is neither allocated to a Premium Account, or a Collector's Account, and can therefore only be downloaded 10 times.
         # - Due to a violation of our terms of use, the file has been removed from the server.
