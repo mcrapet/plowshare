@@ -72,6 +72,7 @@ rapidshare_download() {
         # - This file has been removed from the server, because the file has not been accessed in a long time.
         # - This file is neither allocated to a Premium Account, or a Collector's Account, and can therefore only be downloaded 10 times.
         # - Due to a violation of our terms of use, the file has been removed from the server.
+        # - This file is larger than 200 Megabyte. To download this file, you either need a Premium Account, or the owner of this file may carry the downloading cost by making use of "TrafficShare".
         if match "<h1>Error</h1>" "$PAGE"; then
             match 'file could not be found' "$PAGE" &&
                 log_debug "file not found"
@@ -85,6 +86,8 @@ rapidshare_download() {
                 log_debug "file blocked"
             match 'violation of our terms' "$PAGE" &&
                 log_debug "file removed"
+            match 'larger than 200 Megabyte' "$PAGE" &&
+                log_debug "premium link"
 
             rm -f $COOKIES
             return 254
