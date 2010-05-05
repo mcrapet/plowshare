@@ -55,6 +55,7 @@ share/plowshare/examples/plowdown_parallel.sh
 share/plowshare/lib.sh
 share/plowshare/list.sh
 share/plowshare/modules
+share/plowshare/modules/115.sh
 share/plowshare/modules/2shared.sh
 share/plowshare/modules/4shared.sh
 share/plowshare/modules/badongo.sh
