@@ -182,7 +182,7 @@ rapidshare_upload_anonymous() {
     ACTION=$(grep_form_by_name "$DATA" 'ul' | parse_form_action) || return 1
     log_debug "upload to: $ACTION"
 
-    INFO=$(curl -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION") || return 1
+    INFO=$(curl_upload -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION") || return 1
     URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<") || return 1
     KILL=$(echo "$INFO" | parse "loeschlink" ">\(.*\)<")
 
@@ -225,7 +225,7 @@ rapidshare_upload_freezone() {
     ACTION=$(echo "$UPLOAD_PAGE" | parse '<form name="ul"' 'action="\([^"]*\)"')
     IFS=":" read USER PASSWORD <<< "$AUTH_FREEZONE"
     log_debug "uploading file: $FILE"
-    UPLOADED_PAGE=$(curl -b $COOKIES \
+    UPLOADED_PAGE=$(curl_upload -b $COOKIES \
         -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "freeaccountid=$ACCOUNTID" \
         -F "password=$PASSWORD" \
@@ -289,7 +289,7 @@ rapidshare_upload_premiumzone() {
     local form_password=$(echo "$UPLOAD_PAGE" | parse_form_input_by_name "password")
 
     log_debug "uploading file: $FILE"
-    UPLOADED_PAGE=$(curl -b $COOKIES \
+    UPLOADED_PAGE=$(curl_upload -b $COOKIES \
         -F "login=$form_login" \
         -F "password=$form_password" \
         -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \

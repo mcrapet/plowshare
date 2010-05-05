@@ -231,9 +231,7 @@ download() {
                 TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
 
             # Force (temporarily) debug verbose level to dispay curl download progress
-            local TEMP_VERBOSE=3
-            [ "$VERBOSE" -eq "0" ] && TEMP_VERBOSE=0 || true
-            CODE=$(VERBOSE=$TEMP_VERBOSE ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
+            CODE=$(with_log ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
                 -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
 
             test "$COOKIES" && rm $COOKIES

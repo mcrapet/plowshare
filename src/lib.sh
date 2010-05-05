@@ -59,6 +59,12 @@ log_error() {
   return 0
 }
 
+with_log() {
+    local TEMP_VERBOSE=3
+    test "$VERBOSE" -eq "0" && TEMP_VERBOSE=0 || true
+    VERBOSE=$TEMP_VERBOSE "$@"
+}
+
 # Wrapper for curl: debug and infinite loop control
 curl() {
     local -a OPTIONS=(--insecure)
@@ -71,6 +77,10 @@ curl() {
     set -- $(type -P curl) "${OPTIONS[@]}" "$@"
     "$@" || DRETVAL=$?
     return $DRETVAL
+}
+
+curl_upload() {
+    with_log curl "$@"
 }
 
 replace() {

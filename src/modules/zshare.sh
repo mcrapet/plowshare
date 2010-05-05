@@ -82,7 +82,7 @@ zshare_upload() {
         { log_debug "cannot get upload form URL"; return 1; }
 
     log_debug "starting file upload: $FILE"
-    INFOPAGE=$(curl -L \
+    INFOPAGE=$(curl_upload -L \
         -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
         -F "desc=$DESCRIPTION" \
         -F "is_private=0"      \
