@@ -30,33 +30,33 @@ set -o pipefail
 # - error: modules errors (when return 1)
 
 verbose_level() {
-  echo ${VERBOSE:-0}
+    echo ${VERBOSE:-0}
 }
 
 debug() {
-  echo "$@" >&2;
+    echo "$@" >&2;
 }
 
 log_debug() {
-  test $(verbose_level) -ge 3 && debug "dbg: $@"
-  return 0
+    test $(verbose_level) -ge 3 && debug "dbg: $@"
+    return 0
 }
 
 # log_debug for a file
 logcat_debug() {
-  local STRING=$(cat $1 | sed -e 's/^/dbg:/')
-  test $(verbose_level) -ge 3 && debug "$STRING"
-  return 0
+    local STRING=$(cat $1 | sed -e 's/^/dbg:/')
+    test $(verbose_level) -ge 3 && debug "$STRING"
+    return 0
 }
 
 log_notice() {
-  test $(verbose_level) -ge 2 && debug "$@"
-  return 0
+    test $(verbose_level) -ge 2 && debug "$@"
+    return 0
 }
 
 log_error() {
-  test $(verbose_level) -ge 1 && debug "$@"
-  return 0
+    test $(verbose_level) -ge 1 && debug "$@"
+    return 0
 }
 
 with_log() {
@@ -87,7 +87,7 @@ replace() {
     sed -e "s#$1#$2#g"
 }
 
-# Delete leading and trailing spaces, tabs, \r, ... 
+# Delete leading and trailing spaces, tabs, \r, ...
 strip() {
     echo "$1" | sed "s/^[[:space:]]*//; s/[[:space:]]*$//"
 }
@@ -326,6 +326,19 @@ detect_javascript() {
         return 1
     fi
     echo "js"
+    return 0
+}
+
+# Dectect if a Perl interpreter is installed
+#
+# stdout: path of executable
+# $?: boolean (0 means found)
+detect_perl() {
+    if ! which perl &>/dev/null; then
+        log_notice "Perl interpreter not found"
+        return 1
+    fi
+    echo "perl"
     return 0
 }
 

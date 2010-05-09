@@ -35,7 +35,7 @@ netload_in_download() {
     local try=0
     while retry_limit_not_reached || return 3; do
         ((try++))
-        WAIT_URL=$(curl --location -c $COOKIES "$URL" |\
+        WAIT_URL=$(curl --location -c $COOKIES "$URL" | \
             parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||
             { log_debug "file not found"; return 254; }
 
@@ -43,6 +43,8 @@ netload_in_download() {
             rm -f $COOKIES
             return 255
         fi
+
+        PERL_PRG=$(detect_perl) || { rm -f $COOKIES; return 1; }
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
         WAIT_HTML=$(curl -b $COOKIES $WAIT_URL)
@@ -59,7 +61,7 @@ netload_in_download() {
 
         log_debug "Try $try:"
 
-        CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | perl $LIBDIR/strip_single_color.pl |
+        CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl |
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% -compress none -depth 8 tif:- |
                 show_image_and_tee | ocr digit | sed "s/[^0-9]//g") ||
                 { log_error "error running OCR"; return 1; }
