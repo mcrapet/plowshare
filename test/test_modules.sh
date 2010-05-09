@@ -308,10 +308,10 @@ test_uploaded_to_check_active_link() {
 
 # Netload.in
 
-NETLOAD_IN_URL="http://netload.in/dateiwDu3f8HcwV/RFCs0001-0500.tar.gz.htm"
+NETLOAD_IN_URL="http://netload.in/dateiiknKlFWEM2/plowshare.bin.htm"
 
 test_netload_in_download() {
-    FILENAME="RFCs0001-0500.tar.gz"
+    FILENAME="plowshare.bin"
     assert_equal "$FILENAME" "$(download $NETLOAD_IN_URL)" || return 1
     rm -f $FILENAME
 }
