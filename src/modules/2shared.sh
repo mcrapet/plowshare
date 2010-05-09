@@ -64,7 +64,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
 
     log_debug "starting file upload: $FILE"
-    STATUS=$(curl \
+    STATUS=$(curl_upload \
         -F "mainDC=1" \
         -F "fff=@$FILE;filename=$(basename "$DESTFILE")" \
         "$ACTION")
