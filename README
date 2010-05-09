@@ -3,26 +3,27 @@
 _Plowshare_ is a command-line downloader and uploader for some of the most popular file-sharing websites. It currently supports:
 
 || *Website* || *Download* || *Upload* || *Delete* || *List* ||
-|| [http://www.2shared.com 2Shared] || anonymous || anonymous || no || no ||
-|| [http://www.4shared.com 4Shared] || anonymous || no || no || no ||
-|| [http://www.badongo.com Badongo] || anonymous || no || no || no ||
-|| [http://www.data.hu Data.hu] || anonymous || no || no || no ||
-|| [http://www.depositfiles.com DepositFiles] || anonymous || no || no || no ||
-|| [http://www.divshare.com divShare] || anonymous || no || no || no ||
-|| [http://dl.free.fr dl.free.fr] || anonymous || no || no || no ||
-|| [http://www.filefactory.com FileFactory] || anonymous || no || no || no ||
-|| [http://www.humyo.com Humyo] || anonymous || no || no || no ||
-|| [http://www.mediafire.com Mediafire] || anonymous || no || no || yes ||
+|| [http://www.115.com 115.com] || anonymous || -|| -|| -||
+|| [http://www.2shared.com 2Shared] || anonymous || anonymous || -|| -||
+|| [http://www.4shared.com 4Shared] || anonymous || -|| -|| -||
+|| [http://www.badongo.com Badongo] || anonymous || -|| -|| -||
+|| [http://www.data.hu Data.hu] || anonymous || -|| -|| -||
+|| [http://www.depositfiles.com DepositFiles] || anonymous || -|| -|| -||
+|| [http://www.divshare.com divShare] || anonymous || -|| -|| -||
+|| [http://dl.free.fr dl.free.fr] || anonymous || -|| -|| -||
+|| [http://www.filefactory.com FileFactory] || anonymous || -|| -|| -||
+|| [http://www.humyo.com Humyo] || anonymous || -|| -|| -||
+|| [http://www.mediafire.com Mediafire] || anonymous || -|| -|| yes ||
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) || yes || yes ||
-|| [http://www.netload.in Netload.in] || anonymous || no || no || no ||
-|| [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone || yes || no ||
-|| [http://www.sendspace.com Sendspace] || anonymous || no || no || yes ||
-|| [http://www.storage.to Storage.to] || anonymous || no || no || no ||
-|| [http://www.uploaded.to Uploaded.to] || anonymous || no || no || no ||
-|| [http://www.uploading.com Uploading.com] || anonymous || no || no || no ||
-|| [http://www.usershare.net Usershare] || anonymous || no || no || no ||
-|| [http://www.x7.to x7.to] || anonymous, free account || no || no || no ||
-|| [http://www.zshare.net ZShare] || anonymous || anonymous || yes || no ||
+|| [http://www.netload.in Netload.in] || anonymous || -|| -|| -||
+|| [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone || yes || -||
+|| [http://www.sendspace.com Sendspace] || anonymous || -|| -|| yes ||
+|| [http://www.storage.to Storage.to] || anonymous || -|| -|| -||
+|| [http://www.uploaded.to Uploaded.to] || anonymous || -|| -|| -||
+|| [http://www.uploading.com Uploading.com] || anonymous || -|| -|| -||
+|| [http://www.usershare.net Usershare] || anonymous || -|| -|| -||
+|| [http://www.x7.to x7.to] || anonymous, free account || -|| -|| -||
+|| [http://www.zshare.net ZShare] || anonymous || anonymous || yes || -||
 
 = Dependencies =
 
