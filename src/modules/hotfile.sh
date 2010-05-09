@@ -62,9 +62,6 @@ hotfile_download() {
             return 255
         fi
 
-        SLEEP=$((SLEEP / 1000))
-        wait $((SLEEP)) seconds || return 2
-
         # Send (post) form
         local FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f')
         local form_url=$(echo "$FORM_HTML" | parse_form_action)
@@ -73,10 +70,14 @@ hotfile_download() {
         local form_tmhash=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
         local form_wait=$(echo "$FORM_HTML" | parse_form_input_by_name 'wait')
         local form_waithash=$(echo "$FORM_HTML" | parse_form_input_by_name 'waithash')
+        local form_upidhash=$(echo "$FORM_HTML" | parse_form_input_by_name 'upidhash')
+
+        SLEEP=$((SLEEP / 1000))
+        wait $((SLEEP)) seconds || return 2
 
         # We want "Content-Type: application/x-www-form-urlencoded"
-        WAIT_HTML2=$(curl -b $COOKIES --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}" \
-            "$BASE_URL/$form_url") || return 1
+        WAIT_HTML2=$(curl -b $COOKIES --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
+            "${BASE_URL}${form_url}") || return 1
 
         # Direct download (no captcha)
         if match 'Click here to download' "$WAIT_HTML2"
@@ -99,21 +100,27 @@ hotfile_download() {
 
         # Captcha page
         # Main engine: http://api.recaptcha.net/js/recaptcha.js
-        elif match 'recaptcha\.net' "$WAIT_HTML2"
+        elif match 'api\.recaptcha\.net' "$WAIT_HTML2"
         then
-            local form2_url=$(echo "$WAIT_HTML2" | parse '<form .*\/dl\/' 'action="\([^"]*\)' 2>/dev/null)
-            local form2_action=$(echo "$WAIT_HTML2" | parse '<input [^ ]* name="action"' 'value="\([^"]*\)' 2>/dev/null)
-            local form2_resp_field=$(echo "$WAIT_HTML2" | parse '<input [^ ]* name="recaptcha_response_field' 'value="\([^"]*\)' 2>/dev/null)
-            local repatcha_js_vars=$(echo "$WAIT_HTML2" | parse 'recaptcha.net\/challenge?k=' 'src="\([^"]*\)' 2>/dev/null)
+            local FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
+            local form2_url=$(echo "$FORM2_HTML" | parse_form_action)
+            local form2_action=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
+            local form2_resp_field=$(echo "$FORM2_HTML" | parse_form_input_by_name 'recaptcha_response_field')
+            local repatcha_js_vars=$(echo "$FORM2_HTML" | parse_attr 'recaptcha.net\/challenge?k=' 'src')
 
             # http://api.recaptcha.net/challenge?k=<site key>
-            VARS=$(curl "$repatcha_js_vars")
-            local server=$(echo "$VARS" | parse 'server' "'\([^']*\)'" 2>/dev/null)
-            local challenge=$(echo "$VARS" | parse 'challenge' "'\([^']*\)'" 2>/dev/null)
+            log_debug "reCaptcha URL: $repatcha_js_vars"
+            VARS=$(curl -L "$repatcha_js_vars")
+            local server=$(echo "$VARS" | parse 'server' "server:'\([^']*\)'" 2>/dev/null)
+            local challenge=$(echo "$VARS" | parse 'challenge' "challenge:'\([^']*\)'" 2>/dev/null)
 
             # Image dimension: 300x57
-            #$(curl "${server}image?c=${challenge}" -o "recaptcha-${challenge:0:16}.jpg")
-            #echo "$VARS" "$WAIT_HTML2" >/tmp/a
+            FILENAME="/tmp/recaptcha-${challenge:0:16}.jpg"
+            curl "${server}image?c=${challenge}" -o $FILENAME
+            log_debug "Captcha image local filename: $FILENAME"
+
+            # TODO: display image and prompt for captcha word
+
 
             log_error "Captcha page, give up!"
             break
