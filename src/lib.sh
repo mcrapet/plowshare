@@ -59,9 +59,10 @@ log_error() {
     return 0
 }
 
+# Force debug verbose level (unless -v0/-q specified)
 with_log() {
     local TEMP_VERBOSE=3
-    test "$VERBOSE" -eq "0" && TEMP_VERBOSE=0 || true
+    test $(verbose_level) -eq 0 && TEMP_VERBOSE=0 || true
     VERBOSE=$TEMP_VERBOSE "$@"
 }
 
