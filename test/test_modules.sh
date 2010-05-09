@@ -465,5 +465,15 @@ test_data_hu_check_wrong_link() {
     assert_equal "" "$(download -c ${DATA_HU_URL/234/wronglink})" || return 1
 }
 
+# 115.com
+
+TEST_115_URL='http://u.115.com/file/t0a5a8991a'
+
+test_115_download() {
+    FILENAME='plowshare.bin'
+    assert_equal "$FILENAME" "$(download $TEST_115_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
 
 run_tests "$@"
