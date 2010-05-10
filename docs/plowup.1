@@ -13,10 +13,10 @@ plowup \- Command-line uploader for file-sharing websites
 
 .SH "SYNOPSIS"
 .B plowup
-[OPTION]...
-[MODULE_OPTION]...
-FILE...
-MODULE[:DESTNAME]
+[\fIOPTION\fP]...
+[\fIMODULE_OPTION\fP]...
+\fIFILE\fP...
+\fIMODULE\fP[:\fIDESTNAME\fP]
 
 .\" ****************************************************************************
 .\" * Description                                                              *
@@ -94,7 +94,7 @@ Protect a link with a password.
 .BI -d, " " --description "=DESCRIPTION"
 Set file description.
 .TP
-.B -m, " " --multifetch 
+.B -m, --multifetch 
 Use URL multifetch upload.
 .TP
 .B "   " --clear-log
