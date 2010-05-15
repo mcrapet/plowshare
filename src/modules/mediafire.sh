@@ -81,8 +81,7 @@ get_ofuscated_link() {
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     log_debug "Javascript URL: $JS_URL"
     JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
-    #echo "$PAGE" > page.html
-    #echo "$JS_CODE" > page.js
+    #echo "$PAGE" > page.html; echo "$JS_CODE" > page.js
     JS_CODE2=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A13 | sed "s/^[[:space:]]*}}//") ||
         { log_error "get_ofuscated_links: error getting JS_CODE2"; return 1; }    
     DIVID=$(echo "
@@ -90,7 +89,7 @@ get_ofuscated_link() {
         function aa(x, y) {}
         StartDownloadTried = '0';
         $JS_CODE2 }}
-        $FUNCTION('$QK', '$PK', '$R');" | tee out.js | javascript | sed -n 2p) ||    
+        $FUNCTION('$QK', '$PK', '$R');" | javascript | sed -n 2p) ||    
       { log_error "get_ofuscated_links: error getting DIV id"; return 1; }            
     log_debug "divid: $DIVID"
     {
