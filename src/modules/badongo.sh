@@ -62,8 +62,11 @@ badongo_download() {
             convert - +matte -colorspace gray -level 40%,40% gif:- | \
             show_image_and_tee | ocr upper | sed "s/[^a-zA-Z]//g" | uppercase)
         log_debug "Decoded captcha: $CAPTCHA"
-        test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
-            { log_debug "Captcha length invalid"; continue; }
+
+        if [ "${#CAPTCHA}" -ne 4 ]; then
+            log_debug "Captcha length invalid"
+            continue
+        fi
 
         CAP_ID=$(echo "$JSCODE" | parse 'cap_id' 'value="\?\([^">]*\)')
         CAP_SECRET=$(echo "$JSCODE" | parse 'cap_secret' 'value="\?\([^">]*\)')
