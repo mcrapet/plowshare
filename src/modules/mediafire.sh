@@ -80,17 +80,25 @@ get_ofuscated_link() {
     log_debug "function: $FUNCTION"
     JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
     log_debug "Javascript URL: $JS_URL"
-    DIVID=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A10 |
-            parse innerHTML "('\([^']*\)'")
-    log_debug "divid: $DIVID"
-
     JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
+    #echo "$PAGE" > page.html
+    #echo "$JS_CODE" > page.js
+    JS_CODE2=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A13 | sed "s/^[[:space:]]*}}//") ||
+        { log_error "get_ofuscated_links: error getting JS_CODE2"; return 1; }    
+    DIVID=$(echo "
+        document = {getElementById: function(x) { print(x); return {'style': ''};}}
+        function aa(x, y) {}
+        StartDownloadTried = '0';
+        $JS_CODE2 }}
+        $FUNCTION('$QK', '$PK', '$R');" | tee out.js | javascript | sed -n 2p) ||    
+      { log_error "get_ofuscated_links: error getting DIV id"; return 1; }            
+    log_debug "divid: $DIVID"
     {
         echo "
           var d = {'innerHTML': ''};
           parent = {
             document: {'getElementById': function(x) {
-                print(x);
+                print('divid:' + x);
                 print(d.innerHTML);
                 return d;
               }
@@ -99,7 +107,7 @@ get_ofuscated_link() {
         "
         echo "$JS_CODE" | tail -n "+2" | head -n "-1"
         echo "dz();"
-    } | javascript | parse "'$DIVID'" 'href="\(.*\)"'
+    } | javascript | grep "divid:$DIVID" -A3 | tail -n1 | parse "href" 'href="\(.*\)"'
 }
 
 # List a mediafire shared file folder URL
