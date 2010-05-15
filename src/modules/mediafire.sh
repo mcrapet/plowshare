@@ -55,7 +55,7 @@ get_ofuscated_link() {
     local COOKIES=$2
     BASE_URL="http://www.mediafire.com"
 
-    JS_PRG=$(detect_javascript) || return 1
+    detect_javascript >/dev/null || return 1
 
     FUNCTIONS=$(echo "$PAGE" | grep -o "function [[:alnum:]]\+[[:space:]]*(qk" |
                 sed -n 's/^.*function[[:space:]]\+\([^(]\+\).*$/\1/p')
@@ -72,7 +72,7 @@ get_ofuscated_link() {
                   print('$FUNCTION' + ',' + qk + ',' + pk + ',' + r); }"
         done
         echo $JSCODE
-    } | $JS_PRG) ||
+    } | javascript) ||
         { log_error "get_ofuscated_links: error running main JS code"; return 1; }
     IFS="," read FUNCTION QK PK R < <(echo "$JS_CALL" | tr -d "'")
     test "$FUNCTION" -a "$QK" -a "$PK" -a "$R" ||
@@ -99,7 +99,7 @@ get_ofuscated_link() {
         "
         echo "$JS_CODE" | tail -n "+2" | head -n "-1"
         echo "dz();"
-    } | $JS_PRG | parse "'$DIVID'" 'href="\(.*\)"'
+    } | javascript | parse "'$DIVID'" 'href="\(.*\)"'
 }
 
 # List a mediafire shared file folder URL
