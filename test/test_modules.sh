@@ -27,7 +27,7 @@ TESTSDIR=$ROOTDIR/test
 source "$SRCDIR/lib.sh"
 source "$TESTSDIR/lib.sh"
 
-download() { $SRCDIR/download.sh -q "$@"; }
+download() { $SRCDIR/download.sh -q --max-retries=100 "$@"; }
 
 upload() { $SRCDIR/upload.sh -q "$@"; }
 
