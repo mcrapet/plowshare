@@ -343,6 +343,25 @@ detect_perl() {
     return 0
 }
 
+# Execute javascript code
+#
+# stdin: js script
+# stdout: script results
+# $?: boolean
+javascript() {
+    JS_PRG=$(detect_javascript)
+
+    local TEMPSCRIPT=$(create_tempfile)
+    cat > $TEMPSCRIPT
+    log_debug "=== JAVASCRIPT BEGIN ==="
+    logcat_debug "$TEMPSCRIPT"
+    log_debug "=== JAVASCRIPT END ==="
+
+    $JS_PRG "$TEMPSCRIPT"
+    rm -rf "$TEMPSCRIPT"
+    return 0
+}
+
 # OCR of an image.
 #
 # $1: optional varfile
