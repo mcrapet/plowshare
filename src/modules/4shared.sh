@@ -41,7 +41,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
         "href='\([^']*\)'")
 
     # Try to figure out real name written on page
-    FILE_REAL_NAME=$(echo $WAIT_HTML | parse '<b class="xlarge blue">' \
+    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse '<b class="xlarge blue">' \
                     'blue">\([^<]\+\)' 2>/dev/null)
 
     wait $((WAIT_TIME)) seconds || return 2
