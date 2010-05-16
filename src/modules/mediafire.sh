@@ -30,7 +30,7 @@ mediafire_download() {
 
     URL=$1
     COOKIESFILE=$(create_tempfile)
-    PAGE=$(curl -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
+    PAGE=$(curl -L -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
     COOKIES=$(< $COOKIESFILE)
     rm -f $COOKIESFILE
 
@@ -47,6 +47,7 @@ mediafire_download() {
 
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIES") ||
         { log_error "error running Javascript code"; return 1; }
+
     echo "$FILE_URL"
 }
 
@@ -83,14 +84,14 @@ get_ofuscated_link() {
     JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
     #echo "$PAGE" > page.html; echo "$JS_CODE" > page.js
     JS_CODE2=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A13 | sed "s/^[[:space:]]*}}//") ||
-        { log_error "get_ofuscated_links: error getting JS_CODE2"; return 1; }    
+        { log_error "get_ofuscated_links: error getting JS_CODE2"; return 1; }
     DIVID=$(echo "
         document = {getElementById: function(x) { print(x); return {'style': ''};}}
         function aa(x, y) {}
         StartDownloadTried = '0';
         $JS_CODE2 }}
-        $FUNCTION('$QK', '$PK', '$R');" | javascript | sed -n 2p) ||    
-      { log_error "get_ofuscated_links: error getting DIV id"; return 1; }            
+        $FUNCTION('$QK', '$PK', '$R');" | javascript | sed -n 2p) ||
+        { log_error "get_ofuscated_links: error getting DIV id"; return 1; }
     log_debug "divid: $DIVID"
     {
         echo "
@@ -110,7 +111,7 @@ get_ofuscated_link() {
 }
 
 # List a mediafire shared file folder URL
-# $1: MEDIAFIRE_URL
+# $1: MEDIAFIRE_URL (http://www.mediafire.com/?sharekey=...)
 # stdout: list of links
 mediafire_list() {
     set -e
@@ -123,7 +124,7 @@ mediafire_list() {
         { log_error "not a shared folder"; return 1; }
 
     local JS_URL=$(echo "$PAGE" | parse 'language=' 'src="\(\/js\/myfiles\.php\/[^"]*\)')
-    local DATA=$(curl -b <(echo "$COOKIES") "http://mediafire.com$JS_URL" | sed "s/;/;\n/g")
+    local DATA=$(curl "http://mediafire.com$JS_URL" | sed "s/;/;\n/g")
 
     # get number of files
     NB=$(echo "$DATA" | parse '^var oO' "'\([[:digit:]]*\)'")
