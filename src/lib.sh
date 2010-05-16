@@ -391,6 +391,7 @@ ocr() {
 }
 
 # Output image in ascii chars (aview uses libaa)
+# $1: image filename (any format)
 aview_ascii_image() {
     convert $1 -negate -depth 8 pnm:- |
       aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" |
