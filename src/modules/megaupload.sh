@@ -282,7 +282,7 @@ megaupload_list() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_LIST_OPTIONS" "$@")"
     URL=$1
     XMLURL="http://www.megaupload.com/xml/folderfiles.php"
-    FOLDERID=$(echo "$URL" | grep -o "f=[^=]\+$" | cut -d"=" -f2-) ||
+    FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') ||
         { log_error "cannot parse url: $URL"; return 1; }
     XML=$(curl "$XMLURL/?folderid=$FOLDERID")
     match "<FILES></FILES>" "$XML" &&
