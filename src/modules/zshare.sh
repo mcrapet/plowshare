@@ -35,13 +35,13 @@ zshare_download() {
     COOKIES=$(create_tempfile)
 
     WAITPAGE=$(curl -L -c $COOKIES --data "download=1" "$URL")
-    echo "$WAITPAGE" | grep -q "File Not Found" &&
+    match "File Not Found" "$WAITPAGE" &&
         { log_debug "file not found"; return 254; }
 
-     if test "$CHECK_LINK"; then
-         rm -f $COOKIES
-         return 255
-     fi
+    if test "$CHECK_LINK"; then
+        rm -f $COOKIES
+        return 255
+    fi
 
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")
