@@ -80,7 +80,7 @@ curl() {
     return $DRETVAL
 }
 
-curl_upload() {
+curl_with_log() {
     with_log curl "$@"
 }
 

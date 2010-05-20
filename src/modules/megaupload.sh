@@ -234,7 +234,7 @@ megaupload_upload() {
           { log_debug "can't get upload_done page"; return 2; }
       UPLOAD_IDENTIFIER=$(parse "IDENTIFIER" "IDENTIFIER=\([0-9.]\+\)" <<< $DONE)
       log_debug "starting file upload: $FILE"
-      curl_upload -b $COOKIES \
+      curl_with_log -b $COOKIES \
           -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
           -F "sessionid=$UPLOAD_IDENTIFIER" \
           -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
