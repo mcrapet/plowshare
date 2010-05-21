@@ -197,7 +197,7 @@ download() {
         log_notice "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | recode html..utf8)
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | html_to_utf8)
         fi
         log_notice "Filename: $FILENAME"
 

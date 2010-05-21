@@ -40,6 +40,12 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     FILE_URL=$(echo "$WAIT_HTML" | parse "\.4shared\.com\/download\/" \
         "href='\([^']*\)'")
 
+    # Try to figure the real filename from HTML
+    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse '<b class="xlarge blue">' \
+                    'blue">\([^<]\+\)' 2>/dev/null | html_to_utf8)
+
     wait $((WAIT_TIME)) seconds || return 2
     echo "$FILE_URL"
+    test "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
+    return 0
 }

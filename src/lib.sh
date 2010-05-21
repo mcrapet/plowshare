@@ -343,6 +343,10 @@ detect_perl() {
     return 0
 }
 
+html_to_utf8() {
+    recode html..utf8
+}
+
 # Execute javascript code
 #
 # stdin: js script
