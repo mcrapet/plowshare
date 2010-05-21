@@ -92,9 +92,9 @@ zshare_upload() {
     match "was successfully uploaded" "$INFOPAGE" ||
         { log_error "upload unsuccessful"; return 1; }
 
-    DOWNLOAD_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/download" '<a href="\([^"]*\)"') ||
+    DOWNLOAD_URL=$(echo "$INFOPAGE" | parse_attr 'http:\/\/www\.zshare\.net\/\(download\|video\)' 'href') ||
         { log_debug "can't parse download link, website updated?"; return 1; }
-    DELETE_URL=$(echo "$INFOPAGE" | parse "http:\/\/www\.zshare\.net\/delete" 'value="\([^"]*\)"') ||
+    DELETE_URL=$(echo "$INFOPAGE" | parse_attr "http:\/\/www\.zshare\.net\/delete" 'value') ||
         { log_debug "can't parse delete link, website updated?"; return 1; }
 
     echo "$DOWNLOAD_URL ($DELETE_URL)"
