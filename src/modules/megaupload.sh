@@ -18,13 +18,13 @@
 MODULE_MEGAUPLOAD_REGEXP_URL="^http://\(www\.\)\?mega\(upload\|rotic\|porn\).com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
-LINKPASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
 "
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 MULTIFETCH,m,multifetch,,Use URL multifetch upload
 CLEAR_LOG,,clear-log,,Clear upload log after upload process
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
-PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
+LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
@@ -94,9 +94,9 @@ megaupload_download() {
             fi
 
             log_debug "File is password protected"
-            test "$LINKPASSWORD" ||
+            test "$LINK_PASSWORD" ||
                 { log_error "You must provide a password"; return 1; }
-            DATA="filepassword=$LINKPASSWORD"
+            DATA="filepassword=$LINK_PASSWORD"
             PAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$PAGE" &&
                 { log_error "Link password incorrect"; return 1; }
@@ -202,7 +202,7 @@ megaupload_upload() {
           -F "description=$DESCRIPTION" \
           -F "youremail=$FROMEMAIL" \
           -F "receiveremail=$TOEMAIL" \
-          -F "password=$PASSWORD" \
+          -F "password=$LINK_PASSWORD" \
           -F "multiplerecipients=$MULTIEMAIL" \
           "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) ||
               { log_error "cannot start multifetch upload"; return 2; }
@@ -241,7 +241,7 @@ megaupload_upload() {
           -F "message=$DESCRIPTION" \
           -F "toemail=$TOEMAIL" \
           -F "fromemail=$FROMEMAIL" \
-          -F "password=$PASSWORD" \
+          -F "password=$LINK_PASSWORD" \
           -F "trafficurl=$TRAFFIC_URL" \
           -F "multiemail=$MULTIEMAIL" \
           "$DONE" | parse "downloadurl" "url = '\(.*\)';"
