@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared\.com/file/"
+MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared\.com/"
 MODULE_4SHARED_DOWNLOAD_OPTIONS=""
 MODULE_4SHARED_UPLOAD_OPTIONS=
 MODULE_4SHARED_DOWNLOAD_CONTINUE=no
@@ -40,13 +40,6 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     FILE_URL=$(echo "$WAIT_HTML" | parse "\.4shared\.com\/download\/" \
         "href='\([^']*\)'")
 
-    # Try to figure out real name written on page
-    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse '<b class="xlarge blue">' \
-                    'blue">\([^<]\+\)' 2>/dev/null)
-
     wait $((WAIT_TIME)) seconds || return 2
-
     echo "$FILE_URL"
-    test -n "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
-    return 0
 }

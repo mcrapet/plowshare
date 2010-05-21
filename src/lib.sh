@@ -353,9 +353,9 @@ javascript() {
 
     local TEMPSCRIPT=$(create_tempfile)
     cat > $TEMPSCRIPT
-    log_debug "=== JAVASCRIPT BEGIN ==="
-    logcat_debug "$TEMPSCRIPT"
-    log_debug "=== JAVASCRIPT END ==="
+    #log_debug "=== JAVASCRIPT BEGIN ==="
+    #logcat_debug "$TEMPSCRIPT"
+    #log_debug "=== JAVASCRIPT END ==="
 
     $JS_PRG "$TEMPSCRIPT"
     rm -rf "$TEMPSCRIPT"
