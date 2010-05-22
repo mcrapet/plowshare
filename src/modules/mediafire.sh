@@ -63,33 +63,30 @@ get_ofuscated_link() {
               sed "N;N;N; s/var cb=Math.random().*$/}/") ||
         { log_error "cannot find javascript code"; return 1; }
 
-    { read DIVID; read DYNAMIC_PATH; } < <({
-        echo "
-            noop = function () { }
-            // These functions and variables are defined elsewhere, fake them.
-            DoShow = Eo = aa = noop; 
-            fu = StartDownloadTried = 0;
+    { read DIVID; read DYNAMIC_PATH; } < <(echo "
+        noop = function () { }
+        // These functions and variables are defined elsewhere, fake them.
+        DoShow = Eo = aa = noop; 
+        fu = StartDownloadTried = 0;
 
-            // Record accesses to the DOM
-            namespace = {};
-            var document = {
-                getElementById: function(id) {
-                    namespace[id] = {style: ''}
-                    return namespace[id];
-                },
-            };"
-        echo "$PAGE_JS"
-        echo "
-            RunOnLoad();
-            // DIV id is string of hexadecimanl values of length 32
-            for (key in namespace) {
-                if (key.length == 32) {
-                    print(key);
-                }
-            }            
-            print(namespace.workframe2.src);
-        "        
-    } | javascript) ||
+        // Record accesses to the DOM
+        namespace = {};
+        var document = {
+            getElementById: function(id) {
+                namespace[id] = {style: ''}
+                return namespace[id];
+            },
+        };
+        $PAGE_JS    
+        RunOnLoad();
+        // DIV id is string of hexadecimanl values of length 32
+        for (key in namespace) {
+            if (key.length == 32) {
+                print(key);
+            }
+        }            
+        print(namespace.workframe2.src);
+        " | javascript) ||
         { log_error "error running Javascript in main page"; return 1; }
     debug "DIV id: $DIVID"
     debug "Dynamic page: $DYNAMIC_PATH" 
@@ -97,20 +94,18 @@ get_ofuscated_link() {
     DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | tail -n+2 | head -n-1)
 
     FILE_URL=$(echo "
-        $DYNAMIC_JS        
         function alert(x) {print(x); }
         var namespace = {};
         var parent = {
             document: {
                 getElementById: function(id) {
-                    print('id: ' + id);
                     namespace[id] = {};
                     return namespace[id];
                 },
             },
             aa: function(x, y) { print (x,y);},
         };
-
+        $DYNAMIC_JS
         dz();
         print(namespace['$DIVID'].innerHTML);
     " | javascript | parse_attr "href")  ||
