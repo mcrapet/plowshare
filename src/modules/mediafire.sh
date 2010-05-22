@@ -57,57 +57,64 @@ get_ofuscated_link() {
     BASE_URL="http://www.mediafire.com"
 
     detect_javascript >/dev/null || return 1
+    # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed removes 
+    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' | 
+              tail -n+3 | head -n-1 | sed "N;N;N; s/var cb=Math.random().*$/}/") ||
+        { error "cannot find javascript code"; return 1; }
 
-    FUNCTIONS=$(echo "$PAGE" | grep -o "function [[:alnum:]]\+[[:space:]]*(qk" |
-                sed -n 's/^.*function[[:space:]]\+\([^(]\+\).*$/\1/p')
-    test "$FUNCTIONS" ||
-        { log_error "get_ofuscated_links: error getting JS functions"; return 1; }
-    JSCODE=$(echo "$PAGE" | sed "s/;/;\n/g" |
-             sed -n '/Eo[[:space:]]*();/,/^var jc=Array();/p' |
-             tail -n"+2" | head -n"-2" | tr -d '\n')
-    test "$JSCODE" ||
-        { log_error "get_ofuscated_links: error getting JS code"; return 1; }
-    JS_CALL=$({
-        for FUNCTION in $FUNCTIONS; do
-            echo "function $FUNCTION(qk, pk, r) {
-                  print('$FUNCTION' + ',' + qk + ',' + pk + ',' + r); }"
-        done
-        echo $JSCODE
-    } | javascript) ||
-        { log_error "get_ofuscated_links: error running main JS code"; return 1; }
-    IFS="," read FUNCTION QK PK R < <(echo "$JS_CALL" | tr -d "'")
-    test "$FUNCTION" -a "$QK" -a "$PK" -a "$R" ||
-        { log_error "get_ofuscated_links: error getting query variables"; return 1; }
-    log_debug "function: $FUNCTION"
-    JS_URL="$BASE_URL/dynamic/download.php?qk=$QK&pk=$PK&r=$R"
-    log_debug "Javascript URL: $JS_URL"
-    JS_CODE=$(curl -b <(echo "$COOKIES") "$JS_URL")
-    #echo "$PAGE" > page.html; echo "$JS_CODE" > page.js
-    JS_CODE2=$(echo "$PAGE" | sed "s/;/;\n/g" | grep "function $FUNCTION" -A13 | sed "s/^[[:space:]]*}}//") ||
-        { log_error "get_ofuscated_links: error getting JS_CODE2"; return 1; }
-    DIVID=$(echo "
-        document = {getElementById: function(x) { print(x); return {'style': ''};}}
-        function aa(x, y) {}
-        StartDownloadTried = '0';
-        $JS_CODE2 }}
-        $FUNCTION('$QK', '$PK', '$R');" | javascript | sed -n 2p) ||
-        { log_error "get_ofuscated_links: error getting DIV id"; return 1; }
-    log_debug "divid: $DIVID"
-    {
+    { read DIVID; read DYNAMIC_PATH; } < <({
         echo "
-          var d = {'innerHTML': ''};
-          parent = {
-            document: {'getElementById': function(x) {
-                print('divid:' + x);
-                print(d.innerHTML);
-                return d;
-              }
+            noop = function () { }
+            // These functions and variables are defined elsewhere, fake them.
+            DoShow = Eo = aa = noop; 
+            fu = StartDownloadTried = 0;
+
+            // Record accesses to the DOM
+            namespace = {};
+            var document = {
+                getElementById: function(id) {
+                    namespace[id] = {style: ''}
+                    return namespace[id];
+                },
+            };"
+        echo "$PAGE_JS"
+        echo "
+            RunOnLoad();
+            // DIV id is string of hexadecimanl values of length 32
+            for (key in namespace) {
+                if (key.length == 32) {
+                    print(key);
+                }
+            }            
+            print(namespace.workframe2.src);
+        "        
+    } | javascript) ||
+        { error "error running Javascript in main page"; return 1; }
+    debug "DIV id: $DIVID"
+    debug "Dynamic page: $DYNAMIC_PATH" 
+    DYNAMIC=$(curl -b <(echo "$COOKIES") "$BASE_URL/$DYNAMIC_PATH")
+    DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | tail -n+2 | head -n-1)
+
+    FILE_URL=$(echo "
+        $DYNAMIC_JS        
+        function alert(x) {print(x); }
+        var namespace = {};
+        var parent = {
+            document: {
+                getElementById: function(id) {
+                    print('id: ' + id);
+                    namespace[id] = {};
+                    return namespace[id];
+                },
             },
-          };
-        "
-        echo "$JS_CODE" | tail -n "+2" | head -n "-1"
-        echo "dz();"
-    } | javascript | grep "divid:$DIVID" -A3 | tail -n1 | parse "href" 'href="\(.*\)"'
+            aa: function(x, y) { print (x,y);},
+        };
+
+        dz();
+        print(namespace['$DIVID'].innerHTML);
+    " | javascript | parse_attr "href")  ||
+        { error "error running Javascript in download page"; return 1; }
+    echo $FILE_URL
 }
 
 # List a mediafire shared file folder URL
