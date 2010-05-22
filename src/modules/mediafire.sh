@@ -59,8 +59,9 @@ get_ofuscated_link() {
     detect_javascript >/dev/null || return 1
     # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed removes 
     PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' | 
-              tail -n+3 | head -n-1 | sed "N;N;N; s/var cb=Math.random().*$/}/") ||
-        { error "cannot find javascript code"; return 1; }
+              tail -n+3 | sed "s/<!--//; s/-->//" | head -n-1 | 
+              sed "N;N;N; s/var cb=Math.random().*$/}/") ||
+        { log_error "cannot find javascript code"; return 1; }
 
     { read DIVID; read DYNAMIC_PATH; } < <({
         echo "
@@ -89,7 +90,7 @@ get_ofuscated_link() {
             print(namespace.workframe2.src);
         "        
     } | javascript) ||
-        { error "error running Javascript in main page"; return 1; }
+        { log_error "error running Javascript in main page"; return 1; }
     debug "DIV id: $DIVID"
     debug "Dynamic page: $DYNAMIC_PATH" 
     DYNAMIC=$(curl -b <(echo "$COOKIES") "$BASE_URL/$DYNAMIC_PATH")
@@ -113,8 +114,8 @@ get_ofuscated_link() {
         dz();
         print(namespace['$DIVID'].innerHTML);
     " | javascript | parse_attr "href")  ||
-        { error "error running Javascript in download page"; return 1; }
-    echo $FILE_URL
+        { log_error "error running Javascript in download page"; return 1; }
+    echo $FILE_URL 
 }
 
 # List a mediafire shared file folder URL
