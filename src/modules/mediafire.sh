@@ -57,16 +57,16 @@ get_ofuscated_link() {
     BASE_URL="http://www.mediafire.com"
 
     detect_javascript >/dev/null || return 1
-    # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed removes 
-    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' | 
-              tail -n+3 | sed "s/<!--//; s/-->//" | head -n-1 | 
+    # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed removes
+    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
+              tail -n+3 | sed "s/<!--//; s/-->//" | head -n-1 |
               sed "N;N;N; s/var cb=Math.random().*$/}/") ||
         { log_error "cannot find javascript code"; return 1; }
 
     { read DIVID; read DYNAMIC_PATH; } < <(echo "
         noop = function () { }
         // These functions and variables are defined elsewhere, fake them.
-        DoShow = Eo = aa = noop; 
+        DoShow = Eo = aa = noop;
         fu = StartDownloadTried = 0;
 
         // Record accesses to the DOM
@@ -77,19 +77,19 @@ get_ofuscated_link() {
                 return namespace[id];
             },
         };
-        $PAGE_JS    
+        $PAGE_JS
         RunOnLoad();
         // DIV id is string of hexadecimanl values of length 32
         for (key in namespace) {
             if (key.length == 32) {
                 print(key);
             }
-        }            
+        }
         print(namespace.workframe2.src);
         " | javascript) ||
         { log_error "error running Javascript in main page"; return 1; }
-    debug "DIV id: $DIVID"
-    debug "Dynamic page: $DYNAMIC_PATH" 
+    log_debug "DIV id: $DIVID"
+    log_debug "Dynamic page: $DYNAMIC_PATH"
     DYNAMIC=$(curl -b <(echo "$COOKIES") "$BASE_URL/$DYNAMIC_PATH")
     DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | tail -n+2 | head -n-1)
 
@@ -110,7 +110,7 @@ get_ofuscated_link() {
         print(namespace['$DIVID'].innerHTML);
     " | javascript | parse_attr "href")  ||
         { log_error "error running Javascript in download page"; return 1; }
-    echo $FILE_URL 
+    echo $FILE_URL
 }
 
 # List a mediafire shared file folder URL
