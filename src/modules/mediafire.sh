@@ -30,6 +30,20 @@ mediafire_download() {
 
     URL=$1
     COOKIESFILE=$(create_tempfile)
+    LOCATION=$(curl --head "$URL" | grep_http_header_location)
+    if match '^http://download' "$LOCATION"; then
+        log_notice "direct download"
+        echo "$LOCATION"
+        return 0
+    else    
+        if match 'errno=999$' "$LOCATION"; then
+            log_error "private link"
+        else
+            log_error "site redirected with an unknown error"
+        fi
+        return 254
+    fi
+    
     PAGE=$(curl -L -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
     COOKIES=$(< $COOKIESFILE)
     rm -f $COOKIESFILE
