@@ -29,13 +29,12 @@ mediafire_download() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    COOKIESFILE=$(create_tempfile)
     LOCATION=$(curl --head "$URL" | grep_http_header_location)
     if match '^http://download' "$LOCATION"; then
         log_notice "direct download"
         echo "$LOCATION"
         return 0
-    else    
+    else
         if match 'errno=999$' "$LOCATION"; then
             log_error "private link"
         else
@@ -43,7 +42,8 @@ mediafire_download() {
         fi
         return 254
     fi
-    
+
+    COOKIESFILE=$(create_tempfile)
     PAGE=$(curl -L -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
     COOKIES=$(< $COOKIESFILE)
     rm -f $COOKIESFILE
