@@ -80,7 +80,7 @@ x7_to_download() {
 
         # Check for errors:
         # - The requested file is larger than 400MB, only premium members will be able to download the file!
-        if  match 'requested file is larger than' "$WAIT_HTML"; then
+        if match 'requested file is larger than' "$WAIT_HTML"; then
             log_debug "premium link"
             rm -f $COOKIES
             return 254
