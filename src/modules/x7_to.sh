@@ -78,6 +78,14 @@ x7_to_download() {
             return 255
         fi
 
+        # Check for errors:
+        # - The requested file is larger than 400MB, only premium members will be able to download the file!
+        if  match 'requested file is larger than' "$WAIT_HTML"; then
+            log_debug "premium link"
+            rm -f $COOKIES
+            return 254
+        fi
+
         file_real_name=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
                 '>\([^<]*\)<small' 2>/dev/null)
         extension=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
