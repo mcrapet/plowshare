@@ -34,13 +34,12 @@ mediafire_download() {
         log_notice "direct download"
         echo "$LOCATION"
         return 0
-    else
-        if match 'errno=999$' "$LOCATION"; then
-            log_error "private link"
-        else
-            log_error "site redirected with an unknown error"
-        fi
+    elif match 'errno=999$' "$LOCATION"; then
+        log_error "private link"
         return 254
+    elif match 'errno=' "$LOCATION"; then
+        log_error "site redirected with an unknown error"
+        return 1
     fi
 
     COOKIESFILE=$(create_tempfile)
