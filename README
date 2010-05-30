@@ -39,9 +39,9 @@ To run _plowshare_ and all its modules you will need:
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick] (with GIF and TIFF support)
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (with TIFF support; version 2.03 works, but 2.04 works better)
-  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or a compatible Javascript interpreter (only for zshare and mediafire)
+  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or a compatible Javascript interpreter (used by badongo, mediafire and zshare modules)
   * [http://aa-project.sourceforge.net/aview/ aview] or [http://caca.zoy.org/ libcaca] (both optional)
-  * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used only by netload.in module)
+  * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used by badongo and netload.in modules)
 
 Debian/Ubuntu users may try:
 

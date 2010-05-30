@@ -79,6 +79,7 @@ share/plowshare/modules/usershare.sh
 share/plowshare/modules/x7_to.sh
 share/plowshare/modules/zshare.sh
 share/plowshare/strip_single_color.pl
+share/plowshare/strip_threshold.pl
 share/plowshare/tesseract
 share/plowshare/tesseract/digit
 share/plowshare/tesseract/digit_ops

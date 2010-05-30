@@ -68,7 +68,8 @@ elif [ "$1" = "install" ]; then
         src/delete.sh      \
         src/list.sh        \
         src/lib.sh         \
-        src/strip_single_color.pl $DATADIR
+        src/strip_single_color.pl \
+        src/strip_threshold.pl $DATADIR
 
     # Modules
     mkdir -p $MODULESDIR

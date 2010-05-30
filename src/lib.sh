@@ -100,6 +100,7 @@ uppercase() {
 
 # Get first line that matches a regular expression and extract string from it.
 #
+# stdin: text data
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
 parse_all() {
