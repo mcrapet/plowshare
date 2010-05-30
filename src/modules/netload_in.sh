@@ -32,9 +32,9 @@ netload_in_download() {
     BASE_URL="http://netload.in"
     COOKIES=$(create_tempfile)
 
-    local try=0
+    local TRY=0
     while retry_limit_not_reached || return 3; do
-        ((try++))
+        ((TRY++))
         WAIT_URL=$(curl --location -c $COOKIES "$URL" | \
             parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||
             { log_debug "file not found"; return 254; }
@@ -59,7 +59,7 @@ netload_in_download() {
                 'src="\([^"]*\)" alt="Sicherheitsbild"')
         CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
-        log_debug "Try $try:"
+        log_debug "Try $TRY:"
 
         CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl |
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% -compress none -depth 8 tif:- |
