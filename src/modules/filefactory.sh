@@ -29,21 +29,47 @@ filefactory_download() {
     eval "$(process_options filefactory "$MODULE_FILEFACTORY_DOWNLOAD_OPTIONS" "$@")"
 
     BASE_URL="http://www.filefactory.com"
+
+    detect_javascript >/dev/null || return 1
+
+    # Round 1
     HTML_PAGE=$(curl "$1")
 
-    WAIT_URL=$(echo "$HTML_PAGE" | \
-            parse_attr 'button\.basic\.jpg\|Download Now' 'href' 2>/dev/null) ||
+    match 'button\.basic\.jpg\|Download Now' "$HTML_PAGE" ||
         { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 
+    WAIT_URL=$(get_next_link "$HTML_PAGE" 'class="basicBtn"' '<\/script>') ||
+        { log_error "can't get wait url, website updated?"; return 1; }
+
+    # Round 2
     HTML_PAGE=$(curl "${BASE_URL}${WAIT_URL}")
+    FILE_URL=$(get_next_link "$HTML_PAGE" 'id="downloadLink"' '<\/script>') ||
+        { log_error "can't get file url, website updated?"; return 1; }
 
     WAIT_TIME=$(echo "$HTML_PAGE" | parse '<span class="countdown">' '>\([[:digit:]]*\)<\/span>')
-    FILE_URL=$(echo "$HTML_PAGE" | parse_attr 'Download with FileFactory Basic' 'href' 2>/dev/null) ||
-        { log_error "can't parse filename, website updated?"; return 1; }
-
     wait $((WAIT_TIME)) seconds
 
     echo $FILE_URL
+}
+
+# Local funtion. Extract the right <script>..</script> snippet
+# and then use it to get a link.
+#
+# $1: HTML content
+# $2: upper bound
+# $2: lower bound
+get_next_link() {
+    KEY=$(echo "$1" | sed -n "/$2/,/$3/p" | parse 'var ' '"\(?key=[^"]*\)')
+    log_debug "$KEY"
+
+    JSCODE=$(curl "${BASE_URL}/file/getLink.js$KEY" | sed -n '$!p')
+
+    VAR=$(echo "$JSCODE" | parse 'var' 'var \([^ ]*\)')
+    log_debug "js var name is $VAR"
+
+    LINK=$(echo "$JSCODE" " print($VAR);" | javascript) ||
+        { log_error "can't exectute javascript, website updated?"; return 1; }
+    echo "$LINK"
 }
