@@ -28,24 +28,35 @@ divshare_download() {
     set -e
     eval "$(process_options divshare "$MODULE_DIVSHARE_DOWNLOAD_OPTIONS" "$@")"
 
-    PAGE=$(curl "$1")
-    FILE_URL=$(echo "$PAGE" | \
-            parse_attr '\(download_message\|Download Original\)' 'href') ||
-        { log_debug "file not found"; return 254; }
+    BASE_URL='http://www.divshare.com'
+    COOKIES=$(create_tempfile)
 
-    test "$CHECK_LINK" && return 255
+    PAGE=$(curl -c "$COOKIES" "$1")
 
-    FILE_NAME=$(echo "$PAGE" | sed -n '/"file_name"/,/<\/div>/p' | tr -d "\n" |
-            parse '">' '>[[:space:]]*\(.*\)[[:space:]]*<') ||
-        { log_debug "can't parse filename, website updated?"; }
+    REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
+        { log_debug "file not found"; rm -f $COOKIES; return 254; }
 
-    # Real filename is also stored in "Content-Disposition" HTTP header
-    # We are lucky here, we can make an extra http request without being accused of parallel download!
-    if [ -z "$FILE_NAME" ]; then
-        FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition)
+    if test "$CHECK_LINK"; then
+        rm -f $COOKIES
+        return 255
     fi
 
-    echo "$FILE_URL"
-    test -n "$FILE_NAME" && echo "$FILE_NAME"
+    WAIT_PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")
+    WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'content="\([^;]*\)');
+    REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)');
+
+    # Usual wait time is 15 seconds
+    wait $((WAIT_TIME)) seconds || return 2
+
+    PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")
+
+    FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
+        { log_debug "can't get link, website updated?"; }
+    FILENAME=$(echo "$PAGE" | parse '<title>' '<title>\([^ <]*\)') ||
+        { log_debug "can't parse filename, website updated?"; }
+
+    echo $FILE_URL
+    echo $FILENAME
+    echo $COOKIES
     return 0
 }
