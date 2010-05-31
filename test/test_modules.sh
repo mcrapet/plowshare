@@ -251,7 +251,7 @@ test_zshare_check_active_link() {
 
 # Depositfiles.com
 
-DEPOSIT_SMALL_URL="http://depositfiles.com/es/files/sswznjsu2"
+DEPOSIT_SMALL_URL="http://depositfiles.com/files/uk1rnpjw6"
 DEPOSIT_BIG_URL="http://depositfiles.com/es/files/vd58vei0y"
 
 test_depositfiles_check_active_link() {
@@ -260,7 +260,7 @@ test_depositfiles_check_active_link() {
 }
 
 test_depositfiles_download_small_file() {
-    FILENAME="untitled87.bmp"
+    FILENAME="plowshare.bin"
     assert_equal "$FILENAME" "$(download $DEPOSIT_SMALL_URL)" || return 1
     rm -f $FILENAME
 }
