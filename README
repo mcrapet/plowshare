@@ -49,6 +49,8 @@ Debian/Ubuntu users may try:
 $ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perlmagick
 }}}
 
+*Note*: Since Ubuntu 10.04 LTS (named _Lucid Lynx_), `spidermonkey-bin` package is not available anymore, install `rhino` instead.
+
 = Download & Install =
 
   * [http://aur.archlinux.org/packages.php?ID=24601 Archlinux]:

@@ -20,7 +20,7 @@
 
 set -e
 
-VERSION="0.9.2"
+VERSION="0.9.3"
 MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo filefactory data_hu 115"
 OPTIONS="
 HELP,h,help,,Show help info
@@ -78,7 +78,7 @@ done
 # Guess if item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments)-
 process_item() {
-    local ITEM=$1    
+    local ITEM=$1
     if match "^http://" "$ITEM"; then
         echo "url|$ITEM"
     elif [ -f "$ITEM" ]; then
@@ -171,7 +171,7 @@ download() {
     retry_limit_init $MAXRETRIES
 
     while true; do
-        local DRETVAL=0        
+        local DRETVAL=0
         RESULT=$($FUNCTION "$@" "$(strip "$URL")") || DRETVAL=$?
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 

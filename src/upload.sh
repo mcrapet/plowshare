@@ -20,7 +20,7 @@
 
 set -e
 
-VERSION="0.9.2"
+VERSION="0.9.3"
 MODULES="rapidshare megaupload 2shared zshare"
 OPTIONS="
 HELP,h,help,,Show help info
