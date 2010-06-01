@@ -123,7 +123,7 @@ mark_queue() {
 # Create an alternative filename
 # Pattern is filename.1
 #
-# $1: filename (with or withour path)
+# $1: filename (with or without path)
 # stdout: non existing filename
 create_alt_filename() {
     local FILENAME="$1"
