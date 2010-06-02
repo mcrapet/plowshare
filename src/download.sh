@@ -217,6 +217,7 @@ download() {
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
                 TEMP_FILENAME="$TEMP_DIR/$FILENAME"
+                mkdir -p "$(dirname "$TEMP_DIR")"
                 log_notice "Downloading file to temporal directory: $TEMP_FILENAME"
             else
                 TEMP_FILENAME="$FILENAME"
@@ -252,6 +253,7 @@ download() {
                 continue
             fi
             if test "$OUTPUT_DIR" != "$TEMP_DIR"; then
+                mkdir -p "$(dirname "$OUTPUT_DIR")"
                 log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
                 mv "$TEMP_FILENAME" "${OUTPUT_DIR:-.}" || true
             fi
