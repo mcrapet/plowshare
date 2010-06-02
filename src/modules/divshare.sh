@@ -33,7 +33,7 @@ divshare_download() {
 
     PAGE=$(curl -c "$COOKIES" "$1")
 
-    REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
+    REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href' 2>/dev/null) ||
         { log_debug "file not found"; rm -f $COOKIES; return 254; }
 
     if test "$CHECK_LINK"; then
@@ -41,22 +41,27 @@ divshare_download() {
         return 255
     fi
 
-    WAIT_PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")
-    WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'content="\([^;]*\)');
-    REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)');
+    log_debug "$1"
+    log_debug "$REDIR_URL"
 
-    # Usual wait time is 15 seconds
-    wait $((WAIT_TIME)) seconds || return 2
+    if ! match '^http' "$REDIR_URL"; then
+        WAIT_PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")
+        WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'content="\([^;]*\)' 2>/dev/null)
+        REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)')
 
-    PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")
+        # Usual wait time is 15 seconds
+        wait $((WAIT_TIME)) seconds || return 2
+
+        PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")
+    fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
         { log_debug "can't get link, website updated?"; }
-    FILENAME=$(echo "$PAGE" | parse '<title>' '<title>\([^ <]*\)') ||
+    FILENAME=$(echo "$PAGE" | parse '<title>' '<title>\([^<]*\)') ||
         { log_debug "can't parse filename, website updated?"; }
 
     echo $FILE_URL
-    echo $FILENAME
+    echo "${FILENAME% - DivShare}"
     echo $COOKIES
     return 0
 }
