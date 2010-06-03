@@ -35,8 +35,13 @@ aview, aview --version, NF
 
 basic_info() {
     VERSION=$(cat "$ROOTDIR/CHANGELOG" | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
-    REVISION=$(LC_ALL=C svn info 2>/dev/null | grep ^Revision | cut -d: -f2 | xargs)
-    test -z "$REVISION" && REVISION=UNKNOWN
+    if test -d '.svn'; then
+        REVISION=$(LC_ALL=C svn info 2>/dev/null | grep ^Revision | cut -d' ' -f2)
+    elif test -d '.git'; then
+        REVISION=$(LC_ALL=C git svn info 2>/dev/null | grep ^Revision | cut -d' ' -f2)
+    else
+        REVISION=UNKNOWN
+    fi
     echo "plowshare: $VERSION (r$REVISION)"
 }
 
