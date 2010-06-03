@@ -182,7 +182,7 @@ download() {
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
-            # Don't set RETVAL, a dead link is not considerer an error
+            # Don't set RETVAL, a dead link is not considered as error
             break
         elif test $DRETVAL -eq 3; then
             log_error "retry limit reached (${FUNCTION})"
@@ -202,6 +202,8 @@ download() {
         log_notice "Filename: $FILENAME"
 
         local DRETVAL=0
+
+        # External download or curl regular download
         if test "$DOWNLOAD_APP"; then
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             COMMAND=$(echo "$DOWNLOAD_APP" |
