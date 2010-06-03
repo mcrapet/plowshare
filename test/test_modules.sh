@@ -346,10 +346,10 @@ test_usershare_check_active_link() {
 
 # Sendspace.net
 
-SENDSPACE_URL="http://www.sendspace.com/file/sjw4sk"
+SENDSPACE_URL="http://www.sendspace.com/file/jixw4t"
 
 test_sendspace_download() {
-    FILENAME="Test.mp3"
+    FILENAME="plowshare.bin"
     assert_equal "$FILENAME" "$(download $SENDSPACE_URL)" || return 1
     rm -f $FILENAME
 }
