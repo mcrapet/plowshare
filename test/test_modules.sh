@@ -308,7 +308,7 @@ test_uploaded_to_check_active_link() {
 
 # Netload.in
 
-NETLOAD_IN_URL="http://netload.in/dateiiknKlFWEM2/plowshare.bin.htm"
+NETLOAD_IN_URL="http://netload.in/dateidOnM71qmfd/plowshare.bin.htm"
 
 test_netload_in_download() {
     FILENAME="plowshare.bin"
