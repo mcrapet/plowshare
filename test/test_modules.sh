@@ -273,10 +273,10 @@ test_depositfiles_download_big_file() {
 
 # Storage.to
 
-STORAGE_TO_URL="http://www.storage.to/get/AMvFJROk/debian032.jpg"
+STORAGE_TO_URL="http://www.storage.to/get/dFempNyH/plowshare.bin"
 
 test_storage_to_download() {
-    FILENAME="debian032.jpg"
+    FILENAME="plowshare.bin"
     assert_equal "$FILENAME" "$(download $STORAGE_TO_URL)" || return 1
     rm -f $FILENAME
 }
