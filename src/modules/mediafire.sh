@@ -70,11 +70,15 @@ get_ofuscated_link() {
     BASE_URL="http://www.mediafire.com"
 
     detect_javascript >/dev/null || return 1
-    # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed removes
-    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
+    # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
+    #echo "$PAGE" > page.html
+    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' | 
               tail -n+3 | sed "s/<!--//; s/-->//" | head -n-1 |
               sed "N;N;N; s/var cb=Math.random().*$/}/") ||
         { log_error "cannot find javascript code"; return 1; }
+    FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
+               "cR();[[:space:]]*\([[:alnum:]]\+\)();") || 
+      { log_error "cannot find start function"; return 1; }
 
     { read DIVID; read DYNAMIC_PATH; } < <(echo "
         noop = function () { }
@@ -91,7 +95,7 @@ get_ofuscated_link() {
             },
         };
         $PAGE_JS
-        RunOnLoad();
+        $FUNCTION();
         // DIV id is string of hexadecimanl values of length 32
         for (key in namespace) {
             if (key.length == 32) {
