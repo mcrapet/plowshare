@@ -33,16 +33,23 @@ divshare_download() {
 
     PAGE=$(curl -c "$COOKIES" "$1")
 
-    REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href' 2>/dev/null) ||
-        { log_debug "file not found"; rm -f $COOKIES; return 254; }
+    if match '<div id="fileInfoHeader">File Information</div>'; then
+        log_debug "file not found"
+        rm -f $COOKIES
+        return 254
+    fi
 
     if test "$CHECK_LINK"; then
         rm -f $COOKIES
         return 255
     fi
 
-    log_debug "$1"
-    log_debug "$REDIR_URL"
+    # Uploader can disable audio/video download (only streaming is available)
+    REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href' 2>/dev/null) || {
+        log_error "content download not allowed"
+        rm -f $COOKIES
+        return 254
+    }
 
     if ! match '^http' "$REDIR_URL"; then
         WAIT_PAGE=$(curl -b "$COOKIES" "${BASE_URL}$REDIR_URL")

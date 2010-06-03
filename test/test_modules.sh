@@ -382,10 +382,10 @@ test_x7_to_check_active_link() {
 
 # Divshare.com
 
-DIVSHARE_URL="http://divshare.com/download/10035476-54f"
+DIVSHARE_URL="http://www.divshare.com/download/11577646-29a"
 
 test_divshare_download() {
-    FILENAME="02 Freedom.mp3"
+    FILENAME="plowshare.abc"
     assert_equal "$FILENAME" "$(download $DIVSHARE_URL)" || return 1
     rm -f "$FILENAME"
 }
