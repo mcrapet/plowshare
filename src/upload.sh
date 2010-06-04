@@ -101,8 +101,11 @@ FILES=("${@:(1):$#-1}")
 DESTINATION=${@:(-1)}
 IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 
-# ignore DESTFILE when uploading multiple files (it makes no sense there)
-test $# -eq 2 || DESTFILE=""
+# Ignore DESTFILE when uploading multiple files (it makes no sense there)
+if [ "$#" -gt '2' -a ! -z "$DESTFILE" ]; then
+    log_debug "several files requested, ignore destination name"
+    DESTFILE=""
+fi
 
 RETVAL=0
 for FILE in "${FILES[@]}"; do
