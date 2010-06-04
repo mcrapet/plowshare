@@ -57,14 +57,23 @@ test_rapidshare_upload_freezone() {
     FREEZONE_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
     test -e $TESTSDIR/.rapidshare-auth || return 255
     AUTH=$(cat $TESTSDIR/.rapidshare-auth)
+
+    # manual login
     LOGIN_DATA='username=$USER&password=$PASSWORD'
-    COOKIES=$(post_login "$AUTH" "$LOGIN_DATA" "$FREEZONE_URL" 2>/dev/null)
-    PARSE="<td>Files: <b>\(.*\)<\/b>"
-    FILES1=$(curl -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
+    COOKIES=$(create_tempfile)
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_URL" >/dev/null ||
+        { rm -f $COOKIES; return 1; }
+
+    # save number of user's files
+    FILES1=$(curl -b "$COOKIES" "$FREEZONE_URL" | parse '<td>Files' '<b>\([^<]*\)')
+
     URL=$(upload -b "$AUTH" $UPFILE rapidshare)
-    assert_match "http://rapidshare.com/files/" "$URL" || return 1
-    FILES2=$(curl -b <(echo "$COOKIES") "$FREEZONE_URL" | parse $PARSE)
-    assert_equal $(($FILES1+1)) $FILES2 || return 1
+    assert_match "http://rapidshare.com/files/" "$URL" ||
+        { rm -f $COOKIES; return 1; }
+
+    FILES2=$(curl -b "$COOKIES" "$FREEZONE_URL" | parse '<td>Files' '<b>\([^<]*\)')
+    rm -f $COOKIE
+    assert_equal $((FILES1 + 1)) $FILES2 || return 1
 }
 
 test_rapidshare_check_active_link() {
@@ -400,6 +409,7 @@ test_divshare_check_active_link() {
 DL_FREE_FR_URL="http://dl.free.fr/jUeq8Ct2K"
 
 test_dl_free_fr_download() {
+return 255
     FILENAME="plowshare.txt"
     assert_equal "$FILENAME" "$(download $DL_FREE_FR_URL)" || return 1
     rm -f $FILENAME
