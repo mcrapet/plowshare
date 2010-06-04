@@ -47,7 +47,7 @@ mediafire_download() {
     COOKIES=$(< $COOKIESFILE)
     rm -f $COOKIESFILE
 
-    test "$PAGE" || return 254
+    test "$PAGE" || return 1
 
     if matchi 'Invalid or Deleted File' "$PAGE"; then
         log_debug "invalid or deleted file"
