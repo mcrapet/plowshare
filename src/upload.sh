@@ -103,7 +103,7 @@ IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
 
 # Ignore DESTFILE when uploading multiple files (it makes no sense there)
 if [ "$#" -gt '2' -a ! -z "$DESTFILE" ]; then
-    log_debug "several files requested, ignore destination name"
+    log_notice "several files requested, ignore destination name"
     DESTFILE=""
 fi
 
