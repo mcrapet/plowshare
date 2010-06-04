@@ -1,12 +1,13 @@
-plowshare (0.9.3) unstable; urgency=medium
+plowshare (0.9.3) stable; urgency=high
 
   * Add 1 new module (free download): 115.com
   * Add list support: megaupload, sendspace
   * [plowdown] New fancy countdown
   * [plowup] Show curl upload progress
-  * [download] Fix broken modules: badongo, filefactory, mediafire
+  * [download] Fix broken modules: badongo, divshare.com, filefactory, mediafire
+  * [zshare] Fix missing description field (upload)
 
- -- Arnau Sanchez <tokland@gmail.com>  Sun, 30 May 2010 11:24:33 +0200
+ -- Arnau Sanchez <tokland@gmail.com>  Fri, 04 Jun 2010 10:52:08 +0200
 
 plowshare (0.9.2) unstable; urgency=medium
 
