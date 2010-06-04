@@ -65,7 +65,7 @@ zshare_download() {
 # zshare_upload [MODULE_ZSHARE_UPLOAD_OPTIONS] FILE [DESTFILE]
 #
 # Option:
-#   -d DESCRIPTION (useless, not displayed on download page)
+#   -d DESCRIPTION (short text description)
 #
 zshare_upload() {
     set -e
@@ -81,13 +81,37 @@ zshare_upload() {
     ACTION=$(grep_form_by_name "$DATA" 'upload' | parse_form_action) ||
         { log_debug "cannot get upload form URL"; return 1; }
 
+    log_debug "form action: $ACTION"
     log_debug "starting file upload: $FILE"
-    INFOPAGE=$(curl_with_log -L \
-        -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
-        -F "desc=$DESCRIPTION" \
-        -F "is_private=0"      \
-        -F "TOS=1"             \
-        "$ACTION")
+
+    # There is actually two methods for uploading one file.
+    # The first drops the description field but has only one HTTP post request.
+    # I'm keeping both, just in case.
+    if [ -z "$DESCRIPTION" ]; then
+        INFOPAGE=$(curl_with_log -L \
+            -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
+            -F "descr=$DESCRIPTION" \
+            -F "is_private=0"       \
+            -F "TOS=1"              \
+            -F "pass="              \
+            "$ACTION")
+    else
+        DATA=$(curl "${ACTION}uberupload/ubr_link_upload.php?rnd_id=$RANDOM")
+        ID=$(echo "$DATA" | parse 'startUpload(' 'd("\([^"]*\)')
+        log_debug "id:$ID"
+
+        # Escaped version
+        DESCR=$(recode_uri_hard "$DESCRIPTION")
+
+        # Note: description is taken from URL and not from form field
+        INFOPAGE=$(curl_with_log -L \
+            -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
+            -F "descr=$DESCRIPTION" \
+            -F "is_private=0"       \
+            -F "TOS=1"              \
+            -F "pass="              \
+            "${ACTION}cgi-bin/ubr_upload.pl?upload_id=${ID}&descr=$DESCR")
+    fi
 
     match "was successfully uploaded" "$INFOPAGE" ||
         { log_error "upload unsuccessful"; return 1; }

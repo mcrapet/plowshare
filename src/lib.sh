@@ -344,8 +344,27 @@ detect_perl() {
     return 0
 }
 
+# HTML entities will be translated
+# stdout: input data
 html_to_utf8() {
     recode html..utf8
+}
+
+# Encode a text to include into an url
+# - check for "reserverd characters" : $&+,/:;=?@
+# - check for "unsafe characters": '<>#%{}|\^~[]`
+#
+# $1: data (example: relative URL)
+# stdout: data (nearly complains RFC2396)
+recode_uri_hard() {
+    echo "$1" | sed -e 's/\$/%24/g' -e 's|/|%2F|g' -e 's/\%/%25/g' \
+        -e 's/\x26/%26/g' -e 's/\x2B/%2B/g' -e 's/\x2C/%2C/g' \
+        -e 's/\x3A/%3A/g' -e 's/\x3B/%3B/g' -e 's/\x3D/%3D/g' \
+        -e 's/\x3F/%3F/g' -e 's/\x40/%40/g' -e 's/\x20/%20/g' \
+        -e 's/\x22/%22/g' -e 's/\x3C/%3C/g' -e 's/\x3E/%3E/g' \
+        -e 's/\x23/%23/g' -e 's/\x7B/%7B/g' -e 's/\x7D/%7D/g' \
+        -e 's/\x7C/%7C/g' -e 's/\^/%5E/g' -e 's/\x7E/%7E/g' \
+        -e 's/\x60/%60/g' -e 's/\\/%5C/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
 }
 
 # Execute javascript code
