@@ -185,11 +185,11 @@ mediafire_upload() {
 
     log_debug "Get ukey cookie"
     curl -c $COOKIESFILE "$BASE_URL" >/dev/null || 
-      { log_error "Couldn't get homepage!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
+        { log_error "Couldn't get homepage!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
     log_debug "Get uploader configuration"
     curl -b $COOKIESFILE "$BASE_URL/basicapi/uploaderconfiguration.php" > $PAGEFILE ||
-      { log_error "Couldn't get uploader configuration!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
+        { log_error "Couldn't get uploader configuration!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
     local UKEY=$(parse ukey '.*ukey[ \t]*\(.*\)' < $COOKIESFILE 2>/dev/null)
     local TRACK_KEY=$(parse trackkey '.*<trackkey>\(.*\)<\/trackkey>.*' < $PAGEFILE 2>/dev/null)
@@ -200,7 +200,7 @@ mediafire_upload() {
     log_debug "ukey: $UKEY"
     log_debug "MFULConfig: $MFUL_CONFIG"
 
-    if [ -z "$UKEY" ] || [ -z "$TRACK_KEY" ] || [ -z "$FOLDER_KEY" ] || [ -z "$MFUL_CONFIG" ]; then
+    if [ -z "$UKEY" -o -z "$TRACK_KEY" -o -z "$FOLDER_KEY" -o -z "$MFUL_CONFIG" ]; then
         log_error "Can't parse uploader configuration!"
         rm -f $COOKIESFILE $PAGEFILE
         return 1
@@ -208,11 +208,12 @@ mediafire_upload() {
 
     log_debug "Uploading file"
     local UPLOAD_URL="$BASE_URL/basicapi/doupload.php?track=$TRACK_KEY&ukey=$UKEY&user=x&uploadkey=$FOLDER_KEY&upload=0"
-    curl_with_log -b $COOKIESFILE -F "Filename=$(basename "$DESTFILE")" \
-                                  -F "Upload=Submit Query" \
-                                  -F "Filedata=@$FILE;filename=$(basename "$DESTFILE")" \
-                  $UPLOAD_URL > $PAGEFILE || 
-      { log_error "Couldn't upload file!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
+    curl_with_log -b $COOKIESFILE \
+        -F "Filename=$(basename "$DESTFILE")" \
+        -F "Upload=Submit Query" \
+        -F "Filedata=@$FILE;filename=$(basename "$DESTFILE")" \
+        $UPLOAD_URL > $PAGEFILE || 
+        { log_error "Couldn't upload file!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
     local UPLOAD_KEY=$(parse key '.*<key>\(.*\)<\/key>.*' < $PAGEFILE 2>/dev/null)
     log_debug "key: $UPLOAD_KEY"
