@@ -81,7 +81,7 @@ get_ofuscated_link() {
       { log_error "cannot find start function"; return 1; }
 
     { read DIVID; read DYNAMIC_PATH; } < <(echo "
-        noop = function () { }
+        noop = function() { }
         // These functions and variables are defined elsewhere, fake them.
         DoShow = Eo = aa = noop;
         fu = StartDownloadTried = 0;
@@ -90,7 +90,8 @@ get_ofuscated_link() {
         namespace = {};
         var document = {
             getElementById: function(id) {
-                namespace[id] = {style: ''}
+                if (!namespace[id])                   
+                  namespace[id] = {style: ''}
                 return namespace[id];
             },
         };
@@ -98,9 +99,8 @@ get_ofuscated_link() {
         $FUNCTION();
         // DIV id is string of hexadecimanl values of length 32
         for (key in namespace) {
-            if (key.length == 32) {
+            if (key.length == 32)
                 print(key);
-            }
         }
         print(namespace.workframe2.src);
         " | javascript) ||
