@@ -327,7 +327,7 @@ detect_javascript() {
         log_notice "Javascript interpreter not found"
         return 1
     fi
-    echo "js"
+    echo "rhino2"
     return 0
 }
 

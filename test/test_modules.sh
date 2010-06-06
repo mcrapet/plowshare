@@ -231,6 +231,11 @@ test_mediafire_check_active_link() {
     assert_equal "$MEDIAFIRE_URL" "$(download -c $MEDIAFIRE_URL)" || return 1
 }
 
+test_mediafire_upload_anonymous() {
+    URL="$(upload $UPFILE mediafire)"
+    assert_match "http://www.mediafire.com/?" "$URL" || return 1
+}
+
 # 4shared.com
 
 FSHARED_URL="http://www.4shared.com/file/14767114/7939c436/John_Milton_-_Paradise_Lost.html?s=1"
