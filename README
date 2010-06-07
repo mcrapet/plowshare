@@ -39,7 +39,7 @@ To run _plowshare_ and all its modules you will need:
   * [http://www.gnu.org/software/recode/ recode]
   * [http://www.imagemagick.org imagemagick] (with GIF and TIFF support)
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (with TIFF support; version 2.03 works, but 2.04 works better)
-  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or a compatible Javascript interpreter (used by badongo, filefactory, mediafire and zshare modules)
+  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or [http://www.mozilla.org/rhino/ rhino] : a compatible Javascript interpreter (used by badongo, filefactory, mediafire and zshare modules)
   * [http://aa-project.sourceforge.net/aview/ aview] or [http://caca.zoy.org/ libcaca] (both optional)
   * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used by badongo and netload.in modules)
 
@@ -175,6 +175,14 @@ $ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
 {{{
 $ plowup -a myuser:mypassword -d "My description" --multifetch http://www.somewherefarbeyond.com/somefile megaupload
 }}}
+
+  * Upload a bunch of files (anonymously to 2shared):
+
+{{{
+$ plowup /path/myphotos/* 2shared
+}}}
+
+Notice that only files will be sent, subdirectories will be ignored.
 
   * Upload a file to Zshare anonymously with a proxy.
 
