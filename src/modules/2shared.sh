@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/file/"
+MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\)/"
 MODULE_2SHARED_DOWNLOAD_OPTIONS=""
 MODULE_2SHARED_UPLOAD_OPTIONS=
+MODULE_2SHARED_DELETE_OPTIONS=
 MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
 # Output a 2shared file download URL
@@ -74,4 +75,42 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
     ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
     echo "$URL ($ADMIN)"
+}
+
+# Delete a file uploaded to 2shared
+# $1: ADMIN_URL
+2shared_delete() {
+    eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
+
+    BASE_URL="http://www.2shared.com"
+    URL="$1"
+
+    # Without cookie, it does not work
+    COOKIES=$(create_tempfile)
+    ADMIN_PAGE=$(curl -c $COOKIES "$URL")
+
+    if ! match 'Delete File' "$ADMIN_PAGE"; then
+        log_error "File not found"
+        rm -f $COOKIES
+        return 254
+    else
+        FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
+            log_error "can't get delete form, website updated?";
+            rm -f $COOKIES
+            return 1;
+        }
+
+        ACTION=$(echo "$FORM" | parse_form_action)
+        DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink')
+        AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink')
+        DL_LINK=$(recode_uri_hard $DL_LINK)
+        AD_LINK=$(recode_uri_hard $AD_LINK)
+
+        curl -b $COOKIES --referer "$URL" \
+            --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
+            "$BASE_URL$ACTION" >/dev/null
+        # Can't parse for success, we get redirected to main page
+
+        rm -f $COOKIES
+    fi
 }

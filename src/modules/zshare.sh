@@ -135,7 +135,7 @@ zshare_delete() {
     DELETE_PAGE=$(curl -L "$URL")
 
     if matchi 'File Not Found' "$DELETE_PAGE"; then
-        log_debug "File not found"
+        log_error "File not found"
         return 254
     else
         local form_killcode=$(echo "$DELETE_PAGE" | parse_form_input_by_name "killCode")
