@@ -4,7 +4,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 
 || *Website* || *Download* || *Upload* || *Delete* || *List* ||
 || [http://www.115.com 115.com] || anonymous || -|| -|| -||
-|| [http://www.2shared.com 2Shared] || anonymous || anonymous || -|| -||
+|| [http://www.2shared.com 2Shared] || anonymous || anonymous || yes || -||
 || [http://www.4shared.com 4Shared] || anonymous || -|| -|| -||
 || [http://www.badongo.com Badongo] || anonymous || -|| -|| -||
 || [http://www.data.hu Data.hu] || anonymous || -|| -|| -||
@@ -13,7 +13,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://dl.free.fr dl.free.fr] || anonymous || -|| -|| -||
 || [http://www.filefactory.com FileFactory] || anonymous || -|| -|| -||
 || [http://www.humyo.com Humyo] || anonymous || -|| -|| -||
-|| [http://www.mediafire.com Mediafire] || anonymous || -|| -|| yes ||
+|| [http://www.mediafire.com Mediafire] || anonymous || anonymous || -|| yes ||
 || [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) || yes || yes ||
 || [http://www.netload.in Netload.in] || anonymous || -|| -|| -||
 || [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone || yes || -||
