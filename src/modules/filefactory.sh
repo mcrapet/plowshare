@@ -61,15 +61,30 @@ filefactory_download() {
 # $2: upper bound
 # $2: lower bound
 get_next_link() {
-    KEY=$(echo "$1" | sed -n "/$2/,/$3/p" | parse 'var ' '"\(?key=[^"]*\)')
-    log_debug "$KEY"
+    local CHUNK=$(echo "$1" | sed -n "/$2/,/$3/p")
 
-    JSCODE=$(curl "${BASE_URL}/file/getLink.js$KEY" | sed -n '$!p')
+    if match 'href="javascript:void(0);"' "$CHUNK"; then
+        KEY=$(echo "$CHUNK" | parse 'var ' '?key="[^"]*"\([^"]*\)')
+        log_debug "key:$KEY"
 
-    VAR=$(echo "$JSCODE" | parse 'var' 'var \([^ ]*\)')
-    log_debug "js var name is $VAR"
+        JSCODE=$(curl "${BASE_URL}/file/getLink.js?key=$KEY" | sed -n '$!p')
 
-    LINK=$(echo "$JSCODE" " print($VAR);" | javascript) ||
-        { log_error "can't exectute javascript, website updated?"; return 1; }
+        # Allow a second attempt
+        if match 'Unknown Request' "$JSCODE"; then
+            log_debug "second attempt for getLink"
+            JSCODE=$(curl "${BASE_URL}/file/getLink.js?key=$KEY" | sed -n '$!p')
+        fi
+
+        VAR=$(echo "$JSCODE" | parse 'var' 'var \([^ ]*\)')
+        log_debug "js var name: $VAR"
+
+        LINK=$(echo "$JSCODE" " print($VAR);" | javascript) ||
+            { log_error "can't exectute javascript, website updated?"; return 1; }
+    else
+        LINK=$(echo "$CHUNK" | parse_attr '<a href=' 'href') ||
+            { log_error "can't exectute javascript, website updated?"; return 1; }
+    fi
+
+    log_debug "link:$LINK"
     echo "$LINK"
 }
