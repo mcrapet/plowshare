@@ -83,7 +83,7 @@ get_ofuscated_link() {
         noop = function() { }
         // These functions and variables are defined elsewhere, fake them.
         DoShow = Eo = aa = noop;
-        fu = StartDownloadTried = 0;
+        fu = StartDownloadTried = pk = 0;
 
         // Record accesses to the DOM
         namespace = {};
