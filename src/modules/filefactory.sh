@@ -54,7 +54,7 @@ filefactory_download() {
     echo $FILE_URL
 }
 
-# Local funtion. Extract the right <script>..</script> snippet
+# Local function. Extract the right <script>..</script> snippet
 # and then use it to get a link.
 #
 # $1: HTML content
@@ -88,7 +88,6 @@ get_next_link() {
     log_debug "link:$LINK"
     echo "$LINK"
 }
-
 
 # List a filefactory shared folder
 # $1: filefactory folder URL
