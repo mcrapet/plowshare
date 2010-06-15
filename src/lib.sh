@@ -607,11 +607,11 @@ timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
     log_notice "Time left to timeout: $PS_TIMEOUT secs"
-    if test $(expr $PS_TIMEOUT - $WAIT) -lt 0; then
-        log_error "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
+    if [[ "$PS_TIMEOUT" -lt "$WAIT" ]]; then
+        log_debug "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
         return 1
     fi
-    PS_TIMEOUT=$(expr $PS_TIMEOUT - $WAIT)
+    (( PS_TIMEOUT -= WAIT ))
 }
 
 

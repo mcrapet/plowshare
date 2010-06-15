@@ -184,6 +184,10 @@ download() {
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
             # Don't set RETVAL, a dead link is not considered as error
             break
+        elif test $DRETVAL -eq 2; then
+            log_error "delay limit reached (${FUNCTION})"
+            RETVAL=$DERROR
+            break
         elif test $DRETVAL -eq 3; then
             log_error "retry limit reached (${FUNCTION})"
             RETVAL=$DERROR

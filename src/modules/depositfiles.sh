@@ -74,7 +74,7 @@ check_wait() {
         parse "$WORD" "\(\<[[:digit:]]\+\>\) $WORD" 2>/dev/null) || true
     if test "$LIMIT"; then
         log_debug "limit reached: waiting $LIMIT ${WORD}s"
-        wait $((LIMIT*FACTOR)) seconds
+        wait $((LIMIT*FACTOR)) seconds || return 2
         return 1
     else
         return 0
@@ -85,6 +85,6 @@ check_ip() {
     echo "$1" | grep -q '<div class="ipbg">' || return 0
     local WAIT=60
     log_debug "IP already downloading, waiting $WAIT seconds"
-    wait $WAIT seconds
+    wait $WAIT seconds || return 2
     return 1
 }

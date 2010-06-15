@@ -49,7 +49,7 @@ filefactory_download() {
         { log_error "can't get file url, website updated?"; return 1; }
 
     WAIT_TIME=$(echo "$HTML_PAGE" | parse '<span class="countdown">' '>\([[:digit:]]*\)<\/span>')
-    wait $((WAIT_TIME)) seconds
+    wait $((WAIT_TIME)) seconds || return 2
 
     echo $FILE_URL
 }

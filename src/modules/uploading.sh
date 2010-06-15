@@ -54,7 +54,7 @@ uploading_download() {
             WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
                 WAIT=5
             log_debug "Server asked to wait"
-            wait $WAIT minutes
+            wait $WAIT minutes || return 2
             continue
         fi
 
@@ -82,7 +82,7 @@ uploading_download() {
     test -z "$WAIT" &&
       WAIT=$(echo "$DATA" | parse 'var[[:space:]]*timer_count' \
              'timer_count[[:space:]]*=[[:space:]]*\([[:digit:]]\+\);')
-           
+
     test "$WAIT" || { log_error "Cannot get wait time"; return 1; }
     JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
 

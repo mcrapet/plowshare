@@ -83,7 +83,7 @@ megaupload_download() {
             # Fragile parsing, set a default waittime if something went wrong
             test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 ||
                 WAITTIME=2
-            wait $WAITTIME minutes
+            wait $WAITTIME minutes || return 2
             continue
 
         # Test if the file is password protected
@@ -116,7 +116,7 @@ megaupload_download() {
                 rm -f $COOKIES
                 return 255
             fi
-            wait 2 minutes
+            wait 2 minutes || return 2
             continue
         fi
 
