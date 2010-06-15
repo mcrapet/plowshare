@@ -150,6 +150,11 @@ hotfile_list() {
 
     PAGE=$(curl "$URL" | grep 'hotfile.com/dl/')
 
+    if test -z "$PAGE"; then
+        log_error "Wrong directory list link"
+        return 1
+    fi
+
     # First pass : print debug message
     echo "$PAGE" | while read LINE; do
         FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
