@@ -1,7 +1,9 @@
 plowshare (0.9.4svn) stable; urgency=low
 
-  * [mediafire] Add upload function
+  * [download] Fix broken modules: filefactory, mediafire
   * [2shared] Add delete function
+  * [filefactory] Add list function
+  * [mediafire] Add upload function
 
  -- Arnau Sanchez <tokland@gmail.com>  Mon, 07 Jun 2010 16:22:10 +0200
 

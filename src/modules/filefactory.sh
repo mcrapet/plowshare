@@ -15,15 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEFACTORY_REGEXP_URL="http://\(www\.\)\?filefactory\.com/file"
+MODULE_FILEFACTORY_REGEXP_URL="http://\(www\.\)\?filefactory\.com/f\(ile\)\?/"
 MODULE_FILEFACTORY_DOWNLOAD_OPTIONS=""
 MODULE_FILEFACTORY_UPLOAD_OPTIONS=
+MODULE_FILEFACTORY_LIST_OPTIONS=
 MODULE_FILEFACTORY_DOWNLOAD_CONTINUE=yes
 
-# Output a filefactory file download URL (anonymous, NOT PREMIUM)
-#
-# filefactory_download FILEFACTORY_URL
-#
+# Output a filefactory file download URL (anonymous)
+# $1: filefactory URL
+# stdout: real file download link
 filefactory_download() {
     set -e
     eval "$(process_options filefactory "$MODULE_FILEFACTORY_DOWNLOAD_OPTIONS" "$@")"
@@ -87,4 +87,41 @@ get_next_link() {
 
     log_debug "link:$LINK"
     echo "$LINK"
+}
+
+
+# List a filefactory shared folder
+# $1: filefactory folder URL
+# stdout: list of links (file and/or folder)
+filefactory_list() {
+    eval "$(process_options filefactory "$MODULE_FILEFACTORY_LIST_OPTIONS" "$@")"
+    URL=$1
+
+    if ! match 'filefactory\.com\/f\/' "$URL"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    PAGE=$(curl "$URL")
+    LINKS=$(echo "$PAGE" | parse_all '<td class="name"' \
+            '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
+
+    if [ -z "$LINKS" ]; then
+        log_debug "empty folder"
+        return 0
+    fi
+
+    # First pass : print debug message
+    while read LINE; do
+        FILE_NAME=$(echo "$LINE" | parse '<a' '">\([^<]*\)')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
+
+    # Second pass : print links (stdout)
+    while read LINE; do
+        FILE_URL=$(echo "$LINE" | parse_attr 'a' 'href')
+        echo "$FILE_URL"
+    done <<< "$LINKS"
+
+    return 0
 }
