@@ -74,6 +74,8 @@ rapidshare_download() {
         # - Due to a violation of our terms of use, the file has been removed from the server.
         # - This file is larger than 200 Megabyte. To download this file, you either need a Premium Account, or the owner of this file may carry the downloading cost by making use of "TrafficShare".
         if match "<h1>Error</h1>" "$PAGE"; then
+            rm -f $COOKIES
+
             match 'file could not be found' "$PAGE" &&
                 log_debug "file not found"
             match 'suspected to contain illegal content' "$PAGE" &&
@@ -87,9 +89,8 @@ rapidshare_download() {
             match 'violation of our terms' "$PAGE" &&
                 log_debug "file removed"
             match 'larger than 200 Megabyte' "$PAGE" &&
-                log_debug "premium link"
+                { log_debug "premium link"; return 253; }
 
-            rm -f $COOKIES
             return 254
         fi
 

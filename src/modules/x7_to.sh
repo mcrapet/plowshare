@@ -83,7 +83,7 @@ x7_to_download() {
         if match 'requested file is larger than' "$WAIT_HTML"; then
             log_debug "premium link"
             rm -f $COOKIES
-            return 254
+            return 253
         fi
 
         file_real_name=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
