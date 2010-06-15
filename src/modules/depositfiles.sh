@@ -51,12 +51,17 @@ depositfiles_download() {
         test "$CHECK_LINK" && return 255
         DATA=$(curl --data "gateway_result=1" "${BASEURL}${WAIT_URL}") ||
             { log_error "can't get wait URL contents"; return 1; }
+        match "get_download_img_code.php" "$DATA" && {
+           log_error "Site asked asked for a captcha to be solved. Aborting"
+           return 1
+        }
         check_wait "$DATA" "minute" "60" || continue
         check_wait "$DATA" "second" "1" || continue
         check_ip "$DATA" || continue
         break
     done
-    FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"')
+    FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"') ||
+        { log_error "cannot find download action"; return 1; }
     SLEEP=$(echo "$DATA" | parse "download_waiter_remain" ">\([[:digit:]]\+\)<") ||
         { log_error "cannot get wait time"; return 1; }
 
