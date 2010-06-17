@@ -33,29 +33,29 @@ verbose_level() {
     echo ${VERBOSE:-0}
 }
 
-debug() {
+stderr() {
     echo "$@" >&2;
 }
 
 log_debug() {
-    test $(verbose_level) -ge 3 && debug "dbg: $@"
+    test $(verbose_level) -ge 3 && stderr "dbg: $@"
     return 0
 }
 
 # log_debug for a file
 logcat_debug() {
     local STRING=$(cat $1 | sed -e 's/^/dbg:/')
-    test $(verbose_level) -ge 3 && debug "$STRING"
+    test $(verbose_level) -ge 3 && stderr "$STRING"
     return 0
 }
 
 log_notice() {
-    test $(verbose_level) -ge 2 && debug "$@"
+    test $(verbose_level) -ge 2 && stderr "$@"
     return 0
 }
 
 log_error() {
-    test $(verbose_level) -ge 1 && debug "$@"
+    test $(verbose_level) -ge 1 && stderr "$@"
     return 0
 }
 
