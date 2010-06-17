@@ -345,19 +345,21 @@ detect_perl() {
 }
 
 # HTML entities will be translated
-# stdout: input data
+# stdin: data
+# stdout: data (converted)
 html_to_utf8() {
-    recode html..utf8
+    recode html..utf8 | sed -e 's/%20/ /g'
 }
 
-# Encode a text to include into an url
-# - check for "reserverd characters" : $&+,/:;=?@
+# Encode a text to include into an url.
+# - check for "reserved characters" : $&+,/:;=?@
 # - check for "unsafe characters": '<>#%{}|\^~[]`
+# - check for space character
 #
-# $1: data (example: relative URL)
+# stdin: data (example: relative URL)
 # stdout: data (nearly complains RFC2396)
-recode_uri_hard() {
-    echo "$1" | sed -e 's/\$/%24/g' -e 's|/|%2F|g' -e 's/\%/%25/g' \
+uri_encode_strict() {
+    cat | sed -e 's/\$/%24/g' -e 's|/|%2F|g' -e 's/\%/%25/g' \
         -e 's/\x26/%26/g' -e 's/\x2B/%2B/g' -e 's/\x2C/%2C/g' \
         -e 's/\x3A/%3A/g' -e 's/\x3B/%3B/g' -e 's/\x3D/%3D/g' \
         -e 's/\x3F/%3F/g' -e 's/\x40/%40/g' -e 's/\x20/%20/g' \
@@ -365,6 +367,29 @@ recode_uri_hard() {
         -e 's/\x23/%23/g' -e 's/\x7B/%7B/g' -e 's/\x7D/%7D/g' \
         -e 's/\x7C/%7C/g' -e 's/\^/%5E/g' -e 's/\x7E/%7E/g' \
         -e 's/\x60/%60/g' -e 's/\\/%5C/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
+}
+
+# Encode a complete url.
+# - check for space character
+# - do not check for "reserved characters" (use "uri_encode_strict" for that)
+#
+# Bad encoded URL request can lead to HTTP error 400.
+# curl doesn't do any checks, whereas wget convert provided url.
+#
+# stdin: data (example: absolute URL)
+# stdout: data (nearly complains RFC2396)
+uri_encode() {
+    cat | sed -e "s/\x20/%20/g"
+}
+
+# Decode a complete url.
+# - check for space character
+# - do not check for "reserved characters"
+#
+# stdin: data (example: absolute URL)
+# stdout: data (nearly complains RFC2396)
+uri_decode() {
+    cat | sed -e "s/%20/\x20/g"
 }
 
 # Execute javascript code

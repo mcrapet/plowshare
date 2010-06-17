@@ -139,17 +139,6 @@ create_alt_filename() {
     echo "$FILENAME"
 }
 
-# Check/Convert an url.
-# Bad encoded URL request can lead to HTTP error 400.
-# curl doesn't do any checks, whereas wget convert provided url.
-#
-# $1: string
-# stdout: URI (nearly complains RFC2396)
-recode_uri() {
-    local URI="$1"
-    echo "$URI" | sed -e "s/\x20/%20/g"
-}
-
 # download MODULE URL FUNCTION_OPTIONS
 download() {
     local MODULE=$1
@@ -206,7 +195,7 @@ download() {
         log_notice "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | html_to_utf8)
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | html_to_utf8 | uri_decode)
         fi
         log_notice "Filename: $FILENAME"
 
@@ -235,7 +224,7 @@ download() {
             fi
 
             CURL=("curl")
-            FILE_URL=$(recode_uri "$FILE_URL")
+            FILE_URL=$(echo "$FILE_URL" | uri_encode)
             continue_downloads "$MODULE" && CURL=($CURL "-C -")
             test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
             test "$COOKIES" && CURL=($CURL -b $COOKIES)

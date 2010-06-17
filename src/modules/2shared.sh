@@ -101,10 +101,8 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
         }
 
         ACTION=$(echo "$FORM" | parse_form_action)
-        DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink')
-        AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink')
-        DL_LINK=$(recode_uri_hard $DL_LINK)
-        AD_LINK=$(recode_uri_hard $AD_LINK)
+        DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink' | uri_encode_strict)
+        AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink' | uri_encode_strict)
 
         curl -b $COOKIES --referer "$URL" \
             --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \

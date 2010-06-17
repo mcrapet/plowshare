@@ -101,7 +101,7 @@ zshare_upload() {
         log_debug "id:$ID"
 
         # Escaped version
-        DESCR=$(recode_uri_hard "$DESCRIPTION")
+        DESCR=$(echo "$DESCRIPTION" | uri_encode_strict)
 
         # Note: description is taken from URL and not from form field
         INFOPAGE=$(curl_with_log -L \
