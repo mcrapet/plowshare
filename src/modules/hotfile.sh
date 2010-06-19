@@ -33,11 +33,9 @@ hotfile_download() {
     COOKIES=$(create_tempfile)
 
     # Warning message
-    log_debug "##"
-    log_debug "# Important note: reCaptcha is not handled here."
-    log_debug "# As captcha challenge request is random and/or linked to specific url,"
-    log_debug "# some link could be never downloaded."
-    log_debug "##"
+    log_notice "# IMPORTANT: Hotfile sometimes asks the user to solve a reCaptcha."
+    log_notice "# If this is the case, this module won't able to download the file."
+    log_notice "# Do not file this as a bug, reCaptcha is virtually un-breakable."
 
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
