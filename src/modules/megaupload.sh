@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MEGAUPLOAD_REGEXP_URL="^http://\(www\.\)\?mega\(upload\|rotic\|porn\).com/"
+MODULE_MEGAUPLOAD_REGEXP_URL="^http://\(www\.\)\?mega\(upload\|rotic\|porn\|video\).com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
@@ -47,7 +47,8 @@ megaupload_download() {
 
     COOKIES=$(create_tempfile)
     ERRORURL="http://www.megaupload.com/?c=msg"
-    URL=$(echo "$1" | replace 'rotic\.com/' 'porn\.com/')
+    URL=$(echo "$1" | replace 'rotic\.com/' 'porn\.com/' | \
+                      replace 'video\.com/' 'upload\.com/')
 
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
@@ -85,6 +86,13 @@ megaupload_download() {
                 WAITTIME=2
             wait $WAITTIME minutes || return 2
             continue
+
+        # Test for big files (premium account required)
+        elif match "The file that you're trying to download is larger than" "$PAGE"; then
+            log_debug "Premium link"
+            rm -f $COOKIES
+            test "$CHECK_LINK" && return 255
+            return 253
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
@@ -131,10 +139,14 @@ megaupload_download() {
 
             log_debug "Link found, no need to wait"
             echo "$FILEURL"
-            return
+            return 0
         fi
 
-        match 'link you have clicked is not available' "$PAGE" && return 254
+        # Check for dead link
+        if match 'link you have clicked is not available' "$PAGE"; then
+            rm -f $COOKIES
+            return 254
+        fi
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
