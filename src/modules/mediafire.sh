@@ -78,12 +78,18 @@ get_ofuscated_link() {
     FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
                "cR();[[:space:]]*\([[:alnum:]]\+\)();") || 
       { log_error "cannot find start function"; return 1; }
+    log_debug "JS function: $FUNCTION"
 
     { read DIVID; read DYNAMIC_PATH; } < <(echo "
         noop = function() { }
-        // These functions and variables are defined elsewhere, fake them.
+        // Functions and variables used but defined elsewhere, fake them.
         DoShow = Eo = aa = noop;
         fu = StartDownloadTried = pk = 0;
+
+        // setTimeout() is being used to 'hide' function calls.   
+        function setTimeout(func, time) {
+          func();
+        }
 
         // Record accesses to the DOM
         namespace = {};
@@ -96,7 +102,7 @@ get_ofuscated_link() {
         };
         $PAGE_JS
         $FUNCTION();
-        // DIV id is string of hexadecimanl values of length 32
+        // DIV id is string of hexadecimal values of length 32
         for (key in namespace) {
             if (key.length == 32)
                 print(key);
