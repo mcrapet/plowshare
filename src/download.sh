@@ -164,14 +164,15 @@ download() {
         RESULT=$($FUNCTION "$@" "$(strip "$URL")") || DRETVAL=$?
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
-        if test \( $DRETVAL -eq 255 -o $DRETVAL -eq 253 \) -a "$CHECK_LINK"; then
+        if test \( $DRETVAL -eq 255 \) -a "$CHECK_LINK"; then
             log_notice "Link active: $URL"
-            echo "$URL"
+            echo $URL
             break
         elif test $DRETVAL -eq 253; then
             log_notice "Warning: file link is alive but not currently available"
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "N/A"
-            # Don't set RETVAL, a premium link is not considered as error
+            if ! test "$CHECK_LINK"; then
+              mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTAVAILABLE"
+            fi
             break
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
