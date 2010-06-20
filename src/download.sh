@@ -164,7 +164,7 @@ download() {
         RESULT=$($FUNCTION "$@" "$(strip "$URL")") || DRETVAL=$?
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
-        if test \( $DRETVAL -eq 255 \) -a "$CHECK_LINK"; then
+        if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
             log_notice "Link active: $URL"
             echo $URL
             break
