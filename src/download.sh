@@ -166,7 +166,7 @@ download() {
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
             log_notice "Link active: $URL"
-            echo $URL
+            echo "$URL"
             break
         elif test $DRETVAL -eq 253; then
             log_notice "Warning: file link is alive but not currently available"
@@ -261,7 +261,7 @@ download() {
 
             # Echo downloaded file path
             test "$OUTPUT_DIR" && echo -n "$OUTPUT_DIR"
-            echo $(basename "$TEMP_FILENAME")
+            echo "$(basename "$TEMP_FILENAME")"
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
         break
