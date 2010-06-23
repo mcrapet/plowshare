@@ -37,6 +37,7 @@ LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, 
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
+GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)
 "
 

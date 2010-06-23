@@ -69,13 +69,16 @@ with_log() {
 # Wrapper for curl: debug and infinite loop control
 curl() {
     local -a OPTIONS=(--insecure)
+    local -a POST_OPTIONS=()
     local DRETVAL=0
 
     # no verbose unless debug level
     test $(verbose_level) -lt 3 && OPTIONS=(${OPTIONS[@]} "--silent")
 
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
-    set -- $(type -P curl) "${OPTIONS[@]}" "$@"
+    test -n "$GLOBAL_COOKIES" && 
+      POST_OPTIONS=(${POST_OPTIONS[@]} "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
+    set -- $(type -P curl) "${OPTIONS[@]}" "$@" "${POST_OPTIONS[@]}"
     "$@" || DRETVAL=$?
     return $DRETVAL
 }
@@ -286,6 +289,15 @@ post_login() {
     LOGINURL=$4
     CURL_ARGS=$5
 
+    if test "$GLOBAL_COOKIES"; then      
+      REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")      
+      if grep -q "^\.\?$REGEXP" "$GLOBAL_COOKIES" 2>/dev/null; then
+        log_debug "cookies for site ($REGEXP) found in cookies file, login skipped"
+        return
+      fi
+      log_debug "cookies not found for site ($REGEXP), continue login process"
+    fi
+
     USER="${AUTH%%:*}"
     PASSWORD="${AUTH#*:}"
 
@@ -305,7 +317,7 @@ post_login() {
 
     # For now "-z" test is kept.
     # There is no known case of a null $RESULT on successful login.
-    if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
+    if [ -z "$RESULT" -o ! -s "${GLOBAL_COOKIES:-$COOKIE}" ]; then
         log_error "login request failed"
         return 1
     fi
