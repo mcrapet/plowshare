@@ -40,9 +40,12 @@ uploaded_to_download() {
         then
             rm -f $HEADERS
 
-            matchi 'premium[[:space:]]\+account' "$DATA" && \
-                log_debug "premium user link only" || \
-                log_debug "file not found"
+            if matchi 'premium[[:space:]]\+account' "$DATA"; then
+                log_debug "premium user link only"
+                return 253
+            fi
+
+            log_debug "file not found"
             return 254
 
         # Location: /?view=error_traffic_exceeded_free&id=abcdef
