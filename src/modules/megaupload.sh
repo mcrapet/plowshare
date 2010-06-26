@@ -167,12 +167,11 @@ megaupload_download() {
         test "$WAITTIME" && break;
         log_debug "Wrong captcha"
     done
+    rm -f $COOKIES
 
     FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
         parse 'id="downloadlink"' 'href="\([^"]*\)"')
     wait $((WAITTIME+1)) seconds
-
-    rm -f $COOKIES
 
     echo "$FILEURL"
 }
