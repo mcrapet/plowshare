@@ -136,17 +136,16 @@ rapidshare_download() {
     done
 
     if [ -z "$AUTH" ]; then
+        rm -f $COOKIES
         SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
         wait $((SLEEP + 1)) seconds || return 2
-        rm -f $COOKIES
+
         echo $FILE_URL
     else
         echo $FILE_URL
         echo
         echo $COOKIES
     fi
-
-    return 0
 }
 
 # Upload a file to Rapidshare (anonymously, Free-Zone or Premium-Zone)
