@@ -70,5 +70,4 @@ divshare_download() {
     echo $FILE_URL
     echo "${FILENAME% - DivShare}"
     echo $COOKIES
-    return 0
 }
