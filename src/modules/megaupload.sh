@@ -151,13 +151,15 @@ megaupload_download() {
 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 1
         log_debug "captcha URL: $CAPTCHA_URL"
+
         # OCR captcha and show ascii image to stderr simultaneously
         CAPTCHA=$(curl "$CAPTCHA_URL" | convert - +matte gif:- |
             show_image_and_tee | ocr | sed "s/[^a-zA-Z0-9]//g") ||
             { log_error "error running OCR"; return 1; }
         log_debug "Decoded captcha: $CAPTCHA"
-        test $(echo -n $CAPTCHA | wc -c) -eq 4 ||
+        test "${#CAPTCHA}" -ne 4 &&
             { log_debug "Captcha length invalid"; continue; }
+
         IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"

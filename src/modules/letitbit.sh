@@ -67,7 +67,8 @@ letitbit_download() {
                 gocr_ocr | sed 's/ //g' ) ||
             { log_error "running OCR"; return 1; }
         log_debug "Decoded captcha: $CAPTCHA"
-        test $(echo -n $CAPTCHA | wc -c) -eq 6 ||
+
+        test "${#CAPTCHA}" -ne 6 &&
             { log_debug "Captcha length invalid"; continue; }
 
         data="cap=$CAPTCHA&uid2=$uid&md5crypt=$md5crypt&fix=1"
