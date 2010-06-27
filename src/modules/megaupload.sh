@@ -72,7 +72,8 @@ megaupload_download() {
         PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
 
         # A void page means this is a Premium account, get the URL
-        test -z "$PAGE" && { ccurl -i "$URL" | get_location; return; }
+        test -z "$PAGE" &&
+            { ccurl -i "$URL" | grep_http_header_location; return 0; }
 
         REDIRECT=$(echo "$PAGE" | parse "document.location" \
             "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
@@ -112,7 +113,7 @@ megaupload_download() {
             match 'name="filepassword"' "$WAITPAGE" 2>/dev/null &&
                 { log_error "Link password incorrect"; return 1; }
             #test -z "$PAGE" &&
-            #    { ccurl -i -d "$DATA" "$URL" | get_location; return; }
+            #    { ccurl -i "$URL" | grep_http_header_location; return 0; }
             WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
                 "count=\([[:digit:]]\+\);" 2>/dev/null) || return 1
             break
@@ -297,9 +298,4 @@ megaupload_list() {
     match "<FILES></FILES>" "$XML" &&
         { log_notice "Folder link not found"; return 254; }
     echo "$XML" | parse_all_attr "<ROW" "url"
-}
-
-# FIXME: get rid of this
-get_location() {
-    grep "^[Ll]ocation:" | head -n1 | cut -d":" -f2- | xargs
 }
