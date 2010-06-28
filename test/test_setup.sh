@@ -49,6 +49,7 @@ share/plowshare
 share/plowshare/delete.sh
 share/plowshare/download.sh
 share/plowshare/examples
+share/plowshare/examples/caturl.sh
 share/plowshare/examples/plowdown_add_remote_loop.sh
 share/plowshare/examples/plowdown_loop.sh
 share/plowshare/examples/plowdown_parallel.sh
