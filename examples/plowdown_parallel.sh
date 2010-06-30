@@ -8,22 +8,6 @@ set -e
  
 debug() { echo "$@" >&2; }
 
-wait_pids() {
-  local -a PIDS=()
-  for PID in "$@"; do 
-    PIDS[$PID]=$PID 
-  done
-  debug "Waiting for: ${PIDS[*]}"
-  while test ${#PIDS[*]} -ne 0; do
-    for PID in "${PIDS[@]}"; do
-      kill -0 $PID 2>/dev/null || { 
-        wait $PID && unset PIDS[$PID] && debug "finished: $PID" 
-      }
-    done
-    sleep 1
-  done
-}
-
 get_modules() {
   MODULES=$(plowdown --get-module "$1")
   INFO=$(echo "$MODULES" | paste - "$1")
@@ -36,15 +20,13 @@ get_modules() {
 
 # Main
 
-test $# -ge 1 || { debug "Usage: $(basename $0) FILEWITHLINKS"; exit 1; }
+test $# -ge 1 || { debug "Usage: $(basename $0) FILE_WITH_LINKS"; exit 1; }
 INFILE=$1
 trap "kill 0" SIGINT SIGTERM EXIT
-PIDS=()
 
 while read MODULE URLS; do
-  debug "Module $MODULE urls: $URLS"
+  debug "Module $MODULE: $URLS"
   plowdown $URLS &
-  PIDS=("${PIDS[@]}" $!)
 done < <(get_modules "$INFILE")
 
-wait_pids "${PIDS[@]}"
+wait
