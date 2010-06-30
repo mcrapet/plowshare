@@ -39,15 +39,16 @@ rapidshare_download() {
     URL=$1
     COOKIES=$(create_tempfile)
 
-    # Try to login if account provided
-    # Even if login/passwd are wrong cookie content is returned
-    if [ -n "$AUTH" ]; then
-        LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" \
-                "https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi" >/dev/null || {
-            rm -f $COOKIES
-            return 1
-        }
+    if test "$AUTH"; then
+        IFS=: read USER PASSWORD <<< "$AUTH"
+        DATA="sub=getaccountdetails_v1&withcookie=1&type=prem&login=$USER&password=$PASSWORD"
+        RESPONSE=$(curl --data "$DATA" "https://api.rapidshare.com/cgi-bin/rsapi.cgi")
+        matchi "Login failed" "$RESPONSE" && 
+            { rm -f $COOKIES; log_error "$RESPONSE"; return 1; }
+        COOKIE_VAL=$(echo "$RESPONSE" | parse "^cookie=" "cookie=\(.*\)") ||
+            { rm -f $COOKIES; log_error "Cannot parse cookie"; return 1; }
+        COOKIE=(.rapidshare.com TRUE / FALSE $(($(date +%s)+24*60*60)) enc $COOKIE_VAL)
+        echo "${COOKIE[*]}" | sed "s/ /\t/g" > $COOKIES            
     fi
 
     while retry_limit_not_reached || return 3; do
