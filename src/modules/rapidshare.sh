@@ -38,8 +38,8 @@ rapidshare_download() {
 
     URL=$1
     COOKIES=$(create_tempfile)
-
-    if test "$AUTH"; then
+    
+    if test "$AUTH" -a -z "$GLOBAL_COOKIES"; then
         IFS=: read USER PASSWORD <<< "$AUTH"
         DATA="sub=getaccountdetails_v1&withcookie=1&type=prem&login=$USER&password=$PASSWORD"
         RESPONSE=$(curl --data "$DATA" "https://api.rapidshare.com/cgi-bin/rsapi.cgi")
@@ -47,8 +47,8 @@ rapidshare_download() {
             { rm -f $COOKIES; log_error "$RESPONSE"; return 1; }
         COOKIE_VAL=$(echo "$RESPONSE" | parse "^cookie=" "cookie=\(.*\)") ||
             { rm -f $COOKIES; log_error "Cannot parse cookie"; return 1; }
-        COOKIE=(.rapidshare.com TRUE / FALSE $(($(date +%s)+24*60*60)) enc $COOKIE_VAL)
-        echo "${COOKIE[*]}" | sed "s/ /\t/g" > $COOKIES            
+        COOKIE=".rapidshare.com TRUE / FALSE $(($(date +%s)+24*60*60)) enc $COOKIE_VAL"
+        echo "$COOKIE" | sed "s/ /\t/g" > $COOKIES            
     fi
 
     while retry_limit_not_reached || return 3; do
