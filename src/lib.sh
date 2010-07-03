@@ -16,7 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Global variables used:
-#   - VERBOSE         Verbose log level (0=none, 1, 2, 3)
+#   - VERBOSE         Verbose log level (0=none, 1, 2, 3, 4)
 #   - INTERFACE       Network interface (used by curl)
 #   - PS_TIMEOUT      Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
@@ -25,9 +25,10 @@ set -o pipefail
 
 # Logs are sent to standard error.
 # Policy:
-# - debug: modules messages, curl (intermediate) calls
+# - error: modules errors (when return 1), lastest plowdown curl call
 # - notice: core messages (ocr, wait, timeout, retries), lastest plowdown curl call
-# - error: modules errors (when return 1)
+# - debug: modules messages, curl (intermediate) calls
+# - report: debug plus curl content (html pages, cookies)
 
 verbose_level() {
     echo ${VERBOSE:-0}
@@ -37,15 +38,22 @@ stderr() {
     echo "$@" >&2;
 }
 
-log_debug() {
-    test $(verbose_level) -ge 3 && stderr "dbg: $@"
+log_report() {
+    test $(verbose_level) -ge 4 && stderr "rep: $@"
     return 0
 }
 
-# log_debug for a file
-logcat_debug() {
-    local STRING=$(cat $1 | sed -e 's/^/dbg:/')
-    test $(verbose_level) -ge 3 && stderr "$STRING"
+# log_report for a file
+logcat_report() {
+    local STRING=$(cat $1 | \
+        sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' -e 's/^/rep:/')
+
+    test $(verbose_level) -ge 4 && stderr "$STRING"
+    return 0
+}
+
+log_debug() {
+    test $(verbose_level) -ge 3 && stderr "dbg: $@"
     return 0
 }
 
@@ -76,10 +84,22 @@ curl() {
     test $(verbose_level) -lt 3 && OPTIONS=(${OPTIONS[@]} "--silent")
 
     test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
-    test -n "$GLOBAL_COOKIES" && 
+    test -n "$GLOBAL_COOKIES" &&
       POST_OPTIONS=(${POST_OPTIONS[@]} "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
     set -- $(type -P curl) "${OPTIONS[@]}" "$@" "${POST_OPTIONS[@]}"
-    "$@" || DRETVAL=$?
+
+    if test $(verbose_level) -lt 4; then
+        "$@" || DRETVAL=$?
+    else
+        local TEMPCURL=$(create_tempfile)
+        log_report "$@"
+        "$@" | tee "$TEMPCURL" || DRETVAL=$?
+        log_report "=== CURL BEGIN ==="
+        logcat_report "$TEMPCURL"
+        log_report "=== CURL END ==="
+        rm -rf "$TEMPCURL"
+    fi
+
     return $DRETVAL
 }
 
@@ -289,8 +309,8 @@ post_login() {
     LOGINURL=$4
     CURL_ARGS=$5
 
-    if test "$GLOBAL_COOKIES"; then      
-      REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")      
+    if test "$GLOBAL_COOKIES"; then
+      REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")
       if grep -q "^\.\?$REGEXP" "$GLOBAL_COOKIES" 2>/dev/null; then
         log_debug "cookies for site ($REGEXP) found in cookies file, login skipped"
         return
@@ -322,9 +342,9 @@ post_login() {
         return 1
     fi
 
-    log_debug "=== COOKIE BEGIN ==="
-    logcat_debug "$COOKIE"
-    log_debug "=== COOKIE END ==="
+    log_report "=== COOKIE BEGIN ==="
+    logcat_report "$COOKIE"
+    log_report "=== COOKIE END ==="
 
     echo "$RESULT"
     return 0
@@ -414,9 +434,10 @@ javascript() {
 
     local TEMPSCRIPT=$(create_tempfile)
     cat > $TEMPSCRIPT
-    #log_debug "=== JAVASCRIPT BEGIN ==="
-    #logcat_debug "$TEMPSCRIPT"
-    #log_debug "=== JAVASCRIPT END ==="
+
+    log_report "=== JAVASCRIPT BEGIN ==="
+    logcat_report "$TEMPSCRIPT"
+    log_report "=== JAVASCRIPT END ==="
 
     $JS_PRG "$TEMPSCRIPT"
     rm -rf "$TEMPSCRIPT"

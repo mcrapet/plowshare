@@ -24,7 +24,7 @@ MODULES="2shared megaupload rapidshare zshare"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
-VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg
+VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 "
 
@@ -86,7 +86,7 @@ eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
 if [ -n "$QUIET" ]; then
     VERBOSE=0
 elif [ -n "$VERBOSE" ]; then
-    [ "$VERBOSE" -gt "3" ] && VERBOSE=3
+    [ "$VERBOSE" -gt "4" ] && VERBOSE=4
 else
     VERBOSE=2
 fi
