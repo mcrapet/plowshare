@@ -31,7 +31,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     URL=$1
     COOKIES=$(create_tempfile)
 
-    WAIT_URL=$(curl -c $COOKIES "$URL" | parse "4shared\.com\/get\/" 'href="\([^"]*\)"') || {
+    WAIT_URL=$(curl -c $COOKIES "$URL" | parse_attr "4shared\.com\/get\/" 'href') || {
         rm -f $COOKIES
         log_debug "file not found"
         return 254
@@ -39,13 +39,12 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
     test "$CHECK_LINK" && return 255
 
-    WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL")
+    WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL" | tr -d '\r')
     rm -f $COOKIES
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
             "[[:space:]]\([[:digit:]]\+\);")
-    FILE_URL=$(echo "$WAIT_HTML" | parse "\.4shared\.com\/download\/" \
-        "href='\([^']*\)'")
+    FILE_URL=$(echo "$WAIT_HTML" | parse_attr "4shared\.com\/download\/" 'href')
 
     # Try to figure the real filename from HTML
     FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse '<b class="blue xlargen">' \

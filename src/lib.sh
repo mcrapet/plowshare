@@ -127,9 +127,9 @@ uppercase() {
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
 parse_all() {
-    local STRING=$(sed -n "/$1/ s/^.*$2.*$/\1/p") &&
+    local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p") &&
         test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: /$1/ $2"; return 1; }
+        { log_error "parse failed: sed -n \"/$1/$2\""; return 1; }
 }
 
 # Like parse_all, but get only first match
@@ -209,12 +209,12 @@ break_html_lines() {
 
 # Return value of html attribute
 parse_attr() {
-    parse "$1" "$2"'="\([^"]*\)"'
+    parse "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
 
 # Return value of html attribute
 parse_all_attr() {
-    parse_all "$1" "$2"'="\([^"]*\)"'
+    parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
 
 # Retreive "action" attribute (URL) from a <form> marker
