@@ -39,7 +39,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
     test "$CHECK_LINK" && return 255
 
-    WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL" | tr -d '\r')
+    WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL")
     rm -f $COOKIES
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
