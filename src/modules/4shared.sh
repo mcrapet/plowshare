@@ -29,20 +29,27 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    WAIT_URL=$(curl "$URL" | parse "4shared\.com\/get\/" 'href="\([^"]*\)"') ||
-        { log_debug "file not found"; return 254; }
-    WAIT_HTML=$(curl "$WAIT_URL")
+    COOKIES=$(create_tempfile)
+
+    WAIT_URL=$(curl -c $COOKIES "$URL" | parse "4shared\.com\/get\/" 'href="\([^"]*\)"') || {
+        rm -f $COOKIES
+        log_debug "file not found"
+        return 254
+    }
 
     test "$CHECK_LINK" && return 255
 
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse "id='downloadDelayTimeSec'" \
-        ">\([[:digit:]]\+\)<")
+    WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL")
+    rm -f $COOKIES
+
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
+            "[[:space:]]\([[:digit:]]\+\);")
     FILE_URL=$(echo "$WAIT_HTML" | parse "\.4shared\.com\/download\/" \
         "href='\([^']*\)'")
 
     # Try to figure the real filename from HTML
-    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse '<b class="xlarge blue">' \
-                    'blue">\([^<]\+\)' 2>/dev/null | html_to_utf8)
+    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse '<b class="blue xlargen">' \
+                    'n">\([^<]\+\)' 2>/dev/null | html_to_utf8)
 
     wait $((WAIT_TIME)) seconds || return 2
     echo "$FILE_URL"
