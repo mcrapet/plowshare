@@ -234,6 +234,7 @@ download() {
                 TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
 
             # Force (temporarily) debug verbose level to dispay curl download progress
+            log_report ${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$TEMP_FILENAME" "$FILE_URL"
             CODE=$(with_log ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
                 -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
 
