@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\)/"
+MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\|video\)/"
 MODULE_2SHARED_DOWNLOAD_OPTIONS=""
 MODULE_2SHARED_UPLOAD_OPTIONS=
 MODULE_2SHARED_DELETE_OPTIONS=
