@@ -265,9 +265,9 @@ matchi() {
 # $1: URL
 basename_url()
 {
-    # If your shell does not support regexp, use this:
-    # echo $(expr match "$1" '\(http://[^/]*\)'|| echo "$1")
-    [[ "$1" =~ (http://[^/]*) ]] && echo "${BASH_REMATCH[1]}" || echo "$1"
+    # Bash >=3.0 supports regular expressions
+    # [[ "$1" =~ (http://[^/]*) ]] && echo "${BASH_REMATCH[1]}" || echo "$1"
+    echo $(expr match "$1" '\(http://[^/]*\)' || echo "$1")
 }
 
 # Create a tempfile and return path
