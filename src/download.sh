@@ -144,7 +144,7 @@ create_alt_filename() {
 download() {
     local MODULE=$1
     local URL=$2
-    local LINK_ONLY=$3
+    local DOWNLOAD_APP=$3
     local LIMIT_RATE=$4
     local TYPE=$5
     local MARK_DOWN=$6
@@ -306,7 +306,7 @@ for ITEM in "$@"; do
             echo "$MODULE"
             continue
         fi
-        download "$MODULE" "$URL" "$LINK_ONLY" "$LIMIT_RATE" "$TYPE" \
+        download "$MODULE" "$URL" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
             "$MAXRETRIES" "${UNUSED_OPTIONS[@]}"
     done
