@@ -227,9 +227,9 @@ download() {
 
             CURL=("curl")
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
-            continue_downloads "$MODULE" && CURL=($CURL "-C -")
-            test "$LIMIT_RATE" && CURL=($CURL "--limit-rate $LIMIT_RATE")
-            test "$COOKIES" && CURL=($CURL -b $COOKIES)
+            continue_downloads "$MODULE" && CURL=("${CURL[@]}" "-C -")
+            test "$LIMIT_RATE" && CURL=("${CURL[@]}" "--limit-rate $LIMIT_RATE")
+            test "$COOKIES" && CURL=("${CURL[@]}" -b $COOKIES)
             test "$NOOVERWRITE" -a -f "$TEMP_FILENAME" && \
                 TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
 
