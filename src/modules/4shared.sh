@@ -18,6 +18,7 @@
 MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared\.com/"
 MODULE_4SHARED_DOWNLOAD_OPTIONS=""
 MODULE_4SHARED_UPLOAD_OPTIONS=
+MODULE_4SHARED_LIST_OPTIONS=
 MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
 # Output a 4shared file download URL
@@ -54,4 +55,15 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     echo "$FILE_URL"
     test "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
     return 0
+}
+
+4shared_list() {
+    eval "$(process_options sendspace "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
+    URL=$1
+    
+    PAGE=$(curl "$URL")
+    match 'src="/images/spacer.gif" class="warn"' "$PAGE" && 
+      { log_error "Link not found"; return 254; }      
+    echo "$PAGE" | grep 'alt="Download' | parse_all_attr . href ||
+      { log_error "Cannot parse links"; return 1; }      
 }

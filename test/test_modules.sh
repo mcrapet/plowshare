@@ -239,6 +239,7 @@ test_mediafire_upload_anonymous() {
 # 4shared.com
 
 FSHARED_URL="http://www.4shared.com/file/14767114/7939c436/John_Milton_-_Paradise_Lost.html?s=1"
+FSHARED_FOLDER_URL="http://www.4shared.com/dir/3121016/d4ad43ca/desastre_ecologico.html"
 
 test_4shared_download() {
     FILENAME="John_Milton_-_Paradise_Lost.pdf"
@@ -249,6 +250,14 @@ test_4shared_download() {
 test_4shared_check_active_link() {
     assert_equal "$FSHARED_URL" "$(download -c $FSHARED_URL)" || return 1
 }
+
+test_4shared_list() {
+    URLS=$(list $FSHARED_FOLDER_URL)
+    assert_equal 9 "$(echo "$URLS" | wc -l)"
+    assert_equal "http://www.4shared.com/file/HOiDzifg/DIS_ECOpart01.html" \
+      "$(echo "$URLS" | head -n1)"
+}
+
 
 # Zshare.net
 

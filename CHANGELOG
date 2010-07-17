@@ -4,6 +4,7 @@ plowshare (0.9.4svn) stable; urgency=low
   * [2shared] Add delete function
   * [filefactory] Add list function
   * [mediafire] Add upload function
+  * [4shared] Add list function
 
  -- Arnau Sanchez <tokland@gmail.com>  Mon, 07 Jun 2010 16:22:10 +0200
 
