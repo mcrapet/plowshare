@@ -25,6 +25,8 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || [http://www.x7.to x7.to] || anonymous, free account || -|| -|| -||
 || [http://www.zshare.net ZShare] || anonymous || anonymous || yes || -||
 
+Note that websites update their pages from time to time, so this table is a just a reference. If you are experiencing problems with a stable version, check if it's been resolved in the [http://code.google.com/p/plowshare/source/list subversion repository].
+	
 = Dependencies =
 
 To run _plowshare_ and all its modules you will need:
@@ -32,7 +34,7 @@ To run _plowshare_ and all its modules you will need:
   * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: 
     * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): [http://www.gnu.org/software/coreutils/ coreutils], [http://www.gnu.org/software/sed/ sed]
     * BSD ([http://code.google.com/p/plowshare/issues/detail?id=55 needs modifications])
-    * OSX (needs [http://code.google.com/p/plowshare/issues/detail?id=8&can=1 patches] to use GNU tools)
+    * Mac OSX (you need [http://mxcl.github.com/homebrew/ homebrew]
     * Windows/Cygwin (_recode_ is not available as a package but can be recompiled from [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl] (with SSL support, usually required for premium account)
@@ -63,6 +65,12 @@ $ yaourt -Sy plowshare
 
 {{{
 $ emerge -av plowshare
+}}}
+
+  * Mac OSX: You need to install [http://wiki.github.com/mxcl/homebrew/installation homebrew]
+  
+{{{
+$ brew install plowshare
 }}}
 
   * [http://code.google.com/p/plowshare/downloads/list From sources] (default installation path is `/usr/local`):
