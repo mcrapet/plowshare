@@ -5,7 +5,7 @@ _Plowshare_ is a command-line downloader and uploader for some of the most popul
 || *Website* || *Download* || *Upload* || *Delete* || *List* ||
 || [http://www.115.com 115.com] || anonymous || -|| -|| -||
 || [http://www.2shared.com 2Shared] || anonymous || anonymous || yes || -||
-|| [http://www.4shared.com 4Shared] || anonymous || -|| -|| -||
+|| [http://www.4shared.com 4Shared] || anonymous || -|| -|| yes ||
 || [http://www.badongo.com Badongo] || anonymous || -|| -|| -||
 || [http://www.data.hu Data.hu] || anonymous || -|| -|| -||
 || [http://www.depositfiles.com DepositFiles] || anonymous || -|| -|| -||
