@@ -28,27 +28,23 @@ MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 #
 # rapidshare_download RAPIDSHARE_URL
 #
-# Note to premium users: In your account settings, uncheck option:
-# "Direct downloads, requested files are saved without redirection via RapidShare"
-# The trick to direct download (not used here) is to append "directstart=1" to URL.
-# For example: http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
 rapidshare_download() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
     COOKIES=$(create_tempfile)
-    
+
     if test "$AUTH" -a -z "$GLOBAL_COOKIES"; then
         IFS=: read USER PASSWORD <<< "$AUTH"
         DATA="sub=getaccountdetails_v1&withcookie=1&type=prem&login=$USER&password=$PASSWORD"
         RESPONSE=$(curl --data "$DATA" "https://api.rapidshare.com/cgi-bin/rsapi.cgi")
-        matchi "Login failed" "$RESPONSE" && 
+        matchi "Login failed" "$RESPONSE" &&
             { rm -f $COOKIES; log_error "$RESPONSE"; return 1; }
         COOKIE_VAL=$(echo "$RESPONSE" | parse "^cookie=" "cookie=\(.*\)") ||
             { rm -f $COOKIES; log_error "Cannot parse cookie"; return 1; }
         COOKIE=".rapidshare.com TRUE / FALSE $(($(date +%s)+24*60*60)) enc $COOKIE_VAL"
-        echo "$COOKIE" | sed "s/ /\t/g" > $COOKIES            
+        echo "$COOKIE" | sed "s/ /\t/g" > $COOKIES
     fi
 
     while retry_limit_not_reached || return 3; do
@@ -59,6 +55,8 @@ rapidshare_download() {
         fi
 
         # Detect "Direct downloads" (premium user) option
+        # Note: Direct download can also be forced through by appending "directstart=1" to URL.
+        # For example: http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
         if [ -n "$AUTH" -a -z "$PAGE" -a ! "$CHECK_LINK" ]; then
             FILE_URL=$(curl -b $COOKIES -i "$URL" | grep_http_header_location)
             echo $FILE_URL
