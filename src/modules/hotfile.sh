@@ -138,7 +138,7 @@ hotfile_download() {
 # stdout: list of links
 hotfile_list() {
     set -e
-    eval "$(process_options mediafire "$MODULE_HOTFILE_LIST_OPTIONS" "$@")"
+    eval "$(process_options hotfile "$MODULE_HOTFILE_LIST_OPTIONS" "$@")"
     URL=$1
 
     if ! match 'hotfile\.com\/list\/' "$URL"; then
