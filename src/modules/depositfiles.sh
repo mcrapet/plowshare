@@ -15,15 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles.com/"
+MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles\.com/"
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS=""
 MODULE_DEPOSITFILES_UPLOAD_OPTIONS=
+MODULE_DEPOSITFILES_LIST_OPTIONS=
 MODULE_DEPOSITFILES_DOWNLOAD_CONTINUE=no
 
 # Output a depositfiles file download URL (free download)
-#
-# depositfiles_download DEPOSITFILES_URL
-#
+# $1: DEPOSITFILES_URL
+# stdout: real file download link
 depositfiles_download() {
     set -e
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
@@ -92,4 +92,32 @@ check_ip() {
     log_debug "IP already downloading, waiting $WAIT seconds"
     wait $WAIT seconds || return 2
     return 1
+}
+
+# List a depositfiles shared file folder URL
+# $1: DEPOSITFILES_URL
+# stdout: list of links
+depositfiles_list() {
+    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_LIST_OPTIONS" "$@")"
+    URL=$1
+
+    if ! match 'depositfiles\.com\/\(..\/\)\?folders\/' "$URL"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    LINKS=$(curl -L "$URL" | parse_all 'target="_blank"' '\(<a href="http[^<]*<\/a>\)') || \
+        { log_error "Wrong directory list link"; return 1; }
+
+    # First pass : print debug message
+    while read LINE; do
+        FILE_NAME=$(echo "$LINE" | parse_attr '<a' 'title')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
+
+    # Second pass : print links (stdout)
+    while read LINE; do
+        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$FILE_URL"
+    done <<< "$LINKS"
 }
