@@ -1,9 +1,13 @@
 #!/bin/bash
 #
-# Letitbit.net module for plowshare
-# Author Pavel Alexeev <Pahan@hubbitus.info>
+# This file is part of Plowshare.
 #
-# Distributed in the hope that it will be useful,
+# Plowshare is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Plowshare is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -11,86 +15,76 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit\.net/"
+MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit\.net/download/"
 MODULE_LETITBIT_DOWNLOAD_OPTIONS=""
 MODULE_LETITBIT_UPLOAD_OPTIONS=
 MODULE_LETITBIT_DOWNLOAD_CONTINUE=no
 
-# letitbit_download [DOWNLOAD_OPTIONS] URL
-# I have not pay account and only free download implemented. Feel free contact
-# me if you want gold download and can sponsor me login and pass
-# Output file URL
+# Output a letitbit.net file download URL (free download)
+#
+# $1: A letitbit.net URL
 #
 letitbit_download() {
     set -e
     eval "$(process_options letitbit "$MODULE_LETITBIT_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
-    BASEURL="http://letitbit.net"
-    WAITTIME=60
     COOKIES=$(create_tempfile)
+    HTML1=$(curl -c $COOKIES "$1")
 
-    echo $URL | grep -q "letitbit.net" ||
-            URL=$(curl -I "$URL" | grep_http_header_location)
+    local FORM_HTML=$(grep_form_by_order "$HTML1" 4)
+    local form_url=$(echo "$FORM_HTML" | parse_form_action)
+    local form_md5cypt=$(echo "$FORM_HTML" | parse_form_input_by_name 'md5crypt')
+    local form_uid5=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid5')
+    local form_uid=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid')
+    local form_name=$(echo "$FORM_HTML" | parse_form_input_by_name 'name')
+    local form_pin=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin')
+    local form_realuid=$(echo "$FORM_HTML" | parse_form_input_by_name 'realuid')
+    local form_realname=$(echo "$FORM_HTML" | parse_form_input_by_name 'realname')
+    local form_host=$(echo "$FORM_HTML" | parse_form_input_by_name 'host')
+    local form_ssserver=$(echo "$FORM_HTML" | parse_form_input_by_name 'ssserver')
+    local form_sssize=$(echo "$FORM_HTML" | parse_form_input_by_name 'sssize')
+    local form_optiondir=$(echo "$FORM_HTML" | parse_form_input_by_name 'optiondir')
+    local form_pin_wm=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin_wm')
 
-    TRY=0
-    while retry_limit_not_reached || return 3; do
-        (( TRY++ ))
-        log_debug "Downloading first page (loop $TRY)"
-        PAGE=$(curl -c $COOKIES "$URL") || { echo "Error getting page: $URL"; return 1; }
-        uid=$(echo "$PAGE" | parse '\"uid\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
-        md5crypt=$(echo "$PAGE" | parse '\"md5crypt\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
-        test "$uid" || { log_error "Error parse uid and md5crypt"; return 1; }
-        # 'fix' set by JavaScript, manually set it to 1
-        data="uid=$uid&md5crypt=$md5crypt&fix=1"
-        log_debug "Data: $data";
-        # @TODO error handling
-        #debug DeBase64: $( echo $md5crypt | base64 -d )
+    HTML2=$(curl -b $COOKIES --data "md5crypt=${form_md5cypt}&uid5=${form_uid5}&uid=${form_uid}&name=${form_name}&pin=${form_pin}&realuid=${form_realuid}&realname=${form_realname}&host=${form_host}&ssserver=${form_ssserver}&sssize=${form_sssize}&optiondir=${form_optiondir}&pin_wm=${form_pin_wm}" \
+            "$form_url") || return 1
 
-        PAGE=$(curl -b $COOKIES --data "$data" "$BASEURL/download4.php")
-        uid=$(echo "$PAGE" | parse '\"uid\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
-        md5crypt=$(echo "$PAGE" | parse '\"md5crypt\"' 'value=\"\(.*\)\"' 2>/dev/null || true)
+    FORM_HTML=$(grep_form_by_id "$HTML2" "dvifree")
+    form_url=$(echo "$FORM_HTML" | parse_form_action)
+    form_uid2=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid2')
+    form_md5cypt=$(echo "$FORM_HTML" | parse_form_input_by_name 'md5crypt')
+    form_uid5=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid5')
+    form_uid=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid')
+    form_name=$(echo "$FORM_HTML" | parse_form_input_by_name 'name')
+    form_pin=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin')
+    form_realuid=$(echo "$FORM_HTML" | parse_form_input_by_name 'realuid')
+    form_realname=$(echo "$FORM_HTML" | parse_form_input_by_name 'realname')
+    form_host=$(echo "$FORM_HTML" | parse_form_input_by_name 'host')
+    form_ssserver=$(echo "$FORM_HTML" | parse_form_input_by_name 'ssserver')
+    form_sssize=$(echo "$FORM_HTML" | parse_form_input_by_name 'sssize')
+    form_optiondir=$(echo "$FORM_HTML" | parse_form_input_by_name 'optiondir')
+    form_pin_wm=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin_wm')
 
-        CAPTCHA_URL=$(echo "$PAGE" | parse 'cap.php?jpg=' "\(cap.php?jpg=[^']\+\)'" ) ||
-            { log_error 'Captcha URL not found'; return 1; }
+    # Get captcha
+    CAPTCHA_URL=$(echo "$FORM_HTML" | parse_attr 'img src' 'src')
+    log_debug "captcha URL: $CAPTCHA_URL"
 
-        if test "$CHECK_LINK"; then
-            rm -f $COOKIES
-            return 255
-        fi
+    # OCR captcha and show ascii image to stderr simultaneously
+    CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | convert - +matte gif:- |
+        show_image_and_tee | ocr alnum | sed "s/[^a-zA-Z0-9]//g") ||
+        { log_error "error running OCR"; return 1; }
 
-        log_debug "captcha URL: $CAPTCHA_URL"
+    log_debug "Decoded captcha: $CAPTCHA"
+    test "${#CAPTCHA}" -ne 6 && \
+        log_debug "Captcha length invalid"
 
-        # OCR captcha and show ascii image to stderr simultaneously
-        CAPTCHA=$(curl -b $COOKIES "$BASEURL/$CAPTCHA_URL" | show_image_and_tee |
-                convert -contrast-stretch 0%x74% -threshold 80% -crop '59x19+1+1' +repage jpg:- pbm:- |
-                gocr_ocr | sed 's/ //g' ) ||
-            { log_error "running OCR"; return 1; }
-        log_debug "Decoded captcha: $CAPTCHA"
+    HTML3=$(curl -b $COOKIES --data "cap=${CAPTCHA}&uid2=${form_uid2}&md5crypt=${form_md5cypt}&uid5=${form_uid5}&uid=${form_uid}&name=${form_name}&pin=${form_pin}&realuid=${form_realuid}&realname=${form_realname}&host=${form_host}&ssserver=${form_ssserver}&sssize=${form_sssize}&optiondir=${form_optiondir}&pin_wm=${form_pin_wm}" \
+            "$form_url") || return 1
 
-        test "${#CAPTCHA}" -ne 6 &&
-            { log_debug "Captcha length invalid"; continue; }
+    # TODO: finish it..
+    #echo "$HTML3" >/tmp/c
+    # wait counter is looping ???
 
-        data="cap=$CAPTCHA&uid2=$uid&md5crypt=$md5crypt&fix=1"
-        log_debug "Data: $data";
-        WAITPAGE=$(curl -b $COOKIES --data "$data" "$BASEURL/download3.php" 2>/dev/null )
-        # <span name="errt" id="errt">60</span>
-        FILEURL=$(echo "$WAITPAGE" | parse 'link=' 'link=\([^\"]\+\)\"' 2>/dev/null || true)
-        test "$FILEURL" && break;
-        log_debug 'Wrong captcha, retry'
-    done
-
-    log_debug "Correct captch (try $TRY)"
     rm -f $COOKIES
-
-    # wait is not necessary, we can download instantly!
-    echo "$FILEURL"
-}
-
-# OCR of an image. Write OCRed text to standard input
-# For ocr gocr is used.
-#
-# Standard input: image
-gocr_ocr(){
-    gocr -
+    return 1
 }
