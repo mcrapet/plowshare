@@ -93,7 +93,8 @@ $ bash PREFIX=/home/$USER setup.sh install
 
 = Usage examples =
 
-All four scripts share the same verbose options: `-v0` (alias: `-q`),  `-v1` (errors only), `-v2` (infos message; default), `-v3` (show all messages).
+All four scripts share the same verbose options: `-v0` (alias: `-q`),  `-v1` (errors only), `-v2` (infos message; default), `-v3` (show all messages), `-v4` (show all messages, HTML pages and cookies,
+use this for bug report).
 
 == Download ==
 
