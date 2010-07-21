@@ -27,7 +27,7 @@ MODULE_115_DOWNLOAD_CONTINUE=no
 115_download() {
     eval "$(process_options '115' "$MODULE_115_DOWNLOAD_OPTIONS" "$@")"
 
-    HTML_PAGE=$(curl "$1" | break_html_lines)
+    HTML_PAGE=$(curl --user-agent 'Mozilla' "$1" | break_html_lines)
 
     local LINKS=$(echo "$HTML_PAGE" | parse_all 'key1=' 'href="\(http:\/\/[^"]*\)' 2>/dev/null)
 
