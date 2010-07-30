@@ -43,8 +43,7 @@ rapidshare_download() {
             { rm -f $COOKIES; log_error "$RESPONSE"; return 1; }
         COOKIE_VAL=$(echo "$RESPONSE" | parse "^cookie=" "cookie=\(.*\)") ||
             { rm -f $COOKIES; log_error "Cannot parse cookie"; return 1; }
-        COOKIE=".rapidshare.com TRUE / FALSE $(($(date +%s)+24*60*60)) enc $COOKIE_VAL"
-        echo "$COOKIE" | sed "s/ /\t/g" > $COOKIES
+        COOKIES="enc=$COOKIE_VAL"
     fi
 
     while retry_limit_not_reached || return 3; do
