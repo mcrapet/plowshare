@@ -171,9 +171,6 @@ download() {
             break
         elif test $DRETVAL -eq 253; then
             log_notice "Warning: file link is alive but not currently available"
-            if ! test "$CHECK_LINK"; then
-              mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTAVAILABLE"
-            fi
             break
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
