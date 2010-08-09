@@ -175,7 +175,7 @@ download() {
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
-            # Don't set RETVAL, a dead link is not considered as error
+            RETVAL=$DERROR
             break
         elif test $DRETVAL -eq 2; then
             log_error "delay limit reached (${FUNCTION})"
