@@ -43,6 +43,12 @@ MODULE_115_DOWNLOAD_CONTINUE=no
         FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition)
         if [ -n "$FILE_NAME" ]; then
             echo "$FILE_URL"
+
+            if [ "${#FILE_NAME}" -ge 255 ]; then
+                FILE_NAME="${FILE_NAME:0:254}"
+                log_debug "filename is too long, truncating it"
+            fi
+
             echo "$FILE_NAME"
             return 0
         fi
