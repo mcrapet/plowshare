@@ -287,6 +287,8 @@ test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -ge 1 || { usage; exit 1; }
 
+trap "remove_tempfiles" SIGINT SIGTERM EXIT
+
 # Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
 DERROR=5
 RETVAL=0

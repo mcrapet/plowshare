@@ -280,6 +280,13 @@ create_tempfile() {
     echo "$FILE"
 }
 
+# Remove temporal files
+#
+# $1: Suffix
+remove_tempfiles() {
+    rm -rf "${TMPDIR:-/tmp}/$(basename $0).$$.*"
+}
+
 # Check existance of executable in path
 #
 # $1: Executable to check
