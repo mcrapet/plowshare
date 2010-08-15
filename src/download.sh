@@ -39,6 +39,7 @@ TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)
+DOWNLOAD_INFO,,download-info-only,,Echo URL|COOKIESFILE|FILENAME for each link
 "
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
@@ -204,11 +205,6 @@ download() {
         # External download or curl regular download
         if test "$DOWNLOAD_APP"; then
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
-            if test "$COOKIES"; then 
-              # move temporal cookies (tempfiles are automatically deleted) 
-              OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
-              mv "$COOKIES" "$OUTPUT_COOKIES" 
-            fi
             COMMAND=$(echo "$DOWNLOAD_APP" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
@@ -218,6 +214,14 @@ download() {
             test "$COOKIES" && rm "$COOKIES"
             log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
+        elif test "$DOWNLOAD_INFO"; then
+            test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+            if test "$COOKIES"; then 
+                # move temporal cookies (tempfiles are automatically deleted) 
+                OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
+                mv "$COOKIES" "$OUTPUT_COOKIES" 
+            fi
+            echo "$FILE_URL|$OUTPUT_COOKIES|$FILENAME"          
         else
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
