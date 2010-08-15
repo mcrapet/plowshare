@@ -2,7 +2,7 @@
 #
 # Launch parallel plowdown processes for different websites
 #
-# Example: plowdown_parallel.sh FILE_WITH_ONE_LINK_PER_LINE
+# Example: plowdown_parallel.sh FILE_WITH_ONE_LINK_PER_LINE [PLOWDOWN_OPTIONS]
 #
 set -e
  
@@ -20,13 +20,17 @@ get_modules() {
 
 # Main
 
-test $# -ge 1 || { debug "Usage: $(basename $0) FILE_WITH_LINKS"; exit 1; }
+test $# -ge 1 || { 
+  debug "Usage: $(basename $0) FILE_WITH_LINKS"
+  exit 1
+}
 INFILE=$1
+shift
 trap "kill 0" SIGINT SIGTERM EXIT
 
 while read MODULE URLS; do
   debug "Module $MODULE: $URLS"
-  plowdown $URLS &
+  plowdown "$@" $URLS &
 done < <(get_modules "$INFILE")
 
 wait
