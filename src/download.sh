@@ -194,7 +194,8 @@ download() {
         log_notice "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | html_to_utf8 | uri_decode)
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | 
+              html_to_utf8 | uri_decode)
         fi
         log_notice "Filename: $FILENAME"
 
@@ -203,12 +204,17 @@ download() {
         # External download or curl regular download
         if test "$DOWNLOAD_APP"; then
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+            if test "$COOKIES"; then 
+              # move temporal cookies (tempfiles are automatically deleted) 
+              OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
+              mv "$COOKIES" "$OUTPUT_COOKIES" 
+            fi
             COMMAND=$(echo "$DOWNLOAD_APP" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
-                replace "%cookies" "$COOKIES")
+                replace "%cookies" "$COOKIES")                
             log_notice "Running command: $COMMAND"
-            eval "$COMMAND" || DRETVAL=$?
+            $COMMAND || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
             log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
