@@ -108,7 +108,9 @@ curl_with_log() {
 }
 
 replace() {
-    sed -e "s#$1#$2#g"
+    FROM=$(sed 's/#/\\#/g' <<< "$1")
+    TO=$(sed 's/#/\\#/g' <<< "$2")
+    sed -e "s#$FROM#$TO#g"
 }
 
 # Delete leading and trailing spaces, tabs, \r, ...
