@@ -216,7 +216,7 @@ download() {
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
                 TEMP_FILENAME="$TEMP_DIR/$FILENAME"
-                mkdir -p "$(dirname "$TEMP_DIR")"
+                mkdir -p "$TEMP_DIR"
                 log_notice "Downloading file to temporal directory: $TEMP_FILENAME"
             else
                 TEMP_FILENAME="$FILENAME"
@@ -259,7 +259,7 @@ download() {
             fi
 
             # Echo downloaded file path
-            test "$OUTPUT_DIR" && echo -n "$OUTPUT_DIR"
+            test "$OUTPUT_DIR" && echo -n "$OUTPUT_DIR/"
             echo "$(basename -- "$TEMP_FILENAME")"
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""

@@ -280,9 +280,7 @@ create_tempfile() {
     echo "$FILE"
 }
 
-# Remove temporal files
-#
-# $1: Suffix
+# Remove all temporal files created by the script
 remove_tempfiles() {
     rm -rf "${TMPDIR:-/tmp}/$(basename $0).$$.*"
 }
