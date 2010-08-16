@@ -491,10 +491,10 @@ test_data_hu_check_wrong_link() {
 
 # 115.com
 
-TEST_115_URL='http://u.115.com/file/t0a5a8991a'
+TEST_115_URL='http://u.115.com/file/f930263e45'
 
 test_115_download() {
-    FILENAME='plowshare.bin'
+    FILENAME='%E5%8D%83%E7%83%88%E8%99%9A%E5%85%89%E9%97%AA.gif'
     assert_equal "$FILENAME" "$(download $TEST_115_URL)" || return 1
     rm -f "$FILENAME"
 }
