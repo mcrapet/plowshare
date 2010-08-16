@@ -39,7 +39,7 @@ TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)
-DOWNLOAD_INFO,,download-info-only,,Echo URL|COOKIESFILE|FILENAME for each link
+DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %filename, cookies, %url) for each link
 "
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
@@ -141,7 +141,6 @@ create_alt_filename() {
     echo "$FILENAME"
 }
 
-# download MODULE URL FUNCTION_OPTIONS
 download() {
     local MODULE=$1
     local URL=$2
@@ -154,7 +153,8 @@ download() {
     local CHECK_LINK=$9
     local TIMEOUT=${10}
     local MAXRETRIES=${11}
-    shift 11
+    local DOWNLOAD_INFO=${12}
+    shift 12
 
     FUNCTION=${MODULE}_download
     log_debug "start download ($MODULE): $URL"
@@ -176,20 +176,16 @@ download() {
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
-            RETVAL=$DERROR
-            break
+            return 3
         elif test $DRETVAL -eq 2; then
             log_error "delay limit reached (${FUNCTION})"
-            RETVAL=$DERROR
-            break
+            return 2
         elif test $DRETVAL -eq 3; then
             log_error "retry limit reached (${FUNCTION})"
-            RETVAL=$DERROR
-            break
+            return 2
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
             log_error "failed inside ${FUNCTION}()"
-            RETVAL=$DERROR
-            break
+            return 2
         fi
 
         log_notice "File URL: $FILE_URL"
@@ -200,7 +196,7 @@ download() {
         fi
         log_notice "Filename: $FILENAME"
 
-        local DRETVAL=0
+        DRETVAL=0
 
         # External download or curl regular download
         if test "$DOWNLOAD_APP"; then
@@ -216,12 +212,16 @@ download() {
             test $DRETVAL -eq 0 || break
         elif test "$DOWNLOAD_INFO"; then
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
+            local OUTPUT_COOKIES=""
             if test "$COOKIES"; then 
-                # move temporal cookies (tempfiles are automatically deleted) 
+                # move temporal cookies (standard tempfiles are automatically deleted) 
                 OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
-                mv "$COOKIES" "$OUTPUT_COOKIES" 
+                mv "$COOKIES" "$OUTPUT_COOKIES"
             fi
-            echo "$FILE_URL|$OUTPUT_COOKIES|$FILENAME"          
+            echo "$DOWNLOAD_INFO" |
+                replace "%url" "$FILE_URL" |
+                replace "%filename" "$FILENAME" |
+                replace "%cookies" "$OUTPUT_COOKIES"
         else
             local TEMP_FILENAME
             if test "$TEMP_DIR"; then
@@ -255,8 +255,7 @@ download() {
                 continue
             elif [ $DRETVAL -ne 0 ]; then
                 log_error "failed downloading $URL"
-                RETVAL=$DERROR
-                break
+                return 2
             fi
             if ! match "20." "$CODE"; then
                 log_error "unexpected HTTP code $CODE"
@@ -293,22 +292,27 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit 2; }
+test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -ge 1 || { usage; exit 1; }
 
-trap "remove_tempfiles" SIGINT SIGTERM EXIT
+trap "remove_tempfiles" EXIT
 
-# Exit with code 0 if all links are downloaded succesfuly (DERROR otherwise)
-DERROR=5
-RETVAL=0
+# Error codes:
+#  0: ok
+#  1: command-line error
+#  2: generic error (network, timeouts, ...)
+#  3: dead link
+#
+# On multiple arguments, higher error code is the final exit code.
+RETVALS=(0)
 for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
         if test -z "$MODULE"; then
             log_error "no module for URL: $URL"
-            RETVAL=$DERROR
+            RETVALS=("${RETVALS[@]}" 2)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
             continue
         elif test "$GET_MODULE"; then
@@ -317,8 +321,9 @@ for ITEM in "$@"; do
         fi
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
-            "$MAXRETRIES" "${UNUSED_OPTIONS[@]}"
+            "$MAXRETRIES" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || 
+              RETVALS=("${RETVALS[@]}" "$?")
     done
 done
 
-exit $RETVAL
+exit $(echo ${RETVALS[*]} | xargs -n1 | sort -rn | head -n1)

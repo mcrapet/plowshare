@@ -18,7 +18,7 @@
 # Check that $1 is equal to $2.
 assert_equal() {
     if ! test "$1" = "$2"; then
-        echo "assert_equal failed: $1 != $2"
+        echo "assert_equal failed: '$1' != '$2'"
         return 1
     fi
 }
