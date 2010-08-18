@@ -198,6 +198,7 @@ download() {
             return $ERROR_CODE_TIMEOUT_ERROR
         elif test $DRETVAL -eq 4; then
             log_error "password required (${FUNCTION})"
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "PASSWORD"
             return $ERROR_CODE_PASSWORD_REQUIRED
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
             log_error "failed inside ${FUNCTION}()"
