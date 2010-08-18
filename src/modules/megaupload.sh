@@ -104,7 +104,7 @@ megaupload_download() {
 
             log_debug "File is password protected"
             test "$LINK_PASSWORD" ||
-                { log_error "You must provide a password"; return 1; }
+                { log_error "You must provide a password"; return 4; }
             DATA="filepassword=$LINK_PASSWORD"
             PAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$PAGE" &&

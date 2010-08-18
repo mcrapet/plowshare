@@ -38,9 +38,22 @@ INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
-DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %filename, %cookies, %url)
-DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %filename, cookies, %url) for each link
+DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies)
+DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 "
+
+# ERROR CODES:
+# On multiple arguments, lower error (1..) is the final exit code.
+
+ERROR_CODE_OK=0
+ERROR_CODE_FATAL=1
+ERROR_CODE_NOMODULE=2
+ERROR_CODE_DEAD_LINK=3
+ERROR_CODE_TEMPORAL_PROBLEM=4
+ERROR_CODE_UNKNOWN_ERROR=5
+ERROR_CODE_TIMEOUT_ERROR=6
+ERROR_CODE_NETWORK_ERROR=7
+ERROR_CODE_PASSWORD_REQUIRED=7
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
 # - If '-P' flags (of cd) are removed directory symlinks won't be
@@ -172,20 +185,23 @@ download() {
             break
         elif test $DRETVAL -eq 253; then
             log_notice "Warning: file link is alive but not currently available"
-            break
+            return $ERROR_CODE_TEMPORAL_PROBLEM
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
-            return 3
+            return $ERROR_CODE_DEAD_LINK
         elif test $DRETVAL -eq 2; then
             log_error "delay limit reached (${FUNCTION})"
-            return 2
+            return $ERROR_CODE_TIMEOUT_ERROR
         elif test $DRETVAL -eq 3; then
             log_error "retry limit reached (${FUNCTION})"
-            return 2
+            return $ERROR_CODE_TIMEOUT_ERROR
+        elif test $DRETVAL -eq 4; then
+            log_error "password required (${FUNCTION})"
+            return $ERROR_CODE_PASSWORD_REQUIRED
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
             log_error "failed inside ${FUNCTION}()"
-            return 2
+            return $ERROR_CODE_UNKNOWN_ERROR
         fi
 
         log_notice "File URL: $FILE_URL"
@@ -218,6 +234,7 @@ download() {
                 OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
                 mv "$COOKIES" "$OUTPUT_COOKIES"
             fi
+            debug "x: $FILE_URL"
             echo "$DOWNLOAD_INFO" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
@@ -255,7 +272,7 @@ download() {
                 continue
             elif [ $DRETVAL -ne 0 ]; then
                 log_error "failed downloading $URL"
-                return 2
+                return $ERROR_CODE_NETWORK_ERROR
             fi
             if ! match "20." "$CODE"; then
                 log_error "unexpected HTTP code $CODE"
@@ -293,26 +310,19 @@ else
 fi
 
 test "$HELP" && { usage; exit 0; }
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 1 || { usage; exit 1; }
+test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
+test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
 
 trap "remove_tempfiles" EXIT
 
-# Error codes:
-#  0: ok
-#  1: command-line error
-#  2: generic error (network, timeouts, ...)
-#  3: dead link
-#
-# On multiple arguments, higher error code is the final exit code.
-RETVALS=(0)
+RETVALS=()
 for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
         if test -z "$MODULE"; then
             log_error "no module for URL: $URL"
-            RETVALS=("${RETVALS[@]}" 2)
+            RETVALS=("${RETVALS[@]}" $ERROR_CODE_NOMODULE)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
             continue
         elif test "$GET_MODULE"; then
@@ -326,4 +336,4 @@ for ITEM in "$@"; do
     done
 done
 
-exit $(echo ${RETVALS[*]} | xargs -n1 | sort -rn | head -n1)
+exit $(echo ${RETVALS[*]:-0} | xargs -n1 | sort -n | head -n1)
