@@ -53,7 +53,7 @@ ERROR_CODE_TEMPORAL_PROBLEM=4
 ERROR_CODE_UNKNOWN_ERROR=5
 ERROR_CODE_TIMEOUT_ERROR=6
 ERROR_CODE_NETWORK_ERROR=7
-ERROR_CODE_PASSWORD_REQUIRED=7
+ERROR_CODE_PASSWORD_REQUIRED=8
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
 # - If '-P' flags (of cd) are removed directory symlinks won't be

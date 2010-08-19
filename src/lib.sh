@@ -725,10 +725,15 @@ wait() {
     local REMAINING=$TOTAL_SECS
     local MSG="Waiting $VALUE $UNIT_STR..."
     local CLEAR="     \b\b\b\b\b"
-    while [ "$REMAINING" -gt 0 ]; do
-        log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
-        sleep 1
-        (( REMAINING-- ))
-    done
-    log_notice -e "\r$MSG done${CLEAR}"
+    if test -t 1 ; then 
+      while [ "$REMAINING" -gt 0 ]; do
+          log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
+          sleep 1
+          (( REMAINING-- ))
+      done
+      log_notice -e "\r$MSG done${CLEAR}"
+    else
+      log_notice "$MSG"
+      sleep $TOTAL_SECS
+    fi
 }
