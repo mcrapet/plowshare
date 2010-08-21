@@ -235,7 +235,6 @@ download() {
                 OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
                 mv "$COOKIES" "$OUTPUT_COOKIES"
             fi
-            debug "x: $FILE_URL"
             echo "$DOWNLOAD_INFO" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
