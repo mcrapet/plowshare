@@ -312,8 +312,7 @@ fi
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
 test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
-
-trap "remove_tempfiles" EXIT
+set_exit_trap
 
 RETVALS=()
 for ITEM in "$@"; do

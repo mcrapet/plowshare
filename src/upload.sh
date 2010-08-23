@@ -95,6 +95,7 @@ fi
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -ge 2 || { usage; exit 1; }
+set_exit_trap
 
 # *FILES, DESTINATION = $@
 FILES=("${@:(1):$#-1}")

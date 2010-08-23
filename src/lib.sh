@@ -287,6 +287,11 @@ remove_tempfiles() {
     rm -rf "${TMPDIR:-/tmp}/$(basename $0).$$.*"
 }
 
+# Exit callback (task: clean temporal files)
+set_exit_trap() {
+  trap "remove_tempfiles" EXIT
+}
+
 # Check existance of executable in path
 #
 # $1: Executable to check

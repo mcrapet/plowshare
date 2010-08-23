@@ -94,6 +94,7 @@ fi
 test "$HELP" && { usage; exit 2; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -ge 1 || { usage; exit 1; }
+set_exit_trap
 
 RETVAL=0
 
