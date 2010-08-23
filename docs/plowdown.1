@@ -127,7 +127,11 @@ Get module(s) for URL(s) and quit. Useful for wrappers.
 .TP
 .BI "   " " " --run-download "=COMMAND"
 Run external HTTP downloader program (like wget).
-Interpolations: %filename, %cookies, %url
+Available interpolations: %filename, %cookies, %url
+.TP
+.BI "   " " " --download-info-only "=TEMPLATE"
+Don't download the file but echo a string.
+Available interpolations: %filename, %cookies, %url
 .SS Generic Program Information
 .TP
 .B -h, --help
