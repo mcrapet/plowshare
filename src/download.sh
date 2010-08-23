@@ -223,7 +223,7 @@ download() {
                 replace "%filename" "$FILENAME" |
                 replace "%cookies" "$COOKIES")                
             log_notice "Running command: $COMMAND"
-            $COMMAND || DRETVAL=$?
+            eval $COMMAND || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
             log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
