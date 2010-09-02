@@ -46,7 +46,7 @@ hotfile_download() {
             return 1
         fi
 
-        if ! match 'REGULAR DOWNLOAD' "$WAIT_HTML"; then
+        if match '404 - Not Found' "$WAIT_HTML"; then
             log_debug "File not found"
             rm -f $COOKIES
             return 254
@@ -73,22 +73,18 @@ hotfile_download() {
         SLEEP=$((SLEEP / 1000))
         wait $((SLEEP)) seconds || return 2
 
-        # We want "Content-Type: application/x-www-form-urlencoded"
         WAIT_HTML2=$(curl -b $COOKIES --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
             "${BASE_URL}${form_url}") || return 1
 
         # Direct download (no captcha)
-        if match 'Click here to download' "$WAIT_HTML2"
-        then
-            local link=$(echo "$WAIT_HTML2" | parse 'Click here to download<\/a>' '<a href="\([^"]*\)' 2>/dev/null)
-            link=$(curl -b $COOKIES --include "$link" | grep_http_header_location)
-
-            echo "$link"
-            rm -f $COOKIES
+        if match 'Click here to download' "$WAIT_HTML2"; then
+            local LINK=$(echo "$WAIT_HTML2" | parse 'Click here to download<\/a>' '<a href="\([^"]*\)' 2>/dev/null)
+            FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
+            echo "$FILEURL"
+            echo
+            echo "$COOKIES"
             return 0
-
-        elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"
-        then
+        elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
             # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
             local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
                 { log_error "can't get wait time"; return 1; }
