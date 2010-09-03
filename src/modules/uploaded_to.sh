@@ -71,7 +71,7 @@ uploaded_to_download() {
 
             test "$CHECK_LINK" && return 255
 
-            local file_real_name=$(echo "$DATA" | parse '<title>' '>\(.*\) ... at uploaded.to' 2>/dev/null)
+            local file_real_name=$(echo "$DATA" | parse '<title>' '>\(.*\) ... at u' 2>/dev/null)
 
             # in title, filename is truncated to 60 characters
             if [ "${#file_real_name}" -eq 60 ]
