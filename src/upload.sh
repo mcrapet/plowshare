@@ -110,18 +110,7 @@ fi
 
 RETVAL=0
 for FILE in "${FILES[@]}"; do
-    # Check that file exists (ignore URLs)
-    if ! match "^[[:alpha:]]\+://" "$FILE"; then
-        if test -d "$FILE"; then
-            log_error "cannot upload directory: ${FILE}; only files are accepted"
-            RETVAL=3
-            continue
-        elif ! test -f "$FILE"; then
-            log_error "file does not exist: $FILE"
-            RETVAL=3
-            continue
-        fi
-    elif ! grep -w -q "$MODULE" <<< "$MODULES"; then
+    if ! grep -w -q "$MODULE" <<< "$MODULES"; then
         log_error "unsupported module ($MODULE)"
         RETVAL=3
         continue
