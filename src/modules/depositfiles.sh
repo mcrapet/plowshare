@@ -42,6 +42,7 @@ depositfiles_download() {
             echo "$FILE_URL"
             return 0
         }
+        check_wait "$START" "hour" "3600" || continue
         check_wait "$START" "minute" "60" || continue
         check_wait "$START" "second" "1" || continue
         check_ip "$START" || continue
@@ -55,6 +56,7 @@ depositfiles_download() {
            log_error "Site asked asked for a captcha to be solved. Aborting"
            return 1
         }
+        check_wait "$DATA" "hour" "3600" || continue
         check_wait "$DATA" "minute" "60" || continue
         check_wait "$DATA" "second" "1" || continue
         check_ip "$DATA" || continue
@@ -75,8 +77,9 @@ check_wait() {
     local HTML=$1
     local WORD=$2
     local FACTOR=$3
-    LIMIT=$(echo "$HTML" | grep -A1 "try in" | \
-        parse "$WORD" "\(\<[[:digit:]]\+\>\) $WORD" 2>/dev/null) || true
+    LIMIT=$(echo "$HTML" | grep -A1 "try in" |
+        parse "$WORD" "\(\<[[:digit:]:]\+\>\) $WORD" 2>/dev/null |
+        sed "s/:.*$//") || true
     if test "$LIMIT"; then
         log_debug "limit reached: waiting $LIMIT ${WORD}s"
         wait $((LIMIT*FACTOR)) seconds || return 2
