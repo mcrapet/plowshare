@@ -123,11 +123,12 @@ usage() {
 
 # If MARK_DOWN is enable, mark status of link (inside file or to stdout).
 mark_queue() {
-    local TYPE=$1; local MARK_DOWN=$2; local ITEM=$3; local URL=$4; local TEXT=$5
+    local TYPE=$1; local MARK_DOWN=$2; local ITEM=$3; 
+    local URL=$4; local TEXT=$5; local TAIL=$6
     test -z "$MARK_DOWN" && return 0
     if test "$TYPE" = "file"; then
         local FILE=$ITEM
-        sed -i -e "s|^[[:space:]]*\($URL\)[[:space:]]*$|#$TEXT \1|" "$FILE" &&
+        sed -i -e "s%^[[:space:]]*\($URL\)[[:space:]]*$%#$TEXT \1$TAIL%" "$FILE" &&
             log_notice "link marked in file: $FILE (#$TEXT)" ||
             log_error "failed marking link in file: $FILE (#$TEXT)"
     else
@@ -285,10 +286,11 @@ download() {
             fi
 
             # Echo downloaded file path
-            test "$OUTPUT_DIR" && echo -n "$OUTPUT_DIR/"
-            echo "$(basename -- "$TEMP_FILENAME")"
+            FN=$(basename -- "$TEMP_FILENAME")
+            OUTPUT_PATH=$(test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FN" || echo "$FN")
+            echo $OUTPUT_PATH
         fi
-        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" ""
+        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "" "|$OUTPUT_PATH"
         break
     done
 }
