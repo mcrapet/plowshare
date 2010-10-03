@@ -16,8 +16,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare\.com/"
-MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
+MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS=""
+#AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_PREMIUMZONE,a:,auth:,USER:PASSWORD,Use Premium-Zone account
 AUTH_FREEZONE,b:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"
@@ -27,124 +27,44 @@ MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 # Output a rapidshare file download URL (anonymous and premium)
 #
 # rapidshare_download RAPIDSHARE_URL
-#
 rapidshare_download() {
-    set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$1
-    COOKIES=$(create_tempfile)
-
-    if test "$AUTH" -a -z "$GLOBAL_COOKIES"; then
-        IFS=: read USER PASSWORD <<< "$AUTH"
-        DATA="sub=getaccountdetails_v1&withcookie=1&type=prem&login=$USER&password=$PASSWORD"
-        RESPONSE=$(curl --data "$DATA" "https://api.rapidshare.com/cgi-bin/rsapi.cgi")
-        matchi "Login failed" "$RESPONSE" &&
-            { rm -f $COOKIES; log_error "$RESPONSE"; return 1; }
-        COOKIE_VAL=$(echo "$RESPONSE" | parse "^cookie=" "cookie=\(.*\)") ||
-            { rm -f $COOKIES; log_error "Cannot parse cookie"; return 1; }
-        COOKIE=".rapidshare.com TRUE / FALSE $(($(date +%s)+24*60*60)) enc $COOKIE_VAL"
-        echo "$COOKIE" | tr ' ' '\t' > $COOKIES
-    fi
+    URL=$1    
+    read FILEID FILENAME < <(echo "$URL" | awk -F"/" {'print $5, $6'})
+    test "$FILEID" -a "$FILENAME" ||
+        { log_error "Cannot parse fileID/filename from URL: $URL"; return 1; }
 
     while retry_limit_not_reached || return 3; do
-        if [ -z "$AUTH" ]; then
-            PAGE=$(curl "$URL")
-        else
-            PAGE=$(curl -b $COOKIES "$URL")
-        fi
-
-        # Detect "Direct downloads" (premium user) option
-        # Note: Direct download can also be forced through by appending "directstart=1" to URL.
-        # For example: http://rapidshare.com/files/12345678/foo_bar_file_name?directstart=1
-        if [ -n "$AUTH" -a -z "$PAGE" -a ! "$CHECK_LINK" ]; then
-            FILE_URL=$(curl -b $COOKIES -i "$URL" | grep_http_header_location)
-            echo $FILE_URL
-            echo
-            echo $COOKIES
-            return 0
-        fi
-
-        # Check for errors:
-        # - The file could not be found. Please check the download link.
-        # - The uploader has removed this file from the server.
-        # - This file has been removed from the server, because the file has not been accessed in a long time.
-        # - This file is neither allocated to a Premium Account, or a Collector's Account, and can therefore only be downloaded 10 times.
-        # - Due to a violation of our terms of use, the file has been removed from the server.
-        # - This file is larger than 200 Megabyte. To download this file, you either need a Premium Account, or the owner of this file may carry the downloading cost by making use of "TrafficShare".
-        if match "<h1>Error</h1>" "$PAGE"; then
-            rm -f $COOKIES
-
-            match 'file could not be found' "$PAGE" &&
-                log_debug "file not found"
-            match 'suspected to contain illegal content' "$PAGE" &&
-                log_debug "file blocked"
-            match 'uploader has removed this file from the server' "$PAGE" &&
-                log_debug "file removed by the uploader"
-            match 'removed from the server, because the file has not been accessed' "$PAGE" &&
-                log_debug "file removed"
-            match 'This limit is reached.' "$PAGE" &&
-                log_debug "file blocked"
-            match 'violation of our terms' "$PAGE" &&
-                log_debug "file removed"
-            match 'larger than 200 Megabyte' "$PAGE" &&
-                { log_debug "premium link"; return 253; }
-
+        APIURL="http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1"
+        PAGE=$(curl "${APIURL}&fileid=${FILEID}&filename=${FILENAME}&try=1") ||        
+            { log_error "cannot get main API page"; return 1; }
+        ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
+        test "$ERROR" && log_debug "website error: $ERROR"
+        if match "need to wait" "$ERROR"; then
+            WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") ||
+                { log_error "cannot parse wait time: $ERROR"; return 1; }
+            test "$CHECK_LINK" && return 255
+            log_notice "Server has asked to wait $WAIT seconds"
+            wait $WAIT seconds || return 2
+            continue
+        elif match "File \(deleted\|not found\|ID invalid\)" "$ERROR"; then
             return 254
-        fi
-
-        if test "$CHECK_LINK"; then
-            rm -f $COOKIES
-            return 255
-        fi
-
-        WAIT_URL=$(grep_form_by_id "$PAGE" 'ff' | parse_form_action) ||
+        elif test "$ERROR"; then
+            log_error "website error: $ERROR"
             return 1
-
-        if [ -z "$AUTH" ]; then
-            DATA=$(curl --data "dl.start=Free" "$WAIT_URL")
-        else
-            DATA=$(curl -b $COOKIES --data "dl.start=PREMIUM" "$WAIT_URL")
-            match 'Your Cookie has not been recognized' "$DATA" &&
-                { log_error "login process failed"; return 1; }
         fi
-
-        test -z "$DATA" &&
-            { log_error "can't get wait URL contents"; return 1; }
-
-        match "is already downloading a file" "$DATA" && {
-            log_debug "Your IP is already downloading a file"
-            wait 2 minutes || return 2
-            continue
-        }
-
-        LIMIT=$(echo "$DATA" | parse "minute" \
-                "[[:space:]]\([[:digit:]]\+\) minutes[[:space:]]" 2>/dev/null) && {
-            log_debug "No free slots, server asked to wait $LIMIT minutes"
-            wait $LIMIT minutes || return 2
-            continue
-        }
-
-        FILE_URL=$(grep_form_by_name "$DATA" 'dlf' | parse_form_action 2>/dev/null) || {
-            log_debug "No free slots, waiting 2 minutes (default value)"
-            wait 2 minutes || return 2
-            continue
-        }
-
+        read RSHOST DLAUTH WTIME < \
+            <(echo "$PAGE" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}') 
+        test "$RSHOST" -a "$DLAUTH" -a "$WTIME" || 
+            { log_error "unexpected page contents: $PAGE"; return 1; }
+        test "$CHECK_LINK" && return 255
         break
     done
 
-    if [ -z "$AUTH" ]; then
-        rm -f $COOKIES
-        SLEEP=$(echo "$DATA" | parse "^var c=" "c=\([[:digit:]]\+\);") || return 1
-        wait $((SLEEP + 1)) seconds || return 2
-
-        echo $FILE_URL
-    else
-        echo $FILE_URL
-        echo
-        echo $COOKIES
-    fi
+    wait $WTIME seconds
+    BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
+    echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
+    echo $FILENAME
 }
 
 # Upload a file to Rapidshare (anonymously, Free-Zone or Premium-Zone)

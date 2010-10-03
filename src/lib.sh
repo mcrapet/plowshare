@@ -76,7 +76,7 @@ with_log() {
 
 # Wrapper for curl: debug and infinite loop control
 curl() {
-    local -a OPTIONS=(--insecure)
+    local -a OPTIONS=(--insecure -A 'Mozilla Firefox 3.0')
     local -a POST_OPTIONS=()
     local DRETVAL=0
 
@@ -137,6 +137,11 @@ parse_all() {
 # Like parse_all, but get only first match
 parse() {
     parse_all "$@" | head -n1
+}
+
+# Like parse, but hide output to stderr
+parse_quiet() {
+    parse "$@" 2>/dev/null
 }
 
 # Grep first "Location" (of http header)
