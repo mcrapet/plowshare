@@ -54,7 +54,7 @@ rapidshare_download() {
             return 1
         fi
         read RSHOST DLAUTH WTIME < \
-            <(echo "$PAGE" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}') 
+            <(echo "$PAGE" | grep "^DL:" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}') 
         test "$RSHOST" -a "$DLAUTH" -a "$WTIME" || 
             { log_error "unexpected page contents: $PAGE"; return 1; }
         test "$CHECK_LINK" && return 255
