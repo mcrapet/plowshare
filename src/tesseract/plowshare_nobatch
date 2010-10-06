@@ -2,7 +2,7 @@
 # Plowshare global settings
 
 # Don't show word text
-display_text 0
+#display_text 0
 
 # Don't print verbose rating
-display_ratings 0
+#display_ratings 0
