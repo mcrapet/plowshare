@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare\.com/"
-MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS=""
-#AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
+MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_PREMIUMZONE,a:,auth:,USER:PASSWORD,Use Premium-Zone account
 AUTH_FREEZONE,b:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"
@@ -35,9 +34,17 @@ rapidshare_download() {
         { log_error "Cannot parse fileID/filename from URL: $URL"; return 1; }
 
     while retry_limit_not_reached || return 3; do
-        APIURL="http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1"
-        PAGE=$(curl "${APIURL}&fileid=${FILEID}&filename=${FILENAME}&try=1") ||        
+        BASE_APIURL="http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
+		
+        if test "$AUTH"; then
+            IFS=":" read USER PASSWORD <<< "$AUTH"
+            PARAMS="&login=$USER&password=$PASSWORD"
+        else
+            PARAMS=""
+        fi        
+        PAGE=$(curl "${BASE_APIURL}${PARAMS}") ||
             { log_error "cannot get main API page"; return 1; }
+	
         ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
         test "$ERROR" && log_debug "website error: $ERROR"
         if match "need to wait" "$ERROR"; then
@@ -63,7 +70,12 @@ rapidshare_download() {
 
     wait $WTIME seconds
     BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
-    echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
+    
+    if test "$AUTH"; then
+        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&login=$USER&password=$PASSNAME"
+    else
+        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
+    fi    
     echo $FILENAME
 }
 
