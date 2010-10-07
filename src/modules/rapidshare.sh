@@ -72,7 +72,7 @@ rapidshare_download() {
     BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
     
     if test "$AUTH"; then
-        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&login=$USER&password=$PASSNAME"
+        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&login=$USER&password=$PASSWORD"
     else
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
     fi    
