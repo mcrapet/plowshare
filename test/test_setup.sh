@@ -64,7 +64,6 @@ share/plowshare/modules/data_hu.sh
 share/plowshare/modules/depositfiles.sh
 share/plowshare/modules/divshare.sh
 share/plowshare/modules/dl_free_fr.sh
-share/plowshare/modules/filefactory.sh
 share/plowshare/modules/hotfile.sh
 share/plowshare/modules/humyo.sh
 share/plowshare/modules/mediafire.sh

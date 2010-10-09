@@ -1,13 +1,12 @@
 plowshare (0.9.4svn) stable; urgency=low
 
-  * [download] Fix broken modules: filefactory, mediafire
+  * [download] Fix broken modules: mediafire
   * [2shared] Add delete function
-  * [filefactory] Add list function
   * [mediafire] Add upload function
   * [4shared] Add list function
   * [depositfiles] Add list function
   * [download] Add -v4 verbosity message level (very noisy, for bug report)
-  * Deleted modules: letitbit, uploaded.to
+  * Deleted modules: filefactory, letitbit, uploaded.to
 
  -- Arnau Sanchez <tokland@gmail.com>  Mon, 07 Jun 2010 16:22:10 +0200
 
