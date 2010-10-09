@@ -67,7 +67,6 @@ share/plowshare/modules/dl_free_fr.sh
 share/plowshare/modules/filefactory.sh
 share/plowshare/modules/hotfile.sh
 share/plowshare/modules/humyo.sh
-share/plowshare/modules/letitbit.sh
 share/plowshare/modules/mediafire.sh
 share/plowshare/modules/megaupload.sh
 share/plowshare/modules/netload_in.sh
