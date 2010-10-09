@@ -81,11 +81,11 @@ curl() {
     local DRETVAL=0
 
     # no verbose unless debug level
-    test $(verbose_level) -lt 3 && OPTIONS=(${OPTIONS[@]} "--silent")
+    test $(verbose_level) -lt 3 && OPTIONS=("${OPTIONS[@]}" "--silent")
 
-    test -n "$INTERFACE" && OPTIONS=(${OPTIONS[@]} "--interface" "$INTERFACE")
+    test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
     test -n "$GLOBAL_COOKIES" &&
-      POST_OPTIONS=(${POST_OPTIONS[@]} "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
+      POST_OPTIONS=("${POST_OPTIONS[@]}" "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
     set -- $(type -P curl) "${OPTIONS[@]}" "$@" "${POST_OPTIONS[@]}"
 
     if test $(verbose_level) -lt 4; then
