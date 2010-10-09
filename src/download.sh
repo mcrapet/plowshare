@@ -21,7 +21,7 @@
 set -e
 
 VERSION="0.9.3"
-MODULES="filesonic rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploaded_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo filefactory data_hu 115"
+MODULES="filesonic rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles storage_to uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo filefactory data_hu 115"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdown version
@@ -123,7 +123,7 @@ usage() {
 
 # If MARK_DOWN is enable, mark status of link (inside file or to stdout).
 mark_queue() {
-    local TYPE=$1; local MARK_DOWN=$2; local ITEM=$3; 
+    local TYPE=$1; local MARK_DOWN=$2; local ITEM=$3;
     local URL=$4; local TEXT=$5; local TAIL=$6
     test -z "$MARK_DOWN" && return 0
     if test "$TYPE" = "file"; then
@@ -209,7 +209,7 @@ download() {
         log_notice "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' | 
+            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
               html_to_utf8 | uri_decode)
         fi
         log_notice "Filename: $FILENAME"
@@ -222,7 +222,7 @@ download() {
             COMMAND=$(echo "$DOWNLOAD_APP" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
-                replace "%cookies" "$COOKIES")                
+                replace "%cookies" "$COOKIES")
             log_notice "Running command: $COMMAND"
             eval $COMMAND || DRETVAL=$?
             test "$COOKIES" && rm "$COOKIES"
@@ -231,8 +231,8 @@ download() {
         elif test "$DOWNLOAD_INFO"; then
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local OUTPUT_COOKIES=""
-            if test "$COOKIES"; then 
-                # move temporal cookies (standard tempfiles are automatically deleted) 
+            if test "$COOKIES"; then
+                # move temporal cookies (standard tempfiles are automatically deleted)
                 OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
                 mv "$COOKIES" "$OUTPUT_COOKIES"
             fi
@@ -332,7 +332,7 @@ for ITEM in "$@"; do
         fi
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
-            "$MAXRETRIES" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || 
+            "$MAXRETRIES" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" ||
               RETVALS=("${RETVALS[@]}" "$?")
     done
 done

@@ -7,6 +7,7 @@ plowshare (0.9.4svn) stable; urgency=low
   * [4shared] Add list function
   * [depositfiles] Add list function
   * [download] Add -v4 verbosity message level (very noisy, for bug report)
+  * Deleted modules: uploaded.to
 
  -- Arnau Sanchez <tokland@gmail.com>  Mon, 07 Jun 2010 16:22:10 +0200
 

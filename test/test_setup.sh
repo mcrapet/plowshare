@@ -74,7 +74,6 @@ share/plowshare/modules/netload_in.sh
 share/plowshare/modules/rapidshare.sh
 share/plowshare/modules/sendspace.sh
 share/plowshare/modules/storage_to.sh
-share/plowshare/modules/uploaded_to.sh
 share/plowshare/modules/uploading.sh
 share/plowshare/modules/usershare.sh
 share/plowshare/modules/x7_to.sh

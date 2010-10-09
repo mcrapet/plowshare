@@ -309,27 +309,6 @@ test_storage_to_check_active_link() {
     assert_equal "$STORAGE_TO_URL" "$(download -c $STORAGE_TO_URL)" || return 1
 }
 
-# Uploaded.to
-
-UPLOADED_TO_URL1="http://ul.to/w39pb6"
-UPLOADED_TO_URL2="http://uploaded.to/?id=w39pb6"
-
-test_uploaded_to_download_short_url() {
-    FILENAME="River_Flows_In_You.pdf"
-    assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL1)" || return 1
-    rm -f $FILENAME
-}
-
-test_uploaded_to_download_long_url() {
-    FILENAME="River_Flows_In_You.pdf"
-    assert_equal "$FILENAME" "$(download $UPLOADED_TO_URL2)" || return 1
-    rm -f $FILENAME
-}
-
-test_uploaded_to_check_active_link() {
-    assert_equal "$UPLOADED_TO_URL1" "$(download -c $UPLOADED_TO_URL1)" || return 1
-}
-
 # Netload.in
 
 NETLOAD_IN_URL="http://netload.in/dateidOnM71qmfd/plowshare.bin.htm"
