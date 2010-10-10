@@ -64,6 +64,7 @@ share/plowshare/modules/data_hu.sh
 share/plowshare/modules/depositfiles.sh
 share/plowshare/modules/divshare.sh
 share/plowshare/modules/dl_free_fr.sh
+share/plowshare/modules/filesonic.sh
 share/plowshare/modules/hotfile.sh
 share/plowshare/modules/humyo.sh
 share/plowshare/modules/mediafire.sh
@@ -76,7 +77,6 @@ share/plowshare/modules/uploading.sh
 share/plowshare/modules/usershare.sh
 share/plowshare/modules/x7_to.sh
 share/plowshare/modules/zshare.sh
-share/plowshare/modules/filesonic.sh
 share/plowshare/strip_single_color.pl
 share/plowshare/strip_threshold.pl
 share/plowshare/tesseract
