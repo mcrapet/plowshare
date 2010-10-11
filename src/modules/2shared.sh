@@ -26,25 +26,38 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 # $1: A 2shared URL
 #
 2shared_download() {
-    set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    MAIN_PAGE=$(curl "$URL") || return 1
-    FILE_URL=$(echo $MAIN_PAGE | parse 'window.location' 'location = "\([^"]\+\)"' 2>/dev/null)
-
-    test -z "$FILE_URL" &&
-        { log_debug "file not found"; return 254; }
-
+    PAGE=$(curl "$URL") || return 1
+    match "file link that you requested is not valid" "$PAGE" && return 254 
+        
+    WS_OFUSCATED_URL=$(echo "$PAGE" |
+        parse 'pageDownload' "'\/\(pageDownload1\/[^']*\)'") || return 1
     test "$CHECK_LINK" && return 255
 
-    # Try to figure out real name written on page
-    FILE_REAL_NAME=$(echo $MAIN_PAGE | parse '<div class="header">' \
-        'header">[[:space:]]*Download[[:space:]]\+\([^ ]\+\)[[:space:]]*' 2>/dev/null)
+    # JS offuscation code obtained by diffing the 2shared's tampered 
+    # jquery-1.3.2.min.js with the original one.  
+    WS_URL=$(echo "
+        M = {url: '$WS_OFUSCATED_URL'};
+        if (M.url != null && M.url.indexOf('eveLi') < M.url.indexOf('jsp?id') > 0) {
+            var l2surl = M.url.substring(M.url.length - 32, M.url.length);
+            if (l2surl.charCodeAt(0) % 2 == 1) {
+                l2surl = l2surl.charAt(0) + l2surl.substr(17, l2surl.length);
+            } else {
+                l2surl = l2surl.substr(0, 15) + l2surl.charAt(l2surl.length - 1);
+            }
+            M.url = M.url.substring(0, M.url.indexOf(\"id=\") + 3) + l2surl;
+        }
+        print(M.url);
+    " | js) || { log_error "error parsing ofuscated JS code"; return 1; }
+        
+    FILE_URL=$(curl "http://www.2shared.com/$WS_URL") || return 1    
+    FILENAME=$(echo "$PAGE" | grep -A1 '<div class="header">' | 
+        parse "Download" 'Download[[:space:]]*\([^<]\+\)' 2>/dev/null) || true
 
     echo "$FILE_URL"
-    test -n "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
-    return 0
+    test "$FILENAME" && echo "$FILENAME"
 }
 
 # Upload a file to 2shared and upload URL (ADMIN_URL)
