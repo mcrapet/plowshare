@@ -1,5 +1,11 @@
 #!/bin/bash
 #
+# Install files in usual Linux paths
+# Copyright (c) 2010 Arnau Sanchez
+#
+# This script is kept simple for portability purpose
+# (`install' from GNU coreutils is not used here).
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,9 +20,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# This script installs files in usual linux paths. It is kept simple
-# for portability purpose (`install' from GNU coreutils is not used here).
 
 set -e
 

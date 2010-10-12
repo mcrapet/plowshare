@@ -1,5 +1,10 @@
 #!/bin/bash
 #
+# Retreive list of links from a shared-folder (sharing site) url
+# Copyright (c) 2010 Matthieu Crapet
+#
+# Output links (one per line) on standard output.
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,9 +19,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Retreive list of links from a shared-folder (sharing site) url.
-# Output links (one per line) on standard output.
 
 set -e
 

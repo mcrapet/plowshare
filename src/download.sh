@@ -1,5 +1,10 @@
 #!/bin/bash
 #
+# Download files from file sharing servers
+# Copyright (c) 2010 Arnau Sanchez
+#
+# Output filenames are printed on standard output (one per line).
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,9 +19,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Download files from file sharing servers.
-# Output filenames are printed on standard output (one per line).
 
 set -e
 

@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 #
+# Delete (turn into white) each pixels below a specified level inside the whole
+# image. As a second pass, delete single isolated (with white around) pixels.
+# Copyright (c) 2010 Matthieu Crapet
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,10 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Delete (turn into white) each pixels below the specified level inside the whole image.
-# As a second pass, delete single isolated (with white around) pixels.
-#
+
 # Usage: $0 THRESHOLD [input-file] [output-file]
 # THRESHOLD is a mandatory argument, this is a RGB channel value (0-255)
 # Debian users: apt-get install perlmagick

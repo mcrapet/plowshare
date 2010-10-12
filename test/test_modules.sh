@@ -1,5 +1,11 @@
 #!/bin/bash
 #
+# Test functions for modules (see "modules" directory)
+# Copyright (c) 2010 Arnau Sanchez
+#
+# Note that *-auth files are not in the source code, you need to create
+# them with your accounts if you want to run the function test suite.
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,9 +20,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Note that *-auth files are not in the source code, you need to create
-# them with your accounts if you want to run the function test suite.
 
 set -e
 

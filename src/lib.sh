@@ -1,5 +1,15 @@
 #!/bin/bash
 #
+# Common set of functions used by modules
+# Copyright (c) 2010 Arnau Sanchez
+#
+# Global variables used:
+#   - VERBOSE         Verbose log level (0=none, 1, 2, 3, 4)
+#   - INTERFACE       Network interface (used by curl)
+#   - PS_TIMEOUT      Timeout (in seconds) for one URL download
+#   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
+#   - LIBDIR          Absolute path to plowshare's libdir
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,13 +24,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Global variables used:
-#   - VERBOSE         Verbose log level (0=none, 1, 2, 3, 4)
-#   - INTERFACE       Network interface (used by curl)
-#   - PS_TIMEOUT      Timeout (in seconds) for one URL download
-#   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
-#   - LIBDIR          Absolute path to plowshare's libdir
+
 set -o pipefail
 
 # Logs are sent to standard error.
@@ -736,7 +740,7 @@ wait() {
     local REMAINING=$TOTAL_SECS
     local MSG="Waiting $VALUE $UNIT_STR..."
     local CLEAR="     \b\b\b\b\b"
-    if test -t 2; then 
+    if test -t 2; then
       while [ "$REMAINING" -gt 0 ]; do
           log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
           sleep 1

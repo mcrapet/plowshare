@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# Automatic test for Plowshare toolset
+# Copyright (c) 2010 Arnau Sanchez
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify

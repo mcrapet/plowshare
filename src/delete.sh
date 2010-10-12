@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# Delete a file from file sharing servers
+# Copyright (c) 2010 Arnau Sanchez
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,8 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Delete a file from file sharing servers.
 
 set -e
 

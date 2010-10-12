@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# Common assert test functions
+# Copyright (c) 2010 Arnau Sanchez
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -53,7 +56,7 @@ assert_match() {
 assert_return() {
     eval "$2" &>/dev/null && RETCODE=$? || RETCODE=$?
     if ! test "$1" = "$RETCODE"; then
-        echo "assert_return failed: $1 != $RETCODE" 
+        echo "assert_return failed: $1 != $RETCODE"
         return 1
     fi
 }
@@ -78,19 +81,19 @@ run() {
     else
         echo "failed!"
         return 1
-    fi 
+    fi
 }
 
 # Run tests (run all if none is given)
 run_tests() {
     local RETVAL=0
-    if test $# -eq 0; then 
+    if test $# -eq 0; then
         TESTS=$(set | grep "^test_" | awk '$2 == "()"' | awk '{print $1}' | xargs)
-    else        
+    else
         TESTS="$@"
-    fi 
+    fi
     for TEST in $TESTS; do
-        run $TEST  
+        run $TEST
     done
     return $RETVAL
 }

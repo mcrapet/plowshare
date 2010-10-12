@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 #
+# Delete (turn into white) each pixel which have a unique color inside the whole image
+# Copyright (c) 2010 Matthieu Crapet
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,9 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Delete (turn into white) each pixel which have a unique color inside the whole image.
-#
+
 # Usage: $0 [input-file] [output-file]
 # Debian users: apt-get install perlmagick
 
