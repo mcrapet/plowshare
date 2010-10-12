@@ -30,14 +30,16 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
     URL=$1
     PAGE=$(curl "$URL") || return 1
-    match "file link that you requested is not valid" "$PAGE" && return 254 
-        
+    match "file link that you requested is not valid" "$PAGE" && return 254
+
     WS_OFUSCATED_URL=$(echo "$PAGE" |
         parse 'pageDownload' "'\/\(pageDownload1\/[^']*\)'") || return 1
     test "$CHECK_LINK" && return 255
 
-    # JS offuscation code obtained by diffing the 2shared's tampered 
-    # jquery-1.3.2.min.js with the original one.  
+    detect_javascript >/dev/null || return 1
+
+    # JS offuscation code obtained by diffing the 2shared's tampered
+    # jquery-1.3.2.min.js with the original one.
     WS_URL=$(echo "
         M = {url: '$WS_OFUSCATED_URL'};
         if (M.url != null && M.url.indexOf('eveLi') < M.url.indexOf('jsp?id') > 0) {
@@ -50,10 +52,10 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
             M.url = M.url.substring(0, M.url.indexOf(\"id=\") + 3) + l2surl;
         }
         print(M.url);
-    " | js) || { log_error "error parsing ofuscated JS code"; return 1; }
-        
-    FILE_URL=$(curl "http://www.2shared.com/$WS_URL") || return 1    
-    FILENAME=$(echo "$PAGE" | grep -A1 '<div class="header">' | 
+    " | javascript) || { log_error "error parsing ofuscated JS code"; return 1; }
+
+    FILE_URL=$(curl "http://www.2shared.com/$WS_URL") || return 1
+    FILENAME=$(echo "$PAGE" | grep -A1 '<div class="header">' |
         parse "Download" 'Download[[:space:]]*\([^<]\+\)' 2>/dev/null) || true
 
     echo "$FILE_URL"
