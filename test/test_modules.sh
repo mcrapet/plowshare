@@ -273,23 +273,15 @@ test_zshare_check_active_link() {
 
 # Depositfiles.com
 
-DEPOSIT_SMALL_URL="http://depositfiles.com/files/uk1rnpjw6"
-DEPOSIT_BIG_URL="http://depositfiles.com/es/files/vd58vei0y"
+DEPOSIT_URL="http://depositfiles.com/en/files/xn88ws0rr"
 
 test_depositfiles_check_active_link() {
-    assert_equal "$DEPOSIT_SMALL_URL" "$(download -c $DEPOSIT_SMALL_URL)" || return 1
-    assert_equal "" "$(download -c ${DEPOSIT_SMALL_URL}wronglink)" || return 1
+    assert_equal "$DEPOSIT_URL" "$(download -c $DEPOSIT_URL)" || return 1
 }
 
-test_depositfiles_download_small_file() {
-    FILENAME="plowshare.bin"
-    assert_equal "$FILENAME" "$(download $DEPOSIT_SMALL_URL)" || return 1
-    rm -f $FILENAME
-}
-
-test_depositfiles_download_big_file() {
-    FILENAME="1002-BIOS-Asus_P5Q_SE_for_MAC_OS_X___VISTA_SLIC_all_OS__incl._by_Juzzi..ROM.zip"
-    assert_equal "$FILENAME" "$(download $DEPOSIT_BIG_URL)" || return 1
+test_depositfiles_download() {
+    FILENAME="RFC-all.tar.gz"
+    assert_equal "$FILENAME" "$(download $DEPOSIT_URL)" || return 1
     rm -f $FILENAME
 }
 
