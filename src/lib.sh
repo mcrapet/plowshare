@@ -144,6 +144,11 @@ parse() {
     parse_all "$@" | head -n1
 }
 
+# Like parse_all, but get only last match
+parse_last() {
+    parse_all "$@" | tail -n1
+}
+
 # Like parse, but hide output to stderr
 parse_quiet() {
     parse "$@" 2>/dev/null

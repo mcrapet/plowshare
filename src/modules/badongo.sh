@@ -89,50 +89,44 @@ badongo_download() {
     log_debug "Correct captcha!"
 
     # Look for doDownload function
-    DYNAMIC_JS1=$(echo "$WAIT_PAGE" | grep 'eval' | sed -n '8p' | \
-            sed -e "s/^eval/print/" | javascript) ||
-        { log_error "error running Javascript (#1) in download page"; return 1; }
-    LINK_PART2=$(echo "$DYNAMIC_JS1" | parse 'location\.href' '+ "\([^"]*\)')
+    LINK_PART2=$(echo "$WAIT_PAGE" | grep 'window.location.href' | tail -n1 | \
+            parse 'location\.href' '+ "\([^"]*\)') ||
+        { log_error "error parsing link part2, site updated?"; return 1; }
 
     # Look for window.check_n variable
-    DYNAMIC_JS2=$(echo "$WAIT_PAGE" | grep 'eval' | sed -n '3p' | \
-            sed -e "s/^eval/print/" | javascript) ||
-        { log_error "error running Javascript (#2) in download page"; return 1; }
-
-    WAIT_TIME=$(echo "$DYNAMIC_JS2" | parse 'check_n' 'check_n = \([[:digit:]]\+\)')
-    GLF_Z=$(echo "$DYNAMIC_JS2" | tail -n5 | parse 'window\.getFileLinkInitOpt' "'z':'\([^']*\)")
-    GLF_H=$(echo "$DYNAMIC_JS2" | tail -n5 | parse 'window\.getFileLinkInitOpt' "'h':'\([^']*\)")
+    WAIT_TIME=$(echo "$WAIT_PAGE" | parse_last 'check_n' 'check_n = \([[:digit:]]\+\)')
+    GLF_Z=$(echo "$WAIT_PAGE" | parse_last 'window\.getFileLinkInitOpt' "'z':'\([^']*\)")
+    GLF_H=$(echo "$WAIT_PAGE" | parse_last 'window\.getFileLinkInitOpt' "'h':'\([^']*\)")
     FILEID="${ACTION##*/}"
     FILETYPE='file'
 
     # Start remote timer
-    DYNAMIC_JS3=$(curl -b $COOKIES \
+    JSON=$(curl -b $COOKIES \
             --data "id=${FILEID}&type=${FILETYPE}&ext=&f=download%3Ainit&z=${GLF_Z}&h=${GLF_H}" \
-            --referer "$ACTION" \
-            "$APIURL" | sed -e "s/^eval/print/" | javascript) ||
-        { log_error "error running Javascript (#3) in download page"; return 1; }
+            --referer "$ACTION" "$APIURL") ||
+        { log_error "error json (#1), site updated?"; return 1; }
 
     # Parse received window['getFileLinkInitOpt'] object
     # Get new values of GLF_Z and GLF_H
-    GLF_Z=$(echo "$DYNAMIC_JS3" | parse "'z'" "[[:space:]]'\([^']*\)");
-    GLF_H=$(echo "$DYNAMIC_JS3" | parse "'h'" "[[:space:]]'\([^']*\)");
-    GLF_T=$(echo "$DYNAMIC_JS3" | parse "'t'" "[[:space:]]'\([^']*\)");
+    GLF_Z=$(echo "$JSON" | parse "'z'" "[[:space:]]'\([^']*\)");
+    GLF_H=$(echo "$JSON" | parse "'h'" "[[:space:]]'\([^']*\)");
+    GLF_T=$(echo "$JSON" | parse "'t'" "[[:space:]]'\([^']*\)");
 
     # Usual wait time is 60 seconds
     wait $((WAIT_TIME)) seconds || return 2
 
     # Notify remote timer
-    DYNAMIC_JS4=$(curl -b $COOKIES \
+    JSON=$(curl -b $COOKIES \
             --data "id=${FILEID}&type=${FILETYPE}&ext=&f=download%3Acheck&z=${GLF_Z}&h=${GLF_H}&t=${GLF_T}" \
             --referer "$ACTION" \
-            "$APIURL" | sed -e "s/^eval/print/" | javascript) ||
-        { log_error "error running Javascript (#4) in download page"; return 1; }
+            "$APIURL") ||
+        { log_error "error json (#2), site updated?"; return 1; }
 
     # Parse again received window['getFileLinkInitOpt'] object
     # Get new values of GLF_Z, GLF_H and GLF_T (and escape '!' character)
-    GLF_Z=$(echo "$DYNAMIC_JS4" | parse "'z'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
-    GLF_H=$(echo "$DYNAMIC_JS4" | parse "'h'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
-    GLF_T=$(echo "$DYNAMIC_JS4" | parse "'t'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
+    GLF_Z=$(echo "$JSON" | parse "'z'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
+    GLF_H=$(echo "$JSON" | parse "'h'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
+    GLF_T=$(echo "$JSON" | parse "'t'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
 
     # HTTP GET request
     JSCODE=$(curl -G -b "_gflCur=0" -b $COOKIES \
@@ -147,11 +141,9 @@ badongo_download() {
     LAST_PAGE=$(curl -b "_gflCur=0" -b $COOKIES --referer "$ACTION" $FILE_URL)
 
     # Look for new location.href
-    DYNAMIC_JS5=$(echo "$LAST_PAGE" | grep 'eval' | sed -n '5p' | \
-            sed -e "s/^eval/print/" | javascript) ||
-        { log_error "error running Javascript (#5) in download page"; return 1; }
-
-    LINK_FINAL=$(echo "$DYNAMIC_JS5" | parse 'location\.href' "= '\([^']*\)")
+    LINK_FINAL=$(echo "$LAST_PAGE" | grep 'window.location.href' | \
+            parse 'location\.href' "= '\([^']*\)") ||
+        { log_error "error parsing link part2, site updated?"; return 1; }
     FILE_URL=$(curl -i -b $COOKIES --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | grep_http_header_location)
 
     rm -f $COOKIES

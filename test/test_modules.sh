@@ -208,10 +208,10 @@ test_2shared_upload() {
 
 # Badongo.com
 
-BADONGO_URL="http://www.badongo.com/file/10855869"
+BADONGO_URL="http://www.badongo.com/file/24361999"
 
 test_badongo_download() {
-    FILENAME="0906_web_abstract.pdf"
+    FILENAME="RFC-all.tar.gz"
     assert_equal "$FILENAME" "$(download $BADONGO_URL)" || return 1
     rm -f $FILENAME
 }
