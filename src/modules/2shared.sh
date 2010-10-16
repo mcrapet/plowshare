@@ -38,16 +38,17 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
     detect_javascript >/dev/null || return 1
 
-    # JS offuscation code obtained by diffing the 2shared's tampered
-    # jquery-1.3.2.min.js with the original one.
+    # JS offuscation code is a patched version of "jQuery.ajax" function
+    # Original: http://code.jquery.com/jquery-1.3.2.min.js
+    # Modified: http://www.2shared.com/js/jquery-1.3.2.min.js?ver=10148
     WS_URL=$(echo "
         M = {url: '$WS_OFUSCATED_URL'};
         if (M.url != null && M.url.indexOf('eveLi') < M.url.indexOf('jsp?id') > 0) {
             var l2surl = M.url.substring(M.url.length - 32, M.url.length);
             if (l2surl.charCodeAt(0) % 2 == 1) {
-                l2surl = l2surl.charAt(0) + l2surl.substr(17, l2surl.length);
+                l2surl = l2surl.charAt(0) + l2surl.charAt(1) + l2surl.substr(18, l2surl.length);
             } else {
-                l2surl = l2surl.substr(0, 15) + l2surl.charAt(l2surl.length - 1);
+                l2surl = l2surl.substr(0, 14) + l2surl.charAt(l2surl.length-2) + l2surl.charAt(l2surl.length-1);
             }
             M.url = M.url.substring(0, M.url.indexOf(\"id=\") + 3) + l2surl;
         }
