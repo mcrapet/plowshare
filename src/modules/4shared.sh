@@ -60,10 +60,10 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 4shared_list() {
     eval "$(process_options sendspace "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
     URL=$1
-    
+
     PAGE=$(curl "$URL")
-    match 'src="/images/spacer.gif" class="warn"' "$PAGE" && 
-        { log_error "Link not found"; return 254; }      
-    echo "$PAGE" | parse_all_attr 'alt="Download' href ||
-        { log_error "Cannot parse links"; return 1; }      
+    match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
+        { log_error "Link not found"; return 254; }
+    echo "$PAGE" | parse_all_attr "alt=\"Download '" href ||
+        { log_error "Cannot parse links"; return 1; }
 }
