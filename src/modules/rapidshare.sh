@@ -28,23 +28,23 @@ MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 # rapidshare_download RAPIDSHARE_URL
 rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1    
+    URL=$1
     read FILEID FILENAME < <(echo "$URL" | awk -F"/" {'print $5, $6'})
     test "$FILEID" -a "$FILENAME" ||
         { log_error "Cannot parse fileID/filename from URL: $URL"; return 1; }
 
     while retry_limit_not_reached || return 3; do
         BASE_APIURL="http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
-		
+
         if test "$AUTH"; then
             IFS=":" read USER PASSWORD <<< "$AUTH"
             PARAMS="&login=$USER&password=$PASSWORD"
         else
             PARAMS=""
-        fi        
+        fi
         PAGE=$(curl "${BASE_APIURL}${PARAMS}") ||
             { log_error "cannot get main API page"; return 1; }
-	
+
         ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
         test "$ERROR" && log_debug "website error: $ERROR"
         if match "need to wait" "$ERROR"; then
@@ -61,8 +61,8 @@ rapidshare_download() {
             return 1
         fi
         read RSHOST DLAUTH WTIME < \
-            <(echo "$PAGE" | grep "^DL:" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}') 
-        test "$RSHOST" -a "$DLAUTH" -a "$WTIME" || 
+            <(echo "$PAGE" | grep "^DL:" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}')
+        test "$RSHOST" -a "$DLAUTH" -a "$WTIME" ||
             { log_error "unexpected page contents: $PAGE"; return 1; }
         test "$CHECK_LINK" && return 255
         break
@@ -70,12 +70,12 @@ rapidshare_download() {
 
     wait $WTIME seconds
     BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
-    
+
     if test "$AUTH"; then
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&login=$USER&password=$PASSWORD"
     else
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
-    fi    
+    fi
     echo $FILENAME
 }
 
@@ -109,16 +109,24 @@ rapidshare_upload_anonymous() {
     FILE=$1
     DESTFILE=${2:-$FILE}
 
-    UPLOAD_URL="http://www.rapidshare.com"
-    log_debug "downloading upload page: $UPLOAD_URL"
+    SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver_v1")
+    log_debug "free upload server is rs$SERVER_NUM"
 
-    local DATA=$(curl "$UPLOAD_URL")
-    ACTION=$(grep_form_by_name "$DATA" 'ul' | parse_form_action) || return 1
-    log_debug "upload to: $ACTION"
+    UPLOAD_URL="http://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
-    INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" "$ACTION") || return 1
-    URL=$(echo "$INFO" | parse "downloadlink" ">\(.*\)<") || return 1
-    KILL=$(echo "$INFO" | parse "loeschlink" ">\(.*\)<")
+    INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
+            -F "rsapi_v1=1" -F "realfolder=0" "$UPLOAD_URL") || return 1
+
+    # Expect answer like this (.3 is filesize, .4 is md5sum):
+    # savedfiles=1 forbiddenfiles=0 premiumaccount=0
+    # File1.1=http://rapidshare.com/files/425566082/RFC-all.tar.gz
+    # File1.2=http://rapidshare.com/files/425566082/RFC-all.tar.gz?killcode=17632915428441196428
+    # File1.3=225280
+    # File1.4=0902CFBAF085A18EC47B252364BDE491
+    # File1.5=Completed
+
+    URL=$(echo "$INFO" | parse "files" "1=\(.*\)") || return 1
+    KILL=$(echo "$INFO" | parse "killcode" "2=\(.*\)") || return 1
 
     echo "$URL ($KILL)"
 }
