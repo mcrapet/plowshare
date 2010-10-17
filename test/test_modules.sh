@@ -478,10 +478,10 @@ test_filesonic_wrong_link() {
 
 # 115.com
 
-TEST_115_URL='http://u.115.com/file/f930263e45'
+TEST_115_URL='http://u.115.com/file/t0df93ba8d'
 
 test_115_download() {
-    FILENAME='%E5%8D%83%E7%83%88%E8%99%9A%E5%85%89%E9%97%AA.gif'
+    FILENAME='%E5%98%BF%E5%98%BF%E9%BB%91.rar'
     assert_equal "$FILENAME" "$(download $TEST_115_URL)" || return 1
     rm -f "$FILENAME"
 }
