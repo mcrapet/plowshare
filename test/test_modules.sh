@@ -301,10 +301,10 @@ test_storage_to_check_active_link() {
 
 # Netload.in
 
-NETLOAD_IN_URL="http://netload.in/dateidOnM71qmfd/plowshare.bin.htm"
+NETLOAD_IN_URL="http://netload.in/dateiuPaLpfQU1r/RFC-all.tar.gz.htm"
 
 test_netload_in_download() {
-    FILENAME="plowshare.bin"
+    FILENAME="RFC-all.tar.gz"
     assert_equal "$FILENAME" "$(download $NETLOAD_IN_URL)" || return 1
     rm -f $FILENAME
 }
