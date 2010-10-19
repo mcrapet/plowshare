@@ -315,10 +315,10 @@ test_netload_in_check_active_link() {
 
 # Uploading.com
 
-UPLOADING_URL="http://uploading.com/files/UQG58JMR/exkluderingar.xls.html"
+UPLOADING_URL="http://uploading.com/files/9db1584e/RFC-all.tar.gz"
 
 test_uploading_download() {
-    FILENAME="exkluderingar.xls"
+    FILENAME="RFC-all.tar.gz"
     assert_equal "$FILENAME" "$(download $UPLOADING_URL)" || return 1
     rm -f $FILENAME
 }
