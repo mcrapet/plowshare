@@ -339,10 +339,10 @@ test_usershare_check_active_link() {
 
 # Sendspace.net
 
-SENDSPACE_URL="http://www.sendspace.com/file/jixw4t"
+SENDSPACE_URL="http://www.sendspace.com/file/nm0sk0"
 
 test_sendspace_download() {
-    FILENAME="plowshare.bin"
+    FILENAME="RFC-all.tar.gz"
     assert_equal "$FILENAME" "$(download $SENDSPACE_URL)" || return 1
     rm -f $FILENAME
 }
@@ -355,7 +355,7 @@ SENDSPACE_FOLDER_URL="http://www.sendspace.com/folder/w0uxuo"
 
 test_sendspace_list() {
     URLS=$(list $SENDSPACE_FOLDER_URL)
-    assert_equal 8 "$(echo "$URLS" | wc -l)"
+    assert_equal 4 "$(echo "$URLS" | wc -l)"
     assert_equal "http://www.sendspace.com/file/lpcqke" "$(echo "$URLS" | head -n1)"
 }
 
