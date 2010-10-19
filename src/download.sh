@@ -22,7 +22,7 @@
 
 set -e
 
-VERSION="0.9.3"
+VERSION="0.9.4"
 MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo data_hu 115"
 OPTIONS="
 HELP,h,help,,Show help info

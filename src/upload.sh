@@ -22,7 +22,7 @@
 
 set -e
 
-VERSION="0.9.3"
+VERSION="0.9.4"
 MODULES="rapidshare megaupload mediafire 2shared zshare"
 OPTIONS="
 HELP,h,help,,Show help info

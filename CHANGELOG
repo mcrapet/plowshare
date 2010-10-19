@@ -1,14 +1,14 @@
-plowshare (0.9.4svn) stable; urgency=low
+plowshare (0.9.4) stable; urgency=high
 
-  * [download] Fix broken modules: mediafire
+  * [download] Fix broken modules: badongo, divshare.com, mediafire, rapidshare
+  * [download] Add -v4 verbosity message level (very noisy, for bug report)
   * [2shared] Add delete function
   * [mediafire] Add upload function
   * [4shared] Add list function
   * [depositfiles] Add list function
-  * [download] Add -v4 verbosity message level (very noisy, for bug report)
   * Deleted modules: filefactory, letitbit, storage.to, uploaded.to
 
- -- Arnau Sanchez <tokland@gmail.com>  Mon, 07 Jun 2010 16:22:10 +0200
+ -- Arnau Sanchez <tokland@gmail.com>  Tue, 19 Oct 2010 20:47:09 +0200
 
 plowshare (0.9.3) stable; urgency=high
 
