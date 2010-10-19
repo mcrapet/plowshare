@@ -361,10 +361,10 @@ test_sendspace_list() {
 
 # x7.to
 
-X7_TO_URL="http://x7.to/rdfiqb"
+X7_TO_URL="http://x7.to/f6g0kf"
 
 test_x7_to_download() {
-    FILENAME="plowshare.bin"
+    FILENAME="RFC-all.tar.gz"
     assert_equal "$FILENAME" "$(download $X7_TO_URL)" || return 1
     rm -f $FILENAME
 }
