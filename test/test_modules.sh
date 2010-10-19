@@ -285,20 +285,6 @@ test_depositfiles_download() {
     rm -f $FILENAME
 }
 
-# Storage.to
-
-STORAGE_TO_URL="http://www.storage.to/get/dFempNyH/plowshare.bin"
-
-test_storage_to_download() {
-    FILENAME="plowshare.bin"
-    assert_equal "$FILENAME" "$(download $STORAGE_TO_URL)" || return 1
-    rm -f $FILENAME
-}
-
-test_storage_to_check_active_link() {
-    assert_equal "$STORAGE_TO_URL" "$(download -c $STORAGE_TO_URL)" || return 1
-}
-
 # Netload.in
 
 NETLOAD_IN_URL="http://netload.in/dateiuPaLpfQU1r/RFC-all.tar.gz.htm"
