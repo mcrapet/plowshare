@@ -444,38 +444,6 @@ test_data_hu_check_wrong_link() {
     assert_equal "" "$(download -c ${DATA_HU_URL/234/wronglink})" || return 1
 }
 
-# Filesonic/Sharingmatrix
-
-FILESONIC_FILE_URL='http://www.filesonic.com/file/19850743/sharingmatrixtest.bin'
-FILESONIC_FAKE_URL='http://www.filesonic.com/file/12345678/fake.bin'
-FILESONIC_DELETED_URL='http://www.filesonic.com/file/19851449/sharingmatrixtestdeleted.bin'
-FILESONIC_FOLDER_URL='http://www.filesonic.com/folder/312319'
-
-test_filesonic_check_active_link() {
-    assert_equal "$FILESONIC_FILE_URL" "$(download -c $FILESONIC_FILE_URL)" || return 1
-}
-
-test_filesonic_list() {
-    URLS=$(list $FILESONIC_FOLDER_URL)
-    assert_equal 2 "$(echo "$URLS" | wc -l)"
-    assert_equal "http://www.filesonic.com/file/19850743/sharingmatrixtest.bin" \
-      "$(echo "$URLS" | head -n1)"
-}
-
-test_filesonic_download() {
-    FILENAME="sharingmatrixtest.bin"
-    assert_equal "$FILENAME" "$(download $FILESONIC_FILE_URL)" || return 1
-    rm -f $FILENAME
-}
-
-test_filesonic_deleted() {
-    assert_equal "Warning: file link is not alive" "$($SRCDIR/download.sh -c $FILESONIC_DELETED_URL 2>&1 )" || return 1
-}
-
-test_filesonic_wrong_link() {
-    assert_equal "" "$(download -c ${FILESONIC_FAKE_URL})" || return 1
-}
-
 # 115.com
 
 TEST_115_URL='http://u.115.com/file/t0df93ba8d'

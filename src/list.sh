@@ -23,7 +23,7 @@
 set -e
 
 VERSION="0.9.3"
-MODULES="filesonic mediafire hotfile megaupload sendspace 4shared depositfiles"
+MODULES="mediafire hotfile megaupload sendspace 4shared depositfiles"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowlist version
