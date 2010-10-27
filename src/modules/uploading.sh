@@ -100,7 +100,7 @@ uploading_download() {
 
     # example of answer:
     # { "id": "1268521606000", "js": { "answer": { "link": "http:\/\/up3.uploading.com\/get_file\/%3D%3DwARfyFZ3fKB8rJ ... " } }, "text": "" }
-    FILE_URL=$(echo "$DATA" | parse '"answer":' '"link": "\([^"]*\)"') ||
+    FILE_URL=$(echo "$DATA" | parse '"answer":' '"link":[[:space:]]*"\([^"]*\)"') ||
         { log_error "URL not found"; return 1; }
 
     echo $FILE_URL
