@@ -43,14 +43,14 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     # Modified: http://www.2shared.com/js/jquery-1.3.2.min.js?ver=10148
     WS_URL=$(echo "
         M = {url: '$WS_OFUSCATED_URL'};
-        if (M.url != null && M.url.indexOf('eveLi') < M.url.indexOf('jsp?id') > 0) {
-            var l2surl = M.url.substring(M.url.length - 32, M.url.length);
-            if (l2surl.charCodeAt(0) % 2 == 1) {
-                l2surl = l2surl.charAt(0) + l2surl.charAt(1) + l2surl.substr(18, l2surl.length);
-            } else {
-                l2surl = l2surl.substr(0, 14) + l2surl.charAt(l2surl.length-2) + l2surl.charAt(l2surl.length-1);
-            }
-            M.url = M.url.substring(0, M.url.indexOf(\"id=\") + 3) + l2surl;
+        if (M.url != null && false && M.url.indexOf('eveLi') < M.url.indexOf('j' + 's' + 'p?id') > 0) {
+          var l2surl = M.url.substring(M.url.length - 32, M.url.length);
+          if (l2surl.charCodeAt(0) % 2 == 1) {
+            l2surl = l2surl.substr(0, viw) + l2surl.substr(16 + viw);
+          } else {
+            l2surl = l2surl.substr(0, 16 - viw) + l2surl.substr(l2surl.length - viw, viw);
+          }
+          M.url = M.url.substring(0, M.url.indexOf(\"id=\") + 3) + l2surl;
         }
         print(M.url);
     " | javascript) || { log_error "error parsing ofuscated JS code"; return 1; }
