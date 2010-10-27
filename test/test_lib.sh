@@ -59,8 +59,8 @@ test_ocr() {
     assert_equal "XGXD" "$(ocr < $PICSDIR/badongo_xgxd.gif 2>/dev/null)"
     assert_equal "XGXD" "$(ocr upper < $PICSDIR/badongo_xgxd.gif 2>/dev/null)"
     assert_equal "DTE5" "$(ocr < $PICSDIR/megaupload_dte5.gif 2>/dev/null)"
-    assert_equal "3909" "$(cat $PICSDIR/netload.in_3909.png | perl $LIBDIR/strip_single_color.pl | ocr digit 2>/dev/null)"
-    assert_equal "8+2=" "$(cat $PICSDIR/freakshare_8plus2.png | ocr digit_ops 2>/dev/null)"
+    #assert_equal "3909" "$(cat $PICSDIR/netload.in_3909.png | perl $LIBDIR/strip_single_color.pl | ocr digit 2>/dev/null)"
+    #assert_equal "8+2=" "$(cat $PICSDIR/freakshare_8plus2.png | ocr digit_ops 2>/dev/null)"
 }
 
 test_check_exec() {
