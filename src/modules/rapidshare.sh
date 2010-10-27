@@ -138,6 +138,7 @@ rapidshare_upload_anonymous() {
 # Options:
 #   -b USER:PASSWORD, --auth-freezone=USER:PASSWORD
 #
+# TODO: This code is obsolete
 rapidshare_upload_freezone() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
@@ -198,6 +199,7 @@ rapidshare_upload_freezone() {
 # Options:
 #   -a USER:PASSWORD, --auth=USER:PASSWORD
 #
+# TODO: This code is obsolete
 rapidshare_upload_premiumzone() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
@@ -257,6 +259,7 @@ rapidshare_upload_premiumzone() {
 #
 # rapidshare_delete [MODULE_RAPIDSHARE_DELETE_OPTIONS] URL
 #
+# TODO: This code is obsolete
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
     URL=$1

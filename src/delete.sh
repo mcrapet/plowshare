@@ -21,7 +21,7 @@
 set -e
 
 VERSION="0.9.4"
-MODULES="2shared megaupload rapidshare zshare"
+MODULES="2shared megaupload zshare"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version

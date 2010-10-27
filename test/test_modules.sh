@@ -51,33 +51,33 @@ test_rapidshare_download_anonymous() {
     rm -f $FILENAME
 }
 
-test_rapidshare_upload_anonymous() {
-    assert_match "http://rapidshare.com/files/" "$(upload $UPFILE rapidshare)" ||
-        return 1
-}
+#test_rapidshare_upload_anonymous() {
+#    assert_match "http://rapidshare.com/files/" "$(upload $UPFILE rapidshare)" ||
+#        return 1
+#}
 
-test_rapidshare_upload_freezone() {
-    FREEZONE_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
-    test -e $TESTSDIR/.rapidshare-auth || return 255
-    AUTH=$(cat $TESTSDIR/.rapidshare-auth)
+#test_rapidshare_upload_freezone() {
+#    FREEZONE_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
+#    test -e $TESTSDIR/.rapidshare-auth || return 255
+#    AUTH=$(cat $TESTSDIR/.rapidshare-auth)
 
-    # manual login
-    LOGIN_DATA='username=$USER&password=$PASSWORD'
-    COOKIES=$(create_tempfile)
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_URL" >/dev/null ||
-        { rm -f $COOKIES; return 1; }
+#    # manual login
+#    LOGIN_DATA='username=$USER&password=$PASSWORD'
+#    COOKIES=$(create_tempfile)
+#    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_URL" >/dev/null ||
+#        { rm -f $COOKIES; return 1; }
 
-    # save number of user's files
-    FILES1=$(curl -b "$COOKIES" "$FREEZONE_URL" | parse '<td>Files' '<b>\([^<]*\)')
+#    # save number of user's files
+#    FILES1=$(curl -b "$COOKIES" "$FREEZONE_URL" | parse '<td>Files' '<b>\([^<]*\)')
 
-    URL=$(upload -b "$AUTH" $UPFILE rapidshare)
-    assert_match "http://rapidshare.com/files/" "$URL" ||
-        { rm -f $COOKIES; return 1; }
+#    URL=$(upload -b "$AUTH" $UPFILE rapidshare)
+#    assert_match "http://rapidshare.com/files/" "$URL" ||
+#        { rm -f $COOKIES; return 1; }
 
-    FILES2=$(curl -b "$COOKIES" "$FREEZONE_URL" | parse '<td>Files' '<b>\([^<]*\)')
-    rm -f $COOKIE
-    assert_equal $((FILES1 + 1)) $FILES2 || return 1
-}
+#    FILES2=$(curl -b "$COOKIES" "$FREEZONE_URL" | parse '<td>Files' '<b>\([^<]*\)')
+#    rm -f $COOKIE
+#    assert_equal $((FILES1 + 1)) $FILES2 || return 1
+#}
 
 test_rapidshare_check_active_link() {
     assert_equal "$RAPIDSHARE_URL" "$(download -c $RAPIDSHARE_URL)" || return 1
