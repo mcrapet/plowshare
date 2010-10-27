@@ -375,10 +375,10 @@ test_divshare_check_active_link() {
 
 # dl.free.fr
 
-DL_FREE_FR_URL="http://dl.free.fr/jUeq8Ct2K"
+DL_FREE_FR_URL="http://dl.free.fr/getfile.pl?file=/LauKM4ri/EBF14257_Buglist.txt"
 
 test_dl_free_fr_download() {
-    FILENAME="plowshare.txt"
+    FILENAME="EBF14257_Buglist.txt"
     assert_equal "$FILENAME" "$(download $DL_FREE_FR_URL)" || return 1
     rm -f $FILENAME
 }
