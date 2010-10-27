@@ -93,7 +93,7 @@ run_tests() {
         TESTS="$@"
     fi
     for TEST in $TESTS; do
-        run $TEST
+        run $TEST || RETVAL=1
     done
     return $RETVAL
 }
