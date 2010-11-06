@@ -407,7 +407,14 @@ detect_perl() {
 # stdin: data
 # stdout: data (converted)
 html_to_utf8() {
-    recode html..utf8 | sed -e 's/%20/ /g'
+    if which recode &>/dev/null; then
+        recode html..utf8 | sed -e 's/%20/ /g'
+    elif which perl &>/dev/null; then
+        perl -n -mHTML::Entities -mURI::Escape \
+             -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print URI::Escape::uri_unescape(HTML::Entities::decode_entities($_));'
+    else
+        log_notice "recode binary not found"
+    fi
 }
 
 # Encode a text to include into an url.
