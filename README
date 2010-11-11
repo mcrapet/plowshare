@@ -35,7 +35,7 @@ To run _plowshare_ and all its modules you will need:
     * Windows/Cygwin (_recode_ is not available as a package but can be recompiled from [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
   * [http://www.gnu.org/software/bash/ bash]
   * [http://curl.haxx.se/ curl] (with SSL support, usually required for premium account)
-  * [http://www.gnu.org/software/recode/ recode]
+  * [http://www.gnu.org/software/recode/ recode] (perl and `HTML::Entities` module can be used as alternative)
   * [http://www.imagemagick.org imagemagick] (with GIF and TIFF support)
   * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (with TIFF support; version 2.03 works, but 2.04 works better)
   * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or [http://www.mozilla.org/rhino/ rhino] : a compatible Javascript interpreter (used by badongo, mediafire and zshare modules)
