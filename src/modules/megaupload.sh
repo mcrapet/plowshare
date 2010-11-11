@@ -294,8 +294,13 @@ megaupload_list() {
     XMLURL="http://www.megaupload.com/xml/folderfiles.php"
     FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') ||
         { log_error "cannot parse url: $URL"; return 1; }
+
     XML=$(curl "$XMLURL/?folderid=$FOLDERID")
-    match "<FILES></FILES>" "$XML" &&
-        { log_notice "Folder link not found"; return 254; }
+
+    if match "<FILES></FILES>" "$XML"; then
+        log_debug "empty folder"
+        return 0
+    fi
+
     echo "$XML" | parse_all_attr "<ROW" "url"
 }
