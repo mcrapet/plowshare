@@ -408,10 +408,10 @@ detect_perl() {
 # stdout: data (converted)
 html_to_utf8() {
     if which recode &>/dev/null; then
-        recode html..utf8 | sed -e 's/%20/ /g'
+        recode html..utf8
     elif which perl &>/dev/null; then
-        perl -n -mHTML::Entities -mURI::Escape \
-             -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print URI::Escape::uri_unescape(HTML::Entities::decode_entities($_));'
+        perl -n -mHTML::Entities \
+             -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
     else
         log_notice "recode binary not found"
     fi
