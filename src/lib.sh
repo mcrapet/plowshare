@@ -111,11 +111,15 @@ curl_with_log() {
     with_log curl "$@"
 }
 
+# Substring Replacement (replace all matches)
+# stdin: input string
+# $1: substring to find (this is not a regexp)
+# $2: replacement string (this is not a regexp)
 replace() {
-    RE='s/\(\/\|\\\|&\)/\\&/g'
-    FROM=$(sed -e "$RE" <<< "$1")
-    TO=$(sed -e "$RE" <<< "$2")
-    sed -e "s/$FROM/$TO/g"
+    S="$(cat)"
+    # We must escape '\' character
+    FROM="${1//\\/\\\\}"
+    echo "${S//$FROM/$2}"
 }
 
 # Delete leading and trailing spaces, tabs, \r, ...
@@ -337,12 +341,12 @@ post_login() {
     CURL_ARGS=$5
 
     if test "$GLOBAL_COOKIES"; then
-      REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")
-      if grep -q "^\.\?$REGEXP" "$GLOBAL_COOKIES" 2>/dev/null; then
-        log_debug "cookies for site ($REGEXP) found in cookies file, login skipped"
-        return
-      fi
-      log_debug "cookies not found for site ($REGEXP), continue login process"
+        REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")
+        if grep -q "^\.\?$REGEXP" "$GLOBAL_COOKIES" 2>/dev/null; then
+            log_debug "cookies for site ($REGEXP) found in cookies file, login skipped"
+            return
+        fi
+        log_debug "cookies not found for site ($REGEXP), continue login process"
     fi
 
     USER="${AUTH%%:*}"
