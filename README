@@ -85,7 +85,7 @@ $ sudo bash setup.sh install
 $ wget http://plowshare.googlecode.com/files/plowshare-VERSION.tgz
 $ tar xvzf plowshare-VERSION.tgz
 $ cd plowshare-VERSION
-$ bash PREFIX=/home/$USER setup.sh install
+$ PREFIX=/home/$USER bash setup.sh install
 }}}
 
   * [http://code.google.com/p/plowshare/downloads/list From repository]:
