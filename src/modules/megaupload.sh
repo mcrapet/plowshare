@@ -109,12 +109,14 @@ megaupload_download() {
             PAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$PAGE" &&
                 { log_error "Link password incorrect"; return 1; }
-            WAITPAGE=$(ccurl -d "$DATA" "$URL")
-            match 'name="filepassword"' "$WAITPAGE" 2>/dev/null &&
-                { log_error "Link password incorrect"; return 1; }
-            #test -z "$PAGE" &&
-            #    { ccurl -i "$URL" | grep_http_header_location; return 0; }
-            WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
+
+            # Premium account, I guess
+            if [ -z "$PAGE" ]; then
+                ccurl -i "$URL" | grep_http_header_location
+                return 0
+            fi
+
+            WAITTIME=$(echo "$PAGE" | parse "^[[:space:]]*count=" \
                 "count=\([[:digit:]]\+\);" 2>/dev/null) || return 1
             break
 
@@ -126,8 +128,7 @@ megaupload_download() {
         fi
 
         # Look for a download link (usually a password protected file)
-        FILEURL=$(echo "$PAGE" | grep -A1 'id="downloadlink"' | \
-            parse "<a" 'href="\([^"]*\)"' 2>/dev/null || true)
+        FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
         if test "$FILEURL"; then
             if test "$CHECK_LINK"; then
                 rm -f $COOKIES
@@ -164,16 +165,21 @@ megaupload_download() {
         IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
-        WAITPAGE=$(ccurl --data "$DATA" "$URL")
-        WAITTIME=$(echo "$WAITPAGE" | parse "^[[:space:]]*count=" \
+        PAGE=$(ccurl --data "$DATA" "$URL")
+        WAITTIME=$(echo "$PAGE" | parse "^[[:space:]]*count=" \
             "count=\([[:digit:]]\+\);" 2>/dev/null || true)
         test "$WAITTIME" && break;
         log_debug "Wrong captcha"
     done
     rm -f $COOKIES
 
-    FILEURL=$(echo "$WAITPAGE" | grep "downloadlink" | \
-        parse 'id="downloadlink"' 'href="\([^"]*\)"')
+    FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href')
+    if [ -z "$FILEURL" ]; then
+        rm -f $COOKIES
+        log_error "Can't parse filename (unexpected characters?)"
+        return 1
+    fi
+
     wait $((WAITTIME+1)) seconds
 
     echo "$FILEURL"
