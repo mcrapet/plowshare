@@ -84,8 +84,8 @@ curl() {
     local -a POST_OPTIONS=()
     local DRETVAL=0
 
-    # no verbose unless debug level
-    test $(verbose_level) -lt 3 && OPTIONS=("${OPTIONS[@]}" "--silent")
+    # no verbose unless debug level; don't show progress meter for report level too
+    test $(verbose_level) -ne 3 && OPTIONS=("${OPTIONS[@]}" "--silent")
 
     test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
     test -n "$GLOBAL_COOKIES" &&
@@ -98,6 +98,8 @@ curl() {
         local TEMPCURL=$(create_tempfile)
         log_report "$@"
         "$@" | tee "$TEMPCURL" || DRETVAL=$?
+        FILESIZE=`stat -c %s $TEMPCURL`
+        log_report "Received $FILESIZE bytes"
         log_report "=== CURL BEGIN ==="
         logcat_report "$TEMPCURL"
         log_report "=== CURL END ==="
