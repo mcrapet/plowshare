@@ -78,7 +78,7 @@ check_wait() {
     local WORD=$2
     local FACTOR=$3
     LIMIT=$(echo "$HTML" | grep -A1 "try in" |
-        parse "$WORD" "\(\<[[:digit:]:]\+\>\) $WORD" 2>/dev/null |
+        parse_quiet "$WORD" "\(\<[[:digit:]:]\+\>\) $WORD" |
         sed "s/:.*$//") || true
     if test "$LIMIT"; then
         log_debug "limit reached: waiting $LIMIT ${WORD}s"

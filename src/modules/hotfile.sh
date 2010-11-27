@@ -78,7 +78,7 @@ hotfile_download() {
 
         # Direct download (no captcha)
         if match 'Click here to download' "$WAIT_HTML2"; then
-            local LINK=$(echo "$WAIT_HTML2" | parse 'Click here to download<\/a>' '<a href="\([^"]*\)' 2>/dev/null)
+            local LINK=$(echo "$WAIT_HTML2" | parse_quiet 'Click here to download<\/a>' '<a href="\([^"]*\)')
             FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
             echo "$FILEURL"
             echo
@@ -105,8 +105,8 @@ hotfile_download() {
             # http://api.recaptcha.net/challenge?k=<site key>
             log_debug "reCaptcha URL: $repatcha_js_vars"
             VARS=$(curl -L "$repatcha_js_vars")
-            local server=$(echo "$VARS" | parse 'server' "server:'\([^']*\)'" 2>/dev/null)
-            local challenge=$(echo "$VARS" | parse 'challenge' "challenge:'\([^']*\)'" 2>/dev/null)
+            local server=$(echo "$VARS" | parse_quiet 'server' "server:'\([^']*\)'")
+            local challenge=$(echo "$VARS" | parse_quiet 'challenge' "challenge:'\([^']*\)'")
 
             # Image dimension: 300x57
             FILENAME="/tmp/recaptcha-${challenge:0:16}.jpg"

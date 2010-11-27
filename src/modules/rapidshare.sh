@@ -290,7 +290,7 @@ rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
     URL=$1
 
-    KILL_URL=$(curl "$URL" | parse 'value="Delete this file now"' "href='\([^\"']*\)" 2>/dev/null) ||
+    KILL_URL=$(curl "$URL" | parse_quiet 'value="Delete this file now"' "href='\([^\"']*\)") ||
         { log_error "bad kill link"; return 1; }
 
     log_debug "kill_url=$KILL_URL"

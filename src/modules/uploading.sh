@@ -77,8 +77,8 @@ uploading_download() {
         break
     done
 
-    WAIT=$(echo "$DATA" | parse 'start_timer([[:digit:]]\+)' \
-           'start_timer(\([[:digit:]]\+\))' 2>/dev/null)
+    WAIT=$(echo "$DATA" | parse_quiet 'start_timer([[:digit:]]\+)' \
+           'start_timer(\([[:digit:]]\+\))')
     test -z "$WAIT" &&
       WAIT=$(echo "$DATA" | parse 'var[[:space:]]*timer_count' \
              'timer_count[[:space:]]*=[[:space:]]*\([[:digit:]]\+\);')

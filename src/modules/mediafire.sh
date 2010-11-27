@@ -196,10 +196,10 @@ mediafire_upload() {
     curl -b $COOKIESFILE "$BASE_URL/basicapi/uploaderconfiguration.php" > $PAGEFILE ||
         { log_error "Couldn't get uploader configuration!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
-    local UKEY=$(parse ukey '.*ukey[ \t]*\(.*\)' < $COOKIESFILE 2>/dev/null)
-    local TRACK_KEY=$(parse trackkey '.*<trackkey>\(.*\)<\/trackkey>.*' < $PAGEFILE 2>/dev/null)
-    local FOLDER_KEY=$(parse folderkey '.*<folderkey>\(.*\)<\/folderkey>.*' < $PAGEFILE 2>/dev/null)
-    local MFUL_CONFIG=$(parse MFULConfig '.*<MFULConfig>\(.*\)<\/MFULConfig>.*' < $PAGEFILE 2>/dev/null)
+    local UKEY=$(parse_quiet ukey '.*ukey[ \t]*\(.*\)' < $COOKIESFILE)
+    local TRACK_KEY=$(parse_quiet trackkey '.*<trackkey>\(.*\)<\/trackkey>.*' < $PAGEFILE)
+    local FOLDER_KEY=$(parse_quiet folderkey '.*<folderkey>\(.*\)<\/folderkey>.*' < $PAGEFILE)
+    local MFUL_CONFIG=$(parse_quiet MFULConfig '.*<MFULConfig>\(.*\)<\/MFULConfig>.*' < $PAGEFILE)
     log_debug "trackkey: $TRACK_KEY"
     log_debug "folderkey: $FOLDER_KEY"
     log_debug "ukey: $UKEY"
@@ -220,7 +220,7 @@ mediafire_upload() {
         $UPLOAD_URL > $PAGEFILE ||
         { log_error "Couldn't upload file!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
-    local UPLOAD_KEY=$(parse key '.*<key>\(.*\)<\/key>.*' < $PAGEFILE 2>/dev/null)
+    local UPLOAD_KEY=$(parse_quiet key '.*<key>\(.*\)<\/key>.*' < $PAGEFILE)
     log_debug "key: $UPLOAD_KEY"
 
     if [ -z "$UPLOAD_KEY" ]; then
@@ -243,7 +243,7 @@ mediafire_upload() {
         let COUNTER++
     done
 
-    local QUICK_KEY=$(parse quickkey '.*<quickkey>\(.*\)<\/quickkey>.*' < $PAGEFILE 2>/dev/null)
+    local QUICK_KEY=$(parse_quiet quickkey '.*<quickkey>\(.*\)<\/quickkey>.*' < $PAGEFILE)
     log_debug "quickkey: $QUICK_KEY"
 
     if [ -z "$QUICK_KEY" ]; then

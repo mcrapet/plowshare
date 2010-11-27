@@ -75,8 +75,8 @@ megaupload_download() {
         test -z "$PAGE" &&
             { ccurl -i "$URL" | grep_http_header_location; return 0; }
 
-        REDIRECT=$(echo "$PAGE" | parse "document.location" \
-            "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" 2>/dev/null || true)
+        REDIRECT=$(echo "$PAGE" | parse_quiet "document.location" \
+            "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" || true)
 
         if test "$REDIRECT" = "$ERRORURL"; then
             log_debug "Server returned an error page: $REDIRECT"
@@ -116,8 +116,8 @@ megaupload_download() {
                 return 0
             fi
 
-            WAITTIME=$(echo "$PAGE" | parse "^[[:space:]]*count=" \
-                "count=\([[:digit:]]\+\);" 2>/dev/null) || return 1
+            WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
+                "count=\([[:digit:]]\+\);") || return 1
             break
 
         # Test for "come back later". Language is guessed with the help of http-user-agent.
@@ -171,8 +171,8 @@ megaupload_download() {
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
         PAGE=$(ccurl --data "$DATA" "$URL")
-        WAITTIME=$(echo "$PAGE" | parse "^[[:space:]]*count=" \
-            "count=\([[:digit:]]\+\);" 2>/dev/null || true)
+        WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
+            "count=\([[:digit:]]\+\);" || true)
         test "$WAITTIME" && break;
         log_debug "Wrong captcha"
     done
@@ -231,7 +231,7 @@ megaupload_upload() {
         CSS="display:[[:space:]]*none"
         STATUS=$(curl -b $COOKIES "$STATUSURL")
         ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
-            parse "status_$UPLOADID" '>\(.*\)<\/div>' 2>/dev/null | xargs) || true
+            parse_quiet "status_$UPLOADID" '>\(.*\)<\/div>' | xargs) || true
         test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
         echo "$STATUS" | grep "completed_$UPLOADID" | grep -q "$CSS" || break
         INFO=$(echo "$STATUS" | parse "estimated_$UPLOADID" \

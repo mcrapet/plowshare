@@ -66,7 +66,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     fi
 
     FILENAME=$(echo "$PAGE" | grep -A1 '<div class="header">' |
-        parse "Download" 'Download[[:space:]]*\([^<]\+\)' 2>/dev/null) || true
+        parse_quiet "Download" 'Download[[:space:]]*\([^<]\+\)') || true
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"

@@ -56,8 +56,8 @@ x7_to_download() {
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -L -b $COOKIES "$URL")
 
-        local ref_fid=$(echo "$WAIT_HTML" | parse 'document.cookie[[:space:]]=[[:space:]]*' \
-                'ref_file=\([^&]*\)' 2>/dev/null)
+        local ref_fid=$(echo "$WAIT_HTML" | parse_quiet 'document.cookie[[:space:]]=[[:space:]]*' \
+                'ref_file=\([^&]*\)')
 
         if [ -z "$ref_fid" ]; then
             matchi 'file not found' "$WAIT_HTML" &&
@@ -86,10 +86,10 @@ x7_to_download() {
             return 253
         fi
 
-        file_real_name=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
-                '>\([^<]*\)<small' 2>/dev/null)
-        extension=$(echo "$WAIT_HTML" | parse '<span style="text-shadow:#5855aa 1px 1px 2px">' \
-                '<small[^>]*>\([^<]*\)<\/small>' 2>/dev/null)
+        file_real_name=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
+                '>\([^<]*\)<small')
+        extension=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
+                '<small[^>]*>\([^<]*\)<\/small>')
         file_real_name="$file_real_name$extension"
 
         # According to http://x7.to/js/download.js
@@ -102,9 +102,9 @@ x7_to_download() {
         # {type:'download',wait:12,url:'http://stor2.x7.to/dl/Z5H3o51QqB'}
         # {err:"Download denied."}
 
-        local type=$(echo "$DATA" | parse '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)" 2>/dev/null)
-        local wait=$(echo "$DATA" | parse '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)' 2>/dev/null)
-        local link=$(echo "$DATA" | parse '^' "url[[:space:]]*:[[:space:]]*'\([^']*\)" 2>/dev/null)
+        local type=$(echo "$DATA" | parse_quiet '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)")
+        local wait=$(echo "$DATA" | parse_quiet '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)')
+        local link=$(echo "$DATA" | parse_quiet '^' "url[[:space:]]*:[[:space:]]*'\([^']*\)")
 
         if [ "$type" == "download" ]
         then
@@ -117,7 +117,7 @@ x7_to_download() {
             wait $((WAITTIME)) minutes || return 2
             continue
         else
-            local error=$(echo "$DATA" | parse 'err:' '{err:"\([^"]*\)"}' 2>/dev/null)
+            local error=$(echo "$DATA" | parse_quiet 'err:' '{err:"\([^"]*\)"}')
             log_error "failed state [$error]"
 
             rm -f $COOKIES

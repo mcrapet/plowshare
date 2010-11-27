@@ -36,7 +36,7 @@ netload_in_download() {
     while retry_limit_not_reached || return 3; do
         ((TRY++))
         WAIT_URL=$(curl --location -c $COOKIES "$URL" | \
-            parse '<div class="Free_dl">' '><a href="\([^"]*\)' 2>/dev/null) ||
+            parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
             { log_debug "file not found"; return 254; }
 
         if test "$CHECK_LINK"; then
@@ -48,8 +48,8 @@ netload_in_download() {
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
         WAIT_HTML=$(curl -b $COOKIES $WAIT_URL)
-        WAIT_TIME=$(echo "$WAIT_HTML" | parse 'type="text\/javascript">countdown' \
-                "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
+        WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
+                "countdown(\([[:digit:]]*\),'change()')")
 
         if test -n "$WAIT_TIME"; then
             wait $((WAIT_TIME / 100)) seconds || return 2
@@ -87,8 +87,8 @@ netload_in_download() {
 
         log_debug "Correct captcha!"
 
-        WAIT_TIME2=$(echo "$WAIT_HTML2" | parse 'type="text\/javascript">countdown' \
-                "countdown(\([[:digit:]]*\),'change()')" 2>/dev/null)
+        WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \
+                "countdown(\([[:digit:]]*\),'change()')")
 
         if [ -n "$WAIT_TIME2" ]
         then
@@ -108,7 +108,7 @@ netload_in_download() {
     rm -f $COOKIES
 
     FILENAME=$(echo "$WAIT_HTML2" |\
-        parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)' 2>/dev/null)
+        parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
     FILE_URL=$(echo "$WAIT_HTML2" |\
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
