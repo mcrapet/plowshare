@@ -46,7 +46,8 @@ hotfile_download() {
             return 1
         fi
 
-        if match '404 - Not Found' "$WAIT_HTML"; then
+        # "This file is either removed due to copyright claim or is deleted by the uploader."
+        if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
             log_debug "File not found"
             rm -f $COOKIES
             return 254
