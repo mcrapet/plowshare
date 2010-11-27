@@ -32,8 +32,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     PAGE=$(curl "$URL") || return 1
     match "file link that you requested is not valid" "$PAGE" && return 254
 
-    WS_OFUSCATED_URL=$(echo "$PAGE" |
-        parse 'pageDownload' "'\/\(pageDownload1\/[^']*\)'") || return 1
+    WS_OFUSCATED_URL=$(echo "$PAGE" | parse 'var key' "='\([^']*\)") || return 1
     test "$CHECK_LINK" && return 255
 
     detect_javascript >/dev/null || return 1
@@ -41,8 +40,11 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     # JS offuscation code is a patched version of "jQuery.ajax" function
     # Original: http://code.jquery.com/jquery-1.3.2.min.js
     # Modified: http://www.2shared.com/js/jquery-1.3.2.min.js?ver=10148
+    # Do it yourself! http://www.vim.org/scripts/script.php?script_id=2727
+    # :call g:Jsbeautify()
     WS_URL=$(echo "
-        M = {url: '$WS_OFUSCATED_URL'};
+        M = {url: 'pageDownload1/retrieveLink.jsp?id=$WS_OFUSCATED_URL'};
+        var viw = new Date().getUTCDay() + 1;
         if (M.url != null && false && M.url.indexOf('eveLi') < M.url.indexOf('j' + 's' + 'p?id') > 0) {
           var l2surl = M.url.substring(M.url.length - 32, M.url.length);
           if (l2surl.charCodeAt(0) % 2 == 1) {
@@ -56,6 +58,13 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     " | javascript) || { log_error "error parsing ofuscated JS code"; return 1; }
 
     FILE_URL=$(curl "http://www.2shared.com/$WS_URL") || return 1
+
+    # Sanity check
+    if [ "$FILE_URL" == '#' ]; then
+        log_error "error remote javascript updated"
+        return 1
+    fi
+
     FILENAME=$(echo "$PAGE" | grep -A1 '<div class="header">' |
         parse "Download" 'Download[[:space:]]*\([^<]\+\)' 2>/dev/null) || true
 
