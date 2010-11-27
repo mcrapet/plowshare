@@ -127,6 +127,8 @@ megaupload_download() {
                 rm -f $COOKIES
                 return 253
             fi
+            log_debug "Arbitrary wait."
+            wait 125 seconds || return 2
             continue
         fi
 
