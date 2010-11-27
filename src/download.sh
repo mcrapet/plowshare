@@ -39,6 +39,7 @@ LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, 
 INTERFACE,i:,interface,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
+NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies)
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
@@ -169,8 +170,9 @@ download() {
     local CHECK_LINK=$9
     local TIMEOUT=${10}
     local MAXRETRIES=${11}
-    local DOWNLOAD_INFO=${12}
-    shift 12
+    local NOARBITRARYWAIT=${12}
+    local DOWNLOAD_INFO=${13}
+    shift 13
 
     FUNCTION=${MODULE}_download
     log_debug "start download ($MODULE): $URL"
@@ -334,7 +336,7 @@ for ITEM in "$@"; do
         fi
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
-            "$MAXRETRIES" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" ||
+            "$MAXRETRIES" "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" ||
               RETVALS=("${RETVALS[@]}" "$?")
     done
 done

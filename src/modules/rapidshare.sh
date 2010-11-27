@@ -33,6 +33,10 @@ rapidshare_download() {
     test "$FILEID" -a "$FILENAME" ||
         { log_error "Cannot parse fileID/filename from URL: $URL"; return 1; }
 
+    # Arbitrary wait (local variables)
+    NO_FREE_SLOT_IDLE=125
+    STOP_FLOODING=360
+
     while retry_limit_not_reached || return 3; do
         BASE_APIURL="http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
 
@@ -47,6 +51,7 @@ rapidshare_download() {
 
         ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
         test "$ERROR" && log_debug "website error: $ERROR"
+
         if match "need to wait" "$ERROR"; then
             WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") ||
                 { log_error "cannot parse wait time: $ERROR"; return 1; }
@@ -54,12 +59,33 @@ rapidshare_download() {
             log_notice "Server has asked to wait $WAIT seconds"
             wait $WAIT seconds || return 2
             continue
+
         elif match "File \(deleted\|not found\|ID invalid\)" "$ERROR"; then
             return 254
+
+        elif match "flooding" "$ERROR"; then
+            if test "$NOARBITRARYWAIT"; then
+                log_debug "File temporarily unavailable"
+                return 253
+            fi
+            log_notice "Server has said we are flooding it."
+            wait $STOP_FLOODING seconds || return 2
+            continue
+
+        elif match "slots" "$ERROR"; then
+            if test "$NOARBITRARYWAIT"; then
+                log_debug "File temporarily unavailable"
+                return 253
+            fi
+            log_notice "Server has said there is no free slots available"
+            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            continue
+
         elif test "$ERROR"; then
             log_error "website error: $ERROR"
             return 1
         fi
+
         read RSHOST DLAUTH WTIME < \
             <(echo "$PAGE" | grep "^DL:" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}')
         test "$RSHOST" -a "$DLAUTH" -a "$WTIME" ||
