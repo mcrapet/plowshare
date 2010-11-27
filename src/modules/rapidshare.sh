@@ -114,7 +114,7 @@ rapidshare_upload_anonymous() {
 
     UPLOAD_URL="http://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
-    INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
+    INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
             -F "rsapi_v1=1" -F "realfolder=0" "$UPLOAD_URL") || return 1
 
     # Expect answer like this (.3 is filesize, .4 is md5sum):
@@ -169,7 +169,7 @@ rapidshare_upload_freezone() {
     IFS=":" read USER PASSWORD <<< "$AUTH_FREEZONE"
     log_debug "uploading file: $FILE"
     UPLOADED_PAGE=$(curl_with_log -b $COOKIES \
-        -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
+        -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
         -F "freeaccountid=$ACCOUNTID" \
         -F "password=$PASSWORD" \
         -F "mirror=on" $ACTION) || return 1
@@ -236,7 +236,7 @@ rapidshare_upload_premiumzone() {
     UPLOADED_PAGE=$(curl_with_log -b $COOKIES \
         -F "login=$form_login" \
         -F "password=$form_password" \
-        -F "filecontent=@$FILE;filename=$(basename "$DESTFILE")" \
+        -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
         -F "mirror=on" \
         -F "u.x=56" -F "u.y=9" "$form_url") || return 1
 

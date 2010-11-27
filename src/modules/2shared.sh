@@ -83,7 +83,7 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
     log_debug "starting file upload: $FILE"
     STATUS=$(curl_with_log \
         -F "mainDC=1" \
-        -F "fff=@$FILE;filename=$(basename "$DESTFILE")" \
+        -F "fff=@$FILE;filename=$(basename_file "$DESTFILE")" \
         "$ACTION")
     match "upload has successfully completed" "$STATUS" ||
         { log_error "upload failure"; return 1; }

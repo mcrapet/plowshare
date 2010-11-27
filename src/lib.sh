@@ -225,7 +225,7 @@ grep_form_by_id() {
     fi
 }
 
-# Return value of html attribute
+# Split into several lines html markers
 break_html_lines() {
     sed 's/\(<\/[^>]*>\)/\1\n/g'
 }
@@ -293,19 +293,27 @@ basename_url()
     echo $(expr match "$1" '\(http://[^/]*\)' || echo "$1")
 }
 
+# Return basename of file path
+# Example: /usr/bin/foo.bar => foo.bar
+# $1: filename
+basename_file()
+{
+    basename -- "$1"
+}
+
 # Create a tempfile and return path
 #
 # $1: Suffix
 create_tempfile() {
     SUFFIX=$1
-    FILE="${TMPDIR:-/tmp}/$(basename $0).$$.$RANDOM$SUFFIX"
+    FILE="${TMPDIR:-/tmp}/$(basename_file $0).$$.$RANDOM$SUFFIX"
     : > "$FILE"
     echo "$FILE"
 }
 
 # Remove all temporal files created by the script
 remove_tempfiles() {
-    rm -rf "${TMPDIR:-/tmp}/$(basename $0).$$.*"
+    rm -rf "${TMPDIR:-/tmp}/$(basename_file $0).$$.*"
 }
 
 # Exit callback (task: clean temporal files)

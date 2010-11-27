@@ -211,7 +211,7 @@ download() {
         log_notice "File URL: $FILE_URL"
 
         if test -z "$FILENAME"; then
-            FILENAME=$(basename "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
+            FILENAME=$(basename_file "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
               html_to_utf8 | uri_decode)
         fi
         log_notice "Filename: $FILENAME"
@@ -235,7 +235,7 @@ download() {
             local OUTPUT_COOKIES=""
             if test "$COOKIES"; then
                 # move temporal cookies (standard tempfiles are automatically deleted)
-                OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename $0).cookies.$$.txt"
+                OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename_file $0).cookies.$$.txt"
                 mv "$COOKIES" "$OUTPUT_COOKIES"
             fi
             echo "$DOWNLOAD_INFO" |
@@ -288,7 +288,7 @@ download() {
             fi
 
             # Echo downloaded file path
-            FN=$(basename -- "$TEMP_FILENAME")
+            FN=$(basename_file "$TEMP_FILENAME")
             OUTPUT_PATH=$(test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FN" || echo "$FN")
             echo $OUTPUT_PATH
         fi

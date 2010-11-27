@@ -253,7 +253,7 @@ megaupload_upload() {
       curl_with_log -b $COOKIES \
           -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
           -F "sessionid=$UPLOAD_IDENTIFIER" \
-          -F "file=@$FILE;filename=$(basename "$DESTFILE")" \
+          -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
           -F "message=$DESCRIPTION" \
           -F "toemail=$TOEMAIL" \
           -F "fromemail=$FROMEMAIL" \

@@ -70,13 +70,13 @@ get_ofuscated_link() {
     BASE_URL="http://www.mediafire.com"
 
     detect_javascript >/dev/null || return 1
-    
+
     # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
-    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' | 
+    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
               grep "var PageLoaded" | head -n1 | sed "s/var cb=Math.random().*$/}/") ||
         { log_error "cannot find main javascript code"; return 1; }
     FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
-               "cR();[[:space:]]*\([[:alnum:]]\+\)();") || 
+               "cR();[[:space:]]*\([[:alnum:]]\+\)();") ||
       { log_error "cannot find start function"; return 1; }
     log_debug "JS function: $FUNCTION"
 
@@ -86,7 +86,7 @@ get_ofuscated_link() {
         DoShow = Eo = aa = noop;
         fu = StartDownloadTried = pk = 0;
 
-        // setTimeout() is being used to 'hide' function calls.   
+        // setTimeout() is being used to 'hide' function calls.
         function setTimeout(func, time) {
           func();
         }
@@ -95,7 +95,7 @@ get_ofuscated_link() {
         namespace = {};
         var document = {
             getElementById: function(id) {
-                if (!namespace[id])                   
+                if (!namespace[id])
                   namespace[id] = {style: ''}
                 return namespace[id];
             },
@@ -189,7 +189,7 @@ mediafire_upload() {
     local PAGEFILE=$(create_tempfile)
 
     log_debug "Get ukey cookie"
-    curl -c $COOKIESFILE "$BASE_URL" >/dev/null || 
+    curl -c $COOKIESFILE "$BASE_URL" >/dev/null ||
         { log_error "Couldn't get homepage!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
     log_debug "Get uploader configuration"
@@ -214,10 +214,10 @@ mediafire_upload() {
     log_debug "Uploading file"
     local UPLOAD_URL="$BASE_URL/basicapi/doupload.php?track=$TRACK_KEY&ukey=$UKEY&user=x&uploadkey=$FOLDER_KEY&upload=0"
     curl_with_log -b $COOKIESFILE \
-        -F "Filename=$(basename "$DESTFILE")" \
+        -F "Filename=$(basename_file "$DESTFILE")" \
         -F "Upload=Submit Query" \
-        -F "Filedata=@$FILE;filename=$(basename "$DESTFILE")" \
-        $UPLOAD_URL > $PAGEFILE || 
+        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        $UPLOAD_URL > $PAGEFILE ||
         { log_error "Couldn't upload file!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
 
     local UPLOAD_KEY=$(parse key '.*<key>\(.*\)<\/key>.*' < $PAGEFILE 2>/dev/null)
