@@ -313,7 +313,7 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit 0; }
+test "$HELP" && { usage; exit $ERROR_CODE_OK; }
 test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
 test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
 set_exit_trap
