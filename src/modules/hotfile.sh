@@ -16,12 +16,14 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_HOTFILE_REGEXP_URL="^http://\(www\.\)\?hotfile\.com/"
-MODULE_HOTFILE_DOWNLOAD_OPTIONS=""
+MODULE_HOTFILE_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
+"
 MODULE_HOTFILE_UPLOAD_OPTIONS=
 MODULE_HOTFILE_LIST_OPTIONS=
 MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
 
-# Output an hotfile.com file download URL (anonymous, NOT PREMIUM)
+# Output an hotfile.com file download URL (anonymous or premium)
 # $1: HOTFILE_URL
 # stdout: real file download link
 hotfile_download() {
@@ -29,6 +31,31 @@ hotfile_download() {
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
 
     URL="${1}&lang=en"
+
+    if match 'hotfile\.com\/list\/' "$URL"; then
+        log_error "This is a directory list, use plowlist!"
+        return 1
+    fi
+
+    # Try to get the download link using premium credentials (if $AUTH not null)
+    # Some code duplicated from lib.sh, post_login().
+    if [ -n "$AUTH" ]; then
+        USER="${AUTH%%:*}"
+        PASSWORD="${AUTH#*:}"
+
+        log_notice "Starting download process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+        FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return 1
+
+        # Hotfile API error messages starts with a dot, if no dot then the download link is available
+        if [ ${FILE_URL:0:1} == "." ]; then
+            log_error "login request failed (bad login/password or link invalid/removed)"
+            return 1
+        fi
+
+        echo "$FILE_URL"
+        return 0
+    fi
+
     BASE_URL='http://hotfile.com'
     COOKIES=$(create_tempfile)
 
@@ -41,12 +68,6 @@ hotfile_download() {
 
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
-
-        if match 'hotfile\.com\/list\/' "$URL"; then
-            log_error "This is a directory list, use plowlist!"
-            rm -f $COOKIES
-            return 1
-        fi
 
         # "This file is either removed due to copyright claim or is deleted by the uploader."
         if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
