@@ -124,16 +124,22 @@ usage() {
     debug_options_for_modules "$MODULES" "DOWNLOAD"
 }
 
-# If MARK_DOWN is enable, mark status of link (inside file or to stdout).
+# If MARK_DOWN is enabled, mark status of link (inside file or to stdout).
 mark_queue() {
-    local TYPE=$1; local MARK_DOWN=$2; local ITEM=$3;
-    local URL=$4; local TEXT=$5; local TAIL=$6
+    local TYPE=$1
+    local MARK_DOWN=$2
+    local FILELIST=$3
+    local URL=$4
+    local TEXT=$5
+    local TAIL=$6
+
     test -z "$MARK_DOWN" && return 0
+
     if test "$TYPE" = "file"; then
-        local FILE=$ITEM
-        sed -i -e "s%^[[:space:]]*\($URL\)[[:space:]]*$%#$TEXT \1$TAIL%" "$FILE" &&
-            log_notice "link marked in file: $FILE (#$TEXT)" ||
-            log_error "failed marking link in file: $FILE (#$TEXT)"
+        TAIL=$(echo "$TAIL" | sed -e 's/%/\\%/g')
+        sed -i -e "s%^[[:space:]]*\($URL\)[[:space:]]*$%#$TEXT \1$TAIL%" "$FILELIST" &&
+            log_notice "link marked in file: $FILELIST (#$TEXT)" ||
+            log_error "failed marking link in file: $FILELIST (#$TEXT)"
     else
         echo "#${TEXT} $URL"
     fi
