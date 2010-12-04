@@ -42,6 +42,7 @@ hotfile_download() {
     if [ -n "$AUTH" ]; then
         USER="${AUTH%%:*}"
         PASSWORD="${AUTH#*:}"
+        URL=$1
 
         log_notice "Starting download process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
         FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return 1
