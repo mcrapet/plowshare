@@ -29,7 +29,17 @@ MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
-    read FILEID FILENAME < <(echo "$URL" | awk -F"/" {'print $5, $6'})
+
+    # Two URL formats:
+    # http://rapidshare.com/files/429795114/arc02f.rar
+    # http://rapidshare.com/#!download|774tl4|429794114|arc02f.rar|5249
+    if expr match "$URL" '.*/#!download|' >/dev/null; then
+        FILEID=$(echo "$URL" | cut -d'|' -f3)
+        FILENAME=$(echo "$URL" | cut -d'|' -f4)
+    else
+        FILEID=$(echo "$URL" | cut -d'/' -f5)
+        FILENAME=$(echo "$URL" | cut -d'/' -f6)
+    fi
     test "$FILEID" -a "$FILENAME" ||
         { log_error "Cannot parse fileID/filename from URL: $URL"; return 1; }
 
