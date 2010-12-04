@@ -249,7 +249,7 @@ megaupload_upload() {
       fi
       echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
     else
-      UPLOADURL="http://www.megaupload.com"
+      UPLOADURL="http://www.megaupload.com/multiupload/"
       log_debug "downloading upload page: $UPLOADURL"
       DONE=$(curl "$UPLOADURL" | parse "upload_done.php" 'action="\([^\"]*\)"') ||
           { log_debug "can't get upload_done page"; return 2; }
