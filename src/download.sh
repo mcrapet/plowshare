@@ -320,6 +320,11 @@ test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
 test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
 set_exit_trap
 
+if [ -n "$OUTPUT_DIR" ]; then
+    OUTPUT_DIR=$(echo "$OUTPUT_DIR" | sed -e "s/\/$//")
+    log_error "output directory: $OUTPUT_DIR"
+fi
+
 RETVALS=()
 for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
