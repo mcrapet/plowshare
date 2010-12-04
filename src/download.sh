@@ -279,10 +279,16 @@ download() {
                 log_error "failed downloading $URL"
                 return $ERROR_CODE_NETWORK_ERROR
             fi
-            if ! match "20." "$CODE"; then
+
+            if [ "$CODE" = 416 ]; then
+                log_error "Resume error (bad range), restart download"
+                rm -f "$TEMP_FILENAME"
+                continue
+            elif ! match "20." "$CODE"; then
                 log_error "unexpected HTTP code $CODE"
                 continue
             fi
+
             if test "$OUTPUT_DIR" != "$TEMP_DIR"; then
                 mkdir -p "$(dirname "$OUTPUT_DIR")"
                 log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
