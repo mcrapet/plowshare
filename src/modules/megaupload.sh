@@ -106,6 +106,15 @@ megaupload_download() {
             test "$LINK_PASSWORD" ||
                 { log_error "You must provide a password"; return 4; }
             DATA="filepassword=$LINK_PASSWORD"
+            # We check the header for redirects as MU premium + download password
+            # doesn't print a link but throws a 302 redirect
+            HTTPHEADER=$(ccurl -i -d "$DATA" "$URL")
+            HTTPCODE=$(echo "$HTTPHEADER" | grep HTTP | awk -F" " {'print $2'})
+            if [ $HTTPCODE  = "302" ]; then
+                URLLOCATION=`echo "$HTTPHEADER" | grep location | sed "s/^location: //"`
+                echo "$URLLOCATION"
+                return 0
+            fi
             PAGE=$(ccurl -d "$DATA" "$URL")
             match 'name="filepassword"' "$PAGE" &&
                 { log_error "Link password incorrect"; return 1; }
