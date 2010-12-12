@@ -333,6 +333,21 @@ check_function() {
     declare -F "$1" &>/dev/null
 }
 
+# User password entry
+# stdout: entered password (can be null string)
+# $? is non zero if no password
+prompt_for_password() {
+    local PASSWORD
+
+    log_notice "No password specified, enter it now"
+    stty -echo
+    read -p "Enter password: " PASSWORD
+    stty echo
+
+    echo "$PASSWORD"
+    test -z "$PASSWORD" && return 1 || return 0
+}
+
 # Login and return cookie.
 # A non empty cookie file does not means that login is successful.
 #
@@ -363,10 +378,7 @@ post_login() {
     PASSWORD="${AUTH#*:}"
 
     if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
-        log_notice "No password specified, enter it now"
-        stty -echo
-        read -p "Enter password: " PASSWORD
-        stty echo
+        PASSWORD=$(prompt_for_password) || true
     fi
 
     log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"

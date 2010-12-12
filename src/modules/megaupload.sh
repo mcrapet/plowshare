@@ -50,6 +50,9 @@ megaupload_download() {
     URL=$(echo "$1" | replace 'rotic.com/' 'porn.com/' | \
                       replace 'video.com/' 'upload.com/')
 
+    # Arbitrary wait (local variable)
+    NO_FREE_SLOT_IDLE=125
+
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
@@ -103,27 +106,26 @@ megaupload_download() {
             fi
 
             log_debug "File is password protected"
-            test "$LINK_PASSWORD" ||
-                { log_error "You must provide a password"; return 4; }
+
+            if [ -z "$LINK_PASSWORD" ]; then
+                LINK_PASSWORD=$(prompt_for_password) || \
+                    { log_error "You must provide a password"; return 4; }
+            fi
+
             DATA="filepassword=$LINK_PASSWORD"
-            # We check the header for redirects as MU premium + download password
-            # doesn't print a link but throws a 302 redirect
-            HTTPHEADER=$(ccurl -i -d "$DATA" "$URL")
-            HTTPCODE=$(echo "$HTTPHEADER" | grep HTTP | awk -F" " {'print $2'})
+
+            # We must save HTTP headers to detect premium account
+            # (expect 302 HTTP return code)
+            PAGE=$(ccurl -i -d "$DATA" "$URL")
+            HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\)\sOK/\1/p')
+
             if [ $HTTPCODE  = "302" ]; then
-                URLLOCATION=`echo "$HTTPHEADER" | grep location | sed "s/^location: //"`
-                echo "$URLLOCATION"
+                echo "$PAGE" | grep_http_header_location
                 return 0
             fi
-            PAGE=$(ccurl -d "$DATA" "$URL")
+
             match 'name="filepassword"' "$PAGE" &&
                 { log_error "Link password incorrect"; return 1; }
-
-            # Premium account, I guess
-            if [ -z "$PAGE" ]; then
-                ccurl -i "$URL" | grep_http_header_location
-                return 0
-            fi
 
             WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
                 "count=\([[:digit:]]\+\);") || return 1
@@ -137,7 +139,7 @@ megaupload_download() {
                 return 253
             fi
             log_debug "Arbitrary wait."
-            wait 125 seconds || return 2
+            wait $NO_FREE_SLOT_IDLE seconds || return 2
             continue
         fi
 
