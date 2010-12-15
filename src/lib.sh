@@ -98,8 +98,8 @@ curl() {
         local TEMPCURL=$(create_tempfile)
         log_report "$@"
         "$@" | tee "$TEMPCURL" || DRETVAL=$?
-        FILESIZE=`stat -c %s $TEMPCURL`
-        log_report "Received $FILESIZE bytes"
+        FILESIZE=`stat -c %s $TEMPCURL 2>/dev/null`
+        log_report "Received ${FILESIZE:-?} bytes"
         log_report "=== CURL BEGIN ==="
         logcat_report "$TEMPCURL"
         log_report "=== CURL END ==="
