@@ -434,8 +434,10 @@ detect_perl() {
 # stdout: data (converted)
 html_to_utf8() {
     if which recode &>/dev/null; then
+        log_report "html_to_utf8: use recode"
         recode html..utf8
     elif which perl &>/dev/null; then
+        log_report "html_to_utf8: use perl"
         perl -n -mHTML::Entities \
              -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
     else
