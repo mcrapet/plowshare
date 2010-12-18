@@ -1,6 +1,0 @@
-#!/bin/bash
-set -e
-test -z "$(svn diff)" || 
-    { echo "svn diff is not empty for the project"; exit 1; }
-test -z "$(svn diff wiki)" || 
-    { echo "svn diff is not empty for wiki!"; exit 1; }

@@ -1,5 +1,0 @@
-#!/bin/bash
-set -e
-
-VERSION=$(cat CHANGELOG | head -n1 | sed "s/^.*(\(.*\)).*$/\1/")
-sed -i "s/^VERSION=.*$/VERSION=\"$VERSION\"/" src/{download.sh,upload.sh,delete.sh,list.sh}
