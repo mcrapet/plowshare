@@ -34,8 +34,6 @@ DATADIR="${DESTDIR}${PREFIX}/share/$NAME"
 DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
 MANDIR="${DESTDIR}${PREFIX}/share/man/man1"
 
-EXAMPLESDIR="${DATADIR}/examples"
-
 DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
 TESSERACTDIR="$DATADIR/tesseract"
@@ -57,12 +55,8 @@ if [ "$1" = "uninstall" ]; then
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCDIR $MANDIR
-    $CP CHANGELOG README $DOCDIR
+    $CP README $DOCDIR
     $CP docs/{plowdown,plowup,plowdel,plowlist}.1 $MANDIR
-
-    # Examples
-    mkdir -p $EXAMPLESDIR
-    $CP examples/* $EXAMPLESDIR
 
     # Common library
     mkdir -p $DATADIR

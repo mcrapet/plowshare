@@ -40,7 +40,6 @@ bin/plowup
 share
 share/doc
 share/doc/plowshare
-share/doc/plowshare/CHANGELOG
 share/doc/plowshare/README
 share/man
 share/man/man1
@@ -51,11 +50,6 @@ share/man/man1/plowup.1
 share/plowshare
 share/plowshare/delete.sh
 share/plowshare/download.sh
-share/plowshare/examples
-share/plowshare/examples/caturl.sh
-share/plowshare/examples/plowdown_add_remote_loop.sh
-share/plowshare/examples/plowdown_loop.sh
-share/plowshare/examples/plowdown_parallel.sh
 share/plowshare/lib.sh
 share/plowshare/list.sh
 share/plowshare/modules
@@ -81,6 +75,7 @@ share/plowshare/modules/zshare.sh
 share/plowshare/strip_single_color.pl
 share/plowshare/strip_threshold.pl
 share/plowshare/tesseract
+share/plowshare/tesseract/alnum
 share/plowshare/tesseract/digit
 share/plowshare/tesseract/digit_ops
 share/plowshare/tesseract/plowshare_nobatch

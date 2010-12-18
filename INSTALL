@@ -1,0 +1,19 @@
+Plowshare SVN-snapshot installation notes.
+
+There is two ways to install Plowshare.
+
+1. For regular PC users
+
+$ sudo make install
+
+
+2. For restricted sytems (mostly NAS)
+- busybox is present instead of bash
+- GNU coreutils tools are not always there
+
+# Default installation path: is /usr/local
+$ sudo bash setup.sh install
+
+# Or as non-root:
+$ PREFIX=/home/$USER bash setup.sh install
+
