@@ -115,11 +115,11 @@ megaupload_download() {
             DATA="filepassword=$LINK_PASSWORD"
 
             # We must save HTTP headers to detect premium account
-            # (expect 302 HTTP return code)
+            # (expect "HTTP/1.1 302 Found" return header)
             PAGE=$(ccurl -i -d "$DATA" "$URL")
-            HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\)\sOK/\1/p')
+            HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\).*/\1/p')
 
-            if [ $HTTPCODE  = "302" ]; then
+            if [ "$HTTPCODE"  = "302" ]; then
                 echo "$PAGE" | grep_http_header_location
                 return 0
             fi
