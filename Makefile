@@ -43,14 +43,14 @@ distdir:
 	@mkdir -p $(DISTDIR)/test/pics $(DISTDIR)/docs $(DISTDIR)/examples
 	@mkdir -p $(DISTDIR)/src/modules $(DISTDIR)/src/tesseract
 	@for file in $(SRCS) $(MODULE_FILES) $(TESSERACT_FILES) $(TEST_FILES) $(DOCS) \
-      $(CONTRIB_FILES); do \
-        cp -pf $$file $(DISTDIR)/$$file; \
-    done
+			$(CONTRIB_FILES); do \
+		cp -pf $$file $(DISTDIR)/$$file; \
+	done
 	@for file in $(SRCS); do \
-        sed -i 's/^VERSION=.*/VERSION=SVN-r$(VERSION)/' $(DISTDIR)/$$file; \
+		sed -i 's/^VERSION=.*/VERSION=SVN-r$(VERSION)/' $(DISTDIR)/$$file; \
 	done
 	@for file in $(DOCS); do \
-        sed -i '1s/\(.*\)SVN-snapshot\(.*\)/\1SVN-r$(VERSION)\2/' $(DISTDIR)/$$file; \
+		sed -i '1s/\(.*\)SVN-snapshot\(.*\)/\1SVN-r$(VERSION)\2/' $(DISTDIR)/$$file; \
 	done
 
 distclean:
