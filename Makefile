@@ -24,9 +24,10 @@ CONTRIB_FILES = $(addprefix contrib/,caturl.sh plowdown_add_remote_loop.sh plowd
                 plowdown_parallel.sh)
 
 # Packaging
+USE_GIT := $(shell test -d .git && echo "git")
+SVN_LOG := $(shell LANG=C $(USE_GIT) svn info | grep ^Revision | cut -d' ' -f2)
 
-GIT_LOG := $(shell git svn info | grep ^Revision | cut -d' ' -f2)
-VERSION = $(GIT_LOG)
+VERSION = $(SVN_LOG)
 DISTDIR = plowshare-SVN-r$(VERSION)-snapshot
 
 
