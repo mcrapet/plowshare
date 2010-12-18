@@ -22,7 +22,7 @@
 
 set -e
 
-VERSION="0.9.4"
+VERSION="SVN-snapshot"
 MODULES="mediafire hotfile megaupload sendspace 4shared depositfiles"
 OPTIONS="
 HELP,h,help,,Show help info

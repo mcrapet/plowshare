@@ -20,7 +20,7 @@
 
 set -e
 
-VERSION="0.9.4"
+VERSION="SVN-snapshot"
 MODULES="2shared megaupload zshare"
 OPTIONS="
 HELP,h,help,,Show help info
