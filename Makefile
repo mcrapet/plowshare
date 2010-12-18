@@ -20,7 +20,7 @@ TEST_FILES      = run_tests.sh test/lib.sh test/test_lib.sh test/test_modules.sh
 DOCS = CHANGELOG COPYING INSTALL README \
        docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1
 
-CONTRIB_FILES = $(addprefix examples/,caturl.sh plowdown_add_remote_loop.sh plowdown_loop.sh \
+CONTRIB_FILES = $(addprefix contrib/,caturl.sh plowdown_add_remote_loop.sh plowdown_loop.sh \
                 plowdown_parallel.sh)
 
 # Packaging
@@ -40,7 +40,7 @@ dist: distdir
 
 distdir:
 	@test -d $(DISTDIR) || mkdir $(DISTDIR)
-	@mkdir -p $(DISTDIR)/test/pics $(DISTDIR)/docs $(DISTDIR)/examples
+	@mkdir -p $(DISTDIR)/test/pics $(DISTDIR)/docs $(DISTDIR)/contrib
 	@mkdir -p $(DISTDIR)/src/modules $(DISTDIR)/src/tesseract
 	@for file in $(SRCS) $(MODULE_FILES) $(TESSERACT_FILES) $(TEST_FILES) $(DOCS) \
 			$(CONTRIB_FILES); do \
