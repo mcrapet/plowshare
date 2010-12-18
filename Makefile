@@ -54,7 +54,7 @@ distdir:
 	done
 
 distclean:
-	@rm -rf $(DISTDIR)
+	@rm -rf plowshare-SVN-r???*
 
 .PHONY: dist distclean install uninstall
 
