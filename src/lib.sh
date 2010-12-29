@@ -225,9 +225,22 @@ grep_form_by_id() {
     fi
 }
 
-# Split into several lines html markers
+# Split into several lines html markers.
+# Insert a new line after ending marker.
+#
+# stdin: (X)HTML data
+# stdout: result
 break_html_lines() {
     sed 's/\(<\/[^>]*>\)/\1\n/g'
+}
+
+# Split into several lines html markers.
+# Insert a new line after each (beginning or ending) marker.
+#
+# stdin: (X)HTML data
+# stdout: result
+break_html_lines_alt() {
+    sed 's/\(<[^>]*>\)/\1\n/g'
 }
 
 # Return value of html attribute
@@ -246,7 +259,7 @@ parse_all_attr() {
 # stdout: result
 #
 parse_form_action() {
-    parse '<form' 'action="\([^"]*\)"'
+    parse '<[Ff][Oo][Rr][Mm]' 'action="\([^"]*\)"'
 }
 
 # Retreive "value" attribute from a named <input> marker

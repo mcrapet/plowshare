@@ -23,7 +23,7 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="megaupload mediafire 2shared zshare"
+MODULES="megaupload mediafire 2shared zshare multiupload"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowup version
