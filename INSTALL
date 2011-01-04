@@ -6,14 +6,16 @@ There is two ways to install Plowshare.
 
 $ sudo make install
 
+# For non root users, you can override default prefix (/usr/local)
+PREFIX=/home/$USER make install
 
 2. For restricted sytems (mostly NAS)
-- busybox is present instead of bash
-- GNU coreutils tools are not always there
+- busybox may be present instead of bash
+- GNU coreutils tools may not be compete
 
 # Default installation path: is /usr/local
 $ sudo bash setup.sh install
 
 # Or as non-root:
-$ PREFIX=/home/$USER bash setup.sh install
+$ PREFIX=$HOME bash setup.sh install
 
