@@ -79,6 +79,7 @@ with_log() {
 }
 
 # Wrapper for curl: debug and infinite loop control
+# $1..$n are curl arguments
 curl() {
     local -a OPTIONS=(--insecure -A 'Mozilla Firefox 3.0')
     local -a POST_OPTIONS=()
@@ -335,10 +336,12 @@ set_exit_trap() {
 }
 
 # Check existance of executable in path
+# Better than "which" (external) executable
 #
 # $1: Executable to check
+# $?: zero means not found
 check_exec() {
-    type -P $1 > /dev/null
+    type -P $1 >/dev/null || return 1 && return 0
 }
 
 # Check if function is defined
@@ -421,12 +424,11 @@ post_login() {
 # stdout: path of executable
 # $?: boolean (0 means found)
 detect_javascript() {
-    if ! which js &>/dev/null; then
+    if ! check_exec 'js'; then
         log_notice "Javascript interpreter not found"
         return 1
     fi
-    echo "js"
-    return 0
+    type -P 'js'
 }
 
 # Dectect if a Perl interpreter is installed
@@ -434,22 +436,21 @@ detect_javascript() {
 # stdout: path of executable
 # $?: boolean (0 means found)
 detect_perl() {
-    if ! which perl &>/dev/null; then
+    if ! check_exec 'perl'; then
         log_notice "Perl interpreter not found"
         return 1
     fi
-    echo "perl"
-    return 0
+    type -P 'perl'
 }
 
 # HTML entities will be translated
 # stdin: data
 # stdout: data (converted)
 html_to_utf8() {
-    if which recode &>/dev/null; then
+    if check_exec 'recode'; then
         log_report "html_to_utf8: use recode"
         recode html..utf8
-    elif which perl &>/dev/null; then
+    elif check_exec 'perl'; then
         log_report "html_to_utf8: use perl"
         perl -n -mHTML::Entities \
              -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
@@ -510,6 +511,7 @@ javascript() {
     local TEMPSCRIPT=$(create_tempfile)
     cat > $TEMPSCRIPT
 
+    log_report "interpreter:$JS_PRG"
     log_report "=== JAVASCRIPT BEGIN ==="
     logcat_report "$TEMPSCRIPT"
     log_report "=== JAVASCRIPT END ==="
@@ -568,9 +570,9 @@ show_image_and_tee() {
     test $(verbose_level) -lt 3 && { cat; return; }
     local TEMPIMG=$(create_tempfile)
     cat > $TEMPIMG
-    if which aview &>/dev/null; then
+    if check_exec aview; then
         aview_ascii_image $TEMPIMG >&2
-    elif which img2txt &>/dev/null; then
+    elif check_exec img2txt; then
         caca_ascii_image $TEMPIMG >&2
     else
         log_notice "Install aview or img2txt (libcaca) to display captcha image"
