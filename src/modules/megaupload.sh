@@ -92,7 +92,7 @@ megaupload_download() {
             continue
 
         # Test for big files (premium account required)
-        elif match "The file that you're trying to download is larger than" "$PAGE"; then
+        elif match "The file you are trying to download is larger than" "$PAGE"; then
             log_debug "Premium link"
             rm -f $COOKIES
             test "$CHECK_LINK" && return 255
