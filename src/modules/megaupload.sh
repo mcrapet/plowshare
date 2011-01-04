@@ -74,9 +74,11 @@ megaupload_download() {
         log_debug "Downloading waiting page (loop $TRY)"
         PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
 
-        # A void page means this is a Premium account, get the URL
-        test -z "$PAGE" &&
-            { ccurl -i "$URL" | grep_http_header_location; return 0; }
+        # Test for Premium account with "direct download" option
+        if [ -z "$PAGE" ]; then
+            ccurl -i "$URL" | grep_http_header_location
+            return 0
+        fi
 
         REDIRECT=$(echo "$PAGE" | parse_quiet "document.location" \
             "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" || true)
@@ -165,6 +167,15 @@ megaupload_download() {
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
             return 255
+        fi
+
+        # Test for Premium account without "direct download" option
+        if match 'flashvars.username' "$PAGE" && [ -n "$AUTH" ]; then
+            rm -f $COOKIES
+
+            FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
+            echo "$FILEURL"
+            return 0
         fi
 
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 1
