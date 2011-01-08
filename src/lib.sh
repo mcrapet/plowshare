@@ -766,15 +766,16 @@ retry_limit_not_reached() {
     test "$PS_RETRY_LIMIT" -ge 0
 }
 
-
+# Example: 12345 => "3h25m45s"
+# $1: duration (integer)
 splitseconds() {
-    local S=$1
-    local UNITS=("h" "m" "s")
-    local OUTPUT=("$((S/3600))" "$(((S%3600)/60))" "$((S%60))")
-    for ((N=0; N<3; N++)); do
-        test ${OUTPUT[N]} -ne 0 && echo -n "${OUTPUT[N]}${UNITS[N]}"
-    done
-    echo
+  local DIV_H=$(( $1 / 3600))
+  local DIV_M=$(( ($1 % 3600) / 60))
+  local DIV_S=$(( $1 % 60 ))
+
+  [ "$DIV_H" -eq 0 ] || echo -n "${DIV_H}h"
+  [ "$DIV_M" -eq 0 ] || echo -n "${DIV_M}m"
+  [ "$DIV_S" -eq 0 ] && echo || echo "${DIV_S}s"
 }
 
 # Wait some time
