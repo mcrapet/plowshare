@@ -769,13 +769,13 @@ retry_limit_not_reached() {
 # Example: 12345 => "3h25m45s"
 # $1: duration (integer)
 splitseconds() {
-  local DIV_H=$(( $1 / 3600))
-  local DIV_M=$(( ($1 % 3600) / 60))
-  local DIV_S=$(( $1 % 60 ))
+    local DIV_H=$(( $1 / 3600))
+    local DIV_M=$(( ($1 % 3600) / 60))
+    local DIV_S=$(( $1 % 60 ))
 
-  [ "$DIV_H" -eq 0 ] || echo -n "${DIV_H}h"
-  [ "$DIV_M" -eq 0 ] || echo -n "${DIV_M}m"
-  [ "$DIV_S" -eq 0 ] && echo || echo "${DIV_S}s"
+    [ "$DIV_H" -eq 0 ] || echo -n "${DIV_H}h"
+    [ "$DIV_M" -eq 0 ] || echo -n "${DIV_M}m"
+    [ "$DIV_S" -eq 0 ] && echo || echo "${DIV_S}s"
 }
 
 # Wait some time
