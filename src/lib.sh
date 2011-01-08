@@ -28,7 +28,7 @@
 set -o pipefail
 
 # Logs are sent to standard error.
-# Policy:
+# Policies:
 # - error: modules errors (when return 1), lastest plowdown curl call
 # - notice: core messages (ocr, wait, timeout, retries), lastest plowdown curl call
 # - debug: modules messages, curl (intermediate) calls
@@ -114,7 +114,8 @@ curl_with_log() {
     with_log curl "$@"
 }
 
-# Substring Replacement (replace all matches)
+# Substring replacement (replace all matches)
+#
 # stdin: input string
 # $1: substring to find (this is not a regexp)
 # $2: replacement string (this is not a regexp)
@@ -258,7 +259,6 @@ parse_all_attr() {
 #
 # stdin: (X)HTML data (idealy, call grep_form_by_xxx before)
 # stdout: result
-#
 parse_form_action() {
     parse '<[Ff][Oo][Rr][Mm]' 'action="\([^"]*\)"'
 }
@@ -299,6 +299,7 @@ matchi() {
 
 # Return base of URL
 # Example: http://www.host.com/a/b/c/d => http://www.host.com
+#
 # $1: URL
 basename_url()
 {
@@ -309,6 +310,7 @@ basename_url()
 
 # Return basename of file path
 # Example: /usr/bin/foo.bar => foo.bar
+#
 # $1: filename
 basename_file()
 {
@@ -350,6 +352,7 @@ check_function() {
 }
 
 # User password entry
+#
 # stdout: entered password (can be null string)
 # $? is non zero if no password
 prompt_for_password() {
@@ -444,6 +447,7 @@ detect_perl() {
 }
 
 # HTML entities will be translated
+#
 # stdin: data
 # stdout: data (converted)
 html_to_utf8() {
