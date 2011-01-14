@@ -41,7 +41,7 @@ USAGE="Usage: setup.sh install|uninstall"
 
 CP='cp -v'
 RM='rm -vf'
-LN_S='ln -vsf'
+LN_S='ln -sf'
 
 test $# -eq 0 && { echo "$USAGE"; exit 1; }
 test -n "$DESTDIR" -a ! -d "$DESTDIR" && mkdir -p "$DESTDIR"
