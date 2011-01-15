@@ -19,3 +19,6 @@ $ sudo bash setup.sh install
 # Or as non-root:
 $ PREFIX=$HOME bash setup.sh install
 
+Plowshare has been reported to work on:
+- Qnap TS-219 Turbo NAS
+- DealExtreme NAS WLX-652 (Snake OS firmware)
