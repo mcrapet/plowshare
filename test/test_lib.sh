@@ -69,12 +69,6 @@ test_check_exec() {
     assert_return 1 'check_exec this_command_shouldnt_exist_on_a_sane_system'
 }
 
-test_check_function() {
-    assert_return 0 'check_function assert_return'
-    unset non_existing_function
-    assert_return 1 'check_function non_existing_function'
-}
-
 test_process_options() {
     OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Authentication

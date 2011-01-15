@@ -348,11 +348,6 @@ check_exec() {
     type -P $1 >/dev/null || return 1 && return 0
 }
 
-# Check if function is defined
-check_function() {
-    declare -F "$1" &>/dev/null
-}
-
 # User password entry
 #
 # stdout: entered password (can be null string)
