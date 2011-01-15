@@ -23,7 +23,7 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo data_hu 115"
+MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo data_hu 115 fileserve"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdown version
