@@ -1,14 +1,15 @@
 #!/bin/bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010 Arnau Sanchez
+# Copyright (c) 2010 - 2011 Plowshare team
 #
 # Global variables used:
-#   - VERBOSE         Verbose log level (0=none, 1, 2, 3, 4)
-#   - INTERFACE       Network interface (used by curl)
-#   - PS_TIMEOUT      Timeout (in seconds) for one URL download
-#   - PS_RETRY_LIMIT  Number of tries for loops (mainly for captchas)
-#   - LIBDIR          Absolute path to plowshare's libdir
+#   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
+#   - INTERFACE        Network interface (used by curl)
+#   - PS_TIMEOUT       Timeout (in seconds) for one URL download
+#   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
+#   - LIBDIR           Absolute path to plowshare's libdir
+#   - RECAPTCHA_SERVER Server URL
 #
 # This file is part of Plowshare.
 #
@@ -586,6 +587,79 @@ show_image_and_tee() {
     rm -f $TEMPIMG
 }
 
+##
+## reCAPTCHA functions
+## Main engine: http://api.recaptcha.net/js/recaptcha.js
+##
+RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
+
+# $1: reCAPTCHA site public key
+# stdout: image path
+recaptcha_load_image() {
+    local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
+    log_debug "reCaptcha URL: $URL"
+
+    local VARS=$(curl -L "$URL")
+
+    if [ -n "$VARS" ]; then
+        local server=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'")
+        local challenge=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'")
+
+        log_debug "reCaptcha server: $server"
+        log_debug "reCaptcha challenge: $challenge"
+
+        # Image dimension: 300x57
+        FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
+        curl "${server}image?c=${challenge}" -o "$FILENAME"
+
+        log_debug "reCaptcha image: $FILENAME"
+        echo "$FILENAME"
+    fi
+}
+
+# $1: reCAPTCHA image filename
+# stdout: challenge (string)
+recaptcha_get_challenge_from_image() {
+    basename_file "$1" | cut -d. -f2
+}
+
+# $1: reCAPTCHA site public key
+# $2: reCAPTCHA image filename
+# stdout: new image path
+recaptcha_reload_image() {
+    FILENAME="$2"
+
+    if [ -n "$FILENAME" ]; then
+        local challenge=$(recaptcha_get_challenge_from_image "$FILENAME")
+        local server="$RECAPTCHA_SERVER"
+
+        STATUS=$(curl "${server}reload?k=$1&c=${challenge}&reason=r&type=image&lang=en")
+        challenge=$(echo "$STATUS" | parse_quiet 'finish_reload' "('\([^']*\)")
+
+        FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
+        curl "${server}image?c=${challenge}" -o "$FILENAME"
+
+        log_debug "reCaptcha new image: $FILENAME"
+        echo "$FILENAME"
+    fi
+}
+
+# $1: reCAPTCHA image filename
+# stdout: response word (string)
+recaptcha_display_and_prompt() {
+    FILENAME="$1"
+
+    display $FILENAME &
+    PID=$!
+
+    log_notice "Leave this field blank and hit enter to get another captcha image"
+
+    read -p "Enter captcha response (longuest word): " RESPONSE
+    disown $(kill -9 $PID) 2>&1 1>/dev/null
+    echo "$RESPONSE" | sed 's/ /+/g'
+}
+
+## ----------------------------------------------------------------------------
 
 # Show help info for options
 #
