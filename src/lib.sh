@@ -35,14 +35,6 @@ set -o pipefail
 # - debug: modules messages, curl (intermediate) calls
 # - report: debug plus curl content (html pages, cookies)
 
-verbose_level() {
-    echo ${VERBOSE:-0}
-}
-
-stderr() {
-    echo "$@" >&2;
-}
-
 log_report() {
     test $(verbose_level) -ge 4 && stderr "rep: $@"
     return 0
@@ -72,12 +64,12 @@ log_error() {
     return 0
 }
 
-# Force debug verbose level (unless -v0/-q specified)
-with_log() {
-    local TEMP_VERBOSE=3
-    test $(verbose_level) -eq 0 && TEMP_VERBOSE=0 || true
-    VERBOSE=$TEMP_VERBOSE "$@"
-}
+## ----------------------------------------------------------------------------
+
+##
+## All helper functions below can be called by modules
+## (see documentation...)
+##
 
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
@@ -135,6 +127,22 @@ strip() {
 # Return uppercase string
 uppercase() {
     tr '[a-z]' '[A-Z]'
+}
+
+# Check if a string ($2) matches a regexp ($1)
+# This is case sensitive.
+#
+# $? is zero on success
+match() {
+    grep -q "$1" <<< "$2"
+}
+
+# Check if a string ($2) matches a regexp ($1)
+# This is not case sensitive.
+#
+# $? is zero on success
+matchi() {
+    grep -iq "$1" <<< "$2"
 }
 
 # Get first line that matches a regular expression and extract string from it.
@@ -282,22 +290,6 @@ parse_form_input_by_type() {
     parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
 }
 
-# Check if a string ($2) matches a regexp ($1)
-# This is case sensitive.
-#
-# $? is zero on success
-match() {
-    grep -q "$1" <<< "$2"
-}
-
-# Check if a string ($2) matches a regexp ($1)
-# This is not case sensitive.
-#
-# $? is zero on success
-matchi() {
-    grep -iq "$1" <<< "$2"
-}
-
 # Return base of URL
 # Example: http://www.host.com/a/b/c/d => http://www.host.com
 #
@@ -319,6 +311,64 @@ basename_file()
     echo "${1##*/}"
 }
 
+# HTML entities will be translated
+#
+# stdin: data
+# stdout: data (converted)
+html_to_utf8() {
+    if check_exec 'recode'; then
+        log_report "html_to_utf8: use recode"
+        recode html..utf8
+    elif check_exec 'perl'; then
+        log_report "html_to_utf8: use perl"
+        perl -n -mHTML::Entities \
+             -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
+    else
+        log_notice "recode binary not found"
+    fi
+}
+
+# Encode a text to include into an url.
+# - check for "reserved characters" : $&+,/:;=?@
+# - check for "unsafe characters": '<>#%{}|\^~[]`
+# - check for space character
+#
+# stdin: data (example: relative URL)
+# stdout: data (nearly complains RFC2396)
+uri_encode_strict() {
+    cat | sed -e 's/\$/%24/g' -e 's|/|%2F|g' -e 's/\%/%25/g' \
+        -e 's/\x26/%26/g' -e 's/\x2B/%2B/g' -e 's/\x2C/%2C/g' \
+        -e 's/\x3A/%3A/g' -e 's/\x3B/%3B/g' -e 's/\x3D/%3D/g' \
+        -e 's/\x3F/%3F/g' -e 's/\x40/%40/g' -e 's/\x20/%20/g' \
+        -e 's/\x22/%22/g' -e 's/\x3C/%3C/g' -e 's/\x3E/%3E/g' \
+        -e 's/\x23/%23/g' -e 's/\x7B/%7B/g' -e 's/\x7D/%7D/g' \
+        -e 's/\x7C/%7C/g' -e 's/\^/%5E/g' -e 's/\x7E/%7E/g' \
+        -e 's/\x60/%60/g' -e 's/\\/%5C/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
+}
+
+# Encode a complete url.
+# - check for space character
+# - do not check for "reserved characters" (use "uri_encode_strict" for that)
+#
+# Bad encoded URL request can lead to HTTP error 400.
+# curl doesn't do any checks, whereas wget convert provided url.
+#
+# stdin: data (example: absolute URL)
+# stdout: data (nearly complains RFC2396)
+uri_encode() {
+    cat | sed -e "s/\x20/%20/g"
+}
+
+# Decode a complete url.
+# - check for space character
+# - do not check for "reserved characters"
+#
+# stdin: data (example: absolute URL)
+# stdout: data (nearly complains RFC2396)
+uri_decode() {
+    cat | sed -e "s/%20/\x20/g"
+}
+
 # Create a tempfile and return path
 #
 # $1: Suffix
@@ -327,25 +377,6 @@ create_tempfile() {
     FILE="${TMPDIR:-/tmp}/$(basename_file $0).$$.$RANDOM$SUFFIX"
     : > "$FILE"
     echo "$FILE"
-}
-
-# Remove all temporal files created by the script
-remove_tempfiles() {
-    rm -rf "${TMPDIR:-/tmp}/$(basename_file $0).$$.*"
-}
-
-# Exit callback (task: clean temporal files)
-set_exit_trap() {
-  trap "remove_tempfiles" EXIT
-}
-
-# Check existance of executable in path
-# Better than "which" (external) executable
-#
-# $1: Executable to check
-# $?: zero means not found
-check_exec() {
-    type -P $1 >/dev/null || return 1 && return 0
 }
 
 # User password entry
@@ -419,6 +450,27 @@ post_login() {
     return 0
 }
 
+# Execute javascript code
+#
+# stdin: js script
+# stdout: script results
+# $?: boolean
+javascript() {
+    JS_PRG=$(detect_javascript)
+
+    local TEMPSCRIPT=$(create_tempfile)
+    cat > $TEMPSCRIPT
+
+    log_report "interpreter:$JS_PRG"
+    log_report "=== JAVASCRIPT BEGIN ==="
+    logcat_report "$TEMPSCRIPT"
+    log_report "=== JAVASCRIPT END ==="
+
+    $JS_PRG "$TEMPSCRIPT"
+    rm -rf "$TEMPSCRIPT"
+    return 0
+}
+
 # Dectect if a JavaScript interpreter is installed
 #
 # stdout: path of executable
@@ -443,83 +495,47 @@ detect_perl() {
     type -P 'perl'
 }
 
-# HTML entities will be translated
+# Wait some time
 #
-# stdin: data
-# stdout: data (converted)
-html_to_utf8() {
-    if check_exec 'recode'; then
-        log_report "html_to_utf8: use recode"
-        recode html..utf8
-    elif check_exec 'perl'; then
-        log_report "html_to_utf8: use perl"
-        perl -n -mHTML::Entities \
-             -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
+# $1: Sleep duration
+# $2: Unit (seconds | minutes)
+wait() {
+    local VALUE=$1
+    local UNIT=$2
+
+    if [ "$UNIT" = "minutes" ]; then
+        UNIT_SECS=60
+        UNIT_STR=minutes
     else
-        log_notice "recode binary not found"
+        UNIT_SECS=1
+        UNIT_STR=seconds
+    fi
+    local TOTAL_SECS=$((VALUE * UNIT_SECS))
+
+    timeout_update $TOTAL_SECS || return 1
+
+    local REMAINING=$TOTAL_SECS
+    local MSG="Waiting $VALUE $UNIT_STR..."
+    local CLEAR="     \b\b\b\b\b"
+    if test -t 2; then
+      while [ "$REMAINING" -gt 0 ]; do
+          log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
+          sleep 1
+          (( REMAINING-- ))
+      done
+      log_notice -e "\r$MSG done${CLEAR}"
+    else
+      log_notice "$MSG"
+      sleep $TOTAL_SECS
     fi
 }
 
-# Encode a text to include into an url.
-# - check for "reserved characters" : $&+,/:;=?@
-# - check for "unsafe characters": '<>#%{}|\^~[]`
-# - check for space character
-#
-# stdin: data (example: relative URL)
-# stdout: data (nearly complains RFC2396)
-uri_encode_strict() {
-    cat | sed -e 's/\$/%24/g' -e 's|/|%2F|g' -e 's/\%/%25/g' \
-        -e 's/\x26/%26/g' -e 's/\x2B/%2B/g' -e 's/\x2C/%2C/g' \
-        -e 's/\x3A/%3A/g' -e 's/\x3B/%3B/g' -e 's/\x3D/%3D/g' \
-        -e 's/\x3F/%3F/g' -e 's/\x40/%40/g' -e 's/\x20/%20/g' \
-        -e 's/\x22/%22/g' -e 's/\x3C/%3C/g' -e 's/\x3E/%3E/g' \
-        -e 's/\x23/%23/g' -e 's/\x7B/%7B/g' -e 's/\x7D/%7D/g' \
-        -e 's/\x7C/%7C/g' -e 's/\^/%5E/g' -e 's/\x7E/%7E/g' \
-        -e 's/\x60/%60/g' -e 's/\\/%5C/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
-}
-
-# Encode a complete url.
-# - check for space character
-# - do not check for "reserved characters" (use "uri_encode_strict" for that)
-#
-# Bad encoded URL request can lead to HTTP error 400.
-# curl doesn't do any checks, whereas wget convert provided url.
-#
-# stdin: data (example: absolute URL)
-# stdout: data (nearly complains RFC2396)
-uri_encode() {
-    cat | sed -e "s/\x20/%20/g"
-}
-
-# Decode a complete url.
-# - check for space character
-# - do not check for "reserved characters"
-#
-# stdin: data (example: absolute URL)
-# stdout: data (nearly complains RFC2396)
-uri_decode() {
-    cat | sed -e "s/%20/\x20/g"
-}
-
-# Execute javascript code
-#
-# stdin: js script
-# stdout: script results
-# $?: boolean
-javascript() {
-    JS_PRG=$(detect_javascript)
-
-    local TEMPSCRIPT=$(create_tempfile)
-    cat > $TEMPSCRIPT
-
-    log_report "interpreter:$JS_PRG"
-    log_report "=== JAVASCRIPT BEGIN ==="
-    logcat_report "$TEMPSCRIPT"
-    log_report "=== JAVASCRIPT END ==="
-
-    $JS_PRG "$TEMPSCRIPT"
-    rm -rf "$TEMPSCRIPT"
-    return 0
+# Related to --max-retries plowdown command line option
+retry_limit_not_reached() {
+    test -z "$PS_RETRY_LIMIT" && return
+    log_notice "Tries left: $PS_RETRY_LIMIT"
+    (( PS_RETRY_LIMIT-- ))
+    test "$PS_RETRY_LIMIT" -ge 0
 }
 
 # OCR of an image.
@@ -550,31 +566,25 @@ ocr() {
     rm -f $TIFF $TEXT
 }
 
-# Output image in ascii chars (aview uses libaa)
-# $1: image filename (any format)
-aview_ascii_image() {
-    convert $1 -negate -depth 8 pnm:- |
-      aview -width 60 -height 28 -kbddriver stdin -driver stdout <(cat) 2>/dev/null <<< "q" |
-      sed  -e '1d;/\x0C/,/\x0C/d' |
-      grep -v "^[[:space:]]*$"
-}
-
-caca_ascii_image() {
-    img2txt -W 60 -H 14 $1
-}
-
 # Display image (in ascii) and forward it (like tee command)
 #
-# stdin: image (binary)
+# stdin: image (binary). Can be any format.
 # stdout: same image
 show_image_and_tee() {
     test $(verbose_level) -lt 3 && { cat; return; }
     local TEMPIMG=$(create_tempfile)
     cat > $TEMPIMG
     if check_exec aview; then
-        aview_ascii_image $TEMPIMG >&2
+        # libaa
+        local IMG_PNM=$(create_tempfile)
+        convert $TEMPIMG -negate -depth 8 pnm:$IMG_PNM
+        aview -width 60 -height 28 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<< "q" | \
+            sed  -e '1d;/\x0C/,/\x0C/d' | \
+            grep -v "^[[:space:]]*$" >&2
+        rm -f "$IMG_PNM"
     elif check_exec img2txt; then
-        caca_ascii_image $TEMPIMG >&2
+        # libcaca
+        img2txt -W 60 -H 14 $TEMPIMG >&2
     else
         log_notice "Install aview or img2txt (libcaca) to display captcha image"
     fi
@@ -583,7 +593,7 @@ show_image_and_tee() {
 }
 
 ##
-## reCAPTCHA functions
+## reCAPTCHA functions (can be called from modules)
 ## Main engine: http://api.recaptcha.net/js/recaptcha.js
 ##
 RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
@@ -656,6 +666,48 @@ recaptcha_display_and_prompt() {
 
 ## ----------------------------------------------------------------------------
 
+##
+## Miscellaneous functions that can be called from core:
+## download.sh, upload.sh, delete.sh, list.sh
+##
+
+# Force debug verbose level (unless -v0/-q specified)
+with_log() {
+    local TEMP_VERBOSE=3
+    test $(verbose_level) -eq 0 && TEMP_VERBOSE=0 || true
+    VERBOSE=$TEMP_VERBOSE "$@"
+}
+
+# Remove all temporal files created by the script
+# (with create_tempfile)
+remove_tempfiles() {
+    rm -rf "${TMPDIR:-/tmp}/$(basename_file $0).$$.*"
+}
+
+# Exit callback (task: clean temporal files)
+set_exit_trap() {
+  trap "remove_tempfiles" EXIT
+}
+
+# Check existance of executable in path
+# Better than "which" (external) executable
+#
+# $1: Executable to check
+# $?: zero means not found
+check_exec() {
+    type -P $1 >/dev/null || return 1 && return 0
+}
+
+# Related to --timeout plowdown command line option
+timeout_init() {
+    PS_TIMEOUT=$1
+}
+
+# Related to --max-retries plowdown command line option
+retry_limit_init() {
+    PS_RETRY_LIMIT=$1
+}
+
 # Show help info for options
 #
 # $1: options
@@ -724,12 +776,6 @@ get_field() {
     echo "$2" | while IFS="," read LINE; do
         echo "$LINE" | cut -d"," -f$1
     done
-}
-
-quote() {
-    for ARG in "$@"; do
-        echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
-    done | sed "s/ $//"
 }
 
 # Straighforward options and arguments processing using getopt style
@@ -806,34 +852,25 @@ get_module() {
     done
 }
 
+## ----------------------------------------------------------------------------
 
-# Related to --timeout plowdown command line option
-timeout_init() {
-    PS_TIMEOUT=$1
+##
+## Private ('static') functions
+## Can be called from this script only.
+##
+
+verbose_level() {
+    echo ${VERBOSE:-0}
 }
 
-timeout_update() {
-    local WAIT=$1
-    test -z "$PS_TIMEOUT" && return
-    log_notice "Time left to timeout: $PS_TIMEOUT secs"
-    if [[ "$PS_TIMEOUT" -lt "$WAIT" ]]; then
-        log_debug "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
-        return 1
-    fi
-    (( PS_TIMEOUT -= WAIT ))
+stderr() {
+    echo "$@" >&2;
 }
 
-
-# Related to --max-retries plowdown command line option
-retry_limit_init() {
-    PS_RETRY_LIMIT=$1
-}
-
-retry_limit_not_reached() {
-    test -z "$PS_RETRY_LIMIT" && return
-    log_notice "Tries left: $PS_RETRY_LIMIT"
-    (( PS_RETRY_LIMIT-- ))
-    test "$PS_RETRY_LIMIT" -ge 0
+quote() {
+    for ARG in "$@"; do
+        echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
+    done | sed "s/ $//"
 }
 
 # Example: 12345 => "3h25m45s"
@@ -848,37 +885,14 @@ splitseconds() {
     [ "$DIV_S" -eq 0 ] && echo || echo "${DIV_S}s"
 }
 
-# Wait some time
-#
-# $1: Sleep duration
-# $2: Unit (seconds | minutes)
-wait() {
-    local VALUE=$1
-    local UNIT=$2
-
-    if [ "$UNIT" = "minutes" ]; then
-        UNIT_SECS=60
-        UNIT_STR=minutes
-    else
-        UNIT_SECS=1
-        UNIT_STR=seconds
+# called by wait
+timeout_update() {
+    local WAIT=$1
+    test -z "$PS_TIMEOUT" && return
+    log_notice "Time left to timeout: $PS_TIMEOUT secs"
+    if [[ "$PS_TIMEOUT" -lt "$WAIT" ]]; then
+        log_debug "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
+        return 1
     fi
-    local TOTAL_SECS=$((VALUE * UNIT_SECS))
-
-    timeout_update $TOTAL_SECS || return 1
-
-    local REMAINING=$TOTAL_SECS
-    local MSG="Waiting $VALUE $UNIT_STR..."
-    local CLEAR="     \b\b\b\b\b"
-    if test -t 2; then
-      while [ "$REMAINING" -gt 0 ]; do
-          log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
-          sleep 1
-          (( REMAINING-- ))
-      done
-      log_notice -e "\r$MSG done${CLEAR}"
-    else
-      log_notice "$MSG"
-      sleep $TOTAL_SECS
-    fi
+    (( PS_TIMEOUT -= WAIT ))
 }
