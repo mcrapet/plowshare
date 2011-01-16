@@ -20,5 +20,6 @@ $ sudo bash setup.sh install
 $ PREFIX=$HOME bash setup.sh install
 
 Plowshare has been reported to work on:
+- Buffalo LinkStation Live (HS-DHxxxGL) (+ optware packages)
 - Qnap TS-219 Turbo NAS
 - DealExtreme NAS WLX-652 (Snake OS firmware)
