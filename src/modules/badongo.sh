@@ -93,9 +93,9 @@ badongo_download() {
             parse 'location\.href' '+ "\([^"]*\)') ||
         { log_error "error parsing link part2, site updated?"; return 1; }
 
-    # Look for window.check_n variable
-    WAIT_TIME=$(echo "$WAIT_PAGE" | parse_last 'check_n' 'check_n = \([[:digit:]]\+\)')
-    GLF_Z=$(echo "$WAIT_PAGE" | parse_last 'window\.getFileLinkInitOpt' "'z':'\([^']*\)")
+    # Look for window.ck_* variable (timer)
+    WAIT_TIME=$(echo "$WAIT_PAGE" | parse_last 'window\.ck_' '[[:space:]]=[[:space:]]\([[:digit:]]\+\)')
+    GLF_Z=$(echo "$WAIT_PAGE" | parse_last 'window\.getFileLinkInitOpt' "z = '\([^']*\)")
     GLF_H=$(echo "$WAIT_PAGE" | parse_last 'window\.getFileLinkInitOpt' "'h':'\([^']*\)")
     FILEID="${ACTION##*/}"
     FILETYPE='file'
@@ -134,15 +134,15 @@ badongo_download() {
         --referer "$ACTION" "$ACTION" | sed "s/>/>\n/g")
 
     # Example: <a href=\"#\" onclick=\"return doDownload(\'http://www.badongo.com/fd/0101052591990549/CCI97956a6891950969/0\');\">
-    LINK_PART1=$(echo "$JSCODE" | parse 'doDownload' "\\\\'\(http[^\\]*\)") ||
+    # doDownload name is now obfuscated (example: aeacfeededbb)
+    LINK_PART1=$(echo "$JSCODE" | parse_last 'return' "\\\\'\(http[^\\]*\)") ||
             { log_error "can't parse base url"; return 1; }
     FILE_URL="${LINK_PART1}${LINK_PART2}?zenc="
 
     LAST_PAGE=$(curl -b "_gflCur=0" -b $COOKIES --referer "$ACTION" $FILE_URL)
 
     # Look for new location.href
-    LINK_FINAL=$(echo "$LAST_PAGE" | grep 'window.location.href' | \
-            parse 'location\.href' "= '\([^']*\)") ||
+    LINK_FINAL=$(echo "$LAST_PAGE" | parse_last 'location\.href' "= '\([^']*\)") ||
         { log_error "error parsing link part2, site updated?"; return 1; }
     FILE_URL=$(curl -i -b $COOKIES --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | grep_http_header_location)
 
