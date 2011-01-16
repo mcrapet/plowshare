@@ -59,13 +59,6 @@ hotfile_download() {
     BASE_URL='http://hotfile.com'
     COOKIES=$(create_tempfile)
 
-    # Warning message
-    if ! test "$CHECK_LINK"; then
-        log_notice "# IMPORTANT: Hotfile sometimes asks the user to solve a reCaptcha."
-        log_notice "# If this is the case, this module won't able to download the file."
-        log_notice "# Do not file this as a bug, reCaptcha is virtually un-breakable."
-    fi
-
     while retry_limit_not_reached || return 3; do
         WAIT_HTML=$(curl -c $COOKIES "$URL")
 
@@ -102,8 +95,9 @@ hotfile_download() {
 
         # Direct download (no captcha)
         if match 'Click here to download' "$WAIT_HTML2"; then
-            local LINK=$(echo "$WAIT_HTML2" | parse_quiet 'Click here to download<\/a>' '<a href="\([^"]*\)')
+            local LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href')
             FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
+exit 1
             echo "$FILEURL"
             echo
             echo "$COOKIES"
@@ -116,31 +110,52 @@ hotfile_download() {
             wait $((WAIT_TIME)) minutes || return 2
             continue
 
-        # Captcha page
-        # Main engine: http://api.recaptcha.net/js/recaptcha.js
+        # reCaptcha page
         elif match 'api\.recaptcha\.net' "$WAIT_HTML2"
         then
             local FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
             local form2_url=$(echo "$FORM2_HTML" | parse_form_action)
             local form2_action=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
-            local form2_resp_field=$(echo "$FORM2_HTML" | parse_form_input_by_name 'recaptcha_response_field')
-            local repatcha_js_vars=$(echo "$FORM2_HTML" | parse_attr 'recaptcha.net\/challenge?k=' 'src')
 
-            # http://api.recaptcha.net/challenge?k=<site key>
-            log_debug "reCaptcha URL: $repatcha_js_vars"
-            VARS=$(curl -L "$repatcha_js_vars")
-            local server=$(echo "$VARS" | parse_quiet 'server' "server:'\([^']*\)'")
-            local challenge=$(echo "$VARS" | parse_quiet 'challenge' "challenge:'\([^']*\)'")
+            local PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
+            IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
-            # Image dimension: 300x57
-            FILENAME="/tmp/recaptcha-${challenge:0:16}.jpg"
-            curl "${server}image?c=${challenge}" -o $FILENAME
-            log_debug "Captcha image local filename: $FILENAME"
+            if [ -n "$IMAGE_FILENAME" ]; then
+                TRY=1
 
-            # TODO: display image and prompt for captcha word
+                while retry_limit_not_reached || return 3; do
+                    log_debug "reCaptcha manual entering (loop $TRY)"
+                    (( TRY++ ))
 
+                    WORD=$(recaptcha_display_and_prompt "$IMAGE_FILENAME")
 
-            log_error "Captcha page, give up!"
+                    rm -f $IMAGE_FILENAME
+
+                    [ -n "$WORD" ] && break
+
+                    log_debug "empty, request another image"
+                    IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
+                done
+
+                CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+
+                HTMLPAGE=$(curl -b $COOKIES --data \
+                  "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                  "${BASE_URL}${form2_url}") || return 1
+
+                local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
+                if [ -n "$LINK" ]; then
+                    log_debug "correct captcha"
+
+                    FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
+                    echo "$FILEURL"
+                    echo
+                    echo "$COOKIES"
+                    return 0
+                fi
+            fi
+
+            log_error "reCaptcha error"
             break
 
         else
