@@ -97,7 +97,6 @@ hotfile_download() {
         if match 'Click here to download' "$WAIT_HTML2"; then
             local LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href')
             FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
-exit 1
             echo "$FILEURL"
             echo
             echo "$COOKIES"
