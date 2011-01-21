@@ -120,8 +120,13 @@ fileserve_download() {
     fi
 
     log_debug "correct captcha"
-
     MSG1=$(curl -b $COOKIES --referer "$URL" --data "downloadLink=wait" "$URL") || return 1
+    if match "$MSG" 'fail404'; then
+        log_debug "unexpected result"
+        rm -f $COOKIES
+        return 1
+    fi
+
     WAIT_TIME=$(echo "$MSG1" | cut -c4-)
     wait $((WAIT_TIME + 1)) seconds || return 2
     MSG2=$(curl -b $COOKIES --referer "$URL" --data "downloadLink=show" "$URL") || return 1
