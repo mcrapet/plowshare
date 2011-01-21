@@ -842,14 +842,19 @@ process_options() {
 
 # Get module name from URL link
 #
-# $1: URL
+# $1: url
+# $2: module name list (string)
 get_module() {
     URL=$1
     MODULES=$2
     for MODULE in $MODULES; do
         VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
-        match "${!VAR}" "$URL" && { echo $MODULE; return; } || true
+        if match "${!VAR}" "$URL"; then
+            echo $MODULE
+            break;
+        fi
     done
+    return 0
 }
 
 ## ----------------------------------------------------------------------------
