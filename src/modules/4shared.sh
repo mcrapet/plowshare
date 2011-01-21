@@ -28,10 +28,14 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 4shared_download() {
     set -e
     eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
-
     URL=$1
-    COOKIES=$(create_tempfile)
 
+    if match '4shared\.com\/dir\/' "$URL"; then
+        log_error "This is a directory list, use plowlist!"
+        return 1
+    fi
+
+    COOKIES=$(create_tempfile)
     WAIT_URL=$(curl -c $COOKIES "$URL" | parse_attr "4shared\.com\/get\/" 'href') || {
         rm -f $COOKIES
         log_debug "file not found"
@@ -60,6 +64,11 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 4shared_list() {
     eval "$(process_options sendspace "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
     URL=$1
+
+    if ! match '4shared\.com\/dir\/' "$URL"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
 
     PAGE=$(curl "$URL")
     match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
