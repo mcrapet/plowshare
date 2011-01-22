@@ -17,8 +17,8 @@
 
 MODULE_MEDIAFIRE_REGEXP_URL="http://\(www\.\)\?mediafire\.com/"
 MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS=""
-MODULE_MEDIAFIRE_UPLOAD_OPTIONS=
-MODULE_MEDIAFIRE_LIST_OPTIONS=
+MODULE_MEDIAFIRE_UPLOAD_OPTIONS=""
+MODULE_MEDIAFIRE_LIST_OPTIONS=""
 MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 
 # Output a mediafire file download URL
@@ -182,6 +182,8 @@ mediafire_list() {
 #
 # stdout: mediafire download link
 mediafire_upload() {
+    eval "$(process_options mediafire "$MODULE_MEDIAFIRE_UPLOAD_OPTIONS" "$@")"
+
     local FILE=$1
     local DESTFILE=${2:-$FILE}
     local BASE_URL="http://www.mediafire.com"

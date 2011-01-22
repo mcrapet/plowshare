@@ -15,9 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_NETLOAD_IN_REGEXP_URL="^http://\(www\.\)\?netload\.in/"
+MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?netload\.in/"
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS=""
-MODULE_NETLOAD_IN_UPLOAD_OPTIONS=
 MODULE_NETLOAD_IN_DOWNLOAD_CONTINUE=no
 
 # Output an netload.in file download URL (anonymous, NOT PREMIUM)

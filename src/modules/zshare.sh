@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ZSHARE_REGEXP_URL="^http://\(www\.\)\?zshare\.net/\(download\|delete\)"
+MODULE_ZSHARE_REGEXP_URL="http://\(www\.\)\?zshare\.net/\(download\|delete\)"
 MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZSHARE_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 "
-MODULE_ZSHARE_DELETE_OPTIONS=
+MODULE_ZSHARE_DELETE_OPTIONS=""
 MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 
 # Output a zshare file download URL

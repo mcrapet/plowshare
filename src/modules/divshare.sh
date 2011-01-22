@@ -17,7 +17,6 @@
 
 MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare\.com/download"
 MODULE_DIVSHARE_DOWNLOAD_OPTIONS=""
-MODULE_DIVSHARE_UPLOAD_OPTIONS=
 MODULE_DIVSHARE_DOWNLOAD_CONTINUE=no
 
 # Output a divshare file download URL

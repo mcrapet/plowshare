@@ -16,8 +16,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_DATA_HU_REGEXP_URL="http://\(www\.\)\?data.hu/get/"
-MODULE_DATA_HU_DOWNLOAD_OPTIONS=
-MODULE_DATA_HU_UPLOAD_OPTIONS=
+MODULE_DATA_HU_DOWNLOAD_OPTIONS=""
 MODULE_DATA_HU_DOWNLOAD_CONTINUE=yes
 
 # Output a data_hu file download URL

@@ -18,10 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILESERVE_REGEXP_URL="^http://\(www\.\)\?fileserve\.com/"
+MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
 MODULE_FILESERVE_DOWNLOAD_OPTIONS=
 MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
-
 
 # Output an fileserve.com file download URL (anonymous)
 # $1: fileserve url string

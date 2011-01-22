@@ -17,7 +17,6 @@
 
 MODULE_115_REGEXP_URL="http://\(\w\+\.\)\?115\.com/file/"
 MODULE_115_DOWNLOAD_OPTIONS=""
-MODULE_115_UPLOAD_OPTIONS=
 MODULE_115_DOWNLOAD_CONTINUE=no
 
 # Output a 115.com file download URL

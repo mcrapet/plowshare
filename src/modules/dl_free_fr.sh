@@ -19,7 +19,6 @@
 
 MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
-MODULE_DL_FREE_FR_UPLOAD_OPTIONS=
 MODULE_DL_FREE_FR_DOWNLOAD_CONTINUE=yes
 
 # Output a dl.free.fr file download URL (anonymous)

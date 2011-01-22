@@ -17,7 +17,6 @@
 
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo\.com/"
 MODULE_BADONGO_DOWNLOAD_OPTIONS=""
-MODULE_BADONGO_UPLOAD_OPTIONS=
 MODULE_BADONGO_DOWNLOAD_CONTINUE=no
 
 # Output a file URL to download from Badongo

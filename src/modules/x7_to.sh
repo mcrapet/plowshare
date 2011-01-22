@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_X7_TO_REGEXP_URL="^http://\(www\.\)\?x7\.to/"
+MODULE_X7_TO_REGEXP_URL="http://\(www\.\)\?x7\.to/"
 MODULE_X7_TO_DOWNLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Use Free account"
-MODULE_X7_TO_UPLOAD_OPTIONS=
 MODULE_X7_TO_DOWNLOAD_CONTINUE=no
 
 # Output an x7.to file download URL

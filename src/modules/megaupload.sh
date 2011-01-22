@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MEGAUPLOAD_REGEXP_URL="^http://\(www\.\)\?mega\(upload\|rotic\|porn\|video\).com/"
+MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|rotic\|porn\|video\).com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files

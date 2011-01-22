@@ -17,7 +17,6 @@
 
 MODULE_HUMYO_REGEXP_URL="http://\(www\.\)\?humyo\.com/"
 MODULE_HUMYO_DOWNLOAD_OPTIONS=""
-MODULE_HUMYO_UPLOAD_OPTIONS=
 MODULE_HUMYO_DOWNLOAD_CONTINUE=no
 
 # Output a humyo file download URL

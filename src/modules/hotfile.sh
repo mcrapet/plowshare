@@ -15,12 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_HOTFILE_REGEXP_URL="^http://\(www\.\)\?hotfile\.com/"
+MODULE_HOTFILE_REGEXP_URL="http://\(www\.\)\?hotfile\.com/"
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 "
-MODULE_HOTFILE_UPLOAD_OPTIONS=
-MODULE_HOTFILE_LIST_OPTIONS=
+MODULE_HOTFILE_LIST_OPTIONS=""
 MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
 
 # Output an hotfile.com file download URL (anonymous or premium)
