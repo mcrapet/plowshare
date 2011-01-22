@@ -14,8 +14,8 @@ SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
        src/lib.sh src/strip_single_color.pl src/strip_threshold.pl
 
 SETUP_FILES     = Makefile setup.sh
-TEST_FILES      = run_tests.sh test/lib.sh test/test_lib.sh test/test_modules.sh \
-                  test/test_setup.sh $(wildcard test/pics/*)
+TEST_FILES      = test/lib.sh test/test_lib.sh test/test_modules.sh test/test_setup.sh \
+                  $(wildcard test/pics/*)
 MODULE_FILES    = $(wildcard src/modules/*.sh)
 TESSERACT_FILES = $(addprefix src/tesseract/, alnum digit digit_ops plowshare_nobatch upper)
 
@@ -68,6 +68,9 @@ uninstall:
 	@rm -rf $(DESTDIR)$(DATADIR) $(DESTDIR)$(DOCDIR)
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)/, $(MANPAGES0))
 
+test:
+	@echo "Not yet!"
+
 dist: distdir
 	@tar -cf - $(DISTDIR)/* | gzip -9 >$(DISTDIR).tar.gz
 	@rm -rf $(DISTDIR)
@@ -90,5 +93,4 @@ distdir:
 distclean:
 	@rm -rf plowshare-SVN-r???*
 
-.PHONY: dist distclean install uninstall
-
+.PHONY: dist distclean install uninstall test
