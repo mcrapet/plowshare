@@ -60,11 +60,11 @@ elif [ "$1" = "install" ]; then
 
     # Common library
     mkdir -p $DATADIR
-    $CP -p src/download.sh \
+    $CP -p src/core.sh     \
+        src/download.sh    \
         src/upload.sh      \
         src/delete.sh      \
         src/list.sh        \
-        src/lib.sh         \
         src/strip_single_color.pl \
         src/strip_threshold.pl $DATADIR
 

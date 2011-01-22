@@ -37,7 +37,7 @@ hotfile_download() {
     fi
 
     # Try to get the download link using premium credentials (if $AUTH not null)
-    # Some code duplicated from lib.sh, post_login().
+    # Some code duplicated from core.sh, post_login().
     if [ -n "$AUTH" ]; then
         USER="${AUTH%%:*}"
         PASSWORD="${AUTH#*:}"

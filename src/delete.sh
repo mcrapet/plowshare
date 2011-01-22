@@ -57,7 +57,7 @@ absolute_path() {
 # Get library directory
 LIBDIR=$(absolute_path "$0")
 
-source "$LIBDIR/lib.sh"
+source "$LIBDIR/core.sh"
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done

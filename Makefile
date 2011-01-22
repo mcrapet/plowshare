@@ -11,7 +11,7 @@ RM      = rm -f
 # Files
 
 SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
-       src/lib.sh src/strip_single_color.pl src/strip_threshold.pl
+       src/core.sh src/strip_single_color.pl src/strip_threshold.pl
 
 SETUP_FILES     = Makefile setup.sh
 TEST_FILES      = test/lib.sh test/test_lib.sh test/test_modules.sh test/test_setup.sh \

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Test functions for "src/lib.sh"
+# Test functions for "src/core.sh"
 # Copyright (c) 2010 Arnau Sanchez
 #
 # This file is part of Plowshare.
@@ -28,7 +28,7 @@ MODULESDIR=$ROOTDIR/src/modules
 TESTSDIR=$ROOTDIR/test
 LIBDIR=$ROOTDIR/src
 
-source "$LIBDIR/lib.sh"
+source "$LIBDIR/core.sh"
 source "$TESTSDIR/lib.sh"
 
 test_parse() {

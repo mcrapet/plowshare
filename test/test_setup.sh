@@ -26,7 +26,7 @@ set -e
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR=$ROOTDIR/src
 TESTSDIR=$ROOTDIR/test
-source $ROOTDIR/src/lib.sh
+source $ROOTDIR/src/core.sh
 source $ROOTDIR/test/lib.sh
 
 ### Setup script
