@@ -148,30 +148,22 @@ mediafire_list() {
     match '/js/myfiles.php/' "$PAGE" ||
         { log_error "not a shared folder"; return 1; }
 
-    local JS_URL=$(echo "$PAGE" | parse 'language=' 'src="\(\/js\/myfiles\.php\/[^"]*\)')
-    local DATA=$(curl "http://mediafire.com$JS_URL" | sed "s/;/;\n/g")
+    local JS_URL=$(echo "$PAGE" | parse 'LoadJS(' '("\(\/js\/myfiles\.php\/[^"]*\)')
+    local DATA=$(curl "http://mediafire.com$JS_URL" | sed "s/\([)']\);/\1;\n/g")
 
     # get number of files
     NB=$(echo "$DATA" | parse '^var oO' "'\([[:digit:]]*\)'")
-    NB2=$NB
 
     log_debug "There is $NB file(s) in the folder"
 
-    # First pass : print debug message
+    # First pass : print debug message & links (stdout)
     # es[0]=Array('1','1',3,'te9rlz5ntf1','82de6544620807bf025c12bec1713a48','my_super_file.txt','14958589','14.27','MB','43','02/13/2010', ...
     while [[ "$NB" -gt 0 ]]; do
         ((NB--))
         LINE=$(echo "$DATA" | parse "es\[$NB\]=" "Array(\(.*\));")
+        FID=$(echo "$LINE" | cut -d, -f4 | tr -d "'")
         FILENAME=$(echo "$LINE" | cut -d, -f6 | tr -d "'")
         log_debug "$FILENAME"
-    done
-
-    # Second pass : print links (stdout)
-    NB=$NB2
-    while [[ "$NB" -gt 0 ]]; do
-        ((NB--))
-        LINE=$(echo "$DATA" | parse "es\[$NB\]=" "Array(\(.*\));")
-        FID=$(echo "$LINE" | cut -d, -f4 | tr -d "'")
         echo "http://www.mediafire.com/?$FID"
     done
 
