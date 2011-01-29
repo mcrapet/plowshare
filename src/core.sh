@@ -123,7 +123,7 @@ replace() {
 # stdin: input string
 # stdout: result string
 strip() {
-    cat | sed "s/^[[:space:]]*//; s/[[:space:]]*$//"
+    cat | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # Return uppercase string
@@ -776,12 +776,6 @@ debug_options_for_modules() {
     done <<< "$1"
 }
 
-get_field() {
-    while IFS="," read LINE; do
-        echo "$LINE" | cut -d"," -f$1
-    done <<< "$2"
-}
-
 # Get module name from URL link
 #
 # $1: url
@@ -811,14 +805,19 @@ process_options() {
     local NAME=$1
     local OPTIONS=$2
     shift 2
+
     # Strip spaces in options
-    local OPTIONS=$(grep -v "^[[:space:]]*$" <<< "$OPTIONS" | \
-        sed "s/^[[:space:]]*//; s/[[:space:]]$//")
-    while read VAR; do
+    OPTIONS=$(echo "$OPTIONS" | strip | drop_empty_lines)
+
+    echo "$OPTIONS" | sed "s/^!//" | while read VAR; do
+        VAR=$(echo $VAR | cut -d',' -f1)
         unset $VAR
-    done < <(get_field 1 "$OPTIONS" | sed "s/^!//")
-    local ARGUMENTS="$(getopt -o "$(get_field 2 "$OPTIONS")" \
-        --long "$(get_field 3 "$OPTIONS")" -n "$NAME" -- "$@")"
+    done
+
+    local SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
+    local LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
+    local ARGUMENTS="$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$NAME" -- "$@")"
+
     eval set -- "$ARGUMENTS"
     local -a UNUSED_OPTIONS=()
     while true; do
@@ -900,6 +899,13 @@ quote() {
     for ARG in "$@"; do
         echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
     done | sed "s/ $//"
+}
+
+# Delete blank lines
+# stdin: input (multiline) string
+# stdout: result string
+drop_empty_lines() {
+    cat | sed '/^[    ]*$/d'
 }
 
 # Example: 12345 => "3h25m45s"
