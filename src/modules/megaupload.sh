@@ -18,8 +18,7 @@
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|rotic\|porn\|video\).com/"
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
-"
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 MULTIFETCH,m,multifetch,,Use URL multifetch upload
 CLEAR_LOG,,clear-log,,Clear upload log after upload process
@@ -29,11 +28,9 @@ DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
-MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload
-"
+MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload"
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)
-"
+AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)"
 MODULE_MEGAUPLOAD_LIST_OPTIONS=""
 MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 

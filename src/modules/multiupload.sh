@@ -20,8 +20,7 @@
 
 MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.com/"
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description
-"
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 
 # $1: input file
 # $2 (optional): alternate destination filename

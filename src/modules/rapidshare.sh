@@ -16,7 +16,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare\.com/"
-MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
+MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_PREMIUMZONE,a:,auth:,USER:PASSWORD,Use Premium-Zone account
 AUTH_FREEZONE,b:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"

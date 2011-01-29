@@ -18,8 +18,7 @@
 MODULE_ZSHARE_REGEXP_URL="http://\(www\.\)\?zshare\.net/\(download\|delete\)"
 MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZSHARE_UPLOAD_OPTIONS="
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description
-"
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 MODULE_ZSHARE_DELETE_OPTIONS=""
 MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 

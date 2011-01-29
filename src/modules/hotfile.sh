@@ -17,8 +17,7 @@
 
 MODULE_HOTFILE_REGEXP_URL="http://\(www\.\)\?hotfile\.com/"
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
-"
+AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account"
 MODULE_HOTFILE_LIST_OPTIONS=""
 MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
 
