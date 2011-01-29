@@ -21,7 +21,6 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="2shared megaupload zshare"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
@@ -54,21 +53,12 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Get library directory
-LIBDIR=$(absolute_path "$0")
-
-source "$LIBDIR/core.sh"
-for MODULE in $MODULES; do
-    source "$LIBDIR/modules/$MODULE.sh"
-done
-
 # Print usage
 usage() {
     echo "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
     echo
     echo "  Delete a file-link from a file sharing site."
-    echo
-    echo "  Available modules: $MODULES"
+    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
     echo
     echo "Global options:"
     echo
@@ -79,6 +69,15 @@ usage() {
 #
 # Main
 #
+
+# Get library directory
+LIBDIR=$(absolute_path "$0")
+
+source "$LIBDIR/core.sh"
+MODULES=$(grep_config_modules 'delete') || exit 1
+for MODULE in $MODULES; do
+    source "$LIBDIR/modules/$MODULE.sh"
+done
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DELETE)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"

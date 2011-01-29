@@ -1,0 +1,22 @@
+# Site list with capabilities
+115         | download |        |        |      |
+2shared     | download | upload | delete |      |
+4shared     | download |        |        | list |
+badongo     | download |        |        |      |
+data_hu     | download |        |        |      |
+depositfiles| download |        |        | list |
+divshare    | download |        |        |      |
+dl_free_fr  | download |        |        |      |
+fileserve   | download |        |        | list |
+hotfile     | download |        |        | list |
+humyo       | download |        |        |      |
+mediafire   | download | upload |        | list |
+megaupload  | download | upload | delete | list |
+multiupload |          | upload |        |      |
+netload_in  | download |        |        |      |
+rapidshare  | download |        |        |      |
+sendspace   | download |        |        | list |
+uploading   | download |        |        |      |
+usershare   | download |        |        |      |
+x7_to       | download |        |        |      |
+zshare      | download | upload | delete |      |

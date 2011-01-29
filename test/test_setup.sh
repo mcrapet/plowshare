@@ -50,13 +50,14 @@ share/man/man1/plowup.1
 share/plowshare
 share/plowshare/delete.sh
 share/plowshare/download.sh
-share/plowshare/lib.sh
+share/plowshare/core.sh
 share/plowshare/list.sh
 share/plowshare/modules
 share/plowshare/modules/115.sh
 share/plowshare/modules/2shared.sh
 share/plowshare/modules/4shared.sh
 share/plowshare/modules/badongo.sh
+share/plowshare/modules/config
 share/plowshare/modules/data_hu.sh
 share/plowshare/modules/depositfiles.sh
 share/plowshare/modules/divshare.sh

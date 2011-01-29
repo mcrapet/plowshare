@@ -16,7 +16,7 @@ SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
 SETUP_FILES     = Makefile setup.sh
 TEST_FILES      = test/lib.sh test/test_lib.sh test/test_modules.sh test/test_setup.sh \
                   $(wildcard test/pics/*)
-MODULE_FILES    = $(wildcard src/modules/*.sh)
+MODULE_FILES    = $(wildcard src/modules/*.sh) src/modules/config
 TESSERACT_FILES = $(addprefix src/tesseract/, alnum digit digit_ops plowshare_nobatch upper)
 
 MANPAGES0= plowdown.1 plowup.1 plowdel.1 plowlist.1

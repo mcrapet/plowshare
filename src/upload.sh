@@ -23,7 +23,6 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="megaupload mediafire 2shared zshare multiupload"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowup version
@@ -56,21 +55,12 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Get library directory
-LIBDIR=$(absolute_path "$0")
-
-source "$LIBDIR/core.sh"
-for MODULE in $MODULES; do
-    source "$LIBDIR/modules/$MODULE.sh"
-done
-
 # Print usage
 usage() {
     echo "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
     echo
     echo "  Upload a file (or files) to a file-sharing site."
-    echo
-    echo "  Available modules: $MODULES"
+    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
     echo
     echo "Global options:"
     echo
@@ -81,6 +71,15 @@ usage() {
 #
 # Main
 #
+
+# Get library directory
+LIBDIR=$(absolute_path "$0")
+
+source "$LIBDIR/core.sh"
+MODULES=$(grep_config_modules 'upload') || exit 1
+for MODULE in $MODULES; do
+    source "$LIBDIR/modules/$MODULE.sh"
+done
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" UPLOAD)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"

@@ -70,7 +70,7 @@ elif [ "$1" = "install" ]; then
 
     # Modules
     mkdir -p $MODULESDIR
-    $CP src/modules/*.sh $MODULESDIR
+    $CP src/modules/*.sh src/moules/config $MODULESDIR
 
     # Tesseract
     mkdir -p $TESSERACTDIR

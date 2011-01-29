@@ -23,7 +23,6 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="mediafire hotfile megaupload sendspace 4shared depositfiles fileserve"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowlist version
@@ -56,21 +55,12 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Get library directory
-LIBDIR=$(absolute_path "$0")
-
-source "$LIBDIR/core.sh"
-for MODULE in $MODULES; do
-    source "$LIBDIR/modules/$MODULE.sh"
-done
-
 # Print usage
 usage() {
     echo "Usage: plowlist [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
     echo
     echo "  Retreive list of links from a shared-folder (sharing site) url."
-    echo
-    echo "  Available modules: $MODULES"
+    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
     echo
     echo "Global options:"
     echo
@@ -81,6 +71,15 @@ usage() {
 #
 # Main
 #
+
+# Get library directory
+LIBDIR=$(absolute_path "$0")
+
+source "$LIBDIR/core.sh"
+MODULES=$(grep_config_modules 'list') || exit 1
+for MODULE in $MODULES; do
+    source "$LIBDIR/modules/$MODULE.sh"
+done
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" LIST)
 eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"

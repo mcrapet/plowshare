@@ -120,8 +120,10 @@ replace() {
 }
 
 # Delete leading and trailing spaces, tabs, \r, ...
+# stdin: input string
+# stdout: result string
 strip() {
-    echo "$1" | sed "s/^[[:space:]]*//; s/[[:space:]]*$//"
+    cat | sed "s/^[[:space:]]*//; s/[[:space:]]*$//"
 }
 
 # Return uppercase string
@@ -732,18 +734,6 @@ debug_options() {
     done <<< "$OPTIONS"
 }
 
-# Look for a configuration module variable
-# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
-get_modules_options() {
-    MODULES=$1
-    NAME=$2
-    for MODULE in $MODULES; do
-        get_options_for_module "$MODULE" "$NAME" | while read OPTION; do
-            if test "$OPTION"; then echo "!$OPTION"; fi
-        done
-    done
-}
-
 continue_downloads() {
     MODULE=$1
     VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_CONTINUE"
@@ -757,25 +747,54 @@ get_options_for_module() {
     echo "${!VAR}"
 }
 
+# Look for a configuration module variable
+# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
+#
+# $1: module name list (one per line)
+# $2: option family name (string)
+get_modules_options() {
+    while read MODULE; do
+        get_options_for_module "$MODULE" "$2" | while read OPTION; do
+            if test "$OPTION"; then echo "!$OPTION"; fi
+        done
+    done <<< "$1"
+}
+
 # Show usage info for modules
+#
+# $1: module name list (one per line)
+# $2: option family name (string)
 debug_options_for_modules() {
-    MODULES=$1
-    NAME=$2
-    for MODULE in $MODULES; do
-        OPTIONS=$(get_options_for_module "$MODULE" "$NAME")
+    while read MODULE; do
+        OPTIONS=$(get_options_for_module "$MODULE" "$2")
         if test "$OPTIONS"; then
             echo
             echo "Options for module <$MODULE>:"
             echo
             debug_options "$OPTIONS" "  "
         fi
-    done
+    done <<< "$1"
 }
 
 get_field() {
-    echo "$2" | while IFS="," read LINE; do
+    while IFS="," read LINE; do
         echo "$LINE" | cut -d"," -f$1
-    done
+    done <<< "$2"
+}
+
+# Get module name from URL link
+#
+# $1: url
+# $2: module name list (one per line)
+get_module() {
+    while read MODULE; do
+        VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
+        if match "${!VAR}" "$1"; then
+            echo $MODULE
+            break;
+        fi
+    done <<< "$2"
+    return 0
 }
 
 # Straighforward options and arguments processing using getopt style
@@ -840,21 +859,26 @@ process_options() {
     echo "set -- $(quote "$@")"
 }
 
-# Get module name from URL link
+# Get module list according to capability
+# Note: use global variable LIBDIR
+# TODO: we could check for more option in ~/.plowsharerc
 #
-# $1: url
-# $2: module name list (string)
-get_module() {
-    URL=$1
-    MODULES=$2
-    for MODULE in $MODULES; do
-        VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
-        if match "${!VAR}" "$URL"; then
-            echo $MODULE
-            break;
-        fi
-    done
-    return 0
+# $1: keyword to grep (must not contain '|' char)
+# stdout: return module list (one name per line)
+grep_config_modules() {
+   local CONFIG="$LIBDIR/modules/config"
+
+   #if [ -f "~/.plowsharerc" ]; then
+   #    CONFIG="~/.plowsharerc"
+   #fi
+
+   if [ ! -f "$CONFIG" ]; then
+       stderr "can't find config file"
+       return 1
+   fi
+
+   sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/p" $CONFIG | \
+       cut -d'|' -f1 | strip
 }
 
 ## ----------------------------------------------------------------------------

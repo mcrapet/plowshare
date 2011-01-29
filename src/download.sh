@@ -23,7 +23,6 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="rapidshare megaupload 2shared badongo mediafire 4shared zshare depositfiles uploading netload_in usershare sendspace x7_to hotfile divshare dl_free_fr humyo data_hu 115 fileserve"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdown version
@@ -45,9 +44,9 @@ DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %fil
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 "
 
-# ERROR CODES:
-# On multiple arguments, lower error (1..) is the final exit code.
 
+# Error codes
+# On multiple arguments, lower error (1..) is the final exit code.
 ERROR_CODE_OK=0
 ERROR_CODE_FATAL=1
 ERROR_CODE_NOMODULE=2
@@ -85,14 +84,6 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Get library directory
-LIBDIR=$(absolute_path "$0")
-
-source "$LIBDIR/core.sh"
-for MODULE in $MODULES; do
-    source "$LIBDIR/modules/$MODULE.sh"
-done
-
 # Guess if item is a rapidshare URL, a generic URL (to start a download)
 # or a file with links (discard empty/repeated lines and comments)-
 process_item() {
@@ -115,8 +106,7 @@ usage() {
     echo "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
     echo
     echo "  Download files from file sharing servers."
-    echo
-    echo "  Available modules: $MODULES"
+    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
     echo
     echo "Global options:"
     echo
@@ -187,7 +177,7 @@ download() {
 
     while true; do
         local DRETVAL=0
-        RESULT=$($FUNCTION "$@" "$(strip "$URL")") || DRETVAL=$?
+        RESULT=$($FUNCTION "$@" "$(echo "$URL" | strip)") || DRETVAL=$?
         { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
@@ -314,6 +304,15 @@ download() {
 #
 # Main
 #
+
+# Get library directory
+LIBDIR=$(absolute_path "$0")
+
+source "$LIBDIR/core.sh"
+MODULES=$(grep_config_modules 'download') || exit 1
+for MODULE in $MODULES; do
+    source "$LIBDIR/modules/$MODULE.sh"
+done
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options plowshare "$OPTIONS $MODULE_OPTIONS" "$@")"
