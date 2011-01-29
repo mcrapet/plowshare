@@ -23,7 +23,7 @@
 set -e
 
 VERSION="SVN-snapshot"
-MODULES="mediafire hotfile megaupload sendspace 4shared depositfiles"
+MODULES="mediafire hotfile megaupload sendspace 4shared depositfiles fileserve"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowlist version

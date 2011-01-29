@@ -19,8 +19,9 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
-MODULE_FILESERVE_DOWNLOAD_OPTIONS=
+MODULE_FILESERVE_DOWNLOAD_OPTIONS=""
 MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
+MODULE_FILESERVE_LIST_OPTIONS=""
 
 # Output an fileserve.com file download URL (anonymous)
 # $1: fileserve url string
@@ -134,4 +135,39 @@ fileserve_download() {
 
     rm -f $COOKIES
     echo "$FILE_URL"
+}
+
+# List a fileserve public folder URL
+# $1: fileserve url
+# stdout: list of links
+fileserve_list() {
+    set -e
+    eval "$(process_options fileserve "$MODULE_FILESERVE_LIST_OPTIONS" "$@")"
+    URL=$1
+
+    if ! match 'fileserve\.com\/list\/' "$URL"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    PAGE=$(curl "$URL" | grep '<a href="/file/')
+
+    if test -z "$PAGE"; then
+        log_error "Wrong directory list link"
+        return 1
+    fi
+
+    # First pass: print file names (debug)
+    echo "$PAGE" | while read LINE; do
+        FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILENAME"
+    done
+
+    # Second pass: print links (stdout)
+    echo "$PAGE" | while read LINE; do
+        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "http://www.fileserve.com$LINK"
+    done
+
+    return 0
 }
