@@ -140,6 +140,11 @@ hotfile_download() {
                   "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
                   "${BASE_URL}${form2_url}") || return 1
 
+                if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+                    log_debug "wrong captcha"
+                    break
+                fi
+
                 local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
                 if [ -n "$LINK" ]; then
                     log_debug "correct captcha"
