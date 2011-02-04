@@ -31,7 +31,15 @@ MODULE_FILESERVE_LIST_OPTIONS=""
 fileserve_download() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    # URL must be well formed (issue #280)
+    local ID=$(echo "$1" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
+    if [ -z "$ID" ]; then
+        log_debug "Cannot parse URL to extract file id, try anyway"
+        URL=$1
+    else
+        URL="http://www.fileserve.com/file/$ID"
+    fi
+
     COOKIES=$(create_tempfile)
 
     # Arbitrary wait (local variables)
