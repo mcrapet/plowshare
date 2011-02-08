@@ -113,7 +113,7 @@ get_ofuscated_link() {
     log_debug "DIV id: $DIVID"
     log_debug "Dynamic page: $DYNAMIC_PATH"
     DYNAMIC=$(curl -b <(echo "$COOKIES") "$BASE_URL/$DYNAMIC_PATH")
-    DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | tail -n+2 | head -n-1)
+    DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | sed -e '1d;$d')
 
     FILE_URL=$(echo "
         function alert(x) {print(x); }
