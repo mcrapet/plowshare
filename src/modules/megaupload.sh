@@ -90,6 +90,11 @@ megaupload_download() {
             wait $WAITTIME minutes || return 2
             continue
 
+        # Check for dead link
+        elif match 'link you have clicked is not available' "$PAGE"; then
+            rm -f $COOKIES
+            return 254
+
         # Test for big files (premium account required)
         elif match "The file you are trying to download is larger than" "$PAGE"; then
             log_debug "Premium link"
@@ -142,24 +147,7 @@ megaupload_download() {
             continue
         fi
 
-        # Look for a download link (usually a password protected file)
-        FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
-        if test "$FILEURL"; then
-            if test "$CHECK_LINK"; then
-                rm -f $COOKIES
-                return 255
-            fi
-
-            log_debug "Link found, no need to wait"
-            echo "$FILEURL"
-            return 0
-        fi
-
-        # Check for dead link
-        if match 'link you have clicked is not available' "$PAGE"; then
-            rm -f $COOKIES
-            return 254
-        fi
+        # ---
 
         if test "$CHECK_LINK"; then
             rm -f $COOKIES
@@ -175,10 +163,23 @@ megaupload_download() {
             return 0
         fi
 
+        # Look for a download link
+        FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
+        if test "$FILEURL"; then
+            if test "$CHECK_LINK"; then
+                rm -f $COOKIES
+                return 255
+            fi
+
+            WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
+                "count=\([[:digit:]]\+\);") || return 1
+            break
+        fi
+
+        # Captcha stuff
         CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 1
         log_debug "captcha URL: $CAPTCHA_URL"
 
-        # OCR captcha and show ascii image to stderr simultaneously
         CAPTCHA=$(curl "$CAPTCHA_URL" | convert - +matte gif:- |
             show_image_and_tee | ocr | sed "s/[^a-zA-Z0-9]//g") ||
             { log_error "error running OCR"; return 1; }
@@ -199,7 +200,6 @@ megaupload_download() {
 
     FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href')
     if [ -z "$FILEURL" ]; then
-        rm -f $COOKIES
         log_error "Can't parse filename (unexpected characters?)"
         return 1
     fi
