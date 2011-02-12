@@ -74,7 +74,7 @@ log_error() {
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
 curl() {
-    local -a OPTIONS=(--insecure -A 'Mozilla Firefox 3.0')
+    local -a OPTIONS=(--insecure -A 'Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.16) Gecko/20110107 Firefox/3.0.9 (like Firefox/3.5.16')
     local -a POST_OPTIONS=()
     local DRETVAL=0
 
@@ -349,7 +349,7 @@ uri_encode_strict() {
 }
 
 # Encode a complete url.
-# - check for space character
+# - check for space character and squares brackets
 # - do not check for "reserved characters" (use "uri_encode_strict" for that)
 #
 # Bad encoded URL request can lead to HTTP error 400.
@@ -358,7 +358,7 @@ uri_encode_strict() {
 # stdin: data (example: absolute URL)
 # stdout: data (nearly complains RFC2396)
 uri_encode() {
-    cat | sed -e "s/\x20/%20/g"
+    cat | sed -e "s/\x20/%20/g" -e "s/\[/%5B/g" -e "s/\]/%5D/g"
 }
 
 # Decode a complete url.
