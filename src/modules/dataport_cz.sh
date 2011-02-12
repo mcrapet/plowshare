@@ -19,6 +19,7 @@
 
 MODULE_DATAPORT_CZ_REGEXP_URL="http://\(www\.\)\?dataport\.cz/"
 MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS=""
+MODULE_DATAPORT_CZ_UPLOAD_OPTIONS=""
 MODULE_DATAPORT_CZ_DOWNLOAD_CONTINUE=yes
 
 # Output a dataport.cz file download URL
@@ -30,10 +31,14 @@ dataport_cz_download() {
 
     URL=$(uri_encode_file "$1")
 
+    # html returned uses utf-8 charset
     PAGE=$(curl --location "$URL")
     if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
         log_error "File not found."
         return 254
+    elif ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
+        log_error "Free slots are exhausted at the moment, please try again later."
+        return 255
     fi
 
     DL_URL=$(echo "$PAGE" | parse_quiet '<td>' '<td><a href="\([^"]*\)')
@@ -57,6 +62,49 @@ dataport_cz_download() {
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
 
+    return 0
+}
+
+dataport_cz_upload() {
+    set -e
+    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
+
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local UPLOADURL="http://dataport.cz/"
+
+    COOKIES=$(create_tempfile)
+
+    PAGE=$(curl -c "$COOKIES" --location "$UPLOADURL")
+
+    REFERRER=$(echo "$PAGE" | parse_quiet '<iframe src="' '<iframe src="*\([^<]*\)')
+
+    ID=$(echo "var uid = Math.floor(Math.random()*999999999); print(uid);" | javascript)
+
+    STATUS=$(curl_with_log -b "$COOKIES" -e "$REFERRER" \
+        -F "id=0" \
+        -F "folder=/upload/uploads" \
+        -F "uid=$ID" \
+        -F "Upload=Submit Query" \
+        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        "http://www10.dataport.cz/save.php")
+
+    if ! test "$STATUS"; then
+        log_error "Uploading error."
+        rm -f "$COOKIES"
+        return 1
+    fi
+
+    DOWN_URL=$(curl -b "$COOKIES" "http://dataport.cz/links/$ID/1" | parse_attr 'id="download-link"' 'value')
+
+    rm -f "$COOKIES"
+
+    if ! test "$DOWN_URL"; then
+        log_error "Can't parse download link, site updated?"
+        return 1
+    fi
+
+    echo "$DOWN_URL"
     return 0
 }
 
