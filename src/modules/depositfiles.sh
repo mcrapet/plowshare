@@ -26,9 +26,10 @@ MODULE_DEPOSITFILES_DOWNLOAD_CONTINUE=no
 depositfiles_download() {
     set -e
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
 
-    BASEURL="depositfiles.com"
+    URL=$1
+    BASEURL="http://depositfiles.com"
+
     while retry_limit_not_reached || return 3; do
         START=$(curl -L "$URL")
         match "no_download_msg" "$START" &&
@@ -45,12 +46,22 @@ depositfiles_download() {
         check_wait "$START" "minute" "60" || continue
         check_wait "$START" "second" "1" || continue
         check_ip "$START" || continue
-        WAIT_URL=$(echo "$START" | grep "files/" \
-                | parse '<form' 'action="\([^"]*\)"') ||
-            { log_error "download form not found"; return 1; }
+
+        local FORM_HTML=$(grep_form_by_order "$START" 2)
+        local form_gw_res=$(echo "$FORM_HTML" | parse_form_input_by_name 'gateway_result')
+        WAIT_URL=$(echo "$FORM_HTML" | parse_form_action)
+
+        if [ -z "$WAIT_URL" ]; then
+            log_error "Can't parse download form, site updated?"
+            return 1
+        fi
+
         test "$CHECK_LINK" && return 255
-        DATA=$(curl --data "gateway_result=1" "${BASEURL}${WAIT_URL}") ||
+
+        DATA=$(curl --data "gateway_result=$form_gw_res" "$BASEURL$WAIT_URL") ||
             { log_error "can't get wait URL contents"; return 1; }
+
+        # is it still useful ?
         match "get_download_img_code.php" "$DATA" && {
            log_error "Site asked asked for a captcha to be solved. Aborting"
            return 1
@@ -61,15 +72,19 @@ depositfiles_download() {
         check_ip "$DATA" || continue
         break
     done
-    FILE_URL=$(echo "$DATA" | parse "download_started" 'action="\([^"]*\)"') ||
-        { log_error "cannot find download action"; return 1; }
+
+    FILE_URL=$(echo "$DATA" | parse "download_container" "load('\([^']*\)") ||
+        { log_error "cannot find download url"; return 1; }
     SLEEP=$(echo "$DATA" | parse "download_waiter_remain" ">\([[:digit:]]\+\)<") ||
         { log_error "cannot get wait time"; return 1; }
 
-    # usual wait time is 60 seconds
+    # Usual wait time is 60 seconds
     wait $((SLEEP + 1)) seconds || return 2
 
-    echo $FILE_URL
+    DATA=$(curl --location "$BASEURL$FILE_URL") ||
+        { log_error "cannot get final url"; return 1; }
+
+    echo "$DATA" | parse_form_action
 }
 
 check_wait() {
