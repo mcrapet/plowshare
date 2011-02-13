@@ -126,7 +126,9 @@ mark_queue() {
     test -z "$MARK_DOWN" && return 0
 
     if test "$TYPE" = "file"; then
-        TAIL=$(echo "$TAIL" | sed -e 's/%/\\%/g')
+        TAIL=${TAIL//%/\\%}
+        URL=${URL//%/\\%}
+
         sed -i -e "s%^[[:space:]]*\($URL\)[[:space:]]*$%#$TEXT \1$TAIL%" "$FILELIST" &&
             log_notice "link marked in file: $FILELIST (#$TEXT)" ||
             log_error "failed marking link in file: $FILELIST (#$TEXT)"
