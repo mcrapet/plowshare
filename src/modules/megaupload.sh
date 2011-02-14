@@ -154,26 +154,20 @@ megaupload_download() {
             return 255
         fi
 
+        # Look for a download link (anonymous & Free account)
+        FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
+        if test "$FILEURL"; then
+            WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
+                "count=\([[:digit:]]\+\);") || return 1
+            break
+
         # Test for Premium account without "direct download" option
-        if match 'flashvars.username' "$PAGE" && [ -n "$AUTH" ]; then
+        elif match 'flashvars.username' "$PAGE" && [ -n "$AUTH" ]; then
             rm -f $COOKIES
 
             FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
             echo "$FILEURL"
             return 0
-        fi
-
-        # Look for a download link
-        FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
-        if test "$FILEURL"; then
-            if test "$CHECK_LINK"; then
-                rm -f $COOKIES
-                return 255
-            fi
-
-            WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-                "count=\([[:digit:]]\+\);") || return 1
-            break
         fi
 
         # Captcha stuff
