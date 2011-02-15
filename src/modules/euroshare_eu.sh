@@ -33,11 +33,16 @@ euroshare_eu_download() {
     COOKIES=$(create_tempfile)
     BASEURL=$(basename_url "$URL")
 
+    # html returned uses utf-8 charset
     PAGE=$(curl --location "$URL")
     if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
         log_error "File not found."
         rm -f $COOKIES
         return 254
+    elif match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
+        log_error "Free slots are exhausted at the moment, please try again later."
+        rm -f $COOKIES
+        return 255
     fi
 
     if ! test "$AUTH"; then
