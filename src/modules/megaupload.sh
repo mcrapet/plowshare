@@ -288,27 +288,34 @@ megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
 
     URL=$1
-    LOGINURL="http://www.megaupload.com/?c=login"
-    AJAXURL="http://www.megaupload.com/?ajax=1"
+    BASE_URL=$(basename_url $URL)
 
     test "$AUTH" ||
         { log_error "anonymous users cannot delete links"; return 1; }
 
     COOKIES=$(create_tempfile)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null || {
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" $BASE_URL"/?c=login" >/dev/null || {
         rm -f $COOKIES
         return 1
     }
 
+    TOTAL_FILES=$(curl -b $COOKIES $BASE_URL"/?c=account" | \
+        parse_all '<strong>' '<strong>*\([^<]*\)' | sed '3q;d')
+
+
     FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
-    DATA="action=deleteItems&items_list[]=file_$FILEID&mode=modeAll&parent_id=0"
-    JSCODE=$(curl -b $COOKIES -d "$DATA" "$AJAXURL")
+    DATA="action=delete&delids=$FILEID"
+    DELETE=$(curl -b $COOKIES -d "$DATA" $BASE_URL"/?c=filemanager&ajax=1")
 
     rm -f $COOKIES
 
-    echo "$JSCODE" | grep -q "file_$FILEID" ||
-        { log_error "error deleting link"; return 1; }
+    FILES=$(echo $DELETE | parse_quiet 'totalfiles' 'totalfiles":"\(.*\)","noresults":')
+
+    if [ $TOTAL_FILES -eq $FILES ]; then
+        log_error "error deleting link"
+        return 1
+    fi
 }
 
 # List links contained in a Megaupload list URL ($1)
