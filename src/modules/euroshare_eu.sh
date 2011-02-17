@@ -67,7 +67,7 @@ euroshare_eu_download() {
 
     if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$DOWNLOAD_PAGE"; then
         log_error "Free slots are exhausted at the moment, please try again later."
-        return 255
+        return 253
     fi
 
     DL_URL=$(echo "$DOWNLOAD_PAGE" | parse_attr '<div class="right">' 'href')
