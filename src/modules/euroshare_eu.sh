@@ -39,8 +39,8 @@ euroshare_eu_download() {
         log_error "File not found."
         rm -f $COOKIES
         return 254
-    elif match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
-        log_error "Free slots are exhausted at the moment, please try again later."
+    elif match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
+        log_error "You are already downloading a file from this IP."
         rm -f $COOKIES
         return 255
     fi
@@ -63,6 +63,11 @@ euroshare_eu_download() {
         log_error "Login process failed. Bad username or password."
         test "$CHECK_LINK" && return 255
         return 1
+    fi
+
+    if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$DOWNLOAD_PAGE"; then
+        log_error "Free slots are exhausted at the moment, please try again later."
+        return 255
     fi
 
     DL_URL=$(echo "$DOWNLOAD_PAGE" | parse_attr '<div class="right">' 'href')
