@@ -29,17 +29,28 @@ dataport_cz_download() {
     set -e
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$(uri_encode_file "$1")
+    # Arbitrary wait (local variable)
+    NO_FREE_SLOT_IDLE=125
 
-    # html returned uses utf-8 charset
-    PAGE=$(curl --location "$URL")
-    if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
-        log_error "File not found."
-        return 254
-    elif ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
-        log_error "Free slots are exhausted at the moment, please try again later."
-        return 255
-    fi
+    while retry_limit_not_reached || return 3; do
+        URL=$(uri_encode_file "$1")
+
+        # html returned uses utf-8 charset
+        PAGE=$(curl --location "$URL")
+        if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
+            log_error "File not found."
+            return 254
+        elif ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
+            if test "$NOARBITRARYWAIT"; then
+                log_debug "File temporarily unavailable"
+                return 253
+            fi
+            log_debug "Arbitrary wait."
+            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            continue
+        fi
+        break
+    done
 
     DL_URL=$(echo "$PAGE" | parse_quiet '<td>' '<td><a href="\([^"]*\)')
     if ! test "$DL_URL"; then
