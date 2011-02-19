@@ -19,7 +19,10 @@
 
 MODULE_DATAPORT_CZ_REGEXP_URL="http://\(www\.\)\?dataport\.cz/"
 MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS=""
-MODULE_DATAPORT_CZ_UPLOAD_OPTIONS=""
+MODULE_DATAPORT_CZ_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or VIP account"
+MODULE_DATAPORT_CZ_DELETE_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Login to free or VIP account (required)"
 MODULE_DATAPORT_CZ_DOWNLOAD_CONTINUE=yes
 
 # Output a dataport.cz file download URL
@@ -85,15 +88,25 @@ dataport_cz_upload() {
     local UPLOADURL="http://dataport.cz/"
 
     COOKIES=$(create_tempfile)
+    if test "$AUTH"; then
+        LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
+        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$UPLOADURL/prihlas/" >/dev/null || {
+            rm -f $COOKIES
+            return 1
+        }
+    fi
 
-    PAGE=$(curl -c "$COOKIES" --location "$UPLOADURL")
 
-    REFERRER=$(echo "$PAGE" | parse_quiet '<iframe src="' '<iframe src="*\([^<]*\)')
+    PAGE=$(curl -b "$COOKIES" --location "$UPLOADURL")
+
+    REFERRER=$(echo "$PAGE" | parse_attr '<iframe' 'src')
+
+    UZIV_ID=$(echo "$REFERRER" | parse_quiet 'uziv_id' 'uziv_id=\(.*\)')
 
     ID=$(echo "var uid = Math.floor(Math.random()*999999999); print(uid);" | javascript)
 
     STATUS=$(curl_with_log -b "$COOKIES" -e "$REFERRER" \
-        -F "id=0" \
+        -F "id=$UZIV_ID" \
         -F "folder=/upload/uploads" \
         -F "uid=$ID" \
         -F "Upload=Submit Query" \
@@ -117,6 +130,37 @@ dataport_cz_upload() {
 
     echo "$DOWN_URL"
     return 0
+}
+
+dataport_cz_delete() {
+    set -e
+    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
+
+    URL=$1
+    BASE_URL=$(basename_url $URL)
+
+    if ! test "$AUTH"; then
+        log_error "Anonymous users cannot delete links."
+        return 1
+    fi
+
+    COOKIES=$(create_tempfile)
+    LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
+    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || {
+        rm -f $COOKIES
+        return 1
+    }
+
+    DEL_URL=$(echo "$URL" | replace 'file' 'delete')
+
+    DELETE=$(curl -I -b $COOKIES $DEL_URL | grep_http_header_location)
+
+    rm -f $COOKIES
+
+    if ! match "vymazano" "$DELETE"; then
+        log_error "Error deleting link."
+        return 1
+    fi
 }
 
 # urlencode only the file part by splitting with last slash
