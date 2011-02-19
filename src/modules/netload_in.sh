@@ -46,7 +46,7 @@ netload_in_download() {
         PERL_PRG=$(detect_perl) || { rm -f $COOKIES; return 1; }
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-        WAIT_HTML=$(curl -b $COOKIES $WAIT_URL)
+        WAIT_HTML=$(curl -b $COOKIES -e $URL --location $WAIT_URL)
         WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
                 "countdown(\([[:digit:]]*\),'change()')")
 
