@@ -12,7 +12,7 @@ euroshare_eu| download |        |        |      |
 fileserve   | download |        |        | list |
 hotfile     | download |        |        | list |
 humyo       | download |        |        |      |
-mediafire   | download | upload |        | list |
+#mediafire   | download | upload |        | list |
 megaupload  | download | upload | delete | list |
 multiupload |          | upload |        |      |
 netload_in  | download |        |        |      |
