@@ -123,6 +123,7 @@ megaupload_download() {
             PAGE=$(ccurl -i -d "$DATA" "$URL")
             HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\).*/\1/p')
 
+            # Premium account with "direct download" option
             if [ "$HTTPCODE"  = "302" ]; then
                 echo "$PAGE" | grep_http_header_location
                 return 0
@@ -131,9 +132,11 @@ megaupload_download() {
             match 'name="filepassword"' "$PAGE" &&
                 { log_error "Link password incorrect"; return 1; }
 
-            WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-                "count=\([[:digit:]]\+\);") || return 1
-            break
+            if [ -z "$AUTH" ]; then
+                WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
+                    "count=\([[:digit:]]\+\);") || return 1
+                break
+            fi
 
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
@@ -154,20 +157,21 @@ megaupload_download() {
             return 255
         fi
 
+        # Test for Premium account without "direct download" option
+        if match 'flashvars.username' "$PAGE" && [ -n "$AUTH" ]; then
+            rm -f $COOKIES
+
+            FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
+            echo "$FILEURL"
+            return 0
+        fi
+
         # Look for a download link (anonymous & Free account)
         FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
         if test "$FILEURL"; then
             WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
                 "count=\([[:digit:]]\+\);") || return 1
             break
-
-        # Test for Premium account without "direct download" option
-        elif match 'flashvars.username' "$PAGE" && [ -n "$AUTH" ]; then
-            rm -f $COOKIES
-
-            FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
-            echo "$FILEURL"
-            return 0
         fi
 
         # Captcha stuff
