@@ -441,4 +441,30 @@ test_115_download() {
 }
 
 
+# filesonic
+
+FILESONIC_URL="http://www.filesonic.com/file/131073641/test.txt"
+
+test_filesonic_download() {
+    FILENAME="test.txt"
+    assert_equal "$FILENAME" "$(download $FILESONIC_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_filesonic_check_active_link() {
+    assert_equal "$FILESONIC_URL" "$(download -c $FILESONIC_URL)" || return 1
+}
+
+test_filesonic_check_wrong_link() {
+    assert_equal "" "$(download -c ${FILESONIC_URL/131/bad})" || return 1
+}
+
+FILESONIC_FOLDER_URL="http://www.filesonic.com/folder/881435"
+
+test_filesonic_list() {
+    URLS=$(list $FILESONIC_FOLDER_URL)
+    assert_equal 4 "$(echo "$URLS" | wc -l)"
+    assert_equal "http://www.filesonic.com/file/79298752/eu-cd1.part1.rar" "$(echo "$URLS" | head -n1)"
+}
+
 run_tests "$@"
