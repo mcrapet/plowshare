@@ -27,7 +27,7 @@ ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR=$ROOTDIR/src
 TESTSDIR=$ROOTDIR/test
 
-source "$SRCDIR/lib.sh"
+source "$SRCDIR/core.sh"
 source "$TESTSDIR/lib.sh"
 
 download() { $SRCDIR/download.sh -q --max-retries=100 "$@"; }
