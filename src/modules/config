@@ -10,6 +10,7 @@ divshare    | download |        |        |      |
 dl_free_fr  | download |        |        |      |
 euroshare_eu| download |        |        |      |
 fileserve   | download |        |        | list |
+filesonic   | download |        |        | list |
 hotfile     | download |        |        | list |
 humyo       | download |        |        |      |
 #mediafire   | download | upload |        | list |
