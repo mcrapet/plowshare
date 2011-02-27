@@ -44,14 +44,6 @@ To run _plowshare_ and all its modules you will need:
   * [http://aa-project.sourceforge.net/aview/ aview] or [http://caca.zoy.org/ libcaca] (both optional)
   * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used by badongo and netload.in modules)
 
-Debian/Ubuntu users may try:
-
-{{{
-$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perlmagick
-}}}
-
-*Note*: Since Ubuntu 10.04 LTS (named _Lucid Lynx_), `spidermonkey-bin` package is not available anymore, install `rhino` instead.
-
 = Download & Install =
 
   * [http://aur.archlinux.org/packages.php?ID=24601 Archlinux]:
@@ -64,6 +56,23 @@ $ yaourt -Sy plowshare
 
 {{{
 $ emerge -av plowshare
+}}}
+
+  * Debian / Ubuntu
+
+Manually download `.deb` file and use `dpkg -i` to install.
+Here are dependancies:
+{{{
+$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perlmagick
+}}}
+
+*Note*: Since Ubuntu 10.04 LTS (named _Lucid Lynx_), `spidermonkey-bin` package is not available anymore, install `rhino` instead.
+
+  * Debian (repository)
+
+Still experimental! Add in your `/etc/apt/sources.list`:
+{{{
+deb http://mcrapet.free.fr/debian/ unstable/
 }}}
 
   * Mac OSX: You need to install [http://wiki.github.com/mxcl/homebrew/installation homebrew]
