@@ -36,11 +36,14 @@ filesonic_download() {
         return 253
     fi
     URLID="http://www.filesonic.com/file/$ID"
-    FILENAME=$(basename_file "$URL")
 
     COOKIES=$(create_tempfile)
 
     MAINPAGE=$(curl -c $COOKIES "$URL") || return 1
+
+    # do not obtain filename from "<span>Filename:" because it is shortened
+    # with "..." if too long; instead, take it from title
+    FILENAME=$(echo "$MAINPAGE" |parse_quiet "<title>" ">Download \(.*\) for free")
 
     PAGE=$(curl -b $COOKIES -H "X-Requested-With: XMLHttpRequest" --referer "$URLID?start=1" --data "" "$URLID?start=1") || return 1
 
@@ -52,7 +55,7 @@ filesonic_download() {
     test "$CHECK_LINK" && return 255
 
     # Cases: download link, captcha, wait
-    # knowing that captcha gives download, but wait can give download link or captcha
+    # captcha/wait can redirect to any of these three cases
     FOLLOWS=0
     while [ $FOLLOWS -lt 5 ]; do
         (( FOLLOWS++ ))
@@ -93,11 +96,7 @@ filesonic_download() {
             PAGE=$(curl -b $COOKIES -H "X-Requested-With: XMLHttpRequest" --referer "$URL" --data \
               "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" "$URL?start=1") || return 1
 
-            if ! match 'Start download now' "$PAGE"; then
-                log_error "wrong captcha"
-                rm -f $COOKIES
-                return 1
-            fi
+            match 'Please Enter Captcha' "$PAGE" && log_error "wrong captcha"
 
         # wait
         else if match 'countDownDelay' "$PAGE"; then
