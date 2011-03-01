@@ -1,246 +1,180 @@
-= Introduction =
 
-_Plowshare_ is a command-line downloader and uploader for some of the most popular file-sharing websites. It currently supports:
+                                   Plowshare
 
-|| *Website* || *Download* || *Upload* || *Delete* || *List* ||
-|| [http://www.115.com 115.com] || anonymous || -|| -|| -||
-|| [http://www.2shared.com 2Shared] || anonymous || anonymous || yes || -||
-|| [http://www.4shared.com 4Shared] || anonymous || -|| -|| yes ||
-|| [http://www.badongo.com Badongo] || anonymous || -|| -|| -||
-|| [http://www.data.hu Data.hu] || anonymous || -|| -|| -||
-|| [http://www.dataport.cz Dataport.cz] || anonymous || anonymous, free-membership and VIP || yes || -||
-|| [http://www.depositfiles.com DepositFiles] || anonymous || -|| -|| yes ||
-|| [http://www.divshare.com divShare] || anonymous || -|| -|| -||
-|| [http://dl.free.fr dl.free.fr] || anonymous || -|| -|| -||
-|| [http://www.euroshare.eu Euroshare.eu] || free-membership || -|| -|| -||
-|| [http://www.humyo.com Humyo] || anonymous || -|| -|| -||
-|| [http://www.mediafire.com Mediafire] || anonymous || anonymous || -|| yes ||
-|| [http://www.megaupload.com Megaupload] || anonymous, free-membership and premium || anonymous, free-membership and premium (multifetch support) || yes || yes ||
-|| [http://www.netload.in Netload.in] || anonymous || -|| -|| -||
-|| [http://www.rapidshare.com Rapidshare] || anonymous, Premium-Zone || anonymous, Free-Zone, Premium-Zone || yes || -||
-|| [http://www.sendspace.com Sendspace] || anonymous || -|| -|| yes ||
-|| [http://www.uploading.com Uploading.com] || anonymous || -|| -|| -||
-|| [http://www.usershare.net Usershare] || anonymous || -|| -|| -||
-|| [http://www.x7.to x7.to] || anonymous, free account || -|| -|| -||
-|| [http://www.zshare.net ZShare] || anonymous || anonymous || yes || -||
 
-Note that websites update their pages from time to time, so this table is a just a reference. If you are experiencing problems with a stable version, check if it's been resolved in the [http://code.google.com/p/plowshare/source/list subversion repository].
-	
-= Dependencies =
+Introduction
+============
 
-To run _plowshare_ and all its modules you will need:
+Plowshare is a command-line downloader and uploader for some of the most
+popular file hosting & sharing websites.
 
-  * A [http://en.wikipedia.org/wiki/POSIX POSIX]-compliant operating system: 
-    * GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): [http://www.gnu.org/software/coreutils/ coreutils], [http://www.gnu.org/software/sed/ sed]
-    * BSD ([http://code.google.com/p/plowshare/issues/detail?id=55 needs modifications])
-    * Mac OSX (you need [http://mxcl.github.com/homebrew/ homebrew]
-    * Windows/Cygwin (_recode_ is not available as a package but can be recompiled from [http://www.cygwin.com/ml/cygwin/2001-10/msg01602.html sources])
-  * [http://www.gnu.org/software/bash/ bash]
-  * [http://curl.haxx.se/ curl] (with SSL support, usually required for premium account)
-  * [http://www.gnu.org/software/recode/ recode] (perl and `HTML::Entities` module can be used as alternative)
-  * [http://www.imagemagick.org imagemagick] (with GIF and TIFF support)
-  * [http://code.google.com/p/tesseract-ocr tesseract-ocr] (with TIFF support; version 2.03 works, but 2.04 works better)
-  * [http://www.mozilla.org/js/spidermonkey/ spidermonkey] or [http://www.mozilla.org/rhino/ rhino] : a compatible Javascript interpreter (used by badongo, mediafire and zshare modules)
-  * [http://aa-project.sourceforge.net/aview/ aview] or [http://caca.zoy.org/ libcaca] (both optional)
-  * [http://www.imagemagick.org/script/perl-magick.php PerlMagick] (used by badongo and netload.in modules)
+Plowshare is a set of four tools (written entirely in bash):
+  - plowdown, for downloading URLs
+  - plowup, for uploading files
+  - plowdel, for deleting remote files
+  - plowlist, for listing remote shared folders
 
-= Download & Install =
+For a complete list of supported sites (named "module"), have a look here:
+http://code.google.com/p/plowshare/wiki/Readme
 
-  * [http://aur.archlinux.org/packages.php?ID=24601 Archlinux]:
 
-{{{
-$ yaourt -Sy plowshare
-}}}
+Dependencies
+============
 
-  * [http://packages.gentoo.org/package/net-misc/plowshare Gentoo]:
+To run plowshare you will require:
 
-{{{
-$ emerge -av plowshare
-}}}
+> A POSIX compliant operating system: 
+    - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
+    - BSD: need some patches
+    - Mac OSX: need homebrew
+    - Cygwin: recode utility is not available as package but can be 
+      recompiled from sources
+> Bash (version >= 3)
+> Curl (with SSL support, usually required for premium account)
 
-  * Debian / Ubuntu
+> Some websites requires javascript interpreter [1]
+    - spidermonkey or
+    - rhino
 
-Manually download `.deb` file and use `dpkg -i` to install.
-Here are dependancies:
-{{{
-$ sudo apt-get install curl recode imagemagick tesseract-ocr-eng spidermonkey-bin aview perlmagick
-}}}
+> Some websites are using captchas. You'll need:
+    - imagemagick (with GIF and TIFF support)
+    - tesseract-ocr (with TIFF support; version >=2.04)
+    - perl + Image::Magick (aka PerlMagick) [2]
 
-*Note*: Since Ubuntu 10.04 LTS (named _Lucid Lynx_), `spidermonkey-bin` package is not available anymore, install `rhino` instead.
+> Character encoding converter (optional)
+    - recode or
+    - perl + HTML::Entities
 
-  * Debian (repository)
+> Picture ascii-art viewer (optional)
+    - aview or
+    - libcaca
 
-Still experimental! Add in your `/etc/apt/sources.list`:
-{{{
-deb http://mcrapet.free.fr/debian/ unstable/
-}}}
+---
+[1] Used by badongo, mediafire and zshare modules
+[2] Used by badongo and netload.in modules
 
-  * Mac OSX: You need to install [http://wiki.github.com/mxcl/homebrew/installation homebrew]
-  
-{{{
-$ brew install plowshare
-}}}
 
-  * [http://code.google.com/p/plowshare/downloads/list From sources] (default installation path is `/usr/local`):
+Install
+=======
+See INSTALL file for details.
 
-{{{
-$ wget http://plowshare.googlecode.com/files/plowshare-VERSION.tgz
-$ tar xvzf plowshare-VERSION.tgz
-$ cd plowshare-VERSION
-$ sudo bash setup.sh install
-}}}
+Plowshare is also available for several Linux distribution (Debian, Fedora, ...):
+Consult online documentation for up-to-date list:
+http://code.google.com/p/plowshare/wiki/Readme
 
-  * [http://code.google.com/p/plowshare/downloads/list From sources as non-root]:
 
-{{{
-$ wget http://plowshare.googlecode.com/files/plowshare-VERSION.tgz
-$ tar xvzf plowshare-VERSION.tgz
-$ cd plowshare-VERSION
-$ PREFIX=/home/$USER bash setup.sh install
-}}}
+Usage examples
+==============
 
-  * [http://code.google.com/p/plowshare/downloads/list From repository]:
+All four scripts share the same verbose options: 
+> '-v0' (alias: '-q'),
+> '-v1' (errors only),
+> '-v2' (infos message; default),
+> '-v3' (show all messages),
+> '-v4' (show all messages, HTML pages and cookies, use this for bug report).
 
-{{{
-$ svn checkout http://plowshare.googlecode.com/svn/trunk/ plowshare
-$ cd plowshare
-$ sudo bash setup.sh install
-}}}
+'--help' switch will detail all specific (per modules) options.
 
-= Usage examples =
+Plowdown
+--------
 
-All four scripts share the same verbose options: `-v0` (alias: `-q`),  `-v1` (errors only), `-v2` (infos message; default), `-v3` (show all messages), `-v4` (show all messages, HTML pages and cookies,
-use this for bug report).
+1. Download a file from Rapidshare
+$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-== Download ==
-
-  * Download a file from Rapidshare:
-
-{{{
-$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
-}}}
-
-  * Download a file from Rapidshare with a proxy. _curl_ supports `http_proxy` and `https_proxy` environment variables (notice that 3128 is the default port).
-
-{{{
+2. Download a file from Rapidshare with a proxy (curl supports "http_proxy" and 
+   "https_proxy" environment variables, notice that 3128 is the default port)
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
-$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
-}}}
+$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-  * Download a list of links (one link per line):
-
-{{{
+3. Download a list of links (one link per line)
 $ plowdown file_with_links.txt
-}}}
 
-  * Download a list of links (one link per line) commenting out (with #) those successfully downloaded:
-
-{{{
+4. Download a list of links (one link per line) commenting out (with #) those successfully downloaded
 $ plowdown -m file_with_links.txt
-}}}
 
-  * Limit the download rate (you can use _curl_ rates: K=Kbps, M=Mbps, G=Gbps):
+5. Limit the download rate (you can use curl rates: K=Kbps, M=Mbps, G=Gbps)
+$ plowdown -r 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-{{{
-$ plowdown -r 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
-}}}
-
-  * Download a file from Megaupload using a free membership account (note ':' is used to separate user from password):
-
-{{{
+6. Download a file from Megaupload using a free membership account 
+   (note ':' is used to separate user from password)
 $ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
-}}}
 
-  * Download a password-protected file from Megaupload:
-
-{{{
+7. Download a password-protected file from Megaupload:
 $ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
-}}}
 
-  * Use a different web retriever for the last file download. File URL, file name and cookies are available through interpolations. Let's say you want to use _wget_:
+8. Advanced use. Use a different web retriever for the last file download. 
+   File URL, file name and cookies are available through interpolations. 
+   Assuming you want to use wget:
+$ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"' \
+    http://www.2shared.com/file/4446939/c9fd70d6/Test.html
 
-{{{
-$ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"' http://www.2shared.com/file/4446939/c9fd70d6/Test.html
-}}}
-
-  * Filter alive links in a text file
-
-{{{
+9. Filter alive links in a text file
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
-}}}
 
-  * Avoid never-ending downloads: limited the number of tries (mainly for captchas) and wait delays for each link:
+10. Avoid never-ending downloads: limited the number of tries 
+    (mainly for captchas) and wait delays for each link
+$ plowdown --max-retries=20 --timeout=3600 http://x7.to/x469d5y
 
-{{{
-$ plowdown --max-retries=20 --timeout=3600 ...
-}}}
+Plowup
+------
 
-== Upload ==
+1. Upload a file to dataport.cz (account required)
+$ plowup -a myuser:mypassword /tmp/foo.bz2 dataport_cz
 
-  * Upload a file to the Rapidshare collector zone
+2. Upload a file to Multiupload changing uploaded file name
+$ plowup /path/myfile.txt multiupload:anothername.txt
 
-{{{
-$ plowup --auth-freezone=myuser:mypassword /path/myfile.txt rapidshare
-}}}
-
-  * Upload a file to Rapidshare anonymously changing uploaded file name:
-
-{{{
-$ plowup /path/myfile.txt rapidshare:anothername.txt
-}}}
-
-  * Upload a file to Megaupload with a free membership account:
-
-{{{
+3. Upload a file to Megaupload with a free membership account:
 $ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
-}}}
 
-  * Upload a file to Megaupload with a premium account and multifetch upload:
+4. Upload a file to Megaupload with a premium account and multifetch upload
+$ plowup -a myuser:mypassword -d "My description" \
+    --multifetch http://www.somewherefarbeyond.com/somefile megaupload
 
-{{{
-$ plowup -a myuser:mypassword -d "My description" --multifetch http://www.somewherefarbeyond.com/somefile megaupload
-}}}
-
-  * Upload a bunch of files (anonymously to 2shared):
-
-{{{
+5. Upload a bunch of files (anonymously to 2shared)
 $ plowup /path/myphotos/* 2shared
-}}}
-
 Notice that only files will be sent, subdirectories will be ignored.
 
-  * Upload a file to Zshare anonymously with a proxy.
-
-{{{
+6. Upload a file to Zshare anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowup /path/myfile.txt zshare
-}}}
 
-Be aware that _curl_ is not capable of uploading files containing a comma (,) in their name, so make sure to rename them before using _plowup_.
 
-== Delete ==
+Be aware that curl is not capable of uploading files containing a comma (,)
+in their name, so make sure to rename them before using plowup.
 
-  * Delete a file from megaupload (a premium account may be required):
+Plowdel
+-------
 
-{{{
+1. Delete a file from megaupload (account is required)
 $ plowdel -a myuser:mypassword http://www.megaupload.com/?d=132348234
-}}}
 
-== List ==
+Plowlist
+--------
 
-  * List links contained in a shared-folder link and download them all safely:
-
-{{{
+1. List links contained in a shared-folder link and download them all
 $ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110 > links.txt
 $ plowdown -m links.txt
-}}}
 
 
-= Implement your own modules =
+Implement your own modules
+==========================
 
-_Plowshare_ is designed with modularity in mind, so it sh ould be easy to create new  modules. Study the code of any of the existing modules (for example, [http://code.google.com/p/plowshare/source/browse/tags/RELEASE-LAST/src/modules/2shared.sh 2shared]) and create you own. New modules will be added to _plowshare_ as long as they are released under a GNU GPL compatible license.
+Core of plowshare export a set of API to help text and HTML processing. 
+It is designed to be as simple as possible to develop new modules.
+A module must be written in shell with portability in mind; one module matches
+one website.
 
-= Feedback =
+A guide is available here:
+http://code.google.com/p/plowshare/wiki/NewModules
 
-If you find a bug in plowshare or want to propose an enhancement open a new [http://code.google.com/p/plowshare/issues/ issue]. For other comments, suggestions, whatever, you can email me: tokland AT gmail.com.
+A common approch is also to study existing modules.
+
+
+Feedback
+========
+
+If you find a bug in plowshare or want to propose an enhancement open
+a new ticket here:
+http://code.google.com/p/plowshare/issues/list
