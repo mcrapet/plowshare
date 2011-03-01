@@ -76,8 +76,13 @@ fileserve_download() {
 
         elif match 'timeLimit' "$JSON1"; then
             log_error "time limit, you must wait"
-            rm -f $COOKIES
-            return 1
+            if test "$NOARBITRARYWAIT"; then
+                rm -f $COOKIES
+                return 1
+            fi
+
+            wait $STOP_FLOODING seconds || return 2
+            continue
 
         elif ! match 'success' "$JSON1"; then
             log_error "unexpected error, site update?"
