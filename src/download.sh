@@ -227,7 +227,7 @@ download() {
                 replace "%cookies" "$COOKIES")
             log_notice "Running command: $COMMAND"
             eval $COMMAND || DRETVAL=$?
-            test "$COOKIES" && rm "$COOKIES"
+            test "$COOKIES" && rm -f "$COOKIES"
             log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
         elif test "$DOWNLOAD_INFO"; then
@@ -265,7 +265,7 @@ download() {
             CODE=$(with_log ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
                 -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
 
-            test "$COOKIES" && rm $COOKIES
+            test "$COOKIES" && rm -f "$COOKIES"
 
             if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
                 local WAIT=60
