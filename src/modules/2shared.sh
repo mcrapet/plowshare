@@ -26,47 +26,18 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 # $1: A 2shared URL
 #
 2shared_download() {
+    set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
     PAGE=$(curl "$URL") || return 1
     match "file link that you requested is not valid" "$PAGE" && return 254
 
-    WS_OFUSCATED_URL=$(echo "$PAGE" | parse 'var key' "='\([^']*\)") || return 1
+    FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return 1
     test "$CHECK_LINK" && return 255
 
-    detect_javascript >/dev/null || return 1
 
-    # JS offuscation code is a patched version of "jQuery.ajax" function
-    # Original: http://code.jquery.com/jquery-1.3.2.min.js
-    # Modified: http://www.2shared.com/js/jquery-1.3.2.min.js?ver=10148
-    # Do it yourself! http://www.vim.org/scripts/script.php?script_id=2727
-    # :call g:Jsbeautify()
-    WS_URL=$(echo "
-        M = {url: 'pageDownload1/retrieveLink.jsp?id=$WS_OFUSCATED_URL'};
-        var viw = new Date().getUTCDay() + 1;
-        if (M.url != null && false && M.url.indexOf('eveLi') < M.url.indexOf('j' + 's' + 'p?id') > 0) {
-          var l2surl = M.url.substring(M.url.length - 32, M.url.length);
-          if (l2surl.charCodeAt(0) % 2 == 1) {
-            l2surl = l2surl.substr(0, viw) + l2surl.substr(16 + viw);
-          } else {
-            l2surl = l2surl.substr(0, 16 - viw) + l2surl.substr(l2surl.length - viw, viw);
-          }
-          M.url = M.url.substring(0, M.url.indexOf(\"id=\") + 3) + l2surl;
-        }
-        print(M.url);
-    " | javascript) || { log_error "error parsing ofuscated JS code"; return 1; }
-
-    FILE_URL=$(curl "http://www.2shared.com/$WS_URL") || return 1
-
-    # Sanity check
-    if [ "$FILE_URL" == '#' ]; then
-        log_error "error remote javascript updated"
-        return 1
-    fi
-
-    FILENAME=$(echo "$PAGE" | grep -A1 '<div class="header">' |
-        parse_quiet "Download" 'Download[[:space:]]*\([^<]\+\)') || true
+    FILENAME=$(echo "$PAGE" | parse '<title>' 'download *\([^<]*\)') || true
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
