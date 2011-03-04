@@ -467,4 +467,22 @@ test_filesonic_list() {
     assert_equal "http://www.filesonic.com/file/79298752/eu-cd1.part1.rar" "$(echo "$URLS" | head -n1)"
 }
 
+# dataport_cz
+
+DATAPORT_CZ_URL="http://dataport.cz/file/242248/run.7z"
+
+test_dataport_cz_download() {
+    FILENAME="run.7z"
+    assert_equal "$FILENAME" "$(download $DATAPORT_CZ_URL)" || return 1
+    rm -f "$FILENAME"
+}
+
+test_dataport_cz_check_active_link() {
+    assert_equal "$DATAPORT_CZ_URL" "$(download -c $DATAPORT_CZ_URL)" || return 1
+}
+
+test_dataport_cz_check_wrong_link() {
+    assert_equal "" "$(download -c ${DATAPORT_CZ_URL/242/wrong})" || return 1
+}
+
 run_tests "$@"
