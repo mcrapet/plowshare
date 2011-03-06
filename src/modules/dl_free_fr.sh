@@ -14,16 +14,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Author: StalkR <plowshare@stalkr.net>
 
 MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_DOWNLOAD_CONTINUE=yes
+MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 
 # Output a dl.free.fr file download URL (anonymous)
 #
-# dl_free_fr_download DL_FREE_FR_URL
+# $1: DL_FREE_FR_URL
 #
 dl_free_fr_download() {
     eval "$(process_options "dl_free_fr" "$MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS" "$@")"
@@ -55,4 +54,78 @@ dl_free_fr_download() {
     echo $FILE_URL
     echo
     echo $COOKIES
+}
+
+# Upload a file to dl.free.fr
+# Return upload URL and delete URL
+#
+# $1: FILE [DESTFILE]
+#
+dl_free_fr_upload() {
+    eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_UPLOAD_OPTIONS" "$@")"
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local UPLOADURL="http://dl.free.fr"
+
+    log_debug "downloading upload page: $UPLOADURL"
+    PAGE=$(curl "$UPLOADURL")
+
+    local FORM=$(grep_form_by_order "$PAGE" 2) || {
+        log_error "can't get upload from, website updated?";
+        return 1;
+    }
+
+    ACTION=$(echo "$FORM" | parse_form_action)
+    SESSIONID=$(echo "$ACTION" | cut -d? -f2)
+    H=$(create_tempfile)
+
+    # <input> markers are: ufile, mail1, mail2, mail3, mail4, message, password
+    # Returns 302. Answer headers are not returned with -i switch, I must
+    # use -D. This should be reported to cURL bug tracker.
+    log_debug "starting file upload: $FILE"
+    STATUS=$(curl_with_log -D $H --referer "$UPLOADURL/index_nojs.pl" \
+        -F "ufile=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "mail1=" \
+        -F "mail2=" \
+        -F "mail3=" \
+        -F "mail4=" \
+        -F "message=test" \
+        -F "password=" \
+        "$UPLOADURL$ACTION")
+
+    MON_PL=$(cat "$H" | grep_http_header_location)
+    rm -f "$H"
+
+    log_debug "Monitoring page: $MON_PL"
+
+    WAITTIME=5
+    while [ $WAITTIME -lt 320 ] ; do
+        PAGE=$(curl "$MON_PL")
+
+        if match 'En attente de traitement...' "$PAGE"; then
+            log_debug "please wait"
+            ((WAITTIME += 4))
+        elif match 'Test antivirus...' "$PAGE"; then
+            log_debug "antivirus test"
+            WAITTIME=3
+        elif match 'Mise en ligne du fichier...' "$PAGE"; then
+            log_debug "nearly online!"
+            WAITTIME=2
+        # Fichier "foo" en ligne, procédure terminée avec succès...
+        elif match 'Le fichier sera accessible' "$PAGE"; then
+            DL=$(echo "$PAGE" | parse 'en ligne' \
+                    "window\.open('\(http:\/\/dl.free.fr\/[^?]*\)')" | html_to_utf8)
+            RM=$(echo "$PAGE" | parse 'en ligne' \
+                    "window\.open('\(http:\/\/dl.free.fr\/rm\.pl[^']*\)" | html_to_utf8)
+            echo "$DL ($RM)"
+            return 0
+        else
+            log_error "unknown state, abort"
+            echo "$PAGE" >/tmp/a
+            break
+        fi
+
+        wait $WAITTIME seconds
+    done
+    return 1
 }

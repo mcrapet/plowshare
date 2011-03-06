@@ -7,7 +7,7 @@ data_hu     | download |        |        |      |
 dataport_cz | download | upload | delete |      |
 depositfiles| download |        |        | list |
 divshare    | download |        |        |      |
-dl_free_fr  | download |        |        |      |
+dl_free_fr  | download | upload |        |      |
 euroshare_eu| download |        |        |      |
 fileserve   | download |        |        | list |
 filesonic   | download |        |        | list |
