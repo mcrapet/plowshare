@@ -32,18 +32,25 @@ dataport_cz_download() {
     set -e
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS" "$@")"
 
+    URL=$(uri_encode_file "$1")
+
+    PAGE=$(curl --location "$URL")
+
+    if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
+        log_error "File not found."
+        return 254
+    fi
+
+    test "$CHECK_LINK" && return 255
+
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
 
     while retry_limit_not_reached || return 3; do
-        URL=$(uri_encode_file "$1")
 
         # html returned uses utf-8 charset
         PAGE=$(curl --location "$URL")
-        if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
-            log_error "File not found."
-            return 254
-        elif ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
+        if ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
             if test "$NOARBITRARYWAIT"; then
                 log_debug "File temporarily unavailable"
                 return 253
@@ -70,8 +77,6 @@ dataport_cz_download() {
         return 255
     fi
     FILE_URL=$(uri_encode_file "$FILE_URL")
-
-    test "$CHECK_LINK" && return 255
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
