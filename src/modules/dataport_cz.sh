@@ -99,8 +99,15 @@ dataport_cz_upload() {
             rm -f $COOKIES
             return 1
         }
-    fi
 
+        PAGE=$(curl -b "$COOKIES" --location "$UPLOADURL")
+
+        if ! match "http://dataport.cz/odhlasit/" "$PAGE"; then
+            rm -f $COOKIES
+            log_error "Login failed. Maybe wrong username or password?"
+            return 1
+        fi
+    fi
 
     PAGE=$(curl -b "$COOKIES" --location "$UPLOADURL")
 
