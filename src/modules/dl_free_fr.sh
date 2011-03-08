@@ -111,6 +111,9 @@ dl_free_fr_upload() {
         elif match 'Mise en ligne du fichier...' "$PAGE"; then
             log_debug "nearly online!"
             WAITTIME=2
+        elif match 'Erreur de traitement...' "$PAGE"; then
+            log_error "process failed, you may try again"
+            break
         # Fichier "foo" en ligne, procédure terminée avec succès...
         elif match 'Le fichier sera accessible' "$PAGE"; then
             DL=$(echo "$PAGE" | parse 'en ligne' \
@@ -121,7 +124,6 @@ dl_free_fr_upload() {
             return 0
         else
             log_error "unknown state, abort"
-            echo "$PAGE" >/tmp/a
             break
         fi
 
