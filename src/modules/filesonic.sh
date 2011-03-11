@@ -65,6 +65,10 @@ filesonic_download() {
             FILE_URL=$(echo $PAGE |parse_quiet 'Start download now' 'href="\([^"]*\)"')
             break
 
+        # free users can download files < 400MB
+        else if match 'download is larger than 400Mb.' "$PAGE"; then
+            log_error "You're trying to download file larger than 400MB."
+            return 255
         # captcha
         else if match 'Please Enter Captcha' "$PAGE"; then
             local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
@@ -114,7 +118,7 @@ filesonic_download() {
             log_error "No match. Site update?"
             return 1
 
-        fi; fi; fi
+        fi; fi; fi; fi
     done
 
     rm -f $COOKIES
