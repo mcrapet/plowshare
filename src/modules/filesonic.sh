@@ -66,11 +66,11 @@ filesonic_download() {
             break
 
         # free users can download files < 400MB
-        else if match 'download is larger than 400Mb.' "$PAGE"; then
+        elif match 'download is larger than 400Mb.' "$PAGE"; then
             log_error "You're trying to download file larger than 400MB."
             return 255
         # captcha
-        else if match 'Please Enter Captcha' "$PAGE"; then
+        elif match 'Please Enter Captcha' "$PAGE"; then
             local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
             IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
@@ -103,7 +103,7 @@ filesonic_download() {
             match 'Please Enter Captcha' "$PAGE" && log_error "wrong captcha"
 
         # wait
-        else if match 'countDownDelay' "$PAGE"; then
+        elif match 'countDownDelay' "$PAGE"; then
             SLEEP=$(echo "$PAGE" |parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);') || return 1
             wait $SLEEP seconds || return 2
 
@@ -118,7 +118,7 @@ filesonic_download() {
             log_error "No match. Site update?"
             return 1
 
-        fi; fi; fi; fi
+        fi
     done
 
     rm -f $COOKIES
