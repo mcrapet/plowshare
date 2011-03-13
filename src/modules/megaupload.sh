@@ -46,6 +46,7 @@ megaupload_download() {
     ERRORURL="http://www.megaupload.com/?c=msg"
     URL=$(echo "$1" | replace 'rotic.com/' 'porn.com/' | \
                       replace 'video.com/' 'upload.com/')
+    BASEURL=$(basename_url "$URL")
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
@@ -53,7 +54,6 @@ megaupload_download() {
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-        BASEURL=$(basename_url "$URL")
         post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || {
             rm -f $COOKIES
             return 1
@@ -158,7 +158,9 @@ megaupload_download() {
         fi
 
         # Test for Premium account without "direct download" option
-        if match 'flashvars.username' "$PAGE" && [ -n "$AUTH" ]; then
+        ACC=$(curl -b $COOKIES "$BASEURL/?c=account")
+
+        if ! match '<b>Regular</b>' "$ACC" && test "$AUTH"; then
             rm -f $COOKIES
 
             FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
