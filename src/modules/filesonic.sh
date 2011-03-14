@@ -30,7 +30,7 @@ MODULE_FILESONIC_LIST_OPTIONS=""
 filesonic_download() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    URL=$(echo "$1" | replace 'www.' '')
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if [ -z "$ID" ]; then
         log_error "Cannot parse URL to extract file id (mandatory)"
