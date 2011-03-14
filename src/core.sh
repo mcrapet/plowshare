@@ -423,8 +423,8 @@ post_login() {
         log_debug "cookies not found for site ($REGEXP), continue login process"
     fi
 
-    USER="${AUTH%%:*}"
-    PASSWORD="${AUTH#*:}"
+    USER=$(echo "${AUTH%%:*}" |uri_encode_strict)
+    PASSWORD=$(echo "${AUTH#*:}" |uri_encode_strict)
 
     if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || true
