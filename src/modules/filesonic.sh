@@ -19,7 +19,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.com/"
-MODULE_FILESONIC_DOWNLOAD_OPTIONS=""
+MODULE_FILESONIC_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_FILESONIC_DOWNLOAD_CONTINUE=no
 MODULE_FILESONIC_LIST_OPTIONS=""
 
@@ -35,93 +36,109 @@ filesonic_download() {
         log_error "Cannot parse URL to extract file id (mandatory)"
         return 253
     fi
-    URLID="http://www.filesonic.com/file/$ID"
+
+    # obtain the base URL (filesonic.com may redirect to filesonic.ccTLD) and update URL
+    BASEURL=$(basename_url "$(curl -I "$(basename_url "$URL")" |grep_http_header_location)")
+    URL="$BASEURL/file/$ID"
 
     COOKIES=$(create_tempfile)
 
-    MAINPAGE=$(curl -c $COOKIES "$URL") || return 1
-
+    # obtain mainpage first (unauthenticated) to get filename
+    MAINPAGE=$(curl -c "$COOKIES" "$URL") || return 1
     # do not obtain filename from "<span>Filename:" because it is shortened
     # with "..." if too long; instead, take it from title
     FILENAME=$(echo "$MAINPAGE" |parse_quiet "<title>" ">Download \(.*\) for free")
 
-    PAGE=$(curl -b $COOKIES -H "X-Requested-With: XMLHttpRequest" --referer "$URLID?start=1" --data "" "$URLID?start=1") || return 1
-
-    if match 'File does not exist' "$PAGE"; then
-        log_debug "File not found"
-        rm -f $COOKIES
-        return 254
-    fi
-    test "$CHECK_LINK" && return 255
-
-    # Cases: download link, captcha, wait
-    # captcha/wait can redirect to any of these three cases
-    FOLLOWS=0
-    while [ $FOLLOWS -lt 5 ]; do
-        (( FOLLOWS++ ))
-
-        # download link
-        if match 'Start download now' "$PAGE"; then
-            FILE_URL=$(echo $PAGE |parse_quiet 'Start download now' 'href="\([^"]*\)"')
-            break
-
-        # free users can download files < 400MB
-        elif match 'download is larger than 400Mb.' "$PAGE"; then
-            log_error "You're trying to download file larger than 400MB."
-            return 255
-        # captcha
-        elif match 'Please Enter Captcha' "$PAGE"; then
-            local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-            IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
-
-            if [ -z "$IMAGE_FILENAME" ]; then
-                log_error "reCaptcha error"
-                rm -f $COOKIES
-                return 1
-            fi
-
-            TRY=1
-            while retry_limit_not_reached || return 3; do
-                log_debug "reCaptcha manual entering (loop $TRY)"
-                (( TRY++ ))
-
-                WORD=$(recaptcha_display_and_prompt "$IMAGE_FILENAME")
-
-                rm -f $IMAGE_FILENAME
-
-                [ -n "$WORD" ] && break
-
-                log_debug "empty, request another image"
-                IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-            done
-
-            CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
-
-            PAGE=$(curl -b $COOKIES -H "X-Requested-With: XMLHttpRequest" --referer "$URL" --data \
-              "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" "$URL?start=1") || return 1
-
-            match 'Please Enter Captcha' "$PAGE" && log_error "wrong captcha"
-
-        # wait
-        elif match 'countDownDelay' "$PAGE"; then
-            SLEEP=$(echo "$PAGE" |parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);') || return 1
-            wait $SLEEP seconds || return 2
-
-            # for wait time > 5min. these values may not be present
-            # it just means we need to try again so the following code is fine
-            TM=$(echo "$PAGE" |parse_quiet "name='tm' value='" "name='tm' value='\([0-9]*\)'")
-            TM_HASH=$(echo "$PAGE" |parse_quiet "name='tm_hash' value='" "name='tm_hash' value='\([a-f0-9]*\)'")
-
-            PAGE=$(curl -b $COOKIES -H "X-Requested-With: XMLHttpRequest" --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return 1
-
-        else
-            log_error "No match. Site update?"
+    # Premium user
+    if [ -n "$AUTH" ]; then
+        LOGIN_DATA='email=$USER&password=$PASSWORD'
+        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/premium?login=1" >/dev/null || {
+            rm -f "$COOKIES"
             return 1
+        }
+        FILE_URL=$(curl -I -b "$COOKIES" "$URL" |grep_http_header_location)
 
+    # Normal user
+    else
+        PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" --referer "$URL?start=1" --data "" "$URL?start=1") || return 1
+
+        if match 'File does not exist' "$PAGE"; then
+            log_debug "File not found"
+            rm -f "$COOKIES"
+            return 254
         fi
-    done
+        test "$CHECK_LINK" && return 255
 
-    rm -f $COOKIES
+        # Cases: download link, <400MB, captcha, wait
+        # captcha/wait can redirect to any of these three cases
+        FOLLOWS=0
+        while [ $FOLLOWS -lt 5 ]; do
+            (( FOLLOWS++ ))
+
+            # download link
+            if match 'Start download now' "$PAGE"; then
+                FILE_URL=$(echo $PAGE |parse_quiet 'Start download now' 'href="\([^"]*\)"')
+                break
+
+            # free users can download files < 400MB
+            elif match 'download is larger than 400Mb.' "$PAGE"; then
+                log_error "You're trying to download file larger than 400MB (only premium users can)."
+                return 255
+
+            # captcha
+            elif match 'Please Enter Captcha' "$PAGE"; then
+                local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
+                IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+
+                if [ -z "$IMAGE_FILENAME" ]; then
+                    log_error "reCaptcha error"
+                    rm -f "$COOKIES"
+                    return 1
+                fi
+
+                TRY=1
+                while retry_limit_not_reached || return 3; do
+                    log_debug "reCaptcha manual entering (loop $TRY)"
+                    (( TRY++ ))
+
+                    WORD=$(recaptcha_display_and_prompt "$IMAGE_FILENAME")
+
+                    rm -f $IMAGE_FILENAME
+
+                    [ -n "$WORD" ] && break
+
+                    log_debug "empty, request another image"
+                    IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
+                done
+
+                CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+
+                PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" --referer "$URL" --data \
+                  "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" "$URL?start=1") || return 1
+
+                match 'Please Enter Captcha' "$PAGE" && log_error "wrong captcha"
+
+            # wait
+            elif match 'countDownDelay' "$PAGE"; then
+                SLEEP=$(echo "$PAGE" |parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);') || return 1
+                wait $SLEEP seconds || return 2
+
+                # for wait time > 5min. these values may not be present
+                # it just means we need to try again so the following code is fine
+                TM=$(echo "$PAGE" |parse_quiet "name='tm' value='" "name='tm' value='\([0-9]*\)'")
+                TM_HASH=$(echo "$PAGE" |parse_quiet "name='tm_hash' value='" "name='tm_hash' value='\([a-f0-9]*\)'")
+
+                PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return 1
+
+            else
+                log_error "No match. Site update?"
+                return 1
+
+            fi
+        done
+    fi
+
+    rm -f "$COOKIES"
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
