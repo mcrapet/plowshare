@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# euroshare.eu module
+# Copyright (c) 2011 halfman <Pulpan3@gmail.com>
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -14,8 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Author: halfman <Pulpan3@gmail.com>
 
 MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
