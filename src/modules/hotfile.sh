@@ -191,16 +191,16 @@ hotfile_list() {
     fi
 
     # First pass : print debug message
-    echo "$PAGE" | while read LINE; do
+    while read LINE; do
         FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
         log_debug "$FILENAME"
-    done
+    done <<< "$PAGE"
 
     # Second pass : print links (stdout)
-    echo "$PAGE" | while read LINE; do
+    while read LINE; do
         LINK=$(echo "$LINE" | parse_attr '<a' 'href')
         echo "$LINK"
-    done
+    done <<< "$PAGE"
 
     return 0
 }
