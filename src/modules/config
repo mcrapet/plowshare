@@ -16,7 +16,7 @@ hotfile     | download |        |        | list |
 humyo       | download |        |        |      |
 #mediafire   | download | upload |        | list |
 megaupload  | download | upload | delete | list |
-multiupload |          | upload |        |      |
+multiupload |          | upload |        | list |
 netload_in  | download |        |        |      |
 rapidshare  | download |        |        |      |
 sendspace   | download |        |        | list |

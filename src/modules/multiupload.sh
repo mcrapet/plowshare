@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # multiupload.com module
-# Copyright (c) 2010 Plowshare team
+# Copyright (c) 2011 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -21,6 +21,7 @@
 MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.com/"
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
+MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 
 # $1: input file
 # $2 (optional): alternate destination filename
@@ -79,4 +80,24 @@ multiupload_upload() {
     fi
 
     echo "$BASE_URL/$DLID"
+}
+
+# List multiple hosting site links
+# $1: multiupload.com link
+# stdout: list of links
+multiupload_list() {
+    eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_LIST_OPTIONS" "$@")"
+    URL=$1
+
+    LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr '"urlhref' 'href') || \
+        { log_error "Wrong directory list link"; return 1; }
+
+    if test -z "$LINKS"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    while read LINE; do
+        curl -I "$LINE" | grep_http_header_location
+    done <<< "$LINKS"
 }
