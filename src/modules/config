@@ -1,6 +1,6 @@
 # Site list with capabilities
 115         | download |        |        |      |
-1fichier    | download |        |        |      |
+1fichier    | download | upload |        |      |
 2shared     | download | upload | delete |      |
 4shared     | download |        |        | list |
 badongo     | download |        |        |      |
