@@ -29,18 +29,25 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
 
+    REAL_URL=$(curl -I "$URL" | grep_http_header_location)
+    if test "$REAL_URL"; then
+        URL=$REAL_URL
+    fi
+    
+    COOKIES=$(create_tempfile)
+    PAGE=$(curl -c $COOKIES "$URL")
     if match '4shared\.com\/dir\/' "$URL"; then
+        rm -f $COOKIES
         log_error "This is a directory list, use plowlist!"
         return 1
+    elif match 'The file link that you requested is not valid.' "$PAGE"; then
+        rm -f $COOKIES
+        log_error "File not found!"
+        return 254
     fi
 
-    COOKIES=$(create_tempfile)
-    WAIT_URL=$(curl -c $COOKIES "$URL" | parse_attr "4shared\.com\/get\/" 'href') || {
-        rm -f $COOKIES
-        log_debug "file not found"
-        return 254
-    }
-
+    WAIT_URL=$(echo "$PAGE" | parse_attr "4shared\.com\/get\/" 'href')
+    
     test "$CHECK_LINK" && return 255
 
     WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL")
