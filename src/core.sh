@@ -28,7 +28,7 @@
 
 set -o pipefail
 
-# Logs are sent to standard error.
+# Logs are sent to stderr stream.
 # Policies:
 # - error: modules errors (when return 1), lastest plowdown curl call
 # - notice: core messages (ocr, wait, timeout, retries), lastest plowdown curl call
@@ -199,13 +199,13 @@ grep_form_by_order() {
     local DATA="$1"
     local N=${2:-"1"}
 
-     while [ "$N" -gt "1" ]; do
-         ((N--))
-         DATA=$(echo "$DATA" | sed -ne '/<\/form>/,$p' | sed -e '1s/<\/form>/<_form>/1')
-     done
+    while [ "$N" -gt "1" ]; do
+        ((N--))
+        DATA=$(echo "$DATA" | sed -ne '/<\/form>/,$p' | sed -e '1s/<\/form>/<_form>/1')
+    done
 
-     # FIXME: sed will be greedy, if other forms are remaining they will be returned
-     echo "$DATA" | sed -ne '/<form /,/<\/form>/p'
+    # FIXME: sed will be greedy, if other forms are remaining they will be returned
+    echo "$DATA" | sed -ne '/<form /,/<\/form>/p'
 }
 
 # Extract a named form from a HTML content.
@@ -688,7 +688,7 @@ remove_tempfiles() {
 
 # Exit callback (task: clean temporal files)
 set_exit_trap() {
-  trap "remove_tempfiles" EXIT
+    trap "remove_tempfiles" EXIT
 }
 
 # Check existance of executable in path
