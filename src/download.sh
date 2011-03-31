@@ -267,23 +267,33 @@ download() {
 
             test "$COOKIES" && rm -f "$COOKIES"
 
-            if [ $DRETVAL -eq 22 -o $DRETVAL -eq 18 -o $DRETVAL -eq 28 ]; then
-                local WAIT=60
-                log_error "curl failed with retcode $DRETVAL"
-                log_error "retry after a safety wait ($WAIT seconds)"
-                sleep $WAIT
-                continue
-            elif [ $DRETVAL -ne 0 ]; then
-                log_error "failed downloading $URL"
-                return $ERROR_CODE_NETWORK_ERROR
-            fi
+            case "$DRETVAL" in
+                0) ;;
+                # Partial file / HTTP retrieve error / Operation timeout
+                18|22|28)
+                    local WAIT=60
+                    log_error "curl failed with retcode $DRETVAL"
+                    log_error "retry after a safety wait ($WAIT seconds)"
+                    sleep $WAIT
+                    continue
+                    ;;
+                # Write error
+                23)
+                    log_error "write failed, disk full?"
+                    return $ERROR_CODE_UNKNOWN_ERROR
+                    ;;
+                *)
+                    log_error "failed downloading $URL"
+                    return $ERROR_CODE_NETWORK_ERROR
+                    ;;
+            esac
 
             if [ "$CODE" = 416 ]; then
                 log_error "Resume error (bad range), restart download"
                 rm -f "$TEMP_FILENAME"
                 continue
             elif ! match "20." "$CODE"; then
-                log_error "unexpected HTTP code $CODE"
+                log_error "Unexpected HTTP code $CODE"
                 continue
             fi
 
