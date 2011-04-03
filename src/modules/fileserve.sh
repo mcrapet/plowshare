@@ -20,7 +20,7 @@
 
 MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
 MODULE_FILESERVE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a:,auth:,USER:PASSWORD,Free and Premium account"
 MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
 MODULE_FILESERVE_LIST_OPTIONS=""
 
@@ -45,26 +45,33 @@ fileserve_download() {
 
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
-        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "http://www.fileserve.com/login.php" >/dev/null || {
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || {
             rm -f $COOKIES
             return 1
         }
 
-        FILE_URL=$(curl -i -b $COOKIES "$URL" | grep_http_header_location)
-        rm -f $COOKIES
+        # Check account type
+        if ! match '<h3>Free' "$LOGIN_RESULT"; then
+            FILE_URL=$(curl -i -b $COOKIES "$URL" | grep_http_header_location)
+            rm -f $COOKIES
 
-        test -z "$FILE_URL" && return 1
-        test "$CHECK_LINK" && return 255
+            test -z "$FILE_URL" && return 1
+            test "$CHECK_LINK" && return 255
 
-        echo "$FILE_URL"
-        return 0
+            echo "$FILE_URL"
+            return 0
+        fi
     fi
 
     # Arbitrary wait (local variables)
     STOP_FLOODING=360
 
     while retry_limit_not_reached || return 3; do
-        MAINPAGE=$(curl -c $COOKIES "$URL") || return 1
+        if [ -s $COOKIES ]; then
+            MAINPAGE=$(curl -b $COOKIES "$URL") || return 1
+        else
+            MAINPAGE=$(curl -c $COOKIES "$URL") || return 1
+        fi
 
         # "The file could not be found. Please check the download link."
         if match 'File not available' "$MAINPAGE"; then
