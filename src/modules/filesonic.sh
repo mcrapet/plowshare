@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.com/"
+MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.\(com\|fr\)/"
 MODULE_FILESONIC_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_FILESONIC_DOWNLOAD_CONTINUE=no
@@ -38,7 +38,7 @@ filesonic_download() {
     fi
 
     # obtain the base URL (filesonic.com may redirect to filesonic.ccTLD) and update URL
-    BASEURL=$(basename_url "$(curl -I "$(basename_url "$URL")" |grep_http_header_location)")
+    BASEURL=$(basename_url "$(curl -I "$(basename_url "$URL")" | grep_http_header_location)")
     URL="$BASEURL/file/$ID"
 
     COOKIES=$(create_tempfile)
@@ -60,7 +60,8 @@ filesonic_download() {
 
     # Normal user
     else
-        PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" --referer "$URL?start=1" --data "" "$URL?start=1") || return 1
+        PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+                    --referer "$URL?start=1" --data "" "$URL?start=1") || return 1
 
         if match 'File does not exist' "$PAGE"; then
             log_debug "File not found"
@@ -77,7 +78,7 @@ filesonic_download() {
 
             # download link
             if match 'Start download now' "$PAGE"; then
-                FILE_URL=$(echo $PAGE |parse_quiet 'Start download now' 'href="\([^"]*\)"')
+                FILE_URL=$(echo $PAGE | parse_quiet 'Start download now' 'href="\([^"]*\)"')
                 break
 
             # free users can download files < 400MB
@@ -120,15 +121,16 @@ filesonic_download() {
 
             # wait
             elif match 'countDownDelay' "$PAGE"; then
-                SLEEP=$(echo "$PAGE" |parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);') || return 1
+                SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);') || return 1
                 wait $SLEEP seconds || return 2
 
                 # for wait time > 5min. these values may not be present
                 # it just means we need to try again so the following code is fine
-                TM=$(echo "$PAGE" |parse_quiet "name='tm' value='" "name='tm' value='\([0-9]*\)'")
-                TM_HASH=$(echo "$PAGE" |parse_quiet "name='tm_hash' value='" "name='tm_hash' value='\([a-f0-9]*\)'")
+                TM=$(echo "$PAGE" | parse_quiet "name='tm' value='" "name='tm' value='\([0-9]*\)'")
+                TM_HASH=$(echo "$PAGE" | parse_quiet "name='tm_hash' value='" "name='tm_hash' value='\([a-f0-9]*\)'")
 
-                PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return 1
+                PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+                            --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return 1
 
             else
                 log_error "No match. Site update?"
