@@ -19,7 +19,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
-MODULE_FILESERVE_DOWNLOAD_OPTIONS=""
+MODULE_FILESERVE_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
 MODULE_FILESERVE_LIST_OPTIONS=""
 
@@ -41,6 +42,23 @@ fileserve_download() {
     fi
 
     COOKIES=$(create_tempfile)
+
+    if [ -n "$AUTH" ]; then
+        LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
+        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "http://www.fileserve.com/login.php" >/dev/null || {
+            rm -f $COOKIES
+            return 1
+        }
+
+        FILE_URL=$(curl -i -b $COOKIES "$URL" | grep_http_header_location)
+        rm -f $COOKIES
+
+        test -z "$FILE_URL" && return 1
+        test "$CHECK_LINK" && return 255
+
+        echo "$FILE_URL"
+        return 0
+    fi
 
     # Arbitrary wait (local variables)
     STOP_FLOODING=360
