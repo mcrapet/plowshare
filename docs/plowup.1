@@ -1,4 +1,4 @@
-.TH "plowup" "1" "January 15, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowup" "1" "April 3, 2011" "GPL" "Plowshare SVN-snapshot"
 
 .\" ****************************************************************************
 .\" * Name                                                                     *
@@ -29,7 +29,7 @@ It acts like a web browser, retreiving pages and filling html forms (including c
 
 Currently supported hosting sites list is available in README file.
 
-Anonymous upload is not allowed by all sites, some of them may require authentification.
+Anonymous upload is not allowed by all sites, some of them may require authentication.
 See specific module options below.
 
 .\" ****************************************************************************
@@ -123,13 +123,13 @@ Set file description.
 .nf
 $ plowup /path/foobar zshare
 .fi
-.SS 2) Upload a single file with authentification
+.SS 2) Upload a single file with authentication
 .nf
 # Add a text description
-$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
+$ plowup \-a myuser:mypassword \-d "My description" /path/myfile.txt megaupload
 .sp 1
 # Change destination filename
-$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload:anothername.txt
+$ plowup \-a myuser:mypassword \-d "My description" /path/myfile.txt megaupload:anothername.txt
 .fi
 
 .\" ****************************************************************************

@@ -1,4 +1,4 @@
-.TH "plowdown" "1" "January 15, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowdown" "1" "April 3, 2011" "GPL" "Plowshare SVN-snapshot"
 
 .\" ****************************************************************************
 .\" * Name                                                                     *
@@ -152,7 +152,7 @@ Use Free account.
 .SH NOTES
 
 .SS
-Command line authentification string format
+Command line authentication string format
 Complete login must have
 .I USER:PASSWORD
 format. The first semi-colon character is the separator. So,
@@ -173,15 +173,15 @@ $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 $ plowdown http://x7.to/abcdef http://www.megaupload.com/?d=ghijklmn
 .sp 1
 # Download a password-protected file from megaupload
-$ plowdown -p somepassword http://www.megaupload.com/?d=opqrstuv
+$ plowdown \-p somepassword http://www.megaupload.com/?d=opqrstuv
 .fi
 .SS 2) Download a list of links (one link per line) commenting out (with #) those successfully downloaded 
 .nf
-$ plowdown -m file_with_links.txt
+$ plowdown \-m file_with_links.txt
 .fi
 .SS 3) Download with restrictions
 .nf
-$ plowdown -r 50K -i eth1 http://depositfiles.com/es/files/abcdefghi
+$ plowdown \-r 50K \-i eth1 http://depositfiles.com/es/files/abcdefghi
 .fi
 .SS 4) Download with a proxy (3128 is the default port)
 .nf
@@ -191,17 +191,17 @@ $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 .fi
 .SS 5) Filter alive links in a text file 
 .nf
-$ plowdown -c file_with_links.txt > file_with_active_links.txt
+$ plowdown \-c file_with_links.txt > file_with_active_links.txt
 .fi
 .SS 6) Use an alternatice web retriever for the final file download
 .nf
-$ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"' http://x7.to/abcdef 
+$ plowdown \-\-run\-download='wget \-O "%filename" \-\-load\-cookies "%cookies" "%url"' http://x7.to/abcdef 
 .fi
 .SS 7) Safe download. Each URL will be limited in the number of tries (mainly for captchas) and wait delays. 
 .nf
-$ alias plowdown='plowdown --no-overwrite --max-retries=20 --timeout=3600'
+$ alias plowdown='plowdown \-\-no\-overwrite \-\-max\-retries=20 \-\-timeout=3600'
 .sp 0
-$ plowdown -m file_with_links.txt
+$ plowdown \-m file_with_links.txt
 .fi
 
 .\" ****************************************************************************
