@@ -362,13 +362,13 @@ uri_encode() {
 }
 
 # Decode a complete url.
-# - check for space character
+# - check for space character and squares brackets
 # - do not check for "reserved characters"
 #
 # stdin: data (example: absolute URL)
 # stdout: data (nearly complains RFC2396)
 uri_decode() {
-    cat | sed -e "s/%20/\x20/g"
+    cat | sed -e "s/%20/\x20/g" -e "s/%5B/\[/g" -e "s/%5D/\]/g"
 }
 
 # Create a tempfile and return path
