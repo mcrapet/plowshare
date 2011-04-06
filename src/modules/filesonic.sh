@@ -37,8 +37,12 @@ filesonic_download() {
         return 253
     fi
 
-    # obtain the base URL (filesonic.com may redirect to filesonic.ccTLD) and update URL
-    BASEURL=$(basename_url "$(curl -I "$(basename_url "$URL")" | grep_http_header_location)")
+    # obtain the base URL (.com may redirect to .ccTLD) and update URL
+    BASEURL=$(basename_url "$URL")
+    LOCATION=$(curl -I "$BASEURL" | grep_http_header_location)
+    if [ ! -z "$LOCATION" ]; then
+        BASEURL=$(basename_url "$LOCATION")
+    fi
     URL="$BASEURL/file/$ID"
 
     COOKIES=$(create_tempfile)
