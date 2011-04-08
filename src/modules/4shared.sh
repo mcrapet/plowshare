@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# 4shared.com module
+# Copyright (c) 2010 - 2011 Plowshare team
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -33,7 +36,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     if test "$REAL_URL"; then
         URL=$REAL_URL
     fi
-    
+
     COOKIES=$(create_tempfile)
     PAGE=$(curl -c $COOKIES "$URL")
     if match '4shared\.com\/dir\/' "$URL"; then
@@ -47,7 +50,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
     fi
 
     WAIT_URL=$(echo "$PAGE" | parse_attr "4shared\.com\/get\/" 'href')
-    
+
     test "$CHECK_LINK" && return 255
 
     WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL")

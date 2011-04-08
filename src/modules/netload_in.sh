@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# netload.in module
+# Copyright (c) 2010 - 2011 Plowshare team
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
@@ -27,7 +30,7 @@ netload_in_download() {
     set -e
     eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$(echo "$1" | replace 'www.' '')    
+    URL=$(echo "$1" | replace 'www.' '')
     BASE_URL="http://netload.in"
     COOKIES=$(create_tempfile)
 

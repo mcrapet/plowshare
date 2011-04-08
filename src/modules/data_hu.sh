@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# data.hu module
+# Copyright (c) 2010 Plowshare team
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify

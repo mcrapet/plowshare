@@ -1,5 +1,8 @@
 #!/bin/bash
 #
+# depositfiles.com module
+# Copyright (c) 2010 - 2011 Plowshare team
+#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
