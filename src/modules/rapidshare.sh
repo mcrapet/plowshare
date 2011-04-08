@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidshare.com module
-# Copyright (c) 2010 - 2011 Plowshare team
+# Copyright (c) 2010-2011 Plowshare team
 #
 # This file is part of Plowshare.
 #

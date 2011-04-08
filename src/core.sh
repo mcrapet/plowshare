@@ -1,15 +1,7 @@
 #!/bin/bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010 - 2011 Plowshare team
-#
-# Global variables used:
-#   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
-#   - INTERFACE        Network interface (used by curl)
-#   - PS_TIMEOUT       Timeout (in seconds) for one URL download
-#   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
-#   - LIBDIR           Absolute path to plowshare's libdir
-#   - RECAPTCHA_SERVER Server URL
+# Copyright (c) 2010-2011 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -28,6 +20,14 @@
 
 set -o pipefail
 
+# Global variables used:
+#   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
+#   - INTERFACE        Network interface (used by curl)
+#   - PS_TIMEOUT       Timeout (in seconds) for one URL download
+#   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
+#   - LIBDIR           Absolute path to plowshare's libdir
+#   - RECAPTCHA_SERVER Server URL
+#
 # Logs are sent to stderr stream.
 # Policies:
 # - error: modules errors (when return 1), lastest plowdown curl call
