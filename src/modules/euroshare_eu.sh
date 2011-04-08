@@ -20,7 +20,7 @@
 
 MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account (required)"
+AUTH,a:,auth:,USER:PASSWORD,Free-membership"
 MODULE_EUROSHARE_EU_DOWNLOAD_CONTINUE=no
 
 # Output a euroshare.eu file download URL
@@ -34,44 +34,45 @@ euroshare_eu_download() {
     COOKIES=$(create_tempfile)
     BASEURL=$(basename_url "$URL")
 
+    # html returned uses utf-8 charset
+    PAGE=$(curl "$URL")
+    if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
+        log_error "File not found."
+        rm -f $COOKIES
+        return 254
+    elif test "$CHECK_LINK"; then
+        rm -f $COOKIES
+        return 255
+    fi
+
+    if test "$AUTH"; then
+        LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
+        CHECK_LOGIN=$(post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL")
+
+        if ! match "/logout" "$CHECK_LOGIN"; then
+            log_error "Login process failed. Bad username or password?"
+            rm -f $COOKIES
+            return 1
+        fi
+    fi
+
+
+
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
 
     while retry_limit_not_reached || return 3; do
 
         # html returned uses utf-8 charset
-        PAGE=$(curl --location "$URL")
-        if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
-            log_error "File not found."
-            rm -f $COOKIES
-            return 254
-        elif match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
+        PAGE=$(curl -b "$COOKIES" "$URL")
+
+        if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
             log_error "You are already downloading a file from this IP."
             rm -f $COOKIES
             return 255
         fi
 
-        if ! test "$AUTH"; then
-            log_error "At least Free-membership is needed for downloading."
-            rm -f $COOKIES
-            test "$CHECK_LINK" && return 255
-            return 1
-        fi
-
-        LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
-        CHECK_LOGIN=$(post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/login")
-
-        DOWNLOAD_PAGE=$(curl -b "$COOKIES" --location "$URL")
-
-        rm -f $COOKIES
-
-        if ! match "<h2>Ste úspešne prihlásený</h2>" "$CHECK_LOGIN"; then
-            log_error "Login process failed. Bad username or password."
-            test "$CHECK_LINK" && return 255
-            return 1
-        fi
-
-        if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$DOWNLOAD_PAGE"; then
+        if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
             if test "$NOARBITRARYWAIT"; then
                 log_debug "File temporarily unavailable"
                 return 253
@@ -83,7 +84,9 @@ euroshare_eu_download() {
         break
     done
 
-    DL_URL=$(echo "$DOWNLOAD_PAGE" | parse_attr '<div class="right">' 'href')
+    rm -f $COOKIES
+
+    DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href')
     if ! test "$DL_URL"; then
         log_error "Can't parse download URL, site updated?"
         return 255
@@ -98,8 +101,6 @@ euroshare_eu_download() {
         log_error "Location not found"
         return 255
     fi
-
-    test "$CHECK_LINK" && return 255
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
