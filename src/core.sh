@@ -651,18 +651,48 @@ recaptcha_reload_image() {
     fi
 }
 
+# Display image (in ascii)
+# $1: reCAPTCHA image filename (should be 300x57)
+recaptcha_ascii_display() {
+    if check_exec aview; then
+        # libaa
+        local IMG_PNM=$(create_tempfile)
+        convert "$1" -depth 8 pnm:$IMG_PNM
+        aview -width 150 -height 57 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<< "q" | \
+            sed  -e '1d;/\x0C/,/\x0C/d' | \
+            grep -v "^[[:space:]]*$" >&2
+        rm -f "$IMG_PNM"
+    elif check_exec img2txt; then
+        # libcaca
+        img2txt -W 150 -H 57 "$1" >&2
+    else
+        log_notice "Install aview or img2txt (libcaca) to display captcha image"
+    fi
+}
+
 # $1: reCAPTCHA image filename
 # stdout: response word (string)
 recaptcha_display_and_prompt() {
     FILENAME="$1"
 
-    display $FILENAME &
-    PID=$!
+    local TEXT1='Leave this field blank and hit enter to get another captcha image'
+    local TEXT2='Enter captcha response (drop punctuation marks): '
 
-    log_notice "Leave this field blank and hit enter to get another captcha image"
+    # X11 server installed ?
+    if [ -n "$DISPLAY" ] && check_exec 'display'; then
+        display $FILENAME &
+        PID=$!
+        log_notice $TEXT1
+        read -p "$TEXT2" RESPONSE
+        disown $(kill -9 $PID) 2>&1 1>/dev/null
+    else
+        log_debug "no X server available, try ascii display"
+        log_notice "$FILENAME"
+        recaptcha_ascii_display "$FILENAME"
+        log_notice $TEXT1
+        read -p "$TEXT2" RESPONSE
+    fi
 
-    read -p "Enter captcha response (longuest word): " RESPONSE
-    disown $(kill -9 $PID) 2>&1 1>/dev/null
     echo "$RESPONSE" | sed 's/ /+/g'
 }
 
