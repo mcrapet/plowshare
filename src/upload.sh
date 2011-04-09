@@ -111,7 +111,10 @@ fi
 
 RETVAL=0
 for FILE in "${FILES[@]}"; do
-    if ! grep -w -q "$MODULE" <<< "$MODULES"; then
+    if [ -z "$FILE" ]; then
+        log_debug "empty argument, skipping"
+        continue
+    elif ! grep -w -q "$MODULE" <<< "$MODULES"; then
         log_error "unsupported module ($MODULE)"
         RETVAL=3
         continue
