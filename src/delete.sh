@@ -99,8 +99,12 @@ set_exit_trap
 RETVAL=0
 
 for URL in "$@"; do
-    MODULE=$(get_module "$URL" "$MODULES")
+    if [ -z "$URL" ]; then
+        log_debug "empty argument, skipping"
+        continue
+    fi
 
+    MODULE=$(get_module "$URL" "$MODULES")
     if test -z "$MODULE"; then
         log_error "Skip: no module for URL ($URL)"
         RETVAL=4
