@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.\(com\|fr\)/"
+MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.[a-z]\+/"
 MODULE_FILESONIC_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_FILESONIC_DOWNLOAD_CONTINUE=no
@@ -30,7 +30,7 @@ MODULE_FILESONIC_LIST_OPTIONS=""
 filesonic_download() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$(echo "$1" | replace 'www.' '')
+    URL=$1
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if [ -z "$ID" ]; then
         log_error "Cannot parse URL to extract file id (mandatory)"
