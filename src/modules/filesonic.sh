@@ -20,8 +20,12 @@
 
 MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.[a-z]\+/"
 MODULE_FILESONIC_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
 MODULE_FILESONIC_DOWNLOAD_CONTINUE=no
+MODULE_FILESONIC_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Use an account"
+#MODULE_FILESONIC_DELETE_OPTIONS="
+#AUTH,a:,auth:,USER:PASSWORD,Login to free or premium account (required)"
 MODULE_FILESONIC_LIST_OPTIONS=""
 
 # Output an filesonic.com file download URL (anonymous)
@@ -37,7 +41,7 @@ filesonic_download() {
         return 253
     fi
 
-    # obtain the base URL (.com may redirect to .ccTLD) and update URL
+    # update URL if there is a specific .ccTLD location from there
     BASEURL=$(basename_url "$URL")
     LOCATION=$(curl -I "$BASEURL" | grep_http_header_location)
     if [ ! -z "$LOCATION" ]; then
@@ -51,7 +55,7 @@ filesonic_download() {
     MAINPAGE=$(curl -c "$COOKIES" "$URL") || return 1
     # do not obtain filename from "<span>Filename:" because it is shortened
     # with "..." if too long; instead, take it from title
-    FILENAME=$(echo "$MAINPAGE" |parse_quiet "<title>" ">Download \(.*\) for free")
+    FILENAME=$(echo "$MAINPAGE" | parse_quiet "<title>" ">Download \(.*\) for free")
 
     # Premium user
     if [ -n "$AUTH" ]; then
@@ -60,7 +64,7 @@ filesonic_download() {
             rm -f "$COOKIES"
             return 1
         }
-        FILE_URL=$(curl -I -b "$COOKIES" "$URL" |grep_http_header_location)
+        FILE_URL=$(curl -I -b "$COOKIES" "$URL" | grep_http_header_location)
 
     # Normal user
     else
@@ -184,5 +188,94 @@ filesonic_list() {
         echo "$LINK"
     done
 
+    return 0
+}
+
+# Upload a file to filesonic
+# $1: file name to upload
+# $2: upload as file name (optional, defaults to $1)
+# stdout: download link on filesonic
+filesonic_upload() {
+    set -e
+    eval "$(process_options filesonic "$MODULE_FILESONIC_UPLOAD_OPTIONS" "$@")"
+
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local URL="http://www.filesonic.com"
+
+    # update URL if there is a specific .ccTLD location from there
+    LOCATION=$(curl -I "$URL" | grep_http_header_location)
+    if [ ! -z "$LOCATION" ]; then
+        URL=$(basename_url "$LOCATION")
+    fi
+
+    COOKIES=$(create_tempfile)
+
+    # proceed to auth if credentials supplied
+    if test "$AUTH"; then
+        log_error "auth not yet implemented"
+        return 1
+    fi
+
+    # get main page to pick up an upload server
+    PAGE=$(curl -c "$COOKIES" "$URL") || return 1
+    SERVER=$(echo "$PAGE" | parse_quiet 'uploadServerHostname' "\s*=\s'*\([^']*\)';")
+
+    if [ -z "$SERVER" ]; then
+        log_error "Can't parse upload server, site updated?"
+        return 1
+    fi
+
+    # prepare upload file id
+    PHPSESSID=$(getcookie "PHPSESSID" < "$COOKIES")
+    ID=$(echo 'var uid = "upload_"+new Date().getTime()+"_'$PHPSESSID'_"+Math.floor(Math.random()*90000); print(uid);' | javascript)
+
+    # send file and get Location to completed URL
+    # Note: we don't want curl to send "Expect: 100-continue" header
+    STATUS=$(curl -D - -b "$COOKIES" -e "$URL" -H "Expect:" \
+        -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        "http://$SERVER/?callbackUrl=$URL/upload-completed/:uploadProgressId&X-Progress-ID=$ID")
+
+    if ! test "$STATUS"; then
+        log_error "Uploading error."
+        rm -f "$COOKIES"
+        return 1
+    fi
+    COMPLETED=$(echo "$STATUS" | grep_http_header_location)
+
+    # hit keep-alive - not really required, but let's play like a browser
+    TIME=$(echo 'print(new Date().getTime());' | javascript)
+    KEEPALIVE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+        -e "$URL" "$URL/keep-alive.php?_=$TIME")
+
+    # get information
+    INFOS=$(curl -b "$COOKIES" -e "$URL" "$COMPLETED")
+    STATUSCODE=$(echo "$INFOS" | parse_quiet '"statusCode":[0-9]*' '"statusCode":\([0-9]*\)')
+    STATUSMESSAGE=$(echo "$INFOS" | parse_quiet '"statusMessage":"[^"]*"' '"statusMessage":"\([^"]*\)"')
+
+    if ! test "$STATUSCODE"; then
+        log_error "Upload failed (no info)"
+        rm -f "$COOKIES"
+        return 1
+    elif [ $STATUSCODE -ne 0 ]; then
+        log_error "Upload failed: $STATUSMESSAGE ($STATUSCODE)"
+        rm -f "$COOKIES"
+        return 1
+    fi
+    log_debug "Upload succeeded: $STATUSMESSAGE"
+
+    # get download link
+    LINKID=$(echo "$INFOS" | parse_quiet '"linkId":"[^"]*"' '"linkId":"\([^"]*\)"')
+    BROWSE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+        -e "$URL" "$URL/filesystem/generate-link/$LINKID")
+    LINK=$(echo "$BROWSE" | parse_attr ' id="URL_' 'value')
+
+    rm -f "$COOKIES"
+
+    if ! test "$LINK"; then
+        log_error "Can't parse download link, site updated?"
+        return 1
+    fi
+    echo "$LINK"
     return 0
 }
