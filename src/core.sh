@@ -961,3 +961,9 @@ timeout_update() {
     fi
     (( PS_TIMEOUT -= WAIT ))
 }
+
+# Get accessor for cookies
+# Example: LANG=$(getcookie "lang" < "$COOKIES")
+getcookie() {
+  parse_quiet "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
+}
