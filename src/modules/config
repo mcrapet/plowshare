@@ -14,7 +14,7 @@ fileserve   | download |        |        | list |
 filesonic   | download | upload | delete | list |
 hotfile     | download |        |        | list |
 humyo       | download |        |        |      |
-#mediafire   | download | upload |        | list |
+mediafire   | download |        |        | list |
 megaupload  | download | upload | delete | list |
 multiupload |          | upload |        | list |
 netload_in  | download |        |        |      |

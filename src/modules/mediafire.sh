@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # mediafire.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2011 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -19,9 +19,9 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_MEDIAFIRE_REGEXP_URL="http://\(www\.\)\?mediafire\.com/"
-MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS=""
-MODULE_MEDIAFIRE_UPLOAD_OPTIONS=""
-MODULE_MEDIAFIRE_LIST_OPTIONS=""
+MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+MODULE_MEDIAFIRE_LIST_OPTIONS=
 MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
 
 # Output a mediafire file download URL
@@ -39,6 +39,9 @@ mediafire_download() {
         return 0
     elif match 'errno=999$' "$LOCATION"; then
         log_error "private link"
+        return 254
+    elif match 'errno=378$' "$LOCATION"; then
+        log_error "file removed for violation"
         return 254
     elif match 'errno=' "$LOCATION"; then
         log_error "site redirected with an unknown error"
@@ -59,6 +62,12 @@ mediafire_download() {
 
     if test "$CHECK_LINK"; then
         match 'class="download_file_title"' "$PAGE" && return 255 || return 1
+    fi
+
+    if [ -n "$LINK_PASSWORD" ]; then
+        #PAGE=$(curl -L -b <(echo "$COOKIES") --data "downloadp=$LINK_PASSWORD" "$URL" | sed "s/>/>\n/g")
+        log_error "not implemented"
+        return 1
     fi
 
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIES") ||
@@ -171,84 +180,4 @@ mediafire_list() {
     done
 
     return 0
-}
-
-# mediafire_upload FILE [DESTFILE]
-#
-# stdout: mediafire download link
-mediafire_upload() {
-    eval "$(process_options mediafire "$MODULE_MEDIAFIRE_UPLOAD_OPTIONS" "$@")"
-
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
-    local BASE_URL="http://www.mediafire.com"
-    local COOKIESFILE=$(create_tempfile)
-    local PAGEFILE=$(create_tempfile)
-
-    log_debug "Get ukey cookie"
-    curl -c $COOKIESFILE "$BASE_URL" >/dev/null ||
-        { log_error "Couldn't get homepage!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
-
-    log_debug "Get uploader configuration"
-    curl -b $COOKIESFILE "$BASE_URL/basicapi/uploaderconfiguration.php" > $PAGEFILE ||
-        { log_error "Couldn't get uploader configuration!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
-
-    local UKEY=$(parse_quiet ukey '.*ukey[ \t]*\(.*\)' < $COOKIESFILE)
-    local TRACK_KEY=$(parse_quiet trackkey '.*<trackkey>\(.*\)<\/trackkey>.*' < $PAGEFILE)
-    local FOLDER_KEY=$(parse_quiet folderkey '.*<folderkey>\(.*\)<\/folderkey>.*' < $PAGEFILE)
-    local MFUL_CONFIG=$(parse_quiet MFULConfig '.*<MFULConfig>\(.*\)<\/MFULConfig>.*' < $PAGEFILE)
-    log_debug "trackkey: $TRACK_KEY"
-    log_debug "folderkey: $FOLDER_KEY"
-    log_debug "ukey: $UKEY"
-    log_debug "MFULConfig: $MFUL_CONFIG"
-
-    if [ -z "$UKEY" -o -z "$TRACK_KEY" -o -z "$FOLDER_KEY" -o -z "$MFUL_CONFIG" ]; then
-        log_error "Can't parse uploader configuration!"
-        rm -f $COOKIESFILE $PAGEFILE
-        return 1
-    fi
-
-    log_debug "Uploading file"
-    local UPLOAD_URL="$BASE_URL/basicapi/doupload.php?track=$TRACK_KEY&ukey=$UKEY&user=x&uploadkey=$FOLDER_KEY&upload=0"
-    curl_with_log -b $COOKIESFILE \
-        -F "Filename=$(basename_file "$DESTFILE")" \
-        -F "Upload=Submit Query" \
-        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        $UPLOAD_URL > $PAGEFILE ||
-        { log_error "Couldn't upload file!"; rm -f $COOKIESFILE $PAGEFILE; return 1; }
-
-    local UPLOAD_KEY=$(parse_quiet key '.*<key>\(.*\)<\/key>.*' < $PAGEFILE)
-    log_debug "key: $UPLOAD_KEY"
-
-    if [ -z "$UPLOAD_KEY" ]; then
-        log_error "Can't get upload key!"
-        rm -f $COOKIESFILE $PAGEFILE
-        return 1
-    fi
-
-    local COUNTER=0
-    while [ -z "$(grep 'No more requests for this key' $PAGEFILE)" ]; do
-        if [[ $COUNTER -gt 50 ]]; then
-            log_error "File verification timeout!"
-            rm -f $COOKIESFILE $PAGEFILE
-            return 1
-        fi
-
-        log_debug "Polling for status update"
-        curl -b $COOKIESFILE "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG" > $PAGEFILE
-        sleep 1
-        let COUNTER++
-    done
-
-    local QUICK_KEY=$(parse_quiet quickkey '.*<quickkey>\(.*\)<\/quickkey>.*' < $PAGEFILE)
-    log_debug "quickkey: $QUICK_KEY"
-
-    if [ -z "$QUICK_KEY" ]; then
-        log_error "Can't get quick key!"
-        rm -f $COOKIESFILE $PAGEFILE
-        return 1
-    fi
-
-    rm -f $COOKIESFILE $PAGEFILE
-    echo "$BASE_URL/?$QUICK_KEY"
 }
