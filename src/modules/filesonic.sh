@@ -278,9 +278,13 @@ filesonic_upload() {
         return 1
     fi
 
-    # prepare upload file id
+    # prepare upload file id - if possible do it in javascript likewise, but simple bash is enough
     PHPSESSID=$(getcookie "PHPSESSID" < "$COOKIES")
-    ID=$(echo 'var uid = "upload_"+new Date().getTime()+"_'$PHPSESSID'_"+Math.floor(Math.random()*90000); print(uid);' | javascript)
+    if detect_javascript >/dev/null; then
+      ID=$(echo 'var uid = "upload_"+new Date().getTime()+"_'$PHPSESSID'_"+Math.floor(Math.random()*90000); print(uid);' | javascript)
+    else
+      ID="upload_$(date '+%s')123_${PHPSESSID}_$RANDOM"
+    fi
 
     # send file and get Location to completed URL
     # Note: explicitely remove "Expect: 100-continue" header that curl wants to send
