@@ -38,15 +38,35 @@ MODULE_1FICHIER_DOWNLOAD_CONTINUE=yes
     URL=$1
     COOKIES=$(create_tempfile)
 
-    PAGE=$(curl -c "$COOKIES" "$URL")
+    # Arbitrary wait (local variable)
+    NO_FREE_SLOT_IDLE=10
 
-    if match "Le fichier demandé n'existe pas." "$PAGE"; then
-        log_error "File not found."
-        rm -f $COOKIES
-        return 254
-    fi
+    while retry_limit_not_reached || return 3; do
+        PAGE=$(curl -c "$COOKIES" "$URL")
 
-    test "$CHECK_LINK" && return 255
+        if match "Le fichier demandé n'existe pas." "$PAGE"; then
+            log_error "File not found."
+            rm -f $COOKIES
+            return 254
+        fi
+
+        if test "$CHECK_LINK"; then
+            rm -f $COOKIES
+            return 255
+        fi
+
+        if match "Téléchargements en cours" "$PAGE"; then
+            if test "$NOARBITRARYWAIT"; then
+                log_debug "Already downloading file, must wait"
+                rm -f $COOKIES
+                return 253
+            fi
+            log_debug "Arbitrary wait."
+            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            continue
+        fi
+        break
+    done
 
     FILE_URL=$(echo "$PAGE" | parse_attr 'Cliquez ici pour' 'href')
     FILENAME=$(echo "$PAGE" | parse_quiet '<title>' '<title>Téléchargement du fichier : *\([^<]*\)')
