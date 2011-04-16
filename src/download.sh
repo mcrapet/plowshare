@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Download files from file sharing servers
 # Copyright (c) 2010 Arnau Sanchez
@@ -20,7 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-set -e
 
 VERSION="SVN-snapshot"
 OPTIONS="
@@ -44,18 +43,6 @@ DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %fil
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 "
 
-
-# Error codes
-# On multiple arguments, lower error (1..) is the final exit code.
-ERROR_CODE_OK=0
-ERROR_CODE_FATAL=1
-ERROR_CODE_NOMODULE=2
-ERROR_CODE_DEAD_LINK=3
-ERROR_CODE_TEMPORAL_PROBLEM=4
-ERROR_CODE_UNKNOWN_ERROR=5
-ERROR_CODE_TIMEOUT_ERROR=6
-ERROR_CODE_NETWORK_ERROR=7
-ERROR_CODE_PASSWORD_REQUIRED=8
 
 # - Results are similar to "readlink -f" (available on GNU but not BSD)
 # - If '-P' flags (of cd) are removed directory symlinks won't be
@@ -354,8 +341,8 @@ for ITEM in "$@"; do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
         if test -z "$MODULE"; then
-            log_error "no module for URL: $URL"
-            RETVALS=("${RETVALS[@]}" $ERROR_CODE_NOMODULE)
+            log_error "Skip: no module for URL ($URL)"
+            RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
             continue
         elif test "$GET_MODULE"; then
@@ -364,9 +351,16 @@ for ITEM in "$@"; do
         fi
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
-            "$MAXRETRIES" "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" ||
-              RETVALS=("${RETVALS[@]}" "$?")
+            "$MAXRETRIES" "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
+                RETVALS=(${RETVALS[@]} "$?")
     done
 done
 
-exit $(echo ${RETVALS[*]:-0} | xargs -n1 | sort -n | head -n1)
+if [ ${#RETVALS[@]} -eq 0 ]; then
+    exit $ERROR_CODE_OK
+elif [ ${#RETVALS[@]} -eq 1 ]; then
+    exit ${RETVALS[0]}
+else
+    log_debug "retvals:${RETVALS[@]}"
+    exit $ERROR_CODE_FATAL_MULTIPLE
+fi

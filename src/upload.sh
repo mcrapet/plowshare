@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Upload a file to file sharing servers
 # Copyright (c) 2010 Arnau Sanchez
@@ -20,7 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-set -e
 
 VERSION="SVN-snapshot"
 OPTIONS="
@@ -93,9 +92,9 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit 2; }
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 2 || { usage; exit 1; }
+test "$HELP" && { usage; exit $ERROR_CODE_OK; }
+test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
+test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
 set_exit_trap
 
 # *FILES, DESTINATION = $@
@@ -109,20 +108,28 @@ if [ "$#" -gt '2' -a ! -z "$DESTFILE" ]; then
     DESTFILE=""
 fi
 
-RETVAL=0
+RETVALS=()
 for FILE in "${FILES[@]}"; do
     if [ -z "$FILE" ]; then
         log_debug "empty argument, skipping"
         continue
     elif ! grep -w -q "$MODULE" <<< "$MODULES"; then
         log_error "unsupported module ($MODULE)"
-        RETVAL=3
+        RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
         continue
     fi
     FUNCTION=${MODULE}_upload
     log_notice "Starting upload ($MODULE): $FILE"
     test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || RETVAL=3
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || \
+        RETVALS=(${RETVALS[@]} "$?")
 done
 
-exit $RETVAL
+if [ ${#RETVALS[@]} -eq 0 ]; then
+    exit $ERROR_CODE_OK
+elif [ ${#RETVALS[@]} -eq 1 ]; then
+    exit ${RETVALS[0]}
+else
+    log_debug "retvals:${RETVALS[@]}"
+    exit $ERROR_CODE_FATAL_MULTIPLE
+fi

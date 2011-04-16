@@ -20,6 +20,19 @@
 
 set -o pipefail
 
+# Global error codes
+# On multiple arguments, ERROR_CODE_FATAL_MULTIPLE is returned.
+ERROR_CODE_OK=0
+ERROR_CODE_FATAL=1
+ERROR_CODE_NOMODULE=2
+ERROR_CODE_DEAD_LINK=3
+ERROR_CODE_TEMPORAL_PROBLEM=4
+ERROR_CODE_UNKNOWN_ERROR=5
+ERROR_CODE_TIMEOUT_ERROR=6
+ERROR_CODE_NETWORK_ERROR=7
+ERROR_CODE_PASSWORD_REQUIRED=8
+ERROR_CODE_FATAL_MULTIPLE=101
+
 # Global variables used:
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
 #   - INTERFACE        Network interface (used by curl)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Retreive list of links from a shared-folder (sharing site) url
 # Copyright (c) 2010 Matthieu Crapet
@@ -20,7 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-set -e
 
 VERSION="SVN-snapshot"
 OPTIONS="
@@ -93,25 +92,32 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit 2; }
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 1 || { usage; exit 1; }
+test "$HELP" && { usage; exit $ERROR_CODE_OK; }
+test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
+test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
 set_exit_trap
 
-RETVAL=0
-
+RETVALS=()
 for URL in "$@"; do
     MODULE=$(get_module "$URL" "$MODULES")
 
     if test -z "$MODULE"; then
         log_error "Skip: no module for URL ($URL)"
-        RETVAL=4
+        RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
         continue
     fi
 
     FUNCTION=${MODULE}_list
     log_notice "Retreiving list ($MODULE): $URL"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || RETVAL=5
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || \
+        RETVALS=(${RETVALS[@]} "$?")
 done
 
-exit $RETVAL
+if [ ${#RETVALS[@]} -eq 0 ]; then
+    exit $ERROR_CODE_OK
+elif [ ${#RETVALS[@]} -eq 1 ]; then
+    exit ${RETVALS[0]}
+else
+    log_debug "retvals:${RETVALS[@]}"
+    exit $ERROR_CODE_FATAL_MULTIPLE
+fi
