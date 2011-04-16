@@ -113,11 +113,21 @@ for FILE in "${FILES[@]}"; do
     if [ -z "$FILE" ]; then
         log_debug "empty argument, skipping"
         continue
-    elif ! grep -w -q "$MODULE" <<< "$MODULES"; then
+    fi
+
+    FOUND=
+    for M in $MODULES; do
+        if [ "$M" = "$MODULE" ]; then
+            FOUND=1
+            break
+        fi
+    done
+    if [ -z "$FOUND" ]; then
         log_error "unsupported module ($MODULE)"
         RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
         continue
     fi
+
     FUNCTION=${MODULE}_upload
     log_notice "Starting upload ($MODULE): $FILE"
     test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
