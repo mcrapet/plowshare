@@ -50,7 +50,7 @@ filesonic_login() {
         return 1
     fi
 
-    ROLE=$(getcookie "role" < "$COOKIES")
+    ROLE=$(parse_cookie "role" < "$COOKIES")
     log_notice "Successfully logged in as $ROLE member"
 
     return 0
@@ -280,7 +280,7 @@ filesonic_upload() {
 
     # prepare upload file id - browser uses the following javascript, we can do it in bash
     # "upload_"+new Date().getTime()+"_<PHPSESSID>_"+Math.floor(Math.random()*90000)
-    PHPSESSID=$(getcookie "PHPSESSID" < "$COOKIES")
+    PHPSESSID=$(parse_cookie "PHPSESSID" < "$COOKIES")
     ID="upload_$(date '+%s')123_${PHPSESSID}_$RANDOM"
 
     # send file and get Location to completed URL

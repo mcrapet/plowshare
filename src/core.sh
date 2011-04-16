@@ -305,6 +305,12 @@ parse_form_input_by_type() {
     parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
 }
 
+# Get accessor for cookies
+# Example: LANG=$(getcookie "lang" < "$COOKIES")
+parse_cookie() {
+    parse_quiet "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
+}
+
 # Return base of URL
 # Example: http://www.host.com/a/b/c/d => http://www.host.com
 #
@@ -973,10 +979,4 @@ timeout_update() {
         return 1
     fi
     (( PS_TIMEOUT -= WAIT ))
-}
-
-# Get accessor for cookies
-# Example: LANG=$(getcookie "lang" < "$COOKIES")
-getcookie() {
-  parse_quiet "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
 }
