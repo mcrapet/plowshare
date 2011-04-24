@@ -210,12 +210,12 @@ filesonic_list() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_LIST_OPTIONS" "$@")"
     URL=$1
 
-    if ! match 'filesonic\.com\/folder\/' "$URL"; then
+    if ! match "${MODULE_FILESONIC_REGEXP_URL}folder\/" "$URL"; then
         log_error "This is not a folder"
         return 1
     fi
 
-    PAGE=$(curl "$URL" | grep '<a href="http://www.filesonic.com/file/')
+    PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_FILESONIC_REGEXP_URL}file")
 
     if ! test "$PAGE"; then
         log_error "Wrong folder link (no download link detected)"
@@ -223,16 +223,16 @@ filesonic_list() {
     fi
 
     # First pass: print file names (debug)
-    echo "$PAGE" | while read LINE; do
+    while read LINE; do
         FILENAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
         log_debug "$FILENAME"
-    done
+    done <<< "$PAGE"
 
     # Second pass: print links (stdout)
-    echo "$PAGE" | while read LINE; do
+    while read LINE; do
         LINK=$(echo "$LINE" | parse_attr '<a' 'href')
         echo "$LINK"
-    done
+    done <<< "$PAGE"
 
     return 0
 }
