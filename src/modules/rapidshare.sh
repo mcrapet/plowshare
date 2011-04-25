@@ -52,7 +52,7 @@ rapidshare_download() {
     STOP_FLOODING=360
 
     while retry_limit_not_reached || return 3; do
-        BASE_APIURL="http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
+        BASE_APIURL="https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
 
         if test "$AUTH"; then
             IFS=":" read USER PASSWORD <<< "$AUTH"
