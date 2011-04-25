@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_RAPIDSHARE_REGEXP_URL="http://\(www\.\)\?rapidshare\.com/"
+MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\)\?rapidshare\.com/"
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
@@ -130,6 +130,11 @@ rapidshare_download() {
 rapidshare_upload() {
     set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
+
+    log_error "***"
+    log_error "*** Warning: rapidshare upload is currently broken"
+    log_error "***          don't use it!"
+    log_error "***"
 
     if test -n "$AUTH_PREMIUMZONE"; then
         rapidshare_upload_premiumzone "$@"
@@ -296,21 +301,36 @@ rapidshare_upload_premiumzone() {
 }
 
 # Delete a file from rapidshare
-#
 # rapidshare_delete [MODULE_RAPIDSHARE_DELETE_OPTIONS] URL
-#
-# TODO: This code is obsolete
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
     URL=$1
 
-    KILL_URL=$(curl "$URL" | parse_quiet 'value="Delete this file now"' "href='\([^\"']*\)") ||
-        { log_error "bad kill link"; return 1; }
-
-    log_debug "kill_url=$KILL_URL"
-    local RESULT=$(curl "$KILL_URL")
-
-    if ! match 'The following file has been deleted' "$RESULT"; then
-        log_debug "unexpected result"
+    if ! match 'deletefiles' "$URL"; then
+        log_error "This is not a delete url"
+        return 1
     fi
+
+    CONFIRM_PAGE=$(curl "$URL")
+
+    local KILLCODE=$(echo "$URL" | cut -d'|' -f3)
+    local FILEID=$(echo "$URL" | cut -d'|' -f4)
+    local RESPONSE=$(curl \
+            "https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=deletefreefile&killcode={$KILLCODE}&fileid=${FILEID}")
+
+    # Possible answers:
+    # OK
+    # ERROR: Deletion not possible. (441e3b41)
+    ERROR=$(echo "$RESPONSE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
+
+    if [ -n "$ERROR" ]; then
+        log_error "website error: $ERROR"
+        return 1
+    elif [ "$RESPONSE" != "OK" ]; then
+        log_debug "unexpected result"
+        return 1
+    fi
+
+    log_debug "file removed successfully"
+    return 0
 }

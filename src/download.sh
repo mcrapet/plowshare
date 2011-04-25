@@ -75,7 +75,7 @@ absolute_path() {
 # or a file with links (discard empty/repeated lines and comments)-
 process_item() {
     local ITEM=$1
-    if match "^http://" "$ITEM"; then
+    if match "^https\?://" "$ITEM"; then
         echo "url|$ITEM"
     elif [ -f "$ITEM" ]; then
         grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read URL; do

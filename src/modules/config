@@ -18,7 +18,7 @@ mediafire   | download |        |        | list |
 megaupload  | download | upload | delete | list |
 multiupload |          | upload |        | list |
 netload_in  | download |        |        |      |
-rapidshare  | download |        |        |      |
+rapidshare  | download |        | delete |      |
 sendspace   | download |        |        | list |
 uploading   | download |        |        |      |
 usershare   | download |        |        |      |
