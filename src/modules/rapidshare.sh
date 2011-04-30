@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\)\?rapidshare\.com/"
+MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\|rs.....\.\)\?rapidshare\.com/"
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
@@ -37,7 +37,7 @@ rapidshare_download() {
     # Two URL formats:
     # http://rapidshare.com/files/429795114/arc02f.rar
     # http://rapidshare.com/#!download|774tl4|429794114|arc02f.rar|5249
-    if expr match "$URL" '.*/#!download|' >/dev/null; then
+    if match '.*/#!download|' "$URL"; then
         FILEID=$(echo "$URL" | cut -d'|' -f3)
         FILENAME=$(echo "$URL" | cut -d'|' -f4)
     else
