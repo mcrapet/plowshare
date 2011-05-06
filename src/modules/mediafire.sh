@@ -95,7 +95,7 @@ get_ofuscated_link() {
     { read DIVID; read DYNAMIC_PATH; } < <(echo "
         noop = function() { }
         // Functions and variables used but defined elsewhere, fake them.
-        DoShow = Eo = aa = noop;
+        DoShow = Eo = aa = ax = noop;
         fu = StartDownloadTried = pk = 0;
 
         // setTimeout() is being used to 'hide' function calls.
@@ -112,7 +112,7 @@ get_ofuscated_link() {
                 return namespace[id];
             },
         };
-        $PAGE_JS
+        $PAGE_JS }
         $FUNCTION();
         // DIV id is string of hexadecimal values of length 32
         for (key in namespace) {
