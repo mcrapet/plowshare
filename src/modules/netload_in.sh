@@ -18,9 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?netload\.in/"
+MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?net\(load\|folder\)\.in/"
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS=""
 MODULE_NETLOAD_IN_DOWNLOAD_CONTINUE=no
+MODULE_NETLOAD_IN_LIST_OPTIONS=""
 
 # Output an netload.in file download URL (anonymous, NOT PREMIUM)
 #
@@ -116,5 +117,29 @@ netload_in_download() {
 
     echo $FILE_URL
     test -n "$FILENAME" && echo "$FILENAME"
+    return 0
+}
+
+# List multiple netload.in links
+# $1: netfolder.in link
+# stdout: list of links
+netload_in_list() {
+    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_LIST_OPTIONS" "$@")"
+    URL=$1
+
+    if ! match 'folder' "$URL"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr 'Link_[[:digit:]]' 'href') || \
+        { log_error "Wrong directory list link"; return 1; }
+
+    if test -z "$LINKS"; then
+        log_error "This is not a directory list"
+        return 1
+    fi
+
+    echo "$LINKS"
     return 0
 }

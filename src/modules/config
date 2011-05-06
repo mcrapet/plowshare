@@ -17,7 +17,7 @@ humyo       | download |        |        |      |
 mediafire   | download |        |        | list |
 megaupload  | download | upload | delete | list |
 multiupload |          | upload |        | list |
-netload_in  | download |        |        |      |
+netload_in  | download |        |        | list |
 rapidshare  | download |        | delete |      |
 sendspace   | download |        |        | list |
 uploading   | download |        |        |      |
