@@ -58,6 +58,9 @@ fileserve_download() {
             test -z "$FILE_URL" && return 1
             test "$CHECK_LINK" && return 255
 
+            # Non premium cannot resume downloads
+            MODULE_FILESERVE_DOWNLOAD_CONTINUE=yes
+
             echo "$FILE_URL"
             return 0
         fi
