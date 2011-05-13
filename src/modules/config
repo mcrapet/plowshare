@@ -10,7 +10,7 @@ depositfiles| download |        |        | list |
 divshare    | download |        |        |      |
 dl_free_fr  | download | upload |        |      |
 euroshare_eu| download |        |        |      |
-fileserve   | download |        |        | list |
+fileserve   | download | upload |        | list |
 filesonic   | download | upload | delete | list |
 hotfile     | download |        |        | list |
 humyo       | download |        |        |      |

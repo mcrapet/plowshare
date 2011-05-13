@@ -22,6 +22,7 @@ MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
 MODULE_FILESERVE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free and Premium account"
 MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
+MODULE_FILESERVE_UPLOAD_OPTIONS=""
 MODULE_FILESERVE_LIST_OPTIONS=""
 
 # Output an fileserve.com file download URL (anonymous)
@@ -176,6 +177,77 @@ fileserve_download() {
 
     rm -f $COOKIES
     echo "$FILE_URL"
+}
+
+# Upload a file to fileserve (anonymous only for now)
+# $1: file name to upload
+# $2: upload as file name (optional, defaults to $1)
+# stdout: download link on fileserve
+fileserve_upload() {
+    set -e
+    eval "$(process_options fileserve "$MODULE_FILESERVE_UPLOAD_OPTIONS" "$@")"
+
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local BASEURL="http://www.fileserve.com"
+
+    PAGE=$(curl "$BASEURL/upload-file.php")
+
+    # Send (post) form
+    local FORM_HTML=$(grep_form_by_id "$PAGE" 'uploadForm')
+    local form_url=$(echo "$FORM_HTML" | parse_form_action)
+
+    local form_affiliateId=$(echo "$FORM_HTML" | parse_form_input_by_name 'affiliateId')
+    local form_subAffiliateId=$(echo "$FORM_HTML" | parse_form_input_by_name 'subAffiliateId')
+    local form_landingId=$(echo "$FORM_HTML" | parse_form_input_by_name 'landingId')
+    local form_serverId=$(echo "$FORM_HTML" | parse_form_input_by_name 'serverId')
+    local form_userId=$(echo "$FORM_HTML" | parse_form_input_by_name 'userId')
+    local form_uploadSessionId=$(echo "$FORM_HTML" | parse_form_input_by_name 'uploadSessionId')
+    local form_uploadHostURL=$(echo "$FORM_HTML" | parse_form_input_by_name 'uploadHostURL')
+
+    # Get sessionId
+    JSON=$(curl "$BASEURL/upload-track.php" | parse 'sessionId' ':"\([^"]*\)')
+    log_debug "sessionId: $JSON"
+
+    if [ -z "$form_userId"]; then
+        form_userId=6616385
+    fi
+
+    if [ -z "$form_uploadSessionId"]; then
+        form_uploadSessionId=$JSON
+    fi
+
+    # Sending HTTP 1.0 post because lighttpd/1.4.25 doesn't support
+    # Except keyword (see HTTP error code 417)
+    PAGE=$(curl --http1.0 -F "affiliateId=${form_affiliateId}" \
+            -F "subAffiliateId=${form_subAffiliateId}" \
+            -F "landingId=${form_landingId}" \
+            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "serverId=${form_serverId}" \
+            -F "userId=${form_userId}" \
+            -F "uploadSessionId=${form_uploadSessionId}" \
+            -F "uploadHostURL=${form_uploadHostURL}" \
+            "${form_url}$JSON") || return 1
+
+    PAGE=$(curl --data "uploadSessionId[]=$form_uploadSessionId" \
+            "$BASEURL/upload-result.php")
+
+    LINK=$(echo "$PAGE" | parse 'com\/file\/' 'readonly >\(.*\)')
+
+    if [ -z "$LINK" ]; then
+        log_error "upload failed or site updated?"
+        return 1
+    fi
+
+    LINK_DEL=$(echo "$PAGE" | parse_quiet '\/delete\/' 'readonly >\(.*\)')
+
+    if [ -z "$LINK_DEL" ]; then
+        echo "$LINK"
+    else
+        echo "$LINK ($LINK_DEL)"
+    fi
+
+    return 0
 }
 
 # List a fileserve public folder URL
