@@ -695,7 +695,7 @@ recaptcha_display_and_prompt() {
     FILENAME="$1"
 
     local TEXT1='Leave this field blank and hit enter to get another captcha image'
-    local TEXT2='Enter captcha response (drop punctuation marks): '
+    local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
 
     # X11 server installed ?
     if [ -n "$DISPLAY" ] && check_exec 'display'; then
