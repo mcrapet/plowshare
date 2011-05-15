@@ -306,7 +306,7 @@ parse_form_input_by_type() {
 }
 
 # Get accessor for cookies
-# Example: LANG=$(getcookie "lang" < "$COOKIES")
+# Example: LANG=$(parse_cookie "lang" < "$COOKIES")
 parse_cookie() {
     parse_quiet "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
 }
