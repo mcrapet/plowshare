@@ -20,10 +20,34 @@
 
 MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
 MODULE_FILESERVE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Free and Premium account"
+AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
 MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
-MODULE_FILESERVE_UPLOAD_OPTIONS=""
+MODULE_FILESERVE_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
 MODULE_FILESERVE_LIST_OPTIONS=""
+
+
+# Static function for proceeding login
+fileserve_login() {
+    AUTH=$1
+    COOKIE_FILE=$2
+    BASEURL=$3
+
+    LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASEURL/login.php")
+
+    STATUS=$(echo "$LOGIN_RESULT" | parse_quiet 'fail_info">' '">\([^<]*\)')
+    if [ -n "$STATUS" ]; then
+        log_debug "Login failed: $STATUS"
+        return 1
+    fi
+
+    NAME=$(curl -b "$COOKIE_FILE" "$BASEURL/dashboard.php" | \
+        parse 'Welcome ' '<strong>\([^<]*\)')
+    log_notice "Successfully logged in as $NAME member"
+    return 0
+}
 
 # Output an fileserve.com file download URL (anonymous)
 # $1: fileserve url string
@@ -191,7 +215,18 @@ fileserve_upload() {
     local DESTFILE=${2:-$FILE}
     local BASEURL="http://www.fileserve.com"
 
-    PAGE=$(curl "$BASEURL/upload-file.php")
+    # Attempt to authenticate
+    if test "$AUTH"; then
+        COOKIES=$(create_tempfile)
+        fileserve_login "$AUTH" "$COOKIES" "$BASEURL" || {
+            rm -f "$COOKIES"
+            return 1
+        }
+        PAGE=$(curl -b "$COOKIES" "$BASEURL/upload-file.php")
+        rm -f "$COOKIES"
+    else
+        PAGE=$(curl "$BASEURL/upload-file.php")
+    fi
 
     # Send (post) form
     local FORM_HTML=$(grep_form_by_id "$PAGE" 'uploadForm')
@@ -209,11 +244,12 @@ fileserve_upload() {
     JSON=$(curl "$BASEURL/upload-track.php" | parse 'sessionId' ':"\([^"]*\)')
     log_debug "sessionId: $JSON"
 
-    if [ -z "$form_userId"]; then
+    if [ -z "$form_userId" ]; then
         form_userId=6616385
     fi
+    log_debug "userId: $form_userId"
 
-    if [ -z "$form_uploadSessionId"]; then
+    if [ -z "$form_uploadSessionId" ]; then
         form_uploadSessionId=$JSON
     fi
 
