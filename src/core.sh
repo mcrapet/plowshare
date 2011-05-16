@@ -635,8 +635,10 @@ recaptcha_load_image() {
         log_debug "reCaptcha challenge: $challenge"
 
         # Image dimension: 300x57
-        FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
-        curl "${server}image?c=${challenge}" -o "$FILENAME"
+        local FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
+        local CAPTCHA_URL="${server}image?c=${challenge}"
+        log_debug "reCaptcha image URL: $CAPTCHA_URL"
+        curl "$CAPTCHA_URL" -o "$FILENAME"
 
         log_debug "reCaptcha image: $FILENAME"
         echo "$FILENAME"
@@ -659,11 +661,13 @@ recaptcha_reload_image() {
         local challenge=$(recaptcha_get_challenge_from_image "$FILENAME")
         local server="$RECAPTCHA_SERVER"
 
-        STATUS=$(curl "${server}reload?k=$1&c=${challenge}&reason=r&type=image&lang=en")
-        challenge=$(echo "$STATUS" | parse_quiet 'finish_reload' "('\([^']*\)")
+        local STATUS=$(curl "${server}reload?k=$1&c=${challenge}&reason=r&type=image&lang=en")
+        local challenge=$(echo "$STATUS" | parse_quiet 'finish_reload' "('\([^']*\)")
 
-        FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
-        curl "${server}image?c=${challenge}" -o "$FILENAME"
+        local FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
+        local CAPTCHA_URL="${server}image?c=${challenge}"
+        log_debug "reCaptcha image URL: $CAPTCHA_URL"
+        curl "$CAPTCHA_URL" -o "$FILENAME"
 
         log_debug "reCaptcha new image: $FILENAME"
         echo "$FILENAME"
