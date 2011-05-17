@@ -141,7 +141,7 @@ strip() {
 
 # Return uppercase string
 uppercase() {
-    tr '[a-z]' '[A-Z]'
+    tr '[:lower:]' '[:upper:]'
 }
 
 # Check if a string ($2) matches a regexp ($1)
@@ -958,7 +958,7 @@ quote() {
 # stdin: input (multiline) string
 # stdout: result string
 drop_empty_lines() {
-    cat | sed '/^[    ]*$/d'
+    cat | sed '/^[	 ]*$/d'
 }
 
 # Example: 12345 => "3h25m45s"
