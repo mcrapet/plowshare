@@ -136,7 +136,7 @@ replace() {
 # stdin: input string
 # stdout: result string
 strip() {
-    cat | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+    sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # Return uppercase string
@@ -958,7 +958,7 @@ quote() {
 # stdin: input (multiline) string
 # stdout: result string
 drop_empty_lines() {
-    cat | sed '/^[	 ]*$/d'
+    sed '/^[ 	]*$/d'
 }
 
 # Example: 12345 => "3h25m45s"
