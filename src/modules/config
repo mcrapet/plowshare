@@ -9,6 +9,7 @@ dataport_cz | download | upload | delete |      |
 depositfiles| download |        |        | list |
 divshare    | download |        |        |      |
 dl_free_fr  | download | upload |        |      |
+duckload    | download |        |        |      |
 euroshare_eu| download |        |        |      |
 fileserve   | download | upload |        | list |
 filesonic   | download | upload | delete | list |
