@@ -194,6 +194,10 @@ grep_http_header_location() {
     sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
 }
 
+grep_http_header_content_location() {
+    sed -n 's/^[Cc]ontent-[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
+}
+
 # Grep first "Content-Disposition" (of http header)
 #
 # stdin: same as grep_http_header_location() below
