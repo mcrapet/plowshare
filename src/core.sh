@@ -48,17 +48,18 @@ ERROR_CODE_FATAL_MULTIPLE=101
 # - debug: modules messages, curl (intermediate) calls
 # - report: debug plus curl content (html pages, cookies)
 
-log_report() {
-    test $(verbose_level) -ge 4 && stderr "rep: $@"
-    return 0
-}
-
 # log_report for a file
+# $1: filename
 logcat_report() {
     local STRING=$(cat $1 | \
         sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' -e 's/^/rep:/')
 
     test $(verbose_level) -ge 4 && stderr "$STRING"
+    return 0
+}
+
+log_report() {
+    test $(verbose_level) -ge 4 && stderr "rep: $@"
     return 0
 }
 
