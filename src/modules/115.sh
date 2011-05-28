@@ -29,9 +29,9 @@ MODULE_115_DOWNLOAD_CONTINUE=no
 115_download() {
     eval "$(process_options '115' "$MODULE_115_DOWNLOAD_OPTIONS" "$@")"
 
-    HTML_PAGE=$(curl --user-agent 'Mozilla' "$1" | break_html_lines)
+    HTML_PAGE=$(curl "$1" | break_html_lines)
 
-    local LINKS=$(echo "$HTML_PAGE" | parse_all 'key1=' 'href="\(http:\/\/[^"]*\)' 2>/dev/null)
+    local LINKS=$(echo "$HTML_PAGE" | parse_all 'sendMnvdToServer()' 'href="\(http:\/\/[^"]*\)' 2>/dev/null)
 
     if [ -z "$LINKS" ]; then
         log_debug "file not found"
@@ -41,17 +41,25 @@ MODULE_115_DOWNLOAD_CONTINUE=no
     test "$CHECK_LINK" && return 255
 
     # There are usually mirrors (do a HTTP HEAD request to check dead mirror)
-    while read FILE_URL; do
-        FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition)
-        if [ -n "$FILE_NAME" ]; then
-            echo "$FILE_URL"
+    while read URL; do
+        HEADERS=$(curl -I "$URL")
 
-            if [ "${#FILE_NAME}" -ge 255 ]; then
-                FILE_NAME="${FILE_NAME:0:254}"
+        local FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition)
+        if [ -n "$FILENAME" ]; then
+            echo "$URL"
+
+            if [ "${#FILENAME}" -ge 255 ]; then
+                FILENAME="${FILENAME:0:254}"
                 log_debug "filename is too long, truncating it"
             fi
 
-            echo "$FILE_NAME"
+            echo "$FILENAME"
+            return 0
+        fi
+
+        local DIRECT=$(echo "$HEADERS" | grep_http_header_content_type)
+        if [ "$DIRECT" = 'application/octet-stream' ]; then
+            echo "$URL"
             return 0
         fi
     done <<< "$LINKS"

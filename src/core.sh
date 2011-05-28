@@ -199,9 +199,14 @@ grep_http_header_content_location() {
     sed -n 's/^[Cc]ontent-[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
 }
 
+grep_http_header_content_type() {
+    sed -n 's/^[Cc]ontent-[Tt]ype:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
+}
+
 # Grep first "Content-Disposition" (of http header)
 #
 # stdin: same as grep_http_header_location() below
+# stdout: attachement filename
 grep_http_header_content_disposition() {
     parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
 }
