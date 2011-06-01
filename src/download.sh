@@ -293,7 +293,7 @@ download() {
             # Echo downloaded file path
             FN=$(basename_file "$TEMP_FILENAME")
             OUTPUT_PATH=$(test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FN" || echo "$FN")
-            echo $OUTPUT_PATH
+            echo "$OUTPUT_PATH"
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "" "|$OUTPUT_PATH"
         break
