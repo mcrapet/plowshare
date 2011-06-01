@@ -819,7 +819,7 @@ get_options_for_module() {
 # Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
 #
 # $1: module name list (one per line)
-# $2: option family name (string)
+# $2: option family name (string, example:UPLOAD)
 get_modules_options() {
     while read MODULE; do
         get_options_for_module "$MODULE" "$2" | while read OPTION; do
@@ -886,7 +886,9 @@ process_options() {
     local LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
     local ARGUMENTS="$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$NAME" -- "$@")"
 
+    # To correctly process whitespace and quotes.
     eval set -- "$ARGUMENTS"
+
     local -a UNUSED_OPTIONS=()
     while true; do
         test "$1" = "--" && { shift; break; }
@@ -900,6 +902,10 @@ process_options() {
             if test "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}"; then
                 if test "${SHORT:${#SHORT}-1:1}" = ":" -o \
                         "${LONG:${#LONG}-1:1}" = ":"; then
+
+                    test -z "$VALUE" && \
+                        stderr "process_options ($VAR): VALUE should not be empty!"
+
                     if test "$UNUSED" = 0; then
                         echo "$VAR=$(quote "$2")"
                     else
