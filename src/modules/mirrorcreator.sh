@@ -33,7 +33,13 @@ mirrorcreator_upload() {
 
     local FILE=$1
     local DESTFILE=${2:-$FILE}
+    local SZ=$(get_filesize "$FILE")
     local BASE_URL="http://www.mirrorcreator.com"
+
+    # Warning message
+    if [ "$SZ" -gt 419430400 ]; then
+        log_error "warning: file is bigger than 400MB, some site may not support it"
+    fi
 
     PAGE=$(curl "$BASE_URL")
 

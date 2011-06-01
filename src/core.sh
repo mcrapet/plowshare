@@ -106,8 +106,8 @@ curl() {
         local TEMPCURL=$(create_tempfile)
         log_report "$@"
         "$@" | tee "$TEMPCURL" || DRETVAL=$?
-        FILESIZE=`stat -c %s $TEMPCURL 2>/dev/null`
-        log_report "Received ${FILESIZE:-?} bytes"
+        FILESIZE=$(get_filesize "TEMPCURL")
+        log_report "Received $FILESIZE bytes"
         log_report "=== CURL BEGIN ==="
         logcat_report "$TEMPCURL"
         log_report "=== CURL END ==="
@@ -345,6 +345,21 @@ basename_file()
 {
     # `basename -- "$1"` may be screwed on some BusyBox versions
     echo "${1##*/}"
+}
+
+# Retrieves size of file
+#
+# $1: filename
+# stdout: file length (in bytes)
+get_filesize()
+{
+    SIZE=`stat -c %s "$1" 2>/dev/null`
+    if [ -z "$SIZE" ]; then
+        log_error "stat binary not found"
+        echo "-1"
+    else
+        echo "$SIZE"
+    fi
 }
 
 # HTML entities will be translated
