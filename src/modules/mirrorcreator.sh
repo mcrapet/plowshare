@@ -63,7 +63,7 @@ mirrorcreator_upload() {
         CURL_STRING+=" -F ${H}=on"
     done <<< "$SITES"
 
-    # Site is using third part uploader compoment: Uper-Uploader
+    # Site is using third part uploader component: Uber-Uploader
     # (http://uber-uploader.sourceforge.net/)
     # Remark: Calling "uber/ubr_set_progress.php" and "uber/ubr_get_progress.php"
     # is not required here.
