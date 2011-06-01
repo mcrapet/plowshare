@@ -19,7 +19,11 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/"
-MODULE_MIRRORCREATOR_UPLOAD_OPTIONS=""
+MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
+EASYSHARE,,easyshare,,Include this additional host site
+FILESERVE,,fileserve,,Include this additional host site
+HOTFILE,,hotfile,,Include this additional host site
+RAPIDSHARE,,rapidshare,,Include this additional host site"
 
 # $1: input file
 # $2 (optional): alternate destination filename
@@ -35,6 +39,7 @@ mirrorcreator_upload() {
 
     local FORM=$(grep_form_by_id "$PAGE" 'uu_upload')
 
+    # Informational only
     HOSTERS=$(echo "$FORM" | parse_all 'checked' '">\([^<]*\)<br')
     N=0
     if [ -n "$HOSTERS" ]; then
@@ -60,8 +65,26 @@ mirrorcreator_upload() {
     CURL_STRING=''
     while read H; do
         (( N-- <= 0 )) && break;
-        CURL_STRING+=" -F ${H}=on"
+        CURL_STRING="$CURL_STRING -F ${H}=on"
     done <<< "$SITES"
+
+    # Check command line additionnal hosters
+    if [ -n "$EASYSHARE" ]; then
+        CURL_STRING="$CURL_STRING -F easyshare=on"
+        log_debug "- EasyShare"
+    fi
+    if [ -n "$FILESERVE" ]; then
+        CURL_STRING="$CURL_STRING -F fileserve=on"
+        log_debug "- FileServe"
+    fi
+    if [ -n "$HOTFILE" ]; then
+        CURL_STRING="$CURL_STRING -F hotfile=on"
+        log_debug "- HotFile"
+    fi
+    if [ -n "$RAPIDSHARE" ]; then
+        CURL_STRING="$CURL_STRING -F rapidshare=on"
+        log_debug "- RapidShare"
+    fi
 
     # Site is using third part uploader component: Uber-Uploader
     # (http://uber-uploader.sourceforge.net/)
