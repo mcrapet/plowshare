@@ -26,11 +26,10 @@ MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 MULTIFETCH,m,multifetch,,Use URL multifetch upload
 CLEAR_LOG,,clear-log,,Clear upload log after upload process
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
+LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password (premium only)
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
-TRAFFIC_URL,,traffic-url:,URL,Set the traffic URL
 MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload"
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)"
@@ -228,66 +227,70 @@ megaupload_upload() {
             rm -f $COOKIES
             return 1
         }
+    elif [ -n "$LINK_PASSWORD" ]; then
+        log_error "password ignored, premium only"
     fi
 
     if [ "$MULTIFETCH" ]; then
-      UPLOADURL="http://www.megaupload.com/?c=multifetch"
-      STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
-      STATUSLOOPTIME=5
+        UPLOADURL="http://www.megaupload.com/?c=multifetch"
+        STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
+        STATUSLOOPTIME=5
 
-      # Cookie file must contain sessionid
-      [ -s "$COOKIES" ] ||
-          { log_error "Premium account required to use multifetch"; return 2; }
+        # Cookie file must contain sessionid
+        [ -s "$COOKIES" ] ||
+            { log_error "Premium account required to use multifetch"; return 2; }
 
-      log_debug "spawn URL fetch process: $FILE"
-      UPLOADID=$(curl -b $COOKIES -L \
-          -F "fetchurl=$FILE" \
-          -F "description=$DESCRIPTION" \
-          -F "youremail=$FROMEMAIL" \
-          -F "receiveremail=$TOEMAIL" \
-          -F "password=$LINK_PASSWORD" \
-          -F "multiplerecipients=$MULTIEMAIL" \
-          "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) ||
-              { log_error "cannot start multifetch upload"; return 2; }
-      while true; do
-        CSS="display:[[:space:]]*none"
+        log_debug "spawn URL fetch process: $FILE"
+        UPLOADID=$(curl -b $COOKIES -L \
+            -F "fetchurl=$FILE" \
+            -F "description=$DESCRIPTION" \
+            -F "youremail=$FROMEMAIL" \
+            -F "receiveremail=$TOEMAIL" \
+            -F "password=$LINK_PASSWORD" \
+            -F "multiplerecipients=$MULTIEMAIL" \
+            "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) ||
+                { log_error "cannot start multifetch upload"; return 2; }
+        while true; do
+            CSS="display:[[:space:]]*none"
+            STATUS=$(curl -b $COOKIES "$STATUSURL")
+            ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
+                parse_quiet "status_$UPLOADID" '>\(.*\)<\/div>' | xargs) || true
+            test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
+            echo "$STATUS" | grep "completed_$UPLOADID" | grep -q "$CSS" || break
+            INFO=$(echo "$STATUS" | parse "estimated_$UPLOADID" \
+                "estimated_$UPLOADID\">\(.*\)<\/div>" | xargs)
+            log_debug "waiting for the upload $UPLOADID to finish: $INFO"
+            sleep $STATUSLOOPTIME
+        done
+        log_debug "fetching process finished"
         STATUS=$(curl -b $COOKIES "$STATUSURL")
-        ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
-            parse_quiet "status_$UPLOADID" '>\(.*\)<\/div>' | xargs) || true
-        test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
-        echo "$STATUS" | grep "completed_$UPLOADID" | grep -q "$CSS" || break
-        INFO=$(echo "$STATUS" | parse "estimated_$UPLOADID" \
-            "estimated_$UPLOADID\">\(.*\)<\/div>" | xargs)
-        log_debug "waiting for the upload $UPLOADID to finish: $INFO"
-        sleep $STATUSLOOPTIME
-      done
-      log_debug "fetching process finished"
-      STATUS=$(curl -b $COOKIES "$STATUSURL")
-      if [ "$CLEAR_LOG" ]; then
-        log_debug "clearing upload log for task $UPLOADID"
-        CLEARURL=$(echo "$STATUS" | parse "cancel=$UPLOADID" "href=[\"']\([^\"']*\)")
-        log_debug "clear URL: $BASEURL/$CLEARURL"
-        curl -b $COOKIES "$BASEURL/$CLEARURL" > /dev/null
-      fi
-      echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
+        if [ "$CLEAR_LOG" ]; then
+            log_debug "clearing upload log for task $UPLOADID"
+            CLEARURL=$(echo "$STATUS" | parse "cancel=$UPLOADID" "href=[\"']\([^\"']*\)")
+            log_debug "clear URL: $BASEURL/$CLEARURL"
+            curl -b $COOKIES "$BASEURL/$CLEARURL" > /dev/null
+        fi
+        echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
     else
-      UPLOADURL="http://www.megaupload.com/multiupload/"
-      log_debug "downloading upload page: $UPLOADURL"
-      DONE=$(curl "$UPLOADURL" | parse "upload_done.php" 'action="\([^\"]*\)"') ||
-          { log_debug "can't get upload_done page"; return 2; }
-      UPLOAD_IDENTIFIER=$(parse "IDENTIFIER" "IDENTIFIER=\([0-9.]\+\)" <<< $DONE)
-      log_debug "starting file upload: $FILE"
-      curl_with_log -b $COOKIES \
-          -F "UPLOAD_IDENTIFIER=$UPLOAD_IDENTIFIER" \
-          -F "sessionid=$UPLOAD_IDENTIFIER" \
-          -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
-          -F "message=$DESCRIPTION" \
-          -F "toemail=$TOEMAIL" \
-          -F "fromemail=$FROMEMAIL" \
-          -F "password=$LINK_PASSWORD" \
-          -F "trafficurl=$TRAFFIC_URL" \
-          -F "multiemail=$MULTIEMAIL" \
-          "$DONE" | parse "downloadurl" "url = '\(.*\)';"
+        UPLOADURL="http://www.megaupload.com/multiupload/"
+        log_debug "downloading upload page: $UPLOADURL"
+
+        local PAGE=$(curl "$UPLOADURL")
+        local FORM_URL=$(grep_form_by_name "$PAGE" 'uploadform' | parse_form_action)
+        local UPLOAD_ID=$(echo "$FORM_URL" | parse 'IDENTIFIER' '=\(.*\)')
+
+	log_debug "starting file upload: $FILE"
+
+	curl_with_log -b $COOKIES \
+	    -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
+	    -F "sessionid=$UPLOAD_ID" \
+	    -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+	    -F "message=$DESCRIPTION" \
+	    -F "toemail=$TOEMAIL" \
+	    -F "fromemail=$FROMEMAIL" \
+	    -F "password=$LINK_PASSWORD" \
+	    -F "multiemail=$MULTIEMAIL" \
+	    "$FORM_URL" | parse "downloadurl" "url = '\(.*\)';"
     fi
     rm -f $COOKIES
 }
@@ -311,7 +314,6 @@ megaupload_delete() {
 
     TOTAL_FILES=$(curl -b $COOKIES $BASE_URL"/?c=account" | \
         parse_all '<strong>' '<strong>*\([^<]*\)' | sed '3q;d')
-
 
     FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
     DATA="action=delete&delids=$FILEID"
