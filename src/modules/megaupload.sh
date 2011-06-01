@@ -279,18 +279,18 @@ megaupload_upload() {
         local FORM_URL=$(grep_form_by_name "$PAGE" 'uploadform' | parse_form_action)
         local UPLOAD_ID=$(echo "$FORM_URL" | parse 'IDENTIFIER' '=\(.*\)')
 
-	log_debug "starting file upload: $FILE"
+        log_debug "starting file upload: $FILE"
 
-	curl_with_log -b $COOKIES \
-	    -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
-	    -F "sessionid=$UPLOAD_ID" \
-	    -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
-	    -F "message=$DESCRIPTION" \
-	    -F "toemail=$TOEMAIL" \
-	    -F "fromemail=$FROMEMAIL" \
-	    -F "password=$LINK_PASSWORD" \
-	    -F "multiemail=$MULTIEMAIL" \
-	    "$FORM_URL" | parse "downloadurl" "url = '\(.*\)';"
+        curl_with_log -b $COOKIES \
+            -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
+            -F "sessionid=$UPLOAD_ID" \
+            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "message=$DESCRIPTION" \
+            -F "toemail=$TOEMAIL" \
+            -F "fromemail=$FROMEMAIL" \
+            -F "password=$LINK_PASSWORD" \
+            -F "multiemail=$MULTIEMAIL" \
+            "$FORM_URL" | parse "downloadurl" "url = '\(.*\)';"
     fi
     rm -f $COOKIES
 }
