@@ -155,7 +155,7 @@ mediafire_list() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_LIST_OPTIONS" "$@")"
     URL=$1
 
-    PAGE=$(curl "$URL" | sed "s/>/>\n/g")
+    PAGE=$(curl "$URL" | break_html_lines_alt)
 
     match '/js/myfiles.php/' "$PAGE" ||
         { log_error "not a shared folder"; return 1; }
@@ -168,16 +168,22 @@ mediafire_list() {
 
     log_debug "There is $NB file(s) in the folder"
 
-    # First pass : print debug message & links (stdout)
+    # print filename as debug message & links (stdout)
     # es[0]=Array('1','1',3,'te9rlz5ntf1','82de6544620807bf025c12bec1713a48','my_super_file.txt','14958589','14.27','MB','43','02/13/2010', ...
-    while [[ "$NB" -gt 0 ]]; do
-        ((NB--))
-        LINE=$(echo "$DATA" | parse "es\[$NB\]=" "Array(\(.*\));")
-        FID=$(echo "$LINE" | cut -d, -f4 | tr -d "'")
-        FILENAME=$(echo "$LINE" | cut -d, -f6 | tr -d "'")
+    DATA=$(echo "$DATA" | grep 'es\[' | tr -d "'" | sed -e '$d')
+    while IFS=, read -r _ _ _ FID _ FILENAME _; do
         log_debug "$FILENAME"
         echo "http://www.mediafire.com/?$FID"
-    done
+    done <<< "$DATA"
+
+    # Alternate (more portable?) version:
+    #
+    # while read LINE; do
+    #     FID=$(echo "$LINE" | cut -d, -f4)
+    #     FILENAME=$(echo "$LINE" | cut -d, -f6)
+    #     log_debug "$FILENAME"
+    #     echo "http://www.mediafire.com/?$FID"
+    # done <<< "$DATA"
 
     return 0
 }
