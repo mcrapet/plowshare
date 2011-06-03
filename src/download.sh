@@ -143,6 +143,12 @@ create_alt_filename() {
     echo "$FILENAME"
 }
 
+continue_downloads() {
+    MODULE=$1
+    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_CONTINUE"
+    test "${!VAR}" = "yes"
+}
+
 download() {
     local MODULE=$1
     local URL=$2

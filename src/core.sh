@@ -817,12 +817,6 @@ debug_options() {
     done <<< "$OPTIONS"
 }
 
-continue_downloads() {
-    MODULE=$1
-    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_CONTINUE"
-    test "${!VAR}" = "yes"
-}
-
 get_options_for_module() {
     MODULE=$1
     NAME=$2
