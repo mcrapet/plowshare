@@ -20,7 +20,7 @@
 
 MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Free-membership"
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-membership"
 MODULE_EUROSHARE_EU_DOWNLOAD_CONTINUE=no
 
 # Output a euroshare.eu file download URL
@@ -45,9 +45,9 @@ euroshare_eu_download() {
         return 255
     fi
 
-    if test "$AUTH"; then
+    if test "$AUTH_FREE"; then
         LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
-        CHECK_LOGIN=$(post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL")
+        CHECK_LOGIN=$(post_login "$AUTH_FREE" "$COOKIES" "$LOGIN_DATA" "$BASEURL")
 
         if ! match "/logout" "$CHECK_LOGIN"; then
             log_error "Login process failed. Bad username or password?"
