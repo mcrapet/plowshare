@@ -19,6 +19,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.com/"
+
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""

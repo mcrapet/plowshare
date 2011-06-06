@@ -19,6 +19,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/"
+
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 EASYSHARE,,easyshare,,Include this additional host site
 FILESERVE,,fileserve,,Include this additional host site
@@ -113,4 +114,3 @@ mirrorcreator_upload() {
     echo "$PAGE" | parse_attr 'getElementById("link2")' 'href'
     return 0
 }
-

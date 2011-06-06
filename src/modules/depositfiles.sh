@@ -19,18 +19,19 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles\.com/"
+
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS=""
+MODULE_DEPOSITFILES_DOWNLOAD_RESUME=no
+MODULE_DEPOSITFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+
 MODULE_DEPOSITFILES_LIST_OPTIONS=""
-MODULE_DEPOSITFILES_DOWNLOAD_CONTINUE=no
 
 # Output a depositfiles file download URL (free download)
-# $1: DEPOSITFILES_URL
+# $1: cookie file (unused here)
+# $2: depositfiles.com url
 # stdout: real file download link
 depositfiles_download() {
-    set -e
-    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$1
+    URL="$2"
     BASEURL="http://depositfiles.com"
 
     while retry_limit_not_reached || return 3; do

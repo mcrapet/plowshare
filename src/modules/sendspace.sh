@@ -19,18 +19,19 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/\(file\|folder\)/"
+
 MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
+MODULE_SENDSPACE_DOWNLOAD_RESUME=no
+MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+
 MODULE_SENDSPACE_LIST_OPTIONS=""
-MODULE_SENDSPACE_DOWNLOAD_CONTINUE=no
 
 # Output a sendspace file download URL
-# $1: sendspace URL
+# $1: cookie file (unused here)
+# $2: sendspace.com url
 # stdout: real file download link
 sendspace_download() {
-    set -e
-    eval "$(process_options sendspace "$MODULE_SENDSPACE_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$1
+    URL="$2"
 
     if match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"

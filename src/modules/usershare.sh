@@ -19,18 +19,18 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_USERSHARE_REGEXP_URL="http://\(www\.\)\?usershare\.net/"
+
 MODULE_USERSHARE_DOWNLOAD_OPTIONS=""
-MODULE_USERSHARE_DOWNLOAD_CONTINUE=no
+MODULE_USERSHARE_DOWNLOAD_RESUME=no
+MODULE_USERSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 # Output a usershare file download URL
-#
-# $1: A usershare URL
-#
+# $1: cookie file (unused here)
+# $2: usershare.net url
+# stdout: real file download link
 usershare_download() {
-    set -e
-    eval "$(process_options usershare "$MODULE_USERSHARE_DOWNLOAD_OPTIONS" "$@")"
+    URL="$2"
 
-    URL=$1
     FILE_URL=$(curl "$URL" | parse_attr 'download_btn\.jpg' 'href' 2>/dev/null) ||
         { log_debug "file not found"; return 254; }
 

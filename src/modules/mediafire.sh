@@ -19,16 +19,21 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_MEDIAFIRE_REGEXP_URL="http://\(www\.\)\?mediafire\.com/"
+
 MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
-MODULE_MEDIAFIRE_LIST_OPTIONS=
-MODULE_MEDIAFIRE_DOWNLOAD_CONTINUE=no
+MODULE_MEDIAFIRE_DOWNLOAD_RESUME=no
+MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
+MODULE_MEDIAFIRE_LIST_OPTIONS=""
 
 # Output a mediafire file download URL
-# $1: MEDIAFIRE_URL
+# $1: cookie file
+# $2: mediafire.com url
 # stdout: real file download link
 mediafire_download() {
-    set -e
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
@@ -48,10 +53,8 @@ mediafire_download() {
         return 1
     fi
 
-    COOKIESFILE=$(create_tempfile)
-    PAGE=$(curl -L -c $COOKIESFILE "$URL" | sed "s/>/>\n/g")
-    COOKIES=$(< $COOKIESFILE)
-    rm -f $COOKIESFILE
+    PAGE=$(curl -L -c $COOKIEFILE "$URL" | sed "s/>/>\n/g")
+    COOKIES=$(< $COOKIEFILE)
 
     test "$PAGE" || return 1
 
@@ -148,7 +151,7 @@ get_ofuscated_link() {
 }
 
 # List a mediafire shared file folder URL
-# $1: MEDIAFIRE_URL (http://www.mediafire.com/?sharekey=...)
+# $1: mediafire folder url (http://www.mediafire.com/?sharekey=...)
 # stdout: list of links
 mediafire_list() {
     set -e

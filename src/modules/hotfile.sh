@@ -19,16 +19,21 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_HOTFILE_REGEXP_URL="http://\(www\.\)\?hotfile\.com/"
+
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account"
+MODULE_HOTFILE_DOWNLOAD_RESUME=no
+MODULE_HOTFILE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+
 MODULE_HOTFILE_LIST_OPTIONS=""
-MODULE_HOTFILE_DOWNLOAD_CONTINUE=no
 
 # Output an hotfile.com file download URL (anonymous or premium)
-# $1: HOTFILE_URL
+# $1: cookie file
+# $2: hotfile.com url
 # stdout: real file download link
 hotfile_download() {
-    set -e
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
 
     URL="${1}&lang=en"
@@ -58,15 +63,13 @@ hotfile_download() {
     fi
 
     BASE_URL='http://hotfile.com'
-    COOKIES=$(create_tempfile)
 
     while retry_limit_not_reached || return 3; do
-        WAIT_HTML=$(curl -c $COOKIES "$URL")
+        WAIT_HTML=$(curl -c $COOKIEFILE "$URL")
 
         # "This file is either removed due to copyright claim or is deleted by the uploader."
         if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
             log_debug "File not found"
-            rm -f $COOKIES
             return 254
         fi
 
@@ -74,7 +77,6 @@ hotfile_download() {
             { log_error "can't get sleep time"; return 1; }
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
@@ -91,17 +93,16 @@ hotfile_download() {
         SLEEP=$((SLEEP / 1000))
         wait $((SLEEP)) seconds || return 2
 
-        WAIT_HTML2=$(curl -b $COOKIES --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
+        WAIT_HTML2=$(curl -b $COOKIEFILE --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
             "${BASE_URL}${form_url}") || return 1
 
         # Direct download (no captcha)
         if match 'Click here to download' "$WAIT_HTML2"; then
             local LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href')
-            FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
+            FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
             echo "$FILEURL"
-            echo
-            echo "$COOKIES"
             return 0
+
         elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
             # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
             local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
@@ -139,7 +140,7 @@ hotfile_download() {
 
                 CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
-                HTMLPAGE=$(curl -b $COOKIES --data \
+                HTMLPAGE=$(curl -b $COOKIEFILE --data \
                   "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
                   "${BASE_URL}${form2_url}") || return 1
 
@@ -152,10 +153,8 @@ hotfile_download() {
                 if [ -n "$LINK" ]; then
                     log_debug "correct captcha"
 
-                    FILEURL=$(curl -b $COOKIES --include "$LINK" | grep_http_header_location)
+                    FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
                     echo "$FILEURL"
-                    echo
-                    echo "$COOKIES"
                     return 0
                 fi
             fi
@@ -169,7 +168,6 @@ hotfile_download() {
         fi
     done
 
-    rm -f $COOKIES
     return 1
 }
 

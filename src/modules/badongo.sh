@@ -19,18 +19,18 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_BADONGO_REGEXP_URL="http://\(www\.\)\?badongo\.com/"
+
 MODULE_BADONGO_DOWNLOAD_OPTIONS=""
-MODULE_BADONGO_DOWNLOAD_CONTINUE=no
+MODULE_BADONGO_DOWNLOAD_RESUME=no
+MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 # Output a file URL to download from Badongo
-#
-# badongo_download [MODULE_BADONGO_DOWNLOAD_OPTIONS] BADONGO_URL
-#
+# $1: cookie file
+# $2: badongo url
+# stdout: real file download link
 badongo_download() {
-    set -e
-    eval "$(process_options bandogo "$MODULE_BADONGO_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
     BASEURL="http://www.badongo.com"
     APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
 
@@ -43,7 +43,6 @@ badongo_download() {
     detect_javascript >/dev/null || return 1
     PERL_PRG=$(detect_perl) || return 1
 
-    COOKIES=$(create_tempfile)
     TRY=1
 
     while retry_limit_not_reached || return 3; do
@@ -59,7 +58,6 @@ badongo_download() {
             { log_debug "file not found"; return 254; }
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
@@ -81,7 +79,7 @@ badongo_download() {
 
         CAP_ID=$(echo "$JSCODE" | parse_form_input_by_name 'cap_id')
         CAP_SECRET=$(echo "$JSCODE" | parse_form_input_by_name 'cap_secret')
-        WAIT_PAGE=$(curl -c $COOKIES \
+        WAIT_PAGE=$(curl -c $COOKIEFILE \
             --data "user_code=${CAPTCHA}&cap_id=${CAP_ID}&cap_secret=$CAP_SECRET" \
             "$ACTION")
         match 'id="link_container"' "$WAIT_PAGE" && break
@@ -103,7 +101,7 @@ badongo_download() {
     FILETYPE='file'
 
     # Start remote timer
-    JSON=$(curl -b $COOKIES \
+    JSON=$(curl -b $COOKIEFILE \
             --data "id=${FILEID}&type=${FILETYPE}&ext=&f=download%3Ainit&z=${GLF_Z}&h=${GLF_H}" \
             --referer "$ACTION" "$APIURL") ||
         { log_error "error json (#1), site updated?"; return 1; }
@@ -118,7 +116,7 @@ badongo_download() {
     wait $((WAIT_TIME)) seconds || return 2
 
     # Notify remote timer
-    JSON=$(curl -b $COOKIES \
+    JSON=$(curl -b $COOKIEFILE \
             --data "id=${FILEID}&type=${FILETYPE}&ext=&f=download%3Acheck&z=${GLF_Z}&h=${GLF_H}&t=${GLF_T}" \
             --referer "$ACTION" \
             "$APIURL") ||
@@ -131,7 +129,7 @@ badongo_download() {
     GLF_T=$(echo "$JSON" | parse "'t'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
 
     # HTTP GET request
-    JSCODE=$(curl -G -b "_gflCur=0" -b $COOKIES \
+    JSCODE=$(curl -G -b "_gflCur=0" -b $COOKIEFILE \
         --data "rs=getFileLink&rst=&rsrnd=${MTIME}&rsargs[]=0&rsargs[]=yellow&rsargs[]=${GLF_Z}&rsargs[]=${GLF_H}&rsargs[]=${GLF_T}&rsargs[]=${FILETYPE}&rsargs[]=${FILEID}&rsargs[]=" \
         --referer "$ACTION" "$ACTION" | sed "s/>/>\n/g")
 
@@ -141,14 +139,13 @@ badongo_download() {
             { log_error "can't parse base url"; return 1; }
     FILE_URL="${LINK_PART1}${LINK_PART2}?zenc="
 
-    LAST_PAGE=$(curl -b "_gflCur=0" -b $COOKIES --referer "$ACTION" $FILE_URL)
+    LAST_PAGE=$(curl -b "_gflCur=0" -b $COOKIEFILE --referer "$ACTION" $FILE_URL)
 
     # Look for new location.href
     LINK_FINAL=$(echo "$LAST_PAGE" | parse_last 'location\.href' "= '\([^']*\)") ||
         { log_error "error parsing link part2, site updated?"; return 1; }
-    FILE_URL=$(curl -i -b $COOKIES --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | grep_http_header_location)
+    FILE_URL=$(curl -i -b $COOKIEFILE --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | grep_http_header_location)
 
-    rm -f $COOKIES
     test "$FILE_URL" || { log_error "location not found"; return 1; }
     echo "$FILE_URL"
 }

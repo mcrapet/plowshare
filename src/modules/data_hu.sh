@@ -19,16 +19,17 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_DATA_HU_REGEXP_URL="http://\(www\.\)\?data.hu/get/"
+
 MODULE_DATA_HU_DOWNLOAD_OPTIONS=""
-MODULE_DATA_HU_DOWNLOAD_CONTINUE=yes
+MODULE_DATA_HU_DOWNLOAD_RESUME=yes
+MODULE_DATA_HU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 # Output a data_hu file download URL
-#
-# $1: A data_hu URL
-#
+# $1: cookie file (unused here)
+# $2: data.hu url
+# stdout: real file download link
 data_hu_download() {
-    eval "$(process_options data_hu "$MODULE_DATA_HU_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
+    URL="$2"
 
     PAGE=$(curl -L "$URL") || return 1
     match "/missing.php" "$PAGE" &&

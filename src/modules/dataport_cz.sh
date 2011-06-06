@@ -19,22 +19,22 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_DATAPORT_CZ_REGEXP_URL="http://\(www\.\)\?dataport\.cz/"
+
 MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS=""
+MODULE_DATAPORT_CZ_DOWNLOAD_RESUME=yes
+MODULE_DATAPORT_CZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+
 MODULE_DATAPORT_CZ_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or VIP account"
 MODULE_DATAPORT_CZ_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Login to free or VIP account (required)"
-MODULE_DATAPORT_CZ_DOWNLOAD_CONTINUE=yes
 
 # Output a dataport.cz file download URL
-# $1: DATAPORT_CZ_URL
+# $1: cookie file (unused here)
+# $2: dataport.cz url
 # stdout: real file download link
 dataport_cz_download() {
-    set -e
-    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$(uri_encode_file "$1")
-
+    URL=$(uri_encode_file "$2")
     PAGE=$(curl --location "$URL")
 
     if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
@@ -86,7 +86,6 @@ dataport_cz_download() {
 }
 
 dataport_cz_upload() {
-    set -e
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
 
     local FILE=$1

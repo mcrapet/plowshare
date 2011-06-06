@@ -19,32 +19,31 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared\.com/"
+
 MODULE_4SHARED_DOWNLOAD_OPTIONS=""
+MODULE_4SHARED_DOWNLOAD_RESUME=no
+MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
 MODULE_4SHARED_LIST_OPTIONS=""
-MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
 # Output a 4shared file download URL
-#
-# $1: A 4shared URL
-#
+# $1: cookie file
+# $2: 4shared url
+# stdout: real file download link
 4shared_download() {
-    set -e
-    eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
 
     REAL_URL=$(curl -I "$URL" | grep_http_header_location)
     if test "$REAL_URL"; then
         URL=$REAL_URL
     fi
 
-    COOKIES=$(create_tempfile)
-    PAGE=$(curl -c $COOKIES "$URL")
+    PAGE=$(curl -c $COOKIEFILE "$URL")
     if match '4shared\.com\/dir\/' "$URL"; then
-        rm -f $COOKIES
         log_error "This is a directory list, use plowlist!"
         return 1
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
-        rm -f $COOKIES
         log_error "File not found!"
         return 254
     fi
@@ -53,8 +52,7 @@ MODULE_4SHARED_DOWNLOAD_CONTINUE=no
 
     test "$CHECK_LINK" && return 255
 
-    WAIT_HTML=$(curl -b $COOKIES "$WAIT_URL")
-    rm -f $COOKIES
+    WAIT_HTML=$(curl -b $COOKIEFILE "$WAIT_URL")
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
             "[[:space:]]\([[:digit:]]\+\);")

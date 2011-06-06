@@ -19,14 +19,17 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_DUCKLOAD_REGEXP_URL="http://\(www\.\)\?duckload\.com/"
+
 MODULE_DUCKLOAD_DOWNLOAD_OPTIONS=""
-MODULE_DUCKLOAD_DOWNLOAD_CONTINUE=""
+MODULE_DUCKLOAD_DOWNLOAD_RESUME=no
+MODULE_DUCKLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 # Output DuckLoad download URL
-# $1: duckload url
+# $1: cookie file (unused here)
+# $2: duckload.com url
 # stdout: real file download link
 duckload_download() {
-    URL="$1"
+    URL="$2"
     BASE_URL="http://www.duckload.com/jDownloader"
 
     URL_CHECKONLINESTATUS="$BASE_URL/checkOnlineStatus.php"
@@ -38,12 +41,12 @@ duckload_download() {
             --data-urlencode "isPremium=0" \
             --data-urlencode "list=$URL" "$URL_CHECKONLINESTATUS")
 
-    log_debug $STATUS
+    log_debug "$STATUS"
     if matchi "ERROR;" "$STATUS" || matchi "OFFLINE" "$STATUS"
     then
         if matchi "OFFLINE" "$STATUS"
         then
-            log_error "[*] file not currently available"
+            log_error "file not currently available"
             return 254
         fi
     fi

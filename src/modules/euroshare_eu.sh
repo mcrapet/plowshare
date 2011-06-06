@@ -19,44 +19,42 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
+
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-membership"
-MODULE_EUROSHARE_EU_DOWNLOAD_CONTINUE=no
+MODULE_EUROSHARE_EU_DOWNLOAD_RESUME=no
+MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 # Output a euroshare.eu file download URL
-# $1: EUROSHARE_EU_URL
+# $1: cookie file
+# $2: euroshare.eu url
 # stdout: real file download link
 euroshare_eu_download() {
-    set -e
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options euroshare_eu "$MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
-    COOKIES=$(create_tempfile)
     BASEURL=$(basename_url "$URL")
 
     # html returned uses utf-8 charset
     PAGE=$(curl "$URL")
     if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
         log_error "File not found."
-        rm -f $COOKIES
         return 254
     elif test "$CHECK_LINK"; then
-        rm -f $COOKIES
         return 255
     fi
 
     if test "$AUTH_FREE"; then
         LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
-        CHECK_LOGIN=$(post_login "$AUTH_FREE" "$COOKIES" "$LOGIN_DATA" "$BASEURL")
+        CHECK_LOGIN=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL")
 
         if ! match "/logout" "$CHECK_LOGIN"; then
             log_error "Login process failed. Bad username or password?"
-            rm -f $COOKIES
             return 1
         fi
     fi
-
-
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
@@ -64,11 +62,10 @@ euroshare_eu_download() {
     while retry_limit_not_reached || return 3; do
 
         # html returned uses utf-8 charset
-        PAGE=$(curl -b "$COOKIES" "$URL")
+        PAGE=$(curl -b "$COOKIEFILE" "$URL")
 
         if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
             log_error "You are already downloading a file from this IP."
-            rm -f $COOKIES
             return 255
         fi
 
@@ -83,8 +80,6 @@ euroshare_eu_download() {
         fi
         break
     done
-
-    rm -f $COOKIES
 
     DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href')
     if ! test "$DL_URL"; then

@@ -19,18 +19,17 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_115_REGEXP_URL="http://\(\w\+\.\)\?115\.com/file/"
+
 MODULE_115_DOWNLOAD_OPTIONS=""
-MODULE_115_DOWNLOAD_CONTINUE=no
+MODULE_115_DOWNLOAD_RESUME=no
+MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 # Output a 115.com file download URL
-#
-# $1: A 115.com URL
-#
+# $1: cookie file (unused here)
+# $2: 115.com url
+# stdout: real file download link
 115_download() {
-    eval "$(process_options '115' "$MODULE_115_DOWNLOAD_OPTIONS" "$@")"
-
-    HTML_PAGE=$(curl "$1" | break_html_lines)
-
+    local HTML_PAGE=$(curl "$2" | break_html_lines)
     local LINKS=$(echo "$HTML_PAGE" | parse_all 'sendMnvdToServer()' 'href="\(http:\/\/[^"]*\)' 2>/dev/null)
 
     if [ -z "$LINKS" ]; then

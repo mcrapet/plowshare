@@ -19,24 +19,23 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_UPLOADING_REGEXP_URL="http://\(\w\+\.\)\?uploading\.com/"
+
 MODULE_UPLOADING_DOWNLOAD_OPTIONS=""
-MODULE_UPLOADING_DOWNLOAD_CONTINUE=no
+MODULE_UPLOADING_DOWNLOAD_RESUME=no
+MODULE_UPLOADING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
-# Output a uploading file download URL (anonymous, NOT PREMIUM)
-#
-# uploading_download UPLOADING_URL
-#
+# Output a uploading file download URL (anonymous, not premium)
+# $1: cookie file
+# $2: uploading.com url
+# stdout: real file download link
 uploading_download() {
-    set -e
-    eval "$(process_options uploading "$MODULE_UPLOADING_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
     BASE_URL="http://uploading.com"
-    COOKIES=$(create_tempfile)
 
     while retry_limit_not_reached || return 3; do
         # Force language to English
-        DATA=$(curl --cookie-jar "$COOKIES" --cookie "lang=1" "$URL")
+        DATA=$(curl --cookie-jar "$COOKIEFILE" --cookie "lang=1" "$URL")
         ERR1="Your IP address.*file"
         ERR2="Sorry, you have reached your daily download limit."
         if match "$ERR1\|$ERR2" "$DATA"; then
@@ -49,7 +48,6 @@ uploading_download() {
 
         if match "<h2.*Download Limit.*</h2>" "$DATA"; then
             if test "$CHECK_LINK"; then
-                rm -f $COOKIES
                 return 255
             fi
 
@@ -65,7 +63,6 @@ uploading_download() {
             { log_error "can't get wait url"; return 1; }
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
@@ -74,7 +71,7 @@ uploading_download() {
         CODE=$(echo "$HTML_FORM" | parse_form_input_by_name 'code') ||
             { log_error "can't get code form field"; return 1; }
 
-        DATA=$(curl --cookie "$COOKIES" --cookie "lang=1" --data "action=second_page&file_id=${FILE_ID}&code=${CODE}" "$WAIT_URL") ||
+        DATA=$(curl --cookie "$COOKIEFILE" --cookie "lang=1" --data "action=second_page&file_id=${FILE_ID}&code=${CODE}" "$WAIT_URL") ||
             { log_error "can't get wait URL contents"; return 1; }
         break
     done
@@ -97,7 +94,7 @@ uploading_download() {
 
     wait $WAIT seconds || return 2
 
-    DATA=$(curl --cookie "$COOKIES" --data "action=get_link&file_id=${FILE_ID}&code=${CODE}&pass=undefined" "$JSURL") ||
+    DATA=$(curl --cookie "$COOKIEFILE" --data "action=get_link&file_id=${FILE_ID}&code=${CODE}&pass=undefined" "$JSURL") ||
         { log_error "can't get link"; return 1; }
 
     # example of answer:
@@ -107,5 +104,4 @@ uploading_download() {
 
     echo $FILE_URL
     echo $FILENAME
-    echo $COOKIES
 }

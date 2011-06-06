@@ -19,26 +19,26 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\|video\|audio\)/"
+
 MODULE_2SHARED_DOWNLOAD_OPTIONS=""
+MODULE_2SHARED_DOWNLOAD_RESUME=yes
+MODULE_2SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+
 MODULE_2SHARED_UPLOAD_OPTIONS=""
 MODULE_2SHARED_DELETE_OPTIONS=""
-MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 
 # Output a 2shared file download URL
-#
-# $1: A 2shared URL
-#
+# $1: cookie file (unused here)
+# $2: 2shared url
+# stdout: real file download link
 2shared_download() {
-    set -e
-    eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
+    URL="$2"
 
-    URL=$1
     PAGE=$(curl "$URL") || return 1
     match "file link that you requested is not valid" "$PAGE" && return 254
 
     FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return 1
     test "$CHECK_LINK" && return 255
-
 
     FILENAME=$(echo "$PAGE" | parse '<title>' 'download *\([^<]*\)') || true
 
@@ -51,7 +51,6 @@ MODULE_2SHARED_DOWNLOAD_CONTINUE=yes
 # 2shared_upload FILE [DESTFILE]
 #
 2shared_upload() {
-    set -e
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
     local FILE=$1
     local DESTFILE=${2:-$FILE}

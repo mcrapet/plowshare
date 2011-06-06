@@ -19,29 +19,28 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_ZSHARE_REGEXP_URL="http://\(www\.\)\?zshare\.net/\(download\|delete\)"
+
 MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
+MODULE_ZSHARE_DOWNLOAD_RESUME=yes
+MODULE_ZSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+
 MODULE_ZSHARE_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 MODULE_ZSHARE_DELETE_OPTIONS=""
-MODULE_ZSHARE_DOWNLOAD_CONTINUE=yes
 
 # Output a zshare file download URL
-#
-# zshare_download [MODULE_ZSHARE_DOWNLOAD_OPTIONS] URL
-#
+# $1: cookie file
+# $2: zshare.net url
+# stdout: real file download link
 zshare_download() {
-    set -e
-    eval "$(process_options zshare "$MODULE_ZSHARE_DOWNLOAD_OPTIONS" "$@")"
+    COOKIEFILE="$1"
+    URL="$2"
 
-    URL=$1
-    COOKIES=$(create_tempfile)
-
-    WAITPAGE=$(curl -L -c $COOKIES --data "download=1" "$URL")
+    WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL")
     match "File Not Found" "$WAITPAGE" &&
         { log_debug "file not found"; return 254; }
 
     if test "$CHECK_LINK"; then
-        rm -f $COOKIES
         return 255
     fi
 
@@ -59,7 +58,6 @@ zshare_download() {
 
     echo $FILE_URL
     echo $FILENAME
-    echo $COOKIES
 }
 
 # Upload a file to zshare and return upload URL (DELETE_URL)
@@ -70,7 +68,6 @@ zshare_download() {
 #   -d DESCRIPTION (short text description)
 #
 zshare_upload() {
-    set -e
     eval "$(process_options zshare "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
 
     local FILE=$1

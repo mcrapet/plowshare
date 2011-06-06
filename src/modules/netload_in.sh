@@ -19,38 +19,37 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?net\(load\|folder\)\.in/"
+
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS=""
-MODULE_NETLOAD_IN_DOWNLOAD_CONTINUE=no
+MODULE_NETLOAD_IN_DOWNLOAD_RESUME=no
+MODULE_NETLOAD_IN_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
 MODULE_NETLOAD_IN_LIST_OPTIONS=""
 
-# Output an netload.in file download URL (anonymous, NOT PREMIUM)
-#
-# netload_in_download NETLOAD_IN_URL
-#
+# Output an netload.in file download URL (anonymous, not premium)
+# $1: cookie file
+# $2: netload.in url
+# stdout: real file download link
 netload_in_download() {
-    set -e
-    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$(echo "$1" | replace 'www.' '')
+    COOKIEFILE="$1"
+    URL=$(echo "$2" | replace 'www.' '')
     BASE_URL="http://netload.in"
-    COOKIES=$(create_tempfile)
 
     local TRY=0
     while retry_limit_not_reached || return 3; do
         ((TRY++))
-        WAIT_URL=$(curl --location -c $COOKIES "$URL" | \
+        WAIT_URL=$(curl --location -c $COOKIEFILE "$URL" | \
             parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
             { log_debug "file not found"; return 254; }
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
-        PERL_PRG=$(detect_perl) || { rm -f $COOKIES; return 1; }
+        PERL_PRG=$(detect_perl) || return 1
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-        WAIT_HTML=$(curl -b $COOKIES -e $URL --location $WAIT_URL)
+        WAIT_HTML=$(curl -b $COOKIEFILE -e $URL --location $WAIT_URL)
         WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
                 "countdown(\([[:digit:]]*\),'change()')")
 
@@ -64,7 +63,7 @@ netload_in_download() {
 
         log_debug "Try $TRY:"
 
-        CAPTCHA=$(curl -b $COOKIES "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl |
+        CAPTCHA=$(curl -b $COOKIEFILE "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl |
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% -compress none -depth 8 tif:- |
                 show_image_and_tee | ocr digit | sed "s/[^0-9]//g") ||
                 { log_error "error running OCR"; return 1; }
@@ -82,7 +81,7 @@ netload_in_download() {
         local form_url=$(echo "$download_form" | parse_form_action)
         local form_fid=$(echo "$download_form" | parse_form_input_by_name 'file_id')
 
-        WAIT_HTML2=$(curl -l -b $COOKIES --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" \
+        WAIT_HTML2=$(curl -l -b $COOKIEFILE --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" \
                 "$BASE_URL/$form_url")
 
         match 'class="InPage_Error"' "$WAIT_HTML2" &&
@@ -107,8 +106,6 @@ netload_in_download() {
         fi
 
     done
-
-    rm -f $COOKIES
 
     FILENAME=$(echo "$WAIT_HTML2" |\
         parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')

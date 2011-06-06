@@ -19,46 +19,44 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)/\?$"
+
 MODULE_1FICHIER_DOWNLOAD_OPTIONS=""
+MODULE_1FICHIER_DOWNLOAD_RESUME=yes
+MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+
 MODULE_1FICHIER_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use an account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 MESSAGE,d:,message:,MESSAGE,Set file message (is send with notification email)
 DOMAIN,,domain:,ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
 EMAIL,,email:,EMAIL,Field for notification email"
-MODULE_1FICHIER_DOWNLOAD_CONTINUE=yes
 
 # Output a 1fichier file download URL
-# $1: 1FICHIER_URL
+# $1: cookie file
+# $2: 1fichier.tld url
 # stdout: real file download link
 1fichier_download() {
-    set -e
-    eval "$(process_options 1fichier "$MODULE_1FICHIER_DOWNLOAD_OPTIONS" "$@")"
-
-    URL=$1
-    COOKIES=$(create_tempfile)
+    COOKIEFILE="$1"
+    URL="$2"
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=10
 
     while retry_limit_not_reached || return 3; do
-        PAGE=$(curl -c "$COOKIES" "$URL")
+        PAGE=$(curl -c "$COOKIEFILE" "$URL")
 
         if match "Le fichier demandé n'existe pas." "$PAGE"; then
             log_error "File not found."
-            rm -f $COOKIES
             return 254
         fi
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
         if match "Téléchargements en cours" "$PAGE"; then
             if test "$NOARBITRARYWAIT"; then
                 log_debug "Already downloading file, must wait"
-                rm -f $COOKIES
                 return 253
             fi
             log_debug "Arbitrary wait."
@@ -73,13 +71,11 @@ MODULE_1FICHIER_DOWNLOAD_CONTINUE=yes
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
-    echo "$COOKIES"
 
     return 0
 }
 
 1fichier_upload() {
-    set -e
     eval "$(process_options 1fichier "$MODULE_1FICHIER_UPLOAD_OPTIONS" "$@")"
 
     local FILE=$1
@@ -113,9 +109,7 @@ MODULE_1FICHIER_DOWNLOAD_CONTINUE=yes
     RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
 
     DOWNLOAD_ID=$(echo "$RESPONSE" | sed -n '3p')
-
     REMOVE_ID=$(echo "$RESPONSE" | sed -n '4p')
-
     DOMAIN_ID=$(echo "$RESPONSE" | sed -n '5p')
 
     case "$DOMAIN_ID" in
@@ -156,6 +150,5 @@ MODULE_1FICHIER_DOWNLOAD_CONTINUE=yes
             log_error "Bad domain ID response, maybe API updated?"
             exit 1
     esac
-
-    exit 0
+    return 0
 }

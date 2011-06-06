@@ -143,9 +143,17 @@ create_alt_filename() {
     echo "$FILENAME"
 }
 
-continue_downloads() {
+# Example: "MODULE_FILESONIC_DOWNLOAD_RESUME=no"
+module_config_resume() {
     MODULE=$1
-    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_CONTINUE"
+    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_RESUME"
+    test "${!VAR}" = "yes"
+}
+
+# Example: "MODULE_FILESONIC_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
+module_config_need_cookie() {
+    MODULE=$1
+    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
     test "${!VAR}" = "yes"
 }
 
@@ -172,32 +180,43 @@ download() {
 
     while true; do
         local DRETVAL=0
-        RESULT=$($FUNCTION "$@" "$(echo "$URL" | strip)") || DRETVAL=$?
-        { read FILE_URL; read FILENAME; read COOKIES; } <<< "$RESULT" || true
+        local COOKIES=$(create_tempfile)
+        local RESULT=$(create_tempfile)
+
+        $FUNCTION "$@" "$COOKIES" "$URL" >$RESULT || DRETVAL=$?
+        { read FILE_URL; read FILENAME; } <$RESULT || true
+        rm -f "$RESULT"
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
             log_notice "Link active: $URL"
             echo "$URL"
+            rm -f "$COOKIES"
             break
         elif test $DRETVAL -eq 253; then
             log_notice "Warning: file link is alive but not currently available"
+            rm -f "$COOKIES"
             return $ERROR_CODE_TEMPORAL_PROBLEM
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
+            rm -f "$COOKIES"
             return $ERROR_CODE_DEAD_LINK
         elif test $DRETVAL -eq 2; then
             log_error "delay limit reached (${FUNCTION})"
+            rm -f "$COOKIES"
             return $ERROR_CODE_TIMEOUT_ERROR
         elif test $DRETVAL -eq 3; then
             log_error "retry limit reached (${FUNCTION})"
+            rm -f "$COOKIES"
             return $ERROR_CODE_TIMEOUT_ERROR
         elif test $DRETVAL -eq 4; then
             log_error "password required (${FUNCTION})"
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "PASSWORD"
+            rm -f "$COOKIES"
             return $ERROR_CODE_PASSWORD_REQUIRED
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
             log_error "failed inside ${FUNCTION}()"
+            rm -f "$COOKIES"
             return $ERROR_CODE_UNKNOWN_ERROR
         fi
 
@@ -247,9 +266,9 @@ download() {
 
             CURL=("curl")
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
-            continue_downloads "$MODULE" && CURL=("${CURL[@]}" "-C -")
+            module_config_resume "$MODULE" && CURL=("${CURL[@]}" "-C -")
+            module_config_need_cookie "$MODULE" && CURL=("${CURL[@]}" -b $COOKIES)
             test "$LIMIT_RATE" && CURL=("${CURL[@]}" "--limit-rate $LIMIT_RATE")
-            test "$COOKIES" && CURL=("${CURL[@]}" -b $COOKIES)
             test "$NOOVERWRITE" -a -f "$TEMP_FILENAME" && \
                 TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
 
@@ -258,7 +277,7 @@ download() {
             CODE=$(with_log ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
                 -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
 
-            test "$COOKIES" && rm -f "$COOKIES"
+            rm -f "$COOKIES"
 
             case "$DRETVAL" in
                 0) ;;
@@ -355,7 +374,7 @@ for ITEM in "$@"; do
             echo "$MODULE"
             continue
         fi
-        download "$MODULE" "$URL" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
+        download "$MODULE" "$(echo "$URL" | strip)" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
             "$MAXRETRIES" "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
                 RETVALS=(${RETVALS[@]} "$?")

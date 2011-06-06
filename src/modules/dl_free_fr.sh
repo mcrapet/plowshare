@@ -19,19 +19,20 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
+
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
-MODULE_DL_FREE_FR_DOWNLOAD_CONTINUE=yes
+MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
+MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 
 # Output a dl.free.fr file download URL (anonymous)
-#
-# $1: DL_FREE_FR_URL
-#
+# $1: cookie file
+# $2: dl.free.fr url
+# stdout: real file download link
 dl_free_fr_download() {
-    eval "$(process_options "dl_free_fr" "$MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS" "$@")"
-
-    COOKIES=$(create_tempfile)
-    HTML_PAGE=$(curl -L --cookie-jar $COOKIES "$1")
+    COOKIEFILE="$1"
+    HTML_PAGE=$(curl -L --cookie-jar $COOKIEFILE "$2")
 
     # Important note: If "free.fr" is your ISP, behavior is different.
     # There is no redirection html page, you can directly wget the URL
@@ -42,12 +43,10 @@ dl_free_fr_download() {
     ERR2="erreur 404 - document non trouv."
     if matchi "$ERR1\|$ERR2" "$HTML_PAGE"; then
         log_error "file not found"
-        rm -f $COOKIES
         return 254
     fi
 
     if test "$CHECK_LINK"; then
-        rm -f $COOKIES
         return 255
     fi
 
@@ -55,8 +54,6 @@ dl_free_fr_download() {
         { log_error "Could not parse file URL"; return 1; }
 
     echo $FILE_URL
-    echo
-    echo $COOKIES
 }
 
 # Upload a file to dl.free.fr

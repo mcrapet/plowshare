@@ -19,44 +19,43 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_X7_TO_REGEXP_URL="http://\(www\.\)\?x7\.to/"
+
 MODULE_X7_TO_DOWNLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Use Free account"
-MODULE_X7_TO_DOWNLOAD_CONTINUE=no
+MODULE_X7_TO_DOWNLOAD_RESUME=no
+MODULE_X7_TO_FINAL_LINK_NEEDS_COOKIE=no
 
 # Output an x7.to file download URL
-#
-# Usage: x7_to_download X7_TO_URL
-# Options:
-#   -b USER:PASSWORD, --auth-free=USER:PASSWORD
-#
+# $1: cookie file
+# $2: x7.to url
+# stdout: real file download link
 x7_to_download() {
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options x7_to "$MODULE_X7_TO_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
     BASE_URL="http://x7.to"
-    COOKIES=$(create_tempfile)
 
     if [ -z "$AUTH_FREE" ]; then
-        $(curl -c $COOKIES -o /dev/null "$URL")
+        curl -c $COOKIEFILE -o /dev/null "$URL"
     else
         # Do the secure HTTP login! Adding --referer is mandatory.
         LOGIN_DATA='id=$USER&pw=$PASSWORD'
-        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIES" "$LOGIN_DATA" \
+        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
                 "${BASE_URL}/james/login" "--referer ${BASE_URL}") || {
-            rm -f $COOKIES
             return 1
         }
 
         # {err:"Benutzer und Passwort stimmen nicht überein."}
         if match '^{err:' "$LOGIN_RESULT"; then
             log_error "login process failed"
-            rm -f $COOKIES
             return 1
         fi
     fi
 
     while retry_limit_not_reached || return 3; do
-        WAIT_HTML=$(curl -L -b $COOKIES "$URL")
+        WAIT_HTML=$(curl -L -b $COOKIEFILE "$URL")
 
         local ref_fid=$(echo "$WAIT_HTML" | parse_quiet 'document.cookie[[:space:]]=[[:space:]]*' \
                 'ref_file=\([^&]*\)')
@@ -71,12 +70,10 @@ x7_to_download() {
                 log_error "This is a folder list (check $BASE_URL/$textlist)"
             fi
 
-            rm -f $COOKIES
             return 254
         fi
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
@@ -84,7 +81,6 @@ x7_to_download() {
         # - The requested file is larger than 400MB, only premium members will be able to download the file!
         if match 'requested file is larger than' "$WAIT_HTML"; then
             log_debug "premium link"
-            rm -f $COOKIES
             return 253
         fi
 
@@ -95,7 +91,7 @@ x7_to_download() {
         file_real_name="$file_real_name$extension"
 
         # According to http://x7.to/js/download.js
-        DATA=$(curl -b $COOKIES -b "cookie_test=enabled; ref=ref_user=6649&ref_file=${ref_fid}&url=&date=1234567890" \
+        DATA=$(curl -b $COOKIEFILE -b "cookie_test=enabled; ref=ref_user=6649&ref_file=${ref_fid}&url=&date=1234567890" \
                     --data-binary "" \
                     --referer "$URL" \
                     "$BASE_URL/james/ticket/dl/$ref_fid")
@@ -121,13 +117,9 @@ x7_to_download() {
         else
             local error=$(echo "$DATA" | parse_quiet 'err:' '{err:"\([^"]*\)"}')
             log_error "failed state [$error]"
-
-            rm -f $COOKIES
             return 1
         fi
     done
-
-    rm -f $COOKIES
 
     # Example of URL:
     # http://stor4.x7.to/dl/IMDju9Fk5y

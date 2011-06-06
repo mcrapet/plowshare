@@ -19,13 +19,15 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_FILESERVE_REGEXP_URL="http://\(www\.\)\?fileserve\.com/"
+
 MODULE_FILESERVE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
-MODULE_FILESERVE_DOWNLOAD_CONTINUE=no
+MODULE_FILESERVE_DOWNLOAD_RESUME=no
+MODULE_FILESERVE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
 MODULE_FILESERVE_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
 MODULE_FILESERVE_LIST_OPTIONS=""
-
 
 # Static function for proceeding login
 fileserve_login() {
@@ -50,11 +52,14 @@ fileserve_login() {
 }
 
 # Output an fileserve.com file download URL (anonymous)
-# $1: fileserve url string
+# $1: cookie file
+# $2: fileserve.com url
 # stdout: real file download link
 #
 # Note: Extra HTTP header "X-Requested-With: XMLHTTPRequested" is not required.
 fileserve_download() {
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
 
     # URL must be well formed (issue #280)
@@ -66,25 +71,21 @@ fileserve_download() {
         URL="http://www.fileserve.com/file/$ID"
     fi
 
-    COOKIES=$(create_tempfile)
-
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
-        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || {
-            rm -f $COOKIES
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || {
             return 1
         }
 
         # Check account type
         if ! match '<h3>Free' "$LOGIN_RESULT"; then
-            FILE_URL=$(curl -i -b $COOKIES "$URL" | grep_http_header_location)
-            rm -f $COOKIES
+            FILE_URL=$(curl -i -b $COOKIEFILE "$URL" | grep_http_header_location)
 
             test -z "$FILE_URL" && return 1
             test "$CHECK_LINK" && return 255
 
             # Non premium cannot resume downloads
-            MODULE_FILESERVE_DOWNLOAD_CONTINUE=yes
+            MODULE_FILESERVE_DOWNLOAD_RESUME=yes
 
             echo "$FILE_URL"
             return 0
@@ -95,31 +96,28 @@ fileserve_download() {
     STOP_FLOODING=360
 
     while retry_limit_not_reached || return 3; do
-        if [ -s $COOKIES ]; then
-            MAINPAGE=$(curl -b $COOKIES "$URL") || return 1
+        if [ -s $COOKIEFILE ]; then
+            MAINPAGE=$(curl -b $COOKIEFILE "$URL") || return 1
         else
-            MAINPAGE=$(curl -c $COOKIES "$URL") || return 1
+            MAINPAGE=$(curl -c $COOKIEFILE "$URL") || return 1
         fi
 
         # "The file could not be found. Please check the download link."
         if match 'File not available' "$MAINPAGE"; then
             log_debug "File not found"
-            rm -f $COOKIES
             return 254
         fi
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
         # Should return {"success":"showCaptcha"}
-        JSON1=$(curl -b $COOKIES --referer "$URL" --data "checkDownload=check" "$URL") || return 1
+        JSON1=$(curl -b $COOKIEFILE --referer "$URL" --data "checkDownload=check" "$URL") || return 1
 
         if match 'waitTime' "$JSON1"; then
             if test "$NOARBITRARYWAIT"; then
                 log_debug "File temporarily unavailable"
-                rm -f $COOKIES
                 return 253
             fi
 
@@ -130,7 +128,6 @@ fileserve_download() {
         elif match 'timeLimit' "$JSON1"; then
             log_error "time limit, you must wait"
             if test "$NOARBITRARYWAIT"; then
-                rm -f $COOKIES
                 return 1
             fi
 
@@ -139,7 +136,6 @@ fileserve_download() {
 
         elif ! match 'success' "$JSON1"; then
             log_error "unexpected error, site update?"
-            rm -f $COOKIES
             return 1
         fi
 
@@ -151,7 +147,6 @@ fileserve_download() {
 
     if [ -z "$IMAGE_FILENAME" ]; then
         log_error "reCaptcha error"
-        rm -f $COOKIES
         return 1
     fi
 
@@ -174,32 +169,29 @@ fileserve_download() {
     CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
     # Should return {"success":1}
-    JSON2=$(curl -b $COOKIES --referer "$URL" --data \
+    JSON2=$(curl -b $COOKIEFILE --referer "$URL" --data \
       "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&recaptcha_shortencode_field=$SHORT" \
       "http://www.fileserve.com/checkReCaptcha.php") || return 1
 
     local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$ret" != "1" ] ; then
         log_error "wrong captcha"
-        rm -f $COOKIES
         return 1
     fi
 
     log_debug "correct captcha"
-    MSG1=$(curl -b $COOKIES --referer "$URL" --data "downloadLink=wait" "$URL") || return 1
+    MSG1=$(curl -b $COOKIEFILE --referer "$URL" --data "downloadLink=wait" "$URL") || return 1
     if match 'fail404' "$MSG1"; then
         log_error "unexpected result"
-        rm -f $COOKIES
         return 1
     fi
 
     WAIT_TIME=$(echo "$MSG1" | cut -c4-)
     wait $((WAIT_TIME + 1)) seconds || return 2
-    MSG2=$(curl -b $COOKIES --referer "$URL" --data "downloadLink=show" "$URL") || return 1
+    MSG2=$(curl -b $COOKIEFILE --referer "$URL" --data "downloadLink=show" "$URL") || return 1
 
-    FILE_URL=$(curl -i -b $COOKIES --referer "$URL" --data "download=normal" "$URL" | grep_http_header_location) || return 1
+    FILE_URL=$(curl -i -b $COOKIEFILE --referer "$URL" --data "download=normal" "$URL" | grep_http_header_location) || return 1
 
-    rm -f $COOKIES
     echo "$FILE_URL"
 }
 
@@ -208,7 +200,6 @@ fileserve_download() {
 # $2: upload as file name (optional, defaults to $1)
 # stdout: download link on fileserve
 fileserve_upload() {
-    set -e
     eval "$(process_options fileserve "$MODULE_FILESERVE_UPLOAD_OPTIONS" "$@")"
 
     local FILE=$1

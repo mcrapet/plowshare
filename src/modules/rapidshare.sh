@@ -19,18 +19,23 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\|rs.....\.\)\?rapidshare\.com/"
+
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use Premium-Zone account"
+MODULE_RAPIDSHARE_DOWNLOAD_RESUME=no
+MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH_PREMIUMZONE,a:,auth:,USER:PASSWORD,Use Premium-Zone account
 AUTH_FREEZONE,b:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"
 MODULE_RAPIDSHARE_DELETE_OPTIONS=""
-MODULE_RAPIDSHARE_DOWNLOAD_CONTINUE=no
 
 # Output a rapidshare file download URL (anonymous and premium)
-#
-# rapidshare_download RAPIDSHARE_URL
+# $1: cookie file (unused here)
+# $2: rapidshare.com url
+# stdout: real file download link
 rapidshare_download() {
+    shift 1
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
     URL=$1
 
@@ -128,7 +133,6 @@ rapidshare_download() {
 #   -b USER:PASSWORD, --auth-freezone=USER:PASSWORD
 #
 rapidshare_upload() {
-    set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
 
     log_error "***"
@@ -150,7 +154,6 @@ rapidshare_upload() {
 # rapidshare_upload_anonymous FILE [DESTFILE]
 #
 rapidshare_upload_anonymous() {
-    set -e
     FILE=$1
     DESTFILE=${2:-$FILE}
 
@@ -185,7 +188,6 @@ rapidshare_upload_anonymous() {
 #
 # TODO: This code is obsolete
 rapidshare_upload_freezone() {
-    set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     local FILE=$1
     local DESTFILE=${2:-$FILE}
@@ -246,7 +248,6 @@ rapidshare_upload_freezone() {
 #
 # TODO: This code is obsolete
 rapidshare_upload_premiumzone() {
-    set -e
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
     local FILE=$1
     local DESTFILE=${2:-$FILE}

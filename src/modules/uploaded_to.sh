@@ -19,15 +19,20 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\|ul\)\.to/"
+
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
-MODULE_UPLOADED_TO_DOWNLOAD_CONTINUE=no
+MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
+MODULE_UPLOADED_TO_FINAL_LINK_NEEDS_COOKIE=yes
+
 MODULE_UPLOADED_TO_LIST_OPTIONS=""
 
 # Output an uploaded.to file download URL
-# $1: url
-# stdout: real file download link + real file name + cookies file
+# $1: cookie file
+# $2: upload.to url
+# stdout: real file download link
 uploaded_to_download() {
-    set -e
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
 
     # uploaded.to redirects all possible urls of a file to the canonical one
@@ -55,22 +60,20 @@ uploaded_to_download() {
     log_debug "file id=$FILE_ID"
 
     # set website language to english
-    local COOKIES=$(create_tempfile)
-    curl -c $COOKIES "$BASE_URL/language/en"
+    curl -c $COOKIEFILE "$BASE_URL/language/en"
 
     while retry_limit_not_reached || return 3; do
-        local HTML=$(curl -c $COOKIES "$URL")
+        local HTML=$(curl -c $COOKIEFILE "$URL")
 
         # check for files that need a password
         local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
-        test "$ERROR" && log_error "authentification required" && \
-          rm -f $COOKIES && return 4
+        test "$ERROR" && log_error "authentification required" && return 4
 
         # retrieve the waiting time
         local SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
           'period: <span>\([[:digit:]]\+\)<\/span>')
         test -z "$SLEEP" && log_error "can't get sleep time" && \
-          log_debug "sleep time: $SLEEP" && rm -f $COOKIES && return 1
+          log_debug "sleep time: $SLEEP" && return 1
 
         # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
         local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
@@ -79,12 +82,11 @@ uploaded_to_download() {
 
         if ! test "$IMAGE_FILENAME"; then
             log_error "reCaptcha error"
-            rm -f "$COOKIES"
             return 1
         fi
 
         local TRY=1
-        while retry_limit_not_reached || { rm -f "$COOKIES"; return 3; }; do
+        while retry_limit_not_reached || return 3; do
             log_debug "reCaptcha manual entering (loop $TRY)"
             (( TRY++ ))
 
@@ -104,20 +106,18 @@ uploaded_to_download() {
         local CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
         local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-        local PAGE=$(curl -b "$COOKIES" --referer "$URL" \
-          --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID")
+        local PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
+            --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID")
         log_debug "Captcha resonse: $PAGE"
 
         # check for possible errors
         if match 'limit\|err' "$PAGE"; then
-            rm -f "$COOKIES"
             return 253
         elif match 'url' "$PAGE"; then
             local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
             break
         else
             log_error "No match. Site update?"
-            rm -f "$COOKIES"
             return 1
         fi
     done
@@ -127,7 +127,6 @@ uploaded_to_download() {
 
     echo $FILE_URL
     echo $FILE_NAME
-    echo $COOKIES
 }
 
 # List a uploaded.to shared file folder URL

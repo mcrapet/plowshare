@@ -19,15 +19,17 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.[a-z]\+/"
+
 MODULE_FILESONIC_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
-MODULE_FILESONIC_DOWNLOAD_CONTINUE=no
+MODULE_FILESONIC_DOWNLOAD_RESUME=no
+MODULE_FILESONIC_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
 MODULE_FILESONIC_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
 MODULE_FILESONIC_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
 MODULE_FILESONIC_LIST_OPTIONS=""
-
 
 # Proceed with login (free-membership or premium)
 filesonic_login() {
@@ -57,9 +59,12 @@ filesonic_login() {
 }
 
 # Output an filesonic.com file download URL (anonymous)
-# $1: filesonic url string
+# $1: cookie file
+# $2: filesonic url
 # stdout: real file download link
 filesonic_download() {
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options filesonic "$MODULE_FILESONIC_DOWNLOAD_OPTIONS" "$@")"
 
     URL=$1
@@ -77,11 +82,8 @@ filesonic_download() {
     fi
     URL="$BASEURL/file/$ID"
 
-    COOKIES=$(create_tempfile)
-
     # obtain mainpage first (unauthenticated) to get filename
-    MAINPAGE=$(curl -c "$COOKIES" "$URL") || {
-        rm -f "$COOKIES"
+    MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || {
         return 1
     }
 
@@ -91,30 +93,26 @@ filesonic_download() {
 
     # Attempt to authenticate
     if test "$AUTH"; then
-        filesonic_login "$AUTH" "$COOKIES" "$BASEURL" || {
-            rm -f "$COOKIES"
+        filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || {
             return 1
         }
 
-        FILE_URL=$(curl -I -b "$COOKIES" "$URL" | grep_http_header_location)
+        FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
         if ! test "$FILE_URL"; then
             log_error "No link received (most likely premium account expired)"
-            rm -f "$COOKIES"
             return 1
         fi
 
     # Normal user
     else
-        PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+        PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
                     --referer "$URL?start=1" --data "" "$URL?start=1")
 
         if match 'File does not exist' "$PAGE"; then
             log_debug "File not found"
-            rm -f "$COOKIES"
             return 254
         fi
         if test "$CHECK_LINK"; then
-            rm -f "$COOKIES"
             return 255
         fi
 
@@ -132,7 +130,6 @@ filesonic_download() {
             # free users can download files < 400MB
             elif match 'download is larger than 400Mb.' "$PAGE"; then
                 log_error "You're trying to download file larger than 400MB (only premium users can)."
-                rm -f "$COOKIES"
                 return 255
 
             # captcha
@@ -142,12 +139,11 @@ filesonic_download() {
 
                 if ! test "$IMAGE_FILENAME"; then
                     log_error "reCaptcha error"
-                    rm -f "$COOKIES"
                     return 1
                 fi
 
                 TRY=1
-                while retry_limit_not_reached || { rm -f "$COOKIES"; return 3; }; do
+                while retry_limit_not_reached || return 3; do
                     log_debug "reCaptcha manual entering (loop $TRY)"
                     (( TRY++ ))
 
@@ -164,7 +160,7 @@ filesonic_download() {
                 CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
                 DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-                PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+                PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
                             --referer "$URL" --data "$DATA" "$URL?start=1")
 
                 match 'Please Enter Captcha' "$PAGE" && log_error "wrong captcha"
@@ -172,29 +168,23 @@ filesonic_download() {
             # wait
             elif match 'countDownDelay' "$PAGE"; then
                 SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
-                wait $SLEEP seconds || {
-                    rm -f "$COOKIES"
-                    return 2
-                }
+                wait $SLEEP seconds || return 2
 
                 # for wait time > 5min. these values may not be present
                 # it just means we need to try again so the following code is fine
                 TM=$(echo "$PAGE" | parse_attr "name='tm'" "value")
                 TM_HASH=$(echo "$PAGE" | parse_attr "name='tm_hash'" "value")
 
-                PAGE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
+                PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
                             --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1")
 
             else
                 log_error "No match. Site update?"
-                rm -f "$COOKIES"
                 return 1
 
             fi
         done
     fi
-
-    rm -f "$COOKIES"
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
@@ -243,7 +233,6 @@ filesonic_list() {
 # $3: member only, upload in folder id (optional, defaults to 0 for root)
 # stdout: download link on filesonic
 filesonic_upload() {
-    set -e
     eval "$(process_options filesonic "$MODULE_FILESONIC_UPLOAD_OPTIONS" "$@")"
 
     local FILE=$1

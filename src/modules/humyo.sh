@@ -19,18 +19,18 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_HUMYO_REGEXP_URL="http://\(www\.\)\?humyo\.com/"
+
 MODULE_HUMYO_DOWNLOAD_OPTIONS=""
-MODULE_HUMYO_DOWNLOAD_CONTINUE=no
+MODULE_HUMYO_DOWNLOAD_RESUME=no
+MODULE_HUMYO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 # Output a humyo file download URL
-#
-# $1: A humyo URL
-#
+# $1: cookie file (unused here)
+# $2: humyo.com url
+# stdout: real file download link
 humyo_download() {
-    eval "$(process_options humyo "$MODULE_HUMYO_DOWNLOAD_OPTIONS" "$@")"
-
     BASEURL="http://www.humyo.com"
-    URL=$1
+    URL=$2
 
     # test for direct download links
     FILENAME=$(curl -I "$1" | grep_http_header_content_disposition) || true

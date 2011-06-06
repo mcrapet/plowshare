@@ -19,9 +19,13 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|rotic\|porn\|video\).com/"
+
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+MODULE_MEGAUPLOAD_DOWNLOAD_RESUME=yes
+MODULE_MEGAUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
 MULTIFETCH,m,multifetch,,Use URL multifetch upload
 CLEAR_LOG,,clear-log,,Clear upload log after upload process
@@ -34,17 +38,16 @@ MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload"
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)"
 MODULE_MEGAUPLOAD_LIST_OPTIONS=""
-MODULE_MEGAUPLOAD_DOWNLOAD_CONTINUE=yes
 
-# megaupload_download [MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS] URL
-#
-# Output file URL
-#
+# Output a megaupload file download URL
+# $1: cookie file
+# $2: megaupload (or similar) url
+# stdout: real file download link
 megaupload_download() {
-    set -e
+    COOKIEFILE="$1"
+    shift 1
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIES=$(create_tempfile)
     ERRORURL="http://www.megaupload.com/?c=msg"
     URL=$(echo "$1" | replace 'rotic.com/' 'porn.com/' | \
                       replace 'video.com/' 'upload.com/')
@@ -56,8 +59,7 @@ megaupload_download() {
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || {
-            rm -f $COOKIES
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || {
             return 1
         }
     fi
@@ -65,17 +67,15 @@ megaupload_download() {
     echo $URL | grep -q "\.com/?d=" ||
         URL=$(curl -I "$URL" | grep_http_header_location)
 
-    ccurl() { curl -b "$COOKIES" "$@"; }
-
     TRY=0
     while retry_limit_not_reached || return 3; do
         TRY=$(($TRY + 1))
         log_debug "Downloading waiting page (loop $TRY)"
-        PAGE=$(ccurl "$URL") || { echo "Error getting page: $URL"; return 1; }
+        PAGE=$(curl -b "$COOKIEFILE" "$URL") || { echo "Error getting page: $URL"; return 1; }
 
         # Test for Premium account with "direct download" option
         if [ -z "$PAGE" ]; then
-            ccurl -i "$URL" | grep_http_header_location
+            curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location
             return 0
         fi
 
@@ -94,20 +94,17 @@ megaupload_download() {
 
         # Check for dead link
         elif match 'link you have clicked is not available' "$PAGE"; then
-            rm -f $COOKIES
             return 254
 
         # Test for big files (premium account required)
         elif match "The file you are trying to download is larger than" "$PAGE"; then
             log_debug "Premium link"
-            rm -f $COOKIES
             test "$CHECK_LINK" && return 255
             return 253
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
             if test "$CHECK_LINK"; then
-                rm -f $COOKIES
                 return 255
             fi
 
@@ -122,7 +119,7 @@ megaupload_download() {
 
             # We must save HTTP headers to detect premium account
             # (expect "HTTP/1.1 302 Found" return header)
-            PAGE=$(ccurl -i -d "$DATA" "$URL")
+            PAGE=$(curl -i -b "$COOKIEFILE" -d "$DATA" "$URL")
             HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\).*/\1/p')
 
             # Premium account with "direct download" option
@@ -144,7 +141,6 @@ megaupload_download() {
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
             if test "$NOARBITRARYWAIT"; then
                 log_debug "File temporarily unavailable"
-                rm -f $COOKIES
                 return 253
             fi
             log_debug "Arbitrary wait."
@@ -155,16 +151,13 @@ megaupload_download() {
         # ---
 
         if test "$CHECK_LINK"; then
-            rm -f $COOKIES
             return 255
         fi
 
         # Test for Premium account without "direct download" option
-        ACC=$(curl -b $COOKIES "$BASEURL/?c=account")
+        ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account")
 
         if ! match '<b>Regular</b>' "$ACC" && test "$AUTH"; then
-            rm -f $COOKIES
-
             FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
             echo "$FILEURL"
             return 0
@@ -192,13 +185,12 @@ megaupload_download() {
         IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
         MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
         DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
-        PAGE=$(ccurl --data "$DATA" "$URL")
+        PAGE=$(curl -b "$COOKIEFILE" --data "$DATA" "$URL")
         WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
             "count=\([[:digit:]]\+\);" || true)
         test "$WAITTIME" && break;
         log_debug "Wrong captcha"
     done
-    rm -f $COOKIES
 
     FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href')
     if [ -z "$FILEURL" ]; then
