@@ -59,14 +59,13 @@ fileserve_login() {
 # Note: Extra HTTP header "X-Requested-With: XMLHTTPRequested" is not required.
 fileserve_download() {
     COOKIEFILE="$1"
-    shift 1
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
 
     # URL must be well formed (issue #280)
-    local ID=$(echo "$1" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
+    local ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if [ -z "$ID" ]; then
         log_debug "Cannot parse URL to extract file id, try anyway"
-        URL=$1
+        URL="$2"
     else
         URL="http://www.fileserve.com/file/$ID"
     fi
@@ -186,7 +185,7 @@ fileserve_download() {
         return 1
     fi
 
-    WAIT_TIME=$(echo "$MSG1" | cut -c4-)
+    WAIT_TIME=$(echo "$MSG1" | cut -b4-)
     wait $((WAIT_TIME + 1)) seconds || return 2
     MSG2=$(curl -b $COOKIEFILE --referer "$URL" --data "downloadLink=show" "$URL") || return 1
 
@@ -281,9 +280,7 @@ fileserve_upload() {
 # $1: fileserve url
 # stdout: list of links
 fileserve_list() {
-    set -e
-    eval "$(process_options fileserve "$MODULE_FILESERVE_LIST_OPTIONS" "$@")"
-    URL=$1
+    URL="$1"
 
     if ! match 'fileserve\.com\/list\/' "$URL"; then
         log_error "This is not a directory list"
