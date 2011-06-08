@@ -21,7 +21,7 @@
 MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles\.com/"
 
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS=""
-MODULE_DEPOSITFILES_DOWNLOAD_RESUME=no
+MODULE_DEPOSITFILES_DOWNLOAD_RESUME=yes
 MODULE_DEPOSITFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DEPOSITFILES_LIST_OPTIONS=""
@@ -36,9 +36,12 @@ depositfiles_download() {
 
     while retry_limit_not_reached || return 3; do
         START=$(curl -L "$URL")
+
         match "no_download_msg" "$START" &&
             { log_debug "file not found"; return 254; }
+
         test "$CHECK_LINK" && return 255
+
         match "download_started()" "$START" && {
             log_debug "direct download"
             FILE_URL=$(echo "$START" | parse "download_started()" 'action="\([^"]*\)"') ||
@@ -46,34 +49,47 @@ depositfiles_download() {
             echo "$FILE_URL"
             return 0
         }
-        check_wait "$START" "hour" "3600" || continue
-        check_wait "$START" "minute" "60" || continue
-        check_wait "$START" "second" "1" || continue
-        check_ip "$START" || continue
 
-        local FORM_HTML=$(grep_form_by_order "$START" 2)
-        local form_gw_res=$(echo "$FORM_HTML" | parse_form_input_by_name 'gateway_result')
-        WAIT_URL=$(echo "$FORM_HTML" | parse_form_action)
-
-        if [ -z "$WAIT_URL" ]; then
-            log_error "Can't parse download form, site updated?"
+        local DLID=$(echo "$START" | parse 'form action=' 'files%2F\([^"]*\)')
+        log_debug "download ID: $DLID"
+        if [ -z "$DLID" ]; then
+            log_error "Can't parse download id, site updated"
             return 1
         fi
 
-        test "$CHECK_LINK" && return 255
+        # 1. Check for error messages (first page)
 
-        DATA=$(curl --data "gateway_result=$form_gw_res" "$BASEURL$WAIT_URL") ||
+        # - You have reached your download time limit.<br>Try in 10 minutes or use GOLD account.
+        if match 'download time limit' "$START"; then
+            WAITTIME=$(echo "$START" | parse 'Try in' "in \([[:digit:]:]*\) minutes")
+            if [[ "$WAITTIME" -gt 0 ]]; then
+                wait "$WAITTIME" minutes || return 2
+            else
+                # Arbitrary wait
+                wait 60 seconds || return 2
+            fi
+            continue
+        fi
+
+        DATA=$(curl --data "gateway_result=1" "$BASEURL/en/files/$DLID") ||
             { log_error "can't get wait URL contents"; return 1; }
 
-        # is it still useful ?
-        match "get_download_img_code.php" "$DATA" && {
-           log_error "Site asked asked for a captcha to be solved. Aborting"
-           return 1
-        }
-        check_wait "$DATA" "hour" "3600" || continue
-        check_wait "$DATA" "minute" "60" || continue
-        check_wait "$DATA" "second" "1" || continue
-        check_ip "$DATA" || continue
+        # 2. Check if we have been redirected to initial page
+        if match '<input type="button" value="Gold downloading"' "$DATA"; then
+            continue
+        fi
+
+        # 3. Check for error messages (second page)
+
+        # - Attention! You used up your limit for file downloading!
+        if match 'limit for file' "$DATA"; then
+           WAITTIME=$(echo "$DATA" | parse 'class="html_download_api-limit_interval"' \
+                   'l">\([^<]*\)<')
+           log_debug "limit reached: waiting $WAITTIME seconds"
+           wait $((WAITTIME)) seconds || return 2
+           continue
+        fi
+
         break
     done
 
@@ -91,35 +107,10 @@ depositfiles_download() {
     echo "$DATA" | parse_form_action
 }
 
-check_wait() {
-    local HTML=$1
-    local WORD=$2
-    local FACTOR=$3
-    LIMIT=$(echo "$HTML" | grep -A1 "try in" |
-        parse_quiet "$WORD" "\(\<[[:digit:]:]\+\>\) $WORD" |
-        sed "s/:.*$//") || true
-    if test "$LIMIT"; then
-        log_debug "limit reached: waiting $LIMIT ${WORD}s"
-        wait $((LIMIT*FACTOR)) seconds || return 2
-        return 1
-    else
-        return 0
-    fi
-}
-
-check_ip() {
-    echo "$1" | grep -q '<div class="ipbg">' || return 0
-    local WAIT=60
-    log_debug "IP already downloading, waiting $WAIT seconds"
-    wait $WAIT seconds || return 2
-    return 1
-}
-
 # List a depositfiles shared file folder URL
-# $1: DEPOSITFILES_URL
+# $1: depositfiles.com link
 # stdout: list of links
 depositfiles_list() {
-    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_LIST_OPTIONS" "$@")"
     URL=$1
 
     if ! match 'depositfiles\.com\/\(..\/\)\?folders\/' "$URL"; then
