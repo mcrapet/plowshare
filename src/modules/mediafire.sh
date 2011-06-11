@@ -154,9 +154,7 @@ get_ofuscated_link() {
 # $1: mediafire folder url (http://www.mediafire.com/?sharekey=...)
 # stdout: list of links
 mediafire_list() {
-    set -e
-    eval "$(process_options mediafire "$MODULE_MEDIAFIRE_LIST_OPTIONS" "$@")"
-    URL=$1
+    URL="$1"
 
     PAGE=$(curl "$URL" | break_html_lines_alt)
 

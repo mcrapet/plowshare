@@ -141,8 +141,8 @@ hotfile_download() {
                 CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
                 HTMLPAGE=$(curl -b $COOKIEFILE --data \
-                  "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                  "${BASE_URL}${form2_url}") || return 1
+                    "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                    "${BASE_URL}${form2_url}") || return 1
 
                 if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
                     log_debug "wrong captcha"
@@ -175,9 +175,7 @@ hotfile_download() {
 # $1: HOTFILE_URL
 # stdout: list of links
 hotfile_list() {
-    set -e
-    eval "$(process_options hotfile "$MODULE_HOTFILE_LIST_OPTIONS" "$@")"
-    URL=$1
+    URL="$1"
 
     if ! match 'hotfile\.com\/list\/' "$URL"; then
         log_error "This is not a directory list"

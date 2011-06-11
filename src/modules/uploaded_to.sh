@@ -133,9 +133,7 @@ uploaded_to_download() {
 # $1: url
 # stdout: list of links
 uploaded_to_list() {
-    set -e
-    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_LIST_OPTIONS" "$@")"
-    local URL=$1
+    local URL="$1"
 
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder\/" "$URL"; then

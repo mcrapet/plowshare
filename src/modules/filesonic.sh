@@ -196,9 +196,7 @@ filesonic_download() {
 # $1: filesonic url
 # stdout: list of links
 filesonic_list() {
-    set -e
-    eval "$(process_options filesonic "$MODULE_FILESONIC_LIST_OPTIONS" "$@")"
-    URL=$1
+    URL="$1"
 
     if ! match "${MODULE_FILESONIC_REGEXP_URL}folder\/" "$URL"; then
         log_error "This is not a folder"
