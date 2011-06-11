@@ -58,6 +58,7 @@ logcat_report() {
     return 0
 }
 
+# This should not be called within modules
 log_report() {
     test $(verbose_level) -ge 4 && stderr "rep: $@"
     return 0
@@ -68,6 +69,7 @@ log_debug() {
     return 0
 }
 
+# This should not be called within modules
 log_notice() {
     test $(verbose_level) -ge 2 && stderr "$@"
     return 0
@@ -347,21 +349,6 @@ basename_file()
     echo "${1##*/}"
 }
 
-# Retrieves size of file
-#
-# $1: filename
-# stdout: file length (in bytes)
-get_filesize()
-{
-    SIZE=`stat -c %s "$1" 2>/dev/null`
-    if [ -z "$SIZE" ]; then
-        log_error "stat binary not found"
-        echo "-1"
-    else
-        echo "$SIZE"
-    fi
-}
-
 # HTML entities will be translated
 #
 # stdin: data
@@ -375,7 +362,8 @@ html_to_utf8() {
         perl -n -mHTML::Entities \
              -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
     else
-        log_notice "recode binary not found"
+        log_notice "recode binary not found, pass-through"
+        cat
     fi
 }
 
@@ -418,6 +406,21 @@ uri_encode() {
 # stdout: data (nearly complains RFC2396)
 uri_decode() {
     cat | sed -e "s/%20/\x20/g" -e "s/%5B/\[/g" -e "s/%5D/\]/g" -e 's/%2C/,/g'
+}
+
+# Retrieves size of file
+#
+# $1: filename
+# stdout: file length (in bytes)
+get_filesize()
+{
+    SIZE=`stat -c %s "$1" 2>/dev/null`
+    if [ -z "$SIZE" ]; then
+        log_error "stat binary not found"
+        echo "-1"
+    else
+        echo "$SIZE"
+    fi
 }
 
 # Create a tempfile and return path
