@@ -27,3 +27,4 @@ uploaded_to  | download |        |        | list |
 usershare    | download |        |        |      |
 x7_to        | download |        |        |      |
 zshare       | download | upload | delete |      |
+wupload      |          | upload |        |      |
