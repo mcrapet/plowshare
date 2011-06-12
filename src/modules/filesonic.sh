@@ -320,7 +320,6 @@ filesonic_upload() {
 # Delete a file on filesonic (requires an account)
 # $1: download link (must be a file that account uploaded)
 filesonic_delete() {
-    set -e
     eval "$(process_options filesonic "$MODULE_FILESONIC_DELETE_OPTIONS" "$@")"
 
     if ! test "$AUTH"; then
@@ -328,7 +327,7 @@ filesonic_delete() {
         return 1
     fi
 
-    URL=$1
+    URL="$1"
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"

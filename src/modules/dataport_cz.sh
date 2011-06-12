@@ -144,11 +144,12 @@ dataport_cz_upload() {
     return 0
 }
 
+# Delete a file on dataport.cz (requires an account)
+# $1: download link
 dataport_cz_delete() {
-    set -e
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
 
-    URL=$1
+    URL="$1"
     BASE_URL=$(basename_url $URL)
 
     if ! test "$AUTH"; then
