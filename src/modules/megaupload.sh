@@ -44,14 +44,13 @@ MODULE_MEGAUPLOAD_LIST_OPTIONS=""
 # $2: megaupload (or similar) url
 # stdout: real file download link
 megaupload_download() {
-    COOKIEFILE="$1"
-    shift 1
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
-    ERRORURL="http://www.megaupload.com/?c=msg"
-    URL=$(echo "$1" | replace 'rotic.com/' 'porn.com/' | \
+    COOKIEFILE="$1"
+    URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
                       replace 'video.com/' 'upload.com/')
     BASEURL=$(basename_url "$URL")
+    ERRORURL="http://www.megaupload.com/?c=msg"
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
@@ -203,8 +202,10 @@ megaupload_download() {
     echo "$FILEURL"
 }
 
-# megaupload_upload [UPLOAD_OPTIONS] FILE [DESTFILE]
-#
+# Upload a file to megaupload
+# $1: file name to upload
+# $2: upload as file name (optional, defaults to $1)
+# stdout: download link on megaupload
 megaupload_upload() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
     local FILE=$1
@@ -287,7 +288,8 @@ megaupload_upload() {
     rm -f $COOKIES
 }
 
-# megaupload_delete [DELETE_OPTIONS] URL
+# Delete a file on megaupload (requires an account)
+# $1: delete link
 megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
 
@@ -321,7 +323,9 @@ megaupload_delete() {
     fi
 }
 
-# List links contained in a Megaupload list URL ($1)
+# List a megaupload shared file folder URL
+# $1: megaupload folder url (http://www.megaupload.com/?f=...)
+# stdout: list of links
 megaupload_list() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_LIST_OPTIONS" "$@")"
     URL=$1

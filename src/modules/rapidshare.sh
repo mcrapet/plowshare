@@ -35,9 +35,8 @@ MODULE_RAPIDSHARE_DELETE_OPTIONS=""
 # $2: rapidshare.com url
 # stdout: real file download link
 rapidshare_download() {
-    shift 1
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
-    URL=$1
+    URL="$2"
 
     # Two URL formats:
     # http://rapidshare.com/files/429795114/arc02f.rar
@@ -301,11 +300,11 @@ rapidshare_upload_premiumzone() {
     echo "$URL"
 }
 
-# Delete a file from rapidshare
-# rapidshare_delete [MODULE_RAPIDSHARE_DELETE_OPTIONS] URL
+# Delete a file on rapidshare
+# $1: delete link
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
-    URL=$1
+    URL="$1"
 
     if ! match 'deletefiles' "$URL"; then
         log_error "This is not a delete url"

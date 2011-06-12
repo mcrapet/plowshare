@@ -30,11 +30,10 @@ MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # $2: euroshare.eu url
 # stdout: real file download link
 euroshare_eu_download() {
-    COOKIEFILE="$1"
-    shift 1
     eval "$(process_options euroshare_eu "$MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
     BASEURL=$(basename_url "$URL")
 
     # html returned uses utf-8 charset

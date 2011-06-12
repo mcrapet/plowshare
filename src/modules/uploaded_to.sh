@@ -31,14 +31,13 @@ MODULE_UPLOADED_TO_LIST_OPTIONS=""
 # $2: upload.to url
 # stdout: real file download link
 uploaded_to_download() {
-    COOKIEFILE="$1"
-    shift 1
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
+    COOKIEFILE="$1"
 
     # uploaded.to redirects all possible urls of a file to the canonical one
-    local URL=$(curl -I "${1}" | grep_http_header_location)
+    local URL=$(curl -I "$2" | grep_http_header_location)
     if test -z "$URL"; then
-        URL=${1}
+        URL="$2"
     fi
 
     # recognize folders

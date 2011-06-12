@@ -63,11 +63,11 @@ filesonic_login() {
 # $2: filesonic url
 # stdout: real file download link
 filesonic_download() {
-    COOKIEFILE="$1"
-    shift 1
     eval "$(process_options filesonic "$MODULE_FILESONIC_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
+
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
@@ -83,9 +83,7 @@ filesonic_download() {
     URL="$BASEURL/file/$ID"
 
     # obtain mainpage first (unauthenticated) to get filename
-    MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || {
-        return 1
-    }
+    MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return 1
 
     # do not obtain filename from "<span>Filename:" because it is shortened
     # with "..." if too long; instead, take it from title
@@ -93,9 +91,7 @@ filesonic_download() {
 
     # Attempt to authenticate
     if test "$AUTH"; then
-        filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || {
-            return 1
-        }
+        filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return 1
 
         FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
         if ! test "$FILE_URL"; then
@@ -323,7 +319,6 @@ filesonic_upload() {
 
 # Delete a file on filesonic (requires an account)
 # $1: download link (must be a file that account uploaded)
-# stdout: download link on filesonic
 filesonic_delete() {
     set -e
     eval "$(process_options filesonic "$MODULE_FILESONIC_DELETE_OPTIONS" "$@")"

@@ -32,11 +32,11 @@ MODULE_MEDIAFIRE_LIST_OPTIONS=""
 # $2: mediafire.com url
 # stdout: real file download link
 mediafire_download() {
-    COOKIEFILE="$1"
-    shift 1
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
+
     LOCATION=$(curl --head "$URL" | grep_http_header_location)
     if match '^http://download' "$LOCATION"; then
         log_notice "direct download"

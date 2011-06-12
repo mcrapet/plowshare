@@ -30,11 +30,10 @@ MODULE_X7_TO_FINAL_LINK_NEEDS_COOKIE=no
 # $2: x7.to url
 # stdout: real file download link
 x7_to_download() {
-    COOKIEFILE="$1"
-    shift 1
     eval "$(process_options x7_to "$MODULE_X7_TO_DOWNLOAD_OPTIONS" "$@")"
 
-    URL=$1
+    COOKIEFILE="$1"
+    URL="$2"
     BASE_URL="http://x7.to"
 
     if [ -z "$AUTH_FREE" ]; then
