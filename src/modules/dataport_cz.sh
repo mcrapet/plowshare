@@ -52,11 +52,7 @@ dataport_cz_download() {
         # html returned uses utf-8 charset
         PAGE=$(curl --location "$URL")
         if ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "File temporarily unavailable"
-                return 253
-            fi
-            log_debug "Arbitrary wait."
+            no_arbitrary_wait || return 253
             wait $NO_FREE_SLOT_IDLE seconds || return 2
             continue
         fi

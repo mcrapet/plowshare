@@ -550,6 +550,7 @@ detect_perl() {
 }
 
 # Wait some time
+# Related to --timeout plowdown command line option
 #
 # $1: Sleep duration
 # $2: Unit (seconds | minutes)
@@ -590,6 +591,16 @@ retry_limit_not_reached() {
     log_notice "Tries left: $PS_RETRY_LIMIT"
     (( PS_RETRY_LIMIT-- ))
     test "$PS_RETRY_LIMIT" -ge 0
+}
+
+# Related to --no-arbitrary-wait plowdown command line option
+no_arbitrary_wait() {
+    if test "$NOARBITRARYWAIT"; then
+        log_debug "File temporarily unavailable"
+        return $ERROR_CODE_TEMPORAL_PROBLEM
+    fi
+    log_debug "Arbitrary wait"
+    return 0
 }
 
 # OCR of an image.

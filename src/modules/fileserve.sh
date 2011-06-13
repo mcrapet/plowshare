@@ -107,29 +107,20 @@ fileserve_download() {
             return 254
         fi
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 255
 
         # Should return {"success":"showCaptcha"}
         JSON1=$(curl -b $COOKIEFILE --referer "$URL" --data "checkDownload=check" "$URL") || return 1
 
         if match 'waitTime' "$JSON1"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "File temporarily unavailable"
-                return 253
-            fi
-
-            log_notice "too many captcha failures, you must wait"
+            no_arbitrary_wait || return 253
+            log_debug "too many captcha failures"
             wait $STOP_FLOODING seconds || return 2
             continue
 
         elif match 'timeLimit' "$JSON1"; then
-            log_error "time limit, you must wait"
-            if test "$NOARBITRARYWAIT"; then
-                return 1
-            fi
-
+            no_arbitrary_wait || return 253
+            log_debug "time limit, you must wait"
             wait $STOP_FLOODING seconds || return 2
             continue
 

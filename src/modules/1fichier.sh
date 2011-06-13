@@ -50,16 +50,10 @@ EMAIL,,email:,EMAIL,Field for notification email"
             return 254
         fi
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 255
 
         if match "Téléchargements en cours" "$PAGE"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "Already downloading file, must wait"
-                return 253
-            fi
-            log_debug "Arbitrary wait."
+            no_arbitrary_wait || return 253
             wait $NO_FREE_SLOT_IDLE seconds || return 2
             continue
         fi

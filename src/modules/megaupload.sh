@@ -138,20 +138,14 @@ megaupload_download() {
 
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "File temporarily unavailable"
-                return 253
-            fi
-            log_debug "Arbitrary wait."
+            no_arbitrary_wait || return 253
             wait $NO_FREE_SLOT_IDLE seconds || return 2
             continue
         fi
 
         # ---
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 255
 
         # Test for Premium account without "direct download" option
         ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account")

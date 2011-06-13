@@ -82,20 +82,14 @@ rapidshare_download() {
             return 254
 
         elif match "flooding" "$ERROR"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "File temporarily unavailable"
-                return 253
-            fi
-            log_notice "Server has said we are flooding it."
+            no_arbitrary_wait || return 253
+            log_debug "Server said we are flooding it."
             wait $STOP_FLOODING seconds || return 2
             continue
 
         elif match "slots" "$ERROR"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "File temporarily unavailable"
-                return 253
-            fi
-            log_notice "Server has said there is no free slots available"
+            no_arbitrary_wait || return 253
+            log_debug "Server said there is no free slots available"
             wait $NO_FREE_SLOT_IDLE seconds || return 2
             continue
 

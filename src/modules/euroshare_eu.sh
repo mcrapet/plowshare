@@ -69,11 +69,7 @@ euroshare_eu_download() {
         fi
 
         if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
-            if test "$NOARBITRARYWAIT"; then
-                log_debug "File temporarily unavailable"
-                return 253
-            fi
-            log_debug "Arbitrary wait."
+            no_arbitrary_wait || return 253
             wait $NO_FREE_SLOT_IDLE seconds || return 2
             continue
         fi
