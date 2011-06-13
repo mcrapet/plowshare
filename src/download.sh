@@ -224,7 +224,7 @@ download() {
 
         if test -z "$FILENAME"; then
             FILENAME=$(basename_file "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
-              html_to_utf8 | uri_decode)
+                html_to_utf8 | uri_decode)
         fi
         log_notice "Filename: $FILENAME"
 
@@ -246,7 +246,7 @@ download() {
             test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local OUTPUT_COOKIES=""
             if test "$COOKIES"; then
-                # move temporal cookies (standard tempfiles are automatically deleted)
+                # move temporary cookies (standard tempfiles are automatically deleted)
                 OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename_file $0).cookies.$$.txt"
                 mv "$COOKIES" "$OUTPUT_COOKIES"
             fi
@@ -255,27 +255,48 @@ download() {
                 replace "%filename" "$FILENAME" |
                 replace "%cookies" "$OUTPUT_COOKIES"
         else
-            local TEMP_FILENAME
+            local FILENAME_TMP
+            local FILENAME_OUT
+
+            # Temporary download path
             if test "$TEMP_DIR"; then
-                TEMP_FILENAME="$TEMP_DIR/$FILENAME"
-                mkdir -p "$TEMP_DIR"
-                log_notice "Downloading file to temporal directory: $TEMP_FILENAME"
+                FILENAME_TMP="$TEMP_DIR/$FILENAME"
             else
-                TEMP_FILENAME="$FILENAME"
+                if test "$OUTPUT_DIR"; then
+                    FILENAME_TMP="$OUTPUT_DIR/$FILENAME"
+                else
+                    FILENAME_TMP="$FILENAME"
+               fi
+            fi
+
+            # Final path
+            if test "$OUTPUT_DIR"; then
+                FILENAME_OUT="$OUTPUT_DIR/$FILENAME"
+            else
+                FILENAME_OUT="$FILENAME"
             fi
 
             CURL=("curl")
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
+
             module_config_resume "$MODULE" && CURL=("${CURL[@]}" "-C -")
             module_config_need_cookie "$MODULE" && CURL=("${CURL[@]}" -b $COOKIES)
-            test "$LIMIT_RATE" && CURL=("${CURL[@]}" "--limit-rate $LIMIT_RATE")
-            test "$NOOVERWRITE" -a -f "$TEMP_FILENAME" && \
-                TEMP_FILENAME=$(create_alt_filename "$TEMP_FILENAME")
 
-            # Force (temporarily) debug verbose level to dispay curl download progress
-            log_report ${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$TEMP_FILENAME" "$FILE_URL"
+            test "$LIMIT_RATE" && CURL=("${CURL[@]}" "--limit-rate $LIMIT_RATE")
+
+            if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
+                if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
+                    FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                    FILENAME_TMP="$FILENAME_OUT"
+                else
+                    FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                fi
+            fi
+
+            # Force (temporary) debug verbose level to dispay curl download progress
+            log_report ${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$FILENAME_TMP" "$FILE_URL"
             CODE=$(with_log ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
-                -o "$TEMP_FILENAME" "$FILE_URL") || DRETVAL=$?
+                -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
 
@@ -301,24 +322,30 @@ download() {
             esac
 
             if [ "$CODE" = 416 ]; then
-                log_error "Resume error (bad range), restart download"
-                rm -f "$TEMP_FILENAME"
-                continue
+                # If module can resume transfer, we assume here that this error
+                # means that file have already been downloaded earlier.
+                # We should do a HTTP HEAD request to check file length but
+                # a lot of hosters do not allow it.
+                if module_config_resume "$MODULE"; then
+                    log_error "Resume error (bad range), skip download"
+                else
+                    log_error "Resume error (bad range), restart download"
+                    rm -f "$FILENAME_TMP"
+                    continue
+                fi
             elif ! match "20." "$CODE"; then
                 log_error "Unexpected HTTP code $CODE"
                 continue
             fi
 
-            if test "$OUTPUT_DIR" != "$TEMP_DIR"; then
-                mkdir -p "$(dirname "$OUTPUT_DIR")"
+            if test "$FILENAME_TMP" != "$FILENAME_OUT"; then
                 log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
-                mv "$TEMP_FILENAME" "${OUTPUT_DIR:-.}" || true
+                mv -f "$FILENAME_TMP" "$FILENAME_OUT"
             fi
 
-            # Echo downloaded file path
-            FN=$(basename_file "$TEMP_FILENAME")
-            OUTPUT_PATH=$(test "$OUTPUT_DIR" && echo "$OUTPUT_DIR/$FN" || echo "$FN")
-            echo "$OUTPUT_PATH"
+            # Echo downloaded file (local) path
+            echo "$FILENAME_OUT"
+
         fi
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "" "|$OUTPUT_PATH"
         break
@@ -353,12 +380,28 @@ fi
 test "$HELP" && { usage; exit $ERROR_CODE_OK; }
 test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
 test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
-set_exit_trap
+
+if [ -n "$TEMP_DIR" ]; then
+    TEMP_DIR=$(echo "$TEMP_DIR" | sed -e "s/\/$//")
+    log_error "temporary directory: $TEMP_DIR"
+    mkdir -p "$TEMP_DIR"
+    if [ ! -w "$TEMP_DIR" ]; then
+        log_error "error: no write permission"
+        exit $ERROR_CODE_FATAL
+    fi
+fi
 
 if [ -n "$OUTPUT_DIR" ]; then
     OUTPUT_DIR=$(echo "$OUTPUT_DIR" | sed -e "s/\/$//")
     log_error "output directory: $OUTPUT_DIR"
+    mkdir -p "$OUTPUT_DIR"
+    if [ ! -w "$OUTPUT_DIR" ]; then
+        log_error "error: no write permission"
+        exit $ERROR_CODE_FATAL
+    fi
 fi
+
+set_exit_trap
 
 RETVALS=()
 for ITEM in "$@"; do
