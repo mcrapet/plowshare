@@ -108,9 +108,8 @@ filesonic_download() {
             log_debug "File not found"
             return 254
         fi
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+
+        test "$CHECK_LINK" && return 255
 
         # Cases: download link, <400MB, captcha, wait
         # captcha/wait can redirect to any of the other cases

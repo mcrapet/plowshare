@@ -42,9 +42,7 @@ netload_in_download() {
             parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
             { log_debug "file not found"; return 254; }
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 255
 
         PERL_PRG=$(detect_perl) || return 1
 
@@ -121,8 +119,7 @@ netload_in_download() {
 # $1: netfolder.in link
 # stdout: list of links
 netload_in_list() {
-    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_LIST_OPTIONS" "$@")"
-    URL=$1
+    URL="$1"
 
     if ! match 'folder' "$URL"; then
         log_error "This is not a directory list"
