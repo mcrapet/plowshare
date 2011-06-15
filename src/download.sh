@@ -30,7 +30,6 @@ QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
-GET_MODULE,,get-module,,Get module(s) for URL(s)
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
@@ -39,6 +38,7 @@ TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
+GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies)
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 "

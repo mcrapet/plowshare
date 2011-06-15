@@ -72,9 +72,7 @@ fileserve_download() {
 
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
-        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || {
-            return 1
-        }
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || return 1
 
         # Check account type
         if ! match '<h3>Free' "$LOGIN_RESULT"; then
