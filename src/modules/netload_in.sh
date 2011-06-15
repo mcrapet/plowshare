@@ -20,20 +20,47 @@
 
 MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?net\(load\|folder\)\.in/"
 
-MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS=""
+MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_DOWNLOAD_RESUME=no
 MODULE_NETLOAD_IN_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_NETLOAD_IN_LIST_OPTIONS=""
 
-# Output an netload.in file download URL (anonymous, not premium)
+# Output an netload.in file download URL (anonymous)
 # $1: cookie file
 # $2: netload.in url
 # stdout: real file download link
 netload_in_download() {
+    eval "$(process_options rapidshare "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
+
     COOKIEFILE="$1"
     URL=$(echo "$2" | replace 'www.' '')
     BASE_URL="http://netload.in"
+
+    if [ -n "$AUTH" ]; then
+        netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return 1
+        MODULE_NETLOAD_IN_DOWNLOAD_RESUME=yes
+
+        PAGE=$(curl -i -b "$COOKIEFILE" "$URL")
+        FILE_URL=$(echo "$PAGE" | grep_http_header_location)
+
+        # Account download method set to "Automatisch"
+        # HTTP HEAD request discarded, can't read "Content-Disposition" header
+        if [ -n "$FILE_URL" ]; then
+
+            # Only solution to get filename
+            PAGE=$(curl -L "$URL")
+
+            echo "$FILE_URL"
+            echo "$PAGE" | parse_line_after 'dl_first_filename' '			\([^<]*\)'
+            return 0
+        fi
+
+        echo "$PAGE" | parse_attr 'Orange_Link' 'href'
+        echo "$PAGE" | parse '<h2>download:' ': \([^<]*\)'
+        return 0
+    fi
 
     local TRY=0
     while retry_limit_not_reached || return 3; do
@@ -113,6 +140,21 @@ netload_in_download() {
     echo $FILE_URL
     test -n "$FILENAME" && echo "$FILENAME"
     return 0
+}
+
+# $1: $AUTH argument string
+# $2: cookie file
+# $3: netload.in baseurl
+# stdout: real file download link
+netload_in_premium_login() {
+    # Even if login/passwd are wrong cookie content is returned
+    LOGIN_DATA='txtuser=$USER&txtpass=$PASSWORD&txtcheck=login&txtlogin='
+    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return 1
+
+    if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
+        log_debug "login failed"
+        return 1
+    fi
 }
 
 # List multiple netload.in links

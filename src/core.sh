@@ -163,7 +163,7 @@ matchi() {
     grep -iq "$1" <<< "$2"
 }
 
-# Get first line that matches a regular expression and extract string from it.
+# Get lines that match filter+match regular expressions and extract string from it.
 #
 # stdin: text data
 # $1: POSIX-regexp to filter (get only the first matching line).
@@ -187,6 +187,22 @@ parse_last() {
 # Like parse, but hide output to stderr
 parse_quiet() {
     parse "$@" 2>/dev/null
+}
+
+# Get lines that first filter regex, then apply match regex on the line after
+#
+# stdin: text data
+# $1: POSIX-regexp to filter (get only the first matching line).
+# $2: POSIX-regexp to match (use parenthesis) on the matched line.
+parse_line_after_all() {
+    local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}") &&
+        test "$STRING" && echo "$STRING" ||
+        { log_error "parse failed: sed -n \"/$1/$2\""; return 1; }
+}
+
+# Like parse_line_after_all, but get only first match
+parse_line_after() {
+    parse_line_after_all "$@" | head -n1
 }
 
 # Grep first "Location" (of http header)
@@ -475,8 +491,10 @@ post_login() {
         log_debug "cookies not found for site ($REGEXP), continue login process"
     fi
 
-    USER=$(echo "${AUTH%%:*}" |uri_encode_strict)
-    PASSWORD=$(echo "${AUTH#*:}" |uri_encode_strict)
+    # Seem faster than
+    # IFS=":" read USER PASSWORD <<< "$AUTH"
+    USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
+    PASSWORD=$(echo "${AUTH#*:}" | uri_encode_strict)
 
     if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || true
