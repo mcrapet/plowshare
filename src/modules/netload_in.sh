@@ -145,7 +145,6 @@ netload_in_download() {
 # $1: $AUTH argument string
 # $2: cookie file
 # $3: netload.in baseurl
-# stdout: real file download link
 netload_in_premium_login() {
     # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='txtuser=$USER&txtpass=$PASSWORD&txtcheck=login&txtlogin='
