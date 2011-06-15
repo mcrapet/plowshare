@@ -284,16 +284,16 @@ fileserve_list() {
     fi
 
     # First pass: print file names (debug)
-    echo "$PAGE" | while read LINE; do
+    while read LINE; do
         FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
         log_debug "$FILENAME"
-    done
+    done <<< "$PAGE"
 
     # Second pass: print links (stdout)
-    echo "$PAGE" | while read LINE; do
+    while read LINE; do
         LINK=$(echo "$LINE" | parse_attr '<a' 'href')
         echo "http://www.fileserve.com$LINK"
-    done
+    done <<< "$PAGE"
 
     return 0
 }
