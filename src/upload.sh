@@ -27,6 +27,8 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowup version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
+NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
+NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
 "
 
 
@@ -56,7 +58,7 @@ absolute_path() {
 
 # Print usage
 usage() {
-    echo "Usage: plowup [OPTIONS] [MODULE_OPTIONS] FILE [FILE2] [...] MODULE[:DESTNAME]"
+    echo "Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] FILE[:DESTNAME]..."
     echo
     echo "  Upload a file (or files) to a file-sharing site."
     echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
@@ -65,6 +67,23 @@ usage() {
     echo
     debug_options "$OPTIONS" "  "
     debug_options_for_modules "$MODULES" "UPLOAD"
+}
+
+# Check if module name is contained in list
+#
+# $1: module name list (one per line)
+# $2: module name
+# $?: zero for found, non zero otherwie
+# stdout: lowercase module name (if found)
+module_exist() {
+    N=$(echo "$2" | lowercase)
+    while read MODULE; do
+        if test "$N" = "$MODULE"; then
+            echo "$N"
+            return 0
+        fi
+    done <<< "$1"
+    return 1
 }
 
 #
@@ -97,41 +116,27 @@ test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
 test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
 set_exit_trap
 
-# *FILES, DESTINATION = $@
-FILES=("${@:(1):$#-1}")
-DESTINATION=${@:(-1)}
-IFS=":" read MODULE DESTFILE <<< "$DESTINATION"
+# Check requested module
+MODULE=$(module_exist "$MODULES" "$1") || {
+    log_error "unsupported module ($1)"
+    exit $ERROR_CODE_NOMODULE
+}
 
-# Ignore DESTFILE when uploading multiple files (it makes no sense there)
-if [ "$#" -gt '2' -a ! -z "$DESTFILE" ]; then
-    log_notice "several files requested, ignore destination name"
-    DESTFILE=""
-fi
+FUNCTION=${MODULE}_upload
+
+shift 1
 
 RETVALS=()
-for FILE in "${FILES[@]}"; do
-    if [ -z "$FILE" ]; then
-        log_debug "empty argument, skipping"
-        continue
-    fi
+for FILE in "$@"; do
+    # non greedy parsing
+    IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
 
-    FOUND=
-    for M in $MODULES; do
-        if [ "$M" = "$MODULE" ]; then
-            FOUND=1
-            break
-        fi
-    done
-    if [ -z "$FOUND" ]; then
-        log_error "unsupported module ($MODULE)"
-        RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
-        continue
-    fi
+    test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE:-$LOCALFILE}"
+    test "$NAME_SUFFIX" && DESTFILE="${DESTFILE:-$LOCALFILE}${NAME_SUFFIX}"
 
-    FUNCTION=${MODULE}_upload
-    log_notice "Starting upload ($MODULE): $FILE"
+    log_notice "Starting upload ($MODULE): $LOCALFILE"
     test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$FILE" "$DESTFILE" || \
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$LOCALFILE" "$DESTFILE" || \
         RETVALS=(${RETVALS[@]} "$?")
 done
 

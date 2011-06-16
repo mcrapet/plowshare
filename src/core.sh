@@ -147,6 +147,11 @@ uppercase() {
     tr '[:lower:]' '[:upper:]'
 }
 
+# Return lowercase string
+lowercase() {
+    tr '[:upper:]' '[:lower:]'
+}
+
 # Check if a string ($2) matches a regexp ($1)
 # This is case sensitive.
 #
@@ -849,6 +854,8 @@ debug_options() {
     done <<< "$OPTIONS"
 }
 
+# $1: module name
+# $2: option family name (string, example:UPLOAD)
 get_options_for_module() {
     MODULE=$1
     NAME=$2
@@ -872,7 +879,7 @@ get_modules_options() {
 # Show usage info for modules
 #
 # $1: module name list (one per line)
-# $2: option family name (string)
+# $2: option family name (string, example:UPLOAD)
 debug_options_for_modules() {
     while read MODULE; do
         OPTIONS=$(get_options_for_module "$MODULE" "$2")
