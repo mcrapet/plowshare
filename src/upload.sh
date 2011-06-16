@@ -134,6 +134,11 @@ for FILE in "$@"; do
     test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE:-$LOCALFILE}"
     test "$NAME_SUFFIX" && DESTFILE="${DESTFILE:-$LOCALFILE}${NAME_SUFFIX}"
 
+    if [ -d "$LOCALFILE" ]; then
+        log_notice "Skipping directory: $LOCALFILE"
+        continue
+    fi
+
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$LOCALFILE" "$DESTFILE" || \
