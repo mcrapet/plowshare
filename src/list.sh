@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Retreive list of links from a shared-folder (sharing site) url
-# Copyright (c) 2010 Matthieu Crapet
+# Copyright (c) 2010-2011 Plowshare team
 #
 # Output links (one per line) on standard output.
 #
@@ -56,7 +56,7 @@ absolute_path() {
 
 # Print usage
 usage() {
-    echo "Usage: plowlist [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
+    echo "Usage: plowlist [OPTIONS] [MODULE_OPTIONS] URL..."
     echo
     echo "  Retreive list of links from a shared-folder (sharing site) url."
     echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')

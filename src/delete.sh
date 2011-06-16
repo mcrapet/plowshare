@@ -54,7 +54,7 @@ absolute_path() {
 
 # Print usage
 usage() {
-    echo "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL1 [[URL2] [...]]"
+    echo "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL..."
     echo
     echo "  Delete a file-link from a file sharing site."
     echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
