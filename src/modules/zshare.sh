@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ZSHARE_REGEXP_URL="http://\(www\.\)\?zshare\.net/\(download\|delete\)"
+MODULE_ZSHARE_REGEXP_URL="http://\(www\.\)\?zshare\.net/\(download\|delete\|audio\|video\)"
 
 MODULE_ZSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZSHARE_DOWNLOAD_RESUME=yes
@@ -34,15 +34,14 @@ MODULE_ZSHARE_DELETE_OPTIONS=""
 # stdout: real file download link
 zshare_download() {
     COOKIEFILE="$1"
-    URL="$2"
+    URL=$(echo "$2" | replace '/audio/' '/download/' | \
+                      replace '/video/' '/download/')
 
     WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL")
     match "File Not Found" "$WAITPAGE" &&
         { log_debug "file not found"; return 254; }
 
-    if test "$CHECK_LINK"; then
-        return 255
-    fi
+    test "$CHECK_LINK" && return 255
 
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")
@@ -56,8 +55,8 @@ zshare_download() {
     FILENAME=$(echo "$WAITPAGE" |\
         parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
 
-    echo $FILE_URL
-    echo $FILENAME
+    echo "$FILE_URL"
+    echo "$FILENAME"
 }
 
 # Upload a file to zshare and return upload URL (DELETE_URL)
@@ -115,7 +114,7 @@ zshare_upload() {
     match "was successfully uploaded" "$INFOPAGE" ||
         { log_error "upload unsuccessful"; return 1; }
 
-    DOWNLOAD_URL=$(echo "$INFOPAGE" | parse_attr 'http:\/\/www\.zshare\.net\/\(download\|video\)' 'href') ||
+    DOWNLOAD_URL=$(echo "$INFOPAGE" | parse_attr 'http:\/\/www\.zshare\.net\/\(download\|audio\|video\)' 'href') ||
         { log_debug "can't parse download link, website updated?"; return 1; }
     DELETE_URL=$(echo "$INFOPAGE" | parse_attr "http:\/\/www\.zshare\.net\/delete" 'value') ||
         { log_debug "can't parse delete link, website updated?"; return 1; }
