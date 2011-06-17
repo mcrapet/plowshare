@@ -60,7 +60,7 @@ absolute_path() {
 usage() {
     echo "Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] FILE[:DESTNAME]..."
     echo
-    echo "  Upload a file (or files) to a file-sharing site."
+    echo "  Upload file(s) to a file-sharing site."
     echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
     echo
     echo "Global options:"

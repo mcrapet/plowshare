@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "June 3, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowup" "1" "June 17, 2011" "GPL" "Plowshare SVN-snapshot"
 
 .\" ****************************************************************************
 .\" * Name                                                                     *
@@ -36,8 +36,8 @@ plowup \- Command-line uploader for file-sharing websites
 .B plowup
 [\fIOPTION\fP]...
 [\fIMODULE_OPTION\fP]...
-\fIFILE\fP...
-\fIMODULE\fP[:\fIDESTNAME\fP]
+\fIMODULE\fP
+\fIFILE[:\fIDESTNAME\fP]\fP...
 
 .\" ****************************************************************************
 .\" * Description                                                              *
@@ -94,23 +94,24 @@ Output version information and exit.
 
 .SH "MODULE OPTIONS"
 
-.SS Rapidshare
+.SS Common options
 .TP
 .BI -a, " " --auth "=USER:PASSWORD"
-Use Premium-Zone account.
+Use premium account.
 .TP
-.BI -b, " " --auth-freezone "=USER:PASSWORD"
-Use Free-Zone account.
-.SS Megaupload
-.TP
-.BI -a, " " --auth "=USER:PASSWORD"
-Use Free-membership or Premium account.
+.BI -b, " " --auth-free "=USER:PASSWORD"
+Use free account.
 .TP
 .BI -p, " " --link-password "=PASSWORD"
-Protect a link with a password.
+Protect your files with a password. May require premium account.
 .TP
 .BI -d, " " --description "=DESCRIPTION"
 Set file description.
+.P
+All switches are not implemented nor required for all modules.
+See help message for detailed modules option list.
+
+.SS Megaupload specific
 .TP
 .B -m, --multifetch 
 Use URL multifetch upload.
@@ -124,15 +125,8 @@ Clear upload log after upload process.
 .BI "   " " " --email-to "=EMAIL"
 <To> field for notification email.
 .TP
-.BI "   " " " --traffic-url "=URL"
-Set the traffic URL.
-.TP
 .BI "   " " " --multiemail "=EMAIL1[;EMAIL2;...]"
 List of emails to notify upload.
-.SS Zshare
-.TP
-.BI -d, " " --description "=DESCRIPTION"
-Set file description.
 
 .\" ****************************************************************************
 .\" * Examples                                                                 *
@@ -142,15 +136,15 @@ Set file description.
 
 .SS 1) Upload a single file anonymously
 .nf
-$ plowup /path/foobar zshare
+$ plowup zshare /path/foobar
 .fi
 .SS 2) Upload a single file with authentication
 .nf
 # Add a text description
-$ plowup \-a myuser:mypassword \-d "My description" /path/myfile.txt megaupload
+$ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt 
 .sp 1
 # Change destination filename
-$ plowup \-a myuser:mypassword \-d "My description" /path/myfile.txt megaupload:anothername.txt
+$ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt:anothername.txt
 .fi
 
 .\" ****************************************************************************
