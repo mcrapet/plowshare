@@ -41,6 +41,7 @@ GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies)
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
+NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 "
 
 
@@ -155,6 +156,14 @@ module_config_need_cookie() {
     MODULE=$1
     VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
     test "${!VAR}" = "yes"
+}
+
+# Fake download module function. See --fallback switch.
+# $1: cookie file (unused here)
+# $2: unknown url
+# stdout: $2
+module_null_download() {
+    echo "$2"
 }
 
 download() {
@@ -408,15 +417,22 @@ for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
         MODULE=$(get_module "$URL" "$MODULES")
-        if test -z "$MODULE"; then
-            log_error "Skip: no module for URL ($URL)"
-            RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
-            continue
+
+        if [ -z "$MODULE" ]; then
+            if test "$NO_MODULE_FALLBACK"; then
+                log_notice "No module found, do a simple HTTP GET as requested"
+                MODULE='module_null'
+            else
+                log_error "Skip: no module for URL ($URL)"
+                RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
+                continue
+            fi
         elif test "$GET_MODULE"; then
             echo "$MODULE"
             continue
         fi
+
         download "$MODULE" "$(echo "$URL" | strip)" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
             "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
             "$MAXRETRIES" "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
