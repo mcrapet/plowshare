@@ -174,10 +174,11 @@ filesonic_download() {
                             --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1")
 
             else
+                log_debug "$URL"
                 log_error "No match. Site update?"
                 return 1
-
             fi
+
         done
     fi
 
