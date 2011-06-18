@@ -128,16 +128,28 @@ shift 1
 
 RETVALS=()
 for FILE in "$@"; do
-    # non greedy parsing
-    IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
+
+    # Check for remote upload
+    if match "^https\?://" "$FILE"; then
+        LOCALFILE="$FILE"
+        DESTFILE=""
+    else
+        # non greedy parsing
+        IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
+
+        if [ ! -f "$LOCALFILE" ]; then
+            log_notice "Cannot find file: $LOCALFILE"
+            continue
+        fi
+
+        if [ -d "$LOCALFILE" ]; then
+            log_notice "Skipping directory: $LOCALFILE"
+            continue
+        fi
+    fi
 
     test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE:-$LOCALFILE}"
     test "$NAME_SUFFIX" && DESTFILE="${DESTFILE:-$LOCALFILE}${NAME_SUFFIX}"
-
-    if [ -d "$LOCALFILE" ]; then
-        log_notice "Skipping directory: $LOCALFILE"
-        continue
-    fi
 
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
