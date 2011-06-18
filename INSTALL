@@ -11,7 +11,7 @@ PREFIX=/home/$USER make install
 
 2. For restricted sytems (mostly NAS)
 - busybox may be present instead of bash
-- GNU coreutils tools may not be compete
+- GNU coreutils tools may not be complete
 
 # Default installation path: is /usr/local
 $ sudo bash setup.sh install

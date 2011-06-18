@@ -5,10 +5,10 @@
 Introduction
 ============
 
-Plowshare is a command-line downloader and uploader for some of the most
-popular file hosting & sharing websites.
+Plowshare is a command line (CLI) application designed for popular
+file-sharing websites (aka Hosters).
 
-Plowshare is a set of four tools (written entirely in bash):
+Plowshare is a set of four tools (written entirely in shell script):
   - plowdown, for downloading URLs
   - plowup, for uploading files
   - plowdel, for deleting remote files
@@ -25,12 +25,15 @@ To run plowshare you will require:
 
 > A POSIX compliant operating system: 
     - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
+    - Cygwin
     - BSD: need some patches
     - Mac OSX: need homebrew
-    - Cygwin: recode utility is not available as package but can be 
-      recompiled from sources
 > Bash (version >= 3)
 > Curl (with SSL support, usually required for premium account)
+
+> Character encoding converter (recommanded)
+    - recode or
+    - perl + HTML::Entities
 
 > Some websites requires javascript interpreter [1]
     - spidermonkey or
@@ -40,10 +43,6 @@ To run plowshare you will require:
     - imagemagick (with GIF and TIFF support)
     - tesseract-ocr (with TIFF support; version >=2.04)
     - perl + Image::Magick (aka PerlMagick) [2]
-
-> Character encoding converter (optional)
-    - recode or
-    - perl + HTML::Entities
 
 > Picture ascii-art viewer (optional)
     - aview or
@@ -119,26 +118,26 @@ Plowup
 ------
 
 1. Upload a file to dataport.cz (account required)
-$ plowup -a myuser:mypassword /tmp/foo.bz2 dataport_cz
+$ plowup -a myuser:mypassword dataport_cz /tmp/foo.bz2
 
 2. Upload a file to Multiupload changing uploaded file name
-$ plowup /path/myfile.txt multiupload:anothername.txt
+$ plowup multiupload /path/myfile.txt:anothername.txt
 
 3. Upload a file to Megaupload with a free membership account:
-$ plowup -a myuser:mypassword -d "My description" /path/myfile.txt megaupload
+$ plowup -a myuser:mypassword -d "My description" megaupload /path/myfile.txt
 
 4. Upload a file to Megaupload with a premium account and multifetch upload
-$ plowup -a myuser:mypassword -d "My description" \
-    --multifetch http://www.somewherefarbeyond.com/somefile megaupload
+$ plowup -a myuser:mypassword -d "My description" megaupload \
+    --multifetch http://www.somewherefarbeyond.com/somefile
 
 5. Upload a bunch of files (anonymously to 2shared)
-$ plowup /path/myphotos/* 2shared
+$ plowup 2shared /path/myphotos/*
 Notice that only files will be sent, subdirectories will be ignored.
 
 6. Upload a file to Zshare anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
-$ plowup /path/myfile.txt zshare
+$ plowup zshare /path/myfile.txt
 
 
 Be aware that curl is not capable of uploading files containing a comma (,)
@@ -168,6 +167,8 @@ one website.
 
 A guide is available here:
 http://code.google.com/p/plowshare/wiki/NewModules
+API list is here:
+http://code.google.com/p/plowshare/wiki/NewModules2
 
 A common approch is also to study existing modules.
 
