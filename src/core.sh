@@ -510,7 +510,7 @@ post_login() {
     DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
 
     # Yes, no quote around $CURL_ARGS
-    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL")
+    local RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL")
 
     # For now "-z" test is kept.
     # There is no known case of a null $RESULT on successful login.

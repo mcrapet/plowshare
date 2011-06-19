@@ -63,7 +63,7 @@ megaupload_download() {
         }
     fi
 
-    echo $URL | grep -q "\.com/?d=" ||
+    echo "$URL" | grep -q "\.com/?d=" ||
         URL=$(curl -I "$URL" | grep_http_header_location)
 
     TRY=0
@@ -258,6 +258,7 @@ megaupload_upload() {
             curl -b $COOKIES "$BASEURL/$CLEARURL" > /dev/null
         fi
         echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
+
     else
         UPLOADURL="http://www.megaupload.com/multiupload/"
         log_debug "downloading upload page: $UPLOADURL"
@@ -279,6 +280,7 @@ megaupload_upload() {
             -F "multiemail=$MULTIEMAIL" \
             "$FORM_URL" | parse "downloadurl" "url = '\(.*\)';"
     fi
+
     rm -f $COOKIES
 }
 

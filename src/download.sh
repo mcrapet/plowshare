@@ -190,11 +190,11 @@ download() {
     while true; do
         local DRETVAL=0
         local COOKIES=$(create_tempfile)
-        local RESULT=$(create_tempfile)
+        local DRESULT=$(create_tempfile)
 
-        $FUNCTION "$@" "$COOKIES" "$URL" >$RESULT || DRETVAL=$?
-        { read FILE_URL; read FILENAME; } <$RESULT || true
-        rm -f "$RESULT"
+        $FUNCTION "$@" "$COOKIES" "$URL" >$DRESULT || DRETVAL=$?
+        { read FILE_URL; read FILENAME; } <$DRESULT || true
+        rm -f "$DRESULT"
 
         if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
             log_notice "Link active: $URL"
