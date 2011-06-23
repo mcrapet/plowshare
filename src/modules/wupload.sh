@@ -22,6 +22,7 @@ MODULE_WUPLOAD_REGEXP_URL="http://\(www\.\)\?wupload\.com/"
 
 MODULE_WUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
+MODULE_WUPLOAD_LIST_OPTIONS=""
 
 
 # Upload a file to wupload using wupload api - http://api.wupload.com/user
@@ -74,5 +75,38 @@ wupload_upload() {
     LINK=${LINK//[\\]/}
 
     echo "$LINK"
+    return 0
+}
+
+# List a wupload public folder URL
+# $1: wupload url
+# stdout: list of links
+wupload_list() {
+    URL="$1"
+
+    if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder\/" "$URL"; then
+        log_error "This is not a folder"
+        return 1
+    fi
+
+    PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_WUPLOAD_REGEXP_URL}file/")
+
+    if ! test "$PAGE"; then
+        log_error "Wrong folder link (no download link detected)"
+        return 1
+    fi
+
+    # First pass: print file names (debug)
+    while read LINE; do
+        FILENAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILENAME"
+    done <<< "$PAGE"
+
+    # Second pass: print links (stdout)
+    while read LINE; do
+        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$LINK"
+    done <<< "$PAGE"
+
     return 0
 }
