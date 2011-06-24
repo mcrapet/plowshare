@@ -21,7 +21,7 @@
 MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/\(file\|folder\)/"
 
 MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
-MODULE_SENDSPACE_DOWNLOAD_RESUME=no
+MODULE_SENDSPACE_DOWNLOAD_RESUME=yes
 MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_SENDSPACE_LIST_OPTIONS=""
@@ -38,23 +38,23 @@ sendspace_download() {
         return 1
     fi
 
-    FILE_URL=$(curl -L --data "download=1" "$URL" |
+    local FILE_URL=$(curl -L --data "download=1" "$URL" | \
         parse_attr 'spn_download_link' 'href' 2>/dev/null) ||
         { log_debug "file not found"; return 254; }
 
     test "$CHECK_LINK" && return 255
 
-    HOST=$(basename_url "$FILE_URL")
-    PATH=$(curl -I "$FILE_URL" | grep_http_header_location) || return 1
+    local FILE_NAME=$(curl -I "$FILE_URL" | \
+        grep_http_header_content_disposition) || return 1
 
-    echo "${HOST}${PATH}"
+    echo "$FILE_URL"
+    echo "$FILE_NAME"
 }
 
 # List a sendspace shared folder
 # $1: sendspace folder URL
 # stdout: list of links (file and/or folder)
 sendspace_list() {
-    eval "$(process_options sendspace "$MODULE_SENDSPACE_LIST_OPTIONS" "$@")"
     URL=$1
 
     if ! match 'sendspace\.com\/folder\/' "$URL"; then
