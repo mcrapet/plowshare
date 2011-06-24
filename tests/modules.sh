@@ -196,7 +196,7 @@ test_signle_down() {
         stderr "ERR ($RET): plowdown $OPTS_DN $LINK"
         return 1
     fi
-echo "$F" >/tmp/a
+
     rm -f "$F"
     echo "down ok"
 
