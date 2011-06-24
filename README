@@ -31,7 +31,7 @@ To run plowshare you will require:
 > Bash (version >= 3)
 > Curl (with SSL support, usually required for premium account)
 
-> Character encoding converter (recommanded)
+> Character encoding converter (recommended)
     - recode or
     - perl + HTML::Entities
 
@@ -43,6 +43,9 @@ To run plowshare you will require:
     - imagemagick (with GIF and TIFF support)
     - tesseract-ocr (with TIFF support; version >=2.04)
     - perl + Image::Magick (aka PerlMagick) [2]
+
+> X11 picture viewer (used on site using reCaptcha)
+    - display (imagemagick)
 
 > Picture ascii-art viewer (optional)
     - aview or
