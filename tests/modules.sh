@@ -249,6 +249,7 @@ shift $((OPTIND-1))
 for ARG in "$@"; do
     FOUND=0
     for LETTER in ${TEST_LETTER[@]}; do
+        ARG="`echo $ARG | tr '[:lower:]' '[:upper:]'`"
         if [ "${ARG:0:1}" = $LETTER ]; then
             TEST_ITEMS=( "${TEST_ITEMS[@]}"  "$ARG" )
             FOUND=1
@@ -276,11 +277,14 @@ else
 
     # Perform tests specified in TEST_ITEMS array
     if [ ${#TEST_ITEMS[@]} -ne 0 ]; then
+        let n=0
+
         let i=${TEST_INDEX[0]}
         while readx M O1 O2 O3; do
             if exists TEST_ITEMS "${TEST_LETTER[0]}$i"; then
                 echo -n "testing $M ..."
                 test_case_up_down_del "$FILE1" $M $O1 $O2 $O3 || true
+                let n++
             fi
             let i++
         done < "${TEST_FILES[0]}"
@@ -290,12 +294,25 @@ else
             if exists TEST_ITEMS "${TEST_LETTER[1]}$i"; then
                 echo -n "testing $URL ..."
                 test_signle_down "$URL" $F $O1 || true
+                let n++
             fi
             let i++
         done < "${TEST_FILES[1]}"
 
+        if [ "$n" -eq 0 ]; then
+            echo "error: bad test name \"${TEST_ITEMS[0]}\""
+        fi
+
     # Perform all tests here
     else
+
+        echo "Testing all modules. This will be long, you can go away take a coffee..."
+        read -p "Are you sure (y/N)? " -n 1 CONT
+        if [ "$CONT" != 'y' -a "$CONT" != 'Y' ]; then
+            exit 0
+        fi
+        echo
+
         while readx M O1 O2 O3; do
             echo -n "testing $M ..."
             test_case_up_down_del "$FILE1" $M $O1 $O2 $O3 || true
