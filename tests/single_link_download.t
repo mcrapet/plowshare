@@ -12,17 +12,18 @@ http://u.115.com/file/f52e198c21
 Guilty_OST.rar
 --
 
-# 4shared
-# badongo
-# data_hu
-# depositfiles
-# divshare
-# dl_free_fr
-# humyo
-# netload_in
-# rapidshare
-# sendspace
-# uploading
-# usershare
-# x7_to
+# depositfiles (220KB file)
+http://depositfiles.com/en/files/xn88ws0rr
+RFC-all.tar.gz
+--
+
+# megaupload (link with password)
+http://www.megaupload.com/?d=4YF0D6A3
+asound.conf
+-p test1
+
+# sendspace (200KB file)
+http://www.sendspace.com/file/7njubh
+plowshare.bin
+--
 

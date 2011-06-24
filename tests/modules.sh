@@ -196,7 +196,7 @@ test_signle_down() {
         stderr "ERR ($RET): plowdown $OPTS_DN $LINK"
         return 1
     fi
-
+echo "$F" >/tmp/a
     rm -f "$F"
     echo "down ok"
 
@@ -283,7 +283,7 @@ else
         while readx M O1 O2 O3; do
             if exists TEST_ITEMS "${TEST_LETTER[0]}$i"; then
                 echo -n "testing $M ..."
-                test_case_up_down_del "$FILE1" $M $O1 $O2 $O3 || true
+                test_case_up_down_del "$FILE1" $M "$O1" "$O2" "$O3" || true
                 let n++
             fi
             let i++
@@ -293,7 +293,7 @@ else
         while readx URL F O1; do
             if exists TEST_ITEMS "${TEST_LETTER[1]}$i"; then
                 echo -n "testing $URL ..."
-                test_signle_down "$URL" $F $O1 || true
+                test_signle_down "$URL" $F "$O1" || true
                 let n++
             fi
             let i++
@@ -315,11 +315,11 @@ else
 
         while readx M O1 O2 O3; do
             echo -n "testing $M ..."
-            test_case_up_down_del "$FILE1" $M $O1 $O2 $O3 || true
+            test_case_up_down_del "$FILE1" $M "$O1" "$O2" "$O3" || true
         done < "${TEST_FILES[0]}"
         while readx URL F O1; do
             echo -n "testing $URL ..."
-            test_signle_down "$URL" $F $O1 || true
+            test_signle_down "$URL" $F "$O1" || true
         done < "${TEST_FILES[1]}"
     fi
 
