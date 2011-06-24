@@ -326,7 +326,7 @@ parse_form_action() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_name() {
-    parse "<input\([[:space:]]*[^ ]*\)*name=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
+    parse "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)" 2>/dev/null
 }
 
 # Retreive "value" attribute from a typed <input> marker
@@ -335,12 +335,12 @@ parse_form_input_by_name() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
-    parse "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'value="\?\([^">]*\)' 2>/dev/null
+    parse "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)" 2>/dev/null
 }
 
 # Retreive "id" attributes from typed <input> marker(s)
 parse_all_form_input_by_type_with_id() {
-    parse_all "<input\([[:space:]]*[^ ]*\)*type=\"\?$1\"\?" 'id="\?\([^">]*\)' 2>/dev/null
+    parse_all "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "id=[\"']\?\([^'\">]*\)" 2>/dev/null
 }
 
 # Get accessor for cookies
