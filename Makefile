@@ -14,8 +14,7 @@ SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
        src/core.sh src/strip_single_color.pl src/strip_threshold.pl
 
 SETUP_FILES     = Makefile setup.sh
-TEST_FILES      = test/lib.sh test/test_lib.sh test/test_modules.sh test/test_setup.sh \
-                  $(wildcard test/pics/*)
+TEST_FILES      = tests/modules.sh $(wildcard tests/*.t)
 MODULE_FILES    = $(wildcard src/modules/*.sh) src/modules/config
 TESSERACT_FILES = $(addprefix src/tesseract/, alnum digit digit_ops plowshare_nobatch upper)
 
@@ -69,7 +68,7 @@ uninstall:
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)/, $(MANPAGES0))
 
 test:
-	@echo "Not yet!"
+	@cd tests && ./modules.sh -l
 
 dist: distdir
 	@tar -cf - $(DISTDIR)/* | gzip -9 >$(DISTDIR).tar.gz
@@ -77,7 +76,7 @@ dist: distdir
 
 distdir:
 	@test -d $(DISTDIR) || mkdir $(DISTDIR)
-	@mkdir -p $(DISTDIR)/test/pics $(DISTDIR)/docs $(DISTDIR)/contrib
+	@mkdir -p $(DISTDIR)/tests $(DISTDIR)/docs $(DISTDIR)/contrib
 	@mkdir -p $(DISTDIR)/src/modules $(DISTDIR)/src/tesseract
 	@for file in $(SRCS) $(SETUP_FILES) $(MODULE_FILES) $(TESSERACT_FILES) \
 			$(TEST_FILES) $(MANPAGES) $(DOCS) $(CONTRIB_FILES); do \
