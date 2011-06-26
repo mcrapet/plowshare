@@ -51,8 +51,8 @@ ERROR_CODE_FATAL_MULTIPLE=101
 # log_report for a file
 # $1: filename
 logcat_report() {
-    local STRING=$(cat $1 | \
-        sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' -e 's/^/rep:/')
+    local STRING=$(sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+            -e 's/^/rep:/' "$1")
 
     test $(verbose_level) -ge 4 && stderr "$STRING"
     return 0
