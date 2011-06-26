@@ -73,18 +73,17 @@ uploading_download() {
     done
 
     WAIT=$(echo "$DATA" | parse_quiet 'start_timer([[:digit:]]\+)' \
-           'start_timer(\([[:digit:]]\+\))')
-    test -z "$WAIT" &&
-      WAIT=$(echo "$DATA" | parse 'var[[:space:]]*timer_count' \
-             'timer_count[[:space:]]*=[[:space:]]*\([[:digit:]]\+\);')
+            'start_timer(\([[:digit:]]\+\))')
+    test -z "$WAIT" && WAIT=$(echo "$DATA" | parse 'var[[:space:]]*timer_count' \
+            'timer_count[[:space:]]*=[[:space:]]*\([[:digit:]]\+\);')
 
     test "$WAIT" || { log_error "Cannot get wait time"; return 1; }
     JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
 
-    FILENAME=$(echo "$DATA" |
-        parse '<title>' '<title>Download \(.*\) for free on uploading.com<\/title>' 2>/dev/null)
+    FILENAME=$(echo "$DATA" | \
+        parse_quiet '<title>' '<title>Download \(.*\) for free on uploading.com<\/title>')
 
-    # second attempt (note: filename might be truncated in the page)
+    # Second attempt (note: filename might be truncated in the page)
     test -z "$FILENAME" &&
         FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | tail -n1 | parse 'h2' '<h2>\([^<]*\)')
 
@@ -93,7 +92,7 @@ uploading_download() {
     DATA=$(curl --cookie "$COOKIEFILE" --data "action=get_link&file_id=${FILE_ID}&code=${CODE}&pass=undefined" "$JSURL") ||
         { log_error "can't get link"; return 1; }
 
-    # example of answer:
+    # Example of answer:
     # { "id": "1268521606000", "js": { "answer": { "link": "http:\/\/up3.uploading.com\/get_file\/%3D%3DwARfyFZ3fKB8rJ ... " } }, "text": "" }
     FILE_URL=$(echo "$DATA" | parse '"answer":' '"link":[[:space:]]*"\([^"]*\)"') ||
         { log_error "URL not found"; return 1; }
