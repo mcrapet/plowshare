@@ -71,7 +71,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
 
 4shared_list() {
     eval "$(process_options sendspace "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
-    URL=$1
+    URL=$(echo "$1" | replace '/folder/' '/dir/')
 
     if ! match '4shared\.com\/dir\/' "$URL"; then
         log_error "This is not a directory list"
