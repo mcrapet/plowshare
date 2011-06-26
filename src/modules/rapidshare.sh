@@ -98,62 +98,60 @@ rapidshare_download() {
             return 1
         fi
 
-        read RSHOST DLAUTH WTIME < \
-            <(echo "$PAGE" | grep "^DL:" | cut -d":" -f2- | awk -F"," '{print $1, $2, $3}')
-        test "$RSHOST" -a "$DLAUTH" -a "$WTIME" ||
-            { log_error "unexpected page contents: $PAGE"; return 1; }
+        PAGE=$(echo "$PAGE" | parse 'DL' 'DL:\(.*\)') || {
+            log_error "unexpected page content";
+            return 1;
+        }
+
+        local RSHOST=$(echo "$PAGE" | cut -d',' -f1)
+        local DLAUTH=$(echo "$PAGE" | cut -d',' -f2)
+        local WTIME=$(echo "$PAGE" | cut -d',' -f3)
+
         test "$CHECK_LINK" && return 255
         break
     done
 
-    wait $WTIME seconds
-    BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
+    wait $((WTIME)) seconds || return 2
+
+    # https is only available for RapidPro customers
+    local BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
 
     if test "$AUTH"; then
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&login=$USER&password=$PASSWORD"
     else
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
     fi
-    echo $FILENAME
+    echo "$FILENAME"
 }
 
-# Upload a file to Rapidshare (anonymously, Free-Zone or Premium-Zone)
-#
-# rapidshare_upload [OPTIONS] FILE [DESTFILE]
-#
-# Options:
-#   -a USER:PASSWORD, --auth=USER:PASSWORD
-#   -b USER:PASSWORD, --auth-freezone=USER:PASSWORD
-#
+# Upload a file to rapidshare using rsapi - http://images.rapidshare.com/apidoc.txt
+# $1: file name to upload
+# $2: upload as file name (optional, defaults to $1)
+# stdout: download_url (delete_url)
 rapidshare_upload() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
 
-    log_error "***"
-    log_error "*** Warning: rapidshare upload is currently broken"
-    log_error "***          don't use it!"
-    log_error "***"
-
     if test -n "$AUTH_PREMIUMZONE"; then
-        rapidshare_upload_premiumzone "$@"
+        log_debug "premium download not available"
     elif test -n "$AUTH_FREEZONE"; then
-        rapidshare_upload_freezone "$@"
+        log_debug "freezone download not available"
     else
         rapidshare_upload_anonymous "$@"
     fi
 }
 
-# Upload a file to Rapidshare (anonymously) and return LINK_URL (KILL_URL)
-#
-# rapidshare_upload_anonymous FILE [DESTFILE]
-#
+# Upload a file to rapidshare (anonymously)
+# $1: file name to upload
+# $2: upload as file name (optional, defaults to $1)
+# stdout: download_url (delete_url)
 rapidshare_upload_anonymous() {
-    FILE=$1
+    FILE="$1"
     DESTFILE=${2:-$FILE}
 
-    SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver_v1")
+    SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver")
     log_debug "free upload server is rs$SERVER_NUM"
 
-    UPLOAD_URL="http://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
+    UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
     INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
             -F "rsapi_v1=1" -F "realfolder=0" "$UPLOAD_URL") || return 1
@@ -172,145 +170,38 @@ rapidshare_upload_anonymous() {
     echo "$URL ($KILL)"
 }
 
-# Upload a file to Rapidshare (Free-Zone) and return LINK_URL
-#
-# rapidshare_upload_freezone [OPTIONS] FILE [DESTFILE]
-#
-# Options:
-#   -b USER:PASSWORD, --auth-freezone=USER:PASSWORD
-#
-# TODO: This code is obsolete
-rapidshare_upload_freezone() {
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
-
-    COOKIES=$(create_tempfile)
-    FREEZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/collectorszone.cgi"
-
-    LOGIN_DATA='username=$USER&password=$PASSWORD'
-    LOGIN_RESULT=$(post_login "$AUTH_FREEZONE" "$COOKIES" "$LOGIN_DATA" "$FREEZONE_LOGIN_URL") || {
-        rm -f $COOKIES
-        return 1
-    }
-
-    if match 'The Account has been found, password incorrect' "$LOGIN_RESULT"; then
-        log_error "login process failed (wrong password)"
-        rm -f $COOKIES
-        return 1
-    fi
-
-    log_debug "downloading upload page: $FREEZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(curl -b $COOKIES $FREEZONE_LOGIN_URL) || return 1
-
-    ACCOUNTID=$(echo "$UPLOAD_PAGE" | \
-        parse 'name="freeaccountid"' 'value="\([[:digit:]]*\)"')
-    ACTION=$(echo "$UPLOAD_PAGE" | parse '<form name="ul"' 'action="\([^"]*\)"')
-    IFS=":" read USER PASSWORD <<< "$AUTH_FREEZONE"
-    log_debug "uploading file: $FILE"
-    UPLOADED_PAGE=$(curl_with_log -b $COOKIES \
-        -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        -F "freeaccountid=$ACCOUNTID" \
-        -F "password=$PASSWORD" \
-        -F "mirror=on" $ACTION) || return 1
-
-    log_debug "download upload page to get url: $FREEZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(curl -b $COOKIES $FREEZONE_LOGIN_URL) || return 1
-
-    rm -f $COOKIES
-
-    FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | tail -n1 | \
-        parse Adliste 'Adliste\["\([[:digit:]]*\)"')
-    MATCH="^Adliste\[\"$FILEID\"\]"
-    KILLCODE=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "killcode\"\] = '\(.*\)'") || return 1
-    FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" "filename\"\] = \"\(.*\)\"") || return 1
-
-    # There is a killcode in the HTML, but it's not used to build a URL
-    # but as a param in a POST submit, so I assume there is no kill URL for
-    # freezone files. Therefore, output just the file URL.
-    URL="http://rapidshare.com/files/$FILEID/$FILENAME.html"
-    echo "$URL"
-}
-
-# Upload a file to Rapidshare (Premium-Zone) and return LINK_URL
-#
-# rapidshare_upload_premiumzone [OPTIONS] FILE [DESTFILE]
-#
-# Options:
-#   -a USER:PASSWORD, --auth=USER:PASSWORD
-#
-# TODO: This code is obsolete
-rapidshare_upload_premiumzone() {
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
-
-    COOKIES=$(create_tempfile)
-    PREMIUMZONE_LOGIN_URL="https://ssl.rapidshare.com/cgi-bin/premiumzone.cgi"
-
-    # Even if login/passwd are wrong cookie content is returned
-    LOGIN_DATA='uselandingpage=1&submit=Premium%20Zone%20Login&login=$USER&password=$PASSWORD'
-    post_login "$AUTH_PREMIUMZONE" "$COOKIES" "$LOGIN_DATA" "$PREMIUMZONE_LOGIN_URL" >/dev/null || {
-        rm -f $COOKIES
-        return 1
-    }
-
-    log_debug "downloading upload page: $PREMIUMZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(curl -b $COOKIES $PREMIUMZONE_LOGIN_URL) || return 1
-
-    if test -z "$UPLOAD_PAGE"; then
-        log_error "login process failed"
-        rm -f $COOKIES
-        return 1
-    fi
-
-    # Extract upload form part
-    UPLOAD_PAGE=$(grep_form_by_name "$UPLOAD_PAGE" 'ul')
-
-    local form_url=$(echo "$UPLOAD_PAGE" | parse_form_action)
-    local form_login=$(echo "$UPLOAD_PAGE" | parse_form_input_by_name "login")
-    local form_password=$(echo "$UPLOAD_PAGE" | parse_form_input_by_name "password")
-
-    log_debug "uploading file: $FILE"
-    UPLOADED_PAGE=$(curl_with_log -b $COOKIES \
-        -F "login=$form_login" \
-        -F "password=$form_password" \
-        -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        -F "mirror=on" \
-        -F "u.x=56" -F "u.y=9" "$form_url") || return 1
-
-    log_debug "download upload page to get url: $PREMIUMZONE_LOGIN_URL"
-    UPLOAD_PAGE=$(curl -b $COOKIES $PREMIUMZONE_LOGIN_URL) || return 1
-
-    rm -f $COOKIES
-
-    FILEID=$(echo "$UPLOAD_PAGE" | grep ^Adliste | head -n1 | \
-        parse Adliste 'Adliste\["\([[:digit:]]*\)"')
-    MATCH="^Adliste\[\"$FILEID\"\]"
-    KILLCODE=$(echo "$UPLOAD_PAGE" | parse "$MATCH" 'killcode"\] = "\([^"]*\)') || return 1
-    FILENAME=$(echo "$UPLOAD_PAGE" | parse "$MATCH" 'filename"\] = "\([^"]*\)') || return 1
-
-    URL="http://rapidshare.com/files/$FILEID/$FILENAME.html"
-    echo "$URL"
-}
-
 # Delete a file on rapidshare
 # $1: delete link
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
     URL="$1"
 
-    if ! match 'deletefiles' "$URL"; then
-        log_error "This is not a delete url"
+    # Two URL formats:
+    # https://rapidshare.com/files/1706226814/arc02f.rar?killcode=15013892074548155797'
+    # https://rapidshare.com/#!index|deletefiles|15013892074548155797|1706226814|arc02f.rar
+    if match '.*/#!index|' "$URL"; then
+        KILLCODE=$(echo "$URL" | cut -d'|' -f3)
+        FILEID=$(echo "$URL" | cut -d'|' -f4)
+    else
+        KILLCODE=$(echo "$URL" | parse_quiet kill 'killcode=\(.*\)')
+        FILEID=$(echo "$URL" | cut -d'/' -f5)
+    fi
+
+    if [ -z "$KILLCODE" ]; then
+        log_error "cannot parse killcode from URL"
         return 1
     fi
 
-    CONFIRM_PAGE=$(curl "$URL")
+    if [ -z "$FILEID" ]; then
+        log_error "cannot parse fileid from URL"
+        return 1
+    fi
 
-    local KILLCODE=$(echo "$URL" | cut -d'|' -f3)
-    local FILEID=$(echo "$URL" | cut -d'|' -f4)
+    log_debug "FileID=$FILEID"
+    log_debug "KillCode=$KILLCODE"
+
     local RESPONSE=$(curl \
-            "https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=deletefreefile&killcode={$KILLCODE}&fileid=${FILEID}")
+            "https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=deletefreefile&killcode=${KILLCODE}&fileid=${FILEID}")
 
     # Possible answers:
     # OK
