@@ -88,6 +88,11 @@ depositfiles_download() {
            log_debug "limit reached: waiting $WAITTIME seconds"
            wait $((WAITTIME)) seconds || return 2
            continue
+
+        # - Such file does not exist or it has been removed for infringement of copyrights.
+        elif match 'html_download_api-not_exists' "$DATA"; then
+            log_error "file does not exist anymore"
+            return 1
         fi
 
         break
