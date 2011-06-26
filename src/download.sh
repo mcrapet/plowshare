@@ -356,7 +356,7 @@ download() {
             echo "$FILENAME_OUT"
 
         fi
-        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "" "|$OUTPUT_PATH"
+        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "" "|$FILENAME_OUT"
         break
     done
 }
