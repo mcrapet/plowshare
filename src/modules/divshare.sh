@@ -40,9 +40,7 @@ divshare_download() {
         return 254
     fi
 
-    if test "$CHECK_LINK"; then
-        return 255
-    fi
+    test "$CHECK_LINK" && return 0
 
     # Uploader can disable audio/video download (only streaming is available)
     REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href' 2>/dev/null) || {

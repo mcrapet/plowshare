@@ -42,7 +42,7 @@ sendspace_download() {
         parse_attr 'spn_download_link' 'href' 2>/dev/null) ||
         { log_debug "file not found"; return 254; }
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     local FILE_NAME=$(curl -I "$FILE_URL" | \
         grep_http_header_content_disposition) || return 1

@@ -37,7 +37,7 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
         return 254
     fi
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     # There are usually mirrors (do a HTTP HEAD request to check dead mirror)
     while read URL; do

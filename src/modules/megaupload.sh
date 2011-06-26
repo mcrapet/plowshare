@@ -98,14 +98,12 @@ megaupload_download() {
         # Test for big files (premium account required)
         elif match "The file you are trying to download is larger than" "$PAGE"; then
             log_debug "Premium link"
-            test "$CHECK_LINK" && return 255
+            test "$CHECK_LINK" && return 0
             return 253
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
-            if test "$CHECK_LINK"; then
-                return 255
-            fi
+            test "$CHECK_LINK" && return 0
 
             log_debug "File is password protected"
 
@@ -145,7 +143,7 @@ megaupload_download() {
 
         # ---
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         # Test for Premium account without "direct download" option
         ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account")

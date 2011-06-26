@@ -72,9 +72,7 @@ x7_to_download() {
             return 254
         fi
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 0
 
         # Check for errors:
         # - The requested file is larger than 400MB, only premium members will be able to download the file!

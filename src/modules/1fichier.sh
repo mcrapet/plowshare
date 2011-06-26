@@ -50,7 +50,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
             return 254
         fi
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         if match "Téléchargements en cours" "$PAGE"; then
             no_arbitrary_wait || return 253

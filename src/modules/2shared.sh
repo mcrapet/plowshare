@@ -38,7 +38,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     match "file link that you requested is not valid" "$PAGE" && return 254
 
     FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return 1
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     FILENAME=$(echo "$PAGE" | parse '<title>' 'download *\([^<]*\)') || true
 

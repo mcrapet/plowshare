@@ -47,9 +47,7 @@ uploading_download() {
         match "requested file is not found" "$DATA" && return 254
 
         if match "<h2.*Download Limit.*</h2>" "$DATA"; then
-            if test "$CHECK_LINK"; then
-                return 255
-            fi
+            test "$CHECK_LINK" && return 0
 
             WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
                 WAIT=5
@@ -62,9 +60,7 @@ uploading_download() {
         WAIT_URL=$(echo "$HTML_FORM" | parse_form_action) ||
             { log_error "can't get wait url"; return 1; }
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 0
 
         FILE_ID=$(echo "$HTML_FORM" | parse_form_input_by_name 'file_id') ||
             { log_error "can't get file_id form field"; return 1; }

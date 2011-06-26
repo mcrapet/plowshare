@@ -64,7 +64,7 @@ mediafire_download() {
     fi
 
     if test "$CHECK_LINK"; then
-        match 'class="download_file_title"' "$PAGE" && return 255 || return 1
+        match 'class="download_file_title"' "$PAGE" && return 0 || return 1
     fi
 
     if [ -n "$LINK_PASSWORD" ]; then

@@ -75,9 +75,7 @@ hotfile_download() {
         local SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
             { log_error "can't get sleep time"; return 1; }
 
-        if test "$CHECK_LINK"; then
-            return 255
-        fi
+        test "$CHECK_LINK" && return 0
 
         # Send (post) form
         local FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f')

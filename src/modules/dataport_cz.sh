@@ -42,7 +42,7 @@ dataport_cz_download() {
         return 254
     fi
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
@@ -62,7 +62,7 @@ dataport_cz_download() {
     DL_URL=$(echo "$PAGE" | parse_quiet '<td>' '<td><a href="\([^"]*\)')
     if ! test "$DL_URL"; then
         log_error "Can't parse download URL, site updated?"
-        return 255
+        return 1
     fi
     DL_URL=$(uri_encode_file "$DL_URL")
 
@@ -71,7 +71,7 @@ dataport_cz_download() {
     FILE_URL=$(curl -I "$DL_URL" | grep_http_header_location)
     if ! test "$FILE_URL"; then
         log_error "Location not found"
-        return 255
+        return 1
     fi
     FILE_URL=$(uri_encode_file "$FILE_URL")
 

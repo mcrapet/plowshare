@@ -109,7 +109,7 @@ filesonic_download() {
             return 254
         fi
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         # Cases: download link, <400MB, captcha, wait
         # captcha/wait can redirect to any of the other cases
@@ -125,7 +125,7 @@ filesonic_download() {
             # free users can download files < 400MB
             elif match 'download is larger than 400Mb.' "$PAGE"; then
                 log_error "You're trying to download file larger than 400MB (only premium users can)."
-                return 255
+                return 253
 
             # captcha
             elif match 'Please Enter Captcha' "$PAGE"; then

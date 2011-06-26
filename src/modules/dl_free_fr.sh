@@ -46,9 +46,7 @@ dl_free_fr_download() {
         return 254
     fi
 
-    if test "$CHECK_LINK"; then
-        return 255
-    fi
+    test "$CHECK_LINK" && return 0
 
     FILE_URL=$(echo "$HTML_PAGE" | parse "charger ce fichier" 'href="\([^"].*\)"') ||
         { log_error "Could not parse file URL"; return 1; }

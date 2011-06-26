@@ -54,7 +54,7 @@ wupload_download() {
             return 254
         fi
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         local FILENAME=$(echo "$START_HTML" | parse_quiet "<title>" ">Get \(.*\) on ")
 

@@ -35,7 +35,7 @@ humyo_download() {
     # test for direct download links
     FILENAME=$(curl -I "$1" | grep_http_header_content_disposition) || true
     test "$FILENAME" && {
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         echo $URL
         echo $FILENAME
@@ -50,7 +50,7 @@ humyo_download() {
                parse_attr 'Download this \(file\|image\|photo\)' 'href') ||
         { log_error "download link not found"; return 1; }
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     echo "${BASEURL}${FILE_URL}"
 }

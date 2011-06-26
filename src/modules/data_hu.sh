@@ -35,8 +35,9 @@ data_hu_download() {
     match "/missing.php" "$PAGE" &&
         { log_debug "file not found"; return 254; }
     FILE_URL=$(echo "$PAGE" | parse_attr "download_it" "href") ||
-      { log_error "download link not found"; return 1; }
-    test "$CHECK_LINK" && return 255
+        { log_error "download link not found"; return 1; }
+
+    test "$CHECK_LINK" && return 0
 
     echo $FILE_URL
 }

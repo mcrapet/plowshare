@@ -79,7 +79,7 @@ fileserve_download() {
             FILE_URL=$(curl -i -b $COOKIEFILE "$URL" | grep_http_header_location)
 
             test -z "$FILE_URL" && return 1
-            test "$CHECK_LINK" && return 255
+            test "$CHECK_LINK" && return 0
 
             # Non premium cannot resume downloads
             MODULE_FILESERVE_DOWNLOAD_RESUME=yes
@@ -105,7 +105,7 @@ fileserve_download() {
             return 254
         fi
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         # Should return {"success":"showCaptcha"}
         JSON1=$(curl -b $COOKIEFILE --referer "$URL" --data "checkDownload=check" "$URL") || return 1

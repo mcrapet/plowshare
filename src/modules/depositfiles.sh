@@ -40,7 +40,7 @@ depositfiles_download() {
         match "no_download_msg" "$START" &&
             { log_debug "file not found"; return 254; }
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         match "download_started()" "$START" && {
             log_debug "direct download"

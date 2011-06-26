@@ -42,7 +42,7 @@ euroshare_eu_download() {
         log_error "File not found."
         return 254
     elif test "$CHECK_LINK"; then
-        return 255
+        return 0
     fi
 
     if test "$AUTH_FREE"; then
@@ -65,7 +65,7 @@ euroshare_eu_download() {
 
         if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
             log_error "You are already downloading a file from this IP."
-            return 255
+            return 1
         fi
 
         if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
@@ -79,7 +79,7 @@ euroshare_eu_download() {
     DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href')
     if ! test "$DL_URL"; then
         log_error "Can't parse download URL, site updated?"
-        return 255
+        return 1
     fi
 
     DL_URL=$(curl -I "$DL_URL")
@@ -89,7 +89,7 @@ euroshare_eu_download() {
     FILE_URL=$(echo "$DL_URL" | grep_http_header_location)
     if ! test "$FILE_URL"; then
         log_error "Location not found"
-        return 255
+        return 1
     fi
 
     echo "$FILE_URL"

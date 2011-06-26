@@ -73,7 +73,7 @@ rapidshare_download() {
         if match "need to wait" "$ERROR"; then
             WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") ||
                 { log_error "cannot parse wait time: $ERROR"; return 1; }
-            test "$CHECK_LINK" && return 255
+            test "$CHECK_LINK" && return 0
             log_notice "Server has asked to wait $WAIT seconds"
             wait $WAIT seconds || return 2
             continue
@@ -107,7 +107,7 @@ rapidshare_download() {
         local DLAUTH=$(echo "$PAGE" | cut -d',' -f2)
         local WTIME=$(echo "$PAGE" | cut -d',' -f3)
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
         break
     done
 

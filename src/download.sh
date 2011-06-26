@@ -196,7 +196,7 @@ download() {
         { read FILE_URL; read FILENAME; } <$DRESULT || true
         rm -f "$DRESULT"
 
-        if test $DRETVAL -eq 255 -a "$CHECK_LINK"; then
+        if test $DRETVAL -eq 0 -a "$CHECK_LINK"; then
             log_notice "Link active: $URL"
             echo "$URL"
             rm -f "$COOKIES"

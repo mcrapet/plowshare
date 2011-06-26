@@ -34,7 +34,7 @@ usershare_download() {
     FILE_URL=$(curl "$URL" | parse_attr 'download_btn\.jpg' 'href' 2>/dev/null) ||
         { log_debug "file not found"; return 254; }
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     echo "$FILE_URL"
 }

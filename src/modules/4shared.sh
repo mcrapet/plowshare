@@ -50,7 +50,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
 
     WAIT_URL=$(echo "$PAGE" | parse_attr "4shared\.com\/get\/" 'href')
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     WAIT_HTML=$(curl -b $COOKIEFILE "$WAIT_URL")
 
@@ -63,6 +63,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
                     'n">\([^<]\+\)' | html_to_utf8 | uri_decode)
 
     wait $((WAIT_TIME)) seconds || return 2
+
     echo "$FILE_URL"
     test "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
     return 0

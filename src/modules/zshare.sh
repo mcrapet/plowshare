@@ -41,7 +41,7 @@ zshare_download() {
     match "File Not Found" "$WAITPAGE" &&
         { log_debug "file not found"; return 254; }
 
-    test "$CHECK_LINK" && return 255
+    test "$CHECK_LINK" && return 0
 
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")

@@ -69,7 +69,7 @@ netload_in_download() {
             parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
             { log_debug "file not found"; return 254; }
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         PERL_PRG=$(detect_perl) || return 1
 
