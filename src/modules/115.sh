@@ -30,7 +30,7 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # stdout: real file download link
 115_download() {
     local HTML_PAGE=$(curl "$2" | break_html_lines)
-    local LINKS=$(echo "$HTML_PAGE" | parse_all 'sendMnvdToServer()' 'href="\(http:\/\/[^"]*\)' 2>/dev/null)
+    local LINKS=$(echo "$HTML_PAGE" | parse_all_attr 'ds_url' 'href')
 
     if [ -z "$LINKS" ]; then
         log_debug "file not found"
