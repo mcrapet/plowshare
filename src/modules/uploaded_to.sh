@@ -32,7 +32,8 @@ MODULE_UPLOADED_TO_LIST_OPTIONS=""
 # stdout: real file download link
 uploaded_to_download() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
-    COOKIEFILE="$1"
+
+    local COOKIEFILE="$1"
 
     # uploaded.to redirects all possible urls of a file to the canonical one
     local URL=$(curl -I "$2" | grep_http_header_location)
@@ -42,7 +43,7 @@ uploaded_to_download() {
 
     # recognize folders
     if match 'uploaded\.to\/folder\/' "$URL"; then
-        log_error "This is a directory list" #, use plowlist!"
+        log_error "This is a directory list"
         return 1
     fi
 
@@ -55,7 +56,7 @@ uploaded_to_download() {
     local BASE_URL='http://uploaded.to'
 
     # extract the raw file id
-    local FILE_ID=$(echo $URL | parse 'uploaded' '\/file\/\([^\/]*\)')
+    local FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
     log_debug "file id=$FILE_ID"
 
     # set website language to english
