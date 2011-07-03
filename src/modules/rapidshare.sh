@@ -134,8 +134,10 @@ rapidshare_upload() {
 
     if test -n "$AUTH_PREMIUMZONE"; then
         log_debug "premium download not available"
+        return 1
     elif test -n "$AUTH_FREEZONE"; then
         log_debug "freezone download not available"
+        return 1
     else
         rapidshare_upload_anonymous "$@"
     fi
@@ -146,8 +148,8 @@ rapidshare_upload() {
 # $2: upload as file name (optional, defaults to $1)
 # stdout: download_url (delete_url)
 rapidshare_upload_anonymous() {
-    FILE="$1"
-    DESTFILE=${2:-$FILE}
+    local FILE="$1"
+    local DESTFILE=${2:-$FILE}
 
     SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver")
     log_debug "free upload server is rs$SERVER_NUM"
@@ -165,7 +167,13 @@ rapidshare_upload_anonymous() {
     # File1.4=0902CFBAF085A18EC47B252364BDE491
     # File1.5=Completed
 
-    URL=$(echo "$INFO" | parse "files" "1=\(.*\)") || return 1
+    URL=$(echo "$INFO" | parse_quiet "files" "1=\(.*\)") || {
+        ERROR=$(echo "$INFO" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
+        if [ -n "$ERROR" ]; then
+            log_error "website error: $ERROR"
+        fi
+        return 1
+    }
     KILL=$(echo "$INFO" | parse "killcode" "2=\(.*\)") || return 1
 
     echo "$URL ($KILL)"
