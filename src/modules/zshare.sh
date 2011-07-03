@@ -33,9 +33,9 @@ MODULE_ZSHARE_DELETE_OPTIONS=""
 # $2: zshare.net url
 # stdout: real file download link
 zshare_download() {
-    COOKIEFILE="$1"
-    URL=$(echo "$2" | replace '/audio/' '/download/' | \
-                      replace '/video/' '/download/')
+    local COOKIEFILE="$1"
+    local URL=$(echo "$2" | replace '/audio/' '/download/' | \
+                            replace '/video/' '/download/')
 
     WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL")
     match "File Not Found" "$WAITPAGE" &&

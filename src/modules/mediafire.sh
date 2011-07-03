@@ -34,8 +34,8 @@ MODULE_MEDIAFIRE_LIST_OPTIONS=""
 mediafire_download() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL="$2"
+    local COOKIEFILE="$1"
+    local URL="$2"
 
     LOCATION=$(curl --head "$URL" | grep_http_header_location)
     if match '^http://download' "$LOCATION"; then
@@ -82,7 +82,7 @@ mediafire_download() {
 get_ofuscated_link() {
     local PAGE=$1
     local COOKIES=$2
-    BASE_URL="http://www.mediafire.com"
+    local BASE_URL="http://www.mediafire.com"
 
     detect_javascript >/dev/null || return 1
 
@@ -154,7 +154,7 @@ get_ofuscated_link() {
 # $1: mediafire folder url (http://www.mediafire.com/?sharekey=...)
 # stdout: list of links
 mediafire_list() {
-    URL="$1"
+    local URL="$1"
 
     PAGE=$(curl "$URL" | break_html_lines_alt)
 

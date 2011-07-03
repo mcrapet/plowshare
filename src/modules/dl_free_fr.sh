@@ -31,16 +31,16 @@ MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 # $2: dl.free.fr url
 # stdout: real file download link
 dl_free_fr_download() {
-    COOKIEFILE="$1"
-    HTML_PAGE=$(curl -L --cookie-jar $COOKIEFILE "$2")
+    local COOKIEFILE="$1"
+    local HTML_PAGE=$(curl -L --cookie-jar $COOKIEFILE "$2")
 
     # Important note: If "free.fr" is your ISP, behavior is different.
     # There is no redirection html page, you can directly wget the URL
     # (Content-Type: application/octet-stream)
     # "curl -I" (http HEAD request) is detected and returns 404 error
 
-    ERR1="erreur 500 - erreur interne du serveur"
-    ERR2="erreur 404 - document non trouv."
+    local ERR1="erreur 500 - erreur interne du serveur"
+    local ERR2="erreur 404 - document non trouv."
     if matchi "$ERR1\|$ERR2" "$HTML_PAGE"; then
         log_error "file not found"
         return 254
@@ -61,6 +61,7 @@ dl_free_fr_download() {
 #
 dl_free_fr_upload() {
     eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_UPLOAD_OPTIONS" "$@")"
+
     local FILE=$1
     local DESTFILE=${2:-$FILE}
     local UPLOADURL="http://dl.free.fr"

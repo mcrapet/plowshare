@@ -29,9 +29,9 @@ MODULE_UPLOADING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 # $2: uploading.com url
 # stdout: real file download link
 uploading_download() {
-    COOKIEFILE="$1"
-    URL="$2"
-    BASE_URL="http://uploading.com"
+    local COOKIEFILE="$1"
+    local URL="$2"
+    local BASE_URL="http://uploading.com"
 
     while retry_limit_not_reached || return 3; do
         # Force language to English

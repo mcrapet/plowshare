@@ -33,9 +33,9 @@ MODULE_FILESONIC_LIST_OPTIONS=""
 
 # Proceed with login (free-membership or premium)
 filesonic_login() {
-    AUTH=$1
-    COOKIES=$2
-    BASEURL=$3
+    local AUTH=$1
+    local COOKIES=$2
+    local BASEURL=$3
 
     LOGIN_DATA='email=$USER&password=$PASSWORD'
     LOGIN=$(post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" \
@@ -65,8 +65,8 @@ filesonic_login() {
 filesonic_download() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL="$2"
+    local COOKIEFILE="$1"
+    local URL="$2"
 
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
@@ -192,7 +192,7 @@ filesonic_download() {
 # $1: filesonic url
 # stdout: list of links
 filesonic_list() {
-    URL="$1"
+    local URL="$1"
 
     if ! match "${MODULE_FILESONIC_REGEXP_URL}folder\/" "$URL"; then
         log_error "This is not a folder"
@@ -322,12 +322,13 @@ filesonic_upload() {
 filesonic_delete() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_DELETE_OPTIONS" "$@")"
 
+    local URL="$1"
+
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot delete links."
         return 1
     fi
 
-    URL="$1"
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"

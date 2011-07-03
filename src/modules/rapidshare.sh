@@ -36,7 +36,8 @@ MODULE_RAPIDSHARE_DELETE_OPTIONS=""
 # stdout: real file download link
 rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
-    URL="$2"
+
+    local URL="$2"
 
     # Two URL formats:
     # http://rapidshare.com/files/429795114/arc02f.rar
@@ -174,7 +175,8 @@ rapidshare_upload_anonymous() {
 # $1: delete link
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
-    URL="$1"
+
+    local URL="$1"
 
     # Two URL formats:
     # https://rapidshare.com/files/1706226814/arc02f.rar?killcode=15013892074548155797'

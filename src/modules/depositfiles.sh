@@ -31,8 +31,8 @@ MODULE_DEPOSITFILES_LIST_OPTIONS=""
 # $2: depositfiles.com url
 # stdout: real file download link
 depositfiles_download() {
-    URL="$2"
-    BASEURL="http://depositfiles.com"
+    local URL="$2"
+    local BASEURL="http://depositfiles.com"
 
     while retry_limit_not_reached || return 3; do
         START=$(curl -L "$URL")
@@ -116,7 +116,7 @@ depositfiles_download() {
 # $1: depositfiles.com link
 # stdout: list of links
 depositfiles_list() {
-    URL=$1
+    local URL=$1
 
     if ! match 'depositfiles\.com\/\(..\/\)\?folders\/' "$URL"; then
         log_error "This is not a directory list"

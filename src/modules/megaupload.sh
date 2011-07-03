@@ -46,11 +46,11 @@ MODULE_MEGAUPLOAD_LIST_OPTIONS=""
 megaupload_download() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
-                      replace 'video.com/' 'upload.com/')
-    BASEURL=$(basename_url "$URL")
-    ERRORURL="http://www.megaupload.com/?c=msg"
+    local COOKIEFILE="$1"
+    local URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
+                            replace 'video.com/' 'upload.com/')
+    local BASEURL=$(basename_url "$URL")
+    local ERRORURL="http://www.megaupload.com/?c=msg"
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
@@ -200,6 +200,7 @@ megaupload_download() {
 # stdout: download link on megaupload
 megaupload_upload() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
+
     local FILE=$1
     local DESTFILE=${2:-$FILE}
     local LOGINURL="http://www.megaupload.com/?c=login"
@@ -287,11 +288,13 @@ megaupload_upload() {
 megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
 
-    URL=$1
-    BASE_URL=$(basename_url $URL)
+    local URL=$1
+    local BASE_URL=$(basename_url $URL)
 
-    test "$AUTH" ||
-        { log_error "anonymous users cannot delete links"; return 1; }
+    if ! test "$AUTH"; then
+        log_error "Anonymous users cannot delete links."
+        return 1
+    fi
 
     COOKIES=$(create_tempfile)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
@@ -322,9 +325,10 @@ megaupload_delete() {
 # stdout: list of links
 megaupload_list() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_LIST_OPTIONS" "$@")"
-    URL=$1
-    XMLURL="http://www.megaupload.com/xml/folderfiles.php"
-    FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') ||
+
+    local URL=$1
+    local XMLURL="http://www.megaupload.com/xml/folderfiles.php"
+    local FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') ||
         { log_error "cannot parse url: $URL"; return 1; }
 
     XML=$(curl "$XMLURL/?folderid=$FOLDERID")

@@ -88,7 +88,8 @@ multiupload_upload() {
 # stdout: list of links
 multiupload_list() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_LIST_OPTIONS" "$@")"
-    URL=$1
+
+    local URL=$1
 
     LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr '"urlhref' 'href') || \
         { log_error "Wrong directory list link"; return 1; }

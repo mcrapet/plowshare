@@ -34,8 +34,8 @@ AUTH,a:,auth:,USER:PASSWORD,Login to free or VIP account (required)"
 # $2: dataport.cz url
 # stdout: real file download link
 dataport_cz_download() {
-    URL=$(uri_encode_file "$2")
-    PAGE=$(curl --location "$URL")
+    local URL=$(uri_encode_file "$2")
+    local PAGE=$(curl --location "$URL")
 
     if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
         log_error "File not found."
@@ -145,8 +145,8 @@ dataport_cz_upload() {
 dataport_cz_delete() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
 
-    URL="$1"
-    BASE_URL=$(basename_url $URL)
+    local URL="$1"
+    local BASE_URL=$(basename_url $URL)
 
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot delete links."

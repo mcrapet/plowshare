@@ -34,8 +34,9 @@ MODULE_WUPLOAD_LIST_OPTIONS=""
 # stdout: real file download link
 wupload_download() {
     eval "$(process_options wupload "$MODULE_WUPLOAD_DOWNLOAD_OPTIONS" "$@")"
-    COOKIEFILE="$1"
-    URL="$2"
+
+    local COOKIEFILE="$1"
+    local URL="$2"
 
     if match 'wupload\.com\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"

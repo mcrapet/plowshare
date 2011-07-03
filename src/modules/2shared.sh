@@ -32,10 +32,13 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 # $2: 2shared url
 # stdout: real file download link
 2shared_download() {
-    URL="$2"
+    local URL="$2"
 
-    PAGE=$(curl "$URL") || return 1
-    match "file link that you requested is not valid" "$PAGE" && return 254
+    local PAGE=$(curl "$URL") || return 1
+
+    if match "file link that you requested is not valid" "$PAGE"; then
+        return 254
+    fi
 
     FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return 1
     test "$CHECK_LINK" && return 0

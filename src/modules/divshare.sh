@@ -29,9 +29,9 @@ MODULE_DIVSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 # $2: divshare url
 # stdout: real file download link
 divshare_download() {
-    COOKIEFILE="$1"
-    URL="$2"
-    BASE_URL='http://www.divshare.com'
+    local COOKIEFILE="$1"
+    local URL="$2"
+    local BASE_URL='http://www.divshare.com'
 
     PAGE=$(curl -c "$COOKIEFILE" "$URL")
 

@@ -32,9 +32,9 @@ MODULE_X7_TO_FINAL_LINK_NEEDS_COOKIE=no
 x7_to_download() {
     eval "$(process_options x7_to "$MODULE_X7_TO_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL="$2"
-    BASE_URL="http://x7.to"
+    local COOKIEFILE="$1"
+    local URL="$2"
+    local BASE_URL="http://x7.to"
 
     if [ -z "$AUTH_FREE" ]; then
         curl -c $COOKIEFILE -o /dev/null "$URL"

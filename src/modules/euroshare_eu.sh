@@ -32,9 +32,9 @@ MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 euroshare_eu_download() {
     eval "$(process_options euroshare_eu "$MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL="$2"
-    BASEURL=$(basename_url "$URL")
+    local COOKIEFILE="$1"
+    local URL="$2"
+    local BASEURL=$(basename_url "$URL")
 
     # html returned uses utf-8 charset
     PAGE=$(curl "$URL")

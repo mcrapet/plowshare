@@ -31,9 +31,9 @@ MODULE_FILESERVE_LIST_OPTIONS=""
 
 # Static function for proceeding login
 fileserve_login() {
-    AUTH=$1
-    COOKIE_FILE=$2
-    BASEURL=$3
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASEURL=$3
 
     LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
@@ -58,16 +58,17 @@ fileserve_login() {
 #
 # Note: Extra HTTP header "X-Requested-With: XMLHTTPRequested" is not required.
 fileserve_download() {
-    COOKIEFILE="$1"
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE="$1"
 
     # URL must be well formed (issue #280)
     local ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if [ -z "$ID" ]; then
         log_debug "Cannot parse URL to extract file id, try anyway"
-        URL="$2"
+        local URL="$2"
     else
-        URL="http://www.fileserve.com/file/$ID"
+        local URL="http://www.fileserve.com/file/$ID"
     fi
 
     if [ -n "$AUTH" ]; then

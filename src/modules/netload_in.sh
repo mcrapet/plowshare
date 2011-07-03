@@ -34,9 +34,9 @@ MODULE_NETLOAD_IN_LIST_OPTIONS=""
 netload_in_download() {
     eval "$(process_options rapidshare "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL=$(echo "$2" | replace 'www.' '')
-    BASE_URL="http://netload.in"
+    local COOKIEFILE="$1"
+    local URL=$(echo "$2" | replace 'www.' '')
+    local BASE_URL="http://netload.in"
 
     if [ -n "$AUTH" ]; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return 1
@@ -160,7 +160,7 @@ netload_in_premium_login() {
 # $1: netfolder.in link
 # stdout: list of links
 netload_in_list() {
-    URL="$1"
+    local URL="$1"
 
     if ! match 'folder' "$URL"; then
         log_error "This is not a directory list"

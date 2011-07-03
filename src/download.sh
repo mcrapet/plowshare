@@ -168,7 +168,7 @@ module_null_download() {
 
 download() {
     local MODULE=$1
-    local URL=$2
+    local DURL=$2
     local DOWNLOAD_APP=$3
     local LIMIT_RATE=$4
     local TYPE=$5
@@ -183,7 +183,7 @@ download() {
     shift 13
 
     FUNCTION=${MODULE}_download
-    log_debug "start download ($MODULE): $URL"
+    log_debug "start download ($MODULE): $DURL"
     timeout_init $TIMEOUT
     retry_limit_init $MAXRETRIES
 
@@ -192,13 +192,13 @@ download() {
         local COOKIES=$(create_tempfile)
         local DRESULT=$(create_tempfile)
 
-        $FUNCTION "$@" "$COOKIES" "$URL" >$DRESULT || DRETVAL=$?
+        $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
         { read FILE_URL; read FILENAME; } <$DRESULT || true
         rm -f "$DRESULT"
 
         if test $DRETVAL -eq 0 -a "$CHECK_LINK"; then
-            log_notice "Link active: $URL"
-            echo "$URL"
+            log_notice "Link active: $DURL"
+            echo "$DURL"
             rm -f "$COOKIES"
             break
         elif test $DRETVAL -eq 253; then
@@ -207,7 +207,7 @@ download() {
             return $ERROR_CODE_TEMPORAL_PROBLEM
         elif test $DRETVAL -eq 254; then
             log_notice "Warning: file link is not alive"
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOTFOUND"
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "NOTFOUND"
             rm -f "$COOKIES"
             return $ERROR_CODE_DEAD_LINK
         elif test $DRETVAL -eq 2; then
@@ -220,7 +220,7 @@ download() {
             return $ERROR_CODE_TIMEOUT_ERROR
         elif test $DRETVAL -eq 4; then
             log_error "password required (${FUNCTION})"
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "PASSWORD"
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "PASSWORD"
             rm -f "$COOKIES"
             return $ERROR_CODE_PASSWORD_REQUIRED
         elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
@@ -325,7 +325,7 @@ download() {
                     return $ERROR_CODE_UNKNOWN_ERROR
                     ;;
                 *)
-                    log_error "failed downloading $URL"
+                    log_error "failed downloading $DURL"
                     return $ERROR_CODE_NETWORK_ERROR
                     ;;
             esac
@@ -356,7 +356,7 @@ download() {
             echo "$FILENAME_OUT"
 
         fi
-        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "" "|$FILENAME_OUT"
+        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "" "|$FILENAME_OUT"
         break
     done
 }

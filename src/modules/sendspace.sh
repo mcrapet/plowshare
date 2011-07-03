@@ -31,7 +31,7 @@ MODULE_SENDSPACE_LIST_OPTIONS=""
 # $2: sendspace.com url
 # stdout: real file download link
 sendspace_download() {
-    URL="$2"
+    local URL="$2"
 
     if match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -55,7 +55,7 @@ sendspace_download() {
 # $1: sendspace folder URL
 # stdout: list of links (file and/or folder)
 sendspace_list() {
-    URL=$1
+    local URL="$1"
 
     if ! match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is not a directory list"

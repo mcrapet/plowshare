@@ -29,8 +29,8 @@ MODULE_HUMYO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: humyo.com url
 # stdout: real file download link
 humyo_download() {
-    BASEURL="http://www.humyo.com"
-    URL=$2
+    local BASEURL="http://www.humyo.com"
+    local URL=$2
 
     # test for direct download links
     FILENAME=$(curl -I "$1" | grep_http_header_content_disposition) || true

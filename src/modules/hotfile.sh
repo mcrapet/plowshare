@@ -34,8 +34,8 @@ MODULE_HOTFILE_LIST_OPTIONS=""
 hotfile_download() {
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
 
-    COOKIEFILE="$1"
-    URL="${2}&lang=en"
+    local COOKIEFILE="$1"
+    local URL="${2}&lang=en"
 
     if match 'hotfile\.com\/list\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -172,7 +172,7 @@ hotfile_download() {
 # $1: HOTFILE_URL
 # stdout: list of links
 hotfile_list() {
-    URL="$1"
+    local URL="$1"
 
     if ! match 'hotfile\.com\/list\/' "$URL"; then
         log_error "This is not a directory list"

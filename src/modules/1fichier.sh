@@ -36,8 +36,8 @@ EMAIL,,email:,EMAIL,Field for notification email"
 # $2: 1fichier.tld url
 # stdout: real file download link
 1fichier_download() {
-    COOKIEFILE="$1"
-    URL="$2"
+    local COOKIEFILE="$1"
+    local URL="$2"
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=10

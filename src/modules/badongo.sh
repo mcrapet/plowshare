@@ -29,10 +29,10 @@ MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # $2: badongo url
 # stdout: real file download link
 badongo_download() {
-    COOKIEFILE="$1"
-    URL="$2"
-    BASEURL="http://www.badongo.com"
-    APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
+    local COOKIEFILE="$1"
+    local URL="$2"
+    local BASEURL="http://www.badongo.com"
+    local APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
 
     PAGE=$(curl "$URL")
     match '"recycleMessage">' "$PAGE" &&

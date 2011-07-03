@@ -29,12 +29,12 @@ MODULE_DUCKLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: duckload.com url
 # stdout: real file download link
 duckload_download() {
-    URL="$2"
-    BASE_URL="http://www.duckload.com/jDownloader"
+    local URL="$2"
+    local BASE_URL="http://www.duckload.com/jDownloader"
 
-    URL_CHECKONLINESTATUS="$BASE_URL/checkOnlineStatus.php"
-    URL_GETFREE="$BASE_URL/getFree.php"
-    URL_GETFREEENCRYPT="$BASE_URL/getFreeEncrypt.php"
+    local URL_CHECKONLINESTATUS="$BASE_URL/checkOnlineStatus.php"
+    local URL_GETFREE="$BASE_URL/getFree.php"
+    local URL_GETFREEENCRYPT="$BASE_URL/getFreeEncrypt.php"
 
     log_debug "checking online status"
     STATUS=$(curl \
@@ -75,8 +75,7 @@ duckload_download() {
         --data-urlencode "crypt=$CRYPT" "$URL_GETFREEENCRYPT")
 
     log_debug $STATUS
-    if matchi "http" "$STATUS"
-    then
+    if matchi "http" "$STATUS"; then
         log_debug "starting download: $STATUS"
         echo "$STATUS"
     else

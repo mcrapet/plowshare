@@ -29,7 +29,7 @@ MODULE_USERSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: usershare.net url
 # stdout: real file download link
 usershare_download() {
-    URL="$2"
+    local URL="$2"
 
     FILE_URL=$(curl "$URL" | parse_attr 'download_btn\.jpg' 'href' 2>/dev/null) ||
         { log_debug "file not found"; return 254; }
