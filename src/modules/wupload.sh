@@ -85,7 +85,7 @@ wupload_download() {
         # wupload is bugged when I requested several parallel download
         # link returned lead to an (302) error..
         elif match 'Download Ready' "$WAIT_HTML"; then
-            local FILE_URL=$(echo $WAIT_HTML | parse_attr '<a' 'href')
+            local FILE_URL=$(echo "$WAIT_HTML" | parse_attr '<a' 'href')
             log_debug "$FILE_URL"
             return 1
 
@@ -126,7 +126,7 @@ wupload_download() {
                     break
                 fi
 
-                local FILE_URL=$(echo $HTMLPAGE | parse_quiet 'Download Ready' 'href="\([^"]*\)"')
+                local FILE_URL=$(echo "$HTMLPAGE" | parse_quiet 'Download Ready' 'href="\([^"]*\)"')
                 if [ -n "$FILE_URL" ]; then
                     log_debug "correct captcha"
                     echo "$FILE_URL"
