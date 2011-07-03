@@ -312,7 +312,7 @@ megaupload_delete() {
 
     rm -f $COOKIES
 
-    FILES=$(echo $DELETE | parse_quiet 'totalfiles' 'totalfiles":"\(.*\)","noresults":')
+    FILES=$(echo "$DELETE" | parse_quiet 'totalfiles' 'totalfiles":"\(.*\)","noresults":')
 
     if [ $TOTAL_FILES -eq $FILES ]; then
         log_error "error deleting link"
