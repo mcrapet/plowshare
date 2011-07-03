@@ -36,8 +36,8 @@ mediafire_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
+    local LOCATION=$(curl --head "$URL" | grep_http_header_location)
 
-    LOCATION=$(curl --head "$URL" | grep_http_header_location)
     if match '^http://download' "$LOCATION"; then
         log_notice "direct download"
         echo "$LOCATION"
@@ -53,10 +53,7 @@ mediafire_download() {
         return 1
     fi
 
-    PAGE=$(curl -L -c $COOKIEFILE "$URL" | sed "s/>/>\n/g")
-    COOKIES=$(< $COOKIEFILE)
-
-    test "$PAGE" || return 1
+    PAGE=$(curl -L -c $COOKIEFILE "$URL" | sed "s/>/>\n/g") || return 1
 
     if matchi 'Invalid or Deleted File' "$PAGE"; then
         log_debug "invalid or deleted file"
@@ -68,12 +65,12 @@ mediafire_download() {
     fi
 
     if [ -n "$LINK_PASSWORD" ]; then
-        #PAGE=$(curl -L -b <(echo "$COOKIES") --data "downloadp=$LINK_PASSWORD" "$URL" | sed "s/>/>\n/g")
+        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | sed "s/>/>\n/g")
         log_error "not implemented"
         return 1
     fi
 
-    FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIES") ||
+    FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || \
         { log_error "error running Javascript code"; return 1; }
 
     echo "$FILE_URL"
@@ -81,7 +78,7 @@ mediafire_download() {
 
 get_ofuscated_link() {
     local PAGE=$1
-    local COOKIES=$2
+    local COOKIEFILE=$2
     local BASE_URL="http://www.mediafire.com"
 
     detect_javascript >/dev/null || return 1
@@ -127,7 +124,7 @@ get_ofuscated_link() {
         { log_error "error running Javascript in main page"; return 1; }
     log_debug "DIV id: $DIVID"
     log_debug "Dynamic page: $DYNAMIC_PATH"
-    DYNAMIC=$(curl -b <(echo "$COOKIES") "$BASE_URL/$DYNAMIC_PATH")
+    DYNAMIC=$(curl -b "$COOKIEFILE" "$BASE_URL/$DYNAMIC_PATH")
     DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | sed -e '1d;$d')
 
     FILE_URL=$(echo "
