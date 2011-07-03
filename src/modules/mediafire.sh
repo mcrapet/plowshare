@@ -56,14 +56,60 @@ mediafire_download() {
         return 1
     fi
 
-    PAGE=$(curl -L -c $COOKIEFILE "$URL" | sed "s/>/>\n/g") || return 1
+    PAGE=$(curl -L -c $COOKIEFILE "$URL" | break_html_lines) || return 1
 
     if test "$CHECK_LINK"; then
         match 'class="download_file_title"' "$PAGE" && return 0 || return 1
     fi
 
-    if [ -n "$LINK_PASSWORD" ]; then
-        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | sed "s/>/>\n/g")
+    # reCaptcha
+    if match '<textarea name="recaptcha_challenge_field"' "$PAGE"; then
+        local PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
+        local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+
+        if [ -n "$IMAGE_FILENAME" ]; then
+            local TRY=1
+
+            while retry_limit_not_reached || return 3; do
+                log_debug "reCaptcha manual entering (loop $TRY)"
+                (( TRY++ ))
+
+                WORD=$(recaptcha_display_and_prompt "$IMAGE_FILENAME")
+
+                rm -f $IMAGE_FILENAME
+
+                [ -n "$WORD" ] && break
+
+                log_debug "empty, request another image"
+                IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
+            done
+
+            CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+
+            PAGE=$(curl -b "$COOKIEFILE" --data \
+                "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+                "$URL" | break_html_lines) || return 1
+
+            # You entered the incorrect keyword below, please try again!
+            if match 'incorrect keyword' "$PAGE"; then
+                log_error "wrong captcha"
+                return 1
+            fi
+        fi
+    fi
+
+    # When link is password protected, there's no facebook box
+    # and "share this link" box. Use that trick!
+    if ! match 'Share this file:' "$PAGE"; then
+        log_debug "File is password protected"
+
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD=$(prompt_for_password) || \
+                { log_error "You must provide a password"; return 4; }
+        fi
+
+        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return 1
         log_error "not implemented"
         return 1
     fi
@@ -140,7 +186,7 @@ get_ofuscated_link() {
         $DYNAMIC_JS
         dz();
         print(namespace['$DIVID'].innerHTML);
-    " | javascript | parse_attr "href")  ||
+    " | javascript | parse_attr "href") ||
         { log_error "error running Javascript in download page"; return 1; }
     echo $FILE_URL
 }
