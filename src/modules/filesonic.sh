@@ -119,7 +119,7 @@ filesonic_download() {
 
             # download link
             if match 'Start download now' "$PAGE"; then
-                FILE_URL=$(echo $PAGE | parse_quiet 'Start download now' 'href="\([^"]*\)"')
+                FILE_URL=$(echo "$PAGE" | parse_quiet 'Start download now' 'href="\([^"]*\)"')
                 break
 
             # free users can download files < 400MB
