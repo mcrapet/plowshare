@@ -130,7 +130,7 @@ filesonic_download() {
             # captcha
             elif match 'Please Enter Captcha' "$PAGE"; then
                 local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-                IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+                local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
                 if ! test "$IMAGE_FILENAME"; then
                     log_error "reCaptcha error"

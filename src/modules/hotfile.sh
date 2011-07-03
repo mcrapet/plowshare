@@ -116,7 +116,7 @@ hotfile_download() {
             local form2_action=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
 
             local PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
-            IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+            local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
             if [ -n "$IMAGE_FILENAME" ]; then
                 TRY=1

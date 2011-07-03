@@ -77,7 +77,6 @@ uploaded_to_download() {
 
         # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
         local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
-
         local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
         if ! test "$IMAGE_FILENAME"; then

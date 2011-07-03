@@ -132,7 +132,7 @@ fileserve_download() {
     done
 
     local PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
-    IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+    local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
     if [ -z "$IMAGE_FILENAME" ]; then
         log_error "reCaptcha error"

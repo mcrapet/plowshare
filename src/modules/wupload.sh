@@ -96,7 +96,7 @@ wupload_download() {
         # reCaptcha page
         if match 'Please enter the captcha below' "$WAIT_HTML"; then
             local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-            IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+            local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
             if [ -n "$IMAGE_FILENAME" ]; then
                 local TRY=1
