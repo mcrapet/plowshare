@@ -45,6 +45,9 @@ mediafire_download() {
     elif match 'errno=999$' "$LOCATION"; then
         log_error "private link"
         return 254
+    elif match 'errno=320$' "$LOCATION"; then
+        log_error "invalid or deleted file"
+        return 254
     elif match 'errno=378$' "$LOCATION"; then
         log_error "file removed for violation"
         return 254
@@ -54,11 +57,6 @@ mediafire_download() {
     fi
 
     PAGE=$(curl -L -c $COOKIEFILE "$URL" | sed "s/>/>\n/g") || return 1
-
-    if matchi 'Invalid or Deleted File' "$PAGE"; then
-        log_debug "invalid or deleted file"
-        return 254
-    fi
 
     if test "$CHECK_LINK"; then
         match 'class="download_file_title"' "$PAGE" && return 0 || return 1
