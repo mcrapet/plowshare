@@ -25,6 +25,7 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_MEDIAFIRE_DOWNLOAD_RESUME=no
 MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_MEDIAFIRE_UPLOAD_OPTIONS=""
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
 
 # Output a mediafire file download URL
@@ -189,6 +190,90 @@ get_ofuscated_link() {
     " | javascript | parse_attr "href") ||
         { log_error "error running Javascript in download page"; return 1; }
     echo $FILE_URL
+}
+
+# $1: input file
+# $2 (optional): alternate destination filename
+# stdout: mediafire.com upload link
+mediafire_upload() {
+    local FILE=$1
+    local DESTFILE=${2:-$FILE}
+    local BASE_URL="http://www.mediafire.com"
+    local COOKIEFILE=$(create_tempfile)
+
+    log_debug "Get ukey cookie"
+    curl -c "$COOKIEFILE" "$BASE_URL" >/dev/null || { rm -f "$COOKIEFILE"; return 1; }
+
+    log_debug "Get uploader configuration"
+    XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
+            { log_error "Couldn't upload file!"; rm -f "$COOKIEFILE"; return 1; }
+
+    local UKEY=$(parse_quiet ukey '.*ukey[ \t]*\(.*\)' < "$COOKIEFILE")
+    local USER=$(echo "$XML" | parse_quiet user '<user>\([^<]*\)<\/user>')
+    local TRACK_KEY=$(echo "$XML" | parse_quiet trackkey '<trackkey>\([^<]*\)<\/trackkey>')
+    local FOLDER_KEY=$(echo "$XML" | parse_quiet folderkey '<folderkey>\([^<]*\)<\/folderkey>')
+    local MFUL_CONFIG=$(echo "$XML" | parse_quiet MFULConfig '<MFULConfig>\([^<]*\)<\/MFULConfig>')
+
+    log_debug "trackkey: $TRACK_KEY"
+    log_debug "folderkey: $FOLDER_KEY"
+    log_debug "ukey: $UKEY"
+    log_debug "MFULConfig: $MFUL_CONFIG"
+
+    if [ -z "$UKEY" -o -z "$TRACK_KEY" -o -z "$FOLDER_KEY" -o -z "$MFUL_CONFIG" -o -z "$USER" ]; then
+        log_error "Can't parse uploader configuration!"
+        rm -f "$COOKIEFILE"
+        return 1
+    fi
+
+    log_debug "Uploading file"
+    local UPLOAD_URL="$BASE_URL/douploadtoapi/?track=$TRACK_KEY&ukey=$UKEY&user=$USER&uploadkey=$FOLDER_KEY&upload=0"
+    XML=$(curl_with_log -b "$COOKIEFILE" \
+        -F "Filename=$(basename_file "$DESTFILE")" \
+        -F "Upload=Submit Query" \
+        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" $UPLOAD_URL) ||
+            { log_error "Couldn't upload file!"; rm -f "$COOKIEFILE"; return 1; }
+
+    # Example of anwser:
+    # <?xml version="1.0" encoding="iso-8859-1"?>
+    # <response>
+    #  <doupload>
+    #   <result>0</result>
+    #   <key>sf22seu6p7d</key>
+    #  </doupload>
+    # </response>
+    local UPLOAD_KEY=$(echo "$XML" | parse_quiet key '<key>\([^<]*\)<\/key>')
+    log_debug "key: $UPLOAD_KEY"
+
+    if [ -z "$UPLOAD_KEY" ]; then
+        log_error "Can't get upload key!"
+        rm -f "$COOKIEFILE"
+        return 1
+    fi
+
+    log_debug "Polling for status update"
+
+    local TRY=0
+    local QUICK_KEY=""
+    while [ "$TRY" -lt 3 ]; do
+        (( TRY++ ))
+        XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG")
+
+        if match '<description>No more requests for this key</description>' "$XML"; then
+            QUICK_KEY=$(echo "$XML" | parse_quiet quickkey '<quickkey>\([^<]*\)<\/quickkey>')
+            break
+        fi
+        wait 2 seconds || return 2
+    done
+
+    rm -f "$COOKIEFILE"
+
+    if [ -z "$QUICK_KEY" ]; then
+        log_error "Can't get quick key!"
+        return 1
+    fi
+
+    echo "$BASE_URL/?$QUICK_KEY"
 }
 
 # List a mediafire shared file folder URL

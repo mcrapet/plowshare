@@ -15,7 +15,7 @@ fileserve    | download | upload |        | list |
 filesonic    | download | upload | delete | list |
 hotfile      | download |        |        | list |
 humyo        | download |        |        |      |
-mediafire    | download |        |        | list |
+mediafire    | download | upload |        | list |
 megaupload   | download | upload | delete | list |
 mirrorcreator|          | upload |        |      |
 multiupload  |          | upload |        | list |
