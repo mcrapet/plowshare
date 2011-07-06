@@ -52,7 +52,7 @@ badongo_download() {
             -F "rs=refreshImage" \
             -F "rst=" \
             -F "rsrnd=$MTIME" \
-            "$URL" | sed "s/>/>\n/g")
+            "$URL" | break_html_lines)
 
         ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
             { log_debug "file not found"; return 254; }
