@@ -142,14 +142,15 @@ strip() {
     sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
-# Return uppercase string
+# Return uppercase string : tr '[:lower:]' '[:upper:]'
+# Note: Busybox "tr" command may not have classes support (CONFIG_FEATURE_TR_CLASSES)
 uppercase() {
-    tr '[:lower:]' '[:upper:]'
+    tr '[a-z]' '[A-Z]'
 }
 
-# Return lowercase string
+# Return lowercase string : tr '[:upper:]' '[:lower:]'
 lowercase() {
-    tr '[:upper:]' '[:lower:]'
+    tr '[A-Z]' '[a-z]'
 }
 
 # Check if a string ($2) matches a regexp ($1)
@@ -437,7 +438,7 @@ uri_decode() {
 # stdout: file length (in bytes)
 get_filesize()
 {
-    SIZE=`stat -c %s "$1" 2>/dev/null`
+    local SIZE=`stat -c %s "$1" 2>/dev/null`
     if [ -z "$SIZE" ]; then
         log_error "stat binary not found"
         echo "-1"
@@ -483,11 +484,11 @@ prompt_for_password() {
 # stdout: html result (can be null string)
 # $? is zero on success
 post_login() {
-    AUTH=$1
-    COOKIE=$2
-    POSTDATA=$3
-    LOGINURL=$4
-    CURL_ARGS=$5
+    local AUTH=$1
+    local COOKIE=$2
+    local POSTDATA=$3
+    local LOGINURL=$4
+    local CURL_ARGS=$5
 
     if test "$GLOBAL_COOKIES"; then
         REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")
