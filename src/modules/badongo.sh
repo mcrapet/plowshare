@@ -129,7 +129,7 @@ badongo_download() {
     # HTTP GET request
     JSCODE=$(curl -G -b "_gflCur=0" -b $COOKIEFILE \
         --data "rs=getFileLink&rst=&rsrnd=${MTIME}&rsargs[]=0&rsargs[]=yellow&rsargs[]=${GLF_Z}&rsargs[]=${GLF_H}&rsargs[]=${GLF_T}&rsargs[]=${FILETYPE}&rsargs[]=${FILEID}&rsargs[]=" \
-        --referer "$ACTION" "$ACTION" | sed "s/>/>\n/g")
+        --referer "$ACTION" "$ACTION" | break_html_lines)
 
     # Example: <a href=\"#\" onclick=\"return doDownload(\'http://www.badongo.com/fd/0101052591990549/CCI97956a6891950969/0\');\">
     # doDownload name is now obfuscated (example: aeacfeededbb)
