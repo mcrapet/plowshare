@@ -929,8 +929,8 @@ process_options() {
     OPTIONS=$(echo "$OPTIONS" | strip | drop_empty_lines)
 
     echo "$OPTIONS" | sed "s/^!//" | while read VAR; do
-        VAR=$(echo $VAR | cut -d',' -f1)
-        unset $VAR
+        # faster than `cut -d',' -f1`
+        unset "${VAR%%,*}"
     done
 
     local SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
