@@ -930,7 +930,7 @@ process_options() {
 
     echo "$OPTIONS" | sed "s/^!//" | while read VAR; do
         # faster than `cut -d',' -f1`
-        unset "${VAR%%,*}"
+        [ -n "${VAR%%,*}" ] && unset "${VAR%%,*}"
     done
 
     local SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
