@@ -86,8 +86,10 @@ wupload_download() {
         # link returned lead to an (302) error..
         elif match 'Download Ready' "$WAIT_HTML"; then
             local FILE_URL=$(echo "$WAIT_HTML" | parse_attr '<a' 'href')
-            log_debug "$FILE_URL"
-            return 1
+            log_debug "parallel download?"
+            echo "$FILE_URL"
+            test "$FILENAME" && echo "$FILENAME"
+            return 0
 
         else
             log_debug "no wait delay, go on"
@@ -126,7 +128,7 @@ wupload_download() {
                     break
                 fi
 
-                local FILE_URL=$(echo "$HTMLPAGE" | parse_quiet 'Download Ready' 'href="\([^"]*\)"')
+                local FILE_URL=$(echo "$HTMLPAGE" | parse_attr '\/download\/' 'href')
                 if [ -n "$FILE_URL" ]; then
                     log_debug "correct captcha"
                     echo "$FILE_URL"
