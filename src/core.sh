@@ -928,10 +928,13 @@ process_options() {
     # Strip spaces in options
     OPTIONS=$(echo "$OPTIONS" | strip | drop_empty_lines)
 
-    echo "$OPTIONS" | sed "s/^!//" | while read VAR; do
+    while read VAR; do
+        if test "${VAR:0:1}" = "!"; then
+            VAR=${VAR:1}
+        fi
         # faster than `cut -d',' -f1`
-        [ -n "${VAR%%,*}" ] && unset "${VAR%%,*}"
-    done
+        test -n "${VAR%%,*}" && unset "${VAR%%,*}"
+    done <<< "$OPTIONS"
 
     local SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
     local LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
