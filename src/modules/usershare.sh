@@ -24,33 +24,35 @@ MODULE_USERSHARE_DOWNLOAD_CONTINUE=no
 
 # Solve usershare download javascript eval() that sets DATE value
 usershare_download_solve() {
-  PAGE=$(cat)
-  # parts are '691ed77c|08977b85|ba207845|7d35eee8'
-  PARTS=$(echo "$PAGE" | parse_quiet 'window|' "window|\([^']*\)")
-  for I in {1..4}; do
-    P[$I]=$(echo "$PARTS" | cut -d\| -f$I)
-  done
-  # vars are 'i3|i6|i5|i4'
-  VARS=$(echo "$PAGE" | parse_quiet 'var|' 'var|\([^|]*|[^|]*|[^|]*|[^|]*\)')
-  for I in {1..4}; do
-    V[$I]=$(echo "$VARS" | cut -d\| -f$I)
-  done
-  # solution is i4+i5+i6+i3 with i3="7d35eee8", i4="ba207845", i5="08977b85", i6="691ed77c"
-  J=4
-  for I in {1..4}; do
-    echo "${V[$I]}"
-  done |sort |while read K; do
-    case "$K" in
-      ${V[1]}) X[1]=${P[$J]}; (( J-- )) ;;
-      ${V[2]}) X[2]=${P[$J]}; (( J-- )) ;;
-      ${V[3]}) X[3]=${P[$J]}; (( J-- )) ;;
-      ${V[4]}) X[4]=${P[$J]}; (( J-- )) ;;
-    esac
-    if [ $J -eq 0 ]; then
-      for I in {4..1}; do echo -n "${X[$I]}"; done
-      echo
-    fi
-  done
+    PAGE=$(cat)
+    # parts are '691ed77c|08977b85|ba207845|7d35eee8'
+    PARTS=$(echo "$PAGE" | parse_quiet 'window|' "window|\([^']*\)")
+    for I in {1..4}; do
+        P[$I]=$(echo "$PARTS" | cut -d\| -f$I)
+    done
+    # vars are 'i3|i6|i5|i4'
+    VARS=$(echo "$PAGE" | parse_quiet 'var|' 'var|\([^|]*|[^|]*|[^|]*|[^|]*\)')
+    for I in {1..4}; do
+        V[$I]=$(echo "$VARS" | cut -d\| -f$I)
+    done
+    # solution is i4+i5+i6+i3 with i3="7d35eee8", i4="ba207845", i5="08977b85", i6="691ed77c"
+    J=4
+    for I in {1..4}; do
+        echo "${V[$I]}"
+    done |sort |while read K; do
+        case "$K" in
+            ${V[1]}) X[1]=${P[$J]}; (( J-- )) ;;
+            ${V[2]}) X[2]=${P[$J]}; (( J-- )) ;;
+            ${V[3]}) X[3]=${P[$J]}; (( J-- )) ;;
+            ${V[4]}) X[4]=${P[$J]}; (( J-- )) ;;
+        esac
+        if [ $J -eq 0 ]; then
+            for I in {4..1}; do
+                echo -n "${X[$I]}"
+            done
+            echo
+        fi
+    done
 }
 
 # Output an usershare file download URL (anonymous)
@@ -80,7 +82,7 @@ usershare_download() {
             return 254
         fi
 
-        test "$CHECK_LINK" && return 255
+        test "$CHECK_LINK" && return 0
 
         if match 'You have to wait' "$PAGE"; then
             log_debug "time limit, you must wait"
@@ -97,37 +99,37 @@ usershare_download() {
 
         # for some files (such as .mp3) we have direct link
         if match 'download_btn' "$PAGE"; then
-          FILENAME=$(echo "PAGE" | parse_quiet '<h3>Download File:' '<h3>Download File:\([^<]\+\)<\/h3>')
-          FILE_URL=$(echo "$PAGE" | parse_attr 'download_btn' 'href') || return 1
+            FILENAME=$(echo "PAGE" | parse_quiet '<h3>Download File:' '<h3>Download File:\([^<]\+\)<\/h3>')
+            FILE_URL=$(echo "$PAGE" | parse_attr 'download_btn' 'href') || return 1
 
         else
-          OP=$(echo "$PAGE" | parse_attr 'name="op"' "value") || return 1
-          USR_LOGIN=$(echo "$PAGE" | parse_attr 'name="usr_login"' "value" 2>/dev/null) || USR_LOGIN=""
-          FILENAME=$(echo "$PAGE" | parse_attr 'name="fname"' "value")
-          REFERER=$(echo "$PAGE" | parse_attr 'name="referer"' "value" 2>/dev/null) || REFERER=""
-          METHOD_FREE=$(echo "$PAGE" | parse_attr 'name="method_free"' "value")
+            OP=$(echo "$PAGE" | parse_attr 'name="op"' "value") || return 1
+            USR_LOGIN=$(echo "$PAGE" | parse_attr 'name="usr_login"' "value" 2>/dev/null) || USR_LOGIN=""
+            FILENAME=$(echo "$PAGE" | parse_attr 'name="fname"' "value")
+            REFERER=$(echo "$PAGE" | parse_attr 'name="referer"' "value" 2>/dev/null) || REFERER=""
+            METHOD_FREE=$(echo "$PAGE" | parse_attr 'name="method_free"' "value")
 
-          # there's some obfuscated eval() javascript that sets the DATE variable
-          # Solution 1: interpret it and instead of modifying 'date' field, get the value
-          #JS=$({ echo "print("; echo "$PAGE" | parse 'eval(' 'eval(\(.*\))'; echo ")"; } | javascript)
-          #DATE=$(echo "$JS" | replace "window.document.getElementById('date').value=" 'print(' | replace '"";' '"");' | javascript)
-          # Solution 2: bash implementation, more portable (but keep previous solution in case it changes)
-          DATE=$(echo "$PAGE" | usershare_download_solve)
+            # there's some obfuscated eval() javascript that sets the DATE variable
+            # Solution 1: interpret it and instead of modifying 'date' field, get the value
+            #JS=$({ echo "print("; echo "$PAGE" | parse 'eval(' 'eval(\(.*\))'; echo ")"; } | javascript)
+            #DATE=$(echo "$JS" | replace "window.document.getElementById('date').value=" 'print(' | replace '"";' '"");' | javascript)
+            # Solution 2: bash implementation, more portable (but keep previous solution in case it changes)
+            DATE=$(echo "$PAGE" | usershare_download_solve)
 
-          DATA="op=$OP&usr_login=$USR_LOGIN&id=$ID&fname=$FILENAME&referer=$REFERER=&date=$DATE&method_free=$METHOD_FREE"
-          PAGE2=$(curl -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return 1
+            DATA="op=$OP&usr_login=$USR_LOGIN&id=$ID&fname=$FILENAME&referer=$REFERER=&date=$DATE&method_free=$METHOD_FREE"
+            PAGE2=$(curl -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return 1
 
-          # it happens when DATE or other params are incorrect
-          if match 'User Login' "$PAGE2"; then
-            log_error 'Failed to send proper parameters: page asks for login'
-            return 1
-          fi
+            # it happens when DATE or other params are incorrect
+            if match 'User Login' "$PAGE2"; then
+              log_error 'Failed to send proper parameters: page asks for login'
+              return 1
+            fi
 
-          RAND=$(echo "$PAGE2" | parse_attr 'name="rand"' 'value') || return 1
-          DATA="op=download2&id=$ID&rand=$RAND&referer=$URL&method_free=Slow Speed Download"
-          PAGE3=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return 1
+            RAND=$(echo "$PAGE2" | parse_attr 'name="rand"' 'value') || return 1
+            DATA="op=download2&id=$ID&rand=$RAND&referer=$URL&method_free=Slow Speed Download"
+            PAGE3=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return 1
 
-          FILE_URL=$(echo "$PAGE3" | grep_http_header_location) || return 1
+            FILE_URL=$(echo "$PAGE3" | grep_http_header_location) || return 1
         fi
 
         echo "$FILE_URL"
