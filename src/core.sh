@@ -928,15 +928,16 @@ process_options() {
     # Strip spaces in options
     OPTIONS=$(echo "$OPTIONS" | strip | drop_empty_lines)
 
-    if [ -n "$OPTIONS" ]; then
-        while read VAR; do
-            if test "${VAR:0:1}" = "!"; then
-                VAR=${VAR:1}
-            fi
-            # faster than `cut -d',' -f1`
-            unset "${VAR%%,*}"
-        done <<< "$OPTIONS"
-    fi
+    # Function is called from a module which has no option
+    test -z "$OPTIONS" && return 0
+
+    while read VAR; do
+        if test "${VAR:0:1}" = "!"; then
+            VAR=${VAR:1}
+        fi
+        # faster than `cut -d',' -f1`
+        unset "${VAR%%,*}"
+    done <<< "$OPTIONS"
 
     local SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
     local LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
