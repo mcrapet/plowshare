@@ -42,7 +42,7 @@ fileserve_login() {
     STATUS=$(echo "$LOGIN_RESULT" | parse_quiet 'fail_info">' '">\([^<]*\)')
     if [ -n "$STATUS" ]; then
         log_debug "Login failed: $STATUS"
-        return 1
+        return $ERR_LOGIN_FAILED
     fi
 
     NAME=$(curl -b "$COOKIE_FILE" "$BASEURL/dashboard.php" | \
@@ -93,7 +93,7 @@ fileserve_download() {
     # Arbitrary wait (local variables)
     STOP_FLOODING=360
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         if [ -s $COOKIEFILE ]; then
             MAINPAGE=$(curl -b $COOKIEFILE "$URL") || return 1
         else
@@ -103,7 +103,7 @@ fileserve_download() {
         # "The file could not be found. Please check the download link."
         if match 'File not available' "$MAINPAGE"; then
             log_debug "File not found"
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         test "$CHECK_LINK" && return 0
@@ -112,15 +112,15 @@ fileserve_download() {
         JSON1=$(curl -b $COOKIEFILE --referer "$URL" --data "checkDownload=check" "$URL") || return 1
 
         if match 'waitTime' "$JSON1"; then
-            no_arbitrary_wait || return 253
+            no_arbitrary_wait || return
             log_debug "too many captcha failures"
-            wait $STOP_FLOODING seconds || return 2
+            wait $STOP_FLOODING seconds || return
             continue
 
         elif match 'timeLimit' "$JSON1"; then
-            no_arbitrary_wait || return 253
+            no_arbitrary_wait || return
             log_debug "time limit, you must wait"
-            wait $STOP_FLOODING seconds || return 2
+            wait $STOP_FLOODING seconds || return
             continue
 
         elif ! match 'success' "$JSON1"; then
@@ -140,7 +140,7 @@ fileserve_download() {
     fi
 
     TRY=1
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         log_debug "reCaptcha manual entering (loop $TRY)"
         (( TRY++ ))
 
@@ -176,7 +176,7 @@ fileserve_download() {
     fi
 
     WAIT_TIME=$(echo "$MSG1" | cut -b4-)
-    wait $((WAIT_TIME + 1)) seconds || return 2
+    wait $((WAIT_TIME + 1)) seconds || return
     MSG2=$(curl -b $COOKIEFILE --referer "$URL" --data "downloadLink=show" "$URL") || return 1
 
     FILE_URL=$(curl -i -b $COOKIEFILE --referer "$URL" --data "download=normal" "$URL" | grep_http_header_location) || return 1

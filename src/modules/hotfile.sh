@@ -54,7 +54,7 @@ hotfile_download() {
         # Hotfile API error messages starts with a dot, if no dot then the download link is available
         if [ ${FILE_URL:0:1} == "." ]; then
             log_error "login request failed (bad login/password or link invalid/removed)"
-            return 1
+            return $ERR_LOGIN_FAILED
         fi
 
         echo "$FILE_URL"
@@ -63,13 +63,13 @@ hotfile_download() {
 
     BASE_URL='http://hotfile.com'
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         WAIT_HTML=$(curl -c $COOKIEFILE "$URL")
 
         # "This file is either removed due to copyright claim or is deleted by the uploader."
         if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
             log_debug "File not found"
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         local SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
@@ -88,7 +88,7 @@ hotfile_download() {
         local form_upidhash=$(echo "$FORM_HTML" | parse_form_input_by_name 'upidhash')
 
         SLEEP=$((SLEEP / 1000))
-        wait $((SLEEP)) seconds || return 2
+        wait $((SLEEP)) seconds || return
 
         WAIT_HTML2=$(curl -b $COOKIEFILE --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
             "${BASE_URL}${form_url}") || return 1
@@ -105,7 +105,7 @@ hotfile_download() {
             local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
                 { log_error "can't get wait time"; return 1; }
             WAIT_TIME=$((WAIT_TIME / 60000))
-            wait $((WAIT_TIME)) minutes || return 2
+            wait $((WAIT_TIME)) minutes || return
             continue
 
         # reCaptcha page
@@ -121,7 +121,7 @@ hotfile_download() {
             if [ -n "$IMAGE_FILENAME" ]; then
                 TRY=1
 
-                while retry_limit_not_reached || return 3; do
+                while retry_limit_not_reached || return; do
                     log_debug "reCaptcha manual entering (loop $TRY)"
                     (( TRY++ ))
 

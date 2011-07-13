@@ -46,13 +46,13 @@ wupload_download() {
     local BASE_URL='http://www.wupload.com'
     local FILE_ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         local START_HTML=$(curl -c "$COOKIEFILE" "$URL")
 
         # Sorry! This file has been deleted.
         if match 'This file has been deleted' "$START_HTML"; then
             log_debug "File not found"
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         test "$CHECK_LINK" && return 0
@@ -69,7 +69,7 @@ wupload_download() {
             local form_tm=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm')
             local form_tmhash=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm_hash')
 
-             wait $((SLEEP)) seconds || return 2
+             wait $((SLEEP)) seconds || return
 
              WAIT_HTML=$(curl -b "$COOKIEFILE" --data "tm=${form_tm}&tm_hash=${form_tmhash}" \
                      -H "X-Requested-With: XMLHttpRequest" --referer "$URL" "${URL}?start=1")
@@ -103,7 +103,7 @@ wupload_download() {
             if [ -n "$IMAGE_FILENAME" ]; then
                 local TRY=1
 
-                while retry_limit_not_reached || return 3; do
+                while retry_limit_not_reached || return; do
                     log_debug "reCaptcha manual entering (loop $TRY)"
                     (( TRY++ ))
 
@@ -162,15 +162,14 @@ wupload_upload() {
 
     if ! test "$AUTH"; then
         log_error "anonymous users cannot upload files"
-        return 1
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     USER="${AUTH%%:*}"
     PASSWORD="${AUTH#*:}"
 
     if [ "$AUTH" = "$PASSWORD" ]; then
-        PASSWORD=$(prompt_for_password) || \
-        { log_error "You must provide a password"; return 4; }
+        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
 
     # Not secure !
@@ -179,7 +178,7 @@ wupload_upload() {
     # Login failed. Please check username or password.
     if match "Login failed" "$JSON"; then
         log_debug "login failed"
-        return 1
+        return $ERR_LOGIN_FAILED
     fi
 
     log_debug "Successfully logged in as $USER member"

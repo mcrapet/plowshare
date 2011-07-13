@@ -40,7 +40,7 @@ euroshare_eu_download() {
     PAGE=$(curl "$URL")
     if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
         log_error "File not found."
-        return 254
+        return $ERR_LINK_DEAD
     elif test "$CHECK_LINK"; then
         return 0
     fi
@@ -50,15 +50,14 @@ euroshare_eu_download() {
         CHECK_LOGIN=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL")
 
         if ! match "/logout" "$CHECK_LOGIN"; then
-            log_error "Login process failed. Bad username or password?"
-            return 1
+            return $ERR_LOGIN_FAILED
         fi
     fi
 
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
 
         # html returned uses utf-8 charset
         PAGE=$(curl -b "$COOKIEFILE" "$URL")
@@ -69,8 +68,8 @@ euroshare_eu_download() {
         fi
 
         if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
-            no_arbitrary_wait || return 253
-            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            no_arbitrary_wait || return
+            wait $NO_FREE_SLOT_IDLE seconds || return
             continue
         fi
         break

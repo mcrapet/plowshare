@@ -75,7 +75,7 @@ usage() {
 LIBDIR=$(absolute_path "$0")
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_config_modules 'list') || exit 1
+MODULES=$(grep_config_modules 'list') || exit $?
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -92,9 +92,9 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit $ERROR_CODE_OK; }
-test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
-test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
+test "$HELP" && { usage; exit 0; }
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+test $# -ge 1 || { usage; exit $ERR_FATAL; }
 set_exit_trap
 
 RETVALS=()
@@ -103,7 +103,7 @@ for URL in "$@"; do
 
     if test -z "$MODULE"; then
         log_error "Skip: no module for URL ($URL)"
-        RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
+        RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
         continue
     fi
 
@@ -114,10 +114,10 @@ for URL in "$@"; do
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
-    exit $ERROR_CODE_OK
+    exit 0
 elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
     log_debug "retvals:${RETVALS[@]}"
-    exit $ERROR_CODE_FATAL_MULTIPLE
+    exit $((ERR_FATAL_MULTIPLE + ${RETVALS[0]}))
 fi

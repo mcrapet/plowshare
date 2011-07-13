@@ -44,7 +44,7 @@ humyo_download() {
 
     PAGE=$(curl "$URL")
     matchi "<h1>File Not Found</h1>" "$PAGE" &&
-        { log_debug "file not found"; return 254; }
+        { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
     FILE_URL=$(echo "$PAGE" | break_html_lines| \
                parse_attr 'Download this \(file\|image\|photo\)' 'href') ||

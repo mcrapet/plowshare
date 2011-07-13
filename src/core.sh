@@ -21,17 +21,20 @@
 set -o pipefail
 
 # Global error codes
-# On multiple arguments, ERROR_CODE_FATAL_MULTIPLE is returned.
-ERROR_CODE_OK=0
-ERROR_CODE_FATAL=1
-ERROR_CODE_NOMODULE=2
-ERROR_CODE_DEAD_LINK=3
-ERROR_CODE_TEMPORAL_PROBLEM=4
-ERROR_CODE_UNKNOWN_ERROR=5
-ERROR_CODE_TIMEOUT_ERROR=6
-ERROR_CODE_NETWORK_ERROR=7
-ERROR_CODE_PASSWORD_REQUIRED=8
-ERROR_CODE_FATAL_MULTIPLE=101
+# 0 means success or link alive
+ERR_FATAL=1                      # Unexpected result (upstream site updated, etc)
+ERR_NOMODULE=2                   # No module found for processing request
+ERR_NETWORK=3                    # Specific network error (socket reset, curl, etc)
+ERR_LOGIN_FAILED=4               # Correct login/password argument is required
+ERR_MAX_WAIT_REACHED=5           # Refer to plowdown wait timeout (see -t/--timeout command line option)
+ERR_MAX_TRIES_REACHED=6          # Refer to plowdown max tries reached (see --max-retries command line option)
+ERR_CAPTCHA=7                    # Captcha solving failure
+ERR_SYSTEM=8                     # System failure (missing executable, local filesystem, wrong behavior, etc)
+ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable (also refer to plowdown --no-arbitrary-wait command line option)
+ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
+ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (premium link)
+ERR_LINK_DEAD=13                 #
+ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used:
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
@@ -116,7 +119,25 @@ curl() {
         rm -rf "$TEMPCURL"
     fi
 
-    return $DRETVAL
+    case "$DRETVAL" in
+        0)
+           ;;
+        # Partial file / HTTP retrieve error / Operation timeout
+        18 | 22 | 28)
+            log_error "curl retrieve error"
+            return $ERR_NETWORK
+            ;;
+        # Write error
+        23)
+            log_error "write failed, disk full?"
+            return $ERR_SYSTEM
+            ;;
+        *)
+            log_error "curl failed with retcode $DRETVAL"
+            return $ERR_NETWORK
+            ;;
+    esac
+    return 0
 }
 
 curl_with_log() {
@@ -177,7 +198,7 @@ matchi() {
 parse_all() {
     local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p") &&
         test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: sed -n \"/$1/$2\""; return 1; }
+        { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
 }
 
 # Like parse_all, but get only first match
@@ -203,7 +224,7 @@ parse_quiet() {
 parse_line_after_all() {
     local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}") &&
         test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: sed -n \"/$1/$2\""; return 1; }
+        { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
 }
 
 # Like parse_line_after_all, but get only first match
@@ -470,7 +491,7 @@ prompt_for_password() {
     stty echo
 
     echo "$PASSWORD"
-    test -z "$PASSWORD" && return 1 || return 0
+    test -n "$PASSWORD" || return $ERR_LINK_PASSWORD_REQUIRED
 }
 
 # Login and return cookie.
@@ -519,7 +540,7 @@ post_login() {
     # There is no known case of a null $RESULT on successful login.
     if [ -z "$RESULT" -o ! -s "${GLOBAL_COOKIES:-$COOKIE}" ]; then
         log_error "login request failed"
-        return 1
+        return $ERR_LOGIN_FAILED
     fi
 
     log_report "=== COOKIE BEGIN ==="
@@ -558,7 +579,7 @@ javascript() {
 detect_javascript() {
     if ! check_exec 'js'; then
         log_notice "Javascript interpreter not found"
-        return 1
+        return $ERR_SYSTEM
     fi
     type -P 'js'
 }
@@ -570,7 +591,7 @@ detect_javascript() {
 detect_perl() {
     if ! check_exec 'perl'; then
         log_notice "Perl interpreter not found"
-        return 1
+        return $ERR_SYSTEM
     fi
     type -P 'perl'
 }
@@ -593,7 +614,7 @@ wait() {
     fi
     local TOTAL_SECS=$((VALUE * UNIT_SECS))
 
-    timeout_update $TOTAL_SECS || return 1
+    timeout_update $TOTAL_SECS || return
 
     local REMAINING=$TOTAL_SECS
     local MSG="Waiting $VALUE $UNIT_STR..."
@@ -616,14 +637,14 @@ retry_limit_not_reached() {
     test -z "$PS_RETRY_LIMIT" && return
     log_notice "Tries left: $PS_RETRY_LIMIT"
     (( PS_RETRY_LIMIT-- ))
-    test "$PS_RETRY_LIMIT" -ge 0
+    test "$PS_RETRY_LIMIT" -ge 0 || return $ERR_MAX_TRIES_REACHED
 }
 
 # Related to --no-arbitrary-wait plowdown command line option
 no_arbitrary_wait() {
     if test "$NOARBITRARYWAIT"; then
         log_debug "File temporarily unavailable"
-        return $ERROR_CODE_TEMPORAL_PROBLEM
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
     log_debug "Arbitrary wait"
     return 0
@@ -650,7 +671,7 @@ ocr() {
     if [ $? -ne 0 ]; then
         rm -f $TIFF $TEXT
         log_error "$LOG"
-        return 1
+        return $ERR_SYSTEM
     fi
 
     cat $TEXT
@@ -857,15 +878,6 @@ debug_options() {
     done <<< "$OPTIONS"
 }
 
-# $1: module name
-# $2: option family name (string, example:UPLOAD)
-get_options_for_module() {
-    MODULE=$1
-    NAME=$2
-    VAR="MODULE_$(echo $MODULE | uppercase)_${NAME}_OPTIONS"
-    echo "${!VAR}"
-}
-
 # Look for a configuration module variable
 # Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
 #
@@ -1004,7 +1016,7 @@ grep_config_modules() {
 
    if [ ! -f "$CONFIG" ]; then
        stderr "can't find config file"
-       return 1
+       return $ERR_SYSTEM
    fi
 
    sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/p" $CONFIG | \
@@ -1039,6 +1051,16 @@ drop_empty_lines() {
     sed '/^[ 	]*$/d'
 }
 
+# $1: module name
+# $2: option family name (string, example:UPLOAD)
+# stdout: options list (one per line)
+get_options_for_module() {
+    MODULE=$1
+    NAME=$2
+    VAR="MODULE_$(echo $MODULE | uppercase)_${NAME}_OPTIONS"
+    echo "${!VAR}"
+}
+
 # Example: 12345 => "3h25m45s"
 # $1: duration (integer)
 splitseconds() {
@@ -1058,7 +1080,7 @@ timeout_update() {
     log_notice "Time left to timeout: $PS_TIMEOUT secs"
     if [[ "$PS_TIMEOUT" -lt "$WAIT" ]]; then
         log_debug "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
-        return 1
+        return $ERR_MAX_WAIT_REACHED
     fi
     (( PS_TIMEOUT -= WAIT ))
 }

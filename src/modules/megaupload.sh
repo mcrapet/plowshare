@@ -58,16 +58,14 @@ megaupload_download() {
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || {
-            return 1
-        }
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || return
     fi
 
     echo "$URL" | grep -q "\.com/?d=" ||
         URL=$(curl -I "$URL" | grep_http_header_location)
 
     TRY=0
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         TRY=$(($TRY + 1))
         log_debug "Downloading waiting page (loop $TRY)"
         PAGE=$(curl -b "$COOKIEFILE" "$URL") || { echo "Error getting page: $URL"; return 1; }
@@ -88,18 +86,18 @@ megaupload_download() {
             # Fragile parsing, set a default waittime if something went wrong
             test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 ||
                 WAITTIME=2
-            wait $WAITTIME minutes || return 2
+            wait $WAITTIME minutes || return
             continue
 
         # Check for dead link
         elif match 'link you have clicked is not available' "$PAGE"; then
-            return 254
+            return $ERR_LINK_DEAD
 
         # Test for big files (premium account required)
         elif match "The file you are trying to download is larger than" "$PAGE"; then
             log_debug "Premium link"
             test "$CHECK_LINK" && return 0
-            return 253
+            return $LINK_TEMP_UNAVAILABLE
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
@@ -108,8 +106,7 @@ megaupload_download() {
             log_debug "File is password protected"
 
             if [ -z "$LINK_PASSWORD" ]; then
-                LINK_PASSWORD=$(prompt_for_password) || \
-                    { log_error "You must provide a password"; return 4; }
+                LINK_PASSWORD=$(prompt_for_password) || return
             fi
 
             DATA="filepassword=$LINK_PASSWORD"
@@ -136,8 +133,8 @@ megaupload_download() {
 
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
-            no_arbitrary_wait || return 253
-            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            no_arbitrary_wait || return
+            wait $NO_FREE_SLOT_IDLE seconds || return
             continue
         fi
 
@@ -189,7 +186,7 @@ megaupload_download() {
         return 1
     fi
 
-    wait $((WAITTIME+1)) seconds || return 2
+    wait $((WAITTIME+1)) seconds || return
 
     echo "$FILEURL"
 }
@@ -223,8 +220,7 @@ megaupload_upload() {
         STATUSLOOPTIME=5
 
         # Cookie file must contain sessionid
-        [ -s "$COOKIES" ] ||
-            { log_error "Premium account required to use multifetch"; return 2; }
+        [ -s "$COOKIES" ] || return $ERR_LOGIN_FAILED
 
         log_debug "spawn URL fetch process: $FILE"
         UPLOADID=$(curl -b $COOKIES -L \
@@ -235,7 +231,7 @@ megaupload_upload() {
             -F "password=$LINK_PASSWORD" \
             -F "multiplerecipients=$MULTIEMAIL" \
             "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) ||
-                { log_error "cannot start multifetch upload"; return 2; }
+                { log_error "cannot start multifetch upload"; return 1; }
         while true; do
             CSS="display:[[:space:]]*none"
             STATUS=$(curl -b $COOKIES "$STATUSURL")

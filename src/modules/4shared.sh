@@ -45,7 +45,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
         return 1
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
         log_error "File not found!"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     WAIT_URL=$(echo "$PAGE" | parse_attr "4shared\.com\/get\/" 'href')
@@ -62,7 +62,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
     FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse_quiet '<b class="blue xlargen">' \
                     'n">\([^<]\+\)' | html_to_utf8 | uri_decode)
 
-    wait $((WAIT_TIME)) seconds || return 2
+    wait $((WAIT_TIME)) seconds || return
 
     echo "$FILE_URL"
     test "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
@@ -80,7 +80,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
 
     PAGE=$(curl "$URL")
     match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
-        { log_error "Link not found"; return 254; }
+        { log_error "Link not found"; return $ERR_LINK_DEAD; }
     echo "$PAGE" | parse_all_attr "alt=\"Download '" href ||
         { log_error "Cannot parse links"; return 1; }
 }

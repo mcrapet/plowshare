@@ -39,7 +39,7 @@ dataport_cz_download() {
 
     if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
         log_error "File not found."
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
@@ -47,13 +47,13 @@ dataport_cz_download() {
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
 
         # html returned uses utf-8 charset
         PAGE=$(curl --location "$URL")
         if ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
-            no_arbitrary_wait || return 253
-            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            no_arbitrary_wait || return
+            wait $NO_FREE_SLOT_IDLE seconds || return
             continue
         fi
         break
@@ -100,8 +100,7 @@ dataport_cz_upload() {
 
         if ! match "http://dataport.cz/odhlasit/" "$PAGE"; then
             rm -f $COOKIES
-            log_error "Login failed. Maybe wrong username or password?"
-            return 1
+            return $ERR_LOGIN_FAILED
         fi
     fi
 

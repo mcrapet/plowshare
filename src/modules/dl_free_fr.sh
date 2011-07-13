@@ -43,7 +43,7 @@ dl_free_fr_download() {
     local ERR2="erreur 404 - document non trouv."
     if matchi "$ERR1\|$ERR2" "$HTML_PAGE"; then
         log_error "file not found"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0

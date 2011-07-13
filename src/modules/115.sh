@@ -33,14 +33,14 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
     if match 'file-notfound"' "$HTML_PAGE"; then
         log_debug "file not found"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     local LINKS=$(echo "$HTML_PAGE" | parse_all_attr 'ds_url' 'href')
 
     if [ -z "$LINKS" ]; then
         log_error "no link found, site updated?"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0

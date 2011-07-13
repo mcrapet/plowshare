@@ -94,7 +94,7 @@ module_exist() {
 LIBDIR=$(absolute_path "$0")
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_config_modules 'upload') || exit 1
+MODULES=$(grep_config_modules 'upload') || exit $?
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -111,15 +111,15 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit $ERROR_CODE_OK; }
-test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
-test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
+test "$HELP" && { usage; exit 0; }
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+test $# -ge 1 || { usage; exit $ERR_FATAL; }
 set_exit_trap
 
 # Check requested module
 MODULE=$(module_exist "$MODULES" "$1") || {
     log_error "unsupported module ($1)"
-    exit $ERROR_CODE_NOMODULE
+    exit $ERR_NOMODULE
 }
 
 FUNCTION=${MODULE}_upload
@@ -158,10 +158,10 @@ for FILE in "$@"; do
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
-    exit $ERROR_CODE_OK
+    exit 0
 elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
     log_debug "retvals:${RETVALS[@]}"
-    exit $ERROR_CODE_FATAL_MULTIPLE
+    exit $((ERR_FATAL_MULTIPLE + ${RETVALS[0]}))
 fi

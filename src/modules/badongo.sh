@@ -36,16 +36,16 @@ badongo_download() {
 
     PAGE=$(curl "$URL")
     match '"recycleMessage">' "$PAGE" &&
-        { log_debug "file in recycle bin"; return 254; }
+        { log_debug "file in recycle bin"; return $ERR_LINK_DEAD; }
     match '"fileError">' "$PAGE" &&
-        { log_debug "file not found"; return 254; }
+        { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
-    detect_javascript >/dev/null || return 1
-    PERL_PRG=$(detect_perl) || return 1
+    detect_javascript >/dev/null || return
+    PERL_PRG=$(detect_perl) || return
 
     TRY=1
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         log_debug "Downloading captcha page (loop $TRY)"
         (( TRY++ ))
         JSCODE=$(curl \
@@ -55,7 +55,7 @@ badongo_download() {
             "$URL" | break_html_lines)
 
         ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
-            { log_debug "file not found"; return 254; }
+            { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
         test "$CHECK_LINK" && return 0
 
@@ -111,7 +111,7 @@ badongo_download() {
     GLF_T=$(echo "$JSON" | parse "'t'" "[[:space:]]'\([^']*\)");
 
     # Usual wait time is 60 seconds
-    wait $((WAIT_TIME)) seconds || return 2
+    wait $((WAIT_TIME)) seconds || return
 
     # Notify remote timer
     JSON=$(curl -b $COOKIEFILE \

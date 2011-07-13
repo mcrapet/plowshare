@@ -42,9 +42,7 @@ x7_to_download() {
         # Do the secure HTTP login! Adding --referer is mandatory.
         LOGIN_DATA='id=$USER&pw=$PASSWORD'
         LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
-                "${BASE_URL}/james/login" "--referer ${BASE_URL}") || {
-            return 1
-        }
+                "${BASE_URL}/james/login" "--referer ${BASE_URL}") || return
 
         # {err:"Benutzer und Passwort stimmen nicht überein."}
         if match '^{err:' "$LOGIN_RESULT"; then
@@ -53,7 +51,7 @@ x7_to_download() {
         fi
     fi
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         WAIT_HTML=$(curl -L -b $COOKIEFILE "$URL")
 
         local ref_fid=$(echo "$WAIT_HTML" | parse_quiet 'document.cookie[[:space:]]=[[:space:]]*' \
@@ -69,7 +67,7 @@ x7_to_download() {
                 log_error "This is a folder list (check $BASE_URL/$textlist)"
             fi
 
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         test "$CHECK_LINK" && return 0
@@ -78,7 +76,7 @@ x7_to_download() {
         # - The requested file is larger than 400MB, only premium members will be able to download the file!
         if match 'requested file is larger than' "$WAIT_HTML"; then
             log_debug "premium link"
-            return 253
+            return $LINK_TEMP_UNAVAILABLE
         fi
 
         file_real_name=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
@@ -103,13 +101,13 @@ x7_to_download() {
 
         if [ "$type" == "download" ]
         then
-            wait $((wait)) seconds || return 2
+            wait $((wait)) seconds || return
             break;
         elif match 'limit-dl\|limit-parallel' "$DATA"
         then
             log_debug "Download limit reached!"
             WAITTIME=5
-            wait $((WAITTIME)) minutes || return 2
+            wait $((WAITTIME)) minutes || return
             continue
         else
             local error=$(echo "$DATA" | parse_quiet 'err:' '{err:"\([^"]*\)"}')

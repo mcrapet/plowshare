@@ -34,11 +34,11 @@ depositfiles_download() {
     local URL="$2"
     local BASEURL="http://depositfiles.com"
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         START=$(curl -L "$URL")
 
         match "no_download_msg" "$START" &&
-            { log_debug "file not found"; return 254; }
+            { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
         test "$CHECK_LINK" && return 0
 
@@ -63,10 +63,10 @@ depositfiles_download() {
         if match 'download time limit' "$START"; then
             WAITTIME=$(echo "$START" | parse 'Try in' "in \([[:digit:]:]*\) minutes")
             if [[ "$WAITTIME" -gt 0 ]]; then
-                wait "$WAITTIME" minutes || return 2
+                wait "$WAITTIME" minutes || return
             else
                 # Arbitrary wait
-                wait 60 seconds || return 2
+                wait 60 seconds || return
             fi
             continue
         fi
@@ -86,7 +86,7 @@ depositfiles_download() {
            WAITTIME=$(echo "$DATA" | parse 'class="html_download_api-limit_interval"' \
                    'l">\([^<]*\)<')
            log_debug "limit reached: waiting $WAITTIME seconds"
-           wait $((WAITTIME)) seconds || return 2
+           wait $((WAITTIME)) seconds || return
            continue
 
         # - Such file does not exist or it has been removed for infringement of copyrights.
@@ -104,7 +104,7 @@ depositfiles_download() {
         { log_error "cannot get wait time"; return 1; }
 
     # Usual wait time is 60 seconds
-    wait $((SLEEP + 1)) seconds || return 2
+    wait $((SLEEP + 1)) seconds || return
 
     DATA=$(curl --location "$BASEURL$FILE_URL") ||
         { log_error "cannot get final url"; return 1; }

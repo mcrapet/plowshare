@@ -69,31 +69,30 @@ usershare_download() {
     local ID=$(echo "$URL" | parse_quiet '\/' '\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
-        return 253
+        return 1
     fi
 
     URL="http://www.usershare.net/$ID"
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         PAGE=$(curl -c "$COOKIEFILE" "$URL") || return 1
 
         if match 'Reason for deletion' "$PAGE"; then
             log_debug "File not found"
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         test "$CHECK_LINK" && return 0
 
         if match 'You have to wait' "$PAGE"; then
             log_debug "time limit, you must wait"
-            test "$NOARBITRARYWAIT" && return 253
 
             # You have to wait 18 minutes, 3 seconds till next download
             WAIT_H=$(echo "$PAGE" | parse_quiet 'have to wait' ' \([0-9]\+\) hour')   || WAIT_H=0
             WAIT_M=$(echo "$PAGE" | parse_quiet 'have to wait' ' \([0-9]\+\) minute') || WAIT_M=0
             WAIT_S=$(echo "$PAGE" | parse_quiet 'have to wait' ' \([0-9]\+\) second') || WAIT_S=0
 
-            wait $((WAIT_H * 3600 + WAIT_M * 60 + WAIT_S)) seconds || return 2
+            wait $((WAIT_H * 3600 + WAIT_M * 60 + WAIT_S)) seconds || return
             continue
         fi
 
@@ -117,7 +116,7 @@ usershare_download() {
             DATE=$(echo "$PAGE" | usershare_download_solve)
 
             DATA="op=$OP&usr_login=$USR_LOGIN&id=$ID&fname=$FILENAME&referer=$REFERER=&date=$DATE&method_free=$METHOD_FREE"
-            PAGE2=$(curl -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return 1
+            PAGE2=$(curl -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return
 
             # it happens when DATE or other params are incorrect
             if match 'User Login' "$PAGE2"; then

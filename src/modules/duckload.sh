@@ -47,7 +47,7 @@ duckload_download() {
         if matchi "OFFLINE" "$STATUS"
         then
             log_error "file not currently available"
-            return 254
+            return $ERR_LINK_DEAD
         fi
     fi
 
@@ -57,17 +57,16 @@ duckload_download() {
         --data-urlencode "link=$URL" "$URL_GETFREE")
 
     log_debug $STATUS
-    if matchi "ERROR;" "$STATUS"
-    then
+    if matchi "ERROR;" "$STATUS"; then
         log_error "error getting free download slot"
-        return 3
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     WAIT_TIME=$(echo "$STATUS" | cut -d ";" -f 2 | strip)
     CRYPT=$(echo "$STATUS" | cut -d ";" -f 3 | strip)
 
     log_debug "free user delay "
-    wait $WAIT_TIME || return 2
+    wait $WAIT_TIME || return
 
     log_debug "getting final url"
     STATUS=$(curl \

@@ -45,13 +45,13 @@ mediafire_download() {
         return 0
     elif match 'errno=999$' "$LOCATION"; then
         log_error "private link"
-        return 254
+        return $ERR_LINK_DEAD
     elif match 'errno=320$' "$LOCATION"; then
         log_error "invalid or deleted file"
-        return 254
+        return $ERR_LINK_DEAD
     elif match 'errno=378$' "$LOCATION"; then
         log_error "file removed for violation"
-        return 254
+        return $ERR_LINK_DEAD
     elif match 'errno=' "$LOCATION"; then
         log_error "site redirected with an unknown error"
         return 1
@@ -71,7 +71,7 @@ mediafire_download() {
         if [ -n "$IMAGE_FILENAME" ]; then
             local TRY=1
 
-            while retry_limit_not_reached || return 3; do
+            while retry_limit_not_reached || return; do
                 log_debug "reCaptcha manual entering (loop $TRY)"
                 (( TRY++ ))
 
@@ -106,8 +106,7 @@ mediafire_download() {
         log_debug "File is password protected"
 
         if [ -z "$LINK_PASSWORD" ]; then
-            LINK_PASSWORD=$(prompt_for_password) || \
-                { log_error "You must provide a password"; return 4; }
+            LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
         #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return 1
@@ -126,7 +125,7 @@ get_ofuscated_link() {
     local COOKIEFILE=$2
     local BASE_URL="http://www.mediafire.com"
 
-    detect_javascript >/dev/null || return 1
+    detect_javascript >/dev/null || return
 
     # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
     PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
@@ -263,7 +262,7 @@ mediafire_upload() {
             QUICK_KEY=$(echo "$XML" | parse_quiet quickkey '<quickkey>\([^<]*\)<\/quickkey>')
             break
         fi
-        wait 2 seconds || return 2
+        wait 2 seconds || return
     done
 
     rm -f "$COOKIEFILE"

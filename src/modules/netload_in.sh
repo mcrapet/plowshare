@@ -63,15 +63,15 @@ netload_in_download() {
     fi
 
     local TRY=0
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         ((TRY++))
         WAIT_URL=$(curl --location -c $COOKIEFILE "$URL" | \
             parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
-            { log_debug "file not found"; return 254; }
+            { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
         test "$CHECK_LINK" && return 0
 
-        PERL_PRG=$(detect_perl) || return 1
+        PERL_PRG=$(detect_perl) || return
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
         WAIT_HTML=$(curl -b $COOKIEFILE -e $URL --location $WAIT_URL)
@@ -79,7 +79,7 @@ netload_in_download() {
                 "countdown(\([[:digit:]]*\),'change()')")
 
         if test -n "$WAIT_TIME"; then
-            wait $((WAIT_TIME / 100)) seconds || return 2
+            wait $((WAIT_TIME / 100)) seconds || return
         fi
 
         CAPTCHA_URL=$(echo "$WAIT_HTML" | parse '<img style="vertical-align' \
@@ -122,10 +122,10 @@ netload_in_download() {
             if [[ "$WAIT_TIME2" -gt 10000 ]]
             then
                 log_debug "Download limit reached!"
-                wait $((WAIT_TIME2 / 100)) seconds || return 2
+                wait $((WAIT_TIME2 / 100)) seconds || return
             else
                 # Supress this wait will lead to a 400 http error (bad request)
-                wait $((WAIT_TIME2 / 100)) seconds || return 2
+                wait $((WAIT_TIME2 / 100)) seconds || return
                 break
             fi
         fi
@@ -148,11 +148,11 @@ netload_in_download() {
 netload_in_premium_login() {
     # Even if login/passwd are wrong cookie content is returned
     LOGIN_DATA='txtuser=$USER&txtpass=$PASSWORD&txtcheck=login&txtlogin='
-    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return 1
+    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return
 
     if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
         log_debug "login failed"
-        return 1
+        return $ERR_LOGIN_FAILED
     fi
 }
 

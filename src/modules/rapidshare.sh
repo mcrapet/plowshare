@@ -56,7 +56,7 @@ rapidshare_download() {
     NO_FREE_SLOT_IDLE=125
     STOP_FLOODING=360
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         BASE_APIURL="https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
 
         if test "$AUTH"; then
@@ -76,22 +76,22 @@ rapidshare_download() {
                 { log_error "cannot parse wait time: $ERROR"; return 1; }
             test "$CHECK_LINK" && return 0
             log_notice "Server has asked to wait $WAIT seconds"
-            wait $WAIT seconds || return 2
+            wait $WAIT seconds || return
             continue
 
         elif match "File \(deleted\|not found\|ID invalid\)" "$ERROR"; then
-            return 254
+            return $ERR_LINK_DEAD
 
         elif match "flooding" "$ERROR"; then
-            no_arbitrary_wait || return 253
+            no_arbitrary_wait || return
             log_debug "Server said we are flooding it."
-            wait $STOP_FLOODING seconds || return 2
+            wait $STOP_FLOODING seconds || return
             continue
 
         elif match "slots" "$ERROR"; then
-            no_arbitrary_wait || return 253
+            no_arbitrary_wait || return
             log_debug "Server said there is no free slots available"
-            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            wait $NO_FREE_SLOT_IDLE seconds || return
             continue
 
         elif test "$ERROR"; then
@@ -112,7 +112,7 @@ rapidshare_download() {
         break
     done
 
-    wait $((WTIME)) seconds || return 2
+    wait $((WTIME)) seconds || return
 
     # https is only available for RapidPro customers
     local BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"

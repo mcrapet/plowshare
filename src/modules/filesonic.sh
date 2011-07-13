@@ -43,13 +43,13 @@ filesonic_login() {
 
     if ! test "$LOGIN"; then
         log_debug "Login error"
-        return 1
+        return $ERR_LOGIN_FAILED
     fi
 
     STATUS=$(echo "$LOGIN" | parse_quiet '"status":"[^"]*"' '"status":"\([^"]*\)"')
     if [ "$STATUS" != "success" ]; then
         log_debug "Login failed: $STATUS"
-        return 1
+        return $ERR_LOGIN_FAILED
     fi
 
     ROLE=$(parse_cookie "role" < "$COOKIES")
@@ -71,7 +71,7 @@ filesonic_download() {
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
-        return 253
+        return $LINK_TEMP_UNAVAILABLE
     fi
 
     # update URL if there is a specific .ccTLD location from there
@@ -91,7 +91,7 @@ filesonic_download() {
 
     # Attempt to authenticate
     if test "$AUTH"; then
-        filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return 1
+        filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
 
         FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
         if ! test "$FILE_URL"; then
@@ -106,7 +106,7 @@ filesonic_download() {
 
         if match 'File does not exist' "$PAGE"; then
             log_debug "File not found"
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         test "$CHECK_LINK" && return 0
@@ -125,7 +125,7 @@ filesonic_download() {
             # free users can download files < 400MB
             elif match 'download is larger than 400Mb.' "$PAGE"; then
                 log_error "You're trying to download file larger than 400MB (only premium users can)."
-                return 253
+                return $LINK_TEMP_UNAVAILABLE
 
             # captcha
             elif match 'Please Enter Captcha' "$PAGE"; then
@@ -138,7 +138,7 @@ filesonic_download() {
                 fi
 
                 TRY=1
-                while retry_limit_not_reached || return 3; do
+                while retry_limit_not_reached || return; do
                     log_debug "reCaptcha manual entering (loop $TRY)"
                     (( TRY++ ))
 
@@ -163,7 +163,7 @@ filesonic_download() {
             # wait
             elif match 'countDownDelay' "$PAGE"; then
                 SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
-                wait $SLEEP seconds || return 2
+                wait $SLEEP seconds || return
 
                 # for wait time > 5min. these values may not be present
                 # it just means we need to try again so the following code is fine
@@ -332,7 +332,7 @@ filesonic_delete() {
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
-        return 253
+        return $LINK_TEMP_UNAVAILABLE
     fi
 
     # update URL if there is a specific .ccTLD location from there
@@ -364,7 +364,7 @@ filesonic_delete() {
         return 1
     elif match 'Item not found' "$DELETE"; then
         log_error "Not found or already deleted"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     STATUS=$(echo "$DELETE" | parse_quiet '"status":"[^"]*"' '"status":"\([^"]*\)"')

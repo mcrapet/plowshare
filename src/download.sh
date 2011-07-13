@@ -201,32 +201,70 @@ download() {
             echo "$DURL"
             rm -f "$COOKIES"
             break
-        elif test $DRETVAL -eq 253; then
-            log_notice "Warning: file link is alive but not currently available"
+        fi
+
+        case "$DRETVAL" in
+            0)
+                ;;
+            $ERR_LOGIN_FAILED)
+                log_notice "Login process failed. Bad username/password or unepected content"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_LINK_TEMP_UNAVAILABLE)
+                log_notice "Warning: file link is alive but not currently available"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_LINK_PASSWORD_REQUIRED)
+                log_notice "You must provide a password"
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "PASSWORD"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_LINK_NEED_PERMISSIONS)
+                log_notice "Insufficient permissions (premium link?)"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_LINK_DEAD)
+                log_notice "Warning: file link is not alive"
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "NOTFOUND"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_MAX_WAIT_REACHED)
+                log_notice "Delay limit reached (${FUNCTION})"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_MAX_TRIES_REACHED)
+                log_notice "Retry limit reached (${FUNCTION})"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_CAPTCHA)
+                log_notice "Error: decoding captcha (${FUNCTION})"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            $ERR_SYSTEM)
+                log_notice "System failure (${FUNCTION})"
+                rm -f "$COOKIES"
+                return $DRETVAL
+                ;;
+            *)
+                log_error "failed inside ${FUNCTION}() [$DRETVAL]"
+                rm -f "$COOKIES"
+                return $ERR_FATAL
+                ;;
+        esac
+
+        # Sanity check
+        if test -z "$FILE_URL"; then
+            log_error "Output URL expected"
             rm -f "$COOKIES"
-            return $ERROR_CODE_TEMPORAL_PROBLEM
-        elif test $DRETVAL -eq 254; then
-            log_notice "Warning: file link is not alive"
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "NOTFOUND"
-            rm -f "$COOKIES"
-            return $ERROR_CODE_DEAD_LINK
-        elif test $DRETVAL -eq 2; then
-            log_error "delay limit reached (${FUNCTION})"
-            rm -f "$COOKIES"
-            return $ERROR_CODE_TIMEOUT_ERROR
-        elif test $DRETVAL -eq 3; then
-            log_error "retry limit reached (${FUNCTION})"
-            rm -f "$COOKIES"
-            return $ERROR_CODE_TIMEOUT_ERROR
-        elif test $DRETVAL -eq 4; then
-            log_error "password required (${FUNCTION})"
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "PASSWORD"
-            rm -f "$COOKIES"
-            return $ERROR_CODE_PASSWORD_REQUIRED
-        elif test $DRETVAL -ne 0 -o -z "$FILE_URL"; then
-            log_error "failed inside ${FUNCTION}()"
-            rm -f "$COOKIES"
-            return $ERROR_CODE_UNKNOWN_ERROR
+            return $ERR_FATAL
         fi
 
         log_notice "File URL: $FILE_URL"
@@ -308,27 +346,7 @@ download() {
                 -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
-
-            case "$DRETVAL" in
-                0) ;;
-                # Partial file / HTTP retrieve error / Operation timeout
-                18|22|28)
-                    local WAIT=60
-                    log_error "curl failed with retcode $DRETVAL"
-                    log_error "retry after a safety wait ($WAIT seconds)"
-                    sleep $WAIT
-                    continue
-                    ;;
-                # Write error
-                23)
-                    log_error "write failed, disk full?"
-                    return $ERROR_CODE_UNKNOWN_ERROR
-                    ;;
-                *)
-                    log_error "failed downloading $DURL"
-                    return $ERROR_CODE_NETWORK_ERROR
-                    ;;
-            esac
+            test "$DRETVAL" -eq 0 || return $DRETVAL
 
             if [ "$CODE" = 416 ]; then
                 # If module can resume transfer, we assume here that this error
@@ -359,6 +377,7 @@ download() {
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "" "|$FILENAME_OUT"
         break
     done
+    return 0
 }
 
 #
@@ -369,7 +388,7 @@ download() {
 LIBDIR=$(absolute_path "$0")
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_config_modules 'download') || exit 1
+MODULES=$(grep_config_modules 'download') || exit $?
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -386,9 +405,9 @@ else
     VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit $ERROR_CODE_OK; }
-test "$GETVERSION" && { echo "$VERSION"; exit $ERROR_CODE_OK; }
-test $# -ge 1 || { usage; exit $ERROR_CODE_FATAL; }
+test "$HELP" && { usage; exit 0; }
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+test $# -ge 1 || { usage; exit $ERR_FATAL; }
 
 if [ -n "$TEMP_DIR" ]; then
     TEMP_DIR=$(echo "$TEMP_DIR" | sed -e "s/\/$//")
@@ -396,7 +415,7 @@ if [ -n "$TEMP_DIR" ]; then
     mkdir -p "$TEMP_DIR"
     if [ ! -w "$TEMP_DIR" ]; then
         log_error "error: no write permission"
-        exit $ERROR_CODE_FATAL
+        exit $ERR_FATAL
     fi
 fi
 
@@ -406,7 +425,7 @@ if [ -n "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
     if [ ! -w "$OUTPUT_DIR" ]; then
         log_error "error: no write permission"
-        exit $ERROR_CODE_FATAL
+        exit $ERR_FATAL
     fi
 fi
 
@@ -424,7 +443,7 @@ for ITEM in "$@"; do
                 MODULE='module_null'
             else
                 log_error "Skip: no module for URL ($URL)"
-                RETVALS=(${RETVALS[@]} $ERROR_CODE_NOMODULE)
+                RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
                 continue
             fi
@@ -441,10 +460,10 @@ for ITEM in "$@"; do
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
-    exit $ERROR_CODE_OK
+    exit 0
 elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
     log_debug "retvals:${RETVALS[@]}"
-    exit $ERROR_CODE_FATAL_MULTIPLE
+    exit $((ERR_FATAL_MULTIPLE + ${RETVALS[0]}))
 fi

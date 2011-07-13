@@ -50,7 +50,7 @@ uploaded_to_download() {
     # file does not exist
     if match 'uploaded\.to\/404' "$URL"; then
         log_error "File not found"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     local BASE_URL='http://uploaded.to'
@@ -62,18 +62,18 @@ uploaded_to_download() {
     # set website language to english
     curl -c $COOKIEFILE "$BASE_URL/language/en"
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         local HTML=$(curl -c $COOKIEFILE "$URL")
 
         # check for files that need a password
         local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
-        test "$ERROR" && log_error "authentification required" && return 4
+        test "$ERROR" && return $ERR_LOGIN_FAILED
 
         # retrieve the waiting time
         local SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
-          'period: <span>\([[:digit:]]\+\)<\/span>')
+            'period: <span>\([[:digit:]]\+\)<\/span>')
         test -z "$SLEEP" && log_error "can't get sleep time" && \
-          log_debug "sleep time: $SLEEP" && return 1
+            log_debug "sleep time: $SLEEP" && return 1
 
         # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
         local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
@@ -85,7 +85,7 @@ uploaded_to_download() {
         fi
 
         local TRY=1
-        while retry_limit_not_reached || return 3; do
+        while retry_limit_not_reached || return; do
             log_debug "reCaptcha manual entering (loop $TRY)"
             (( TRY++ ))
 
@@ -100,7 +100,7 @@ uploaded_to_download() {
         done
 
         # wait the designates time + 1 second to be safe
-        wait $((SLEEP + 1)) seconds || return 2
+        wait $((SLEEP + 1)) seconds || return
 
         local CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
@@ -111,7 +111,7 @@ uploaded_to_download() {
 
         # check for possible errors
         if match 'limit\|err' "$PAGE"; then
-            return 253
+            return $LINK_TEMP_UNAVAILABLE
         elif match 'url' "$PAGE"; then
             local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
             break

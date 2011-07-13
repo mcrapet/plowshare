@@ -33,18 +33,18 @@ uploading_download() {
     local URL="$2"
     local BASE_URL="http://uploading.com"
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         # Force language to English
         DATA=$(curl --cookie-jar "$COOKIEFILE" --cookie "lang=1" "$URL")
         ERR1="Your IP address.*file"
         ERR2="Sorry, you have reached your daily download limit."
         if match "$ERR1\|$ERR2" "$DATA"; then
             WAITTIME=1
-            wait $WAITTIME minutes || return 2
+            wait $WAITTIME minutes || return
             continue
         fi
 
-        match "requested file is not found" "$DATA" && return 254
+        match "requested file is not found" "$DATA" && return $ERR_LINK_DEAD
 
         if match "<h2.*Download Limit.*</h2>" "$DATA"; then
             test "$CHECK_LINK" && return 0
@@ -52,7 +52,7 @@ uploading_download() {
             WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute") ||
                 WAIT=5
             log_debug "Server asked to wait"
-            wait $WAIT minutes || return 2
+            wait $WAIT minutes || return
             continue
         fi
 
@@ -87,7 +87,7 @@ uploading_download() {
     test -z "$FILENAME" &&
         FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | tail -n1 | parse 'h2' '<h2>\([^<]*\)')
 
-    wait $WAIT seconds || return 2
+    wait $WAIT seconds || return
 
     DATA=$(curl --cookie "$COOKIEFILE" --data "action=get_link&file_id=${FILE_ID}&code=${CODE}&pass=undefined" "$JSURL") ||
         { log_error "can't get link"; return 1; }

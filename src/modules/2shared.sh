@@ -37,7 +37,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     local PAGE=$(curl "$URL") || return 1
 
     if match "file link that you requested is not valid" "$PAGE"; then
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return 1
@@ -93,7 +93,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     if ! match 'Delete File' "$ADMIN_PAGE"; then
         log_error "File not found"
         rm -f $COOKIES
-        return 254
+        return $ERR_LINK_DEAD
     else
         FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
             log_error "can't get delete form, website updated?";

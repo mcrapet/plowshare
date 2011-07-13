@@ -37,7 +37,7 @@ divshare_download() {
 
     if match '<div id="fileInfoHeader">File Information</div>'; then
         log_debug "file not found"
-        return 254
+        return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
@@ -45,7 +45,7 @@ divshare_download() {
     # Uploader can disable audio/video download (only streaming is available)
     REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href' 2>/dev/null) || {
         log_error "content download not allowed"
-        return 254
+        return $ERR_LINK_DEAD
     }
 
     if ! match '^http' "$REDIR_URL"; then
@@ -54,7 +54,7 @@ divshare_download() {
         REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)')
 
         # Usual wait time is 15 seconds
-        wait $((WAIT_TIME)) seconds || return 2
+        wait $((WAIT_TIME)) seconds || return
 
         PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL")
     fi

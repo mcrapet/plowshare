@@ -39,17 +39,17 @@ zshare_download() {
 
     WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL")
     match "File Not Found" "$WAITPAGE" &&
-        { log_debug "file not found"; return 254; }
+        { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
     test "$CHECK_LINK" && return 0
 
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")
 
-    wait $((WAITTIME)) seconds || return 2
+    wait $((WAITTIME)) seconds || return
 
     JSCODE=$(echo "$WAITPAGE" | grep "var link_enc")
-    detect_javascript >/dev/null || return 1
+    detect_javascript >/dev/null || return
 
     FILE_URL=$(echo "$JSCODE" "; print(link);" | javascript)
     FILENAME=$(echo "$WAITPAGE" |\
@@ -134,7 +134,7 @@ zshare_delete() {
 
     if matchi 'File Not Found' "$DELETE_PAGE"; then
         log_error "File not found"
-        return 254
+        return $ERR_LINK_DEAD
     else
         local form_killcode=$(echo "$DELETE_PAGE" | parse_form_input_by_name "killCode")
 

@@ -42,19 +42,19 @@ EMAIL,,email:,EMAIL,Field for notification email"
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=10
 
-    while retry_limit_not_reached || return 3; do
+    while retry_limit_not_reached || return; do
         PAGE=$(curl -c "$COOKIEFILE" "$URL")
 
         if match "Le fichier demandé n'existe pas." "$PAGE"; then
             log_error "File not found."
-            return 254
+            return $ERR_LINK_DEAD
         fi
 
         test "$CHECK_LINK" && return 0
 
         if match "Téléchargements en cours" "$PAGE"; then
-            no_arbitrary_wait || return 253
-            wait $NO_FREE_SLOT_IDLE seconds || return 2
+            no_arbitrary_wait || return
+            wait $NO_FREE_SLOT_IDLE seconds || return
             continue
         fi
         break
@@ -82,7 +82,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
         LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'
         post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || {
             rm -f $COOKIES
-            return 1
+            return $ERR_LOGIN_FAILED
         }
     fi
 
