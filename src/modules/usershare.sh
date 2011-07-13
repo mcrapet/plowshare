@@ -27,17 +27,17 @@ usershare_download_solve() {
     PAGE=$(cat)
     # parts are '691ed77c|08977b85|ba207845|7d35eee8'
     PARTS=$(echo "$PAGE" | parse_quiet 'window|' "window|\([^']*\)")
-    for I in {1..4}; do
+    for I in 1 2 3 4; do
         P[$I]=$(echo "$PARTS" | cut -d\| -f$I)
     done
     # vars are 'i3|i6|i5|i4'
     VARS=$(echo "$PAGE" | parse_quiet 'var|' 'var|\([^|]*|[^|]*|[^|]*|[^|]*\)')
-    for I in {1..4}; do
+    for I in 1 2 3 4; do
         V[$I]=$(echo "$VARS" | cut -d\| -f$I)
     done
     # solution is i4+i5+i6+i3 with i3="7d35eee8", i4="ba207845", i5="08977b85", i6="691ed77c"
     J=4
-    for I in {1..4}; do
+    for I in 1 2 3 4; do
         echo "${V[$I]}"
     done |sort |while read K; do
         case "$K" in
@@ -47,7 +47,7 @@ usershare_download_solve() {
             ${V[4]}) X[4]=${P[$J]}; (( J-- )) ;;
         esac
         if [ $J -eq 0 ]; then
-            for I in {4..1}; do
+            for I in 4 3 2 1; do
                 echo -n "${X[$I]}"
             done
             echo
@@ -121,8 +121,8 @@ usershare_download() {
 
             # it happens when DATE or other params are incorrect
             if match 'User Login' "$PAGE2"; then
-              log_error 'Failed to send proper parameters: page asks for login'
-              return 1
+                log_error 'Failed to send proper parameters: page asks for login'
+                return 1
             fi
 
             RAND=$(echo "$PAGE2" | parse_attr 'name="rand"' 'value') || return 1
