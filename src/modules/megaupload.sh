@@ -189,7 +189,7 @@ megaupload_download() {
         return 1
     fi
 
-    wait $((WAITTIME+1)) seconds
+    wait $((WAITTIME+1)) seconds || return 2
 
     echo "$FILEURL"
 }
