@@ -92,7 +92,7 @@ depositfiles_download() {
         # - Such file does not exist or it has been removed for infringement of copyrights.
         elif match 'html_download_api-not_exists' "$DATA"; then
             log_error "file does not exist anymore"
-            return 1
+            return $ERR_LINK_DEAD
         fi
 
         break
