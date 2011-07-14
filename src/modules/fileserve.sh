@@ -136,7 +136,7 @@ fileserve_download() {
 
     if [ -z "$IMAGE_FILENAME" ]; then
         log_error "reCaptcha error"
-        return 1
+        return $ERR_CAPTCHA
     fi
 
     TRY=1
@@ -165,7 +165,7 @@ fileserve_download() {
     local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$ret" != "1" ] ; then
         log_error "wrong captcha"
-        return 1
+        return $ERR_CAPTCHA
     fi
 
     log_debug "correct captcha"
