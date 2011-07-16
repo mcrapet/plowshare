@@ -30,9 +30,11 @@ ERR_MAX_WAIT_REACHED=5           # Refer to plowdown wait timeout (see -t/--time
 ERR_MAX_TRIES_REACHED=6          # Refer to plowdown max tries reached (see --max-retries command line option)
 ERR_CAPTCHA=7                    # Captcha solving failure
 ERR_SYSTEM=8                     # System failure (missing executable, local filesystem, wrong behavior, etc)
-ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable (also refer to plowdown --no-arbitrary-wait command line option)
+ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable
+                                 # (also refer to plowdown --no-arbitrary-wait command line option)
 ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
 ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (premium link)
+                                 # or operation not allowed for anonymous user
 ERR_LINK_DEAD=13                 #
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
