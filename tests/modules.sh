@@ -63,7 +63,13 @@ exists()
     local -a ARRAY=( $(eval "echo \${$1[@]}") )
     local i
     for i in ${ARRAY[@]}; do
+
+        # Compare exact tnum (ex:"S504")
         [ "$i" == "$2" ] && return 0
+
+        # But accept one single lettre for all tests (ex:"S")
+        [ "${#i}" -eq 1 -a "${2:0:1}" = "$i" ] && return 0
+
     done
     return 1
 }
@@ -165,7 +171,10 @@ test_case_up_down_del() {
     delete $OPTS_DEL "$DEL_LINK" >/dev/null || RET=$?
     # If delete function available (ERROR_CODE_NOMODULE)
     if [ "$RET" -eq 2 ]; then
-        echo "skip del"
+        echo "skip del (not available)"
+    # ERR_LINK_NEED_PERMISSIONS=12
+    elif [ "$RET" -eq 12 ]; then
+        echo "skip del (need account)"
     elif [ "$RET" -ne 0 ]; then
         echo "del KO"
         stderr "ERR ($RET): plowdel $OPTS_DEL $DEL_LINK"
