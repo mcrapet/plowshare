@@ -326,7 +326,7 @@ filesonic_delete() {
 
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot delete links."
-        return 1
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')

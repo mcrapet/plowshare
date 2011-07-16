@@ -289,7 +289,7 @@ megaupload_delete() {
 
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot delete links."
-        return 1
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     COOKIES=$(create_tempfile)

@@ -161,7 +161,7 @@ wupload_upload() {
     local BASE_URL="http://api.wupload.com/"
 
     if ! test "$AUTH"; then
-        log_error "anonymous users cannot upload files"
+        log_error "Anonymous users cannot upload files"
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
