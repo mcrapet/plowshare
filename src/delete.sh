@@ -79,7 +79,7 @@ for MODULE in $MODULES; do
 done
 
 MODULE_OPTIONS=$(get_modules_options "$MODULES" DELETE)
-eval "$(process_options "plowshare" "$OPTIONS $MODULE_OPTIONS" "$@")"
+eval "$(process_options "plowshare" "$OPTIONS$MODULE_OPTIONS" "$@")"
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
