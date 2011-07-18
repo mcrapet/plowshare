@@ -76,7 +76,7 @@ x7_to_download() {
         # - The requested file is larger than 400MB, only premium members will be able to download the file!
         if match 'requested file is larger than' "$WAIT_HTML"; then
             log_debug "premium link"
-            return $LINK_TEMP_UNAVAILABLE
+            return $ERR_LINK_NEED_PERMISSIONS
         fi
 
         file_real_name=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \

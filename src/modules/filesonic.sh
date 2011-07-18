@@ -71,7 +71,7 @@ filesonic_download() {
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
-        return $LINK_TEMP_UNAVAILABLE
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # update URL if there is a specific .ccTLD location from there
@@ -125,7 +125,7 @@ filesonic_download() {
             # free users can download files < 400MB
             elif match 'download is larger than 400Mb.' "$PAGE"; then
                 log_error "You're trying to download file larger than 400MB (only premium users can)."
-                return $LINK_TEMP_UNAVAILABLE
+                return $ERR_LINK_NEED_PERMISSIONS
 
             # captcha
             elif match 'Please Enter Captcha' "$PAGE"; then
@@ -332,7 +332,7 @@ filesonic_delete() {
     local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
-        return $LINK_TEMP_UNAVAILABLE
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # update URL if there is a specific .ccTLD location from there

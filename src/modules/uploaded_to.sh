@@ -111,7 +111,7 @@ uploaded_to_download() {
 
         # check for possible errors
         if match 'limit\|err' "$PAGE"; then
-            return $LINK_TEMP_UNAVAILABLE
+            return $ERR_LINK_TEMP_UNAVAILABLE
         elif match 'url' "$PAGE"; then
             local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
             break

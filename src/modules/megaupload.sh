@@ -97,7 +97,7 @@ megaupload_download() {
         elif match "The file you are trying to download is larger than" "$PAGE"; then
             log_debug "Premium link"
             test "$CHECK_LINK" && return 0
-            return $LINK_TEMP_UNAVAILABLE
+            return $ERR_LINK_NEED_PERMISSIONS
 
         # Test if the file is password protected
         elif match 'name="filepassword"' "$PAGE"; then
