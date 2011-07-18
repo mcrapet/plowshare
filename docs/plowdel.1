@@ -19,30 +19,18 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdel" "1" "June 17, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowdel" "1" "July 18, 2011" "GPL" "Plowshare SVN-snapshot"
 
-.\" ****************************************************************************
-.\" * Name                                                                     *
-.\" ****************************************************************************
-
-.SH "NAME"
+.SH NAME
 plowdel \- Command-line link-deleter for file-sharing websites
 
-.\" ****************************************************************************
-.\" * Synopsis                                                                 *
-.\" ****************************************************************************
-
-.SH "SYNOPSIS"
+.SH SYNOPSIS
 .B plowdel
-[\fIOPTION\fP]...
-[\fIMODULE_OPTION\fP]...
+[\fIOPTIONS\fP]...
+[\fIMODULE_OPTIONS\fP]...
 \fIURL\fP...
 
-.\" ****************************************************************************
-.\" * Description                                                              *
-.\" ****************************************************************************
-
-.SH "DESCRIPTION"
+.SH DESCRIPTION
 .B plowdel
 is a set of bash scripts designed for deleting files on file-sharing website.
 It acts like a web browser, retreiving pages and filling html forms.
@@ -90,7 +78,6 @@ Output version information and exit.
 .\" ****************************************************************************
 .\" * Modules options                                                          *
 .\" ****************************************************************************
-
 .SH "MODULE OPTIONS"
 
 .SS Common options
@@ -101,7 +88,6 @@ Use premium account. Free account can be used sometimes.
 .\" ****************************************************************************
 .\" * Examples                                                                 *
 .\" ****************************************************************************
-
 .SH EXAMPLES
 
 .SS 1) Delete one or several files
@@ -113,11 +99,11 @@ $ plowdel http://www.zshare.net/delete/1234567890ABCD/ http://www.megaupload.com
 .fi
 
 .\" ****************************************************************************
-.\" * Authors / See Also / Copyright                                           *
+.\" * Authors / See Also                                                       *
 .\" ****************************************************************************
-
 .SH AUTHORS
-Written by Arnau Sanchez and Matthieu Crapet.
+Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
+Plowshare is (C) 2010-2011 The Plowshare Team 
 .SH "SEE ALSO"
 plowdown(1), plowup(1), plowlist(1)

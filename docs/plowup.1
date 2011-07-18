@@ -19,31 +19,19 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "June 17, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowup" "1" "July 18, 2011" "GPL" "Plowshare SVN-snapshot"
 
-.\" ****************************************************************************
-.\" * Name                                                                     *
-.\" ****************************************************************************
-
-.SH "NAME"
+.SH NAME
 plowup \- Command-line uploader for file-sharing websites
 
-.\" ****************************************************************************
-.\" * Synopsis                                                                 *
-.\" ****************************************************************************
-
-.SH "SYNOPSIS"
+.SH SYNOPSIS
 .B plowup
-[\fIOPTION\fP]...
-[\fIMODULE_OPTION\fP]...
+[\fIOPTIONS\fP]...
+[\fIMODULE_OPTIONS\fP]...
 \fIMODULE\fP
 \fIFILE[:\fIDESTNAME\fP]\fP...
 
-.\" ****************************************************************************
-.\" * Description                                                              *
-.\" ****************************************************************************
-
-.SH "DESCRIPTION"
+.SH DESCRIPTION
 .B plowup
 is a set of bash scripts designed for automatic uploads on file-sharing website.
 It acts like a web browser, retreiving pages and filling html forms (including captchas).
@@ -58,6 +46,13 @@ See specific module options below.
 .\" ****************************************************************************
 .SH OPTIONS
 
+.SS Common options
+.TP
+.BI "   " " " --name-prefix "=STRING"
+Prepend argument to each destination filename.
+.TP
+.BI "   " " " --name-suffix "=STRING"
+Append argument to each destination filename.
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
@@ -91,7 +86,6 @@ Output version information and exit.
 .\" ****************************************************************************
 .\" * Modules options                                                          *
 .\" ****************************************************************************
-
 .SH "MODULE OPTIONS"
 
 .SS Common options
@@ -131,7 +125,6 @@ List of emails to notify upload.
 .\" ****************************************************************************
 .\" * Examples                                                                 *
 .\" ****************************************************************************
-
 .SH EXAMPLES
 
 .SS 1) Upload a single file anonymously
@@ -148,11 +141,32 @@ $ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt:
 .fi
 
 .\" ****************************************************************************
-.\" * Authors / See Also / Copyright                                           *
+.\" * Exit codes                                                               *
 .\" ****************************************************************************
+.SH "EXIT CODES"
 
+Possible exit codes are: 
+.IP 0 
+Sucess.
+.IP 1
+Fatal error. Upstream site updated or unexpected result.
+.IP 2
+No available module (provided module name does not exist).
+.IP 3
+Network error. Mostly curl related.
+.IP 4
+Site login failed.
+.IP 8
+System generic error.
+.TP
+If plowup is invoked with multiple links or a link-list file and if one or several errors occur, the first error code is returned added with 100.
+
+.\" ****************************************************************************
+.\" * Authors / See Also                                                       *
+.\" ****************************************************************************
 .SH AUTHORS
-Written by Arnau Sanchez and Matthieu Crapet.
+Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
+Plowshare is (C) 2010-2011 The Plowshare Team 
 .SH "SEE ALSO"
 plowdown(1), plowdel(1), plowlist(1)
