@@ -142,6 +142,8 @@ $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowup zshare /path/myfile.txt
 
+7. Modify remote filenames
+$ plowup mirrorcreator --name-prefix="2011.jul-" *.rar
 
 Be aware that curl is not capable of uploading files containing a comma (,)
 in their name, so make sure to rename them before using plowup.
