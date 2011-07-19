@@ -49,14 +49,14 @@ test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 
 if [ "$1" = "uninstall" ]; then
     $RM -r $DATADIR $DOCDIR
-    $RM $BINDIR/{plowdown,plowup,plowdel,plowlist}
-    $RM $MANDIR/{plowdown,plowup,plowdel,plowlist}.1
+    $RM $BINDIR/plowdown $BINDIR/plowup $BINDIR/plowdel $BINDIR/plowlist
+    $RM $MANDIR/plowdown.1 $MANDIR/plowup.1 $MANDIR/plowdel.1 $MANDIR/plowlist.1
 
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCDIR $MANDIR
     $CP README $DOCDIR
-    $CP docs/{plowdown,plowup,plowdel,plowlist}.1 $MANDIR
+    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 $MANDIR
 
     # Common library
     mkdir -p $DATADIR
