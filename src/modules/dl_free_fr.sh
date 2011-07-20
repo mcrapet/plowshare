@@ -53,17 +53,17 @@ dl_free_fr_download() {
 
     echo $FILE_URL
 }
-
+ 
 # Upload a file to dl.free.fr
-# Return upload URL and delete URL
-#
-# $1: FILE [DESTFILE]
-#
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: dl.free.fr download + del link
 dl_free_fr_upload() {
     eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://dl.free.fr"
 
     log_debug "downloading upload page: $UPLOADURL"

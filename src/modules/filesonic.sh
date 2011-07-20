@@ -188,50 +188,18 @@ filesonic_download() {
     return 0
 }
 
-# List a filesonic public folder URL
-# $1: filesonic url
-# stdout: list of links
-filesonic_list() {
-    local URL="$1"
-
-    if ! match "${MODULE_FILESONIC_REGEXP_URL}folder\/" "$URL"; then
-        log_error "This is not a folder"
-        return 1
-    fi
-
-    PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_FILESONIC_REGEXP_URL}file")
-
-    if ! test "$PAGE"; then
-        log_error "Wrong folder link (no download link detected)"
-        return 1
-    fi
-
-    # First pass: print file names (debug)
-    while read LINE; do
-        FILENAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
-        log_debug "$FILENAME"
-    done <<< "$PAGE"
-
-    # Second pass: print links (stdout)
-    while read LINE; do
-        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$LINK"
-    done <<< "$PAGE"
-
-    return 0
-}
-
 # Upload a file to filesonic
-# $1: file name to upload
-# $2: upload as file name (optional, defaults to $1)
-# $3: member only, upload in folder id (optional, defaults to 0 for root)
+# $1: cookie file
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
 # stdout: download link on filesonic
 filesonic_upload() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
-    local FOLDERID=${3:-0}
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
+    local FOLDERID=0
     local URL="http://www.filesonic.com"
 
     # update URL if there is a specific .ccTLD location from there
@@ -240,15 +208,11 @@ filesonic_upload() {
         URL=$(basename_url "$LOCATION")
     fi
 
-    COOKIES=$(create_tempfile)
-    FOLDER=""
+    local FOLDER=""
 
     # Attempt to authenticate
     if test "$AUTH"; then
-        filesonic_login "$AUTH" "$COOKIES" "$URL" || {
-            rm -f "$COOKIES"
-            return 1
-        }
+        filesonic_login "$AUTH" "$COOKIEFILE" "$URL" || return
         FOLDER="-F folderId=$FOLDERID"
     fi
 
@@ -263,49 +227,43 @@ filesonic_upload() {
 
     # prepare upload file id - browser uses the following javascript, we can do it in bash
     # "upload_"+new Date().getTime()+"_<PHPSESSID>_"+Math.floor(Math.random()*90000)
-    PHPSESSID=$(parse_cookie "PHPSESSID" < "$COOKIES")
+    PHPSESSID=$(parse_cookie "PHPSESSID" < "$COOKIEFILE")
     ID="upload_$(date '+%s')123_${PHPSESSID}_$RANDOM"
 
     # send file and get Location to completed URL
     # Note: explicitely remove "Expect: 100-continue" header that curl wants to send
-    STATUS=$(curl -D - -b "$COOKIES" --referer "$URL" -H "Expect:" \
+    STATUS=$(curl -D - -b "$COOKIEFILE" --referer "$URL" -H "Expect:" \
         -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" $FOLDER \
         "http://$SERVER/?callbackUrl=$URL/upload-completed/:uploadProgressId&X-Progress-ID=$ID")
 
     if ! test "$STATUS"; then
         log_error "Upload error"
-        rm -f "$COOKIES"
         return 1
     elif match 'An error occurred' "$STATUS"; then
         log_error "Upload failed: server error"
-        rm -f "$COOKIES"
         return 1
     fi
     COMPLETED=$(echo "$STATUS" | grep_http_header_location)
 
     # get information
-    INFOS=$(curl -b "$COOKIES" -e "$URL" "$COMPLETED")
+    INFOS=$(curl -b "$COOKIEFILE" -e "$URL" "$COMPLETED")
     STATUSCODE=$(echo "$INFOS" | parse_quiet '"statusCode":[0-9]*' '"statusCode":\([0-9]*\)')
     STATUSMESSAGE=$(echo "$INFOS" | parse_quiet '"statusMessage":"[^"]*"' '"statusMessage":"\([^"]*\)"')
 
     if ! test "$STATUSCODE"; then
         log_error "Upload failed (no info)"
-        rm -f "$COOKIES"
         return 1
     elif [ $STATUSCODE -ne 0 ]; then
         log_error "Upload failed: $STATUSMESSAGE ($STATUSCODE)"
-        rm -f "$COOKIES"
         return 1
     fi
     log_debug "Upload succeeded: $STATUSMESSAGE"
 
     # get download link
     LINKID=$(echo "$INFOS" | parse_quiet '"linkId":"[^"]*"' '"linkId":"\([^"]*\)"')
-    BROWSE=$(curl -b "$COOKIES" -H "X-Requested-With: XMLHttpRequest" \
-        -e "$URL" "$URL/filesystem/generate-link/$LINKID")
+    BROWSE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+		  -e "$URL" "$URL/filesystem/generate-link/$LINKID")
     LINK=$(echo "$BROWSE" | parse_attr 'id="URL_' 'value')
-
-    rm -f "$COOKIES"
 
     if ! test "$LINK"; then
         log_error "Can't parse download link, site updated?"
@@ -313,7 +271,6 @@ filesonic_upload() {
     fi
 
     echo "$LINK"
-
     return 0
 }
 
@@ -374,5 +331,38 @@ filesonic_delete() {
     fi
 
     log_notice "File deleted"
+    return 0
+}
+
+# List a filesonic public folder URL
+# $1: filesonic url
+# stdout: list of links
+filesonic_list() {
+    local URL="$1"
+
+    if ! match "${MODULE_FILESONIC_REGEXP_URL}folder\/" "$URL"; then
+        log_error "This is not a folder"
+        return 1
+    fi
+
+    PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_FILESONIC_REGEXP_URL}file")
+
+    if ! test "$PAGE"; then
+        log_error "Wrong folder link (no download link detected)"
+        return 1
+    fi
+
+    # First pass: print file names (debug)
+    while read LINE; do
+        FILENAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILENAME"
+    done <<< "$PAGE"
+
+    # Second pass: print links (stdout)
+    while read LINE; do
+        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$LINK"
+    done <<< "$PAGE"
+
     return 0
 }

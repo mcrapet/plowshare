@@ -26,14 +26,16 @@ FILESERVE,,fileserve,,Include this additional host site
 HOTFILE,,hotfile,,Include this additional host site
 RAPIDSHARE,,rapidshare,,Include this additional host site"
 
-# $1: input file
-# $2 (optional): alternate destination filename
-# stdout: mirrorcreator.com upload link
+# Upload a file to mirrorcreator.com
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: mirrorcreator.com download link
 mirrorcreator_upload() {
     eval "$(process_options mirrorcreator "$MODULE_MIRRORCREATOR_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local SZ=$(get_filesize "$FILE")
     local BASE_URL="http://www.mirrorcreator.com"
 

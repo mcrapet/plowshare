@@ -192,22 +192,22 @@ megaupload_download() {
 }
 
 # Upload a file to megaupload
-# $1: file name to upload
-# $2: upload as file name (optional, defaults to $1)
+# $1: cookie file
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
 # stdout: download link on megaupload
 megaupload_upload() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local LOGINURL="http://www.megaupload.com/?c=login"
     local BASEURL=$(basename_url "$LOGINURL")
 
-    COOKIES=$(create_tempfile)
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$LOGINURL" >/dev/null || {
-            rm -f $COOKIES
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$LOGINURL" >/dev/null || {
             return 1
         }
     elif [ -n "$LINK_PASSWORD" ]; then
@@ -220,10 +220,10 @@ megaupload_upload() {
         STATUSLOOPTIME=5
 
         # Cookie file must contain sessionid
-        [ -s "$COOKIES" ] || return $ERR_LOGIN_FAILED
+        [ -s "$COOKIEFILE" ] || return $ERR_LOGIN_FAILED
 
         log_debug "spawn URL fetch process: $FILE"
-        UPLOADID=$(curl -b $COOKIES -L \
+        UPLOADID=$(curl -b "$COOKIEFILE" -L \
             -F "fetchurl=$FILE" \
             -F "description=$DESCRIPTION" \
             -F "youremail=$FROMEMAIL" \
@@ -234,7 +234,7 @@ megaupload_upload() {
                 { log_error "cannot start multifetch upload"; return 1; }
         while true; do
             CSS="display:[[:space:]]*none"
-            STATUS=$(curl -b $COOKIES "$STATUSURL")
+            STATUS=$(curl -b "$COOKIEFILE" "$STATUSURL")
             ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
                 parse_quiet "status_$UPLOADID" '>\(.*\)<\/div>' | xargs) || true
             test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
@@ -245,12 +245,12 @@ megaupload_upload() {
             sleep $STATUSLOOPTIME
         done
         log_debug "fetching process finished"
-        STATUS=$(curl -b $COOKIES "$STATUSURL")
+        STATUS=$(curl -b "$COOKIEFILE" "$STATUSURL")
         if [ "$CLEAR_LOG" ]; then
             log_debug "clearing upload log for task $UPLOADID"
             CLEARURL=$(echo "$STATUS" | parse "cancel=$UPLOADID" "href=[\"']\([^\"']*\)")
             log_debug "clear URL: $BASEURL/$CLEARURL"
-            curl -b $COOKIES "$BASEURL/$CLEARURL" > /dev/null
+            curl -b "$COOKIEFILE" "$BASEURL/$CLEARURL" > /dev/null
         fi
         echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
 
@@ -264,7 +264,7 @@ megaupload_upload() {
 
         log_debug "starting file upload: $FILE"
 
-        curl_with_log -b $COOKIES \
+        curl_with_log -b "$COOKIEFILE" \
             -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
             -F "sessionid=$UPLOAD_ID" \
             -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
@@ -275,8 +275,6 @@ megaupload_upload() {
             -F "multiemail=$MULTIEMAIL" \
             "$FORM_URL" | parse "downloadurl" "url = '\(.*\)';"
     fi
-
-    rm -f $COOKIES
 }
 
 # Delete a file on megaupload (requires an account)

@@ -24,16 +24,18 @@ MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 
-# $1: input file
-# $2 (optional): alternate destination filename
-# stdout: multiupload.com upload link
+# Upload a file to multiupload.com
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: multiupload.com download link
 #
-# No external premium account (RS, MU, ...) support.
+# Note: No external premium account (RS, MU, ...) support.
 multiupload_upload() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local BASE_URL="http://www.multiupload.com"
 
     PAGE=$(curl "$BASE_URL" | break_html_lines_alt)

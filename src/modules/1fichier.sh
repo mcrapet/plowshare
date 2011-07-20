@@ -69,28 +69,29 @@ EMAIL,,email:,EMAIL,Field for notification email"
     return 0
 }
 
+# Upload a file to 1fichier.tld
+# $1: cookie file
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: download + del link
 1fichier_upload() {
     eval "$(process_options 1fichier "$MODULE_1FICHIER_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://upload.1fichier.com"
-
-    COOKIES=$(create_tempfile)
 
     if test "$AUTH"; then
         LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'
-        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || {
-            rm -f $COOKIES
-            return $ERR_LOGIN_FAILED
-        }
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
     fi
 
     S_ID=$(echo "var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; for( var i=0; i < 5; i++ ) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);" | javascript)
 
     ! test "$DOMAIN" && DOMAIN=0
 
-    STATUS=$(curl_with_log -b "$COOKIES" \
+    STATUS=$(curl_with_log -b "$COOKIEFILE" \
         -F "message=$MESSAGE" \
         -F "mail=$EMAIL" \
         -F "dpass=$LINK_PASSWORD" \
@@ -98,51 +99,38 @@ EMAIL,,email:,EMAIL,Field for notification email"
         -F "file[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
         "$UPLOADURL/upload.cgi?id=$S_ID")
 
-    rm -f $COOKIES
-
     RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
 
-    DOWNLOAD_ID=$(echo "$RESPONSE" | sed -n '3p')
-    REMOVE_ID=$(echo "$RESPONSE" | sed -n '4p')
-    DOMAIN_ID=$(echo "$RESPONSE" | sed -n '5p')
+    local DOWNLOAD_ID=$(echo "$RESPONSE" | sed -n '3p')
+    local REMOVE_ID=$(echo "$RESPONSE" | sed -n '4p')
+    local DOMAIN_ID=$(echo "$RESPONSE" | sed -n '5p')
 
     case "$DOMAIN_ID" in
-        0)
-            echo -e "http://$DOWNLOAD_ID.1fichier.com (http://www.1fichier.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        0)  echo -e "http://$DOWNLOAD_ID.1fichier.com (http://www.1fichier.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        1)
-            echo -e "http://$DOWNLOAD_ID.alterupload.com (http://www.alterupload.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        1)  echo -e "http://$DOWNLOAD_ID.alterupload.com (http://www.alterupload.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        2)
-            echo -e "http://$DOWNLOAD_ID.cjoint.net (http://www.cjoint.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        2)  echo -e "http://$DOWNLOAD_ID.cjoint.net (http://www.cjoint.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        3)
-            echo -e "http://$DOWNLOAD_ID.desfichiers.com (http://www.desfichiers.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        3)  echo -e "http://$DOWNLOAD_ID.desfichiers.com (http://www.desfichiers.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        4)
-            echo -e "http://$DOWNLOAD_ID.dfichiers.com (http://www.dfichiers.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        4)  echo -e "http://$DOWNLOAD_ID.dfichiers.com (http://www.dfichiers.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        5)
-            echo -e "http://$DOWNLOAD_ID.megadl.fr (http://www.megadl.fr/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        5)  echo -e "http://$DOWNLOAD_ID.megadl.fr (http://www.megadl.fr/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        6)
-            echo -e "http://$DOWNLOAD_ID.mesfichiers.net (http://www.mesfichiers.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        6)  echo -e "http://$DOWNLOAD_ID.mesfichiers.net (http://www.mesfichiers.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        7)
-            echo -e "http://$DOWNLOAD_ID.piecejointe.net (http://www.piecejointe.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        7)  echo -e "http://$DOWNLOAD_ID.piecejointe.net (http://www.piecejointe.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        8)
-            echo -e "http://$DOWNLOAD_ID.pjointe.com (http://www.pjointe.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        8)  echo -e "http://$DOWNLOAD_ID.pjointe.com (http://www.pjointe.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        9)
-            echo -e "http://$DOWNLOAD_ID.tenvoi.com (http://www.tenvoi.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        9)  echo -e "http://$DOWNLOAD_ID.tenvoi.com (http://www.tenvoi.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        10)
-            echo -e "http://$DOWNLOAD_ID.dl4free.com (http://www.dl4free.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
+        10) echo -e "http://$DOWNLOAD_ID.dl4free.com (http://www.dl4free.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
-        *)
-            log_error "Bad domain ID response, maybe API updated?"
-            exit 1
+        *)  log_error "Bad domain ID response, maybe API updated?"
+            return 1
+            ;;
     esac
     return 0
 }

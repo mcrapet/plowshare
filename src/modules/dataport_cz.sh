@@ -81,38 +81,37 @@ dataport_cz_download() {
     return 0
 }
 
+# Upload a file to dataport.cz
+# $1: cookie file
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: download link
 dataport_cz_upload() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://dataport.cz/"
 
-    COOKIES=$(create_tempfile)
     if test "$AUTH"; then
         LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
-        post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$UPLOADURL/prihlas/" >/dev/null || {
-            rm -f $COOKIES
-            return 1
-        }
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$UPLOADURL/prihlas/" >/dev/null || return
 
-        PAGE=$(curl -b "$COOKIES" --location "$UPLOADURL")
+        PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL")
 
         if ! match "http://dataport.cz/odhlasit/" "$PAGE"; then
-            rm -f $COOKIES
             return $ERR_LOGIN_FAILED
         fi
     fi
 
-    PAGE=$(curl -b "$COOKIES" --location "$UPLOADURL")
+    PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL")
 
     REFERRER=$(echo "$PAGE" | parse_attr '<iframe' 'src')
-
     UZIV_ID=$(echo "$REFERRER" | parse_quiet 'uziv_id' 'uziv_id=\(.*\)')
-
     ID=$(echo "var uid = Math.floor(Math.random()*999999999); print(uid);" | javascript)
 
-    STATUS=$(curl_with_log -b "$COOKIES" -e "$REFERRER" \
+    STATUS=$(curl_with_log -b "$COOKIEFILE" -e "$REFERRER" \
         -F "id=$UZIV_ID" \
         -F "folder=/upload/uploads" \
         -F "uid=$ID" \
@@ -122,13 +121,10 @@ dataport_cz_upload() {
 
     if ! test "$STATUS"; then
         log_error "Uploading error."
-        rm -f "$COOKIES"
         return 1
     fi
 
-    DOWN_URL=$(curl -b "$COOKIES" "http://dataport.cz/links/$ID/1" | parse_attr 'id="download-link"' 'value')
-
-    rm -f "$COOKIES"
+    DOWN_URL=$(curl -b "$COOKIEFILE" "http://dataport.cz/links/$ID/1" | parse_attr 'id="download-link"' 'value')
 
     if ! test "$DOWN_URL"; then
         log_error "Can't parse download link, site updated?"

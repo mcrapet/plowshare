@@ -77,7 +77,7 @@ fileserve_download() {
 
         # Check account type
         if ! match '<h3>Free' "$LOGIN_RESULT"; then
-            FILE_URL=$(curl -i -b $COOKIEFILE "$URL" | grep_http_header_location)
+            FILE_URL=$(curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location)
 
             test -z "$FILE_URL" && return 1
             test "$CHECK_LINK" && return 0
@@ -95,9 +95,9 @@ fileserve_download() {
 
     while retry_limit_not_reached || return; do
         if [ -s $COOKIEFILE ]; then
-            MAINPAGE=$(curl -b $COOKIEFILE "$URL") || return 1
+            MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return 1
         else
-            MAINPAGE=$(curl -c $COOKIEFILE "$URL") || return 1
+            MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return 1
         fi
 
         # "The file could not be found. Please check the download link."
@@ -109,7 +109,7 @@ fileserve_download() {
         test "$CHECK_LINK" && return 0
 
         # Should return {"success":"showCaptcha"}
-        JSON1=$(curl -b $COOKIEFILE --referer "$URL" --data "checkDownload=check" "$URL") || return 1
+        JSON1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "checkDownload=check" "$URL") || return 1
 
         if match 'waitTime' "$JSON1"; then
             no_arbitrary_wait || return
@@ -158,9 +158,9 @@ fileserve_download() {
     CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
 
     # Should return {"success":1}
-    JSON2=$(curl -b $COOKIEFILE --referer "$URL" --data \
-      "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&recaptcha_shortencode_field=$SHORT" \
-      "http://www.fileserve.com/checkReCaptcha.php") || return 1
+    JSON2=$(curl -b "$COOKIEFILE" --referer "$URL" --data \
+        "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&recaptcha_shortencode_field=$SHORT" \
+        "http://www.fileserve.com/checkReCaptcha.php") || return 1
 
     local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$ret" != "1" ] ; then
@@ -169,7 +169,7 @@ fileserve_download() {
     fi
 
     log_debug "correct captcha"
-    MSG1=$(curl -b $COOKIEFILE --referer "$URL" --data "downloadLink=wait" "$URL") || return 1
+    MSG1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "downloadLink=wait" "$URL") || return
     if match 'fail404' "$MSG1"; then
         log_error "unexpected result"
         return 1
@@ -177,33 +177,31 @@ fileserve_download() {
 
     WAIT_TIME=$(echo "$MSG1" | cut -b4-)
     wait $((WAIT_TIME + 1)) seconds || return
-    MSG2=$(curl -b $COOKIEFILE --referer "$URL" --data "downloadLink=show" "$URL") || return 1
+    MSG2=$(curl -b "$COOKIEFILE" --referer "$URL" --data "downloadLink=show" "$URL") || return
 
-    FILE_URL=$(curl -i -b $COOKIEFILE --referer "$URL" --data "download=normal" "$URL" | grep_http_header_location) || return 1
+    FILE_URL=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "download=normal" "$URL" | grep_http_header_location) || return
 
     echo "$FILE_URL"
 }
 
-# Upload a file to fileserve (anonymous only for now)
-# $1: file name to upload
-# $2: upload as file name (optional, defaults to $1)
-# stdout: download link on fileserve
+# Upload a file to fileserve
+# $1: cookie file (used for premium account only)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: download + del link on fileserve
 fileserve_upload() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local BASEURL="http://www.fileserve.com"
 
     # Attempt to authenticate
     if test "$AUTH"; then
         COOKIES=$(create_tempfile)
-        fileserve_login "$AUTH" "$COOKIES" "$BASEURL" || {
-            rm -f "$COOKIES"
-            return 1
-        }
-        PAGE=$(curl -b "$COOKIES" "$BASEURL/upload-file.php")
-        rm -f "$COOKIES"
+        fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
+        PAGE=$(curl -b "$COOKIEFILE" "$BASEURL/upload-file.php")
     else
         PAGE=$(curl "$BASEURL/upload-file.php")
     fi

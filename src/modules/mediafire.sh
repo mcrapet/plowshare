@@ -191,21 +191,23 @@ get_ofuscated_link() {
     echo $FILE_URL
 }
 
-# $1: input file
-# $2 (optional): alternate destination filename
-# stdout: mediafire.com upload link
+# Upload a file to mediafire
+# $1: cookie file
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: mediafire.com download link
 mediafire_upload() {
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local BASE_URL="http://www.mediafire.com"
-    local COOKIEFILE=$(create_tempfile)
 
     log_debug "Get ukey cookie"
-    curl -c "$COOKIEFILE" "$BASE_URL" >/dev/null || { rm -f "$COOKIEFILE"; return 1; }
+    curl -c "$COOKIEFILE" "$BASE_URL" >/dev/null || return
 
     log_debug "Get uploader configuration"
     XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
-            { log_error "Couldn't upload file!"; rm -f "$COOKIEFILE"; return 1; }
+            { log_error "Couldn't upload file!"; return 1; }
 
     local UKEY=$(parse_quiet ukey '.*ukey[ \t]*\(.*\)' < "$COOKIEFILE")
     local USER=$(echo "$XML" | parse_quiet user '<user>\([^<]*\)<\/user>')
@@ -220,7 +222,6 @@ mediafire_upload() {
 
     if [ -z "$UKEY" -o -z "$TRACK_KEY" -o -z "$FOLDER_KEY" -o -z "$MFUL_CONFIG" -o -z "$USER" ]; then
         log_error "Can't parse uploader configuration!"
-        rm -f "$COOKIEFILE"
         return 1
     fi
 
@@ -231,7 +232,7 @@ mediafire_upload() {
         -F "Upload=Submit Query" \
         -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
         --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" $UPLOAD_URL) ||
-            { log_error "Couldn't upload file!"; rm -f "$COOKIEFILE"; return 1; }
+            { log_error "Couldn't upload file!"; return 1; }
 
     # Example of anwser:
     # <?xml version="1.0" encoding="iso-8859-1"?>
@@ -246,7 +247,6 @@ mediafire_upload() {
 
     if [ -z "$UPLOAD_KEY" ]; then
         log_error "Can't get upload key!"
-        rm -f "$COOKIEFILE"
         return 1
     fi
 
@@ -264,8 +264,6 @@ mediafire_upload() {
         fi
         wait 2 seconds || return
     done
-
-    rm -f "$COOKIEFILE"
 
     if [ -z "$QUICK_KEY" ]; then
         log_error "Can't get quick key!"

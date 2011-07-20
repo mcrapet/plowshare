@@ -59,22 +59,20 @@ zshare_download() {
     echo "$FILENAME"
 }
 
-# Upload a file to zshare and return upload URL (DELETE_URL)
-#
-# zshare_upload [MODULE_ZSHARE_UPLOAD_OPTIONS] FILE [DESTFILE]
-#
-# Option:
-#   -d DESCRIPTION (short text description)
-#
+# Upload a file to zshare.net
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: zshare download + del link
 zshare_upload() {
     eval "$(process_options zshare "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
 
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://www.zshare.net/"
 
     log_debug "downloading upload page: $UPLOADURL"
-    DATA=$(curl "$UPLOADURL")
+    DATA=$(curl "$UPLOADURL") || return
 
     ACTION=$(grep_form_by_name "$DATA" 'upload' | parse_form_action) ||
         { log_debug "cannot get upload form URL"; return 1; }

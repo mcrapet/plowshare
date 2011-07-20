@@ -127,6 +127,8 @@ FUNCTION=${MODULE}_upload
 shift 1
 
 RETVALS=()
+UPCOOKIE=$(create_tempfile)
+
 for FILE in "$@"; do
 
     # Check for remote upload
@@ -153,9 +155,13 @@ for FILE in "$@"; do
 
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$LOCALFILE" "$DESTFILE" || \
+
+    : > "$UPCOOKIE"
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE" || \
         RETVALS=(${RETVALS[@]} "$?")
 done
+
+rm -f "$UPCOOKIE"
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
     exit 0

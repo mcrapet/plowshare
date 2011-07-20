@@ -144,12 +144,13 @@ rapidshare_upload() {
 }
 
 # Upload a file to rapidshare (anonymously)
-# $1: file name to upload
-# $2: upload as file name (optional, defaults to $1)
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
 # stdout: download_url (delete_url)
 rapidshare_upload_anonymous() {
-    local FILE="$1"
-    local DESTFILE=${2:-$FILE}
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
 
     SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver")
     log_debug "free upload server is rs$SERVER_NUM"
@@ -157,7 +158,7 @@ rapidshare_upload_anonymous() {
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
     INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
-            -F "rsapi_v1=1" -F "realfolder=0" "$UPLOAD_URL") || return 1
+            -F "rsapi_v1=1" -F "realfolder=0" "$UPLOAD_URL") || return
 
     # Expect answer like this (.3 is filesize, .4 is md5sum):
     # savedfiles=1 forbiddenfiles=0 premiumaccount=0

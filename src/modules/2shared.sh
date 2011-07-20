@@ -49,14 +49,16 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     test "$FILENAME" && echo "$FILENAME"
 }
 
-# Upload a file to 2shared and upload URL (ADMIN_URL)
-#
-# 2shared_upload FILE [DESTFILE]
-#
+# Upload a file to 2shared.com
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: 2shared.com download + admin link
 2shared_upload() {
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
-    local FILE=$1
-    local DESTFILE=${2:-$FILE}
+
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://www.2shared.com/"
 
     log_debug "downloading upload page: $UPLOADURL"
@@ -70,11 +72,14 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         -F "mainDC=1" \
         -F "fff=@$FILE;filename=$(basename_file "$DESTFILE")" \
         "$ACTION")
+
     match "upload has successfully completed" "$STATUS" ||
         { log_error "upload failure"; return 1; }
+
     DONE=$(curl "$UPLOADURL/$COMPLETE")
     URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
     ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
+
     echo "$URL ($ADMIN)"
 }
 
