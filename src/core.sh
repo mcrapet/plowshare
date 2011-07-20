@@ -38,12 +38,15 @@ ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (
 ERR_LINK_DEAD=13                 #
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
-# Global variables used:
+# Global variables used (defined in other .sh)
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
 #   - INTERFACE        Network interface (used by curl)
+#   - GLOBAL_COOKIES   User provided cookie
+#   - LIBDIR           Absolute path to plowshare's libdir
+#
+# Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
-#   - LIBDIR           Absolute path to plowshare's libdir
 #   - RECAPTCHA_SERVER Server URL
 #
 # Logs are sent to stderr stream.
