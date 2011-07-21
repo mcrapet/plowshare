@@ -55,7 +55,7 @@ if [ "$1" = "uninstall" ]; then
 elif [ "$1" = "install" ]; then
     # Documentation
     mkdir -p $DOCDIR $MANDIR
-    $CP README $DOCDIR
+    $CP AUTHORS README $DOCDIR
     $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 $MANDIR
 
     # Common library

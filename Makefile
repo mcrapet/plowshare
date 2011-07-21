@@ -20,7 +20,7 @@ TESSERACT_FILES = $(addprefix src/tesseract/, alnum digit digit_ops plowshare_no
 
 MANPAGES0= plowdown.1 plowup.1 plowdel.1 plowlist.1
 MANPAGES = $(addprefix docs/,$(MANPAGES0))
-DOCS     = CHANGELOG COPYING INSTALL README
+DOCS     = AUTHORS CHANGELOG COPYING INSTALL README
 
 CONTRIB_FILES = $(addprefix contrib/,caturl.sh plowdown_add_remote_loop.sh plowdown_loop.sh \
                 plowdown_parallel.sh)

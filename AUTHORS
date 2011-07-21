@@ -1,0 +1,75 @@
+
+                                   Plowshare
+
+
+CORE ARCHITECTURE
+=================
+
+Arnau Sanchez <tokland@gmail.com> 
+	Creator. Project leader.
+	Official maintainer [2009.01.24-...]
+
+Matthieu Crapet <mcrapet@gmail.com>
+	Project leader.
+	Official maintainer [2009.12.11-...]
+
+
+MODULES MAINTAINERS
+===================
+
+- StalkR <stalkr@stalkr.net>
+	Official maintainer [2011.02.02-...]
+	filesonic module support (feb 2011)
+	dl.free.fr module support (feb 2010)
+
+- Petr Pulpán <Pulpan3@gmail.com>
+	Official maintainer [2011.02.14-...]
+	dataport.cz and euroshare.eu modules (feb 2011)
+	1fichier.com module (mar 2011)
+
+
+CONTRIBUTORS (alphabet sorted)
+============
+
+Alex Rea <amplitude@gmail.com>
+	Support on OSX related issues
+
+Fabiano Francesconi <fabiano.francesconi@gmail.com>
+	loadfiles.in module (feb 2010)
+
+Golam Sarwar <gsbabil@gmail.com>
+	Initial duckload.com download support (may 2011)
+
+Hervé <test.drive@gmail.com>
+	uploading.com module (dec 2009)
+
+Maurus Cuelenaere  <mcuelenaere@gmail.com>
+	mediafire upload support (jun 2010)
+
+Pavel Alexeev <Pahan@hubbitus.info>
+	Early letitbit module using gocr (nov 2009)
+
+Ryan <ryan.b.shaw@gmail.com>
+	divshare, sendspace and usershare modules (jan 2010)
+
+Thomas Jensen <thomas.otvald@gmail.com>
+	Early sharingmatrix/filesonic module (before using reCaptcha) (sep 2010)
+
+Walid Iguer <Walid.Iger@gmail.com>
+	Official maintainer [2010.12-2011.01]
+	hotfile premium support (dec 2010)
+
+? <soonbesleeping@gmail.com>
+	Initial wupload.com download module (jun 2011)
+
+
+AND MORE...
+========
+
+- testers & bug reporters
+- scripts contributors
+- premium account contributors
+- donators (paypal, ssh, ...)
+- distro packagers (fedora, ...)
+
+// vim:ts=8:fenc=iso-8859-15
