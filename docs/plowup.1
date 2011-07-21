@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "July 18, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowup" "1" "July 21, 2011" "GPL" "Plowshare SVN-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -47,6 +47,21 @@ See specific module options below.
 .SH OPTIONS
 
 .SS Common options
+.TP
+.BI -i, " " --interface "=IFACE"
+If your machine has several network interfaces, force using \fIIFACE\fR interface.
+.TP
+.BI -r, " " --limit-rate "=SPEED"
+Limit upload speed in bytes per seconds. Suffixes are:
+.RS 
+\fBk\fR  for kilobytes (Kb),
+.RE
+.RS
+\fBm\fR  for megabytes (Mb),
+.RE
+.RS
+\fBg\fR  for gigabytes (Gb).
+.RE
 .TP
 .BI "   " " " --name-prefix "=STRING"
 Prepend argument to each destination filename.

@@ -41,6 +41,7 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 # Global variables used (defined in other .sh)
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
 #   - INTERFACE        Network interface (used by curl)
+#   - LIMIT_RATE       Network speed (used by curl)
 #   - GLOBAL_COOKIES   User provided cookie
 #   - LIBDIR           Absolute path to plowshare's libdir
 #
@@ -106,6 +107,8 @@ curl() {
     test $(verbose_level) -ne 3 && OPTIONS=("${OPTIONS[@]}" "--silent")
 
     test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
+    test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" "--limit-rate" "$LIMIT_RATE")
+
     test -n "$GLOBAL_COOKIES" &&
       POST_OPTIONS=("${POST_OPTIONS[@]}" "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
     set -- $(type -P curl) "${OPTIONS[@]}" "$@" "${POST_OPTIONS[@]}"
@@ -162,7 +165,7 @@ replace() {
 }
 
 # Delete leading and trailing spaces, tabs, \r, ...
-# stdin: input string
+# stdin: input string (can be multiline)
 # stdout: result string
 strip() {
     sed 's/^[[:space:]]*//; s/[[:space:]]*$//'

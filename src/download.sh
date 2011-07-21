@@ -72,18 +72,15 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Guess if item is a rapidshare URL, a generic URL (to start a download)
-# or a file with links (discard empty/repeated lines and comments)-
+# Guess if item is a generic URL (to start a download) or a file with links
+# (discard empty lines and comments).
+# $1: single URL or file (containing links)
 process_item() {
     local ITEM=$1
-    if match "^https\?://" "$ITEM"; then
-        echo "url|$ITEM"
+    if matchi "^[[:space:]]*https\?://" "$ITEM"; then
+        echo "url|$(echo "$ITEM" | strip | sed -e 's/\x20/%20/g')"
     elif [ -f "$ITEM" ]; then
-        grep -v "^[[:space:]]*\(#\|$\)" -- "$ITEM" | while read URL; do
-            test "$ITEM" != "-" -a -f "$ITEM" &&
-                TYPE="file" || TYPE="url"
-            echo "$TYPE|$URL"
-        done
+        sed -ne "s,^[[:space:]]*\([^ #].*\)[[:space:]]*$,file|\1,p" "$ITEM" | strip | sed -e 's/\x20/%20/g'
     else
         log_error "cannot stat '$ITEM': No such file or directory"
     fi
@@ -170,17 +167,16 @@ download() {
     local MODULE=$1
     local DURL=$2
     local DOWNLOAD_APP=$3
-    local LIMIT_RATE=$4
-    local TYPE=$5
-    local MARK_DOWN=$6
-    local TEMP_DIR=$7
-    local OUTPUT_DIR=$8
-    local CHECK_LINK=$9
-    local TIMEOUT=${10}
-    local MAXRETRIES=${11}
-    local NOARBITRARYWAIT=${12}
-    local DOWNLOAD_INFO=${13}
-    shift 13
+    local TYPE=$4
+    local MARK_DOWN=$5
+    local TEMP_DIR=$6
+    local OUTPUT_DIR=$7
+    local CHECK_LINK=$8
+    local TIMEOUT=$9
+    local MAXRETRIES=${10}
+    local NOARBITRARYWAIT=${11}
+    local DOWNLOAD_INFO=${12}
+    shift 12
 
     FUNCTION=${MODULE}_download
     log_debug "start download ($MODULE): $DURL"
@@ -308,12 +304,10 @@ download() {
             # Temporary download path
             if test "$TEMP_DIR"; then
                 FILENAME_TMP="$TEMP_DIR/$FILENAME"
-            else
-                if test "$OUTPUT_DIR"; then
+            elif test "$OUTPUT_DIR"; then
                     FILENAME_TMP="$OUTPUT_DIR/$FILENAME"
-                else
+            else
                     FILENAME_TMP="$FILENAME"
-               fi
             fi
 
             # Final path
@@ -328,8 +322,6 @@ download() {
 
             module_config_resume "$MODULE" && CURL=("${CURL[@]}" "-C -")
             module_config_need_cookie "$MODULE" && CURL=("${CURL[@]}" -b $COOKIES)
-
-            test "$LIMIT_RATE" && CURL=("${CURL[@]}" "--limit-rate $LIMIT_RATE")
 
             if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
                 if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
@@ -452,9 +444,9 @@ for ITEM in "$@"; do
             continue
         fi
 
-        download "$MODULE" "$(echo "$URL" | strip)" "$DOWNLOAD_APP" "$LIMIT_RATE" "$TYPE" \
-            "$MARK_DOWN" "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" \
-            "$MAXRETRIES" "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
+        download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
+            "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
+            "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
                 RETVALS=(${RETVALS[@]} "$?")
     done
 done

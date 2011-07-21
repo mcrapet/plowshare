@@ -25,6 +25,7 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
+INTERFACE,i:,interface,IFACE,Force IFACE interface
 "
 
 
