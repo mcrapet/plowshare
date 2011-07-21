@@ -37,7 +37,7 @@ fileserve_login() {
 
     LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASEURL/login.php")
+        "$BASEURL/login.php") || return
 
     STATUS=$(echo "$LOGIN_RESULT" | parse_quiet 'fail_info">' '">\([^<]*\)')
     if [ -n "$STATUS" ]; then
@@ -73,7 +73,7 @@ fileserve_download() {
 
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
-        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || return 1
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || return
 
         # Check account type
         if ! match '<h3>Free' "$LOGIN_RESULT"; then
@@ -199,7 +199,6 @@ fileserve_upload() {
 
     # Attempt to authenticate
     if test "$AUTH"; then
-        COOKIES=$(create_tempfile)
         fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
         PAGE=$(curl -b "$COOKIEFILE" "$BASEURL/upload-file.php")
     else
