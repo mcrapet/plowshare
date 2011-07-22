@@ -98,14 +98,14 @@ dataport_cz_upload() {
         LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
         post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$UPLOADURL/prihlas/" >/dev/null || return
 
-        PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL")
+        PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL") || return
 
         if ! match "http://dataport.cz/odhlasit/" "$PAGE"; then
             return $ERR_LOGIN_FAILED
         fi
     fi
 
-    PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL")
+    PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL") || return
 
     REFERRER=$(echo "$PAGE" | parse_attr '<iframe' 'src')
     UZIV_ID=$(echo "$REFERRER" | parse_quiet 'uziv_id' 'uziv_id=\(.*\)')

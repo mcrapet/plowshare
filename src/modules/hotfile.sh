@@ -49,7 +49,7 @@ hotfile_download() {
         PASSWORD="${AUTH#*:}"
 
         log_notice "Starting download process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
-        FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return 1
+        FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return
 
         # Hotfile API error messages starts with a dot, if no dot then the download link is available
         if [ ${FILE_URL:0:1} == "." ]; then
@@ -64,7 +64,7 @@ hotfile_download() {
     BASE_URL='http://hotfile.com'
 
     while retry_limit_not_reached || return; do
-        WAIT_HTML=$(curl -c $COOKIEFILE "$URL")
+        WAIT_HTML=$(curl -c $COOKIEFILE "$URL") || return
 
         # "This file is either removed due to copyright claim or is deleted by the uploader."
         if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then

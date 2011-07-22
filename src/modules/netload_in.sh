@@ -42,7 +42,7 @@ netload_in_download() {
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return 1
         MODULE_NETLOAD_IN_DOWNLOAD_RESUME=yes
 
-        PAGE=$(curl -i -b "$COOKIEFILE" "$URL")
+        PAGE=$(curl -i -b "$COOKIEFILE" "$URL") || return
         FILE_URL=$(echo "$PAGE" | grep_http_header_location)
 
         # Account download method set to "Automatisch"
@@ -50,7 +50,7 @@ netload_in_download() {
         if [ -n "$FILE_URL" ]; then
 
             # Only solution to get filename
-            PAGE=$(curl -L "$URL")
+            PAGE=$(curl -L "$URL") || return
 
             echo "$FILE_URL"
             echo "$PAGE" | parse_line_after 'dl_first_filename' '			\([^<]*\)'

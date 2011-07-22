@@ -62,7 +62,7 @@ sendspace_list() {
         return 1
     fi
 
-    PAGE=$(curl "$URL")
+    PAGE=$(curl "$URL") || return
     LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
             '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
     SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
