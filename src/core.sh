@@ -867,12 +867,11 @@ retry_limit_init() {
 # $1: options
 # $2: indent string
 debug_options() {
-    OPTIONS=$1
-    INDENTING=$2
+    local OPTIONS=$1
     while read OPTION; do
         test "$OPTION" || continue
         IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
-        STRING="$INDENTING"
+        STRING=$2
         test "$SHORT" && {
             STRING="$STRING-${SHORT%:}"
             test "$VALUE" && STRING="$STRING $VALUE"
@@ -884,19 +883,6 @@ debug_options() {
         }
         echo "$STRING: $HELP"
     done <<< "$OPTIONS"
-}
-
-# Look for a configuration module variable
-# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
-#
-# $1: module name list (one per line)
-# $2: option family name (string, example:UPLOAD)
-get_modules_options() {
-    while read MODULE; do
-        get_options_for_module "$MODULE" "$2" | while read OPTION; do
-            if test "$OPTION"; then echo "!$OPTION"; fi
-        done
-    done <<< "$1"
 }
 
 # Show usage info for modules
@@ -915,13 +901,27 @@ debug_options_for_modules() {
     done <<< "$1"
 }
 
+# Look for a configuration module variable
+# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
+#
+# $1: module name list (one per line)
+# $2: option family name (string, example:UPLOAD)
+get_modules_options() {
+    while read MODULE; do
+        get_options_for_module "$MODULE" "$2" | while read OPTION; do
+            if test "$OPTION"; then echo "!$OPTION"; fi
+        done
+    done <<< "$1"
+}
+
 # Get module name from URL link
 #
 # $1: url
 # $2: module name list (one per line)
 get_module() {
     while read MODULE; do
-        VAR=MODULE_$(echo $MODULE | uppercase)_REGEXP_URL
+        local M=$(uppercase <<< "$MODULE")
+        local VAR="MODULE_${M}_REGEXP_URL"
         if match "${!VAR}" "$1"; then
             echo $MODULE
             break;
@@ -1063,9 +1063,8 @@ drop_empty_lines() {
 # $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 get_options_for_module() {
-    MODULE=$1
-    NAME=$2
-    VAR="MODULE_$(echo $MODULE | uppercase)_${NAME}_OPTIONS"
+    local MODULE=$(uppercase <<< "$1")
+    local VAR="MODULE_${MODULE}_${2}_OPTIONS"
     echo "${!VAR}"
 }
 
