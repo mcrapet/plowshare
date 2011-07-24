@@ -24,6 +24,7 @@ MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
 MODULE_SENDSPACE_DOWNLOAD_RESUME=yes
 MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
+MODULE_SENDSPACE_UPLOAD_OPTIONS=""
 MODULE_SENDSPACE_LIST_OPTIONS=""
 
 # Output a sendspace file download URL
@@ -54,6 +55,50 @@ sendspace_download() {
     test "$CHECK_LINK" && return 0
 
     echo "$FILE_URL"
+}
+
+# Upload a file to sendspace.com
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: sendspace.com download + delete link
+sendspace_upload() {
+    eval "$(process_options sendspace "$MODULE_SENDSPACE_UPLOAD_OPTIONS" "$@")"
+
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
+
+    local DATA=$(curl "http://www.sendspace.com") || return
+    local FORM_HTML=$(grep_form_by_order "$DATA" 2 | break_html_lines_alt)
+    local form_url=$(echo "$FORM_HTML" | parse_form_action)
+    local form_maxfsize=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
+    local form_uid=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
+    local form_ddir=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR')
+    local form_jsena=$(echo "$FORM_HTML" | parse_form_input_by_name 'js_enabled')
+    local form_sign=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature')
+    local form_ufiles=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_files')
+    local form_terms=$(echo "$FORM_HTML" | parse_form_input_by_name 'terms')
+
+    log_debug "starting file upload: $FILE"
+    DATA=$(curl_with_log \
+        -F "MAX_FILE_SIZE=$form_maxfsize" \
+        -F "UPLOAD_IDENTIFIER=$form_uid"  \
+        -F "DESTINATION_DIR=$form_ddir"   \
+        -F "js_enabled=$form_jsena"       \
+        -F "signature=$form_sign"         \
+        -F "upload_files=$form_ufiles"    \
+        -F "terms=$form_terms"            \
+        -F "file[]="                      \
+        -F "description[]="               \
+        -F "ownemail="                    \
+        -F "recpemail="                   \
+        -F "upload_file[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        "$form_url")
+
+    DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href')
+    DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href')
+
+    echo "$DL_LINK ($DEL_LINK)"
 }
 
 # List a sendspace shared folder

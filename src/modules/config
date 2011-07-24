@@ -21,7 +21,7 @@ mirrorcreator|          | upload |        |      |
 multiupload  |          | upload |        | list |
 netload_in   | download |        |        | list |
 rapidshare   | download | upload | delete |      |
-sendspace    | download |        |        | list |
+sendspace    | download | upload |        | list |
 uploading    | download |        |        |      |
 uploaded_to  | download |        |        | list |
 usershare    | download |        |        |      |
