@@ -38,17 +38,22 @@ sendspace_download() {
         return 1
     fi
 
-    local FILE_URL=$(curl -L --data "download=1" "$URL" | \
-        parse_attr 'spn_download_link' 'href' 2>/dev/null) ||
-        { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    local PAGE=$(curl "$URL") || return
+
+    # - Sorry, the file you requested is not available.
+    if match '<div class="msg error"' "$PAGE"; then
+        local ERR=$(echo "$PAGE" | parse '="msg error"' '">\([^<]*\)')
+        log_error "$ERR"
+        return $ERR_LINK_DEAD
+    fi
+
+    PAGE=$(curl --referer "$URL" "$URL") || return
+
+    local FILE_URL=$(echo "$PAGE" | parse_attr 'download_button' 'href')
 
     test "$CHECK_LINK" && return 0
 
-    local FILE_NAME=$(curl -I "$FILE_URL" | \
-        grep_http_header_content_disposition) || return 1
-
     echo "$FILE_URL"
-    echo "$FILE_NAME"
 }
 
 # List a sendspace shared folder
