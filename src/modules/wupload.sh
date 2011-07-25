@@ -166,8 +166,8 @@ wupload_upload() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    USER="${AUTH%%:*}"
-    PASSWORD="${AUTH#*:}"
+    local USER="${AUTH%%:*}"
+    local PASSWORD="${AUTH#*:}"
 
     if [ "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
@@ -206,7 +206,7 @@ wupload_upload() {
 # $1: wupload url
 # stdout: list of links
 wupload_list() {
-    URL="$1"
+    local URL="$1"
 
     if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder\/" "$URL"; then
         log_error "This is not a folder"
