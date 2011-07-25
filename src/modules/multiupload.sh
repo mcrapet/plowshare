@@ -21,7 +21,8 @@
 MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.com/"
 
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 
 # Upload a file to multiupload.com
@@ -34,18 +35,34 @@ MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 multiupload_upload() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_UPLOAD_OPTIONS" "$@")"
 
+    local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE=${3:-$FILE}
     local BASE_URL="http://www.multiupload.com"
 
-    PAGE=$(curl "$BASE_URL" | break_html_lines_alt)
+    if test "$AUTH"; then
+        local USER="${AUTH%%:*}"
+        local PASSWORD="${AUTH#*:}"
+
+        if [ "$AUTH" = "$PASSWORD" ]; then
+            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+        fi
+
+        local LOGIN_RESULT=$(curl -L -c "$COOKIEFILE" -F "username=$USER" -F "password=$PASSWORD" "$BASE_URL/login")
+
+        if ! match 'Logged in' "$LOGIN_RESULT"; then
+            return $ERR_LOGIN_FAILED
+        fi
+    fi
+
+    local PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL" | break_html_lines_alt)
 
     local form=$(grep_form_by_id "$PAGE" uploadfrm)
     local form_action=$(echo "$form" | parse_form_action)
-    local form_uid=$(echo "$form" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
     local form_u=$(echo "$form" |  parse_form_input_by_name 'u')
+    local form_x=$(echo "$form" | parse_form_input_by_name 'X-Progress-ID')
 
-    log_debug "Upload ID: $form_uid / $form_u"
+    log_debug "Upload ID: $form_u / $form_x"
 
     # keep default settings
     local form_site1=$(echo "$form" | parse_form_input_by_name 'service_5')
@@ -59,11 +76,11 @@ multiupload_upload() {
     # - file0 can go to file9 (included)
     # - fetchfield0 & fetchdesc0 are not used here
     # - there is a special variable "rsaccount" for RS (can be "C" or "P")
-
-    PAGE2=$(curl_with_log \
+    # - hosters: RS, MU, DF, HF, ZS, UP, FC, FS
+    PAGE=$(curl_with_log -b "$COOKIEFILE" \
         -F "file0=@$FILE;filename=$(basename_file "$DESTFILE")" \
         -F "description_0=$DESCRIPTION" \
-        -F "UPLOAD_IDENTIFIER=$form_uid" \
+        -F "X-Progress-ID=$form_x" \
         -F "u=$form_u" \
         -F "service_5=$form_site1"  -F "username_5="  -F "password_5="  -F "remember_5="  \
         -F "service_1=$form_site2"  -F "username_1="  -F "password_1="  -F "remember_1="  \
@@ -71,15 +88,16 @@ multiupload_upload() {
         -F "service_9=$form_site4"  -F "username_9="  -F "password_9="  -F "remember_9="  \
         -F "service_6=$form_site5"  -F "username_6="  -F "password_6="  -F "remember_6="  \
         -F "service_10=$form_site6" -F "username_10=" -F "password_10=" -F "remember_10=" \
-        $form_action) ||
-        { log_error "Couldn't upload file!"; return 1; }
+        -F "service_15=$form_site6" -F "username_15=" -F "password_15=" -F "remember_15=" \
+        -F "service_14=$form_site6" -F "username_14=" -F "password_14=" -F "remember_14=" \
+        -F "fromemail=plowshare@gmx.com" -F "toemail=" $form_action) || return
 
-    DLID=$(echo "$PAGE2" | parse_quiet 'downloadid' 'downloadid":"\([^"]*\)')
+    DLID=$(echo "$PAGE" | parse_quiet 'downloadid' 'downloadid":"\([^"]*\)')
     log_debug "Download ID: $DLID"
 
     if [ -z "$DLID" ]; then
-        log_error "Unepected result (site updated?)"
-        return 1
+        log_error "Unexpected result (site updated?)"
+        return $ERR_FATAL
     fi
 
     echo "$BASE_URL/$DLID"
@@ -91,7 +109,7 @@ multiupload_upload() {
 multiupload_list() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_LIST_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL="$1"
 
     LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr '"urlhref' 'href') || \
         { log_error "Wrong directory list link"; return 1; }
