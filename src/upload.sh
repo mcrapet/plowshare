@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Upload a file to file sharing servers
-# Copyright (c) 2010 Arnau Sanchez
+# Copyright (c) 2010-2011 Plowshare team
 #
 # Output URL to standard output.
 #
@@ -115,14 +115,20 @@ fi
 
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 1 || { usage; exit $ERR_FATAL; }
-set_exit_trap
+test $# -lt 1 && { usage; exit $ERR_FATAL; }
+
+if [ $# -eq 1 -a -f "$1" ]; then
+    log_error "you must specify a module name"
+    exit $ERR_NOMODULE
+fi
 
 # Check requested module
 MODULE=$(module_exist "$MODULES" "$1") || {
     log_error "unsupported module ($1)"
     exit $ERR_NOMODULE
 }
+
+set_exit_trap
 
 FUNCTION=${MODULE}_upload
 
@@ -141,13 +147,13 @@ for FILE in "$@"; do
         # non greedy parsing
         IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
 
-        if [ ! -f "$LOCALFILE" ]; then
-            log_notice "Cannot find file: $LOCALFILE"
+        if [ -d "$LOCALFILE" ]; then
+            log_notice "Skipping directory: $LOCALFILE"
             continue
         fi
 
-        if [ -d "$LOCALFILE" ]; then
-            log_notice "Skipping directory: $LOCALFILE"
+        if [ ! -f "$LOCALFILE" ]; then
+            log_notice "Cannot find file: $LOCALFILE"
             continue
         fi
     fi

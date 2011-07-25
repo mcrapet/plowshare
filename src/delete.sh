@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Delete a file from file sharing servers
-# Copyright (c) 2010 Arnau Sanchez
+# Copyright (c) 2010-2011 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -93,7 +93,8 @@ fi
 
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 1 || { usage; exit $ERR_FATAL; }
+test $# -lt 1 && { usage; exit $ERR_FATAL; }
+
 set_exit_trap
 
 RETVALS=()

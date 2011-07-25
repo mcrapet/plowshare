@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Download files from file sharing servers
-# Copyright (c) 2010 Arnau Sanchez
+# Copyright (c) 2010-2011 Plowshare team
 #
 # Output filenames are printed on standard output (one per line).
 #
@@ -399,7 +399,7 @@ fi
 
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -ge 1 || { usage; exit $ERR_FATAL; }
+test $# -lt 1 && { usage; exit $ERR_FATAL; }
 
 if [ -n "$TEMP_DIR" ]; then
     TEMP_DIR=$(echo "$TEMP_DIR" | sed -e "s/\/$//")
