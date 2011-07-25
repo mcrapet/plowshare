@@ -88,8 +88,8 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 2shared_delete() {
     eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
 
-    BASE_URL="http://www.2shared.com"
-    URL="$1"
+    local BASE_URL="http://www.2shared.com"
+    local URL="$1"
 
     # Without cookie, it does not work
     COOKIES=$(create_tempfile)
@@ -106,9 +106,9 @@ MODULE_2SHARED_DELETE_OPTIONS=""
             return 1;
         }
 
-        ACTION=$(echo "$FORM" | parse_form_action)
-        DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink' | uri_encode_strict)
-        AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink' | uri_encode_strict)
+        local ACTION=$(echo "$FORM" | parse_form_action)
+        local DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink' | uri_encode_strict)
+        local AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink' | uri_encode_strict)
 
         curl -b $COOKIES --referer "$URL" \
             --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
