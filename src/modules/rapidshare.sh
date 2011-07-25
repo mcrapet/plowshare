@@ -26,8 +26,7 @@ MODULE_RAPIDSHARE_DOWNLOAD_RESUME=no
 MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
-AUTH_PREMIUMZONE,a:,auth:,USER:PASSWORD,Use Premium-Zone account
-AUTH_FREEZONE,b:,auth-freezone:,USER:PASSWORD,Use Free-Zone account"
+AUTH,a:,auth:,USER:PASSWORD,Use an account"
 MODULE_RAPIDSHARE_DELETE_OPTIONS=""
 
 # Output a rapidshare file download URL (anonymous and premium)
@@ -126,39 +125,35 @@ rapidshare_download() {
 }
 
 # Upload a file to rapidshare using rsapi - http://images.rapidshare.com/apidoc.txt
-# $1: file name to upload
-# $2: upload as file name (optional, defaults to $1)
-# stdout: download_url (delete_url)
-rapidshare_upload() {
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
-
-    if test -n "$AUTH_PREMIUMZONE"; then
-        log_debug "premium download not available"
-        return 1
-    elif test -n "$AUTH_FREEZONE"; then
-        log_debug "freezone download not available"
-        return 1
-    else
-        rapidshare_upload_anonymous "$@"
-    fi
-}
-
-# Upload a file to rapidshare (anonymously)
 # $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3 (optional): alternate remote filename
 # stdout: download_url (delete_url)
-rapidshare_upload_anonymous() {
+rapidshare_upload() {
+    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
+
     local FILE="$2"
     local DESTFILE=${3:-$FILE}
 
-    SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver")
+    if ! test "$AUTH"; then
+        log_error "Anonymous users cannot upload files"
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    local USER="${AUTH%%:*}"
+    local PASSWORD="${AUTH#*:}"
+
+    if [ "$AUTH" = "$PASSWORD" ]; then
+        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+    fi
+
+    SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver") || return
     log_debug "free upload server is rs$SERVER_NUM"
 
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
     INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
-            -F "rsapi_v1=1" -F "realfolder=0" "$UPLOAD_URL") || return
+            -F "rsapi_v1=1" -F "login=$LOGIN" -F "password=$PASS" -F "realfolder=0" "$UPLOAD_URL") || return
 
     # Expect answer like this (.3 is filesize, .4 is md5sum):
     # savedfiles=1 forbiddenfiles=0 premiumaccount=0
