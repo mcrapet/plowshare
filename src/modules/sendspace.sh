@@ -18,13 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/\(file\|folder\)/"
+MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/\(file\|folder\|delete\)/"
 
 MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
 MODULE_SENDSPACE_DOWNLOAD_RESUME=yes
 MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
-MODULE_SENDSPACE_UPLOAD_OPTIONS=""
+MODULE_SENDSPACE_UPLOAD_OPTIONS="
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
+MODULE_SENDSPACE_DELETE_OPTIONS=""
 MODULE_SENDSPACE_LIST_OPTIONS=""
 
 # Output a sendspace file download URL
@@ -36,7 +38,7 @@ sendspace_download() {
 
     if match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
-        return 1
+        return $ERR_FATAL
     fi
 
     local PAGE=$(curl "$URL") || return
@@ -89,16 +91,45 @@ sendspace_upload() {
         -F "upload_files=$form_ufiles"    \
         -F "terms=$form_terms"            \
         -F "file[]="                      \
-        -F "description[]="               \
+        -F "description[]=$DESCRIPTION"   \
         -F "ownemail="                    \
         -F "recpemail="                   \
         -F "upload_file[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        "$form_url")
+        "$form_url") || return
 
     DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href')
     DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href')
 
     echo "$DL_LINK ($DEL_LINK)"
+}
+
+# Delete a file on sendspace
+# $1: delete link
+sendspace_delete() {
+    eval "$(process_options sendspace "$MODULE_SENDSPACE_DELETE_OPTIONS" "$@")"
+
+    local URL="$1"
+    local PAGE=$(curl "$URL") || return
+ 
+    if match 'You are about to delete the folowing file' "$PAGE"; then
+        local FORM_HTML=$(grep_form_by_order "$PAGE" 2)
+        local form_url=$(echo "$FORM_HTML" | parse_form_action)
+        local form_submit=$(echo "$FORM_HTML" | parse_form_input_by_name 'delete')
+
+        PAGE=$(curl_with_log -F "submit=$form_submit" $form_url) || return
+
+        if ! match 'file has been successfully deleted' "$PAGE"; then
+            return $ERR_FATAL
+        fi
+
+    # Error, the deletion code you provided is incorrect or incomplete. Please make sure to use the full link. 
+    else
+        log_error "bad deletion code"
+        return $ERR_FATAL
+    fi
+
+    log_debug "file removed successfully"
+    return 0
 }
 
 # List a sendspace shared folder
@@ -109,13 +140,13 @@ sendspace_list() {
 
     if ! match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
-    PAGE=$(curl "$URL") || return
-    LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
+    local PAGE=$(curl "$URL") || return
+    local LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
             '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
-    SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
+    local SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
             '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
 
     if [ -z "$LINKS" -a -z "$SUBDIRS" ]; then

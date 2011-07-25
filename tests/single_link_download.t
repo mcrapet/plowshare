@@ -27,8 +27,3 @@ http://www.megaupload.com/?d=4YF0D6A3
 asound.conf
 -p test1
 
-# sendspace (200KB file)
-http://www.sendspace.com/file/7njubh
-plowshare.bin
---
-
