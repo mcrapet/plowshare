@@ -34,13 +34,13 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 2shared_download() {
     local URL="$2"
 
-    local PAGE=$(curl "$URL") || return 1
+    local PAGE=$(curl "$URL") || return
 
     if match "file link that you requested is not valid" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return 1
+    FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return $ERR_FATAL
     test "$CHECK_LINK" && return 0
 
     FILENAME=$(echo "$PAGE" | parse '<title>' 'download *\([^<]*\)') || true
@@ -71,14 +71,16 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     STATUS=$(curl_with_log \
         -F "mainDC=1" \
         -F "fff=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        "$ACTION")
+        "$ACTION") || return
 
-    match "upload has successfully completed" "$STATUS" ||
-        { log_error "upload failure"; return 1; }
+    if ! match "upload has successfully completed" "$STATUS"; then
+        log_error "upload failure"
+        return $ERR_FATAL
+    fi
 
-    DONE=$(curl "$UPLOADURL/$COMPLETE")
-    URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
-    ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
+    local DONE=$(curl "$UPLOADURL/$COMPLETE") || return
+    local URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
+    local ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
 
     echo "$URL ($ADMIN)"
 }
@@ -103,7 +105,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
             log_error "can't get delete form, website updated?";
             rm -f $COOKIES
-            return 1;
+            return $ERR_FATAL
         }
 
         local ACTION=$(echo "$FORM" | parse_form_action)
