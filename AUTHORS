@@ -22,7 +22,7 @@ MODULES MAINTAINERS
 	filesonic module support (feb 2011)
 	dl.free.fr module support (feb 2010)
 
-- Petr Pulp·n <Pulpan3@gmail.com>
+- Petr Pulp√°n <Pulpan3@gmail.com>
 	Official maintainer [2011.02.14-...]
 	dataport.cz and euroshare.eu modules (feb 2011)
 	1fichier.com module (mar 2011)
@@ -40,7 +40,7 @@ Fabiano Francesconi <fabiano.francesconi@gmail.com>
 Golam Sarwar <gsbabil@gmail.com>
 	Initial duckload.com download support (may 2011)
 
-HervÈ <test.drive@gmail.com>
+Herv√© <test.drive@gmail.com>
 	uploading.com module (dec 2009)
 
 Maurus Cuelenaere  <mcuelenaere@gmail.com>
@@ -52,6 +52,9 @@ Pavel Alexeev <Pahan@hubbitus.info>
 Ryan <ryan.b.shaw@gmail.com>
 	divshare, sendspace and usershare modules (jan 2010)
 
+Soonbesleeping <soonbesleeping@gmail.com>
+	Initial wupload.com upload function (jun 2011)
+
 Thomas Jensen <thomas.otvald@gmail.com>
 	Early sharingmatrix/filesonic module (before using reCaptcha) (sep 2010)
 
@@ -61,9 +64,6 @@ Walid Iguer <Walid.Iger@gmail.com>
 
 ? <poomex.pl@gmail.com>
 	wupload.com download and list functions (jun 2011)
-
-? <soonbesleeping@gmail.com>
-	Initial wupload.com upload function (jun 2011)
 
 
 AND MORE...
@@ -75,4 +75,4 @@ AND MORE...
 - donators (paypal, ssh, ...)
 - distro packagers (fedora, ...)
 
-// vim:ts=8:fenc=iso-8859-15
+// vim:ts=8:fenc=utf-8
