@@ -141,7 +141,7 @@ curl() {
             return $ERR_SYSTEM
             ;;
         *)
-            log_error "curl failed with retcode $DRETVAL"
+            log_error "curl failed"
             return $ERR_NETWORK
             ;;
     esac
