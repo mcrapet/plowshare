@@ -82,6 +82,8 @@ EMAIL,,email:,EMAIL,Field for notification email"
     local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://upload.1fichier.com"
 
+    detect_javascript >/dev/null || return
+
     if test "$AUTH"; then
         LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'
         post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
@@ -97,7 +99,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
         -F "dpass=$LINK_PASSWORD" \
         -F "domain=$DOMAIN" \
         -F "file[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        "$UPLOADURL/upload.cgi?id=$S_ID")
+        "$UPLOADURL/upload.cgi?id=$S_ID") || return
 
     RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
 
@@ -129,7 +131,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
         10) echo -e "http://$DOWNLOAD_ID.dl4free.com (http://www.dl4free.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
             ;;
         *)  log_error "Bad domain ID response, maybe API updated?"
-            return 1
+            return $ERR_FATAL
             ;;
     esac
     return 0
