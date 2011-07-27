@@ -64,11 +64,9 @@ rapidshare_download() {
         else
             PARAMS=""
         fi
-        PAGE=$(curl "${BASE_APIURL}${PARAMS}") ||
-            { log_error "cannot get main API page"; return 1; }
 
-        ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
-        test "$ERROR" && log_debug "website error: $ERROR"
+        PAGE=$(curl "${BASE_APIURL}${PARAMS}") || return
+        local ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
 
         if match "need to wait" "$ERROR"; then
             WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") ||
@@ -98,16 +96,17 @@ rapidshare_download() {
             return 1
         fi
 
-        PAGE=$(echo "$PAGE" | parse 'DL' 'DL:\(.*\)') || {
-            log_error "unexpected page content";
-            return 1;
-        }
+        # DL:$hostname,$dlauth,$countdown,$md5hex
+        IFS="," read RSHOST DLAUTH WTIME CRC <<< "${PAGE#DL:}"
 
-        local RSHOST=$(echo "$PAGE" | cut -d',' -f1)
-        local DLAUTH=$(echo "$PAGE" | cut -d',' -f2)
-        local WTIME=$(echo "$PAGE" | cut -d',' -f3)
+        if [ -z "$RSHOST" -o -z "$DLAUTH" -o -z "$WTIME" -o -z "$CRC" ]; then
+            log_error "unexpected page content"
+            return $ERR_FATAL
+        fi
 
         test "$CHECK_LINK" && return 0
+
+        log_debug "file md5: $CRC"
         break
     done
 
@@ -117,7 +116,7 @@ rapidshare_download() {
     local BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
 
     if test "$AUTH"; then
-        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&login=$USER&password=$PASSWORD"
+        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
     else
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
     fi
@@ -153,7 +152,7 @@ rapidshare_upload() {
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
     INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
-            -F "rsapi_v1=1" -F "login=$LOGIN" -F "password=$PASS" -F "realfolder=0" "$UPLOAD_URL") || return
+            -F "rsapi_v1=1" -F "login=$USER" -F "password=$PASSWORD" -F "realfolder=0" "$UPLOAD_URL") || return
 
     # Expect answer like this (.3 is filesize, .4 is md5sum):
     # savedfiles=1 forbiddenfiles=0 premiumaccount=0
