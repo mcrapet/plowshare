@@ -126,7 +126,9 @@ zshare_delete() {
     eval "$(process_options zshare "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
-    local DELETE_PAGE=$(curl -L "$URL") || return
+    local DELETE_PAGE
+
+    DELETE_PAGE=$(curl -L "$URL") || return
 
     if matchi 'File Not Found' "$DELETE_PAGE"; then
         log_error "File not found"

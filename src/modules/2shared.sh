@@ -33,8 +33,9 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 # stdout: real file download link
 2shared_download() {
     local URL="$2"
+    local PAGE
 
-    local PAGE=$(curl "$URL") || return
+    PAGE=$(curl "$URL") || return
 
     if match "file link that you requested is not valid" "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -62,7 +63,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     local UPLOADURL="http://www.2shared.com/"
 
     log_debug "downloading upload page: $UPLOADURL"
-    DATA=$(curl "$UPLOADURL")
+    DATA=$(curl "$UPLOADURL") || return
     ACTION=$(grep_form_by_name "$DATA" "uploadForm" | parse_form_action) ||
         { log_debug "cannot get upload form URL"; return 1; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
@@ -78,9 +79,9 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         return $ERR_FATAL
     fi
 
-    local DONE=$(curl "$UPLOADURL/$COMPLETE") || return
-    local URL=$(echo "$DONE" | parse 'name="downloadLink"' "\(http:[^<]*\)")
-    local ADMIN=$(echo "$DONE" | parse 'name="adminLink"' "\(http:[^<]*\)")
+    DATA=$(curl "$UPLOADURL/$COMPLETE") || return
+    local URL=$(echo "$DATA" | parse 'name="downloadLink"' "\(http:[^<]*\)")
+    local ADMIN=$(echo "$DATA" | parse 'name="adminLink"' "\(http:[^<]*\)")
 
     echo "$URL ($ADMIN)"
 }
@@ -90,8 +91,8 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 2shared_delete() {
     eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
 
-    local BASE_URL="http://www.2shared.com"
     local URL="$1"
+    local BASE_URL="http://www.2shared.com"
 
     # Without cookie, it does not work
     COOKIES=$(create_tempfile)

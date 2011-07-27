@@ -35,13 +35,14 @@ MODULE_SENDSPACE_LIST_OPTIONS=""
 # stdout: real file download link
 sendspace_download() {
     local URL="$2"
+    local PAGE
 
     if match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     fi
 
-    local PAGE=$(curl "$URL") || return
+    PAGE=$(curl "$URL") || return
 
     # - Sorry, the file you requested is not available.
     if match '<div class="msg error"' "$PAGE"; then
@@ -69,8 +70,9 @@ sendspace_upload() {
 
     local FILE="$2"
     local DESTFILE=${3:-$FILE}
+    local DATA
 
-    local DATA=$(curl "http://www.sendspace.com") || return
+    DATA=$(curl "http://www.sendspace.com") || return
     local FORM_HTML=$(grep_form_by_order "$DATA" 2 | break_html_lines_alt)
     local form_url=$(echo "$FORM_HTML" | parse_form_action)
     local form_maxfsize=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
@@ -109,7 +111,9 @@ sendspace_delete() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
-    local PAGE=$(curl "$URL") || return
+    local PAGE
+
+    PAGE=$(curl "$URL") || return
  
     if match 'You are about to delete the folowing file' "$PAGE"; then
         local FORM_HTML=$(grep_form_by_order "$PAGE" 2)
@@ -137,13 +141,14 @@ sendspace_delete() {
 # stdout: list of links (file and/or folder)
 sendspace_list() {
     local URL="$1"
+    local PAGE
 
     if ! match 'sendspace\.com\/folder\/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    local PAGE=$(curl "$URL") || return
+    PAGE=$(curl "$URL") || return
     local LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
             '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
     local SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
