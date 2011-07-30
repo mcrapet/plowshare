@@ -192,24 +192,20 @@ get_ofuscated_link() {
 }
 
 # Upload a file to mediafire
-# $1: cookie file
+# $1: cookie file (unused)
 # $2: input file (with full path)
 # $3 (optional): alternate remote filename
 # stdout: mediafire.com download link
 mediafire_upload() {
-    local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE=${3:-$FILE}
     local BASE_URL="http://www.mediafire.com"
 
-    log_debug "Get ukey cookie"
-    curl -c "$COOKIEFILE" "$BASE_URL" >/dev/null || return
-
     log_debug "Get uploader configuration"
-    XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
+    XML=$(curl "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
             { log_error "Couldn't upload file!"; return 1; }
 
-    local UKEY=$(parse_quiet ukey '.*ukey[ \t]*\(.*\)' < "$COOKIEFILE")
+    local UKEY=$(echo "$XML" | parse_quiet ukey '<ukey>\([^<]*\)<\/ukey>')
     local USER=$(echo "$XML" | parse_quiet user '<user>\([^<]*\)<\/user>')
     local TRACK_KEY=$(echo "$XML" | parse_quiet trackkey '<trackkey>\([^<]*\)<\/trackkey>')
     local FOLDER_KEY=$(echo "$XML" | parse_quiet folderkey '<folderkey>\([^<]*\)<\/folderkey>')
@@ -227,14 +223,16 @@ mediafire_upload() {
 
     log_debug "Uploading file"
     local UPLOAD_URL="$BASE_URL/douploadtoapi/?track=$TRACK_KEY&ukey=$UKEY&user=$USER&uploadkey=$FOLDER_KEY&upload=0"
-    XML=$(curl_with_log -b "$COOKIEFILE" \
+
+    # HTTP header "Expect: 100-continue" seems to confuse server
+    XML=$(curl_with_log -0 \
         -F "Filename=$(basename_file "$DESTFILE")" \
         -F "Upload=Submit Query" \
         -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
-        --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" $UPLOAD_URL) ||
-            { log_error "Couldn't upload file!"; return 1; }
+        --user-agent "Shockwave Flash" \
+        --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" "$UPLOAD_URL") || return
 
-    # Example of anwser:
+    # Example of answer:
     # <?xml version="1.0" encoding="iso-8859-1"?>
     # <response>
     #  <doupload>
@@ -256,7 +254,7 @@ mediafire_upload() {
     local QUICK_KEY=""
     while [ "$TRY" -lt 3 ]; do
         (( TRY++ ))
-        XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG")
+        XML=$(curl "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG")
 
         if match '<description>No more requests for this key</description>' "$XML"; then
             QUICK_KEY=$(echo "$XML" | parse_quiet quickkey '<quickkey>\([^<]*\)<\/quickkey>')
