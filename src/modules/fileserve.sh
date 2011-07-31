@@ -48,6 +48,8 @@ fileserve_login() {
     NAME=$(curl -b "$COOKIE_FILE" "$BASEURL/dashboard.php" | \
         parse 'Welcome ' '<strong>\([^<]*\)')
     log_notice "Successfully logged in as $NAME member"
+
+    echo "$LOGIN_RESULT"
     return 0
 }
 
@@ -61,6 +63,7 @@ fileserve_download() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
+    local BASEURL="http://www.fileserve.com"
 
     # URL must be well formed (issue #280)
     local ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
@@ -72,14 +75,13 @@ fileserve_download() {
     fi
 
     if [ -n "$AUTH" ]; then
-        LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
-        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "http://www.fileserve.com/login.php") || return
+        LOGIN_RESULT=$(fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL") || return
 
         # Check account type
         if ! match '<h3>Free' "$LOGIN_RESULT"; then
             FILE_URL=$(curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location)
 
-            test -z "$FILE_URL" && return 1
+            test -z "$FILE_URL" && return $ERR_FATAL
             test "$CHECK_LINK" && return 0
 
             # Non premium cannot resume downloads
@@ -95,9 +97,9 @@ fileserve_download() {
 
     while retry_limit_not_reached || return; do
         if [ -s $COOKIEFILE ]; then
-            MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return 1
+            MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return
         else
-            MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return 1
+            MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
         fi
 
         # "The file could not be found. Please check the download link."
@@ -109,7 +111,7 @@ fileserve_download() {
         test "$CHECK_LINK" && return 0
 
         # Should return {"success":"showCaptcha"}
-        JSON1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "checkDownload=check" "$URL") || return 1
+        JSON1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "checkDownload=check" "$URL") || return
 
         if match 'waitTime' "$JSON1"; then
             no_arbitrary_wait || return
@@ -125,7 +127,7 @@ fileserve_download() {
 
         elif ! match 'success' "$JSON1"; then
             log_error "unexpected error, site update?"
-            return 1
+            return $ERR_FATAL
         fi
 
         break
@@ -172,7 +174,7 @@ fileserve_download() {
     MSG1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "downloadLink=wait" "$URL") || return
     if match 'fail404' "$MSG1"; then
         log_error "unexpected result"
-        return 1
+        return $ERR_FATAL
     fi
 
     WAIT_TIME=$(echo "$MSG1" | cut -b4-)
@@ -199,7 +201,7 @@ fileserve_upload() {
 
     # Attempt to authenticate
     if test "$AUTH"; then
-        fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
+        fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL" >/dev/null || return
         PAGE=$(curl -b "$COOKIEFILE" "$BASEURL/upload-file.php")
     else
         PAGE=$(curl "$BASEURL/upload-file.php")
