@@ -40,7 +40,7 @@ wupload_download() {
 
     if match 'wupload\.com\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
-        return 1
+        return $ERR_FATAL
     fi
 
     local BASE_URL='http://www.wupload.com'
@@ -146,7 +146,7 @@ wupload_download() {
         fi
 
     done
-    return 1
+    return $ERR_FATAL
 }
 
 # Upload a file to wupload using wupload api - http://api.wupload.com/user
@@ -161,42 +161,48 @@ wupload_upload() {
     local DESTFILE=${3:-$FILE}
     local BASE_URL="http://api.wupload.com/"
 
-    if ! test "$AUTH"; then
-        log_error "Anonymous users cannot upload files"
-        return $ERR_LINK_NEED_PERMISSIONS
+    if test "$AUTH"; then
+        local USER="${AUTH%%:*}"
+        local PASSWORD="${AUTH#*:}"
+
+        if [ "$AUTH" = "$PASSWORD" ]; then
+            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+        fi
+
+        # Not secure !
+        JSON=$(curl "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
+
+        # Login failed. Please check username or password.
+        if match "Login failed" "$JSON"; then
+            log_debug "login failed"
+            return $ERR_LOGIN_FAILED
+        fi
+
+        log_debug "Successfully logged in as $USER member"
+
+        URL=$(echo "$JSON" | parse 'url' ':"\([^"]*json\)"')
+        URL=${URL//[\\]/}
+    else
+        URL="http://s50.wupload.com/?callbackUrl=http://www.wupload.com/upload/done/:uploadProgressId&X-Progress-ID=upload_$$"
     fi
-
-    local USER="${AUTH%%:*}"
-    local PASSWORD="${AUTH#*:}"
-
-    if [ "$AUTH" = "$PASSWORD" ]; then
-        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-    fi
-
-    # Not secure !
-    JSON=$(curl "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
-
-    # Login failed. Please check username or password.
-    if match "Login failed" "$JSON"; then
-        log_debug "login failed"
-        return $ERR_LOGIN_FAILED
-    fi
-
-    log_debug "Successfully logged in as $USER member"
-
-    URL=$(echo "$JSON" | parse 'url' ':"\([^"]*json\)"')
-    URL=${URL//[\\]/}
 
     # Upload one file per request
-    JSON=$(curl -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" "$URL") || return
+    JSON=$(curl -L -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" "$URL") || return
 
     if ! match "success" "$JSON"; then
         log_error "upload failed"
-        return 1
+        return $ERR_FATAL
     fi
 
-    LINK=$(echo "$JSON" | parse 'url' ':"\([^"]*\)\",\"size')
-    LINK=${LINK//[\\]/}
+    if test "$AUTH"; then
+        # {"FSApi_Upload":{"postFile":{"response":{"files":[{"name":"foobar.abc","url":"http:\/\/www.wupload.com...
+        LINK=$(echo "$JSON" | parse 'url' ':"\([^"]*\)\",\"size')
+        LINK=${LINK//[\\]/}
+    else
+        # data = [{"linkId":"F71602742","statusCode":0,"filename":"foobar.abc","statusMessage":"...
+        LINK=$(echo "$JSON" | parse 'linkId' '"linkId":"\([^"]*\)')
+        LINK="http://www.wupload.com/file/$LINK"
+    fi
 
     echo "$LINK"
     return 0
@@ -210,14 +216,14 @@ wupload_list() {
 
     if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder\/" "$URL"; then
         log_error "This is not a folder"
-        return 1
+        return $ERR_FATAL
     fi
 
     PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_WUPLOAD_REGEXP_URL}file/")
 
     if ! test "$PAGE"; then
         log_error "Wrong folder link (no download link detected)"
-        return 1
+        return $ERR_FATAL
     fi
 
     # First pass: print file names (debug)
