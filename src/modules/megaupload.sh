@@ -207,9 +207,7 @@ megaupload_upload() {
 
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$LOGINURL" >/dev/null || {
-            return 1
-        }
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$LOGINURL" >/dev/null || return
     elif [ -n "$LINK_PASSWORD" ]; then
         log_error "password ignored, premium only"
     fi
