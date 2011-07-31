@@ -200,7 +200,7 @@ wupload_upload() {
         LINK=${LINK//[\\]/}
     else
         # data = [{"linkId":"F71602742","statusCode":0,"filename":"foobar.abc","statusMessage":"...
-        LINK=$(echo "$JSON" | parse 'linkId' '"linkId":"\([^"]*\)')
+        LINK=$(echo "$JSON" | parse 'linkId' '"id":\([^,]*\)')
         LINK="http://www.wupload.com/file/$LINK"
     fi
 
