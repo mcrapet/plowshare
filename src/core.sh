@@ -338,6 +338,11 @@ parse_attr() {
     parse "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
 
+# Like parse_attr, but hide output to stderr
+parse_attr_quiet() {
+    parse_attr "$@" 2>/dev/null
+}
+
 # Return value of html attribute
 parse_all_attr() {
     parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"

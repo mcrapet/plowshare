@@ -128,7 +128,7 @@ wupload_download() {
                     break
                 fi
 
-                local FILE_URL=$(echo "$HTMLPAGE" | parse_attr '\/download\/' 'href')
+                local FILE_URL=$(echo "$HTMLPAGE" | parse_attr_quiet '\/download\/' 'href')
                 if [ -n "$FILE_URL" ]; then
                     log_debug "correct captcha"
                     echo "$FILE_URL"
@@ -137,8 +137,8 @@ wupload_download() {
                 fi
             fi
 
-            log_error "reCaptcha error"
-            break
+            log_debug "reCaptcha error"
+            return $ERR_CAPTCHA
 
         else
             log_error "Unknown state, give up!"
