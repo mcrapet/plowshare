@@ -45,9 +45,10 @@ wupload_download() {
 
     local BASE_URL='http://www.wupload.com'
     local FILE_ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
+    local START_HTML WAIT_HTML
 
     while retry_limit_not_reached || return; do
-        local START_HTML=$(curl -c "$COOKIEFILE" "$URL")
+        START_HTML=$(curl -c "$COOKIEFILE" "$URL") || return
 
         # Sorry! This file has been deleted.
         if match 'This file has been deleted' "$START_HTML"; then
@@ -61,7 +62,7 @@ wupload_download() {
 
         # post request with empty Content-Length
         WAIT_HTML=$(curl -b "$COOKIEFILE" --data "" -H "X-Requested-With: XMLHttpRequest" \
-                --referer "$URL" "${BASE_URL}/file/${FILE_ID}/${FILE_ID}?start=1")
+                --referer "$URL" "${BASE_URL}/file/${FILE_ID}/${FILE_ID}?start=1") || return
 
         # <div id="freeUserDelay" class="section CL3">
         if match 'freeUserDelay' "$WAIT_HTML"; then
@@ -170,7 +171,7 @@ wupload_upload() {
         fi
 
         # Not secure !
-        JSON=$(curl "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
+        JSON=$(curl_with_log "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
 
         # Login failed. Please check username or password.
         if match "Login failed" "$JSON"; then
@@ -187,7 +188,7 @@ wupload_upload() {
     fi
 
     # Upload one file per request
-    JSON=$(curl -L -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" "$URL") || return
+    JSON=$(curl_with_log -L -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" "$URL") || return
 
     if ! match "success" "$JSON"; then
         log_error "upload failed"
