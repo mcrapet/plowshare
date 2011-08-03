@@ -32,7 +32,7 @@ MODULE_NETLOAD_IN_LIST_OPTIONS=""
 # $2: netload.in url
 # stdout: real file download link
 netload_in_download() {
-    eval "$(process_options rapidshare "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
+    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local URL=$(echo "$2" | replace 'www.' '')
