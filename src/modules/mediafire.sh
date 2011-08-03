@@ -37,7 +37,9 @@ mediafire_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
-    local LOCATION=$(curl --head "$URL" | grep_http_header_location)
+    local LOCATION
+
+    LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
 
     if match '^http://download' "$LOCATION"; then
         log_notice "direct download"
