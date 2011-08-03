@@ -142,7 +142,7 @@ curl() {
             return $ERR_SYSTEM
             ;;
         *)
-            log_error "curl failed"
+            log_error "curl failed ($DRETVAL)"
             return $ERR_NETWORK
             ;;
     esac
@@ -872,7 +872,7 @@ retry_limit_init() {
 #
 # $1: options
 # $2: indent string
-debug_options() {
+print_options() {
     local OPTIONS=$1
     while read OPTION; do
         test "$OPTION" || continue
@@ -895,26 +895,26 @@ debug_options() {
 #
 # $1: module name list (one per line)
 # $2: option family name (string, example:UPLOAD)
-debug_options_for_modules() {
+print_module_options() {
     while read MODULE; do
-        OPTIONS=$(get_options_for_module "$MODULE" "$2")
+        OPTIONS=$(get_module_options "$MODULE" "$2")
         if test "$OPTIONS"; then
             echo
             echo "Options for module <$MODULE>:"
             echo
-            debug_options "$OPTIONS" "  "
+            print_options "$OPTIONS" '  '
         fi
     done <<< "$1"
 }
 
-# Look for a configuration module variable
-# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
+# Get all modules options with specified family name.
+# Note: All lines are prefix with "!" character.
 #
 # $1: module name list (one per line)
 # $2: option family name (string, example:UPLOAD)
-get_modules_options() {
+get_all_modules_options() {
     while read MODULE; do
-        get_options_for_module "$MODULE" "$2" | while read OPTION; do
+        get_module_options "$MODULE" "$2" | while read OPTION; do
             if test "$OPTION"; then echo "!$OPTION"; fi
         done
     done <<< "$1"
@@ -937,9 +937,10 @@ get_module() {
 }
 
 # Straighforward options and arguments processing using getopt style
+# $1: program name (used for error message printing)
+# $2: command-line arguments list
 #
 # Example:
-#
 # $ set -- -a user:password -q arg1 arg2
 # $ eval "$(process_options module "
 #           AUTH,a:,auth:,USER:PASSWORD,Help for auth
@@ -1016,17 +1017,13 @@ process_options() {
 }
 
 # Get module list according to capability
-# Note: use global variable LIBDIR
-# TODO: we could check for more option in ~/.plowsharerc
+# Note1: use global variable LIBDIR
+# Note2: VERBOSE (log_debug) not initialised yet
 #
 # $1: keyword to grep (must not contain '|' char)
 # stdout: return module list (one name per line)
-grep_config_modules() {
+grep_list_modules() {
    local CONFIG="$LIBDIR/modules/config"
-
-   #if [ -f "~/.plowsharerc" ]; then
-   #    CONFIG="~/.plowsharerc"
-   #fi
 
    if [ ! -f "$CONFIG" ]; then
        stderr "can't find config file"
@@ -1065,10 +1062,12 @@ drop_empty_lines() {
     sed '/^[ 	]*$/d'
 }
 
+# Look for a configuration module variable
+# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
 # $1: module name
 # $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
-get_options_for_module() {
+get_module_options() {
     local MODULE=$(uppercase <<< "$1")
     local VAR="MODULE_${MODULE}_${2}_OPTIONS"
     echo "${!VAR}"

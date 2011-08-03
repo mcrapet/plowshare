@@ -33,7 +33,7 @@ NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
-INTERFACE,i:,interface,IFACE,Force IFACE interface
+INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
@@ -95,8 +95,8 @@ usage() {
     echo
     echo "Global options:"
     echo
-    debug_options "$OPTIONS" "  "
-    debug_options_for_modules "$MODULES" "DOWNLOAD"
+    print_options "$OPTIONS" '  '
+    print_module_options "$MODULES" 'DOWNLOAD'
 }
 
 # If MARK_DOWN is enabled, mark status of link (inside file or to stdout).
@@ -380,12 +380,12 @@ download() {
 LIBDIR=$(absolute_path "$0")
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_config_modules 'download') || exit $?
+MODULES=$(grep_list_modules 'download') || exit $?
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-MODULE_OPTIONS=$(get_modules_options "$MODULES" DOWNLOAD)
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options plowshare "$OPTIONS$MODULE_OPTIONS" "$@")"
 
 # Verify verbose level

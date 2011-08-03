@@ -25,7 +25,7 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-INTERFACE,i:,interface,IFACE,Force IFACE interface
+INTERFACE,i:,interface:,IFACE,Force IFACE interface
 "
 
 
@@ -62,8 +62,8 @@ usage() {
     echo
     echo "Global options:"
     echo
-    debug_options "$OPTIONS" "  "
-    debug_options_for_modules "$MODULES" "DELETE"
+    print_options "$OPTIONS" '  '
+    print_module_options "$MODULES" 'DELETE'
 }
 
 #
@@ -74,12 +74,12 @@ usage() {
 LIBDIR=$(absolute_path "$0")
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_config_modules 'delete') || exit $?
+MODULES=$(grep_list_modules 'delete') || exit $?
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-MODULE_OPTIONS=$(get_modules_options "$MODULES" DELETE)
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
 eval "$(process_options "plowshare" "$OPTIONS$MODULE_OPTIONS" "$@")"
 
 # Verify verbose level
