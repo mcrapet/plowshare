@@ -385,8 +385,11 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
+# Get configuration file options
+process_configfile_options 'Plowdown' "$OPTIONS"
+
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
-eval "$(process_options plowshare "$OPTIONS$MODULE_OPTIONS" "$@")"
+eval "$(process_options 'plowdown' "$OPTIONS$MODULE_OPTIONS" "$@")"
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -421,6 +424,10 @@ if [ -n "$OUTPUT_DIR" ]; then
     fi
 fi
 
+# Print chosen options
+[ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
+[ -n "$NOARBITRARYWAIT" ] && log_debug "plowdown: --no-arbitrary-wait selected"
+
 set_exit_trap
 
 RETVALS=()
@@ -443,6 +450,9 @@ for ITEM in "$@"; do
             echo "$MODULE"
             continue
         fi
+
+        # Get configuration file module options
+        process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
 
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
             "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \

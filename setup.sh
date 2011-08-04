@@ -32,7 +32,8 @@ PREFIX=${PREFIX:-/usr/local}
 BINDIR="${DESTDIR}${PREFIX}/bin"
 DATADIR="${DESTDIR}${PREFIX}/share/$NAME"
 DOCDIR="${DESTDIR}${PREFIX}/share/doc/$NAME"
-MANDIR="${DESTDIR}${PREFIX}/share/man/man1"
+MANDIR1="${DESTDIR}${PREFIX}/share/man/man1"
+MANDIR5="${DESTDIR}${PREFIX}/share/man/man5"
 
 DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
@@ -50,13 +51,14 @@ test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
 if [ "$1" = "uninstall" ]; then
     $RM -r $DATADIR $DOCDIR
     $RM $BINDIR/plowdown $BINDIR/plowup $BINDIR/plowdel $BINDIR/plowlist
-    $RM $MANDIR/plowdown.1 $MANDIR/plowup.1 $MANDIR/plowdel.1 $MANDIR/plowlist.1
+    $RM $MANDIR1/plowdown.1 $MANDIR1/plowup.1 $MANDIR1/plowdel.1 $MANDIR1/plowlist.1 $MANDIR5/plowshare.conf.5
 
 elif [ "$1" = "install" ]; then
     # Documentation
-    mkdir -p $DOCDIR $MANDIR
+    mkdir -p $DOCDIR $MANDIR1 $MANDIR5
     $CP AUTHORS README $DOCDIR
-    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 $MANDIR
+    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 $MANDIR1
+    $CP docs/plowshare.conf.5 $MANDIR5
 
     # Common library
     mkdir -p $DATADIR

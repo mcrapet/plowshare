@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "July 18, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowdown" "1" "August 4, 2011" "GPL" "Plowshare SVN-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -163,7 +163,7 @@ Complete login must have
 format. The first semi-colon character is the separator. So,
 .I PASSWORD
 can contain a semi-colon character without any trouble.
-.TP
+.P
 Don't forget to single-quote string if your password contain shell expandable characters (like space, $ or &).
 
 .\" ****************************************************************************
@@ -211,6 +211,20 @@ $ plowdown \-m file_with_links.txt
 .fi
 
 .\" ****************************************************************************
+.\" * Files                                                                    *
+.\" ****************************************************************************
+.SH "FILES"
+.TP
+.I ~/.config/plowshare/plowshare.conf
+This is the per-user configuration file. 
+.TP
+.I /etc/plowshare.conf
+Systemwide configuration file.
+.PP
+The file format is described in
+.BR plowshare.conf (5).
+
+.\" ****************************************************************************
 .\" * Exit codes                                                               *
 .\" ****************************************************************************
 .SH "EXIT CODES"
@@ -253,4 +267,7 @@ Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a lis
 
 Plowshare is (C) 2010-2011 The Plowshare Team 
 .SH "SEE ALSO"
-plowup(1), plowdel(1), plowlist(1)
+.BR plowup (1),
+.BR plowdel (1),
+.BR plowlist (1),
+.BR plowshare.conf (5).

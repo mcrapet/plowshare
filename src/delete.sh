@@ -79,8 +79,11 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
+# Get configuration file options
+process_configfile_options 'Plowdel' "$OPTIONS"
+
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
-eval "$(process_options "plowshare" "$OPTIONS$MODULE_OPTIONS" "$@")"
+eval "$(process_options 'plowdel' "$OPTIONS$MODULE_OPTIONS" "$@")"
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -110,6 +113,9 @@ for URL in "$@"; do
         RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
         continue
     fi
+
+    # Get configuration file module options
+    process_configfile_module_options 'Plowdel' "$MODULE" 'DELETE'
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"

@@ -1,0 +1,109 @@
+.\" Copyright (c) 2011 Plowshare Team
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 3 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, see
+.\" <http://www.gnu.org/licenses/>.
+.\" 
+.\" Based on:
+.\"   - xorg.conf.5
+.\"   - sysctl.conf.5
+
+.TH "plowshare.conf" "5" "August 4, 2011" "GPL" "Plowshare SVN-snapshot"
+
+.SH NAME
+plowshare.conf \- Configuration file for Plowshare
+
+.SH DESCRIPTION
+.B Plowshare
+(plowdown, plowup, plowdel or plowlist) uses a configuration file called 
+.I plowshare.conf
+for its initial septup. This configuration file is searched for the following places when plowshare is started:
+.PP
+.RS 4
+.nf
+.I ~/.config/plowshare/plowshare.conf
+.I /etc/plowshare.conf
+.fi
+.RE
+.PP
+The
+.I plowshare.conf
+file is composed of five sections which may be present in any order. Each section has the form:
+.PP
+.RS 4
+.nf
+.B [General]
+.RI "    " token " " = " " value
+    ...
+.B [Plowdown]
+.RI "    " token " " = " " value
+    ...
+.B [Plowup]
+.RI "    " token " " = " " value
+    ...
+.B [Plowdel]
+.RI "    " token " " = " " value
+    ...
+.B [Plowlist]
+.RI "    " token " " = " " value
+    ...
+
+.B # this is a comment
+.fi
+.RE
+.PP
+Note that blank lines are ignored, and whitespace before and after a token or value is ignored, although a value can contain whitespace within.
+Lines which begin with a # are considered comments and ignored.
+.PP
+Valid configuration token names are long-option command-line arguments of plowshare. Token are always lowercase. Options in general section
+prevail over Plow* section. Options given on the command line prevail over configuration file options.
+
+.\" ****************************************************************************
+.\" * Example                                                                  *
+.\" ****************************************************************************
+.SH EXAMPLE
+.PP
+.nf
+###
+### Plowshare configuration file
+###
+
+[General]
+interface = eth1
+rapidshare/a = matt:4deadbeef
+
+[Plowdown]
+no-arbitrary-wait = yes
+timeout=456
+
+[Plowlist]
+verbose = 3
+.fi
+
+.\" ****************************************************************************
+.\" * Authors / See Also                                                       *
+.\" ****************************************************************************
+.SH AUTHORS
+Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
+
+Plowshare is (C) 2010-2011 The Plowshare Team 
+.SH "SEE ALSO"
+.BR plowdown (1),
+.BR plowup (1),
+.BR plowdel (1),
+.BR plowlist (1).

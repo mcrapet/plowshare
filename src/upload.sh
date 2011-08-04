@@ -101,8 +101,11 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
+# Get configuration file options
+process_configfile_options 'Plowup' "$OPTIONS"
+
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
-eval "$(process_options "plowshare" "$OPTIONS$MODULE_OPTIONS" "$@")"
+eval "$(process_options 'plowup' "$OPTIONS$MODULE_OPTIONS" "$@")"
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -136,6 +139,9 @@ shift 1
 
 RETVALS=()
 UPCOOKIE=$(create_tempfile)
+
+# Get configuration file module options
+process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
 
 for FILE in "$@"; do
 

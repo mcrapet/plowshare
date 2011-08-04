@@ -1034,6 +1034,76 @@ grep_list_modules() {
        cut -d'|' -f1 | strip
 }
 
+# $1: section name in ini-style file ("General" will be considered too)
+# $2: command-line arguments list
+# Note: VERBOSE (log_debug) not initialised yet
+process_configfile_options() {
+    local CONFIG OPTIONS SECTION LINE NAME VALUE OPTION
+
+    CONFIG="$HOME/.config/plowshare/plowshare.conf" 
+    test ! -f "$CONFIG" && CONFIG="/etc/plowshare.conf"
+    test -f "$CONFIG" || return 0
+
+    # Strip spaces in options
+    OPTIONS=$(echo "$2" | strip | drop_empty_lines)
+
+    SECTION=$(sed -ne "/\[$1\]/,/^\[/p" -ne "/\[General\]/,/^\[/p" "$CONFIG" | \
+              sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
+
+    if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
+        while read LINE; do
+            NAME=$(echo "${LINE%%=*}" | strip)
+            VALUE=$(echo "${LINE#*=}" | strip)
+
+            # Look for 'long_name' in options list
+            OPTION=$(echo "$OPTIONS" | grep ",${NAME}:\?," | sed '1q') || true
+            if [ -n "$OPTION" ]; then
+                local VAR="${OPTION%%,*}"
+                eval "$VAR=$(quote "$VALUE")"
+            fi
+        done <<< "$SECTION"
+    fi
+}
+
+# $1: section name in ini-style file ("General" will be considered too)
+# $2: module name
+# $3: option family name (string, example:DOWNLOAD)
+process_configfile_module_options() {
+    local CONFIG OPTIONS SECTION OPTION LINE VALUE
+
+    CONFIG="$HOME/.config/plowshare/plowshare.conf" 
+    test ! -f "$CONFIG" && CONFIG="/etc/plowshare.conf"
+    test -f "$CONFIG" || return 0
+
+    log_report "use $CONFIG"
+
+    # Strip spaces in options
+    OPTIONS=$(get_module_options "$2" "$3" | strip | drop_empty_lines)
+
+    SECTION=$(sed -ne "/\[$1\]/,/^\[/p" -ne "/\[General\]/,/^\[/p" "$CONFIG" | \
+              sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
+
+    if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
+        local M=$(echo "$2" | lowercase)
+
+        # For example:
+        # AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
+        while read OPTION; do
+            IFS="," read VAR SHORT LONG VALUE_HELP <<< "$OPTION"
+            SHORT=$(sed -e 's/:$//' <<< "$SHORT")
+            LONG=$(sed -e 's/:$//' <<< "$LONG")
+
+            # Look for 'module/option_name' (short or long) in section list
+            LINE=$(echo "$SECTION" | grep "^$M/\($SHORT\|$LONG\)[[:space:]]*=" | sed -n '$p') || true
+            if [ -n "$LINE" ]; then
+                VALUE=$(echo "${LINE#*=}" | strip)
+                eval "$VAR=$(quote "$VALUE")"
+                log_debug "$M: take --$LONG option from configuration file"
+            fi
+        done <<< "$OPTIONS"
+    fi
+}
+
 ## ----------------------------------------------------------------------------
 
 ##
