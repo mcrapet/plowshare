@@ -89,8 +89,8 @@ distdir:
 	@for file in $(SRCS); do \
 		sed -i 's/^VERSION=.*/VERSION=SVN-r$(VERSION)/' $(DISTDIR)/$$file; \
 	done
-	@for file in $(DOCS); do \
-		sed -i '1s/\(.*\)SVN-snapshot\(.*\)/\1SVN-r$(VERSION)\2/' $(DISTDIR)/$$file; \
+	@for file in $(DOCS) $(MANPAGES); do \
+		sed -i '/[Pp]lowshare/s/\(.*\)SVN-snapshot\(.*\)/\1SVN-r$(VERSION)\2/' $(DISTDIR)/$$file; \
 	done
 
 distclean:
