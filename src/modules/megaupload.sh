@@ -292,15 +292,15 @@ megaupload_delete() {
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
     post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" $BASE_URL"/?c=login" >/dev/null || {
         rm -f $COOKIES
-        return 1
+        return $ERR_FATAL
     }
 
     TOTAL_FILES=$(curl -b $COOKIES $BASE_URL"/?c=account" | \
-        parse_all '<strong>' '<strong>*\([^<]*\)' | sed '3q;d')
+        parse_all '<strong>' '<strong>*\([^<]*\)' | nth_line 3)
 
     FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
     DATA="action=delete&delids=$FILEID"
-    DELETE=$(curl -b $COOKIES -d "$DATA" $BASE_URL"/?c=filemanager&ajax=1")
+    DELETE=$(curl -b $COOKIES -d "$DATA" $BASE_URL"/?c=filemanager&ajax=1") || return
 
     rm -f $COOKIES
 
@@ -308,7 +308,7 @@ megaupload_delete() {
 
     if [ $TOTAL_FILES -eq $FILES ]; then
         log_error "error deleting link"
-        return 1
+        return $ERR_FATAL
     fi
 }
 
@@ -323,7 +323,7 @@ megaupload_list() {
     local FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') ||
         { log_error "cannot parse url: $URL"; return 1; }
 
-    XML=$(curl "$XMLURL/?folderid=$FOLDERID")
+    XML=$(curl "$XMLURL/?folderid=$FOLDERID") || return
 
     if match "<FILES></FILES>" "$XML"; then
         log_debug "empty folder"

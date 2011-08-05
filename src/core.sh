@@ -183,6 +183,28 @@ lowercase() {
     tr '[A-Z]' '[a-z]'
 }
 
+# Grep first line of a text
+# stdin: input string (multiline)
+first_line() {
+    # equivalent to `sed -e 1q`
+    head -n1
+}
+
+# Grep last line of a text
+# stdin: input string (multiline)
+last_line() {
+    # equivalent to `sed -ne '$p'`
+    tail -n1
+}
+
+# Grep nth line of a text
+# stdin: input string (multiline)
+# $1: line number (start at index 1)
+nth_line() {
+   # equivalent to `sed -e "${1}q;d"`
+   sed -ne "${1}p"
+}
+
 # Check if a string ($2) matches a regexp ($1)
 # This is case sensitive.
 #
@@ -389,8 +411,7 @@ parse_cookie() {
 # Example: http://www.host.com/a/b/c/d => http://www.host.com
 #
 # $1: URL
-basename_url()
-{
+basename_url() {
     # Bash >=3.0 supports regular expressions
     # [[ "$1" =~ (http://[^/]*) ]] && echo "${BASH_REMATCH[1]}" || echo "$1"
     echo $(expr match "$1" '\(http://[^/]*\)' || echo "$1")
@@ -400,8 +421,7 @@ basename_url()
 # Example: /usr/bin/foo.bar => foo.bar
 #
 # $1: filename
-basename_file()
-{
+basename_file() {
     # `basename -- "$1"` may be screwed on some BusyBox versions
     echo "${1##*/}"
 }
@@ -471,8 +491,7 @@ uri_decode() {
 #
 # $1: filename
 # stdout: file length (in bytes)
-get_filesize()
-{
+get_filesize() {
     local SIZE=`stat -c %s "$1" 2>/dev/null`
     if [ -z "$SIZE" ]; then
         log_error "stat binary not found"

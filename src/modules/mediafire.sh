@@ -131,7 +131,7 @@ get_ofuscated_link() {
 
     # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
     PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
-              grep "var PageLoaded" | head -n1 | sed "s/var cb=Math.random().*$/}/") ||
+              grep "var PageLoaded" | first_line | sed "s/var cb=Math.random().*$/}/") ||
         { log_error "cannot find main javascript code"; return 1; }
     FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
                "cR();[[:space:]]*\([[:alnum:]]\+\)();") ||

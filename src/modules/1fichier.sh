@@ -103,9 +103,9 @@ EMAIL,,email:,EMAIL,Field for notification email"
 
     RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
 
-    local DOWNLOAD_ID=$(echo "$RESPONSE" | sed -n '3p')
-    local REMOVE_ID=$(echo "$RESPONSE" | sed -n '4p')
-    local DOMAIN_ID=$(echo "$RESPONSE" | sed -n '5p')
+    local DOWNLOAD_ID=$(echo "$RESPONSE" | nth_line 3)
+    local REMOVE_ID=$(echo "$RESPONSE" | nth_line 4)
+    local DOMAIN_ID=$(echo "$RESPONSE" | nth_line 5)
 
     case "$DOMAIN_ID" in
         0)  echo -e "http://$DOWNLOAD_ID.1fichier.com (http://www.1fichier.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"

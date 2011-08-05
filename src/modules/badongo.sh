@@ -87,7 +87,7 @@ badongo_download() {
     log_debug "Correct captcha!"
 
     # Look for doDownload function
-    LINK_PART2=$(echo "$WAIT_PAGE" | grep 'window.location.href' | tail -n1 | \
+    LINK_PART2=$(echo "$WAIT_PAGE" | grep 'window.location.href' | last_line | \
             parse 'location\.href' '+ "\([^"]*\)') ||
         { log_error "error parsing link part2, site updated?"; return 1; }
 

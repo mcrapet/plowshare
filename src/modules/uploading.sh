@@ -85,7 +85,7 @@ uploading_download() {
 
     # Second attempt (note: filename might be truncated in the page)
     test -z "$FILENAME" &&
-        FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | tail -n1 | parse 'h2' '<h2>\([^<]*\)')
+        FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | last_line | parse 'h2' '<h2>\([^<]*\)')
 
     wait $WAIT seconds || return
 
