@@ -187,6 +187,7 @@ fileserve_download() {
 }
 
 # Upload a file to fileserve
+# http://www.fileserve.com/script/upload-v3.js
 # $1: cookie file (used for premium account only)
 # $2: input file (with full path)
 # $3 (optional): alternate remote filename
@@ -202,66 +203,43 @@ fileserve_upload() {
     # Attempt to authenticate
     if test "$AUTH"; then
         fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL" >/dev/null || return
-        PAGE=$(curl -b "$COOKIEFILE" "$BASEURL/upload-file.php")
+        PAGE=$(curl -b "$COOKIEFILE" "$BASEURL/upload-file.php") || return
     else
-        PAGE=$(curl "$BASEURL/upload-file.php")
+        PAGE=$(curl "$BASEURL/upload-file.php") || return
     fi
 
-    # Send (post) form
-    local FORM_HTML=$(grep_form_by_id "$PAGE" 'uploadForm')
-    local form_url=$(echo "$FORM_HTML" | parse_form_action)
+    while [ 1 ]; do
+        # Get sessionId
+        # Jascript: now = new Date(); print(now.getTime());
+        T=$(date +%s)
+        T=$(( T * 1000 ))
+        JSON=$(curl --referer "$BASEURL/upload-file.php" \
+                "http://upload.fileserve.com/upload/-1/5000/?callback=jsonp$T&_=$T") || return
 
-    local form_affiliateId=$(echo "$FORM_HTML" | parse_form_input_by_name 'affiliateId')
-    local form_subAffiliateId=$(echo "$FORM_HTML" | parse_form_input_by_name 'subAffiliateId')
-    local form_landingId=$(echo "$FORM_HTML" | parse_form_input_by_name 'landingId')
-    local form_serverId=$(echo "$FORM_HTML" | parse_form_input_by_name 'serverId')
-    local form_userId=$(echo "$FORM_HTML" | parse_form_input_by_name 'userId')
-    local form_uploadSessionId=$(echo "$FORM_HTML" | parse_form_input_by_name 'uploadSessionId')
-    local form_uploadHostURL=$(echo "$FORM_HTML" | parse_form_input_by_name 'uploadHostURL')
+        if ! match "waiting" "$JSON"; then
+            log_debug "wrong sessionId state: $JSON"
+            return $ERR_FATAL
+        fi
 
-    # Get sessionId
-    JSON=$(curl "$BASEURL/upload-track.php" | parse 'sessionId' ':"\([^"]*\)')
-    log_debug "sessionId: $JSON"
+        SID=$(echo "$JSON" | parse 'sessionId' "Id:'\([^']*\)") || return
+        log_debug "sessionId: $SID"
 
-    if [ -z "$form_userId" ]; then
-        form_userId=6616385
-    fi
-    log_debug "userId: $form_userId"
+        PAGE=$(curl_with_log --referer "$BASEURL/upload-file.php" \
+                -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+                "http://upload.fileserve.com/upload/-1/5000/$SID/" | break_html_lines) || return
 
-    if [ -z "$form_uploadSessionId" ]; then
-        form_uploadSessionId=$JSON
-    fi
+        match 'HTTP Status 400' "$PAGE" || break
 
-    # Sending HTTP 1.0 post because lighttpd/1.4.25 doesn't support
-    # Except keyword (see HTTP error code 417)
-    PAGE=$(curl --http1.0 -F "affiliateId=${form_affiliateId}" \
-            -F "subAffiliateId=${form_subAffiliateId}" \
-            -F "landingId=${form_landingId}" \
-            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
-            -F "serverId=${form_serverId}" \
-            -F "userId=${form_userId}" \
-            -F "uploadSessionId=${form_uploadSessionId}" \
-            -F "uploadHostURL=${form_uploadHostURL}" \
-            "${form_url}$JSON") || return 1
+        log_error "http error 400"
+        sleep 1
+    done
 
-    PAGE=$(curl --data "uploadSessionId[]=$form_uploadSessionId" \
-            "$BASEURL/upload-result.php")
+    # parse jsonp result:
+    ID=$(echo "$PAGE" | parse_quiet 'shortenCode' 'shortenCode":"\([^"]*\)') || return
+    ID_DEL=$(echo "$PAGE" | parse_quiet 'deleteCode' 'deleteCode":"\([^"]*\)') || return
+    FILENAME=$(echo "$PAGE" | parse_quiet 'fileName' 'fileName":"\([^"]*\)') || return
 
-    LINK=$(echo "$PAGE" | parse 'com\/file\/' 'readonly >\(.*\)')
-
-    if [ -z "$LINK" ]; then
-        log_error "upload failed or site updated?"
-        return 1
-    fi
-
-    LINK_DEL=$(echo "$PAGE" | parse_quiet '\/delete\/' 'readonly >\(.*\)')
-
-    if [ -z "$LINK_DEL" ]; then
-        echo "$LINK"
-    else
-        echo "$LINK ($LINK_DEL)"
-    fi
-
+    echo "$BASEURL/file/$ID/$FILENAME ($BASEURL/file/$ID/delete/$ID_DEL)"
     return 0
 }
 
