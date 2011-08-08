@@ -227,8 +227,8 @@ matchi() {
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
 parse_all() {
-    local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p") &&
-        test "$STRING" && echo "$STRING" ||
+    local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p")
+    test "$STRING" && echo "$STRING" ||
         { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
 }
 
@@ -253,8 +253,8 @@ parse_quiet() {
 # $1: POSIX-regexp to filter (get only the first matching line).
 # $2: POSIX-regexp to match (use parenthesis) on the matched line.
 parse_line_after_all() {
-    local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}") &&
-        test "$STRING" && echo "$STRING" ||
+    local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}")
+    test "$STRING" && echo "$STRING" ||
         { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
 }
 
@@ -507,7 +507,7 @@ get_filesize() {
 create_tempfile() {
     SUFFIX=$1
     FILE="${TMPDIR:-/tmp}/$(basename_file $0).$$.$RANDOM$SUFFIX"
-    : > "$FILE"
+    :> "$FILE" || return $ERR_SYSTEM
     echo "$FILE"
 }
 
@@ -590,9 +590,11 @@ post_login() {
 # stdout: script results
 # $?: boolean
 javascript() {
-    JS_PRG=$(detect_javascript)
+    local JS_PRG TEMPSCRIPT
 
-    local TEMPSCRIPT=$(create_tempfile)
+    JS_PRG=$(detect_javascript) || return
+    TEMPSCRIPT=$(create_tempfile) || return
+
     cat > $TEMPSCRIPT
 
     log_report "interpreter:$JS_PRG"
