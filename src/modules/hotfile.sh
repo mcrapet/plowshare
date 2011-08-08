@@ -72,7 +72,7 @@ hotfile_download() {
             return $ERR_LINK_DEAD
         fi
 
-        local SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
+        SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
             { log_error "can't get sleep time"; return 1; }
 
         test "$CHECK_LINK" && return 0
@@ -102,7 +102,7 @@ hotfile_download() {
 
         elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
             # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
-            local WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
+            WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
                 { log_error "can't get wait time"; return 1; }
             WAIT_TIME=$((WAIT_TIME / 60000))
             wait $((WAIT_TIME)) minutes || return

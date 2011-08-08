@@ -320,9 +320,9 @@ megaupload_list() {
 
     local URL=$1
     local XMLURL="http://www.megaupload.com/xml/folderfiles.php"
-    local FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') ||
-        { log_error "cannot parse url: $URL"; return 1; }
+    local XML FOLDERID
 
+    FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') || return
     XML=$(curl "$XMLURL/?folderid=$FOLDERID") || return
 
     if match "<FILES></FILES>" "$XML"; then
