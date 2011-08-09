@@ -1,0 +1,31 @@
+# Programmable completion for Plowshare commands under bash 3.x
+# Copy this file to /etc/bash_completion.d/plowshare
+
+have plowup &&
+_plowup()
+{
+    local cur prev
+    COMPREPLY=()
+
+    cur=`_get_cword`
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
+            --limit-rate= --interface --name-prefix --name-suffix' -- $cur ) )
+    elif [[ "$prev" == --name* ]]; then
+        # don't complete
+        return 0
+    elif [ "$prev" == '--interface' -o "$prev" == '-i' ]; then
+        _available_interfaces -a
+    elif [[ $COMP_CWORD -eq 1 || "$prev" = -v? ]]; then
+        # replace with proper path
+        local CDIR=/usr/local/share/plowshare/modules/config
+        COMPREPLY=($(compgen -W "$(sed -ne \
+            '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' $CDIR | cut -d'|' -f1)" -- $cur))
+    else
+        _filedir
+    fi
+
+    return 0
+} &&
+complete -F _plowup plowup

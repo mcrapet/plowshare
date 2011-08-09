@@ -25,11 +25,13 @@ DOCS      = AUTHORS CHANGELOG COPYING INSTALL README
 
 CONTRIB_FILES = $(addprefix contrib/,caturl.sh plowdown_add_remote_loop.sh plowdown_loop.sh \
                 plowdown_parallel.sh)
+ETC_FILES = $(addprefix etc/,plowshare.completion)
 
 # Target path
 # DESTDIR is for package creation only
 
 PREFIX ?= /usr/local
+ETCDIR  = /etc
 BINDIR  = $(PREFIX)/bin
 DATADIR = ${PREFIX}/share/plowshare
 DOCDIR  = ${PREFIX}/share/doc/plowshare
@@ -74,16 +76,19 @@ uninstall:
 test:
 	@cd tests && ./modules.sh -l
 
+bash_completion:
+	@sed -e "s,CDIR=/usr/local/share/plowshare,CDIR=$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare
+
 dist: distdir
 	@tar -cf - $(DISTDIR)/* | gzip -9 >$(DISTDIR).tar.gz
 	@rm -rf $(DISTDIR)
 
 distdir:
 	@test -d $(DISTDIR) || mkdir $(DISTDIR)
-	@mkdir -p $(DISTDIR)/tests $(DISTDIR)/docs $(DISTDIR)/contrib
+	@mkdir -p $(DISTDIR)/etc $(DISTDIR)/tests $(DISTDIR)/docs $(DISTDIR)/contrib
 	@mkdir -p $(DISTDIR)/src/modules $(DISTDIR)/src/tesseract
 	@for file in $(SRCS) $(SETUP_FILES) $(MODULE_FILES) $(TESSERACT_FILES) \
-			$(TEST_FILES) $(MANPAGES) $(DOCS) $(CONTRIB_FILES); do \
+			$(TEST_FILES) $(MANPAGES) $(DOCS) $(ETC_FILES) $(CONTRIB_FILES); do \
 		cp -pf $$file $(DISTDIR)/$$file; \
 	done
 	@for file in $(SRCS); do \
