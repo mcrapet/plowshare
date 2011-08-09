@@ -188,7 +188,7 @@ fileserve_download() {
 
 # Upload a file to fileserve
 # http://www.fileserve.com/script/upload-v3.js
-# $1: cookie file (used for premium account only)
+# $1: cookie file (unused)
 # $2: input file (with full path)
 # $3 (optional): alternate remote filename
 # stdout: download + del link on fileserve
@@ -200,41 +200,44 @@ fileserve_upload() {
     local DESTFILE=${3:-$FILE}
     local BASEURL="http://www.fileserve.com"
 
+    local USERID SID TIMEOUT
+
+    USERID='-1'
+    TIMEOUT='5000'
+
     # Attempt to authenticate
     if test "$AUTH"; then
         fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL" >/dev/null || return
         PAGE=$(curl -b "$COOKIEFILE" "$BASEURL/upload-file.php") || return
-    else
-        PAGE=$(curl "$BASEURL/upload-file.php") || return
+        USERID=$(echo "$PAGE" | parse 'fileserve\.com\/upload\/'  'upload\/\([^\/]*\)') || return
+        log_debug "userId: $USERID"
     fi
 
-    while [ 1 ]; do
-        # Get sessionId
-        # Jascript: now = new Date(); print(now.getTime());
-        T=$(date +%s)
-        T=$(( T * 1000 ))
-        JSON=$(curl --referer "$BASEURL/upload-file.php" \
-                "http://upload.fileserve.com/upload/-1/5000/?callback=jsonp$T&_=$T") || return
+    # Get sessionId
+    # Javascript: now = new Date(); print(now.getTime());
+    T=$(date +%s)
+    T=$(( T * 1000 ))
+    JSON=$(curl --referer "$BASEURL/" -H "Expect:" \
+            "http://upload.fileserve.com/upload/$USERID/$TIMEOUT/?callback=jsonp$T&_=$$") || return
 
-        if ! match "waiting" "$JSON"; then
-            log_debug "wrong sessionId state: $JSON"
-            return $ERR_FATAL
-        fi
+    if ! match "waiting" "$JSON"; then
+        log_debug "wrong sessionId state: $JSON"
+        return $ERR_FATAL
+    fi
 
-        SID=$(echo "$JSON" | parse 'sessionId' "Id:'\([^']*\)") || return
-        log_debug "sessionId: $SID"
+    SID=$(echo "$JSON" | parse 'sessionId' "Id:'\([^']*\)") || return
+    log_debug "sessionId: $SID"
 
-        PAGE=$(curl_with_log --referer "$BASEURL/upload-file.php" \
-                -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
-                "http://upload.fileserve.com/upload/-1/5000/$SID/" | break_html_lines) || return
+    PAGE=$(curl_with_log --referer "$BASEURL/" -H "Expect:" \
+            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            "http://upload.fileserve.com/upload/$USERID/$TIMEOUT/$SID/" | break_html_lines) || return
 
-        match 'HTTP Status 400' "$PAGE" || break
-
+    if match 'HTTP Status 400' "$PAGE"; then
         log_error "http error 400"
-        sleep 1
-    done
+        return $ERR_FATAL
+    fi
 
-    # parse jsonp result:
+    # parse jsonp result
     ID=$(echo "$PAGE" | parse_quiet 'shortenCode' 'shortenCode":"\([^"]*\)') || return
     ID_DEL=$(echo "$PAGE" | parse_quiet 'deleteCode' 'deleteCode":"\([^"]*\)') || return
     FILENAME=$(echo "$PAGE" | parse_quiet 'fileName' 'fileName":"\([^"]*\)') || return
