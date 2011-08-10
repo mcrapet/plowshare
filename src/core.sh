@@ -1076,6 +1076,12 @@ process_configfile_options() {
             NAME=$(echo "${LINE%%=*}" | strip)
             VALUE=$(echo "${LINE#*=}" | strip)
 
+            # Look for optional double quote (protect leading/trailing spaces)
+            if [ "${VALUE:0:1}" = '"' -a "${VALUE:(-1):1}" = '"' ]; then
+                VALUE="${VALUE%?}"
+                VALUE="${VALUE:1}"
+            fi
+
             # Look for 'long_name' in options list
             OPTION=$(echo "$OPTIONS" | grep ",${NAME}:\?," | sed '1q') || true
             if [ -n "$OPTION" ]; then
@@ -1118,6 +1124,13 @@ process_configfile_module_options() {
             LINE=$(echo "$SECTION" | grep "^$M/\($SHORT\|$LONG\)[[:space:]]*=" | sed -n '$p') || true
             if [ -n "$LINE" ]; then
                 VALUE=$(echo "${LINE#*=}" | strip)
+
+                # Look for optional double quote (protect leading/trailing spaces)
+                if [ "${VALUE:0:1}" = '"' -a "${VALUE:(-1):1}" = '"' ]; then
+                    VALUE="${VALUE%?}"
+                    VALUE="${VALUE:1}"
+                fi
+
                 eval "$VAR=$(quote "$VALUE")"
                 log_debug "$M: take --$LONG option from configuration file"
             fi
