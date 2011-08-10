@@ -12,7 +12,7 @@ _plowup()
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
             --limit-rate= --interface --name-prefix --name-suffix' -- $cur ) )
-    elif [[ "$prev" == --name* ]]; then
+    elif [[ "$prev" == --name* || "$prev" == -[ab] ]]; then
         # don't complete
         return 0
     elif [ "$prev" == '--interface' -o "$prev" == '-i' ]; then

@@ -58,7 +58,7 @@ install:
 	$(INSTALL) -m 755 $(SRCS) $(DESTDIR)$(DATADIR)
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES1)) $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES5)) $(DESTDIR)$(MANDIR)5
-	$(INSTALL) -m 644 $(DOCS) $(DESTDIR)$(DOCDIR)
+	$(INSTALL) -m 644 README $(DESTDIR)$(DOCDIR)
 	$(LN_S) $(DATADIR)/download.sh $(DESTDIR)$(BINDIR)/plowdown
 	$(LN_S) $(DATADIR)/upload.sh   $(DESTDIR)$(BINDIR)/plowup
 	$(LN_S) $(DATADIR)/delete.sh   $(DESTDIR)$(BINDIR)/plowdel
@@ -76,7 +76,7 @@ uninstall:
 test:
 	@cd tests && ./modules.sh -l
 
-bash_completion:
+install_bash_completion:
 	@sed -e "s,CDIR=/usr/local/share/plowshare,CDIR=$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare
 
 dist: distdir
