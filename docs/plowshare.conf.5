@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "August 4, 2011" "GPL" "Plowshare SVN-snapshot"
+.TH "plowshare.conf" "5" "August 11, 2011" "GPL" "Plowshare SVN-snapshot"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -43,7 +43,7 @@ for its initial septup. This configuration file is searched for the following pl
 .PP
 The
 .I plowshare.conf
-file is composed of five sections which may be present in any order. Each section has the form:
+file is composed of five sections which may be present in any order. Each section may contain lines of the form:
 .PP
 .RS 4
 .nf
@@ -67,10 +67,15 @@ file is composed of five sections which may be present in any order. Each sectio
 .fi
 .RE
 .PP
-Note that blank lines are ignored, and whitespace before and after a token or value is ignored, although a value can contain whitespace within.
-Lines which begin with a # are considered comments and ignored.
+Notes:
+.IP .
+Blank lines or lines beginning with a hash character ('#') are treated as comments and ignored.
+.IP .
+Whitespace before and after a \fItoken\fP or \fIvalue\fP is ignored (although a \fIvalue\fP can contain whitespace within).
+.IP .
+Double quoting \fIvalue\fP is optional.
 .PP
-Valid configuration token names are long-option command-line arguments of plowshare. Token are always lowercase. Options in general section
+Valid configuration token names are long-option command-line arguments of plowshare. Tokens are always lowercase. Options in general section
 prevail over Plow* section. Options given on the command line prevail over configuration file options.
 
 .\" ****************************************************************************
@@ -86,6 +91,7 @@ prevail over Plow* section. Options given on the command line prevail over confi
 [General]
 interface = eth1
 rapidshare/a = matt:4deadbeef
+megaupload/a = "matt:4 dead beef "
 
 [Plowdown]
 no-arbitrary-wait = yes
