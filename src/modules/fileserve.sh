@@ -125,6 +125,12 @@ fileserve_download() {
             wait $STOP_FLOODING seconds || return
             continue
 
+        elif match 'parallelDownload' "$JSON1"; then
+            no_arbitrary_wait || return
+            log_debug "your IP is already downloading, you must wait"
+            wait $STOP_FLOODING seconds || return
+            continue
+
         elif ! match 'success' "$JSON1"; then
             log_error "unexpected error, site update?"
             return $ERR_FATAL
