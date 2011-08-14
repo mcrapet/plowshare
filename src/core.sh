@@ -100,7 +100,7 @@ log_error() {
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
 curl() {
-    local -a OPTIONS=(--insecure -A 'Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.16) Gecko/20110107 Firefox/3.0.9 (like Firefox/3.5.16')
+    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300 --user-agent 'Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.16) Gecko/20110107 Firefox/3.0.9 (like Firefox/3.5.16')
     local -a POST_OPTIONS=()
     local DRETVAL=0
 
@@ -110,8 +110,8 @@ curl() {
     test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
     test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" "--limit-rate" "$LIMIT_RATE")
 
-    test -n "$GLOBAL_COOKIES" &&
-      POST_OPTIONS=("${POST_OPTIONS[@]}" "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
+    test -n "$GLOBAL_COOKIES" && \
+        POST_OPTIONS=("${POST_OPTIONS[@]}" "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
     set -- $(type -P curl) "${OPTIONS[@]}" "$@" "${POST_OPTIONS[@]}"
 
     if test $(verbose_level) -lt 4; then
@@ -149,8 +149,17 @@ curl() {
     return 0
 }
 
+# Force debug verbose level (unless -v0/-q specified)
 curl_with_log() {
-    with_log curl "$@"
+    local TEMP_VERBOSE=$(verbose_level)
+
+    if [ "$TEMP_VERBOSE" -eq 0 ]; then
+        TEMP_VERBOSE=0
+    elif [ "$TEMP_VERBOSE" -lt 3 ]; then
+        TEMP_VERBOSE=3
+    fi
+
+    VERBOSE=$TEMP_VERBOSE curl "$@"
 }
 
 # Substring replacement (replace all matches)
@@ -852,13 +861,6 @@ recaptcha_display_and_prompt() {
 ## download.sh, upload.sh, delete.sh, list.sh
 ##
 
-# Force debug verbose level (unless -v0/-q specified)
-with_log() {
-    local TEMP_VERBOSE=3
-    test $(verbose_level) -eq 0 && TEMP_VERBOSE=0 || true
-    VERBOSE=$TEMP_VERBOSE "$@"
-}
-
 # Remove all temporal files created by the script
 # (with create_tempfile)
 remove_tempfiles() {
@@ -1061,7 +1063,7 @@ grep_list_modules() {
 process_configfile_options() {
     local CONFIG OPTIONS SECTION LINE NAME VALUE OPTION
 
-    CONFIG="$HOME/.config/plowshare/plowshare.conf" 
+    CONFIG="$HOME/.config/plowshare/plowshare.conf"
     test ! -f "$CONFIG" && CONFIG="/etc/plowshare.conf"
     test -f "$CONFIG" || return 0
 
@@ -1098,7 +1100,7 @@ process_configfile_options() {
 process_configfile_module_options() {
     local CONFIG OPTIONS SECTION OPTION LINE VALUE
 
-    CONFIG="$HOME/.config/plowshare/plowshare.conf" 
+    CONFIG="$HOME/.config/plowshare/plowshare.conf"
     test ! -f "$CONFIG" && CONFIG="/etc/plowshare.conf"
     test -f "$CONFIG" || return 0
 

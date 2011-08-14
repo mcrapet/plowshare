@@ -317,11 +317,11 @@ download() {
                 FILENAME_OUT="$FILENAME"
             fi
 
-            CURL=("curl")
+            CURL_ARGS=()
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
 
-            module_config_resume "$MODULE" && CURL=("${CURL[@]}" "-C -")
-            module_config_need_cookie "$MODULE" && CURL=("${CURL[@]}" -b $COOKIES)
+            module_config_resume "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
+            module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" -b $COOKIES)
 
             if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
                 if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
@@ -332,10 +332,8 @@ download() {
                 fi
             fi
 
-            # Force (temporary) debug verbose level to dispay curl download progress
-            log_report ${CURL[@]} -w "%{http_code}" -y60 -f --globoff -o "$FILENAME_TMP" "$FILE_URL"
-            CODE=$(with_log ${CURL[@]} -w "%{http_code}" -y60 -f --globoff \
-                -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
+            CODE=$(curl_with_log $CURL_ARGS -w "%{http_code}" --fail --globoff \
+                    -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
             test "$DRETVAL" -eq 0 || return $DRETVAL
