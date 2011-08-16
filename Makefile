@@ -38,12 +38,9 @@ DOCDIR  = ${PREFIX}/share/doc/plowshare
 MANDIR  = ${PREFIX}/share/man/man
 
 # Packaging
-USE_GIT := $(shell test -d .git && echo "git")
-SVN_LOG := $(shell LANG=C $(USE_GIT) svn info | grep ^Revision | cut -d' ' -f2)
-
-VERSION = $(SVN_LOG)
-DISTDIR = plowshare-SVN-r$(VERSION)-snapshot
-
+GIT_DATE:=$(shell LANG=C git log -n1 --pretty=%ci | cut -d' ' -f1)
+GIT_HASH:=$(shell LANG=C git log -n1 --pretty=%h)
+DISTDIR = plowshare-git-$(GIT_HASH)-$(subst .,,$(GIT_DATE))
 
 install:
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
@@ -92,13 +89,16 @@ distdir:
 		cp -pf $$file $(DISTDIR)/$$file; \
 	done
 	@for file in $(SRCS); do \
-		sed -i 's/^VERSION=.*/VERSION=SVN-r$(VERSION)/' $(DISTDIR)/$$file; \
+		sed -i 's/^VERSION=.*/VERSION="GIT-$(GIT_HASH) ($(GIT_DATE))"/' $(DISTDIR)/$$file; \
 	done
-	@for file in $(DOCS) $(MANPAGES); do \
-		sed -i '/[Pp]lowshare/s/\(.*\)SVN-snapshot\(.*\)/\1SVN-r$(VERSION)\2/' $(DISTDIR)/$$file; \
+	@for file in $(DOCS); do \
+		sed -i '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1GIT-$(GIT_HASH) ($(GIT_DATE))\2/' $(DISTDIR)/$$file; \
+	done
+	@for file in $(MANPAGES); do \
+		sed -i '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1GIT-$(GIT_HASH)\2/' $(DISTDIR)/$$file; \
 	done
 
 distclean:
-	@rm -rf plowshare-SVN-r???*
+	@rm -rf plowshare-git-*
 
 .PHONY: dist distclean install uninstall test

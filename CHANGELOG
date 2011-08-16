@@ -1,3 +1,10 @@
+plowshare (GIT-snapshot) stable; urgency=medium
+
+  * Migrating to GIT repository. SVN revision number is replaced with
+    short commit hash + date.
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Tue, 16 Aug 2011 20:03:33 +0200
+
 plowshare (SVN-snapshot) stable; urgency=medium
 
   * As e-storage websites are continuously updated, I suspend versioning
