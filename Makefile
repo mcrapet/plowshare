@@ -40,7 +40,7 @@ MANDIR  = ${PREFIX}/share/man/man
 # Packaging
 GIT_DATE:=$(shell LANG=C git log -n1 --pretty=%ci | cut -d' ' -f1)
 GIT_HASH:=$(shell LANG=C git log -n1 --pretty=%h)
-DISTDIR = plowshare-git-$(GIT_HASH)-$(subst -,,$(GIT_DATE))
+DISTDIR = plowshare-snapshot-git$(subst -,,$(GIT_DATE))
 
 install:
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
@@ -99,6 +99,6 @@ distdir:
 	done
 
 distclean:
-	@rm -rf plowshare-git-*
+	@rm -rf plowshare-snapshot-*
 
 .PHONY: dist distclean install uninstall test
