@@ -39,7 +39,7 @@ MAXRETRIES,,max-retries:,N,Set maximum retries for loops
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
-DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies)
+DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies) for each link
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 "
@@ -111,12 +111,16 @@ mark_queue() {
     test -z "$MARK_DOWN" && return 0
 
     if test "$TYPE" = "file"; then
-        TAIL=${TAIL//,/\\,}
-        URL=${URL//,/\\,}
+        if test -w "$FILELIST"; then
+            TAIL=${TAIL//,/\\,}
+            URL=${URL//,/\\,}
 
-        sed -i -e "s,^[[:space:]]*\($URL\)[[:space:]]*$,#$TEXT \1$TAIL," "$FILELIST" &&
-            log_notice "link marked in file: $FILELIST (#$TEXT)" ||
-            log_error "failed marking link in file: $FILELIST (#$TEXT)"
+            sed -i -e "s,^[[:space:]]*\($URL\)[[:space:]]*$,#$TEXT \1$TAIL," "$FILELIST" &&
+                log_notice "link marked in file: $FILELIST (#$TEXT)" ||
+                log_error "failed marking link in file: $FILELIST (#$TEXT)"
+        else
+            log_notice "error: can't mark link, no write permission ($FILELIST)"
+        fi
     else
         echo "#${TEXT} $URL"
     fi
