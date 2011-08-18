@@ -70,10 +70,10 @@ wupload_download() {
             local form_tm=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm')
             local form_tmhash=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm_hash')
 
-             wait $((SLEEP)) seconds || return
+            wait $((SLEEP)) seconds || return
 
-             WAIT_HTML=$(curl -b "$COOKIEFILE" --data "tm=${form_tm}&tm_hash=${form_tmhash}" \
-                     -H "X-Requested-With: XMLHttpRequest" --referer "$URL" "${URL}?start=1")
+            WAIT_HTML=$(curl -b "$COOKIEFILE" --data "tm=${form_tm}&tm_hash=${form_tmhash}" \
+                    -H "X-Requested-With: XMLHttpRequest" --referer "$URL" "${URL}?start=1")
 
         # <div id="downloadErrors" class="section CL3">
         # - You can only download 1 file at a time.
@@ -120,9 +120,9 @@ wupload_download() {
 
                 CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
                 HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
-                  "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                  -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                  "${URL}?start=1") || return 1
+                    "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                    -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+                    "${URL}?start=1") || return 1
 
                 if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
                     log_debug "wrong captcha"
@@ -171,7 +171,7 @@ wupload_upload() {
         fi
 
         # Not secure !
-        JSON=$(curl_with_log "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
+        JSON=$(curl "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
 
         # Login failed. Please check username or password.
         if match "Login failed" "$JSON"; then
@@ -181,7 +181,7 @@ wupload_upload() {
 
         log_debug "Successfully logged in as $USER member"
 
-        URL=$(echo "$JSON" | parse 'url' ':"\([^"]*json\)"')
+        URL=$(echo "$JSON" | parse 'url' ':"\([^"]*json\)"') || return
         URL=${URL//[\\]/}
     else
         URL="http://s50.wupload.com/?callbackUrl=http://www.wupload.com/upload/done/:uploadProgressId&X-Progress-ID=upload_$$"
