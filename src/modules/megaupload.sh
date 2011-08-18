@@ -127,7 +127,7 @@ megaupload_download() {
 
             if [ -z "$AUTH" ]; then
                 WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-                    "count=\([[:digit:]]\+\);") || return 1
+                    "count=\([[:digit:]]\+\);") || return
                 break
             fi
 
@@ -155,29 +155,13 @@ megaupload_download() {
         FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
         if test "$FILEURL"; then
             WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-                "count=\([[:digit:]]\+\);") || return 1
+                "count=\([[:digit:]]\+\);") || return
             break
         fi
 
-        # Captcha stuff
-        CAPTCHA_URL=$(echo "$PAGE" | parse "gencap.php" 'src="\([^"]*\)"') || return 1
-        log_debug "captcha URL: $CAPTCHA_URL"
-
-        CAPTCHA=$(curl "$CAPTCHA_URL" | convert - +matte gif:- |
-            show_image_and_tee | ocr | sed "s/[^a-zA-Z0-9]//g") ||
-            { log_error "error running OCR"; return 1; }
-        log_debug "Decoded captcha: $CAPTCHA"
-        test "${#CAPTCHA}" -ne 4 &&
-            { log_debug "Captcha length invalid"; continue; }
-
-        IMAGECODE=$(echo "$PAGE" | parse "captchacode" 'value="\(.*\)\"')
-        MEGAVAR=$(echo "$PAGE" | parse "megavar" 'value="\(.*\)\"')
-        DATA="captcha=$CAPTCHA&captchacode=$IMAGECODE&megavar=$MEGAVAR"
-        PAGE=$(curl -b "$COOKIEFILE" --data "$DATA" "$URL")
-        WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-            "count=\([[:digit:]]\+\);" || true)
-        test "$WAITTIME" && break;
-        log_debug "Wrong captcha"
+        # There's no more captcha on megaupload!
+        log_error "unknown state, site updated?"
+        return $ERR_FATAL
     done
 
     FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href')
