@@ -48,15 +48,15 @@ rapidshare_download() {
         FILEID=$(echo "$URL" | cut -d'/' -f5)
         FILENAME=$(echo "$URL" | cut -d'/' -f6)
     fi
-    test "$FILEID" -a "$FILENAME" ||
-        { log_error "Cannot parse fileID/filename from URL: $URL"; return 1; }
+    test "$FILEID" -a "$FILENAME" || \
+        { log_error "Cannot parse fileID/filename from URL: $URL"; return $ERR_FATAL; }
 
     # Arbitrary wait (local variables)
     NO_FREE_SLOT_IDLE=125
     STOP_FLOODING=360
 
     while retry_limit_not_reached || return; do
-        BASE_APIURL="https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download_v1&fileid=${FILEID}&filename=${FILENAME}"
+        BASE_APIURL="https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=${FILEID}&filename=${FILENAME}"
 
         if test "$AUTH"; then
             IFS=":" read USER PASSWORD <<< "$AUTH"
@@ -69,8 +69,8 @@ rapidshare_download() {
         local ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
 
         if match "need to wait" "$ERROR"; then
-            WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") ||
-                { log_error "cannot parse wait time: $ERROR"; return 1; }
+            WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") || return
+
             test "$CHECK_LINK" && return 0
             log_notice "Server has asked to wait $WAIT seconds"
             wait $WAIT seconds || return
@@ -93,7 +93,7 @@ rapidshare_download() {
 
         elif test "$ERROR"; then
             log_error "website error: $ERROR"
-            return 1
+            return $ERR_FATAL
         fi
 
         # DL:$hostname,$dlauth,$countdown,$md5hex
@@ -113,7 +113,7 @@ rapidshare_download() {
     wait $((WTIME)) seconds || return
 
     # https is only available for RapidPro customers
-    local BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download_v1"
+    local BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download"
 
     if test "$AUTH"; then
         echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
@@ -152,8 +152,8 @@ rapidshare_upload() {
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
 
     INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
-            -F "rsapi_v1=1" -F "login=$USER" -F "password=$PASSWORD" -F "realfolder=0" "$UPLOAD_URL") || return
-
+            -F "login=$USER" -F "password=$PASSWORD" "$UPLOAD_URL") || return
+echo "$INFO" >/tmp/a
     # Expect answer like this (.3 is filesize, .4 is md5sum):
     # savedfiles=1 forbiddenfiles=0 premiumaccount=0
     # File1.1=http://rapidshare.com/files/425566082/RFC-all.tar.gz
@@ -167,9 +167,9 @@ rapidshare_upload() {
         if [ -n "$ERROR" ]; then
             log_error "website error: $ERROR"
         fi
-        return 1
+        return $ERR_FATAL
     }
-    KILL=$(echo "$INFO" | parse "killcode" "2=\(.*\)") || return 1
+    KILL=$(echo "$INFO" | parse "killcode" "2=\(.*\)") || return
 
     echo "$URL ($KILL)"
 }
@@ -194,12 +194,12 @@ rapidshare_delete() {
 
     if [ -z "$KILLCODE" ]; then
         log_error "cannot parse killcode from URL"
-        return 1
+        return $ERR_FATAL
     fi
 
     if [ -z "$FILEID" ]; then
         log_error "cannot parse fileid from URL"
-        return 1
+        return $ERR_FATAL
     fi
 
     log_debug "FileID=$FILEID"
@@ -215,10 +215,10 @@ rapidshare_delete() {
 
     if [ -n "$ERROR" ]; then
         log_error "website error: $ERROR"
-        return 1
+        return $ERR_FATAL
     elif [ "$RESPONSE" != "OK" ]; then
         log_debug "unexpected result"
-        return 1
+        return $ERR_FATAL
     fi
 
     log_debug "file removed successfully"
