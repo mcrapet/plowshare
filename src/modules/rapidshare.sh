@@ -153,7 +153,7 @@ rapidshare_upload() {
 
     INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
             -F "login=$USER" -F "password=$PASSWORD" "$UPLOAD_URL") || return
-echo "$INFO" >/tmp/a
+
     # Expect answer like this (.3 is filesize, .4 is md5sum):
     # savedfiles=1 forbiddenfiles=0 premiumaccount=0
     # File1.1=http://rapidshare.com/files/425566082/RFC-all.tar.gz
