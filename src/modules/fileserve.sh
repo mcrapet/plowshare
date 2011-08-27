@@ -187,7 +187,13 @@ fileserve_download() {
     wait $((WAIT_TIME + 1)) seconds || return
     MSG2=$(curl -b "$COOKIEFILE" --referer "$URL" --data "downloadLink=show" "$URL") || return
 
-    FILE_URL=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "download=normal" "$URL" | grep_http_header_location) || return
+    MSG3=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "download=normal" "$URL") || return
+    if match 'daily download limit has been reached' "$MSG3"; then
+        log_error "Daily download limit reached, wait or use a premium account."
+        return $ERR_FATAL
+    fi
+
+    FILE_URL=$(echo "$MSG3" | grep_http_header_location) || return
 
     echo "$FILE_URL"
 }
