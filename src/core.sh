@@ -393,7 +393,7 @@ parse_form_action() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_name() {
-    parse "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)" 2>/dev/null
+    parse_quiet "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
 # Retreive "value" attribute from a typed <input> marker
@@ -402,7 +402,7 @@ parse_form_input_by_name() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
-    parse "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)" 2>/dev/null
+    parse_quiet "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
 # Retreive "id" attributes from typed <input> marker(s)
@@ -720,32 +720,6 @@ ocr() {
 
     cat $TEXT
     rm -f $TIFF $TEXT
-}
-
-# Display image (in ascii) and forward it (like tee command)
-#
-# stdin: image (binary). Can be any format.
-# stdout: same image
-show_image_and_tee() {
-    test $(verbose_level) -lt 3 && { cat; return; }
-    local TEMPIMG=$(create_tempfile)
-    cat > $TEMPIMG
-    if check_exec aview; then
-        # libaa
-        local IMG_PNM=$(create_tempfile)
-        convert $TEMPIMG -negate -depth 8 pnm:$IMG_PNM
-        aview -width 60 -height 28 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<< "q" | \
-            sed  -e '1d;/\x0C/,/\x0C/d' | \
-            grep -v "^[[:space:]]*$" >&2
-        rm -f "$IMG_PNM"
-    elif check_exec img2txt; then
-        # libcaca
-        img2txt -W 60 -H 14 $TEMPIMG >&2
-    else
-        log_notice "Install aview or img2txt (libcaca) to display captcha image"
-    fi
-    cat $TEMPIMG
-    rm -f $TEMPIMG
 }
 
 ##

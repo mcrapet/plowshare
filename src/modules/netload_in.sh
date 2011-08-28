@@ -62,16 +62,17 @@ netload_in_download() {
         return 0
     fi
 
+    PERL_PRG=$(detect_perl) || return
+
     local TRY=0
     while retry_limit_not_reached || return; do
+        log_debug "Downloading captcha page (loop $TRY)"
         ((TRY++))
         WAIT_URL=$(curl --location -c $COOKIEFILE "$URL" | \
             parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
             { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
         test "$CHECK_LINK" && return 0
-
-        PERL_PRG=$(detect_perl) || return
 
         WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
         WAIT_HTML=$(curl -b $COOKIEFILE -e $URL --location $WAIT_URL)
@@ -86,12 +87,21 @@ netload_in_download() {
                 'src="\([^"]*\)" alt="Sicherheitsbild"')
         CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
-        log_debug "Try $TRY:"
+        CAPTCHA_IMG=$(create_tempfile) || return
+        curl -b $COOKIEFILE "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl | \
+                convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
+                -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
+            rm -f "$CAPTCHA_IMG"
+            return $ERR_CAPTCHA;
+        }
 
-        CAPTCHA=$(curl -b $COOKIEFILE "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl |
-                convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% -compress none -depth 8 tif:- |
-                show_image_and_tee | ocr digit | sed "s/[^0-9]//g") ||
-                { log_error "error running OCR"; return 1; }
+        #CAPTCHA=$(captcha_process "$CAPTCHA_IMG" auto) || return
+        CAPTCHA=$(cat "$CAPTCHA_IMG" | ocr digit | sed "s/[^0-9]//g") || { \
+            log_error "error running OCR";
+            rm -f "$CAPTCHA_IMG"
+            return $ERR_CAPTCHA;
+        }
+        rm -f "$CAPTCHA_IMG"
 
         test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
         log_debug "Decoded captcha: $CAPTCHA"
