@@ -113,12 +113,12 @@ rapidshare_download() {
     wait $((WTIME)) seconds || return
 
     # https is only available for RapidPro customers
-    local BASEURL="http://$RSHOST/cgi-bin/rsapi.cgi?sub=download"
+    local BASEURL="://$RSHOST/cgi-bin/rsapi.cgi?sub=download"
 
     if test "$AUTH"; then
-        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
+        echo "https$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
     else
-        echo "$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
+        echo "http$BASEURL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
     fi
     echo "$FILENAME"
 }
