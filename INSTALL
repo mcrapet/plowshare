@@ -10,6 +10,12 @@ $ sudo make install
 # For non root users, you can override default prefix (/usr/local)
 $ PREFIX=/home/$USER make install
 
+# If you are on a cross compilation environment:
+# (default prefix is /usr/local)
+$ make install DESTDIR=/media/rootfs
+or 
+$ make install PREFIX=/opt DESTDIR=/media/rootfs
+
 
 For restricted sytems (mostly NAS)
 ==================================
