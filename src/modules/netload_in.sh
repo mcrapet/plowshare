@@ -25,9 +25,11 @@ AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_DOWNLOAD_RESUME=no
 MODULE_NETLOAD_IN_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_NETLOAD_IN_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_LIST_OPTIONS=""
 
-# Output an netload.in file download URL (anonymous)
+# Output an netload.in file download URL
 # $1: cookie file
 # $2: netload.in url
 # stdout: real file download link
@@ -39,11 +41,17 @@ netload_in_download() {
     local BASE_URL="http://netload.in"
 
     if [ -n "$AUTH" ]; then
-        netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return 1
+        netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
         MODULE_NETLOAD_IN_DOWNLOAD_RESUME=yes
 
         PAGE=$(curl -i -b "$COOKIEFILE" "$URL") || return
         FILE_URL=$(echo "$PAGE" | grep_http_header_location)
+
+        # check for link redirection (HTTP error 301)
+        if [ "${FILE_URL:0:1}" = '/' ]; then
+            PAGE=$(curl -i -b "$COOKIEFILE" "${BASE_URL}$FILE_URL") || return
+            FILE_URL=$(echo "$PAGE" | grep_http_header_location)
+        fi
 
         # Account download method set to "Automatisch"
         # HTTP HEAD request discarded, can't read "Content-Disposition" header
@@ -161,9 +169,73 @@ netload_in_premium_login() {
     LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return
 
     if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
-        log_debug "login failed"
+        log_error "bad login and/or password"
         return $ERR_LOGIN_FAILED
     fi
+}
+
+# Upload a file to netload.in
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: netload.in download link (delete link)
+#
+# http://api.netload.in/index.php?id=3
+# Note: Password protected archives upload is not managed here.
+netload_in_upload() {
+    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_UPLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
+    local BASE_URL="http://netload.in"
+
+    local AUTH_CODE UPLOAD_SERVER EXTRA_PARAMS
+
+    if test "$AUTH"; then
+        netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+        AUTH_CODE=$(curl -b "$COOKIEFILE" 'http://www.netload.in/index.php?id=56' | parse 'Your Auth Code' ';">\([^<]*\)') || return
+        log_debug "auth=$AUTH_CODE"
+
+        local USER="${AUTH%%:*}"
+        local PASSWORD="${AUTH#*:}"
+
+        EXTRA_PARAMS="-F user_id=$USER -F user_password=$PASSWORD"
+    else
+        AUTH_CODE="LINUX"
+        EXTRA_PARAMS=
+    fi
+
+    UPLOAD_SERVER=$(curl 'http://api.netload.in/getserver.php') || return
+
+    PAGE=$(curl_with_log $EXTRA_PARAMS \
+        -F "auth=$AUTH_CODE" \
+        -F "modus=file_upload" \
+        -F "file_link=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        $UPLOAD_SERVER) || return
+
+    # Expected result:
+    # return_code;filename;filesize;download_link;delete_link
+    IFS=';' read RETCODE FILENAME FILESIZE DL DEL <<< "$PAGE"
+
+    case "$RETCODE" in
+        UPLOAD_OK)
+            echo "$DL ($DEL)"
+            return 0
+            ;;
+        rar_password)
+            log_error "Archive is password protected"
+            ;;
+        unknown_user_id|wrong_user_password|no_user_password)
+            log_error "bad login and/or password ($RETCODE)"
+            return $ERR_LOGIN_FAILED
+            ;;
+        unknown_auth|prepare_failed)
+            log_error "unexpected result ($RETCODE)"
+            ;;
+    esac
+
+    return $ERR_FATAL
 }
 
 # List multiple netload.in links

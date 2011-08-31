@@ -19,7 +19,7 @@ mediafire    | download | upload |        | list |
 megaupload   | download | upload | delete | list |
 mirrorcreator|          | upload |        |      |
 multiupload  |          | upload |        | list |
-netload_in   | download |        |        | list |
+netload_in   | download | upload |        | list |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
 uploading    | download |        |        |      |
