@@ -29,7 +29,7 @@ NO_UPLOADING_COM,,no-up,,Exclude Uploading.com from host list"
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 
 # Upload a file to multiupload.com
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3 (optional): alternate remote filename
 # stdout: multiupload.com download link
