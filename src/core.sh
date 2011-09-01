@@ -1115,6 +1115,21 @@ process_configfile_module_options() {
     fi
 }
 
+# Get system information
+log_report_info() {
+    if test $(verbose_level) -ge 4; then
+        log_report '=== SYSTEM INFO BEGIN ==='
+        log_report "[mach] `uname -a`"
+        log_report "[bash] `echo $BASH_VERSION`"
+        if check_exec 'curl'; then
+            log_report "[curl] `$(type -P curl) --version | sed 1q`"
+        else
+            log_report '[curl] not found!'
+        fi
+        log_report '=== SYSTEM INFO END ==='
+    fi
+}
+
 ## ----------------------------------------------------------------------------
 
 ##
