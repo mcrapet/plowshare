@@ -493,7 +493,7 @@ uri_encode() {
 # stdout: data (nearly complain RFC3986)
 uri_decode() {
     sed -e 's/%20/\x20/g' -e 's/%5B/\[/g' -e 's/%5D/\]/g' \
-        -e 's/%2C/,/g' -e 's/%28/(/g' -e 's/%29/)/g'
+        -e 's/%2C/,/g' -e 's/%28/(/g' -e 's/%29/)/g' -e 's/%2B/+/g'
 }
 
 # Retrieves size of file
