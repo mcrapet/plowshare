@@ -100,7 +100,8 @@ log_error() {
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
 curl() {
-    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300 --user-agent 'Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.16) Gecko/20110107 Firefox/3.0.9 (like Firefox/3.5.16')
+    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300 --user-agent)
+    OPTIONS[6]='Mozilla/5.0 (X11; U; Linux x86_64; fr; rv:1.9.1.16) Gecko/20110107 Firefox/3.0.9 (like Firefox/3.5.16)'
     local -a POST_OPTIONS=()
     local DRETVAL=0
 
