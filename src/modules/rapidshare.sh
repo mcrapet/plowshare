@@ -27,7 +27,8 @@ MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use an account"
-MODULE_RAPIDSHARE_DELETE_OPTIONS=""
+MODULE_RAPIDSHARE_DELETE_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Use an account"
 
 # Output a rapidshare file download URL (anonymous and premium)
 # $1: cookie file (unused here)
@@ -127,7 +128,7 @@ rapidshare_download() {
 # $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3 (optional): alternate remote filename
-# stdout: download_url (delete_url)
+# stdout: download_url
 rapidshare_upload() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
 
@@ -147,54 +148,50 @@ rapidshare_upload() {
     fi
 
     SERVER_NUM=$(curl "http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver") || return
-    log_debug "free upload server is rs$SERVER_NUM"
+    log_debug "upload server is rs$SERVER_NUM"
 
-    UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/upload.cgi"
+    UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/rsapi.cgi"
 
-    INFO=$(curl_with_log -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
+    INFO=$(curl_with_log -F "sub=upload" \
+            -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
             -F "login=$USER" -F "password=$PASSWORD" "$UPLOAD_URL") || return
 
-    # Expect answer like this (.3 is filesize, .4 is md5sum):
-    # savedfiles=1 forbiddenfiles=0 premiumaccount=0
-    # File1.1=http://rapidshare.com/files/425566082/RFC-all.tar.gz
-    # File1.2=http://rapidshare.com/files/425566082/RFC-all.tar.gz?killcode=17632915428441196428
-    # File1.3=225280
-    # File1.4=0902CFBAF085A18EC47B252364BDE491
-    # File1.5=Completed
-
-    URL=$(echo "$INFO" | parse_quiet "files" "1=\(.*\)") || {
-        ERROR=$(echo "$INFO" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
-        if [ -n "$ERROR" ]; then
-            log_error "website error: $ERROR"
-        fi
+    if ! match '^COMPLETE' "$INFO"; then
+        log_error "incomplete upload"
         return $ERR_FATAL
-    }
-    KILL=$(echo "$INFO" | parse "killcode" "2=\(.*\)") || return
+    fi
 
-    echo "$URL ($KILL)"
+    # Expected answer:
+    # fileid,filename,filesize,md5hex
+    IFS="," read FILEID FILENAME SZ <<< "${INFO:9}"
+
+    echo "http://rapidshare.com/files/${FILEID}/$FILENAME"
 }
 
 # Delete a file on rapidshare
-# $1: delete link
+# $1: rapidshare (download) link
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
 
-    # Two URL formats:
-    # https://rapidshare.com/files/1706226814/arc02f.rar?killcode=15013892074548155797'
-    # https://rapidshare.com/#!index|deletefiles|15013892074548155797|1706226814|arc02f.rar
-    if match '.*/#!index|' "$URL"; then
-        KILLCODE=$(echo "$URL" | cut -d'|' -f3)
-        FILEID=$(echo "$URL" | cut -d'|' -f4)
-    else
-        KILLCODE=$(echo "$URL" | parse_quiet kill 'killcode=\(.*\)')
-        FILEID=$(echo "$URL" | cut -d'/' -f5)
+    if ! test "$AUTH"; then
+        log_error "Anonymous users cannot delete files"
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    if [ -z "$KILLCODE" ]; then
-        log_error "cannot parse killcode from URL"
-        return $ERR_FATAL
+    local USER="${AUTH%%:*}"
+    local PASSWORD="${AUTH#*:}"
+
+    if [ "$AUTH" = "$PASSWORD" ]; then
+        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+    fi
+
+    # Two possible URL format
+    if match '.*/#!download|' "$URL"; then
+        FILEID=$(echo "$URL" | cut -d'|' -f3)
+    else
+        FILEID=$(echo "$URL" | cut -d'/' -f5)
     fi
 
     if [ -z "$FILEID" ]; then
@@ -203,21 +200,13 @@ rapidshare_delete() {
     fi
 
     log_debug "FileID=$FILEID"
-    log_debug "KillCode=$KILLCODE"
 
-    local RESPONSE=$(curl \
-            "https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=deletefreefile&killcode=${KILLCODE}&fileid=${FILEID}")
+    RESPONSE=$(curl -F "login=$USER" -F "password=$PASSWORD" \
+        -F "sub=deletefiles" -F "files=$FILEID" \
+        'https://api.rapidshare.com/cgi-bin/rsapi.cgi') || return
 
-    # Possible answers:
-    # OK
-    # ERROR: Deletion not possible. (441e3b41)
-    ERROR=$(echo "$RESPONSE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
-
-    if [ -n "$ERROR" ]; then
-        log_error "website error: $ERROR"
-        return $ERR_FATAL
-    elif [ "$RESPONSE" != "OK" ]; then
-        log_debug "unexpected result"
+    if [ "$RESPONSE" != 'OK' ]; then
+        log_error "unexpected result ($RESPONSE)"
         return $ERR_FATAL
     fi
 
