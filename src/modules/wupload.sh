@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_WUPLOAD_REGEXP_URL="http://\(www\.\)\?wupload\.com/"
+MODULE_WUPLOAD_REGEXP_URL="http://\(www\.\)\?wupload\.[a-z]\+/"
 
 MODULE_WUPLOAD_DOWNLOAD_OPTIONS=""
 MODULE_WUPLOAD_DOWNLOAD_RESUME=no
@@ -38,12 +38,14 @@ wupload_download() {
     local COOKIEFILE="$1"
     local URL="$2"
 
-    if match 'wupload\.com\/folder\/' "$URL"; then
+    if match '\/folder\/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     fi
 
-    local BASE_URL='http://www.wupload.com'
+    # Take provided .ccTLD
+    local BASE_URL=$(basename_url "$URL")
+
     local FILE_ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     local START_HTML WAIT_HTML
 
