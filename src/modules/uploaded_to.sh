@@ -89,7 +89,7 @@ uploaded_to_download() {
             log_debug "reCaptcha manual entering (loop $TRY)"
             (( TRY++ ))
 
-            local WORD=$(recaptcha_display_and_prompt "$IMAGE_FILENAME")
+            local WORD=$(captcha_process "$IMAGE_FILENAME")
 
             rm -f $IMAGE_FILENAME
 

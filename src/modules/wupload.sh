@@ -110,7 +110,7 @@ wupload_download() {
                     log_debug "reCaptcha manual entering (loop $TRY)"
                     (( TRY++ ))
 
-                    WORD=$(recaptcha_display_and_prompt "$IMAGE_FILENAME")
+                    WORD=$(captcha_process "$IMAGE_FILENAME")
 
                     rm -f $IMAGE_FILENAME
 
