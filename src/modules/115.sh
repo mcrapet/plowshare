@@ -29,7 +29,7 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: 115.com url
 # stdout: real file download link
 115_download() {
-    local HTML_PAGE=$(curl "$2" | break_html_lines)
+    local HTML_PAGE=$(curl -L "$2" | break_html_lines)
 
     if match 'file-notfound"' "$HTML_PAGE"; then
         log_debug "file not found"
