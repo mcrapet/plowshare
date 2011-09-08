@@ -419,12 +419,11 @@ parse_cookie() {
 
 # Return base of URL
 # Example: http://www.host.com/a/b/c/d => http://www.host.com
+# Note: Avoid using Bash regexp or `expr` for portability purposes
 #
 # $1: URL
 basename_url() {
-    # Bash >=3.0 supports regular expressions
-    # [[ "$1" =~ (http://[^/]*) ]] && echo "${BASH_REMATCH[1]}" || echo "$1"
-    echo $(expr match "$1" '\(http://[^/]*\)' || echo "$1")
+    sed -e 's/\(https\?:\/\/[^\/]*\).*/\1/' <<<"$1"
 }
 
 # Return basename of file path
