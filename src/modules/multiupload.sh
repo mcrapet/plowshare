@@ -70,15 +70,26 @@ multiupload_upload() {
 
     log_debug "Upload ID: $form_u / ${form_x:-No Progress-ID}"
 
-    # keep default settings
-    local form_site1=$(echo "$form" | parse_form_input_by_name 'service_5')
-    local form_site2=$(echo "$form" | parse_form_input_by_name 'service_1')
+    # Hosters list
+    # service_1 : MU (Megaupload)
+    # service_5 : RS (Rapidshare)
+    # service_6 : ZS (Zshare)
+    # service_7 : DF (DepositFiles)
+    # service_9 : HF (HotFile)
+    # service_10 : UP (Uploading.com)
+    # service_14 : FS (FileServe)
+    # service_15 : FC (FileSonic)
+    # service_16 : UK (UploadKing)
+    # service_17 : UH (UploadHere)
+
+    # Hosters (2011.09.12): MU, UK, DF, UH, HF, UP
+    # Keep default settings
+    local form_site1=$(echo "$form" | parse_form_input_by_name 'service_1')
+    local form_site2=$(echo "$form" | parse_form_input_by_name 'service_16')
     local form_site3=$(echo "$form" | parse_form_input_by_name 'service_7')
-    local form_site4=$(echo "$form" | parse_form_input_by_name 'service_9')
-    local form_site5=$(echo "$form" | parse_form_input_by_name 'service_6')
+    local form_site4=$(echo "$form" | parse_form_input_by_name 'service_17')
+    local form_site5=$(echo "$form" | parse_form_input_by_name 'service_9')
     local form_site6=$(echo "$form" | parse_form_input_by_name 'service_10')
-    local form_site7=$(echo "$form" | parse_form_input_by_name 'service_15')
-    local form_site8=$(echo "$form" | parse_form_input_by_name 'service_14')
 
     test "$NO_UPLOADING_COM" && form_site6=''
 
@@ -86,20 +97,17 @@ multiupload_upload() {
     # - file0 can go to file9 (included)
     # - fetchfield0 & fetchdesc0 are not used here
     # - there is a special variable "rsaccount" for RS (can be "C" or "P")
-    # - hosters: RS, MU, DF, HF, ZS, UP, FC, FS
     PAGE=$(curl_with_log -0 -b "$COOKIEFILE" \
         -F "file0=@$FILE;filename=$(basename_file "$DESTFILE")" \
         -F "description_0=$DESCRIPTION" \
         -F "X-Progress-ID=$form_x" \
         -F "u=$form_u" \
-        -F "service_5=$form_site1"  -F "username_5="  -F "password_5="  -F "remember_5="  \
-        -F "service_1=$form_site2"  -F "username_1="  -F "password_1="  -F "remember_1="  \
+        -F "service_1=$form_site1"  -F "username_1="  -F "password_1="  -F "remember_1="  \
+        -F "service_16=$form_site2" -F "username_16=" -F "password_16=" -F "remember_16=" \
         -F "service_7=$form_site3"  -F "username_7="  -F "password_7="  -F "remember_7="  \
-        -F "service_9=$form_site4"  -F "username_9="  -F "password_9="  -F "remember_9="  \
-        -F "service_6=$form_site5"  -F "username_6="  -F "password_6="  -F "remember_6="  \
+        -F "service_17=$form_site4" -F "username_17=" -F "password_17=" -F "remember_17=" \
+        -F "service_9=$form_site5"  -F "username_9="  -F "password_9="  -F "remember_9="  \
         -F "service_10=$form_site6" -F "username_10=" -F "password_10=" -F "remember_10=" \
-        -F "service_15=$form_site7" -F "username_15=" -F "password_15=" -F "remember_15=" \
-        -F "service_14=$form_site8" -F "username_14=" -F "password_14=" -F "remember_14=" \
         -F "fromemail=$FROMEMAIL" -F "toemail=$TOEMAIL" $form_action) || return
 
     DLID=$(echo "$PAGE" | parse_quiet 'downloadid' 'downloadid":"\([^"]*\)')
