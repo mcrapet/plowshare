@@ -37,7 +37,7 @@ zshare_download() {
     local URL=$(echo "$2" | replace '/audio/' '/download/' | \
                             replace '/video/' '/download/')
 
-    WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL")
+    WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL") || return
     match "File Not Found" "$WAITPAGE" &&
         { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
