@@ -43,6 +43,10 @@ wupload_download() {
         return $ERR_FATAL
     fi
 
+    # Be sure to get correct .ccTLD
+    DOMAIN=$(curl --head "$URL" | grep_http_header_location)
+    [ -n "$DOMAIN" ] && URL=$DOMAIN
+
     # Take provided .ccTLD
     local BASE_URL=$(basename_url "$URL")
 
