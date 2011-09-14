@@ -26,9 +26,9 @@ To run plowshare you will require:
 > A POSIX compliant operating system: 
     - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
     - Cygwin
-    - BSD: need some patches
+    - BSD (requires GNU-sed and GNU-getopt)
     - Mac OSX: need homebrew
-> Bash (version >= 3)
+> Bash (version >= 3.0)
 > Curl (with SSL support, usually required for premium account)
 
 > Character encoding converter (recommended)
@@ -49,7 +49,8 @@ To run plowshare you will require:
 
 > Picture ascii-art viewer (optional)
     - aview or
-    - libcaca
+    - libcaca or
+    - tiv
 
 ---
 [1] Used by badongo, mediafire and zshare modules
