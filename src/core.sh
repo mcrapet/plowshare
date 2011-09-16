@@ -649,6 +649,11 @@ wait() {
     local VALUE=$1
     local UNIT=$2
 
+    if test "$VALUE" = '0'; then
+        log_debug "wait called with null duration"
+        return
+    fi
+
     if [ "$UNIT" = "minutes" ]; then
         UNIT_SECS=60
         UNIT_STR=minutes
