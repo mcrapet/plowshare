@@ -194,7 +194,9 @@ netload_in_upload() {
 
     if test "$AUTH"; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-        AUTH_CODE=$(curl -b "$COOKIEFILE" 'http://www.netload.in/index.php?id=56' | parse 'Your Auth Code' ';">\([^<]*\)') || return
+        curl -b "$COOKIEFILE" --data 'get=Get Auth Code' 'http://www.netload.in/index.php?id=56' >/dev/null
+        AUTH_CODE=$(curl -b "$COOKIEFILE" 'http://www.netload.in/index.php?id=56' | \
+            parse 'Your Auth Code' ';">\([^<]*\)') || return
         log_debug "auth=$AUTH_CODE"
 
         local USER="${AUTH%%:*}"
