@@ -72,17 +72,25 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Guess if item is a generic URL (to start a download) or a file with links
-# (discard empty lines and comments).
+# Guess if item is a generic URL (a simple link string) or a text file with links.
 # $1: single URL or file (containing links)
 process_item() {
     local ITEM=$1
     if matchi "^[[:space:]]*https\?://" "$ITEM"; then
         echo "url|$(echo "$ITEM" | strip | sed -e 's/\x20/%20/g')"
     elif [ -f "$ITEM" ]; then
-        sed -ne "s,^[[:space:]]*\([^ #].*\)[[:space:]]*$,file|\1,p" "$ITEM" | strip | sed -e 's/\x20/%20/g'
+        case "${ITEM##*.}" in
+          zip|rar|tar|gz|7z|bz2|mp3|avi)
+              log_error "'$ITEM' seems to be a binary file, ignoring"
+              ;;
+          *)
+              # Discard empty lines and comments
+              sed -ne "s,^[[:space:]]*\([^ #].*\)[[:space:]]*$,file|\1,p" "$ITEM" | \
+                  strip | sed -e 's/\x20/%20/g'
+              ;;
+        esac
     else
-        log_error "cannot stat '$ITEM': No such file or directory"
+        log_error "cannot stat '$ITEM': No such file or directory, ignoring"
     fi
 }
 
