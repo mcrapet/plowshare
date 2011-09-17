@@ -24,6 +24,7 @@ MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
 MODULE_UPLOADED_TO_FINAL_LINK_NEEDS_COOKIE=yes
 
+MODULE_UPLOADED_TO_UPLOAD_OPTIONS=""
 MODULE_UPLOADED_TO_LIST_OPTIONS=""
 
 # Output an uploaded.to file download URL
@@ -126,6 +127,35 @@ uploaded_to_download() {
 
     echo $FILE_URL
     echo $FILE_NAME
+}
+
+# Upload a file to uploaded.to
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3 (optional): alternate remote filename
+# stdout: ul.to download link
+uploaded_to_upload() {
+    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_UPLOAD_OPTIONS" "$@")"
+
+    local FILE="$2"
+    local DESTFILE=${3:-$FILE}
+
+    local JS SERVER DATA
+
+    JS=$(curl 'http://uploaded.to/js/script.js') || return
+    SERVER=$(echo "$JS" | parse '\/\/stor' "[[:space:]]'\([^']*\)") || return
+
+    log_debug "uploadServer: $SERVER"
+
+    # TODO: Allow changing admin code (used for deletion)
+
+    DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
+        -F "Filename=$(basename_file "$DESTFILE")" \
+        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F 'Upload=Submit Query' \
+        "${SERVER}upload?admincode=noyiva") || return
+
+    echo "http://ul.to/${DATA%%,*}"
 }
 
 # List a uploaded.to shared file folder URL

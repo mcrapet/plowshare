@@ -23,7 +23,7 @@ netload_in   | download | upload |        | list |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
 uploading    | download |        |        |      |
-uploaded_to  | download |        |        | list |
+uploaded_to  | download | upload |        | list |
 usershare    | download |        |        |      |
 x7_to        | download |        |        |      |
 zshare       | download | upload | delete |      |
