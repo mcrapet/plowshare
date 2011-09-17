@@ -127,8 +127,11 @@ fi
 
 # Check requested module
 MODULE=$(module_exist "$MODULES" "$1") || {
-    log_error "unsupported module ($1)"
-    exit $ERR_NOMODULE
+    # Give a second try
+    MODULE=$(module_exist "$MODULES" "${1//./_}") || {
+        log_error "unsupported module ($1)"
+        exit $ERR_NOMODULE
+    }
 }
 
 set_exit_trap
