@@ -37,7 +37,7 @@ dataport_cz_download() {
     local URL=$(uri_encode_file "$2")
     local PAGE=$(curl --location "$URL")
 
-    if ! match "<h2>Stáhnout soubor</h2>" "$PAGE"; then
+    if match '<h2>Soubor nebyl nalezen</h2>' "$PAGE"; then
         log_error "File not found."
         return $ERR_LINK_DEAD
     fi
@@ -93,6 +93,8 @@ dataport_cz_upload() {
     local FILE="$2"
     local DESTFILE=${3:-$FILE}
     local UPLOADURL="http://dataport.cz/"
+
+    detect_javascript >/dev/null || return
 
     if test "$AUTH"; then
         LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
