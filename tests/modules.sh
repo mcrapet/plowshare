@@ -23,6 +23,9 @@
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR="$ROOTDIR/src"
 
+# External tools
+TPUT=tput
+
 # Test data
 TEST_FILES=( "up-down-del.t" "single_link_download.t" )
 TEST_LETTER=('T' 'S')
@@ -52,6 +55,27 @@ list() {
 
 stderr() {
     echo "$@" >&2;
+}
+
+# Print test result
+# $1: '$?' value
+status() {
+    RET=$1
+    if [ "$FANCY_OUTPUT" -ne 0 ]; then
+        # based on /lib/lsb/init-functions
+        RALIGN="\\r\\033[$[`$TPUT cols`-6]C"
+        NORMAL=`$TPUT op`
+        if [ "$RET" -eq 0 ]; then
+            GREEN=`$TPUT setaf 2`
+            echo -e "${RALIGN}[${GREEN}DONE${NORMAL}]"
+        else
+            RED=`$TPUT setaf 1`
+            echo -e "${RALIGN}[${RED}FAIL${NORMAL}]"
+        fi
+    else
+        echo
+    fi
+    return $RET
 }
 
 # Is element contained in array
@@ -136,9 +160,16 @@ test_case_up_down_del() {
     RET=0
     LINKS=$(upload $OPTS_UP "$MODULE" "$FILE") || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo "up KO"
-        stderr "ERR ($RET): plowup $OPTS_UP $MODULE $FILE"
-        return 1
+        # ERR_LINK_NEED_PERMISSIONS=12
+        if [ "$RET" -eq 12 ]; then
+            echo -n "skip up (need account)"
+            status 1
+        else
+            echo -n "up KO"
+            status 1
+            stderr "ERR ($RET): plowup $OPTS_UP $MODULE $FILE"
+        fi
+        return
     fi
 
     # Should return "download_link (delete_link)
@@ -150,18 +181,20 @@ test_case_up_down_del() {
     # Check link
     download --check-link $OPTS_DN "$DL_LINK" >/dev/null || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo "check link KO"
+        echo -n "check link KO"
+        status 2
         stderr "ERR ($RET): plowdown --check-link $OPTS_DN $DL_LINK"
-        return 2
+        return
     fi
 
     echo -n "check link ok > "
 
     local FILENAME=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo "down KO"
+        echo -n "down KO"
+        status 3
         stderr "ERR ($RET): plowdown $OPTS_DN $DL_LINK"
-        return 3
+        return
     else
         rm -f "$FILENAME"
     fi
@@ -171,19 +204,21 @@ test_case_up_down_del() {
     delete $OPTS_DEL "$DEL_LINK" >/dev/null || RET=$?
     # If delete function available (ERROR_CODE_NOMODULE)
     if [ "$RET" -eq 2 ]; then
-        echo "skip del (not available)"
+        echo -n "skip del (not available)"
     # ERR_LINK_NEED_PERMISSIONS=12
     elif [ "$RET" -eq 12 ]; then
-        echo "skip del (need account)"
+        echo -n "skip del (need account)"
     elif [ "$RET" -ne 0 ]; then
-        echo "del KO"
+        echo -n "del KO"
+        status 4
         stderr "ERR ($RET): plowdel $OPTS_DEL $DEL_LINK"
-        return 4
+        return
     else
-        echo "del ok"
+        echo -n "del ok"
     fi
 
-    return 0
+    status 0
+    return
 }
 
 # $1: url
@@ -201,15 +236,17 @@ test_signle_down() {
     RET=0
     local F=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo "down KO"
+        echo -n "down KO"
+        status 1
         stderr "ERR ($RET): plowdown $OPTS_DN $LINK"
-        return 1
+        return
     fi
 
     rm -f "$F"
-    echo "down ok"
+    echo -n "down ok"
 
-    return 0
+    status 0
+    return
 }
 
 usage() {
@@ -221,7 +258,7 @@ Testing options (if none specified all tests are run):
 
 General options:
  -h         display this help and exit
- -c         enable fancy output (uses tput) [NOT IMPLEMENTED YET!]
+ -d         disable fancy output (uses tput)
 EOF
 
 #Single test options: [NOT IMPLEMENTED YET!]
@@ -236,15 +273,18 @@ EOF
 TEMP_DIR=$(gettemp)
 
 TESTOP=te
+FANCY_OUTPUT=1
 PASS=1
 TEST_FILESIZES=( '200k' '2M' '5M' )
 TEST_ITEMS=()
 
 # parse command line options
-while getopts "hlct:p:r:" OPTION
+while getopts "hldt:p:r:" OPTION
 do
     case $OPTION in
         l) TESTOP='li'
+           ;;
+        d) FANCY_OUTPUT=0
            ;;
         ?|h) usage
            exit 1
@@ -282,6 +322,7 @@ if [ $TESTOP = 'li' ]; then
     done < "${TEST_FILES[1]}"
 
 else
+    # FIXME: Do 1 pass for now..
     FILE1=$(create_temp_file 200k 1)
 
     # Perform tests specified in TEST_ITEMS array
@@ -334,4 +375,3 @@ else
 
     rm -f "$FILE1"
 fi
-
