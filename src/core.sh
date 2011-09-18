@@ -100,9 +100,21 @@ log_error() {
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
 curl() {
-    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300 --user-agent)
-    OPTIONS[6]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
-    local -a POST_OPTIONS=()
+    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300)
+
+    # Check if caller as specified a User-Agent, if so don't put one
+    local exist=0
+    for e; do
+        if [ "$e" = '-A' -o "$e" = '--user-agent' ]; then
+            exist=1
+            break
+        fi
+    done
+    if [ "$exist" -eq 0 ]; then
+        OPTIONS[5]='--user-agent'
+        OPTIONS[6]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
+    fi
+
     local DRETVAL=0
 
     # no verbose unless debug level; don't show progress meter for report level too
@@ -111,9 +123,11 @@ curl() {
     test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
     test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" "--limit-rate" "$LIMIT_RATE")
 
-    test -n "$GLOBAL_COOKIES" && \
-        POST_OPTIONS=("${POST_OPTIONS[@]}" "-b" "$GLOBAL_COOKIES" -c "$GLOBAL_COOKIES")
-    set -- $(type -P curl) "${OPTIONS[@]}" "$@" "${POST_OPTIONS[@]}"
+    if test -z "$GLOBAL_COOKIES"; then
+        set -- $(type -P curl) "${OPTIONS[@]}" "$@"
+    else
+        set -- $(type -P curl) "-b $GLOBAL_COOKIES" "${OPTIONS[@]}" "$@"
+    fi
 
     if test $(verbose_level) -lt 4; then
         "$@" || DRETVAL=$?
