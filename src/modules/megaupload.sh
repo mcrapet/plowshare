@@ -61,9 +61,6 @@ megaupload_download() {
         post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || return
     fi
 
-    echo "$URL" | grep -q "\.com/?d=" ||
-        URL=$(curl -I "$URL" | grep_http_header_location)
-
     TRY=0
     while retry_limit_not_reached || return; do
         TRY=$(($TRY + 1))
@@ -167,7 +164,7 @@ megaupload_download() {
     FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href')
     if [ -z "$FILEURL" ]; then
         log_error "Can't parse filename (unexpected characters?)"
-        return 1
+        return $ERR_FATAL
     fi
 
     wait $((WAITTIME+1)) seconds || return
