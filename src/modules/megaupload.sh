@@ -243,7 +243,7 @@ megaupload_upload() {
 
         log_debug "starting file upload: $FILE"
 
-        curl_with_log -b "$COOKIEFILE" \
+        PAGE=$(curl_with_log -b "$COOKIEFILE" \
             -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
             -F "sessionid=$UPLOAD_ID" \
             -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
@@ -252,7 +252,23 @@ megaupload_upload() {
             -F "fromemail=$FROMEMAIL" \
             -F "password=$LINK_PASSWORD" \
             -F "multiemail=$MULTIEMAIL" \
-            "$FORM_URL" | parse "downloadurl" "url = '\(.*\)';"
+            "$FORM_URL") || return
+
+        echo "$PAGE" | parse "downloadurl" "url = '\([^']*\)"
+
+        # This is a trick for free account to set a password
+        if [ -n "$AUTH" -a -n "$LINK_PASSWORD" ]; then
+            ACC=$(curl -b "$COOKIEFILE" "$BASEURL/?c=account") || return
+            if match '<b>Regular</b>' "$ACC"; then
+                local ID=$(echo "$PAGE" | parse "downloadurl" "d=\([^']*\)");
+                local T="$(date +%s)000"
+                PAGE=$(curl -b "$COOKIEFILE" \
+                    --data "action=edit&id=${ID}&name=$(basename_file $DESTFILE)&description=${DESCRIPTION}&password=$LINK_PASSWORD" \
+                    'http://www.megaupload.com/?c=filemanager&ajax=1&r=${T}') || return
+                echo "$PAGE" >/tmp/a
+            fi
+        fi
+
     fi
 }
 
