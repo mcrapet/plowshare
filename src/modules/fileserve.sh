@@ -202,14 +202,14 @@ fileserve_download() {
 # http://www.fileserve.com/script/upload-v3.js
 # $1: cookie file (unused)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download + del link on fileserve
 fileserve_upload() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_UPLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local BASEURL="http://www.fileserve.com"
 
     local USERID SID TIMEOUT
@@ -241,7 +241,7 @@ fileserve_upload() {
     log_debug "sessionId: $SID"
 
     PAGE=$(curl_with_log --referer "$BASEURL/" -H "Expect:" \
-            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "file=@$FILE;filename=$DESTFILE" \
             "http://upload.fileserve.com/upload/$USERID/$TIMEOUT/$SID/" | break_html_lines) || return
 
     if match 'HTTP Status 400' "$PAGE"; then

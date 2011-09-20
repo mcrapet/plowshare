@@ -57,13 +57,13 @@ dl_free_fr_download() {
 # Upload a file to dl.free.fr
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: dl.free.fr download + del link
 dl_free_fr_upload() {
     eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local UPLOADURL="http://dl.free.fr"
 
     log_debug "downloading upload page: $UPLOADURL"
@@ -83,7 +83,7 @@ dl_free_fr_upload() {
     # use -D. This should be reported to cURL bug tracker.
     log_debug "starting file upload: $FILE"
     STATUS=$(curl_with_log -D $H --referer "$UPLOADURL/index_nojs.pl" \
-        -F "ufile=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "ufile=@$FILE;filename=$DESTFILE" \
         -F "mail1=" \
         -F "mail2=" \
         -F "mail3=" \

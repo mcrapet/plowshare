@@ -151,7 +151,7 @@ for FILE in "$@"; do
     # Check for remote upload
     if match "^https\?://" "$FILE"; then
         LOCALFILE="$FILE"
-        DESTFILE=""
+        DESTFILE="dummy"
     else
         # non greedy parsing
         IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
@@ -166,12 +166,13 @@ for FILE in "$@"; do
             continue
         fi
     fi
-
-    test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE:-$LOCALFILE}"
-    test "$NAME_SUFFIX" && DESTFILE="${DESTFILE:-$LOCALFILE}${NAME_SUFFIX}"
+    
+    DESTFILE=$(basename_file "${DESTFILE:-$LOCALFILE}")
+    test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE}"
+    test "$NAME_SUFFIX" && DESTFILE="${DESTFILE}${NAME_SUFFIX}"
 
     log_notice "Starting upload ($MODULE): $LOCALFILE"
-    test "$DESTFILE" && log_notice "Destination file: $DESTFILE"
+    log_notice "Destination file: $DESTFILE"
 
     : > "$UPCOOKIE"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE" || \

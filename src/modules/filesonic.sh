@@ -191,16 +191,16 @@ filesonic_download() {
 # Upload a file to filesonic
 # $1: cookie file
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download link on filesonic
 filesonic_upload() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_UPLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local FOLDERID=0
-    local URL="http://www.filesonic.com"
+    local URL='http://www.filesonic.com'
 
     # update URL if there is a specific .ccTLD location from there
     LOCATION=$(curl -I "$URL" | grep_http_header_location)
@@ -233,7 +233,7 @@ filesonic_upload() {
     # send file and get Location to completed URL
     # Note: explicitely remove "Expect: 100-continue" header that curl wants to send
     STATUS=$(curl -D - -b "$COOKIEFILE" --referer "$URL" -H "Expect:" \
-        -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" $FOLDER \
+        -F "files[]=@$FILE;filename=$DESTFILE" $FOLDER \
         "http://$SERVER/?callbackUrl=$URL/upload-completed/:uploadProgressId&X-Progress-ID=$ID")
 
     if ! test "$STATUS"; then

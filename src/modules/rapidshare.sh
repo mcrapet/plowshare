@@ -127,13 +127,13 @@ rapidshare_download() {
 # Upload a file to rapidshare using rsapi - http://images.rapidshare.com/apidoc.txt
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download_url
 rapidshare_upload() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
 
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot upload files"
@@ -153,7 +153,7 @@ rapidshare_upload() {
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/rsapi.cgi"
 
     INFO=$(curl_with_log -F "sub=upload" \
-            -F "filecontent=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "filecontent=@$FILE;filename=$DESTFILE" \
             -F "login=$USER" -F "password=$PASSWORD" "$UPLOAD_URL") || return
 
     if ! match '^COMPLETE' "$INFO"; then

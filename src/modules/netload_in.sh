@@ -177,7 +177,7 @@ netload_in_premium_login() {
 # Upload a file to netload.in
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: netload.in download link (delete link)
 #
 # http://api.netload.in/index.php?id=3
@@ -187,7 +187,7 @@ netload_in_upload() {
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local BASE_URL="http://netload.in"
 
     local AUTH_CODE UPLOAD_SERVER EXTRA_PARAMS
@@ -213,7 +213,7 @@ netload_in_upload() {
     PAGE=$(curl_with_log $EXTRA_PARAMS \
         -F "auth=$AUTH_CODE" \
         -F "modus=file_upload" \
-        -F "file_link=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "file_link=@$FILE;filename=$DESTFILE" \
         $UPLOAD_SERVER) || return
 
     # Expected result:

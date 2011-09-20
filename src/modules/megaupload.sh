@@ -175,14 +175,14 @@ megaupload_download() {
 # Upload a file to megaupload
 # $1: cookie file
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download link on megaupload
 megaupload_upload() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_UPLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local LOGINURL="http://www.megaupload.com/?c=login"
     local BASEURL=$(basename_url "$LOGINURL")
 
@@ -246,7 +246,7 @@ megaupload_upload() {
         PAGE=$(curl_with_log -b "$COOKIEFILE" \
             -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
             -F "sessionid=$UPLOAD_ID" \
-            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "file=@$FILE;filename=$DESTFILE" \
             -F "message=$DESCRIPTION" \
             -F "toemail=$TOEMAIL" \
             -F "fromemail=$FROMEMAIL" \
@@ -263,7 +263,7 @@ megaupload_upload() {
                 local ID=$(echo "$PAGE" | parse "downloadurl" "d=\([^']*\)");
                 local T="$(date +%s)000"
                 PAGE=$(curl -b "$COOKIEFILE" \
-                    --data "action=edit&id=${ID}&name=$(basename_file $DESTFILE)&description=${DESCRIPTION}&password=$LINK_PASSWORD" \
+                    --data "action=edit&id=${ID}&name=${DESTFILE}&description=${DESCRIPTION}&password=$LINK_PASSWORD" \
                     'http://www.megaupload.com/?c=filemanager&ajax=1&r=${T}') || return
                 echo "$PAGE" >/tmp/a
             fi

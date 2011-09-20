@@ -29,13 +29,13 @@ RAPIDSHARE,,rapidshare,,Include this additional host site"
 # Upload a file to mirrorcreator.com
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: mirrorcreator.com download link
 mirrorcreator_upload() {
     eval "$(process_options mirrorcreator "$MODULE_MIRRORCREATOR_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local SZ=$(get_filesize "$FILE")
     local BASE_URL="http://www.mirrorcreator.com"
 
@@ -68,7 +68,7 @@ mirrorcreator_upload() {
     fi
 
     # Do not seem needed..
-    #PAGE=$(curl "$BASE_URL/fnvalidator.php?fn=$(basename_file "$DESTFILE");&fid=upfile_123;")
+    #PAGE=$(curl "$BASE_URL/fnvalidator.php?fn=${DESTFILE};&fid=upfile_123;")
 
     # Set N to a bigger value to upload to more hosters
     CURL_STRING=''
@@ -104,7 +104,7 @@ mirrorcreator_upload() {
     log_debug "Upload ID: $ID"
 
     PAGE=$(curl_with_log -L \
-        -F "upfile_123=@$FILE;filename=$(basename_file "$DESTFILE")" -F "mail=" \
+        -F "upfile_123=@$FILE;filename=$DESTFILE" -F "mail=" \
         $CURL_STRING \
         "$BASE_URL/cgi-bin/ubr_upload.pl?upload_id=$ID") ||
         { log_error "Couldn't upload file!"; return 1; }

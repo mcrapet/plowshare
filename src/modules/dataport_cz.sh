@@ -84,14 +84,14 @@ dataport_cz_download() {
 # Upload a file to dataport.cz
 # $1: cookie file
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download link
 dataport_cz_upload() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local UPLOADURL="http://dataport.cz/"
 
     detect_javascript >/dev/null || return
@@ -118,7 +118,7 @@ dataport_cz_upload() {
         -F "folder=/upload/uploads" \
         -F "uid=$ID" \
         -F "Upload=Submit Query" \
-        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
         "http://www10.dataport.cz/save.php")
 
     if ! test "$STATUS"; then

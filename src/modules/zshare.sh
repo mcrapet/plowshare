@@ -62,13 +62,13 @@ zshare_download() {
 # Upload a file to zshare.net
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: zshare download + del link
 zshare_upload() {
     eval "$(process_options zshare "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local UPLOADURL="http://www.zshare.net/"
 
     log_debug "downloading upload page: $UPLOADURL"
@@ -85,7 +85,7 @@ zshare_upload() {
     # I'm keeping both, just in case.
     if [ -z "$DESCRIPTION" ]; then
         INFOPAGE=$(curl_with_log -L \
-            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "file=@$FILE;filename=$DESTFILE" \
             -F "descr=$DESCRIPTION" \
             -F "is_private=0"       \
             -F "TOS=1"              \
@@ -101,7 +101,7 @@ zshare_upload() {
 
         # Note: description is taken from URL and not from form field
         INFOPAGE=$(curl_with_log -L \
-            -F "file=@$FILE;filename=$(basename_file "$DESTFILE")" \
+            -F "file=@$FILE;filename=$DESTFILE" \
             -F "descr=$DESCRIPTION" \
             -F "is_private=0"       \
             -F "TOS=1"              \

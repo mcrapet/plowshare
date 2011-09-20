@@ -132,13 +132,13 @@ uploaded_to_download() {
 # Upload a file to uploaded.to
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: ul.to download link
 uploaded_to_upload() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
 
     local JS SERVER DATA
 
@@ -150,8 +150,8 @@ uploaded_to_upload() {
     # TODO: Allow changing admin code (used for deletion)
 
     DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
-        -F "Filename=$(basename_file "$DESTFILE")" \
-        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "Filename=$DESTFILE" \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
         -F 'Upload=Submit Query' \
         "${SERVER}upload?admincode=noyiva") || return
 

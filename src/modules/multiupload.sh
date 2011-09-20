@@ -31,7 +31,7 @@ MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 # Upload a file to multiupload.com
 # $1: cookie file
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: multiupload.com download link
 #
 # Note: No external premium account (RS, MU, ...) support.
@@ -40,7 +40,7 @@ multiupload_upload() {
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local BASE_URL="http://www.multiupload.com"
 
     if test "$AUTH"; then
@@ -98,7 +98,7 @@ multiupload_upload() {
     # - fetchfield0 & fetchdesc0 are not used here
     # - there is a special variable "rsaccount" for RS (can be "C" or "P")
     PAGE=$(curl_with_log -0 -b "$COOKIEFILE" \
-        -F "file0=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "file0=@$FILE;filename=$DESTFILE" \
         -F "description_0=$DESCRIPTION" \
         -F "X-Progress-ID=$form_x" \
         -F "u=$form_u" \

@@ -53,13 +53,13 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 # Upload a file to 2shared.com
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: 2shared.com download + admin link
 2shared_upload() {
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local UPLOADURL="http://www.2shared.com/"
 
     log_debug "downloading upload page: $UPLOADURL"
@@ -71,7 +71,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     log_debug "starting file upload: $FILE"
     STATUS=$(curl_with_log \
         -F "mainDC=1" \
-        -F "fff=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "fff=@$FILE;filename=$DESTFILE" \
         "$ACTION") || return
 
     if ! match "upload has successfully completed" "$STATUS"; then

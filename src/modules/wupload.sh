@@ -159,13 +159,13 @@ wupload_download() {
 # Upload a file to wupload using wupload api - http://api.wupload.com/user
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download link on wupload
 wupload_upload() {
     eval "$(process_options wupload "$MODULE_WUPLOAD_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local BASE_URL="http://api.wupload.com/"
 
     if test "$AUTH"; then
@@ -194,7 +194,7 @@ wupload_upload() {
     fi
 
     # Upload one file per request
-    JSON=$(curl_with_log -L -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" "$URL") || return
+    JSON=$(curl_with_log -L -F "files[]=@$FILE;filename=$DESTFILE" "$URL") || return
 
     if ! match 'success' "$JSON"; then
         log_error "upload failed"

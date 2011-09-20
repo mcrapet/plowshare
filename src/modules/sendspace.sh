@@ -63,16 +63,16 @@ sendspace_download() {
 # Upload a file to sendspace.com
 # $1: cookie file (unused here)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: sendspace.com download + delete link
 sendspace_upload() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_UPLOAD_OPTIONS" "$@")"
 
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local DATA
 
-    DATA=$(curl "http://www.sendspace.com") || return
+    DATA=$(curl 'http://www.sendspace.com') || return
     local FORM_HTML=$(grep_form_by_order "$DATA" 2 | break_html_lines_alt)
     local form_url=$(echo "$FORM_HTML" | parse_form_action)
     local form_maxfsize=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
@@ -96,7 +96,7 @@ sendspace_upload() {
         -F "description[]=$DESCRIPTION"   \
         -F "ownemail="                    \
         -F "recpemail="                   \
-        -F "upload_file[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "upload_file[]=@$FILE;filename=$DESTFILE" \
         "$form_url") || return
 
     DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href')

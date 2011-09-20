@@ -196,11 +196,11 @@ get_ofuscated_link() {
 # Upload a file to mediafire
 # $1: cookie file (unused)
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: mediafire.com download link
 mediafire_upload() {
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local BASE_URL="http://www.mediafire.com"
 
     log_debug "Get uploader configuration"
@@ -228,9 +228,9 @@ mediafire_upload() {
 
     # HTTP header "Expect: 100-continue" seems to confuse server
     XML=$(curl_with_log -0 \
-        -F "Filename=$(basename_file "$DESTFILE")" \
+        -F "Filename=$DESTFILE" \
         -F "Upload=Submit Query" \
-        -F "Filedata=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
         --user-agent "Shockwave Flash" \
         --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" "$UPLOAD_URL") || return
 

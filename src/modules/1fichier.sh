@@ -72,14 +72,14 @@ EMAIL,,email:,EMAIL,Field for notification email"
 # Upload a file to 1fichier.tld
 # $1: cookie file
 # $2: input file (with full path)
-# $3 (optional): alternate remote filename
+# $3: remote filename
 # stdout: download + del link
 1fichier_upload() {
     eval "$(process_options 1fichier "$MODULE_1FICHIER_UPLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local FILE="$2"
-    local DESTFILE=${3:-$FILE}
+    local DESTFILE="$3"
     local UPLOADURL="http://upload.1fichier.com"
 
     detect_javascript >/dev/null || return
@@ -98,7 +98,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
         -F "mail=$EMAIL" \
         -F "dpass=$LINK_PASSWORD" \
         -F "domain=$DOMAIN" \
-        -F "file[]=@$FILE;filename=$(basename_file "$DESTFILE")" \
+        -F "file[]=@$FILE;filename=$DESTFILE" \
         "$UPLOADURL/upload.cgi?id=$S_ID") || return
 
     RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
