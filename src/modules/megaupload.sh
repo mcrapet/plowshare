@@ -149,7 +149,7 @@ megaupload_download() {
         fi
 
         # Look for a download link (anonymous & Free account)
-        FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href' 2>/dev/null)
+        FILEURL=$(echo "$PAGE" | parse_attr_quiet 'id="downloadlink"' 'href')
         if test "$FILEURL"; then
             WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
                 "count=\([[:digit:]]\+\);") || return

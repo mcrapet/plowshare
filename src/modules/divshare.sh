@@ -43,14 +43,14 @@ divshare_download() {
     test "$CHECK_LINK" && return 0
 
     # Uploader can disable audio/video download (only streaming is available)
-    REDIR_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href' 2>/dev/null) || {
+    REDIR_URL=$(echo "$PAGE" | parse_attr_quiet 'btn_download_new' 'href') || {
         log_error "content download not allowed"
         return $ERR_LINK_DEAD
     }
 
     if ! match '^http' "$REDIR_URL"; then
         WAIT_PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL")
-        WAIT_TIME=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'content="\([^;]*\)' 2>/dev/null)
+        WAIT_TIME=$(echo "$WAIT_PAGE" | parse_quiet 'http-equiv="refresh"' 'content="\([^;]*\)')
         REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)')
 
         # Usual wait time is 15 seconds

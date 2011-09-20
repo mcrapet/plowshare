@@ -103,10 +103,10 @@ usershare_download() {
 
         else
             OP=$(echo "$PAGE" | parse_attr 'name="op"' "value") || return 1
-            USR_LOGIN=$(echo "$PAGE" | parse_attr 'name="usr_login"' "value" 2>/dev/null) || USR_LOGIN=""
-            FILENAME=$(echo "$PAGE" | parse_attr 'name="fname"' "value")
-            REFERER=$(echo "$PAGE" | parse_attr 'name="referer"' "value" 2>/dev/null) || REFERER=""
-            METHOD_FREE=$(echo "$PAGE" | parse_attr 'name="method_free"' "value")
+            USR_LOGIN=$(echo "$PAGE" | parse_attr_quiet 'name="usr_login"' 'value') || USR_LOGIN=""
+            FILENAME=$(echo "$PAGE" | parse_attr 'name="fname"' 'value')
+            REFERER=$(echo "$PAGE" | parse_attr_quiet 'name="referer"' 'value') || REFERER=""
+            METHOD_FREE=$(echo "$PAGE" | parse_attr 'name="method_free"' 'value')
 
             # there's some obfuscated eval() javascript that sets the DATE variable
             # Solution 1: interpret it and instead of modifying 'date' field, get the value
