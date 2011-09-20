@@ -40,7 +40,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
     fi
 
     PAGE=$(curl -c $COOKIEFILE "$URL")
-    if match '4shared\.com\/dir\/' "$URL"; then
+    if match '4shared\.com/dir/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return 1
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
@@ -73,7 +73,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
     eval "$(process_options sendspace "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
     URL=$(echo "$1" | replace '/folder/' '/dir/')
 
-    if ! match '4shared\.com\/dir\/' "$URL"; then
+    if ! match '4shared\.com/dir/' "$URL"; then
         log_error "This is not a directory list"
         return 1
     fi

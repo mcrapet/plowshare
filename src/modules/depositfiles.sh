@@ -118,7 +118,7 @@ depositfiles_download() {
 depositfiles_list() {
     local URL=$1
 
-    if ! match 'depositfiles\.com\/\(..\/\)\?folders\/' "$URL"; then
+    if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then
         log_error "This is not a directory list"
         return 1
     fi

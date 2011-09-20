@@ -38,7 +38,7 @@ wupload_download() {
     local COOKIEFILE="$1"
     local URL="$2"
 
-    if match '\/folder\/' "$URL"; then
+    if match '/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     fi
@@ -83,7 +83,7 @@ wupload_download() {
 
         # <div id="downloadErrors" class="section CL3">
         # - You can only download 1 file at a time.
-        elif match "downloadErrors" "$WAIT_HTML"; then
+        elif match 'downloadErrors' "$WAIT_HTML"; then
             local MSG=$(echo "$WAIT_HTML" | parse_quiet '<h3><span>' '<span>\([^<]*\)<')
             log_error "error: $MSG"
             break
@@ -196,7 +196,7 @@ wupload_upload() {
     # Upload one file per request
     JSON=$(curl_with_log -L -F "files[]=@$FILE;filename=$(basename_file "$DESTFILE")" "$URL") || return
 
-    if ! match "success" "$JSON"; then
+    if ! match 'success' "$JSON"; then
         log_error "upload failed"
         return $ERR_FATAL
     fi
@@ -221,7 +221,7 @@ wupload_upload() {
 wupload_list() {
     local URL="$1"
 
-    if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder\/" "$URL"; then
+    if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a folder"
         return $ERR_FATAL
     fi

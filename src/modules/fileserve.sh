@@ -232,7 +232,7 @@ fileserve_upload() {
     JSON=$(curl --referer "$BASEURL/" -H "Expect:" \
             "http://upload.fileserve.com/upload/$USERID/$TIMEOUT/?callback=jsonp$T&_=$$") || return
 
-    if ! match "waiting" "$JSON"; then
+    if ! match 'waiting' "$JSON"; then
         log_debug "wrong sessionId state: $JSON"
         return $ERR_FATAL
     fi
@@ -264,7 +264,7 @@ fileserve_upload() {
 fileserve_list() {
     URL="$1"
 
-    if ! match 'fileserve\.com\/list\/' "$URL"; then
+    if ! match 'fileserve\.com/list/' "$URL"; then
         log_error "This is not a directory list"
         return 1
     fi

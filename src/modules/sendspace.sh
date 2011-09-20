@@ -37,7 +37,7 @@ sendspace_download() {
     local URL="$2"
     local PAGE
 
-    if match 'sendspace\.com\/folder\/' "$URL"; then
+    if match 'sendspace\.com/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     fi
@@ -143,7 +143,7 @@ sendspace_list() {
     local URL="$1"
     local PAGE
 
-    if ! match 'sendspace\.com\/folder\/' "$URL"; then
+    if ! match 'sendspace\.com/folder/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi

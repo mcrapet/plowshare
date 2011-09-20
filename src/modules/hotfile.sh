@@ -37,7 +37,7 @@ hotfile_download() {
     local COOKIEFILE="$1"
     local URL="${2}&lang=en"
 
-    if match 'hotfile\.com\/list\/' "$URL"; then
+    if match 'hotfile\.com/list/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return 1
     fi
@@ -174,7 +174,7 @@ hotfile_download() {
 hotfile_list() {
     local URL="$1"
 
-    if ! match 'hotfile\.com\/list\/' "$URL"; then
+    if ! match 'hotfile\.com/list/' "$URL"; then
         log_error "This is not a directory list"
         return 1
     fi

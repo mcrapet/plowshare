@@ -340,7 +340,7 @@ filesonic_delete() {
 filesonic_list() {
     local URL="$1"
 
-    if ! match "${MODULE_FILESONIC_REGEXP_URL}folder\/" "$URL"; then
+    if ! match "${MODULE_FILESONIC_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a folder"
         return 1
     fi

@@ -43,13 +43,13 @@ uploaded_to_download() {
     fi
 
     # recognize folders
-    if match 'uploaded\.to\/folder\/' "$URL"; then
+    if match 'uploaded\.to/folder/' "$URL"; then
         log_error "This is a directory list"
         return 1
     fi
 
     # file does not exist
-    if match 'uploaded\.to\/404' "$URL"; then
+    if match 'uploaded\.to/404' "$URL"; then
         log_error "File not found"
         return $ERR_LINK_DEAD
     fi
@@ -165,7 +165,7 @@ uploaded_to_list() {
     local URL="$1"
 
     # check whether it looks like a folder link
-    if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder\/" "$URL"; then
+    if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a directory list"
         return 1
     fi
