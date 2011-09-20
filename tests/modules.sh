@@ -60,7 +60,7 @@ stderr() {
 # Print test result
 # $1: '$?' value
 status() {
-    RET=$1
+    local RET=$1
     if [ "$FANCY_OUTPUT" -ne 0 ]; then
         # based on /lib/lsb/init-functions
         RALIGN="\\r\\033[$[`$TPUT cols`-6]C"
@@ -160,9 +160,13 @@ test_case_up_down_del() {
     RET=0
     LINKS=$(upload $OPTS_UP "$MODULE" "$FILE") || RET=$?
     if [ "$RET" -ne 0 ]; then
-        # ERR_LINK_NEED_PERMISSIONS=12
+        # ERR_LINK_NEED_PERMISSIONS
         if [ "$RET" -eq 12 ]; then
             echo -n "skip up (need account)"
+            status 1
+        # ERR_SYSTEM
+        elif [ "$RET" -eq 8 ]; then
+            echo -n "skip up (system failure)"
             status 1
         else
             echo -n "up KO"
@@ -205,7 +209,7 @@ test_case_up_down_del() {
     # If delete function available (ERROR_CODE_NOMODULE)
     if [ "$RET" -eq 2 ]; then
         echo -n "skip del (not available)"
-    # ERR_LINK_NEED_PERMISSIONS=12
+    # ERR_LINK_NEED_PERMISSIONS
     elif [ "$RET" -eq 12 ]; then
         echo -n "skip del (need account)"
     elif [ "$RET" -ne 0 ]; then
