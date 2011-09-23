@@ -261,8 +261,8 @@ filesonic_upload() {
 
     # get download link
     LINKID=$(echo "$INFOS" | parse_quiet '"linkId":"[^"]*"' '"linkId":"\([^"]*\)"')
-    BROWSE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-		  -e "$URL" "$URL/filesystem/generate-link/$LINKID")
+    BROWSE=$(curl -b "$COOKIEFILE" -H 'X-Requested-With: XMLHttpRequest' \
+            -e "$URL" "$URL/filesystem/generate-link/$LINKID")
     LINK=$(echo "$BROWSE" | parse_attr 'id="URL_' 'value')
 
     if ! test "$LINK"; then
