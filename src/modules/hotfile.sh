@@ -39,7 +39,7 @@ hotfile_download() {
 
     if match 'hotfile\.com/list/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
-        return 1
+        return $ERR_FATAL
     fi
 
     # Try to get the download link using premium credentials (if $AUTH not null)
@@ -73,7 +73,7 @@ hotfile_download() {
         fi
 
         SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-            { log_error "can't get sleep time"; return 1; }
+            { log_error "can't get sleep time"; return $ERR_FATAL; }
 
         test "$CHECK_LINK" && return 0
 
@@ -91,7 +91,7 @@ hotfile_download() {
         wait $((SLEEP)) seconds || return
 
         WAIT_HTML2=$(curl -b $COOKIEFILE --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
-            "${BASE_URL}${form_url}") || return 1
+            "${BASE_URL}${form_url}") || return
 
         # Direct download (no captcha)
         if match 'Click here to download' "$WAIT_HTML2"; then
@@ -103,7 +103,7 @@ hotfile_download() {
         elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
             # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
             WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-                { log_error "can't get wait time"; return 1; }
+                { log_error "can't get wait time"; return $ERR_FATAL; }
             WAIT_TIME=$((WAIT_TIME / 60000))
             wait $((WAIT_TIME)) minutes || return
             continue
@@ -139,7 +139,7 @@ hotfile_download() {
 
                 HTMLPAGE=$(curl -b $COOKIEFILE --data \
                     "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                    "${BASE_URL}${form2_url}") || return 1
+                    "${BASE_URL}${form2_url}") || return
 
                 if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
                     log_debug "wrong captcha"
@@ -165,7 +165,7 @@ hotfile_download() {
         fi
     done
 
-    return 1
+    return $ERR_FATAL
 }
 
 # List a hotfile shared file folder URL
@@ -176,14 +176,14 @@ hotfile_list() {
 
     if ! match 'hotfile\.com/list/' "$URL"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     PAGE=$(curl "$URL" | grep 'hotfile.com/dl/')
 
     if test -z "$PAGE"; then
         log_error "Wrong directory list link"
-        return 1
+        return $ERR_FATAL
     fi
 
     # First pass : print debug message

@@ -69,13 +69,13 @@ usershare_download() {
     local ID=$(echo "$URL" | parse_quiet '\/' '\/\([^/]*\)')
     if ! test "$ID"; then
         log_error "Cannot parse URL to extract file id (mandatory)"
-        return 1
+        return $ERR_FATAL
     fi
 
     URL="http://www.usershare.net/$ID"
 
     while retry_limit_not_reached || return; do
-        PAGE=$(curl -c "$COOKIEFILE" "$URL") || return 1
+        PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
         if match 'Reason for deletion' "$PAGE"; then
             log_debug "File not found"
@@ -99,10 +99,10 @@ usershare_download() {
         # for some files (such as .mp3) we have direct link
         if match 'download_btn' "$PAGE"; then
             FILENAME=$(echo "PAGE" | parse_quiet '<h3>Download File:' '<h3>Download File:\([^<]\+\)<\/h3>')
-            FILE_URL=$(echo "$PAGE" | parse_attr 'download_btn' 'href') || return 1
+            FILE_URL=$(echo "$PAGE" | parse_attr 'download_btn' 'href') || return
 
         else
-            OP=$(echo "$PAGE" | parse_attr 'name="op"' "value") || return 1
+            OP=$(echo "$PAGE" | parse_attr 'name="op"' "value") || return
             USR_LOGIN=$(echo "$PAGE" | parse_attr_quiet 'name="usr_login"' 'value') || USR_LOGIN=""
             FILENAME=$(echo "$PAGE" | parse_attr 'name="fname"' 'value')
             REFERER=$(echo "$PAGE" | parse_attr_quiet 'name="referer"' 'value') || REFERER=""
@@ -121,14 +121,14 @@ usershare_download() {
             # it happens when DATE or other params are incorrect
             if match 'User Login' "$PAGE2"; then
                 log_error 'Failed to send proper parameters: page asks for login'
-                return 1
+                return $ERR_FATAL
             fi
 
-            RAND=$(echo "$PAGE2" | parse_attr 'name="rand"' 'value') || return 1
+            RAND=$(echo "$PAGE2" | parse_attr 'name="rand"' 'value') || return
             DATA="op=download2&id=$ID&rand=$RAND&referer=$URL&method_free=Slow Speed Download"
-            PAGE3=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return 1
+            PAGE3=$(curl -i -b "$COOKIEFILE" --referer "$URL" --data "$DATA" "$URL") || return
 
-            FILE_URL=$(echo "$PAGE3" | grep_http_header_location) || return 1
+            FILE_URL=$(echo "$PAGE3" | grep_http_header_location) || return
         fi
 
         echo "$FILE_URL"

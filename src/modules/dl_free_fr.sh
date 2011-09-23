@@ -49,11 +49,11 @@ dl_free_fr_download() {
     test "$CHECK_LINK" && return 0
 
     FILE_URL=$(echo "$HTML_PAGE" | parse "charger ce fichier" 'href="\([^"].*\)"') ||
-        { log_error "Could not parse file URL"; return 1; }
+        { log_error "Could not parse file URL"; return $ERR_FATAL; }
 
     echo $FILE_URL
 }
- 
+
 # Upload a file to dl.free.fr
 # $1: cookie file (unused here)
 # $2: input file (with full path)
@@ -71,7 +71,7 @@ dl_free_fr_upload() {
 
     local FORM=$(grep_form_by_order "$PAGE" 2) || {
         log_error "can't get upload from, website updated?";
-        return 1;
+        return $ERR_FATAL
     }
 
     ACTION=$(echo "$FORM" | parse_form_action)
@@ -128,5 +128,5 @@ dl_free_fr_upload() {
 
         wait $WAITTIME seconds
     done
-    return 1
+    return $ERR_FATAL
 }

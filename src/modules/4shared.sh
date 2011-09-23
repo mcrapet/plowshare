@@ -42,7 +42,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
     PAGE=$(curl -c $COOKIEFILE "$URL")
     if match '4shared\.com/dir/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
-        return 1
+        return $ERR_FATAL
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
         log_error "File not found!"
         return $ERR_LINK_DEAD
@@ -75,12 +75,12 @@ MODULE_4SHARED_LIST_OPTIONS=""
 
     if ! match '4shared\.com/dir/' "$URL"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     PAGE=$(curl "$URL")
     match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
         { log_error "Link not found"; return $ERR_LINK_DEAD; }
     echo "$PAGE" | parse_all_attr "alt=\"Download '" href ||
-        { log_error "Cannot parse links"; return 1; }
+        { log_error "Cannot parse links"; return $ERR_FATAL; }
 }

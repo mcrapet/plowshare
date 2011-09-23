@@ -128,7 +128,7 @@ wupload_download() {
                 HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
                     "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
                     -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                    "${URL}?start=1") || return 1
+                    "${URL}?start=1") || return
 
                 if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
                     log_debug "wrong captcha"

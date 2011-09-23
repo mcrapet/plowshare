@@ -54,7 +54,7 @@ depositfiles_download() {
         log_debug "download ID: $DLID"
         if [ -z "$DLID" ]; then
             log_error "Can't parse download id, site updated"
-            return 1
+            return $ERR_FATAL
         fi
 
         # 1. Check for error messages (first page)
@@ -120,7 +120,7 @@ depositfiles_list() {
 
     if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     LINKS=$(curl -L "$URL" | parse_all 'target="_blank"' '\(<a href="http[^<]*<\/a>\)') || \

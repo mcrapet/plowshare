@@ -65,7 +65,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     log_debug "downloading upload page: $UPLOADURL"
     DATA=$(curl "$UPLOADURL") || return
     ACTION=$(grep_form_by_name "$DATA" "uploadForm" | parse_form_action) ||
-        { log_debug "cannot get upload form URL"; return 1; }
+        { log_debug "cannot get upload form URL"; return $ERR_FATAL; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
 
     log_debug "starting file upload: $FILE"

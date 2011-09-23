@@ -140,10 +140,10 @@ zshare_delete() {
 
         if match 'Invalid removal code' "$RESULT_PAGE"; then
             log_error "bad removal code"
-            return 1
+            return $ERR_FATAL
         elif ! matchi 'File Removed' "$RESULT_PAGE"; then
             log_error "unexpected result, file not deleted"
-            return 1
+            return $ERR_FATAL
         fi
     fi
 }

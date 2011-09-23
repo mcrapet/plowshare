@@ -78,6 +78,6 @@ duckload_download() {
         log_debug "starting download: $STATUS"
         echo "$STATUS"
     else
-        return 1
+        return $ERR_FATAL
     fi
 }

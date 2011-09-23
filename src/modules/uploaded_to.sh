@@ -45,7 +45,7 @@ uploaded_to_download() {
     # recognize folders
     if match 'uploaded\.to/folder/' "$URL"; then
         log_error "This is a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     # file does not exist
@@ -74,7 +74,7 @@ uploaded_to_download() {
         local SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
             'period: <span>\([[:digit:]]\+\)<\/span>')
         test -z "$SLEEP" && log_error "can't get sleep time" && \
-            log_debug "sleep time: $SLEEP" && return 1
+            log_debug "sleep time: $SLEEP" && return $ERR_FATAL
 
         # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
         local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
@@ -82,7 +82,7 @@ uploaded_to_download() {
 
         if ! test "$IMAGE_FILENAME"; then
             log_error "reCaptcha error"
-            return 1
+            return $ERR_FATAL
         fi
 
         local TRY=1
@@ -118,7 +118,7 @@ uploaded_to_download() {
             break
         else
             log_error "No match. Site update?"
-            return 1
+            return $ERR_FATAL
         fi
     done
 
@@ -167,14 +167,14 @@ uploaded_to_list() {
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     local PAGE=$(curl -L "$URL")
 
     if test -z "$PAGE"; then
         log_error "Cannot retrieve page"
-        return 1
+        return $ERR_FATAL
     fi
 
     # First pass: print file names (debug)

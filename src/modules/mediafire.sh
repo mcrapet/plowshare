@@ -56,7 +56,7 @@ mediafire_download() {
         return $ERR_LINK_DEAD
     elif match 'errno=' "$LOCATION"; then
         log_error "site redirected with an unknown error"
-        return 1
+        return $ERR_FATAL
     fi
 
     PAGE=$(curl -L -c $COOKIEFILE "$URL" | break_html_lines) || return 1
@@ -92,12 +92,12 @@ mediafire_download() {
             PAGE=$(curl -b "$COOKIEFILE" --data \
                 "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
                 -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                "$URL" | break_html_lines) || return 1
+                "$URL" | break_html_lines) || return
 
             # You entered the incorrect keyword below, please try again!
             if match 'incorrect keyword' "$PAGE"; then
                 log_error "wrong captcha"
-                return 1
+                return $ERR_FATAL
             fi
         fi
     fi
@@ -113,7 +113,7 @@ mediafire_download() {
 
         #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return 1
         log_error "not implemented"
-        return 1
+        return $ERR_FATAL
     fi
 
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || \
@@ -220,7 +220,7 @@ mediafire_upload() {
 
     if [ -z "$UKEY" -o -z "$TRACK_KEY" -o -z "$FOLDER_KEY" -o -z "$MFUL_CONFIG" -o -z "$USER" ]; then
         log_error "Can't parse uploader configuration!"
-        return 1
+        return $ERR_FATAL
     fi
 
     log_debug "Uploading file"
@@ -247,7 +247,7 @@ mediafire_upload() {
 
     if [ -z "$UPLOAD_KEY" ]; then
         log_error "Can't get upload key!"
-        return 1
+        return $ERR_FATAL
     fi
 
     log_debug "Polling for status update"
@@ -267,7 +267,7 @@ mediafire_upload() {
 
     if [ -z "$QUICK_KEY" ]; then
         log_error "Can't get quick key!"
-        return 1
+        return $ERR_FATAL
     fi
 
     echo "$BASE_URL/?$QUICK_KEY"

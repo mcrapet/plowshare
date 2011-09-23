@@ -64,7 +64,7 @@ mirrorcreator_upload() {
 
     if [ -z "$SITES" ]; then
         log_error "Empty list, site updated?"
-        return 1
+        return $ERR_FATAL
     fi
 
     # Do not seem needed..
@@ -107,11 +107,11 @@ mirrorcreator_upload() {
         -F "upfile_123=@$FILE;filename=$DESTFILE" -F "mail=" \
         $CURL_STRING \
         "$BASE_URL/cgi-bin/ubr_upload.pl?upload_id=$ID") ||
-        { log_error "Couldn't upload file!"; return 1; }
+        { log_error "Couldn't upload file!"; return $ERR_FATAL; }
 
     # Custom version of "uber/ubr_finished.php"
     PAGE=$(curl "$BASE_URL/process.php?upload_id=$ID") ||
-        { log_error "Can't get results"; return 1; }
+        { log_error "Can't get results"; return $ERR_FATAL; }
 
     echo "$PAGE" | parse_attr 'getElementById("link2")' 'href'
     return 0

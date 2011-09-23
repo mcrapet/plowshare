@@ -168,7 +168,7 @@ fileserve_download() {
     # Should return {"success":1}
     JSON2=$(curl -b "$COOKIEFILE" --referer "$URL" --data \
         "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&recaptcha_shortencode_field=$SHORT" \
-        "http://www.fileserve.com/checkReCaptcha.php") || return 1
+        "http://www.fileserve.com/checkReCaptcha.php") || return
 
     local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$ret" != "1" ] ; then
@@ -266,14 +266,14 @@ fileserve_list() {
 
     if ! match 'fileserve\.com/list/' "$URL"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     PAGE=$(curl "$URL" | grep '<a href="/file/')
 
     if test -z "$PAGE"; then
         log_error "Wrong directory list link"
-        return 1
+        return $ERR_FATAL
     fi
 
     # First pass: print file names (debug)

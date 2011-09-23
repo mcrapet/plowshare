@@ -70,5 +70,5 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
     done <<< "$LINKS"
 
     log_debug "all mirrors are dead"
-    return 1
+    return $ERR_FATAL
 }

@@ -62,7 +62,7 @@ dataport_cz_download() {
     DL_URL=$(echo "$PAGE" | parse_quiet '<td>' '<td><a href="\([^"]*\)')
     if ! test "$DL_URL"; then
         log_error "Can't parse download URL, site updated?"
-        return 1
+        return $ERR_FATAL
     fi
     DL_URL=$(uri_encode_file "$DL_URL")
 
@@ -71,7 +71,7 @@ dataport_cz_download() {
     FILE_URL=$(curl -I "$DL_URL" | grep_http_header_location)
     if ! test "$FILE_URL"; then
         log_error "Location not found"
-        return 1
+        return $ERR_FATAL
     fi
     FILE_URL=$(uri_encode_file "$FILE_URL")
 
@@ -123,14 +123,14 @@ dataport_cz_upload() {
 
     if ! test "$STATUS"; then
         log_error "Uploading error."
-        return 1
+        return $ERR_FATAL
     fi
 
     DOWN_URL=$(curl -b "$COOKIEFILE" "http://dataport.cz/links/$ID/1" | parse_attr 'id="download-link"' 'value')
 
     if ! test "$DOWN_URL"; then
         log_error "Can't parse download link, site updated?"
-        return 1
+        return $ERR_FATAL
     fi
 
     echo "$DOWN_URL"
@@ -154,7 +154,7 @@ dataport_cz_delete() {
     LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
     post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || {
         rm -f $COOKIES
-        return 1
+        return $ERR_FATAL
     }
 
     DEL_URL=$(echo "$URL" | replace 'file' 'delete')
@@ -165,7 +165,7 @@ dataport_cz_delete() {
 
     if ! match "vymazano" "$DELETE"; then
         log_error "Error deleting link."
-        return 1
+        return $ERR_FATAL
     fi
 }
 

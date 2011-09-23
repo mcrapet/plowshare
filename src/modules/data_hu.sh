@@ -31,11 +31,11 @@ MODULE_DATA_HU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 data_hu_download() {
     local URL="$2"
 
-    PAGE=$(curl -L "$URL") || return 1
+    PAGE=$(curl -L "$URL") || return
     match "/missing.php" "$PAGE" &&
         { log_debug "file not found"; return $ERR_LINK_DEAD; }
     FILE_URL=$(echo "$PAGE" | parse_attr "download_it" "href") ||
-        { log_error "download link not found"; return 1; }
+        { log_error "download link not found"; return $ERR_FATAL; }
 
     test "$CHECK_LINK" && return 0
 

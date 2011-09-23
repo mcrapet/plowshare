@@ -48,7 +48,7 @@ humyo_download() {
 
     FILE_URL=$(echo "$PAGE" | break_html_lines| \
                parse_attr 'Download this \(file\|image\|photo\)' 'href') ||
-        { log_error "download link not found"; return 1; }
+        { log_error "download link not found"; return $ERR_FATAL; }
 
     test "$CHECK_LINK" && return 0
 

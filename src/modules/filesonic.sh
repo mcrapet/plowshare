@@ -83,7 +83,7 @@ filesonic_download() {
     URL="$BASEURL/file/$ID"
 
     # obtain mainpage first (unauthenticated) to get filename
-    MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return 1
+    MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     # do not obtain filename from "<span>Filename:" because it is shortened
     # with "..." if too long; instead, take it from title
@@ -96,7 +96,7 @@ filesonic_download() {
         FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
         if ! test "$FILE_URL"; then
             log_error "No link received (most likely premium account expired)"
-            return 1
+            return $ERR_FATAL
         fi
 
     # Normal user
@@ -134,7 +134,7 @@ filesonic_download() {
 
                 if ! test "$IMAGE_FILENAME"; then
                     log_error "reCaptcha error"
-                    return 1
+                    return $ERR_FATAL
                 fi
 
                 TRY=1
@@ -176,7 +176,7 @@ filesonic_download() {
             else
                 log_debug "$URL"
                 log_error "No match. Site update?"
-                return 1
+                return $ERR_FATAL
             fi
 
         done
@@ -217,12 +217,12 @@ filesonic_upload() {
     fi
 
     # get main page to pick up an upload server
-    PAGE=$(curl -b "$COOKIES" "$URL") || return 1
+    PAGE=$(curl -b "$COOKIES" "$URL") || return
     SERVER=$(echo "$PAGE" | parse_quiet 'uploadServerHostname' "\s*=\s'*\([^']*\)';")
 
     if ! test "$SERVER"; then
         log_error "Can't find an upload server, site updated?"
-        return 1
+        return $ERR_FATAL
     fi
 
     # prepare upload file id - browser uses the following javascript, we can do it in bash
@@ -238,24 +238,24 @@ filesonic_upload() {
 
     if ! test "$STATUS"; then
         log_error "Upload error"
-        return 1
+        return $ERR_FATAL
     elif match 'An error occurred' "$STATUS"; then
         log_error "Upload failed: server error"
-        return 1
+        return $ERR_FATAL
     fi
     COMPLETED=$(echo "$STATUS" | grep_http_header_location)
 
     # get information
-    INFOS=$(curl -b "$COOKIEFILE" -e "$URL" "$COMPLETED")
+    INFOS=$(curl -b "$COOKIEFILE" -e "$URL" "$COMPLETED") || return
     STATUSCODE=$(echo "$INFOS" | parse_quiet '"statusCode":[0-9]*' '"statusCode":\([0-9]*\)')
     STATUSMESSAGE=$(echo "$INFOS" | parse_quiet '"statusMessage":"[^"]*"' '"statusMessage":"\([^"]*\)"')
 
     if ! test "$STATUSCODE"; then
         log_error "Upload failed (no info)"
-        return 1
+        return $ERR_FATAL
     elif [ $STATUSCODE -ne 0 ]; then
         log_error "Upload failed: $STATUSMESSAGE ($STATUSCODE)"
-        return 1
+        return $ERR_FATAL
     fi
     log_debug "Upload succeeded: $STATUSMESSAGE"
 
@@ -267,7 +267,7 @@ filesonic_upload() {
 
     if ! test "$LINK"; then
         log_error "Can't parse download link, site updated?"
-        return 1
+        return $ERR_FATAL
     fi
 
     echo "$LINK"
@@ -304,7 +304,7 @@ filesonic_delete() {
     # Attempt to authenticate
     filesonic_login "$AUTH" "$COOKIES" "$URL" || {
         rm -f "$COOKIES"
-        return 1
+        return $ERR_FATAL
     }
 
     # Delete file, identifier is "F"+ID
@@ -318,7 +318,7 @@ filesonic_delete() {
 
     if ! test "$DELETE"; then
         log_debug "Delete error"
-        return 1
+        return $ERR_FATAL
     elif match 'Item not found' "$DELETE"; then
         log_error "Not found or already deleted"
         return $ERR_LINK_DEAD
@@ -327,7 +327,7 @@ filesonic_delete() {
     STATUS=$(echo "$DELETE" | parse_quiet '"status":"[^"]*"' '"status":"\([^"]*\)"')
     if [ "$STATUS" != "success" ]; then
         log_debug "Delete failed: $STATUS"
-        return 1
+        return $ERR_FATAL
     fi
 
     log_notice "File deleted"
@@ -342,14 +342,14 @@ filesonic_list() {
 
     if ! match "${MODULE_FILESONIC_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a folder"
-        return 1
+        return $ERR_FATAL
     fi
 
     PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_FILESONIC_REGEXP_URL}file")
 
     if ! test "$PAGE"; then
         log_error "Wrong folder link (no download link detected)"
-        return 1
+        return $ERR_FATAL
     fi
 
     # First pass: print file names (debug)

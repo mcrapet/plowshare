@@ -47,7 +47,7 @@ x7_to_download() {
         # {err:"Benutzer und Passwort stimmen nicht überein."}
         if match '^{err:' "$LOGIN_RESULT"; then
             log_error "login process failed"
-            return 1
+            return $ERR_FATAL
         fi
     fi
 
@@ -112,7 +112,7 @@ x7_to_download() {
         else
             local error=$(echo "$DATA" | parse_quiet 'err:' '{err:"\([^"]*\)"}')
             log_error "failed state [$error]"
-            return 1
+            return $ERR_FATAL
         fi
     done
 

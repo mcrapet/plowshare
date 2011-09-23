@@ -130,11 +130,11 @@ multiupload_list() {
     local URL="$1"
 
     LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr '"urlhref' 'href') || \
-        { log_error "Wrong directory list link"; return 1; }
+        { log_error "Wrong directory list link"; return $ERR_FATAL; }
 
     if test -z "$LINKS"; then
         log_error "This is not a directory list"
-        return 1
+        return $ERR_FATAL
     fi
 
     while read LINE; do
