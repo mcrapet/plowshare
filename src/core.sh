@@ -919,7 +919,7 @@ recaptcha_reload_image() {
 # Remove all temporal files created by the script
 # (with create_tempfile)
 remove_tempfiles() {
-    rm -f "${TMPDIR:-/tmp}/$(basename_file $0).$$.*"
+    rm -f "${TMPDIR:-/tmp}/$(basename_file $0).$$".*
 }
 
 # Exit callback (task: clean temporal files)
