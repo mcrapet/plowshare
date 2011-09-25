@@ -265,7 +265,6 @@ megaupload_upload() {
                 PAGE=$(curl -b "$COOKIEFILE" \
                     --data "action=edit&id=${ID}&name=${DESTFILE}&description=${DESCRIPTION}&password=$LINK_PASSWORD" \
                     'http://www.megaupload.com/?c=filemanager&ajax=1&r=${T}') || return
-                echo "$PAGE" >/tmp/a
             fi
         fi
 
