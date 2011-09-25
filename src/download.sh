@@ -297,21 +297,21 @@ download() {
             test "$COOKIES" && rm -f "$COOKIES"
             log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
+
         elif test "$DOWNLOAD_INFO"; then
-            test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
             local OUTPUT_COOKIES=""
-            if test "$COOKIES"; then
-                # move temporary cookies (standard tempfiles are automatically deleted)
-                OUTPUT_COOKIES="${TMPDIR:-/tmp}/$(basename_file $0).cookies.$$.txt"
-                mv "$COOKIES" "$OUTPUT_COOKIES"
+            if match '%cookies' "$DOWNLOAD_INFO"; then
+                # Keep temporary cookie
+                OUTPUT_COOKIES="$(dirname "$COOKIES")/$(basename_file $0).cookies.$$.txt"
+                cp "$COOKIES" "$OUTPUT_COOKIES"
             fi
             echo "$DOWNLOAD_INFO" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
                 replace "%cookies" "$OUTPUT_COOKIES"
+
         else
-            local FILENAME_TMP
-            local FILENAME_OUT
+            local FILENAME_TMP FILENAME_OUT
 
             # Temporary download path
             if test "$TEMP_DIR"; then
