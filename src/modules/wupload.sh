@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_WUPLOAD_REGEXP_URL="http://\(www\.\)\?wupload\.[a-z]\+/"
+MODULE_WUPLOAD_REGEXP_URL="http://\(www\.\)\?wupload\(.com\?\)\?\.[a-z]\+/"
 
 MODULE_WUPLOAD_DOWNLOAD_OPTIONS=""
 MODULE_WUPLOAD_DOWNLOAD_RESUME=no
@@ -28,6 +28,7 @@ MODULE_WUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
 MODULE_WUPLOAD_LIST_OPTIONS=""
 
+# Official API documentation: http://api.wupload.com/user
 # Output an wupload.com file download URL
 # $1: cookie file
 # $2: wupload.com url
@@ -37,21 +38,33 @@ wupload_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
+    local LINK_ID DOMAIN
 
     if match '/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     fi
 
-    # Be sure to get correct .ccTLD
-    DOMAIN=$(curl --head "$URL" | grep_http_header_location)
-    [ -n "$DOMAIN" ] && URL=$DOMAIN
+    # Get Link Id. Possible URL pattern:
+    # /file/12345                       => 12345
+    # /file/12345/filename.zip          => 12345
+    # /file/r54321/12345                => r54321-12345
+    # /file/r54321/12345/filename.zip   => r54321-12345
+    LINK_ID=$(echo "$URL" | parse '\/file\/' 'file\/\(\([a-z][0-9]\+\/\)\?\([0-9]\+\)\)') || return
+    log_debug "Link ID: $LINK_ID"
+    LINK_ID=${LINK_ID##*/}
 
-    # Take provided .ccTLD
-    local BASE_URL=$(basename_url "$URL")
+    DOMAIN=$(curl 'http://api.wupload.com/utility?method=getWuploadDomainForCurrentIp') || return
+    if match '"success"' "$DOMAIN"; then
+        local SUB=$(echo "$DOMAIN" | parse 'response' 'se":"\([^"]*\)","')
+        log_debug "Suitable domain for current ip: $SUB"
+        URL="http://www${SUB}/file/$LINK_ID"
+    else
+        log_error "Can't get domain, try default"
+        URL="http://www.wupload.com/file/$LINK_ID"
+    fi
 
-    local FILE_ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
-    local START_HTML WAIT_HTML
+    local START_HTML WAIT_HTML FILENAME
 
     while retry_limit_not_reached || return; do
         START_HTML=$(curl -c "$COOKIEFILE" "$URL") || return
@@ -64,11 +77,11 @@ wupload_download() {
 
         test "$CHECK_LINK" && return 0
 
-        local FILENAME=$(echo "$START_HTML" | parse_quiet "<title>" ">Get \(.*\) on ")
+        FILENAME=$(echo "$START_HTML" | parse '<title>' '>Get \(.*\) on ') || return
 
         # post request with empty Content-Length
         WAIT_HTML=$(curl -b "$COOKIEFILE" --data "" -H "X-Requested-With: XMLHttpRequest" \
-                --referer "$URL" "${BASE_URL}/file/${FILE_ID}/${FILE_ID}?start=1") || return
+                --referer "$URL" "${URL}/${LINK_ID}?start=1") || return
 
         # <div id="freeUserDelay" class="section CL3">
         if match 'freeUserDelay' "$WAIT_HTML"; then
@@ -156,7 +169,7 @@ wupload_download() {
     return $ERR_FATAL
 }
 
-# Upload a file to wupload using wupload api - http://api.wupload.com/user
+# Upload a file to wupload
 # $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3: remote filename
