@@ -102,7 +102,7 @@ log_error() {
 curl() {
     local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300)
 
-    # Check if caller as specified a User-Agent, if so don't put one
+    # Check if caller has specified a User-Agent, if so, don't put one
     local exist=0
     for e; do
         if [ "$e" = '-A' -o "$e" = '--user-agent' ]; then
