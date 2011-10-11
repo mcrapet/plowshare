@@ -20,6 +20,10 @@
 
 MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.com/"
 
+MODULE_MULTIUPLOAD_DOWNLOAD_OPTIONS=""
+MODULE_MULTIUPLOAD_DOWNLOAD_RESUME=yes
+MODULE_MULTIUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 AUTH,a:,auth:,USER:PASSWORD,User account
@@ -27,6 +31,31 @@ FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 NO_UPLOADING_COM,,no-up,,Exclude Uploading.com from host list"
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""
+
+# Output a multiupload.com "direct download" link
+# $1: cookie file (unused here)
+# $2: 2shared url
+# stdout: real file download link
+multiupload_download() {
+    local URL="$2"
+    local PAGE
+
+    PAGE=$(curl "$URL" | break_html_lines) || return
+
+    # Unfortunately, the link you have clicked is not available.
+    if match "is not available" "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
+
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'id=\"downloadbutton_\"' 'href') || {
+        log_debug "direct download not available";
+        return $ERR_LINK_TEMP_UNAVAILABLE;
+    }
+
+    echo "$FILE_URL"
+}
 
 # Upload a file to multiupload.com
 # $1: cookie file
