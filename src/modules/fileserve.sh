@@ -29,7 +29,7 @@ MODULE_FILESERVE_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
 MODULE_FILESERVE_LIST_OPTIONS=""
 
-# Static function for proceeding login
+# Static function. Proceed with login (free-membership or premium)
 fileserve_login() {
     local AUTH=$1
     local COOKIE_FILE=$2
@@ -95,49 +95,42 @@ fileserve_download() {
     # Arbitrary wait (local variables)
     STOP_FLOODING=360
 
-    while retry_limit_not_reached || return; do
-        if [ -s $COOKIEFILE ]; then
-            MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return
-        else
-            MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
-        fi
+    if [ -s $COOKIEFILE ]; then
+        MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+    else
+        MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    fi
 
-        # "The file could not be found. Please check the download link."
-        if match 'File not available' "$MAINPAGE"; then
-            log_debug "File not found"
-            return $ERR_LINK_DEAD
-        fi
+    # "The file could not be found. Please check the download link."
+    if match 'File not available' "$MAINPAGE"; then
+        log_debug "File not found"
+        return $ERR_LINK_DEAD
+    fi
 
-        test "$CHECK_LINK" && return 0
+    test "$CHECK_LINK" && return 0
 
-        # Should return {"success":"showCaptcha"}
-        JSON1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "checkDownload=check" "$URL") || return
+    # Should return {"success":"showCaptcha"}
+    JSON1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "checkDownload=check" "$URL") || return
 
-        if match 'waitTime' "$JSON1"; then
-            no_arbitrary_wait || return
-            log_debug "too many captcha failures"
-            wait $STOP_FLOODING seconds || return
-            continue
+    if match 'waitTime' "$JSON1"; then
+        log_debug "too many captcha failures"
+        echo $STOP_FLOODING
+        return $ERR_LINK_TEMP_UNAVAILABLE
 
-        elif match 'timeLimit' "$JSON1"; then
-            no_arbitrary_wait || return
-            log_debug "time limit, you must wait"
-            wait $STOP_FLOODING seconds || return
-            continue
+    elif match 'timeLimit' "$JSON1"; then
+        log_debug "time limit, you must wait"
+        echo $STOP_FLOODING
+        return $ERR_LINK_TEMP_UNAVAILABLE
 
-        elif match 'parallelDownload' "$JSON1"; then
-            no_arbitrary_wait || return
-            log_debug "your IP is already downloading, you must wait"
-            wait $STOP_FLOODING seconds || return
-            continue
+    elif match 'parallelDownload' "$JSON1"; then
+        log_debug "your IP is already downloading, you must wait"
+        echo $STOP_FLOODING
+        return $ERR_LINK_TEMP_UNAVAILABLE
 
-        elif ! match 'success' "$JSON1"; then
-            log_error "unexpected error, site update?"
-            return $ERR_FATAL
-        fi
-
-        break
-    done
+    elif ! match 'success' "$JSON1"; then
+        log_error "unexpected error, site update?"
+        return $ERR_FATAL
+    fi
 
     local PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
     local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)

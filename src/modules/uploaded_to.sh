@@ -63,64 +63,61 @@ uploaded_to_download() {
     # set website language to english
     curl -c $COOKIEFILE "$BASE_URL/language/en"
 
+    local HTML=$(curl -c $COOKIEFILE "$URL")
+
+    # check for files that need a password
+    local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
+    test "$ERROR" && return $ERR_LOGIN_FAILED
+
+    # retrieve the waiting time
+    local SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
+        'period: <span>\([[:digit:]]\+\)<\/span>')
+    test -z "$SLEEP" && log_error "can't get sleep time" && \
+        log_debug "sleep time: $SLEEP" && return $ERR_FATAL
+
+    # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
+    local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
+    local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+
+    if ! test "$IMAGE_FILENAME"; then
+        log_error "reCaptcha error"
+        return $ERR_FATAL
+    fi
+
+    local TRY=1
     while retry_limit_not_reached || return; do
-        local HTML=$(curl -c $COOKIEFILE "$URL")
+        log_debug "reCaptcha manual entering (loop $TRY)"
+        (( TRY++ ))
 
-        # check for files that need a password
-        local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
-        test "$ERROR" && return $ERR_LOGIN_FAILED
+        local WORD=$(captcha_process "$IMAGE_FILENAME")
 
-        # retrieve the waiting time
-        local SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
-            'period: <span>\([[:digit:]]\+\)<\/span>')
-        test -z "$SLEEP" && log_error "can't get sleep time" && \
-            log_debug "sleep time: $SLEEP" && return $ERR_FATAL
+        rm -f $IMAGE_FILENAME
 
-        # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
-        local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
-        local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+        test "$WORD" && break
 
-        if ! test "$IMAGE_FILENAME"; then
-            log_error "reCaptcha error"
-            return $ERR_FATAL
-        fi
-
-        local TRY=1
-        while retry_limit_not_reached || return; do
-            log_debug "reCaptcha manual entering (loop $TRY)"
-            (( TRY++ ))
-
-            local WORD=$(captcha_process "$IMAGE_FILENAME")
-
-            rm -f $IMAGE_FILENAME
-
-            test "$WORD" && break
-
-            log_debug "empty, request another image"
-            local IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-        done
-
-        # wait the designates time + 1 second to be safe
-        wait $((SLEEP + 1)) seconds || return
-
-        local CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
-
-        local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-        local PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
-            --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID")
-        log_debug "Captcha resonse: $PAGE"
-
-        # check for possible errors
-        if match 'limit\|err' "$PAGE"; then
-            return $ERR_LINK_TEMP_UNAVAILABLE
-        elif match 'url' "$PAGE"; then
-            local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
-            break
-        else
-            log_error "No match. Site update?"
-            return $ERR_FATAL
-        fi
+        log_debug "empty, request another image"
+        local IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
     done
+
+    # wait the designates time + 1 second to be safe
+    wait $((SLEEP + 1)) seconds || return
+
+    local CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+
+    local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
+    local PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
+        --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID")
+    log_debug "Captcha resonse: $PAGE"
+
+    # check for possible errors
+    if match 'limit\|err' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    elif match 'url' "$PAGE"; then
+        local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
+    else
+        log_error "No match. Site update?"
+        return $ERR_FATAL
+    fi
 
     # retrieve real filename
     local FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition)

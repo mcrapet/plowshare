@@ -42,23 +42,19 @@ EMAIL,,email:,EMAIL,Field for notification email"
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=10
 
-    while retry_limit_not_reached || return; do
-        PAGE=$(curl -c "$COOKIEFILE" "$URL")
+    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
-        if match "Le fichier demandé n'existe pas." "$PAGE"; then
-            log_error "File not found."
-            return $ERR_LINK_DEAD
-        fi
+    if match "Le fichier demandé n'existe pas." "$PAGE"; then
+        log_error "File not found."
+        return $ERR_LINK_DEAD
+    fi
 
-        test "$CHECK_LINK" && return 0
+    test "$CHECK_LINK" && return 0
 
-        if match "Téléchargements en cours" "$PAGE"; then
-            no_arbitrary_wait || return
-            wait $NO_FREE_SLOT_IDLE seconds || return
-            continue
-        fi
-        break
-    done
+    if match "Téléchargements en cours" "$PAGE"; then
+        echo $NO_FREE_SLOT_IDLE
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr 'Cliquez ici pour' 'href')
     FILENAME=$(echo "$PAGE" | parse_quiet '<title>' '<title>Téléchargement du fichier : *\([^<]*\)')

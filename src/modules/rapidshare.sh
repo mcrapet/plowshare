@@ -81,16 +81,14 @@ rapidshare_download() {
             return $ERR_LINK_DEAD
 
         elif match "flooding" "$ERROR"; then
-            no_arbitrary_wait || return
             log_debug "Server said we are flooding it."
-            wait $STOP_FLOODING seconds || return
-            continue
+            echo $STOP_FLOODING
+            return $ERR_LINK_TEMP_UNAVAILABLE
 
         elif match "slots" "$ERROR"; then
-            no_arbitrary_wait || return
             log_debug "Server said there is no free slots available"
-            wait $NO_FREE_SLOT_IDLE seconds || return
-            continue
+            echo $NO_FREE_SLOT_IDLE
+            return $ERR_LINK_TEMP_UNAVAILABLE
 
         elif test "$ERROR"; then
             log_error "website error: $ERROR"

@@ -35,7 +35,7 @@ TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downlo
 LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,,max-retries:,N,Set maximum retries for loops
+MAXRETRIES,,max-retries:,N,Set maximum retries for captcha solving
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
@@ -201,6 +201,21 @@ download() {
         local DRESULT=$(create_tempfile)
 
         $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
+
+        # if --no-arbitrary-wait option not specified
+        if test -z "$NOARBITRARYWAIT" -a -z "$CHECK_LINK"; then
+            while [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; do
+               read AWAIT <$DRESULT
+               log_debug "arbitrary wait"
+               wait ${AWAIT:-60} seconds || {
+                   DRETVAL=$?;
+                   break;
+               }
+               DRETVAL=0
+               $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
+            done
+        fi
+
         { read FILE_URL; read FILENAME; } <$DRESULT || true
         rm -f "$DRESULT"
 
@@ -220,7 +235,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_LINK_TEMP_UNAVAILABLE)
-                log_notice "Warning: file link is alive but not currently available"
+                log_notice "Warning: file link is alive but not currently available, try later"
                 rm -f "$COOKIES"
                 return $DRETVAL
                 ;;

@@ -130,9 +130,8 @@ megaupload_download() {
 
         # Test for "come back later". Language is guessed with the help of http-user-agent.
         elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
-            no_arbitrary_wait || return
-            wait $NO_FREE_SLOT_IDLE seconds || return
-            continue
+            echo $NO_FREE_SLOT_IDLE
+            return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
         # ---

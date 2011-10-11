@@ -31,7 +31,7 @@ MODULE_FILESONIC_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
 MODULE_FILESONIC_LIST_OPTIONS=""
 
-# Proceed with login (free-membership or premium)
+# Static function. Proceed with login (free-membership or premium)
 filesonic_login() {
     local AUTH=$1
     local COOKIES=$2
@@ -102,7 +102,7 @@ filesonic_download() {
     # Normal user
     else
         PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                    --referer "$URL?start=1" --data "" "$URL?start=1")
+                    --referer "$URL?start=1" --data "" "$URL?start=1") || return
 
         if match 'File does not exist' "$PAGE"; then
             log_debug "File not found"

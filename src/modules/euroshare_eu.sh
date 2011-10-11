@@ -37,7 +37,7 @@ euroshare_eu_download() {
     local BASEURL=$(basename_url "$URL")
 
     # html returned uses utf-8 charset
-    PAGE=$(curl "$URL")
+    PAGE=$(curl "$URL") || return
     if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
         log_error "File not found."
         return $ERR_LINK_DEAD
@@ -57,23 +57,18 @@ euroshare_eu_download() {
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
 
-    while retry_limit_not_reached || return; do
+    # html returned uses utf-8 charset
+    PAGE=$(curl -b "$COOKIEFILE" "$URL")
 
-        # html returned uses utf-8 charset
-        PAGE=$(curl -b "$COOKIEFILE" "$URL")
+    if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
+        log_error "You are already downloading a file from this IP."
+        return $ERR_FATAL
+    fi
 
-        if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
-            log_error "You are already downloading a file from this IP."
-            return $ERR_FATAL
-        fi
-
-        if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
-            no_arbitrary_wait || return
-            wait $NO_FREE_SLOT_IDLE seconds || return
-            continue
-        fi
-        break
-    done
+    if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
+        echo $NO_FREE_SLOT_IDLE
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href')
     if ! test "$DL_URL"; then

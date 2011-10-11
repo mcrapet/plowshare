@@ -47,17 +47,12 @@ dataport_cz_download() {
     # Arbitrary wait (local variable)
     NO_FREE_SLOT_IDLE=125
 
-    while retry_limit_not_reached || return; do
-
-        # html returned uses utf-8 charset
-        PAGE=$(curl --location "$URL")
-        if ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
-            no_arbitrary_wait || return
-            wait $NO_FREE_SLOT_IDLE seconds || return
-            continue
-        fi
-        break
-    done
+    # html returned uses utf-8 charset
+    PAGE=$(curl --location "$URL") || return
+    if ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
+        echo $NO_FREE_SLOT_IDLE
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     DL_URL=$(echo "$PAGE" | parse_quiet '<td>' '<td><a href="\([^"]*\)')
     if ! test "$DL_URL"; then

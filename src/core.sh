@@ -703,16 +703,6 @@ retry_limit_not_reached() {
     test "$PS_RETRY_LIMIT" -ge 0 || return $ERR_MAX_TRIES_REACHED
 }
 
-# Related to --no-arbitrary-wait plowdown command line option
-no_arbitrary_wait() {
-    if test "$NOARBITRARYWAIT"; then
-        log_debug "File temporarily unavailable"
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
-    log_debug "Arbitrary wait"
-    return 0
-}
-
 # OCR of an image.
 #
 # $1: optional varfile
