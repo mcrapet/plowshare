@@ -39,7 +39,7 @@ duckload_download() {
     log_debug "checking online status"
     STATUS=$(curl \
             --data-urlencode "isPremium=0" \
-            --data-urlencode "list=$URL" "$URL_CHECKONLINESTATUS")
+            --data-urlencode "list=$URL" "$URL_CHECKONLINESTATUS") || return
 
     log_debug "$STATUS"
     if matchi "ERROR;" "$STATUS" || matchi "OFFLINE" "$STATUS"
@@ -54,7 +54,7 @@ duckload_download() {
     log_debug "getting free slots"
     STATUS=$(curl \
         --referer "$URL_CHECKONLINESTATUS" \
-        --data-urlencode "link=$URL" "$URL_GETFREE")
+        --data-urlencode "link=$URL" "$URL_GETFREE") || return
 
     log_debug $STATUS
     if matchi "ERROR;" "$STATUS"; then
