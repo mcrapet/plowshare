@@ -62,6 +62,9 @@ Walid Iguer <Walid.Iger@gmail.com>
 	Official maintainer [2010.12-2011.01]
 	hotfile premium support (dec 2010)
 
+Wesley Barroso <wesleybl@gmail.com>
+	megashares.com module (oct 2011)
+
 ? <poomex.pl@gmail.com>
 	wupload.com download and list functions (jun 2011)
 
@@ -72,7 +75,7 @@ AND MORE...
 - testers & bug reporters
 - scripts contributors
 - premium account contributors
-- donators (paypal, ssh, ...)
+- donators (paypal, ssh box, ...)
 - distro packagers (fedora, ...)
 
 // vim:ts=8:fenc=utf-8

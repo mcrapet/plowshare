@@ -16,6 +16,7 @@ filesonic    | download | upload | delete | list |
 hotfile      | download |        |        | list |
 humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
+megashares   | download |        |        |      |
 megaupload   | download | upload | delete | list |
 mirrorcreator|          | upload |        |      |
 multiupload  | download | upload |        | list |

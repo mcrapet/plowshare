@@ -363,6 +363,14 @@ download() {
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
+
+            if [ "$CODE" = "206" ]; then
+                if module_config_resume "$MODULE"; then
+                    log_notice "Partial content downloaded, recall download function"
+                    continue
+                fi
+            fi
+
             test "$DRETVAL" -eq 0 || return $DRETVAL
 
             if [ "$CODE" = 416 ]; then
