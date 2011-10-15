@@ -99,14 +99,14 @@ netload_in_download() {
         curl -b $COOKIEFILE "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl | \
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
                 -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
-            rm -f "$CAPTCHA_IMG"
+            rm -f "$CAPTCHA_IMG";
             return $ERR_CAPTCHA;
         }
 
-        #CAPTCHA=$(captcha_process "$CAPTCHA_IMG" auto) || return
+        #CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr1) || return
         CAPTCHA=$(cat "$CAPTCHA_IMG" | ocr digit | sed "s/[^0-9]//g") || { \
             log_error "error running OCR";
-            rm -f "$CAPTCHA_IMG"
+            rm -f "$CAPTCHA_IMG";
             return $ERR_CAPTCHA;
         }
         rm -f "$CAPTCHA_IMG"
