@@ -364,7 +364,7 @@ download() {
 
             rm -f "$COOKIES"
 
-            if [ "$CODE" = "206" ]; then
+            if [ "$DRETVAL" -eq $ERR_NETWORK -a "$CODE" = "206" ]; then
                 if module_config_resume "$MODULE"; then
                     log_notice "Partial content downloaded, recall download function"
                     continue
