@@ -266,7 +266,7 @@ parse_last() {
     parse_all "$@" | tail -n1
 }
 
-# Like parse, but hide output to stderr
+# Like parse, but hide possible error
 parse_quiet() {
     parse "$@" 2>/dev/null
 }
@@ -384,7 +384,7 @@ parse_attr() {
     parse "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
 
-# Like parse_attr, but hide output to stderr
+# Like parse_attr, but hide possible error
 parse_attr_quiet() {
     parse_attr "$@" 2>/dev/null
 }
@@ -392,6 +392,11 @@ parse_attr_quiet() {
 # Return value of html attribute
 parse_all_attr() {
     parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"
+}
+
+# Like parse_all_attr, but hide possible error
+parse_all_attr_quiet() {
+    parse_all_attr "$@" 2>/dev/null
 }
 
 # Retreive "action" attribute (URL) from a <form> marker
