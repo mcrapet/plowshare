@@ -31,8 +31,8 @@ MODULE_4SHARED_LIST_OPTIONS=""
 # $2: 4shared url
 # stdout: real file download link
 4shared_download() {
-    COOKIEFILE="$1"
-    URL="$2"
+    local COOKIEFILE="$1"
+    local URL="$2"
 
     REAL_URL=$(curl -I "$URL" | grep_http_header_location)
     if test "$REAL_URL"; then
@@ -52,7 +52,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
 
     test "$CHECK_LINK" && return 0
 
-    WAIT_HTML=$(curl -b $COOKIEFILE "$WAIT_URL")
+    WAIT_HTML=$(curl -b $COOKIEFILE "$WAIT_URL") || return
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
             "[[:space:]]\([[:digit:]]\+\);")
@@ -69,18 +69,24 @@ MODULE_4SHARED_LIST_OPTIONS=""
     return 0
 }
 
+# List a 4shared folder URL
+# $1: 4shared.com link
+# stdout: list of links
 4shared_list() {
-    eval "$(process_options sendspace "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
-    URL=$(echo "$1" | replace '/folder/' '/dir/')
+    local URL=$(echo "$1" | replace '/folder/' '/dir/')
 
+    # There are two views:
+    # - Simple view link (URL with /folder/)
+    # - Advanced view link (URL with /dir/)
     if ! match '4shared\.com/dir/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl "$URL")
+    PAGE=$(curl "$URL") || return
+
     match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
         { log_error "Link not found"; return $ERR_LINK_DEAD; }
-    echo "$PAGE" | parse_all_attr "alt=\"Download '" href ||
-        { log_error "Cannot parse links"; return $ERR_FATAL; }
+    echo "$PAGE" | parse_all_attr_quiet 'class="icon16 download"' href || \
+        log_debug "no files in this folder"
 }
