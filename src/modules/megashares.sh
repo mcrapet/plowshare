@@ -24,8 +24,13 @@ MODULE_MEGASHARES_DOWNLOAD_OPTIONS=""
 MODULE_MEGASHARES_DOWNLOAD_RESUME=yes
 MODULE_MEGASHARES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_MEGASHARES_UPLOAD_OPTIONS="
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description
+LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
+EMAIL,,email:,EMAIL,Field for notification email"
+
 # $1: floating point number (example: "513.58")
-# $2: unity (KB | MB | GB)
+# $2: unit (KB | MB | GB)
 # stdout: fixed point number (in kilobytes)
 parse_kilobytes() {
     declare -i R=10#${1%.*}
@@ -81,12 +86,13 @@ megashares_download() {
         log_debug 'You have reached your maximum download limit.'
         declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)<\/strong>:')
         wait $((MIN + 1)) minutes || return
+        #wait 5 minutes
         PAGE=$(curl "$URL") || return
     done
 
     # Captcha must be validated
     if match 'Security Code' "$PAGE"; then
-    	while retry_limit_not_reached || return; do
+        while retry_limit_not_reached || return; do
             CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
 
             # Creates new formatted image
@@ -143,4 +149,52 @@ megashares_download() {
 
     FILEURL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href')
     echo "$FILEURL"
+}
+
+# Upload a file to megashares.com
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: megashares download + delete link
+megashares_upload() {
+    eval "$(process_options megashares "$MODULE_MEGASHARES_UPLOAD_OPTIONS" "$@")"
+
+    local FILE="$2"
+    local DESTFILE="$3"
+    local BASEURL="http://www.megashares.com"
+
+    local PAGE CATEGORY SEARCH DL_LINK DEL_LINK
+
+    PAGE=$(curl "$BASEURL") || return
+
+    # Upload Category: video doc application music image
+    CATEGORY='video'
+
+    # Note: To make link non searchable/public, delete "searchable=on" line.
+    # Putting "off" or any other value means "enabled".
+
+    APC_UPLOAD_PROGRESS=$(echo "$PAGE" | parse_attr 'name="APC_UPLOAD_PROGRESS"' 'value')
+    MSUP_ID=$(echo "$PAGE" | parse_attr 'name="msup_id"' 'value')
+    DOWNLOADPROGRESSURL=$(echo "$PAGE" | parse_attr 'name="downloadProgressURL"' 'value')
+    ULOC=$(echo "$PAGE" | parse_attr 'id="uloc"' 'value')
+    TMP_SID=$(echo "$PAGE" | parse_attr 'id="tmp_sid"' 'value')
+    UPS_SID=$(echo "$PAGE" | parse_attr 'id="ups_sid"' 'value')
+
+    PAGE=$(curl_with_log \
+        -F "APC_UPLOAD_PROGRESS=$APC_UPLOAD_PROGRESS" \
+        -F "msup_id=$MSUP_ID" \
+        -F "downloadProgressURL=$DOWNLOADPROGRESSURL" \
+        -F "uploadFileCategory=$CATEGORY" \
+        -F "uploadFileDescription=$DESCRIPTION" \
+        -F "passProtectUpload=$LINK_PASSWORD" \
+        -F "searchable=on" \
+        -F "emailAddress=$EMAIL" \
+        -F "upfile_0=@$FILE;filename=$DESTFILE" \
+        -F "checkTOS=" \
+        "$BASEURL/uploader.php?tmp_sid=$TMP_SID&ups_sid=$UPS_SID&uld=$ULOC&uloc=$ULOC") || return
+
+    DL_LINK=$(echo "$PAGE" | parse 'dlLink' '>\([^<]*\)<\/div>')
+    DEL_LINK=$(echo "$PAGE" | parse 'delLink' '>\([^<]*\)<\/div>')
+
+    echo "$DL_LINK ($DEL_LINK)"
 }
