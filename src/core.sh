@@ -146,8 +146,12 @@ curl() {
     case "$DRETVAL" in
         0)
            ;;
-        # Partial file / HTTP retrieve error / Operation timeout
-        18 | 22 | 28)
+        # Partial file
+        18)
+            return $ERR_LINK_TEMP_UNAVAILABLE
+            ;;
+        # HTTP retrieve error / Operation timeout
+        22 | 28)
             log_error "curl retrieve error"
             return $ERR_NETWORK
             ;;

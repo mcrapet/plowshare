@@ -332,9 +332,9 @@ download() {
             if test "$TEMP_DIR"; then
                 FILENAME_TMP="$TEMP_DIR/$FILENAME"
             elif test "$OUTPUT_DIR"; then
-                    FILENAME_TMP="$OUTPUT_DIR/$FILENAME"
+                FILENAME_TMP="$OUTPUT_DIR/$FILENAME"
             else
-                    FILENAME_TMP="$FILENAME"
+                FILENAME_TMP="$FILENAME"
             fi
 
             # Final path
@@ -363,12 +363,15 @@ download() {
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
+            log_debug "curl returns DRETVAL=$DRETVAL, CODE=$CODE"
 
-            if [ "$DRETVAL" -eq $ERR_NETWORK -a "$CODE" = "206" ]; then
+            if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+                # Obtained HTTP return status are 200 and 206
                 if module_config_resume "$MODULE"; then
                     log_notice "Partial content downloaded, recall download function"
                     continue
                 fi
+                DRETVAL=$ERR_NETWORK
             fi
 
             test "$DRETVAL" -eq 0 || return $DRETVAL
