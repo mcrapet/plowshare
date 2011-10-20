@@ -58,7 +58,8 @@ filesonic_login() {
     return 0
 }
 
-# Output an filesonic.com file download URL (anonymous)
+# Official API documentation: http://api.filesonic.com/link
+# Output an filesonic.com file download URL
 # $1: cookie file
 # $2: filesonic url
 # stdout: real file download link
@@ -67,20 +68,31 @@ filesonic_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
+    local LINK_ID DOMAIN
 
-    local ID=$(echo "$URL" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
-    if ! test "$ID"; then
-        log_error "Cannot parse URL to extract file id (mandatory)"
-        return $ERR_LINK_TEMP_UNAVAILABLE
+    if match '/folder/' "$URL"; then
+        log_error "This is a directory list, use plowlist!"
+        return $ERR_FATAL
     fi
 
-    # update URL if there is a specific .ccTLD location from there
-    BASEURL=$(basename_url "$URL")
-    LOCATION=$(curl -I "$BASEURL" | grep_http_header_location)
-    if test "$LOCATION"; then
-        BASEURL=$(basename_url "$LOCATION")
+    # Get Link Id. Possible URL pattern:
+    # /file/12345                       => 12345
+    # /file/12345/filename.zip          => 12345
+    # /file/r54321/12345                => r54321-12345
+    # /file/r54321/12345/filename.zip   => r54321-12345
+    LINK_ID=$(echo "$URL" | parse '\/file\/' 'file\/\(\([a-z][0-9]\+\/\)\?\([0-9]\+\)\)') || return
+    log_debug "Link ID: $LINK_ID"
+    LINK_ID=${LINK_ID##*/}
+
+    DOMAIN=$(curl 'http://api.filesonic.com/utility?method=getFilesonicDomainForCurrentIp') || return
+    if match '"success"' "$DOMAIN"; then
+        local SUB=$(echo "$DOMAIN" | parse 'response' 'se":"\([^"]*\)","')
+        log_debug "Suitable domain for current ip: $SUB"
+        URL="http://www${SUB}/file/$LINK_ID"
+    else
+        log_error "Can't get domain, try default"
+        URL="http://www.filesonic.com/file/$LINK_ID"
     fi
-    URL="$BASEURL/file/$ID"
 
     # obtain mainpage first (unauthenticated) to get filename
     MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
@@ -91,6 +103,7 @@ filesonic_download() {
 
     # Attempt to authenticate
     if test "$AUTH"; then
+        local BASEURL=$(basename_url "$URL")
         filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
 
         FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
@@ -201,6 +214,8 @@ filesonic_upload() {
     local DESTFILE="$3"
     local FOLDERID=0
     local URL='http://www.filesonic.com'
+
+# FIXME: use official API
 
     # update URL if there is a specific .ccTLD location from there
     LOCATION=$(curl -I "$URL" | grep_http_header_location)
