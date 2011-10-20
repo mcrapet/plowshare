@@ -28,6 +28,7 @@ GETVERSION,,version,,Return plowlist version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
+RECURSE,r,recursive,,Recurse into sub folders
 "
 
 
@@ -100,6 +101,9 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -lt 1 && { usage; exit $ERR_FATAL; }
 
+# Print chosen options
+[ -n "$RECURSE" ] && log_debug "plowlist: --recursive selected"
+
 set_exit_trap
 
 RETVALS=()
@@ -117,7 +121,7 @@ for URL in "$@"; do
 
     FUNCTION=${MODULE}_list
     log_notice "Retreiving list ($MODULE): $URL"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || \
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" || \
         RETVALS=(${RETVALS[@]} "$?")
 done
 
