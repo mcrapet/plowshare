@@ -1025,22 +1025,26 @@ process_options() {
     local OPTIONS=$2
     shift 2
 
+    local SHORT_OPTS LONG_OPTS
+
     # Strip spaces in options
     OPTIONS=$(echo "$OPTIONS" | strip | drop_empty_lines)
 
-    # Function is called from a module which has no option
-    test -z "$OPTIONS" && return 0
+    if [ -n "$OPTIONS" ]; then
+        while read VAR; do
+            if test "${VAR:0:1}" = "!"; then
+                VAR=${VAR:1}
+            fi
+            # faster than `cut -d',' -f1`
+            unset "${VAR%%,*}"
+        done <<< "$OPTIONS"
 
-    while read VAR; do
-        if test "${VAR:0:1}" = "!"; then
-            VAR=${VAR:1}
-        fi
-        # faster than `cut -d',' -f1`
-        unset "${VAR%%,*}"
-    done <<< "$OPTIONS"
+        SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
+        LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
+    fi
 
-    local SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
-    local LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
+    # Even if function is called from a module which has no option,
+    # getopt must be called to detect non existant options (like -a user:password)
     local ARGUMENTS="$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$NAME" -- "$@")"
 
     # To correctly process whitespace and quotes.
