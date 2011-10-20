@@ -160,6 +160,13 @@ wupload_download() {
             log_debug "reCaptcha error"
             return $ERR_CAPTCHA
 
+        # <div id="downloadErrors" class="section CL3">
+        # - The file that you're trying to download is larger than 2048Mb.
+        elif match 'downloadErrors' "$WAIT_HTML"; then
+            local MSG=$(echo "$WAIT_HTML" | parse_quiet '<h3><span>' '<span>\([^<]*\)<')
+            log_error "error: $MSG"
+            break
+
         else
             log_error "Unknown state, give up!"
             break
