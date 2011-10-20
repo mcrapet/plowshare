@@ -193,20 +193,22 @@ test_case_up_down_del() {
 
     echo -n "check link ok > "
 
-    local FILENAME=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
+    local OFILE=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
         echo -n "down KO"
         status 3
         stderr "ERR ($RET): plowdown $OPTS_DN $DL_LINK"
         return
     else
-        rm -f "$FILENAME"
+        # Compare files
+        diff -q "$FILE" "$OFILE" >/dev/null || stderr "ERR: uploaded and downloaded are binary different"
+        rm -f "$OFILE"
     fi
 
     echo -n "down ok > "
 
     delete $OPTS_DEL "$DEL_LINK" >/dev/null || RET=$?
-    # If delete function available (ERROR_CODE_NOMODULE)
+    # If delete function available (ERR_NOMODULE)
     if [ "$RET" -eq 2 ]; then
         echo -n "skip del (not available)"
     # ERR_LINK_NEED_PERMISSIONS
