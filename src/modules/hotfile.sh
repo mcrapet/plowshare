@@ -27,7 +27,7 @@ MODULE_HOTFILE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_HOTFILE_LIST_OPTIONS=""
 
-# Output an hotfile.com file download URL (anonymous or premium)
+# Output a hotfile.com file download URL (anonymous or premium)
 # $1: cookie file
 # $2: hotfile.com url
 # stdout: real file download link

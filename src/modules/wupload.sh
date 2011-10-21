@@ -29,7 +29,7 @@ AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
 MODULE_WUPLOAD_LIST_OPTIONS=""
 
 # Official API documentation: http://api.wupload.com/user
-# Output an wupload.com file download URL
+# Output a wupload.com file download URL
 # $1: cookie file
 # $2: wupload.com url
 # stdout: real file download link

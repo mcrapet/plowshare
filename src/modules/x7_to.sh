@@ -25,7 +25,7 @@ AUTH_FREE,b:,auth-free:,USER:PASSWORD,Use Free account"
 MODULE_X7_TO_DOWNLOAD_RESUME=no
 MODULE_X7_TO_FINAL_LINK_NEEDS_COOKIE=no
 
-# Output an x7.to file download URL
+# Output a x7.to file download URL
 # $1: cookie file
 # $2: x7.to url
 # stdout: real file download link

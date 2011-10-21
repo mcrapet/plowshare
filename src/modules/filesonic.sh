@@ -59,7 +59,7 @@ filesonic_login() {
 }
 
 # Official API documentation: http://api.filesonic.com/link
-# Output an filesonic.com file download URL
+# Output a filesonic.com file download URL
 # $1: cookie file
 # $2: filesonic url
 # stdout: real file download link

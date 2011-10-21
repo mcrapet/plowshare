@@ -29,7 +29,7 @@ MODULE_NETLOAD_IN_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_LIST_OPTIONS=""
 
-# Output an netload.in file download URL
+# Output a netload.in file download URL
 # $1: cookie file
 # $2: netload.in url
 # stdout: real file download link
