@@ -155,8 +155,9 @@ uploaded_to_upload() {
     echo "http://ul.to/${DATA%%,*}"
 }
 
-# List a uploaded.to shared file folder URL
-# $1: url
+# List an uploaded.to shared file folder URL
+# $1: uploaded.to url
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 uploaded_to_list() {
     local URL="$1"

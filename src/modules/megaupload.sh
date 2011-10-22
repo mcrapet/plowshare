@@ -308,7 +308,8 @@ megaupload_delete() {
 }
 
 # List a megaupload shared file folder URL
-# $1: megaupload folder url (http://www.megaupload.com/?f=...)
+# $1: megaupload folder url
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 megaupload_list() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_LIST_OPTIONS" "$@")"

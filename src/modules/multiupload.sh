@@ -152,6 +152,7 @@ multiupload_upload() {
 
 # List multiple hosting site links
 # $1: multiupload.com link
+# $2: recurse subfolders (non sense for this module)
 # stdout: list of links
 multiupload_list() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_LIST_OPTIONS" "$@")"

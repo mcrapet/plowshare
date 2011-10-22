@@ -71,6 +71,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
 
 # List a 4shared folder URL
 # $1: 4shared.com link
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 4shared_list() {
     local URL=$(echo "$1" | replace '/folder/' '/dir/')

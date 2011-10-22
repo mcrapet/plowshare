@@ -253,9 +253,10 @@ fileserve_upload() {
 
 # List a fileserve public folder URL
 # $1: fileserve url
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 fileserve_list() {
-    URL="$1"
+    local URL="$1"
 
     if ! match 'fileserve\.com/list/' "$URL"; then
         log_error "This is not a directory list"

@@ -237,9 +237,13 @@ wupload_upload() {
 
 # List a wupload public folder URL
 # $1: wupload url
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 wupload_list() {
     local URL="$1"
+    local PAGE FILENAME LINK
+
+    test "$2" || log_debug "recursive flag is not supported"
 
     if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a folder"
@@ -249,7 +253,7 @@ wupload_list() {
     PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_WUPLOAD_REGEXP_URL}file/")
 
     if ! test "$PAGE"; then
-        log_error "Wrong folder link (no download link detected)"
+        log_error "wrong folder link (no download link detected)"
         return $ERR_FATAL
     fi
 

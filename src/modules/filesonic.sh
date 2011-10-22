@@ -351,6 +351,7 @@ filesonic_delete() {
 
 # List a filesonic public folder URL
 # $1: filesonic url
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 filesonic_list() {
     local URL="$1"

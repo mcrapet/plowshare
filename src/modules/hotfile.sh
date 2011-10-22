@@ -169,7 +169,8 @@ hotfile_download() {
 }
 
 # List a hotfile shared file folder URL
-# $1: HOTFILE_URL
+# $1: hotfile folder url
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 hotfile_list() {
     local URL="$1"

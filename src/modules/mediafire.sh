@@ -275,14 +275,17 @@ mediafire_upload() {
 
 # List a mediafire shared file folder URL
 # $1: mediafire folder url (http://www.mediafire.com/?sharekey=...)
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 mediafire_list() {
     local URL="$1"
 
     PAGE=$(curl "$URL" | break_html_lines_alt)
 
-    match '/js/myfiles.php/' "$PAGE" ||
-        { log_error "not a shared folder"; return 1; }
+    if ! match '/js/myfiles.php/' "$PAGE"; then
+        log_error "not a shared folder"
+        return $ERR_FATAL
+    fi
 
     local JS_URL=$(echo "$PAGE" | parse 'LoadJS(' '("\(\/js\/myfiles\.php\/[^"]*\)')
     local DATA=$(curl "http://mediafire.com$JS_URL" | sed "s/\([)']\);/\1;\n/g")

@@ -242,6 +242,7 @@ netload_in_upload() {
 
 # List multiple netload.in links
 # $1: netfolder.in link
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 netload_in_list() {
     local URL="$1"

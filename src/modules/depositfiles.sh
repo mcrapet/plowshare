@@ -118,6 +118,7 @@ depositfiles_download() {
 
 # List a depositfiles shared file folder URL
 # $1: depositfiles.com link
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 depositfiles_list() {
     local URL=$1

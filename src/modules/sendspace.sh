@@ -114,7 +114,7 @@ sendspace_delete() {
     local PAGE
 
     PAGE=$(curl "$URL") || return
- 
+
     if match 'You are about to delete the folowing file' "$PAGE"; then
         local FORM_HTML=$(grep_form_by_order "$PAGE" 2)
         local form_url=$(echo "$FORM_HTML" | parse_form_action)
@@ -126,7 +126,7 @@ sendspace_delete() {
             return $ERR_FATAL
         fi
 
-    # Error, the deletion code you provided is incorrect or incomplete. Please make sure to use the full link. 
+    # Error, the deletion code you provided is incorrect or incomplete. Please make sure to use the full link.
     else
         log_error "bad deletion code"
         return $ERR_FATAL
@@ -138,6 +138,7 @@ sendspace_delete() {
 
 # List a sendspace shared folder
 # $1: sendspace folder URL
+# $2: recurse subfolders (null string means not selected)
 # stdout: list of links (file and/or folder)
 sendspace_list() {
     local URL="$1"
