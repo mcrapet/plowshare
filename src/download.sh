@@ -363,7 +363,6 @@ download() {
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
-            log_debug "curl returns DRETVAL=$DRETVAL, CODE=$CODE"
 
             if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                 # Obtained HTTP return status are 200 and 206
