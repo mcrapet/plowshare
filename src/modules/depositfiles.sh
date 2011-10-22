@@ -34,11 +34,15 @@ depositfiles_download() {
     local URL="$2"
     local BASEURL="http://depositfiles.com"
 
-    while retry_limit_not_reached || return; do
-        START=$(curl -L "$URL")
+    local START DLID WAITTIME DATA FID SLEEP
 
-        match "no_download_msg" "$START" &&
-            { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    while retry_limit_not_reached || return; do
+        START=$(curl -L "$URL") || return
+
+        if match "no_download_msg" "$START"; then
+            log_debug "file not found"
+            return $ERR_LINK_DEAD
+        fi
 
         test "$CHECK_LINK" && return 0
 
@@ -50,7 +54,7 @@ depositfiles_download() {
             return 0
         }
 
-        local DLID=$(echo "$START" | parse 'form action=' 'files%2F\([^"]*\)')
+        DLID=$(echo "$START" | parse 'form action=' 'files%2F\([^"]*\)')
         log_debug "download ID: $DLID"
         if [ -z "$DLID" ]; then
             log_error "Can't parse download id, site updated"
@@ -71,8 +75,7 @@ depositfiles_download() {
             continue
         fi
 
-        DATA=$(curl --data "gateway_result=1" "$BASEURL/en/files/$DLID") ||
-            { log_error "can't get wait URL contents"; return 1; }
+        DATA=$(curl --data "gateway_result=1" "$BASEURL/en/files/$DLID") || return
 
         # 2. Check if we have been redirected to initial page
         if match '<input type="button" value="Gold downloading"' "$DATA"; then
@@ -98,17 +101,18 @@ depositfiles_download() {
         break
     done
 
-    FILE_URL=$(echo "$DATA" | parse "download_container" "load('\([^']*\)") ||
-        { log_error "cannot find download url"; return 1; }
+    # FIXME: saw reCaptcha stuff in $DATA, must detect that
+
+    FID=$(echo "$DATA" | parse 'var[[:space:]]fid[[:space:]]=' "[[:space:]]'\([^']*\)") ||
+        { log_error "cannot find fid"; return $ERR_FATAL; }
+
     SLEEP=$(echo "$DATA" | parse "download_waiter_remain" ">\([[:digit:]]\+\)<") ||
-        { log_error "cannot get wait time"; return 1; }
+        { log_error "cannot get wait time"; return $ERR_FATAL; }
 
     # Usual wait time is 60 seconds
     wait $((SLEEP + 1)) seconds || return
 
-    DATA=$(curl --location "$BASEURL$FILE_URL") ||
-        { log_error "cannot get final url"; return 1; }
-
+    DATA=$(curl --location "$BASEURL/get_file.php?fid=$FID") || return
     echo "$DATA" | parse_form_action
 }
 
