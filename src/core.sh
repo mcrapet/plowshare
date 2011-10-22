@@ -1200,6 +1200,8 @@ process_configfile_module_options() {
 
 # Get system information
 log_report_info() {
+    local G
+
     if test $(verbose_level) -ge 4; then
         log_report '=== SYSTEM INFO BEGIN ==='
         log_report "[mach] `uname -a`"
@@ -1209,6 +1211,8 @@ log_report_info() {
         else
             log_report '[curl] not found!'
         fi
+        check_exec 'gsed' && G=g
+        log_report "[sed ] `$(type -P ${G}sed) --version | sed -ne '/version/p'`"
         log_report '=== SYSTEM INFO END ==='
     fi
 }
