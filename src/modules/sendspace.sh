@@ -70,10 +70,10 @@ sendspace_upload() {
 
     local FILE="$2"
     local DESTFILE="$3"
-    local DATA
+    local DATA DL_LINK DEL_LINK
 
     DATA=$(curl 'http://www.sendspace.com') || return
-    local FORM_HTML=$(grep_form_by_order "$DATA" 2 | break_html_lines_alt)
+    local FORM_HTML=$(grep_form_by_order "$DATA" 3 | break_html_lines_alt)
     local form_url=$(echo "$FORM_HTML" | parse_form_action)
     local form_maxfsize=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
     local form_uid=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
@@ -99,8 +99,8 @@ sendspace_upload() {
         -F "upload_file[]=@$FILE;filename=$DESTFILE" \
         "$form_url") || return
 
-    DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href')
-    DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href')
+    DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href') || return
+    DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href') || return
 
     echo "$DL_LINK ($DEL_LINK)"
 }
@@ -142,7 +142,7 @@ sendspace_delete() {
 # stdout: list of links (file and/or folder)
 sendspace_list() {
     local URL="$1"
-    local PAGE
+    local PAGE LINKS SUBDIRS
 
     if ! match 'sendspace\.com/folder/' "$URL"; then
         log_error "This is not a directory list"
@@ -150,9 +150,9 @@ sendspace_list() {
     fi
 
     PAGE=$(curl "$URL") || return
-    local LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
+    LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
             '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
-    local SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
+    SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
             '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
 
     if [ -z "$LINKS" -a -z "$SUBDIRS" ]; then
