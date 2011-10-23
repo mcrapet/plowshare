@@ -27,9 +27,9 @@ SRCDIR="$ROOTDIR/src"
 TPUT=tput
 
 # Test data
-TEST_FILES=( "up-down-del.t" "single_link_download.t" )
-TEST_LETTER=('T' 'S')
-TEST_INDEX=(10 500)
+TEST_FILES=('up-down-del.t' 'single_link_download.t' 'check_wrong_link.t')
+TEST_LETTER=('T' 'S' 'C')
+TEST_INDEX=(10 400 700)
 
 
 # plowdown
@@ -88,7 +88,7 @@ exists()
     local i
     for i in ${ARRAY[@]}; do
 
-        # Compare exact tnum (ex:"S504")
+        # Compare exact tnum (ex:"S402")
         [ "$i" == "$2" ] && return 0
 
         # But accept one single lettre for all tests (ex:"S")
@@ -152,6 +152,8 @@ test_case_up_down_del() {
     local OPTS_DN=$4
     local OPTS_DEL=$5
 
+    local RET LINKS OFILE DL_LINK DEL_LINK
+
     # Check for double-dash (no option)
     [ "${OPTS_UP:0:2}" = '--' ] && OPTS_UP=
     [ "${OPTS_DN:0:2}" = '--' ] && OPTS_DN=
@@ -180,12 +182,25 @@ test_case_up_down_del() {
     DL_LINK=$(echo "$LINKS" | cut -d' ' -f1)
     DEL_LINK=$(echo "$LINKS" | cut -d'(' -f2 | cut -d')' -f1)
 
+    # Sanity check
+    if [ -z "$DL_LINK" ]; then
+        echo -n "up KO (fatal, need module rework)"
+        status 1
+        return
+    fi
+
     echo -n "up ok > "
 
     # Check link
     download --check-link $OPTS_DN "$DL_LINK" >/dev/null || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo -n "check link KO"
+        # ERR_LINK_TEMP_UNAVAILABLE
+        if [ "$RET" -eq 10 ]; then
+            echo -n "check link KO (link not available)"
+        else
+            echo -n "check link KO"
+        fi
+
         status 2
         stderr "ERR ($RET): plowdown --check-link $OPTS_DN $DL_LINK"
         return
@@ -193,9 +208,15 @@ test_case_up_down_del() {
 
     echo -n "check link ok > "
 
-    local OFILE=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
+    OFILE=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo -n "down KO"
+        # ERR_LINK_TEMP_UNAVAILABLE
+        if [ "$RET" -eq 10 ]; then
+            echo -n "down KO (link not available)"
+        else
+            echo -n "down KO"
+        fi
+
         status 3
         stderr "ERR ($RET): plowdown $OPTS_DN $DL_LINK"
         return
@@ -207,7 +228,7 @@ test_case_up_down_del() {
 
     echo -n "down ok > "
 
-    delete $OPTS_DEL "$DEL_LINK" >/dev/null || RET=$?
+    delete $OPTS_DEL "$DEL_LINK" || RET=$?
     # If delete function available (ERR_NOMODULE)
     if [ "$RET" -eq 2 ]; then
         echo -n "skip del (not available)"
@@ -235,12 +256,13 @@ test_signle_down() {
     local LINK=$1
     local FILENAME=$2
     local OPTS_DN=$3
+    local F
 
     # Check for double-dash (no option)
     [ "${OPTS_DN:0:2}" = '--' ] && OPTS_DN=
 
     RET=0
-    local F=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$LINK") || RET=$?
+    F=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
         echo -n "down KO"
         status 1
@@ -250,6 +272,33 @@ test_signle_down() {
 
     rm -f "$F"
     echo -n "down ok"
+
+    status 0
+    return
+}
+
+# $1: url
+# $2: plowdown options ("--" means no option)
+# $?: zero on success, positive for error
+test_check_wrong_link() {
+    local LINK=$1
+    local OPTS_DN=$2
+
+    # Check for double-dash (no option)
+    [ "${OPTS_DN:0:2}" = '--' ] && OPTS_DN=
+
+    RET=0
+    download --check-link $OPTS_DN "$LINK" >/dev/null || RET=$?
+
+    # ERR_LINK_DEAD=13
+    if [ "$RET" -ne 13 ]; then
+        echo -n "check link KO"
+        status 2
+        stderr "ERR ($RET): plowdown --check-link $OPTS_DN $DL_LINK"
+        return
+    fi
+
+    echo -n "check link ok (link dead as expexted)"
 
     status 0
     return
@@ -317,15 +366,21 @@ done
 if [ $TESTOP = 'li' ]; then
     let i=${TEST_INDEX[0]}
     while readx M O1 O2 O3; do
-        echo "T$i: $M ($O1)"
+        echo "${TEST_LETTER[0]}$i: $M ($O1)"
         let i++
     done < "${TEST_FILES[0]}"
 
     let i=${TEST_INDEX[1]}
     while readx URL F O1; do
-        echo "S$i: $URL ($O1)"
+        echo "${TEST_LETTER[1]}$i: $URL ($O1)"
         let i++
     done < "${TEST_FILES[1]}"
+
+    let i=${TEST_INDEX[2]}
+    while readx URL O1; do
+        echo "${TEST_LETTER[2]}$i: $URL ($O1)"
+        let i++
+    done < "${TEST_FILES[2]}"
 
 else
     # FIXME: Do 1 pass for now..
@@ -349,11 +404,21 @@ else
         while readx URL F O1; do
             if exists TEST_ITEMS "${TEST_LETTER[1]}$i"; then
                 echo -n "testing $URL ..."
-                test_signle_down "$URL" $F "$O1" || true
+                test_signle_down "$URL" "$F" "$O1" || true
                 let n++
             fi
             let i++
         done < "${TEST_FILES[1]}"
+
+        let i=${TEST_INDEX[2]}
+        while readx URL O1; do
+            if exists TEST_ITEMS "${TEST_LETTER[2]}$i"; then
+                echo -n "testing $URL ..."
+                test_check_wrong_link "$URL" "$O1" || true
+                let n++
+            fi
+            let i++
+        done < "${TEST_FILES[2]}"
 
         if [ "$n" -eq 0 ]; then
             echo "error: bad test name \"${TEST_ITEMS[0]}\""
@@ -375,8 +440,12 @@ else
         done < "${TEST_FILES[0]}"
         while readx URL F O1; do
             echo -n "testing $URL ..."
-            test_signle_down "$URL" $F "$O1" || true
+            test_signle_down "$URL" "$F" "$O1" || true
         done < "${TEST_FILES[1]}"
+        while readx URL O1; do
+            echo -n "testing $URL ..."
+            test_check_wrong_link "$URL" "$O1" || true
+        done < "${TEST_FILES[2]}"
     fi
 
     rm -f "$FILE1"

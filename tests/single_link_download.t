@@ -1,10 +1,10 @@
 ##
-# Plowdown testing
+# Plowdown testing : single link download
 #
 # File syntax
 # 1. file link
 # 2. expected filename
-# 3. plowdown options
+# 3. plowdown options ("--" means no option)
 ##
 
 # 115.com
@@ -13,7 +13,7 @@ Guilty_OST.rar
 --
 
 # depositfiles (220KB file)
-http://depositfiles.com/en/files/xn88ws0rr
+http://depositfiles.com/files/eodpex11s
 RFC-all.tar.gz
 --
 
