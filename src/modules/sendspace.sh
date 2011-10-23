@@ -116,7 +116,7 @@ sendspace_delete() {
     PAGE=$(curl "$URL") || return
 
     if match 'You are about to delete the folowing file' "$PAGE"; then
-        local FORM_HTML=$(grep_form_by_order "$PAGE" 2)
+        local FORM_HTML=$(grep_form_by_order "$PAGE" 3)
         local form_url=$(echo "$FORM_HTML" | parse_form_action)
         local form_submit=$(echo "$FORM_HTML" | parse_form_input_by_name 'delete')
 
