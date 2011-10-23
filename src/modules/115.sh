@@ -29,15 +29,23 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: 115.com url
 # stdout: real file download link
 115_download() {
-    local HTML_PAGE=$(curl -L "$2" | break_html_lines)
+    local URL="$2"
+    local PAGE LINKS HEADERS DIRECT FILENAME WAITTIME
 
-    if match 'file-notfound"' "$HTML_PAGE"; then
+    PAGE=$(curl -L "$URL" | break_html_lines) || return
+
+    # FIXME: it is still relevant?
+    if match 'file-notfound"' "$PAGE"; then
         log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 
-    local LINKS=$(echo "$HTML_PAGE" | parse_all_attr 'ds_url' 'href')
+    if match 'ico-fail"' "$PAGE"; then
+        log_debug "file not alive anymore"
+        return $ERR_LINK_DEAD
+    fi
 
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'ds_url' 'href')
     if [ -z "$LINKS" ]; then
         log_error "no link found, site updated?"
         return $ERR_LINK_DEAD
@@ -45,11 +53,15 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
     test "$CHECK_LINK" && return 0
 
+    # Look for wait time
+    WAITTIME=$(echo "$PAGE" | parse_quiet 'id="js_get_download_second"' '">\([^<]\+\)<\/b>')
+    log_debug "should wait ${WAITTIME}s"
+
     # There are usually mirrors (do a HTTP HEAD request to check dead mirror)
     while read URL; do
-        HEADERS=$(curl -I "$URL")
+        HEADERS=$(curl -I "$URL") || return
 
-        local FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition)
+        FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition)
         if [ -n "$FILENAME" ]; then
             echo "$URL"
 
@@ -62,7 +74,7 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
             return 0
         fi
 
-        local DIRECT=$(echo "$HEADERS" | grep_http_header_content_type)
+        DIRECT=$(echo "$HEADERS" | grep_http_header_content_type)
         if [ "$DIRECT" = 'application/octet-stream' ]; then
             echo "$URL"
             return 0
