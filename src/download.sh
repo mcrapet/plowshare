@@ -77,7 +77,7 @@ absolute_path() {
 process_item() {
     local ITEM=$1
     if matchi "^[[:space:]]*https\?://" "$ITEM"; then
-        echo "url|$(echo "$ITEM" | strip | sed -e 's/\x20/%20/g')"
+        echo "url|$(echo "$ITEM" | strip | uri_encode)"
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
           zip|rar|tar|gz|7z|bz2|mp3|avi)
@@ -86,7 +86,7 @@ process_item() {
           *)
               # Discard empty lines and comments
               sed -ne "s,^[[:space:]]*\([^ #].*\)[[:space:]]*$,file|\1,p" "$ITEM" | \
-                  strip | sed -e 's/\x20/%20/g'
+                  strip | uri_encode
               ;;
         esac
     else
@@ -107,7 +107,7 @@ usage() {
     print_module_options "$MODULES" 'DOWNLOAD'
 }
 
-# If MARK_DOWN is enabled, mark status of link (inside file or to stdout).
+# Mark status of link (inside file or to stdout). See --mark-downloaded switch.
 mark_queue() {
     local TYPE=$1
     local MARK_DOWN=$2
@@ -120,8 +120,10 @@ mark_queue() {
 
     if test "$TYPE" = "file"; then
         if test -w "$FILELIST"; then
+            local URL_DECODED=$(echo "$URL" | uri_decode)
+
             TAIL=${TAIL//,/\\,}
-            URL=${URL//,/\\,}
+            URL=${URL_DECODED//,/\\,}
 
             sed -i -e "s,^[[:space:]]*\($URL\)[[:space:]]*$,#$TEXT \1$TAIL," "$FILELIST" &&
                 log_notice "link marked in file: $FILELIST (#$TEXT)" ||

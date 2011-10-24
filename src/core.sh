@@ -478,7 +478,7 @@ html_to_utf8() {
 
 # Encode a text to include into an url.
 # - Reserved Characters (18): !*'();:@&=+$,/?#[]
-# - Check for percent (%) & space character
+# - Check for percent (%) and space character
 #
 # - Unreserved Characters: ALPHA / DIGIT / "-" / "." / "_" / "~"
 # - Unsafe characters (RFC2396) should not be percent-encoded anymore: <>{}|\^`
