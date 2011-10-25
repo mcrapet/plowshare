@@ -96,12 +96,14 @@ depositfiles_download() {
         elif match 'html_download_api-not_exists' "$DATA"; then
             log_error "file does not exist anymore"
             return $ERR_LINK_DEAD
+
+        # - We are sorry, but all downloading slots for your country are busy.
+        elif match 'html_download_api-limit_country' "$DATA"; then
+            return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
         break
     done
-
-    # FIXME: saw reCaptcha stuff in $DATA, must detect that
 
     FID=$(echo "$DATA" | parse 'var[[:space:]]fid[[:space:]]=' "[[:space:]]'\([^']*\)") ||
         { log_error "cannot find fid"; return $ERR_FATAL; }
@@ -113,6 +115,46 @@ depositfiles_download() {
     wait $((SLEEP + 1)) seconds || return
 
     DATA=$(curl --location "$BASEURL/get_file.php?fid=$FID") || return
+
+    # reCaptcha page (challenge forced)
+    if match 'load_recaptcha();' "$DATA"; then
+        local PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
+        local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+
+        if [ -n "$IMAGE_FILENAME" ]; then
+            local TRY=1
+
+            while retry_limit_not_reached || return; do
+                log_debug "reCaptcha manual entering (loop $TRY)"
+                (( TRY++ ))
+
+                WORD=$(captcha_process "$IMAGE_FILENAME")
+
+                rm -f $IMAGE_FILENAME
+
+                [ -n "$WORD" ] && break
+
+                log_debug "empty, request another image"
+                IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
+            done
+
+            WORD=$(echo "$WORD" | uri_encode)
+            CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+            DATA=$(curl --get --location --data \
+                "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
+                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+                "$BASEURL/get_file.php") || return
+
+            if match 'Download the file' "$DATA"; then
+                echo "$DATA" | parse_form_action
+                return 0
+            fi
+        fi
+
+        log_debug "reCaptcha error"
+        return $ERR_CAPTCHA
+    fi
+
     echo "$DATA" | parse_form_action
 }
 
