@@ -43,13 +43,14 @@ zshare_download() {
 
     test "$CHECK_LINK" && return 0
 
+    detect_javascript >/dev/null || return
+
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")
 
     wait $((WAITTIME)) seconds || return
 
     JSCODE=$(echo "$WAITPAGE" | grep "var link_enc")
-    detect_javascript >/dev/null || return
 
     FILE_URL=$(echo "$JSCODE" "; print(link);" | javascript)
     FILENAME=$(echo "$WAITPAGE" |\
