@@ -84,9 +84,9 @@ megashares_download() {
     # Test maximum download limit
     while match 'You have reached your maximum download limit' "$PAGE"; do
         log_debug 'You have reached your maximum download limit.'
-        declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)<\/strong>:')
-        wait $((MIN + 1)) minutes || return
-        #wait 5 minutes
+        #declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)<\/strong>:')
+        #wait $((MIN + 1)) minutes || return
+        wait 10 minutes
         PAGE=$(curl "$URL") || return
     done
 
