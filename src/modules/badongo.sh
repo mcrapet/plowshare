@@ -30,7 +30,7 @@ MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # stdout: real file download link
 badongo_download() {
     local COOKIEFILE="$1"
-    local URL="$2"
+    local URL=$(echo "$2" | replace '/audio/' '/file/')
     local BASEURL="http://www.badongo.com"
     local APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
 
@@ -148,8 +148,7 @@ badongo_download() {
     GLF_H=$(echo "$JSCODE" | parse "'h'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
     GLF_T=$(echo "$JSCODE" | parse "'t'" "[[:space:]]'\([^']*\)" | replace '!' '%21');
 
-    # HTTP GET request
-    JSCODE=$(curl -G -b "_gflCur=0" -b $COOKIEFILE \
+    JSCODE=$(curl --get -b "_gflCur=0" -b $COOKIEFILE \
         --data "rs=getFileLink&rst=&rsrnd=${MTIME}&rsargs[]=0&rsargs[]=yellow&rsargs[]=${GLF_Z}&rsargs[]=${GLF_H}&rsargs[]=${GLF_T}&rsargs[]=${FILETYPE}&rsargs[]=${FILEID}&rsargs[]=" \
         --referer "$ACTION" "$ACTION" | break_html_lines)
 
@@ -177,6 +176,7 @@ badongo_download() {
 unescape_javascript() {
     local CODE=$(echo "$1" | grep '^eval((' | nth_line $2)
     (echo 'decodeURIComponent = function(x) { print(x); return x; }' && \
-        echo 'var Event = { observe: function(a,b,c) {} }; var window="";' && \
+        echo 'var Event = { observe: function(a,b,c) {} };' && \
+        echo 'var window = { beginDownload: function(isClick) {}, setTimeout: function(code,delay) {} };' && \
         echo "$CODE") | javascript
 }
