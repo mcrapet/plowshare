@@ -233,6 +233,12 @@ nth_line() {
    sed -ne "${1}p"
 }
 
+# Delete last line of a text
+# stdin: input string (multiline)
+delete_last_line() {
+    sed -e '$d'
+}
+
 # Check if a string ($2) matches a regexp ($1)
 # This is case sensitive.
 #

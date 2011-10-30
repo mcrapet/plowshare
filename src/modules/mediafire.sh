@@ -132,10 +132,11 @@ get_ofuscated_link() {
     # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
     PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
               grep "var PageLoaded" | first_line | sed "s/var cb=Math.random().*$/}/") ||
-        { log_error "cannot find main javascript code"; return 1; }
+        { log_error "cannot find main javascript code"; return $ERR_FATAL; }
+
     FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
                "cR();[[:space:]]*\([[:alnum:]]\+\)();") ||
-      { log_error "cannot find start function"; return 1; }
+      { log_error "cannot find start function"; return $ERR_FATAL; }
     log_debug "JS function: $FUNCTION"
 
     { read DIVID; read DYNAMIC_PATH; } < <(echo "
@@ -167,7 +168,8 @@ get_ofuscated_link() {
         }
         print(namespace.workframe2.src);
         " | javascript) ||
-        { log_error "error running Javascript in main page"; return 1; }
+        { log_error "error running Javascript in main page"; return $ERR_FATAL; }
+
     log_debug "DIV id: $DIVID"
     log_debug "Dynamic page: $DYNAMIC_PATH"
     DYNAMIC=$(curl -b "$COOKIEFILE" "$BASE_URL/$DYNAMIC_PATH")
@@ -188,9 +190,10 @@ get_ofuscated_link() {
         $DYNAMIC_JS
         dz();
         print(namespace['$DIVID'].innerHTML);
-    " | javascript | parse_attr "href") ||
-        { log_error "error running Javascript in download page"; return 1; }
-    echo $FILE_URL
+    " | javascript | parse_attr 'href') ||
+        { log_error "error running Javascript in download page"; return $ERR_FATAL; }
+
+    echo "$FILE_URL"
 }
 
 # Upload a file to mediafire
@@ -297,7 +300,7 @@ mediafire_list() {
 
     # print filename as debug message & links (stdout)
     # es[0]=Array('1','1',3,'te9rlz5ntf1','82de6544620807bf025c12bec1713a48','my_super_file.txt','14958589','14.27','MB','43','02/13/2010', ...
-    DATA=$(echo "$DATA" | grep 'es\[' | tr -d "'" | sed -e '$d')
+    DATA=$(echo "$DATA" | grep 'es\[' | tr -d "'" | delete_last_line)
     while IFS=, read -r _ _ _ FID _ FILENAME _; do
         log_debug "$FILENAME"
         echo "http://www.mediafire.com/?$FID"
