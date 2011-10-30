@@ -349,7 +349,8 @@ download() {
             CURL_ARGS=()
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
 
-            module_config_resume "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
+            [ -z "$NOOVERWRITE" ] && \
+                module_config_resume "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
             module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-b $COOKIES")
 
             if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
