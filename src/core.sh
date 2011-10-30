@@ -583,7 +583,7 @@ post_login() {
     local CURL_ARGS=$5
 
     if test "$GLOBAL_COOKIES"; then
-        REGEXP=$(echo "$LOGINURL" | grep -o "://[^/]*" | grep -o "[^.]*\.[^.]*$")
+        REGEXP=$(echo "$LOGINURL" | basename_url | grep -o "[^.]*\.[^.]*$")
         if grep -q "^\.\?$REGEXP" "$GLOBAL_COOKIES" 2>/dev/null; then
             log_debug "cookies for site ($REGEXP) found in cookies file, login skipped"
             return
