@@ -45,10 +45,13 @@ hotfile_download() {
     # Try to get the download link using premium credentials (if $AUTH not null)
     # Some code duplicated from core.sh, post_login().
     if [ -n "$AUTH" ]; then
-        USER="${AUTH%%:*}"
-        PASSWORD="${AUTH#*:}"
+        local USER="${AUTH%%:*}"
+        local PASSWORD="${AUTH#*:}"
 
-        log_notice "Starting download process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+        if [ "$AUTH" = "$PASSWORD" ]; then
+            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+        fi
+
         FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return
 
         # Hotfile API error messages starts with a dot, if no dot then the download link is available
