@@ -65,6 +65,7 @@ badongo_download() {
         # 200x60 jpeg file
         CAPTCHA_URL=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
 
+        # Create new formatted image
         CAPTCHA_IMG=$(create_tempfile) || return
         curl "$BASEURL$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_threshold.pl 125 | \
                 convert - +matte -colorspace gray -level 45%,45% gif:$CAPTCHA_IMG || { \
@@ -72,12 +73,7 @@ badongo_download() {
             return $ERR_CAPTCHA;
         }
 
-        #CAPTCHA=$(captcha_process "$CAPTCHA_IMG" auto) || return
-        CAPTCHA=$(cat "$CAPTCHA_IMG" | ocr upper | sed "s/[^a-zA-Z]//g") || { \
-            log_error "error running OCR";
-            rm -f "$CAPTCHA_IMG"
-            return $ERR_CAPTCHA;
-        }
+        CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_upper) || return
         rm -f "$CAPTCHA_IMG"
 
         test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"

@@ -718,46 +718,26 @@ retry_limit_not_reached() {
     test "$PS_RETRY_LIMIT" -ge 0 || return $ERR_MAX_TRIES_REACHED
 }
 
-# OCR of an image.
-#
-# $1: optional varfile
-# stdin: image (binary)
-# stdout: result OCRed text
-ocr() {
-    local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
-    local OPT_VARFILE="$LIBDIR/tesseract/$1"
-    test -f "$OPT_VARFILE" || OPT_VARFILE=''
-
-    # Tesseract somewhat "peculiar" arguments requirement makes impossible
-    # to use pipes or process substitution. Create temporal files
-    # instead (*sigh*).
-    TIFF=$(create_tempfile ".tif")
-    TEXT=$(create_tempfile ".txt")
-
-    convert - tif:- > $TIFF
-    LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
-    if [ $? -ne 0 ]; then
-        rm -f $TIFF $TEXT
-        log_error "$LOG"
-        return $ERR_SYSTEM
-    fi
-
-    cat $TEXT
-    rm -f $TIFF $TEXT
-}
-
 # $1: local image filename (with full path). No specific image format expected.
-# $2 (optional): view method
+# $2 (optional): solve method
 # stdout: captcha answer (or nothing depending $2)
 #
-# Note: reCAPTCHA image are 300x57.
+# Important note: input image ($1) is deleted in case of error
 captcha_process() {
     local FILENAME="$1"
     local METHOD_VIEW=
-    local METHOD_SOLVE=
+    local METHOD_SOLVE="$2"
 
-    local TEXT1='Leave this field blank and hit enter to get another captcha image'
-    local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
+    if [ ! -f "$FILENAME" ]; then
+        log_error "image file not found"
+        return $ERR_CAPTCHA
+    fi
+
+    if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
+        METHOD_VIEW=none
+    elif [ -z "$METHOD_SOLVE" ]; then
+        METHOD_SOLVE=prompt
+    fi
 
     if [ -z "$METHOD_VIEW" ]; then
         # X11 server installed ?
@@ -831,15 +811,35 @@ captcha_process() {
             PRGPID=$!
             ;;
         *)
-            log_error "unknown method: $METHOD_VIEW"
+            log_error "unknown view method: $METHOD_VIEW"
+            rm -f "$FILENAME"
+            return $ERR_CAPTCHA
             ;;
     esac
 
-    [ -z "$METHOD_SOLVE" ] && METHOD_SOLVE=prompt
+    local RESPONSE
+    local TEXT1='Leave this field blank and hit enter to get another captcha image'
+    local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
 
     # How to solve captcha
     case "$METHOD_SOLVE" in
         none)
+            ;;
+        ocr_digit)
+            RESPONSE=$(cat "$FILENAME" | ocr digit | sed -e 's/[^0-9]//g') || {
+                log_error "error running OCR";
+                rm -f "$FILENAME";
+                return $ERR_CAPTCHA;
+            }
+            echo "$RESPONSE"
+            ;;
+        ocr_upper)
+            RESPONSE=$(cat "$FILENAME" | ocr upper | sed -e 's/[^a-zA-Z]//g') || {
+                log_error "error running OCR";
+                rm -f "$FILENAME";
+                return $ERR_CAPTCHA;
+            }
+            echo "$RESPONSE"
             ;;
         prompt)
             log_notice $TEXT1
@@ -848,7 +848,9 @@ captcha_process() {
             echo "$RESPONSE"
             ;;
         *)
-            log_error "unknown method: $METHOD_SOLVE"
+            log_error "unknown solve method: $METHOD_SOLVE"
+            rm -f "$FILENAME"
+            return $ERR_CAPTCHA
             ;;
     esac
 }
@@ -1284,4 +1286,32 @@ timeout_update() {
         return $ERR_MAX_WAIT_REACHED
     fi
     (( PS_TIMEOUT -= WAIT ))
+}
+
+# OCR of an image.
+#
+# $1: optional varfile
+# stdin: image (binary)
+# stdout: result OCRed text
+ocr() {
+    local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
+    local OPT_VARFILE="$LIBDIR/tesseract/$1"
+    test -f "$OPT_VARFILE" || OPT_VARFILE=''
+
+    # Tesseract somewhat "peculiar" arguments requirement makes impossible
+    # to use pipes or process substitution. Create temporal files
+    # instead (*sigh*).
+    TIFF=$(create_tempfile ".tif")
+    TEXT=$(create_tempfile ".txt")
+
+    convert - tif:- > $TIFF
+    LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
+    if [ $? -ne 0 ]; then
+        rm -f $TIFF $TEXT
+        log_error "$LOG"
+        return $ERR_SYSTEM
+    fi
+
+    cat $TEXT
+    rm -f $TIFF $TEXT
 }
