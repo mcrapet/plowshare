@@ -132,31 +132,13 @@ fileserve_download() {
         return $ERR_FATAL
     fi
 
-    local PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
-    local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+    local PUBKEY CNW CHALLENGE WORD
+    PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
+    CNW=$(recaptcha_process $PUBKEY) || return
+    CHALLENGE="${CNW%%\$*}"
+    WORD="${CNW#*\$}"
 
-    if [ -z "$IMAGE_FILENAME" ]; then
-        log_error "reCaptcha error"
-        return $ERR_CAPTCHA
-    fi
-
-    TRY=1
-    while retry_limit_not_reached || return; do
-        log_debug "reCaptcha manual entering (loop $TRY)"
-        (( TRY++ ))
-
-        WORD=$(captcha_process "$IMAGE_FILENAME")
-
-        rm -f $IMAGE_FILENAME
-
-        [ -n "$WORD" ] && break
-
-        log_debug "empty, request another image"
-        IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-    done
-
-    SHORT=$(basename_file "$URL")
-    CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+    local SHORT=$(basename_file "$URL")
 
     # Should return {"success":1}
     JSON2=$(curl -b "$COOKIEFILE" --referer "$URL" --data \

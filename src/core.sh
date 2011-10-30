@@ -631,7 +631,7 @@ javascript() {
     local JS_PRG TEMPSCRIPT
 
     JS_PRG=$(detect_javascript) || return
-    TEMPSCRIPT=$(create_tempfile) || return
+    TEMPSCRIPT=$(create_tempfile '.js') || return
 
     cat > $TEMPSCRIPT
 
@@ -855,65 +855,58 @@ captcha_process() {
     esac
 }
 
-##
-## reCAPTCHA functions (can be called from modules)
-## Main engine: http://api.recaptcha.net/js/recaptcha.js
-##
 RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
-
+# reCAPTCHA decoding function
+# Main engine: http://api.recaptcha.net/js/recaptcha.js
+#
 # $1: reCAPTCHA site public key
-# stdout: image path
-recaptcha_load_image() {
+# stdout: "<challenge>$<words>" ('$' is separator character, <words> are processed through uri_encode)
+recaptcha_process() {
     local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
-    log_debug "reCaptcha URL: $URL"
+    local VARS SERVER CHALLENGE FILENAME COUNT WORDS
 
-    local VARS=$(curl -L "$URL")
+    VARS=$(curl -L "$URL") || return
 
-    if [ -n "$VARS" ]; then
-        local server=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'")
-        local challenge=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'")
-
-        log_debug "reCaptcha server: $server"
-        log_debug "reCaptcha challenge: $challenge"
-
-        # Image dimension: 300x57
-        local FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
-        local CAPTCHA_URL="${server}image?c=${challenge}"
-        log_debug "reCaptcha image URL: $CAPTCHA_URL"
-        curl "$CAPTCHA_URL" -o "$FILENAME"
-
-        log_debug "reCaptcha image: $FILENAME"
-        echo "$FILENAME"
+    if [ -z "$VARS" ]; then
+        return $ERR_CAPTCHA
     fi
-}
 
-# $1: reCAPTCHA image filename
-# stdout: challenge (string)
-recaptcha_get_challenge_from_image() {
-    basename_file "$1" | cut -d. -f2
-}
+    # Load image
+    SERVER=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
+    CHALLENGE=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
 
-# $1: reCAPTCHA site public key
-# $2: reCAPTCHA image filename
-# stdout: new image path
-recaptcha_reload_image() {
-    FILENAME="$2"
+    log_debug "reCaptcha server: $SERVER"
 
-    if [ -n "$FILENAME" ]; then
-        local challenge=$(recaptcha_get_challenge_from_image "$FILENAME")
-        local server="$RECAPTCHA_SERVER"
+    # Image dimension: 300x57
+    FILENAME=$(create_tempfile '.recaptcha.jpg') || return
 
-        local STATUS=$(curl "${server}reload?k=$1&c=${challenge}&reason=r&type=image&lang=en")
-        local challenge=$(echo "$STATUS" | parse_quiet 'finish_reload' "('\([^']*\)")
+    TRY=0
+    # FIXME: use retry_limit_not_reached() on non manual solving
+    while ((TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
+        log_debug "reCaptcha loop $TRY"
+        log_debug "reCaptcha challenge: $CHALLENGE"
 
-        local FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
-        local CAPTCHA_URL="${server}image?c=${challenge}"
-        log_debug "reCaptcha image URL: $CAPTCHA_URL"
-        curl "$CAPTCHA_URL" -o "$FILENAME"
+        URL="${SERVER}image?c=${CHALLENGE}"
 
-        log_debug "reCaptcha new image: $FILENAME"
-        echo "$FILENAME"
-    fi
+        log_debug "reCaptcha image URL: $URL"
+        curl "$URL" -o "$FILENAME" || return
+        log_debug "reCaptcha local image: $FILENAME"
+
+        WORDS=$(captcha_process "$FILENAME") || return
+        rm -f "$FILENAME"
+
+        [ -n "$WORDS" ] && break
+
+        # Reload image
+        log_debug "empty, request another image"
+
+        # Result: Recaptcha.finish_reload('...', 'image');
+        VARS=$(curl "${SERVER}reload?k=${1}&c=${CHALLENGE}&reason=r&type=image&lang=en") || return
+        CHALLENGE=$(echo "$VARS" | parse_quiet 'finish_reload' "('\([^']*\)") || return
+    done
+
+    WORDS=$(echo "$WORDS" | uri_encode)
+    echo "${CHALLENGE}\$${WORDS}"
 }
 
 ## ----------------------------------------------------------------------------
@@ -1301,8 +1294,8 @@ ocr() {
     # Tesseract somewhat "peculiar" arguments requirement makes impossible
     # to use pipes or process substitution. Create temporal files
     # instead (*sigh*).
-    TIFF=$(create_tempfile ".tif")
-    TEXT=$(create_tempfile ".txt")
+    TIFF=$(create_tempfile '.tif') || return
+    TEXT=$(create_tempfile '.txt') || return
 
     convert - tif:- > $TIFF
     LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)

@@ -118,37 +118,21 @@ depositfiles_download() {
 
     # reCaptcha page (challenge forced)
     if match 'load_recaptcha();' "$DATA"; then
-        local PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
-        local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
-        if [ -n "$IMAGE_FILENAME" ]; then
-            local TRY=1
+        local PUBKEY CNW CHALLENGE WORD
+        PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
+        CNW=$(recaptcha_process $PUBKEY) || return
+        CHALLENGE="${CNW%%\$*}"
+        WORD="${CNW#*\$}"
 
-            while retry_limit_not_reached || return; do
-                log_debug "reCaptcha manual entering (loop $TRY)"
-                (( TRY++ ))
+        DATA=$(curl --get --location --data \
+            "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
+            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+            "$BASEURL/get_file.php") || return
 
-                WORD=$(captcha_process "$IMAGE_FILENAME")
-
-                rm -f $IMAGE_FILENAME
-
-                [ -n "$WORD" ] && break
-
-                log_debug "empty, request another image"
-                IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-            done
-
-            WORD=$(echo "$WORD" | uri_encode)
-            CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
-            DATA=$(curl --get --location --data \
-                "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
-                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                "$BASEURL/get_file.php") || return
-
-            if match 'Download the file' "$DATA"; then
-                echo "$DATA" | parse_form_action
-                return 0
-            fi
+        if match 'Download the file' "$DATA"; then
+            echo "$DATA" | parse_form_action
+            return 0
         fi
 
         log_debug "reCaptcha error"

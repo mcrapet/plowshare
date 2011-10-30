@@ -142,30 +142,12 @@ filesonic_download() {
 
             # captcha
             elif match 'Please Enter Captcha' "$PAGE"; then
-                local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-                local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
-                if ! test "$IMAGE_FILENAME"; then
-                    log_error "reCaptcha error"
-                    return $ERR_FATAL
-                fi
-
-                TRY=1
-                while retry_limit_not_reached || return; do
-                    log_debug "reCaptcha manual entering (loop $TRY)"
-                    (( TRY++ ))
-
-                    WORD=$(captcha_process "$IMAGE_FILENAME")
-
-                    rm -f $IMAGE_FILENAME
-
-                    test "$WORD" && break
-
-                    log_debug "empty, request another image"
-                    IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-                done
-
-                CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+                local PUBKEY CNW CHALLENGE WORD
+                PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
+                CNW=$(recaptcha_process $PUBKEY) || return
+                CHALLENGE="${CNW%%\$*}"
+                WORD="${CNW#*\$}"
 
                 DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
                 PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
