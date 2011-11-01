@@ -591,6 +591,8 @@ post_login() {
         log_debug "cookies not found for site ($REGEXP), continue login process"
     fi
 
+    local USER PASSWORD DATA RESULT
+
     # Seem faster than
     # IFS=":" read USER PASSWORD <<< "$AUTH"
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
@@ -605,7 +607,7 @@ post_login() {
     DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
 
     # Yes, no quote around $CURL_ARGS
-    local RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL")
+    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL") || return
 
     # For now "-z" test is kept.
     # There is no known case of a null $RESULT on successful login.
