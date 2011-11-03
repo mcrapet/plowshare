@@ -132,11 +132,10 @@ fileserve_download() {
         return $ERR_FATAL
     fi
 
-    local PUBKEY CNW CHALLENGE WORD
+    local PUBKEY WCI CHALLENGE WORD ID
     PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
-    CNW=$(recaptcha_process $PUBKEY) || return
-    CHALLENGE="${CNW%%\$*}"
-    WORD="${CNW#*\$}"
+    WCI=$(recaptcha_process $PUBKEY) || return
+    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
     local SHORT=$(basename_file "$URL")
 
@@ -147,6 +146,7 @@ fileserve_download() {
 
     local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$ret" != "1" ] ; then
+        recaptcha_nack $ID
         log_error "wrong captcha"
         return $ERR_CAPTCHA
     fi

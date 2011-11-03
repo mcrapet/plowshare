@@ -119,11 +119,10 @@ depositfiles_download() {
     # reCaptcha page (challenge forced)
     if match 'load_recaptcha();' "$DATA"; then
 
-        local PUBKEY CNW CHALLENGE WORD
+        local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
-        CNW=$(recaptcha_process $PUBKEY) || return
-        CHALLENGE="${CNW%%\$*}"
-        WORD="${CNW#*\$}"
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
         DATA=$(curl --get --location --data \
             "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
@@ -135,6 +134,7 @@ depositfiles_download() {
             return 0
         fi
 
+        recaptcha_nack $ID
         log_debug "reCaptcha error"
         return $ERR_CAPTCHA
     fi

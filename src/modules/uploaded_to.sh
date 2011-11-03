@@ -79,11 +79,10 @@ uploaded_to_download() {
     wait $((SLEEP + 1)) seconds || return
 
     # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
-    local PUBKEY CNW CHALLENGE WORD
+    local PUBKEY WCI CHALLENGE WORD ID
     PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
-    CNW=$(recaptcha_process $PUBKEY) || return
-    CHALLENGE="${CNW%%\$*}"
-    WORD="${CNW#*\$}"
+    WCI=$(recaptcha_process $PUBKEY) || return
+    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
     local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
     local PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
@@ -92,6 +91,7 @@ uploaded_to_download() {
 
     # check for possible errors
     if match 'captcha' "$PAGE"; then
+        recaptcha_nack $ID
         return $ERR_CAPTCHA
     elif match 'limit\|err' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE

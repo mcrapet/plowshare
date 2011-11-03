@@ -152,11 +152,10 @@ wupload_download() {
         # reCaptcha page
         if match 'Please enter the captcha below' "$WAIT_HTML"; then
 
-            local PUBKEY CNW CHALLENGE WORD
+            local PUBKEY WCI CHALLENGE WORD ID
             PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-            CNW=$(recaptcha_process $PUBKEY) || return
-            CHALLENGE="${CNW%%\$*}"
-            WORD="${CNW#*\$}"
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
             HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
                 "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
@@ -164,6 +163,7 @@ wupload_download() {
                 "${URL}?start=1") || return
 
             if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+                recaptcha_nack $ID
                 log_debug "wrong captcha"
                 break
             fi

@@ -118,17 +118,17 @@ hotfile_download() {
             local form2_url=$(echo "$FORM2_HTML" | parse_form_action)
             local form2_action=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
 
-            local PUBKEY CNW CHALLENGE WORD
+            local PUBKEY WCI CHALLENGE WORD ID
             PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
-            CNW=$(recaptcha_process $PUBKEY) || return
-            CHALLENGE="${CNW%%\$*}"
-            WORD="${CNW#*\$}"
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
             HTMLPAGE=$(curl -b $COOKIEFILE --data \
                 "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
                 "${BASE_URL}${form2_url}") || return
 
             if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+                recaptcha_nack $ID
                 log_debug "wrong captcha"
                 break
             fi

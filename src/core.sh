@@ -44,11 +44,12 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - LIMIT_RATE       Network speed (used by curl)
 #   - GLOBAL_COOKIES   User provided cookie
 #   - LIBDIR           Absolute path to plowshare's libdir
+#   - CAPTCHA_TRADER   CaptchaTrader account
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
-#   - RECAPTCHA_SERVER Server URL
+#   - RECAPTCHA_SERVER Server URL (defined below)
 #
 # Logs are sent to stderr stream.
 # Policies:
@@ -326,7 +327,7 @@ grep_http_header_content_disposition() {
 # HTML comments are just ignored. But it's enough for our needs.
 #
 # $1: (X)HTML data
-# $2: (optionnal) Nth <form> (default is 1)
+# $2: (optional) Nth <form> (default is 1)
 # stdout: result
 grep_form_by_order() {
     local DATA="$1"
@@ -720,28 +721,30 @@ retry_limit_not_reached() {
 
 # $1: local image filename (with full path). No specific image format expected.
 # $2 (optional): solve method
-# stdout: captcha answer (or nothing depending $2)
+# $2 (optional): view method (null string means autodetect)
+# stdout: captcha answer + optional ID (on a second line)
+#         nothing is printed in case of error
 #
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
     local FILENAME="$1"
-    local METHOD_VIEW=
-    local METHOD_SOLVE="$2"
+    local METHOD_SOLVE=$2
+    local METHOD_VIEW=$3
 
     if [ ! -f "$FILENAME" ]; then
         log_error "image file not found"
         return $ERR_CAPTCHA
     fi
 
-    if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
-        METHOD_VIEW=none
-    elif [ -z "$METHOD_SOLVE" ]; then
+    if [ -z "$METHOD_SOLVE" ]; then
         METHOD_SOLVE=prompt
     fi
 
     if [ -z "$METHOD_VIEW" ]; then
+        if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
+            METHOD_VIEW=none
         # X11 server installed ?
-        if [ -n "$DISPLAY" ]; then
+        elif [ -n "$DISPLAY" ]; then
             if check_exec 'display'; then
                 METHOD_VIEW=Xdisplay
             else
@@ -768,7 +771,7 @@ captcha_process() {
 
     # Try to maximize the image size on terminal
     local MAX_OUTPUT_WIDTH MAX_OUTPUT_HEIGHT
-    if [ "${METHOD_VIEW:0:1}" != "X" ]; then
+    if [ "$METHOD_VIEW" != 'none' -a "${METHOD_VIEW:0:1}" != 'X' ]; then
         if check_exec tput; then
             MAX_OUTPUT_WIDTH=`tput cols`
             MAX_OUTPUT_HEIGHT=`tput lines`
@@ -825,6 +828,39 @@ captcha_process() {
     case "$METHOD_SOLVE" in
         none)
             ;;
+        captchatrader)
+            if [ -z "$CAPTCHA_TRADER" ]; then
+                log_error "captcha trader error"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            local USERNAME="${CAPTCHA_TRADER%%:*}"
+            local PASSWORD="${CAPTCHA_TRADER#*:}"
+
+            log_debug "catpcha.trader upload ($USERNAME)"
+
+            RESPONSE=$(curl -F "match=" \
+                -F "api_key=1645b45413c7e23a470475f33692cb63" \
+                -F "password=$PASSWORD" \
+                -F "username=$USERNAME" \
+                -F "value=@$FILENAME;filename=file" \
+                'http://api.captchatrader.com/submit') || return
+
+            local RET WORD
+            RET=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
+            WORD=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+
+            if [ "$RET" -eq '-1' ]; then
+                log_error "captcha.trader error: $WORD"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            # result on two lines
+            echo "$WORD"
+            echo $RET
+            ;;
         ocr_digit)
             RESPONSE=$(cat "$FILENAME" | ocr digit | sed -e 's/[^0-9]//g') || {
                 log_error "error running OCR";
@@ -860,10 +896,11 @@ RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
 # Main engine: http://api.recaptcha.net/js/recaptcha.js
 #
 # $1: reCAPTCHA site public key
-# stdout: "<challenge>$<words>" ('$' is separator character, <words> are processed through uri_encode)
+# $2: (optional) variable name for ID return
+# stdout: On 3 lines: <word> \n <challenge> \n <transaction_id>
 recaptcha_process() {
     local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
-    local VARS SERVER CHALLENGE FILENAME COUNT WORDS
+    local VARS SERVER TRY CHALLENGE FILENAME WORDS TID
 
     VARS=$(curl -L "$URL") || return
 
@@ -890,10 +927,15 @@ recaptcha_process() {
 
         log_debug "reCaptcha image URL: $URL"
         curl "$URL" -o "$FILENAME" || return
-        log_debug "reCaptcha local image: $FILENAME"
 
-        WORDS=$(captcha_process "$FILENAME") || return
+        if [ -z "$CAPTCHA_TRADER" ]; then
+            WORDS=$(captcha_process "$FILENAME") || return
+        else
+            WORDS=$(captcha_process "$FILENAME" 'captchatrader' 'none') || return
+        fi
         rm -f "$FILENAME"
+
+        { read WORDS; read TID; } <<<"$WORDS"
 
         [ -n "$WORDS" ] && break
 
@@ -906,7 +948,35 @@ recaptcha_process() {
     done
 
     WORDS=$(echo "$WORDS" | uri_encode)
-    echo "${CHALLENGE}\$${WORDS}"
+
+    echo "$WORDS"
+    echo "$CHALLENGE"
+    echo "${TID:-0}"
+}
+
+# Negative acknowledge of reCaptcha answer
+# $1: id (given by recaptcha_process)
+recaptcha_nack() {
+    if [ -n "$1" -a "$1" -ne 0 ]; then
+        if [ -n "$CAPTCHA_TRADER" ]; then
+            local RESPONSE STR
+
+            local USERNAME="${CAPTCHA_TRADER%%:*}"
+            local PASSWORD="${CAPTCHA_TRADER#*:}"
+
+            log_debug "catpcha.trader report nack ($USERNAME)"
+
+            RESPONSE=$(curl -F "match=" \
+                -F "is_correct=0"       \
+                -F "ticket=$1"          \
+                -F "password=$PASSWORD" \
+                -F "username=$USERNAME" \
+                'http://api.captchatrader.com/respond') || return
+
+            STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+            [ -n "$STR" ] && log_error "captcha.trader error: $STR"
+        fi
+    fi
 }
 
 ## ----------------------------------------------------------------------------

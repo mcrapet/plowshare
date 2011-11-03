@@ -68,11 +68,10 @@ mediafire_download() {
     # reCaptcha
     if match '<textarea name="recaptcha_challenge_field"' "$PAGE"; then
 
-        local PUBKEY CNW CHALLENGE WORD
+        local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
-        CNW=$(recaptcha_process $PUBKEY) || return
-        CHALLENGE="${CNW%%\$*}"
-        WORD="${CNW#*\$}"
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
         PAGE=$(curl -b "$COOKIEFILE" --data \
             "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
@@ -81,6 +80,7 @@ mediafire_download() {
 
         # You entered the incorrect keyword below, please try again!
         if match 'incorrect keyword' "$PAGE"; then
+            recaptcha_nack $ID
             log_error "wrong captcha"
             return $ERR_CAPTCHA
         fi
