@@ -898,7 +898,6 @@ RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
 # Main engine: http://api.recaptcha.net/js/recaptcha.js
 #
 # $1: reCAPTCHA site public key
-# $2: (optional) variable name for ID return
 # stdout: On 3 lines: <word> \n <challenge> \n <transaction_id>
 recaptcha_process() {
     local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
