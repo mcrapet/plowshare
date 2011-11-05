@@ -832,7 +832,7 @@ captcha_process() {
             ;;
         captchatrader)
             if [ -z "$CAPTCHA_TRADER" ]; then
-                log_error "captcha trader error"
+                log_error "captcha.trader missing account data"
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
@@ -848,6 +848,12 @@ captcha_process() {
                 -F "username=$USERNAME" \
                 -F "value=@$FILENAME;filename=file" \
                 'http://api.captchatrader.com/submit') || return
+
+            if match '503 Service Unavailable' "$RESPONSE"; then
+                log_error "captcha.trader server unavailable"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
 
             local RET WORD
             RET=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
