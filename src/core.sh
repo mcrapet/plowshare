@@ -864,7 +864,7 @@ captcha_process() {
             echo $RET
             ;;
         ocr_digit)
-            RESPONSE=$(cat "$FILENAME" | ocr digit | sed -e 's/[^0-9]//g') || {
+            RESPONSE=$(ocr "$FILENAME" digit | sed -e 's/[^0-9]//g') || {
                 log_error "error running OCR";
                 rm -f "$FILENAME";
                 return $ERR_CAPTCHA;
@@ -872,7 +872,7 @@ captcha_process() {
             echo "$RESPONSE"
             ;;
         ocr_upper)
-            RESPONSE=$(cat "$FILENAME" | ocr upper | sed -e 's/[^a-zA-Z]//g') || {
+            RESPONSE=$(ocr "$FILENAME" upper | sed -e 's/[^a-zA-Z]//g') || {
                 log_error "error running OCR";
                 rm -f "$FILENAME";
                 return $ERR_CAPTCHA;
@@ -1353,30 +1353,28 @@ timeout_update() {
     (( PS_TIMEOUT -= WAIT ))
 }
 
-# OCR of an image.
+# OCR of an image (using Tesseract engine)
 #
-# $1: optional varfile
-# stdin: image (binary)
+# $1: image file (any format)
+# $2: optional varfile
 # stdout: result OCRed text
 ocr() {
     local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
-    local OPT_VARFILE="$LIBDIR/tesseract/$1"
+    local OPT_VARFILE="$LIBDIR/tesseract/$2"
     test -f "$OPT_VARFILE" || OPT_VARFILE=''
 
-    # Tesseract somewhat "peculiar" arguments requirement makes impossible
-    # to use pipes or process substitution. Create temporal files
-    # instead (*sigh*).
+    # We must create temporary files here, because
+    # Tesseract does not deal with stdin/pipe argument
     TIFF=$(create_tempfile '.tif') || return
     TEXT=$(create_tempfile '.txt') || return
 
-    convert - tif:- > $TIFF
-    LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
-    if [ $? -ne 0 ]; then
-        rm -f $TIFF $TEXT
-        log_error "$LOG"
-        return $ERR_SYSTEM
-    fi
+    convert -quiet "$1" tif:"$TIFF"
+    LOG=$(tesseract "$TIFF" ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1) || {
+        rm -f "$TIFF" "$TEXT";
+        log_error "$LOG";
+        return $ERR_SYSTEM;
+    }
 
-    cat $TEXT
-    rm -f $TIFF $TEXT
+    cat "$TEXT"
+    rm -f "$TIFF" "$TEXT"
 }
