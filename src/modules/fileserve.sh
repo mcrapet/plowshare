@@ -132,31 +132,12 @@ fileserve_download() {
         return $ERR_FATAL
     fi
 
-    local PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
-    local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+    local PUBKEY WCI CHALLENGE WORD ID
+    PUBKEY='6LdSvrkSAAAAAOIwNj-IY-Q-p90hQrLinRIpZBPi'
+    WCI=$(recaptcha_process $PUBKEY) || return
+    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-    if [ -z "$IMAGE_FILENAME" ]; then
-        log_error "reCaptcha error"
-        return $ERR_CAPTCHA
-    fi
-
-    TRY=1
-    while retry_limit_not_reached || return; do
-        log_debug "reCaptcha manual entering (loop $TRY)"
-        (( TRY++ ))
-
-        WORD=$(captcha_process "$IMAGE_FILENAME")
-
-        rm -f $IMAGE_FILENAME
-
-        [ -n "$WORD" ] && break
-
-        log_debug "empty, request another image"
-        IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-    done
-
-    SHORT=$(basename_file "$URL")
-    CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+    local SHORT=$(basename_file "$URL")
 
     # Should return {"success":1}
     JSON2=$(curl -b "$COOKIEFILE" --referer "$URL" --data \
@@ -165,6 +146,7 @@ fileserve_download() {
 
     local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$ret" != "1" ] ; then
+        recaptcha_nack $ID
         log_error "wrong captcha"
         return $ERR_CAPTCHA
     fi

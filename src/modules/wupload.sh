@@ -151,44 +151,29 @@ wupload_download() {
 
         # reCaptcha page
         if match 'Please enter the captcha below' "$WAIT_HTML"; then
-            local PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-            local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
-            if [ -n "$IMAGE_FILENAME" ]; then
-                local TRY=1
+            local PUBKEY WCI CHALLENGE WORD ID
+            PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-                while retry_limit_not_reached || return; do
-                    log_debug "reCaptcha manual entering (loop $TRY)"
-                    (( TRY++ ))
+            HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
+                "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+                "${URL}?start=1") || return
 
-                    WORD=$(captcha_process "$IMAGE_FILENAME")
+            if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+                recaptcha_nack $ID
+                log_debug "wrong captcha"
+                break
+            fi
 
-                    rm -f $IMAGE_FILENAME
-
-                    [ -n "$WORD" ] && break
-
-                    log_debug "empty, request another image"
-                    IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-                done
-
-                CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
-                HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
-                    "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                    -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                    "${URL}?start=1") || return
-
-                if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
-                    log_debug "wrong captcha"
-                    break
-                fi
-
-                local FILE_URL=$(echo "$HTMLPAGE" | parse_attr_quiet '\/download\/' 'href')
-                if [ -n "$FILE_URL" ]; then
-                    log_debug "correct captcha"
-                    echo "$FILE_URL"
-                    test "$FILENAME" && echo "$FILENAME"
-                    return 0
-                fi
+            local FILE_URL=$(echo "$HTMLPAGE" | parse_attr_quiet '\/download\/' 'href')
+            if [ -n "$FILE_URL" ]; then
+                log_debug "correct captcha"
+                echo "$FILE_URL"
+                test "$FILENAME" && echo "$FILENAME"
+                return 0
             fi
 
             log_debug "reCaptcha error"

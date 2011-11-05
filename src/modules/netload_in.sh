@@ -95,6 +95,7 @@ netload_in_download() {
                 'src="\([^"]*\)" alt="Sicherheitsbild"')
         CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
+        # Create new formatted image
         CAPTCHA_IMG=$(create_tempfile) || return
         curl -b $COOKIEFILE "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl | \
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
@@ -103,12 +104,7 @@ netload_in_download() {
             return $ERR_CAPTCHA;
         }
 
-        #CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr1) || return
-        CAPTCHA=$(cat "$CAPTCHA_IMG" | ocr digit | sed "s/[^0-9]//g") || { \
-            log_error "error running OCR";
-            rm -f "$CAPTCHA_IMG";
-            return $ERR_CAPTCHA;
-        }
+        CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
         rm -f "$CAPTCHA_IMG"
 
         test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"

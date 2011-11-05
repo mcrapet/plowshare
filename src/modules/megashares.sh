@@ -95,7 +95,7 @@ megashares_download() {
         while retry_limit_not_reached || return; do
             CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
 
-            # Creates new formatted image
+            # Create new formatted image
             CAPTCHA_IMG=$(create_tempfile) || return
             curl "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl | \
                     convert - -quantize gray -colors 32 -blur 10% -contrast-stretch 6% \
@@ -104,12 +104,7 @@ megashares_download() {
                 return $ERR_CAPTCHA;
             }
 
-            #CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr1) || return
-            CAPTCHA=$(cat "$CAPTCHA_IMG" | ocr digit | sed "s/[^0-9]//g") || { \
-                 log_error "error running OCR";
-                 rm -f "$CAPTCHA_IMG";
-                 return $ERR_CAPTCHA;
-            }
+            CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
             rm -f "$CAPTCHA_IMG"
 
             test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"

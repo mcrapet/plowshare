@@ -36,6 +36,7 @@ LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, 
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,,max-retries:,N,Set maximum retries for captcha solving
+CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
@@ -467,6 +468,7 @@ fi
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
 [ -n "$NOARBITRARYWAIT" ] && log_debug "plowdown: --no-arbitrary-wait selected"
+[ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
 
 set_exit_trap
 

@@ -44,11 +44,12 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - LIMIT_RATE       Network speed (used by curl)
 #   - GLOBAL_COOKIES   User provided cookie
 #   - LIBDIR           Absolute path to plowshare's libdir
+#   - CAPTCHA_TRADER   CaptchaTrader account
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
 #   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
-#   - RECAPTCHA_SERVER Server URL
+#   - RECAPTCHA_SERVER Server URL (defined below)
 #
 # Logs are sent to stderr stream.
 # Policies:
@@ -326,7 +327,7 @@ grep_http_header_content_disposition() {
 # HTML comments are just ignored. But it's enough for our needs.
 #
 # $1: (X)HTML data
-# $2: (optionnal) Nth <form> (default is 1)
+# $2: (optional) Nth <form> (default is 1)
 # stdout: result
 grep_form_by_order() {
     local DATA="$1"
@@ -633,7 +634,7 @@ javascript() {
     local JS_PRG TEMPSCRIPT
 
     JS_PRG=$(detect_javascript) || return
-    TEMPSCRIPT=$(create_tempfile) || return
+    TEMPSCRIPT=$(create_tempfile '.js') || return
 
     cat > $TEMPSCRIPT
 
@@ -720,50 +721,32 @@ retry_limit_not_reached() {
     test "$PS_RETRY_LIMIT" -ge 0 || return $ERR_MAX_TRIES_REACHED
 }
 
-# OCR of an image.
-#
-# $1: optional varfile
-# stdin: image (binary)
-# stdout: result OCRed text
-ocr() {
-    local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
-    local OPT_VARFILE="$LIBDIR/tesseract/$1"
-    test -f "$OPT_VARFILE" || OPT_VARFILE=''
-
-    # Tesseract somewhat "peculiar" arguments requirement makes impossible
-    # to use pipes or process substitution. Create temporal files
-    # instead (*sigh*).
-    TIFF=$(create_tempfile ".tif")
-    TEXT=$(create_tempfile ".txt")
-
-    convert - tif:- > $TIFF
-    LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
-    if [ $? -ne 0 ]; then
-        rm -f $TIFF $TEXT
-        log_error "$LOG"
-        return $ERR_SYSTEM
-    fi
-
-    cat $TEXT
-    rm -f $TIFF $TEXT
-}
-
 # $1: local image filename (with full path). No specific image format expected.
-# $2 (optional): view method
-# stdout: captcha answer (or nothing depending $2)
+# $2 (optional): solve method
+# $2 (optional): view method (null string means autodetect)
+# stdout: captcha answer + optional ID (on a second line)
+#         nothing is printed in case of error
 #
-# Note: reCAPTCHA image are 300x57.
+# Important note: input image ($1) is deleted in case of error
 captcha_process() {
     local FILENAME="$1"
-    local METHOD_VIEW=
-    local METHOD_SOLVE=
+    local METHOD_SOLVE=$2
+    local METHOD_VIEW=$3
 
-    local TEXT1='Leave this field blank and hit enter to get another captcha image'
-    local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
+    if [ ! -f "$FILENAME" ]; then
+        log_error "image file not found"
+        return $ERR_CAPTCHA
+    fi
+
+    if [ -z "$METHOD_SOLVE" ]; then
+        METHOD_SOLVE=prompt
+    fi
 
     if [ -z "$METHOD_VIEW" ]; then
+        if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
+            METHOD_VIEW=none
         # X11 server installed ?
-        if [ -n "$DISPLAY" ]; then
+        elif [ -n "$DISPLAY" ]; then
             if check_exec 'display'; then
                 METHOD_VIEW=Xdisplay
             else
@@ -790,7 +773,7 @@ captcha_process() {
 
     # Try to maximize the image size on terminal
     local MAX_OUTPUT_WIDTH MAX_OUTPUT_HEIGHT
-    if [ "${METHOD_VIEW:0:1}" != "X" ]; then
+    if [ "$METHOD_VIEW" != 'none' -a "${METHOD_VIEW:0:1}" != 'X' ]; then
         if check_exec tput; then
             MAX_OUTPUT_WIDTH=`tput cols`
             MAX_OUTPUT_HEIGHT=`tput lines`
@@ -833,15 +816,68 @@ captcha_process() {
             PRGPID=$!
             ;;
         *)
-            log_error "unknown method: $METHOD_VIEW"
+            log_error "unknown view method: $METHOD_VIEW"
+            rm -f "$FILENAME"
+            return $ERR_CAPTCHA
             ;;
     esac
 
-    [ -z "$METHOD_SOLVE" ] && METHOD_SOLVE=prompt
+    local RESPONSE
+    local TEXT1='Leave this field blank and hit enter to get another captcha image'
+    local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
 
     # How to solve captcha
     case "$METHOD_SOLVE" in
         none)
+            ;;
+        captchatrader)
+            if [ -z "$CAPTCHA_TRADER" ]; then
+                log_error "captcha trader error"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            local USERNAME="${CAPTCHA_TRADER%%:*}"
+            local PASSWORD="${CAPTCHA_TRADER#*:}"
+
+            log_debug "catpcha.trader upload ($USERNAME)"
+
+            RESPONSE=$(curl -F "match=" \
+                -F "api_key=1645b45413c7e23a470475f33692cb63" \
+                -F "password=$PASSWORD" \
+                -F "username=$USERNAME" \
+                -F "value=@$FILENAME;filename=file" \
+                'http://api.captchatrader.com/submit') || return
+
+            local RET WORD
+            RET=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
+            WORD=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+
+            if [ "$RET" -eq '-1' ]; then
+                log_error "captcha.trader error: $WORD"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            # result on two lines
+            echo "$WORD"
+            echo $RET
+            ;;
+        ocr_digit)
+            RESPONSE=$(cat "$FILENAME" | ocr digit | sed -e 's/[^0-9]//g') || {
+                log_error "error running OCR";
+                rm -f "$FILENAME";
+                return $ERR_CAPTCHA;
+            }
+            echo "$RESPONSE"
+            ;;
+        ocr_upper)
+            RESPONSE=$(cat "$FILENAME" | ocr upper | sed -e 's/[^a-zA-Z]//g') || {
+                log_error "error running OCR";
+                rm -f "$FILENAME";
+                return $ERR_CAPTCHA;
+            }
+            echo "$RESPONSE"
             ;;
         prompt)
             log_notice $TEXT1
@@ -850,69 +886,98 @@ captcha_process() {
             echo "$RESPONSE"
             ;;
         *)
-            log_error "unknown method: $METHOD_SOLVE"
+            log_error "unknown solve method: $METHOD_SOLVE"
+            rm -f "$FILENAME"
+            return $ERR_CAPTCHA
             ;;
     esac
 }
 
-##
-## reCAPTCHA functions (can be called from modules)
-## Main engine: http://api.recaptcha.net/js/recaptcha.js
-##
 RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
-
+# reCAPTCHA decoding function
+# Main engine: http://api.recaptcha.net/js/recaptcha.js
+#
 # $1: reCAPTCHA site public key
-# stdout: image path
-recaptcha_load_image() {
+# $2: (optional) variable name for ID return
+# stdout: On 3 lines: <word> \n <challenge> \n <transaction_id>
+recaptcha_process() {
     local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
-    log_debug "reCaptcha URL: $URL"
+    local VARS SERVER TRY CHALLENGE FILENAME WORDS TID
 
-    local VARS=$(curl -L "$URL")
+    VARS=$(curl -L "$URL") || return
 
-    if [ -n "$VARS" ]; then
-        local server=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'")
-        local challenge=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'")
-
-        log_debug "reCaptcha server: $server"
-        log_debug "reCaptcha challenge: $challenge"
-
-        # Image dimension: 300x57
-        local FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
-        local CAPTCHA_URL="${server}image?c=${challenge}"
-        log_debug "reCaptcha image URL: $CAPTCHA_URL"
-        curl "$CAPTCHA_URL" -o "$FILENAME"
-
-        log_debug "reCaptcha image: $FILENAME"
-        echo "$FILENAME"
+    if [ -z "$VARS" ]; then
+        return $ERR_CAPTCHA
     fi
+
+    # Load image
+    SERVER=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
+    CHALLENGE=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
+
+    log_debug "reCaptcha server: $SERVER"
+
+    # Image dimension: 300x57
+    FILENAME=$(create_tempfile '.recaptcha.jpg') || return
+
+    TRY=0
+    # FIXME: use retry_limit_not_reached() on non manual solving
+    while ((TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
+        log_debug "reCaptcha loop $TRY"
+        log_debug "reCaptcha challenge: $CHALLENGE"
+
+        URL="${SERVER}image?c=${CHALLENGE}"
+
+        log_debug "reCaptcha image URL: $URL"
+        curl "$URL" -o "$FILENAME" || return
+
+        if [ -z "$CAPTCHA_TRADER" ]; then
+            WORDS=$(captcha_process "$FILENAME") || return
+        else
+            WORDS=$(captcha_process "$FILENAME" 'captchatrader' 'none') || return
+        fi
+        rm -f "$FILENAME"
+
+        { read WORDS; read TID; } <<<"$WORDS"
+
+        [ -n "$WORDS" ] && break
+
+        # Reload image
+        log_debug "empty, request another image"
+
+        # Result: Recaptcha.finish_reload('...', 'image');
+        VARS=$(curl "${SERVER}reload?k=${1}&c=${CHALLENGE}&reason=r&type=image&lang=en") || return
+        CHALLENGE=$(echo "$VARS" | parse_quiet 'finish_reload' "('\([^']*\)") || return
+    done
+
+    WORDS=$(echo "$WORDS" | uri_encode)
+
+    echo "$WORDS"
+    echo "$CHALLENGE"
+    echo "${TID:-0}"
 }
 
-# $1: reCAPTCHA image filename
-# stdout: challenge (string)
-recaptcha_get_challenge_from_image() {
-    basename_file "$1" | cut -d. -f2
-}
+# Negative acknowledge of reCaptcha answer
+# $1: id (given by recaptcha_process)
+recaptcha_nack() {
+    if [ -n "$1" -a "$1" -ne 0 ]; then
+        if [ -n "$CAPTCHA_TRADER" ]; then
+            local RESPONSE STR
 
-# $1: reCAPTCHA site public key
-# $2: reCAPTCHA image filename
-# stdout: new image path
-recaptcha_reload_image() {
-    FILENAME="$2"
+            local USERNAME="${CAPTCHA_TRADER%%:*}"
+            local PASSWORD="${CAPTCHA_TRADER#*:}"
 
-    if [ -n "$FILENAME" ]; then
-        local challenge=$(recaptcha_get_challenge_from_image "$FILENAME")
-        local server="$RECAPTCHA_SERVER"
+            log_debug "catpcha.trader report nack ($USERNAME)"
 
-        local STATUS=$(curl "${server}reload?k=$1&c=${challenge}&reason=r&type=image&lang=en")
-        local challenge=$(echo "$STATUS" | parse_quiet 'finish_reload' "('\([^']*\)")
+            RESPONSE=$(curl -F "match=" \
+                -F "is_correct=0"       \
+                -F "ticket=$1"          \
+                -F "password=$PASSWORD" \
+                -F "username=$USERNAME" \
+                'http://api.captchatrader.com/respond') || return
 
-        local FILENAME="${TMPDIR:-/tmp}/recaptcha.${challenge}.jpg"
-        local CAPTCHA_URL="${server}image?c=${challenge}"
-        log_debug "reCaptcha image URL: $CAPTCHA_URL"
-        curl "$CAPTCHA_URL" -o "$FILENAME"
-
-        log_debug "reCaptcha new image: $FILENAME"
-        echo "$FILENAME"
+            STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+            [ -n "$STR" ] && log_error "captcha.trader error: $STR"
+        fi
     fi
 }
 
@@ -1286,4 +1351,32 @@ timeout_update() {
         return $ERR_MAX_WAIT_REACHED
     fi
     (( PS_TIMEOUT -= WAIT ))
+}
+
+# OCR of an image.
+#
+# $1: optional varfile
+# stdin: image (binary)
+# stdout: result OCRed text
+ocr() {
+    local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
+    local OPT_VARFILE="$LIBDIR/tesseract/$1"
+    test -f "$OPT_VARFILE" || OPT_VARFILE=''
+
+    # Tesseract somewhat "peculiar" arguments requirement makes impossible
+    # to use pipes or process substitution. Create temporal files
+    # instead (*sigh*).
+    TIFF=$(create_tempfile '.tif') || return
+    TEXT=$(create_tempfile '.txt') || return
+
+    convert - tif:- > $TIFF
+    LOG=$(tesseract $TIFF ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1)
+    if [ $? -ne 0 ]; then
+        rm -f $TIFF $TEXT
+        log_error "$LOG"
+        return $ERR_SYSTEM
+    fi
+
+    cat $TEXT
+    rm -f $TIFF $TEXT
 }

@@ -35,9 +35,10 @@ uploaded_to_download() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
+    local URL FILE_ID HTML SLEEP FILE_NAME
 
     # uploaded.to redirects all possible urls of a file to the canonical one
-    local URL=$(curl -I "$2" | grep_http_header_location)
+    URL=$(curl -I "$2" | grep_http_header_location) || return
     if test -z "$URL"; then
         URL="$2"
     fi
@@ -57,52 +58,31 @@ uploaded_to_download() {
     local BASE_URL='http://uploaded.to'
 
     # extract the raw file id
-    local FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
+    FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
     log_debug "file id=$FILE_ID"
 
     # set website language to english
-    curl -c $COOKIEFILE "$BASE_URL/language/en"
+    curl -c $COOKIEFILE "$BASE_URL/language/en" || return
 
-    local HTML=$(curl -c $COOKIEFILE "$URL")
+    HTML=$(curl -c $COOKIEFILE "$URL")
 
     # check for files that need a password
     local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
     test "$ERROR" && return $ERR_LOGIN_FAILED
 
     # retrieve the waiting time
-    local SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
+    SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
         'period: <span>\([[:digit:]]\+\)<\/span>')
     test -z "$SLEEP" && log_error "can't get sleep time" && \
         log_debug "sleep time: $SLEEP" && return $ERR_FATAL
 
-    # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
-    local PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
-    local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
-
-    if ! test "$IMAGE_FILENAME"; then
-        log_error "reCaptcha error"
-        return $ERR_FATAL
-    fi
-
-    local TRY=1
-    while retry_limit_not_reached || return; do
-        log_debug "reCaptcha manual entering (loop $TRY)"
-        (( TRY++ ))
-
-        local WORD=$(captcha_process "$IMAGE_FILENAME")
-
-        rm -f $IMAGE_FILENAME
-
-        test "$WORD" && break
-
-        log_debug "empty, request another image"
-        local IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-    done
-
-    # wait the designates time + 1 second to be safe
     wait $((SLEEP + 1)) seconds || return
 
-    local CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
+    # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
+    local PUBKEY WCI CHALLENGE WORD ID
+    PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
+    WCI=$(recaptcha_process $PUBKEY) || return
+    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
     local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
     local PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
@@ -110,7 +90,10 @@ uploaded_to_download() {
     log_debug "Captcha resonse: $PAGE"
 
     # check for possible errors
-    if match 'limit\|err' "$PAGE"; then
+    if match 'captcha' "$PAGE"; then
+        recaptcha_nack $ID
+        return $ERR_CAPTCHA
+    elif match 'limit\|err' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
     elif match 'url' "$PAGE"; then
         local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
@@ -120,10 +103,10 @@ uploaded_to_download() {
     fi
 
     # retrieve real filename
-    local FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition)
+    FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
-    echo $FILE_URL
-    echo $FILE_NAME
+    echo "$FILE_URL"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to uploaded.to

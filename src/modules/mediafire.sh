@@ -67,38 +67,22 @@ mediafire_download() {
 
     # reCaptcha
     if match '<textarea name="recaptcha_challenge_field"' "$PAGE"; then
-        local PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
-        local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
 
-        if [ -n "$IMAGE_FILENAME" ]; then
-            local TRY=1
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-            while retry_limit_not_reached || return; do
-                log_debug "reCaptcha manual entering (loop $TRY)"
-                (( TRY++ ))
+        PAGE=$(curl -b "$COOKIEFILE" --data \
+            "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+            "$URL" | break_html_lines) || return
 
-                WORD=$(captcha_process "$IMAGE_FILENAME")
-
-                rm -f $IMAGE_FILENAME
-
-                [ -n "$WORD" ] && break
-
-                log_debug "empty, request another image"
-                IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-            done
-
-            CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
-
-            PAGE=$(curl -b "$COOKIEFILE" --data \
-                "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                "$URL" | break_html_lines) || return
-
-            # You entered the incorrect keyword below, please try again!
-            if match 'incorrect keyword' "$PAGE"; then
-                log_error "wrong captcha"
-                return $ERR_FATAL
-            fi
+        # You entered the incorrect keyword below, please try again!
+        if match 'incorrect keyword' "$PAGE"; then
+            recaptcha_nack $ID
+            log_error "wrong captcha"
+            return $ERR_CAPTCHA
         fi
     fi
 

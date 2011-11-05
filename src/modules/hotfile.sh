@@ -112,51 +112,34 @@ hotfile_download() {
             continue
 
         # reCaptcha page
-        elif match 'api\.recaptcha\.net' "$WAIT_HTML2"
-        then
+        elif match 'api\.recaptcha\.net' "$WAIT_HTML2"; then
+
             local FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
             local form2_url=$(echo "$FORM2_HTML" | parse_form_action)
             local form2_action=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
 
-            local PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
-            local IMAGE_FILENAME=$(recaptcha_load_image $PUBKEY)
+            local PUBKEY WCI CHALLENGE WORD ID
+            PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-            if [ -n "$IMAGE_FILENAME" ]; then
-                TRY=1
+            HTMLPAGE=$(curl -b $COOKIEFILE --data \
+                "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                "${BASE_URL}${form2_url}") || return
 
-                while retry_limit_not_reached || return; do
-                    log_debug "reCaptcha manual entering (loop $TRY)"
-                    (( TRY++ ))
+            if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+                recaptcha_nack $ID
+                log_debug "wrong captcha"
+                break
+            fi
 
-                    WORD=$(captcha_process "$IMAGE_FILENAME")
+            local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
+            if [ -n "$LINK" ]; then
+                log_debug "correct captcha"
 
-                    rm -f $IMAGE_FILENAME
-
-                    [ -n "$WORD" ] && break
-
-                    log_debug "empty, request another image"
-                    IMAGE_FILENAME=$(recaptcha_reload_image $PUBKEY "$IMAGE_FILENAME")
-                done
-
-                CHALLENGE=$(recaptcha_get_challenge_from_image "$IMAGE_FILENAME")
-
-                HTMLPAGE=$(curl -b $COOKIEFILE --data \
-                    "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                    "${BASE_URL}${form2_url}") || return
-
-                if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
-                    log_debug "wrong captcha"
-                    break
-                fi
-
-                local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
-                if [ -n "$LINK" ]; then
-                    log_debug "correct captcha"
-
-                    FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
-                    echo "$FILEURL"
-                    return 0
-                fi
+                FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
+                echo "$FILEURL"
+                return 0
             fi
 
             log_error "reCaptcha error"
