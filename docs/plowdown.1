@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "August 16, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "November 5, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -97,11 +97,14 @@ Limit download speed in bytes per seconds. Suffixes are:
 .RE
 .TP
 .BI -t, " " --timeout "=SECS"
-Cancel download after \fISECS\fR seconds of waits.
+Cancel download after \fISECS\fR seconds of waits. Default is disabled.
 .TP
 .BI "   " " " --max-retries "=N"
 Set maximum retries for loops. Option mostly dedicated to hosting sites
-with captchas.
+with captchas. Default is 1.
+.TP
+.BI "   " " " --captchatrader "=USER:PASSWORD"
+Use CaptchaTrader account to solve captcha. If not specified, display image and prompt for manual entering.
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"
 Directory where files are temporarily downloaded.

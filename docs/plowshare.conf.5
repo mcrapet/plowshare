@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "August 16, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowshare.conf" "5" "November 5, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -94,12 +94,13 @@ rapidshare/a = matt:4deadbeef
 megaupload/a = "matt:4 dead beef "
 
 [Plowdown]
+captchatrader=matt:blablabla
 no-arbitrary-wait = yes
 timeout=456
 
 [Plowup]
 multiupload/auth = foo:bar
-multiupload/no-up = yes
+multiupload/no-hf = yes
 
 [Plowlist]
 verbose = 3
