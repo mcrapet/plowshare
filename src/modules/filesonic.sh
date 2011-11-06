@@ -68,7 +68,7 @@ filesonic_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
-    local LINK_ID DOMAIN
+    local LINK_ID DOMAIN PAGE FILENAME
 
     if match '/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -95,13 +95,13 @@ filesonic_download() {
     fi
 
     # obtain mainpage first (unauthenticated) to get filename
-    MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     # do not obtain filename from "<span>Filename:" because it is shortened
     # with "..." if too long; instead, take it from title
-    FILENAME=$(echo "$MAINPAGE" | parse_quiet "<title>" ">Download \(.*\) for free")
+    FILENAME=$(echo "$PAGE" | parse_quiet "<title>" ">Download \(.*\) for free")
 
-    # Attempt to authenticate
+    # Account user
     if test "$AUTH"; then
         local BASEURL=$(basename_url "$URL")
         filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
@@ -112,77 +112,78 @@ filesonic_download() {
             return $ERR_FATAL
         fi
 
-    # Normal user
-    else
-        PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                    --referer "$URL?start=1" --data "" "$URL?start=1") || return
+        echo "$FILE_URL"
+        test "$FILENAME" && echo "$FILENAME"
 
-        if match 'File does not exist' "$PAGE"; then
-            log_debug "File not found"
-            return $ERR_LINK_DEAD
-        fi
-
-        test "$CHECK_LINK" && return 0
-
-        # Cases: download link, <400MB, captcha, wait
-        # captcha/wait can redirect to any of the other cases
-        FOLLOWS=0
-        while [ $FOLLOWS -lt 5 ]; do
-            (( FOLLOWS++ ))
-
-            # download link
-            if match 'Start download now' "$PAGE"; then
-                FILE_URL=$(echo "$PAGE" | parse_quiet 'Start download now' 'href="\([^"]*\)"')
-                break
-
-            # free users can download files < 400MB
-            elif match 'download is larger than 400Mb.' "$PAGE"; then
-                log_error "You're trying to download file larger than 400MB (only premium users can)."
-                return $ERR_LINK_NEED_PERMISSIONS
-
-            # captcha
-            elif match 'Please Enter Captcha' "$PAGE"; then
-
-                local PUBKEY WCI CHALLENGE WORD ID
-                PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-                WCI=$(recaptcha_process $PUBKEY) || return
-                { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-                DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-                PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                            --referer "$URL" --data "$DATA" "$URL?start=1")
-
-                if match 'Please Enter Captcha' "$PAGE"; then
-                    recaptcha_nack $ID
-                    log_error "wrong captcha"
-                fi
-
-            # wait
-            elif match 'countDownDelay' "$PAGE"; then
-                SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
-                wait $SLEEP seconds || return
-
-                # for wait time > 5min. these values may not be present
-                # it just means we need to try again so the following code is fine
-                TM=$(echo "$PAGE" | parse_attr "name='tm'" "value")
-                TM_HASH=$(echo "$PAGE" | parse_attr "name='tm_hash'" "value")
-
-                PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                            --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1")
-
-            else
-                log_debug "$URL"
-                log_error "No match. Site update?"
-                return $ERR_FATAL
-            fi
-
-        done
+        return 0
     fi
 
-    echo "$FILE_URL"
-    test "$FILENAME" && echo "$FILENAME"
+    # Normal user
+    PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+                --referer "$URL?start=1" --data "" "$URL?start=1") || return
 
-    return 0
+    if match 'File does not exist' "$PAGE"; then
+        log_debug "File not found"
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
+
+    # Cases: download link, <400MB, captcha, wait
+    # captcha/wait can redirect to any of the other cases
+    while retry_limit_not_reached || return; do
+
+        # download link
+        if match 'Start download now' "$PAGE"; then
+            FILE_URL=$(echo "$PAGE" | parse_quiet 'Start download now' 'href="\([^"]*\)"')
+            echo "$FILE_URL"
+            test "$FILENAME" && echo "$FILENAME"
+            return 0
+
+        # free users can download files < 400MB
+        elif match 'download is larger than 400Mb.' "$PAGE"; then
+            log_error "You're trying to download file larger than 400MB (only premium users can)."
+            return $ERR_LINK_NEED_PERMISSIONS
+
+        # captcha
+        elif match 'Please Enter Captcha' "$PAGE"; then
+
+            local PUBKEY WCI CHALLENGE WORD ID
+            PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+            DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
+            PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+                        --referer "$URL" --data "$DATA" "$URL?start=1")
+
+            if match 'Please Enter Captcha' "$PAGE"; then
+                recaptcha_nack $ID
+                log_error "wrong captcha"
+                return $ERR_CAPTCHA
+            fi
+
+        # wait
+        elif match 'countDownDelay' "$PAGE"; then
+            SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
+            wait $SLEEP seconds || return
+
+            # for wait time > 5min. these values may not be present
+            # it just means we need to try again so the following code is fine
+            TM=$(echo "$PAGE" | parse_attr "name='tm'" "value")
+            TM_HASH=$(echo "$PAGE" | parse_attr "name='tm_hash'" "value")
+
+            PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+                        --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1")
+
+        else
+            log_debug "$URL"
+            log_error "No match. Site update?"
+            return $ERR_FATAL
+        fi
+    done
+
+    return $ERR_FATAL
 }
 
 # Upload a file to filesonic
