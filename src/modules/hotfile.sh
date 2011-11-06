@@ -129,8 +129,8 @@ hotfile_download() {
 
             if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
                 recaptcha_nack $ID
-                log_debug "wrong captcha"
-                break
+                log_error "wrong captcha"
+                return $ERR_CAPTCHA
             fi
 
             local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
