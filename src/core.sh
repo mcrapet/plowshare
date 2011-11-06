@@ -334,7 +334,7 @@ grep_form_by_order() {
     local N=${2:-"1"}
 
     while [ "$N" -gt "1" ]; do
-        ((N--))
+        (( N-- ))
         DATA=$(echo "$DATA" | sed -ne '/<\/form>/,$p' | sed -e '1s/<\/form>/<_form>/1')
     done
 
@@ -746,7 +746,7 @@ retry_limit_not_reached() {
 
 # $1: local image filename (with full path). No specific image format expected.
 # $2 (optional): solve method
-# $2 (optional): view method (null string means autodetect)
+# $3 (optional): view method (null string means autodetect)
 # stdout: captcha answer + optional ID (on a second line)
 #         nothing is printed in case of error
 #
@@ -821,7 +821,7 @@ captcha_process() {
             log_debug "image: $FILENAME"
             ;;
         aview)
-            local IMG_PNM=$(create_tempfile)
+            local IMG_PNM=$(create_tempfile '.pnm')
             convert "$FILENAME" -negate -depth 8 pnm:$IMG_PNM
             aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
                 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<< "q" | \
@@ -949,7 +949,7 @@ recaptcha_process() {
 
     TRY=0
     # FIXME: use retry_limit_not_reached() on non manual solving
-    while ((TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
+    while (( TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
         log_debug "reCaptcha loop $TRY"
         log_debug "reCaptcha challenge: $CHALLENGE"
 
