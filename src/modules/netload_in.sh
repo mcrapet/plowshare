@@ -70,7 +70,7 @@ netload_in_download() {
         return 0
     fi
 
-    PERL_PRG=$(detect_perl) || return
+    detect_perl || return
 
     local TRY=0
     while retry_limit_not_reached || return; do
@@ -97,7 +97,7 @@ netload_in_download() {
 
         # Create new formatted image
         CAPTCHA_IMG=$(create_tempfile) || return
-        curl -b $COOKIEFILE "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl | \
+        curl -b $COOKIEFILE "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
                 convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
                 -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
             rm -f "$CAPTCHA_IMG";
@@ -131,10 +131,8 @@ netload_in_download() {
         WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \
                 "countdown(\([[:digit:]]*\),'change()')")
 
-        if [ -n "$WAIT_TIME2" ]
-        then
-            if [[ "$WAIT_TIME2" -gt 10000 ]]
-            then
+        if [ -n "$WAIT_TIME2" ]; then
+            if [[ "$WAIT_TIME2" -gt 10000 ]]; then
                 log_debug "Download limit reached!"
                 wait $((WAIT_TIME2 / 100)) seconds || return
             else
@@ -146,9 +144,9 @@ netload_in_download() {
 
     done
 
-    FILENAME=$(echo "$WAIT_HTML2" |\
+    FILENAME=$(echo "$WAIT_HTML2" | \
         parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
-    FILE_URL=$(echo "$WAIT_HTML2" |\
+    FILE_URL=$(echo "$WAIT_HTML2" | \
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
     echo $FILE_URL

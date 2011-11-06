@@ -55,7 +55,8 @@ megashares_download() {
     local URL="$2"
     local ID URL PAGE BASEURL
 
-    PERL_PRG=$(detect_perl) || return
+    detect_perl || return
+
     BASEURL=$(basename_url "$URL")
 
     # Two kind of URL:
@@ -97,7 +98,7 @@ megashares_download() {
 
             # Create new formatted image
             CAPTCHA_IMG=$(create_tempfile) || return
-            curl "$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_single_color.pl | \
+            curl "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
                     convert - -quantize gray -colors 32 -blur 10% -contrast-stretch 6% \
                     -compress none -level 45%,45% tif:"$CAPTCHA_IMG" || { \
                 rm -f "$CAPTCHA_IMG";

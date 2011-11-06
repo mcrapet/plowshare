@@ -111,7 +111,7 @@ get_ofuscated_link() {
     local COOKIEFILE=$2
     local BASE_URL="http://www.mediafire.com"
 
-    detect_javascript >/dev/null || return
+    detect_javascript || return
 
     # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
     PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |

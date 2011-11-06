@@ -43,7 +43,7 @@ zshare_download() {
 
     test "$CHECK_LINK" && return 0
 
-    detect_javascript >/dev/null || return
+    detect_javascript || return
 
     WAITTIME=$(echo "$WAITPAGE" | parse "document|important||here" \
         "||here|\([[:digit:]]\+\)")

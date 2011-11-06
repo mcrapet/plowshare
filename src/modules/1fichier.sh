@@ -78,7 +78,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
     local DESTFILE="$3"
     local UPLOADURL="http://upload.1fichier.com"
 
-    detect_javascript >/dev/null || return
+    detect_javascript || return
 
     if test "$AUTH"; then
         LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'

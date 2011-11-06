@@ -89,7 +89,7 @@ dataport_cz_upload() {
     local DESTFILE="$3"
     local UPLOADURL="http://dataport.cz/"
 
-    detect_javascript >/dev/null || return
+    detect_javascript || return
 
     if test "$AUTH"; then
         LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'

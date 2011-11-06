@@ -41,8 +41,8 @@ badongo_download() {
     match '"fileError">' "$PAGE" &&
         { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
-    detect_javascript >/dev/null || return
-    PERL_PRG=$(detect_perl) || return
+    detect_javascript || return
+    detect_perl || return
 
     local TRY=1
 
@@ -67,9 +67,9 @@ badongo_download() {
 
         # Create new formatted image
         CAPTCHA_IMG=$(create_tempfile) || return
-        curl "$BASEURL$CAPTCHA_URL" | $PERL_PRG $LIBDIR/strip_threshold.pl 125 | \
-                convert - +matte -colorspace gray -level 45%,45% gif:$CAPTCHA_IMG || { \
-            rm -f "$CAPTCHA_IMG"
+        curl "$BASEURL$CAPTCHA_URL" | perl 'strip_threshold.pl' 125 | \
+                convert - +matte -colorspace gray -level 45%,45% gif:"$CAPTCHA_IMG" || { \
+            rm -f "$CAPTCHA_IMG";
             return $ERR_CAPTCHA;
         }
 

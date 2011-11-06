@@ -625,15 +625,27 @@ post_login() {
     return 0
 }
 
+# Detect if a JavaScript interpreter is installed
+#
+# $1: (optional) Print flag
+# stdout: path of executable (if $1 is a non empty string)
+detect_javascript() {
+    if ! check_exec 'js'; then
+        log_notice "Javascript interpreter not found"
+        return $ERR_SYSTEM
+    fi
+    test -n "$1" && type -P 'js'
+    return 0
+}
+
 # Execute javascript code
 #
 # stdin: js script
-# stdout: script results
-# $?: boolean
+# stdout: script result
 javascript() {
     local JS_PRG TEMPSCRIPT
 
-    JS_PRG=$(detect_javascript) || return
+    JS_PRG=$(detect_javascript 1) || return
     TEMPSCRIPT=$(create_tempfile '.js') || return
 
     cat > $TEMPSCRIPT
@@ -648,28 +660,39 @@ javascript() {
     return 0
 }
 
-# Dectect if a JavaScript interpreter is installed
+# Detect if a Perl interpreter is installed
 #
-# stdout: path of executable
-# $?: boolean (0 means found)
-detect_javascript() {
-    if ! check_exec 'js'; then
-        log_notice "Javascript interpreter not found"
-        return $ERR_SYSTEM
-    fi
-    type -P 'js'
-}
-
-# Dectect if a Perl interpreter is installed
-#
-# stdout: path of executable
-# $?: boolean (0 means found)
+# $1: (optional) Print flag
+# stdout: path of executable (if $1 is a non empty string)
 detect_perl() {
     if ! check_exec 'perl'; then
         log_notice "Perl interpreter not found"
         return $ERR_SYSTEM
     fi
-    type -P 'perl'
+    test -n "$1" && type -P 'perl'
+    return 0
+}
+
+# Launch perl script
+#
+# $1: perl script filename
+# $2..$n: optional script arguments
+# stdout: script result
+perl() {
+    local PERL_PRG FILE
+
+    PERL_PRG=$(detect_perl 1) || return
+    FILE="$LIBDIR/$1"
+
+    log_report "interpreter:$PERL_PRG"
+
+    if [ ! -f "$FILE" ]; then
+        log_error "Can't find perl script: $FILE"
+        return $ERR_SYSTEM
+    fi
+
+    shift 1
+    $PERL_PRG "$FILE" "$@"
 }
 
 # Wait some time
