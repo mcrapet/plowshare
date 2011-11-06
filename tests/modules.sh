@@ -208,6 +208,9 @@ test_case_up_down_del() {
 
     echo -n "check link ok > "
 
+    # FIXME: ugly hack!!!
+    [ "$MODULE" = '1fichier' ] && sleep 10
+
     OFILE=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
         # ERR_LINK_TEMP_UNAVAILABLE
@@ -318,7 +321,7 @@ EOF
 
 #Single test options: [NOT IMPLEMENTED YET!]
 # -p <n>     number of passes (default is 1)
-# -r <retry> number of retry when failed (default is 0)
+# -r <retry> number of retries when failed (default is 0)
 }
 
 ##
@@ -334,12 +337,14 @@ TEST_FILESIZES=( '200k' '2M' '5M' )
 TEST_ITEMS=()
 
 # parse command line options
-while getopts "hldt:p:r:" OPTION
+while getopts "hldp:" OPTION
 do
     case $OPTION in
         l) TESTOP='li'
            ;;
         d) FANCY_OUTPUT=0
+           ;;
+        p) PASS=$OPTARG
            ;;
         ?|h) usage
            exit 1
