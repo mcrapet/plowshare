@@ -256,6 +256,13 @@ matchi() {
     grep -iq "$1" <<< "$2"
 }
 
+# Check if URL is suitable for remote upload
+#
+# $1: string (URL or anything)
+match_remote_url() {
+    matchi "^[[:space:]]*https\?://" "$1
+}
+
 # Get lines that match filter+match regular expressions and extract string from it.
 #
 # stdin: text data

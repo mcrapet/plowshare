@@ -149,8 +149,8 @@ process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
 for FILE in "$@"; do
 
     # Check for remote upload
-    if match "^https\?://" "$FILE"; then
-        LOCALFILE="$FILE"
+    if match_remote_url "$FILE"; then
+        LOCALFILE=$(echo "$FILE" | strip | uri_encode)
         DESTFILE="dummy"
     else
         # non greedy parsing
@@ -166,7 +166,7 @@ for FILE in "$@"; do
             continue
         fi
     fi
-    
+
     DESTFILE=$(basename_file "${DESTFILE:-$LOCALFILE}")
     test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE}"
     test "$NAME_SUFFIX" && DESTFILE="${DESTFILE}${NAME_SUFFIX}"
