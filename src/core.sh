@@ -260,7 +260,7 @@ matchi() {
 #
 # $1: string (URL or anything)
 match_remote_url() {
-    matchi "^[[:space:]]*https\?://" "$1
+    matchi "^[[:space:]]*https\?://" "$1"
 }
 
 # Get lines that match filter+match regular expressions and extract string from it.
