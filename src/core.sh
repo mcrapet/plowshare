@@ -991,6 +991,31 @@ recaptcha_process() {
     echo "${TID:-0}"
 }
 
+# Positive acknowledge of reCaptcha answer
+# $1: id (given by recaptcha_process)
+recaptcha_ack() {
+    if [ -n "$1" -a "$1" -ne 0 ]; then
+        if [ -n "$CAPTCHA_TRADER" ]; then
+            local RESPONSE STR
+
+            local USERNAME="${CAPTCHA_TRADER%%:*}"
+            local PASSWORD="${CAPTCHA_TRADER#*:}"
+
+            log_debug "catpcha.trader report ack ($USERNAME)"
+
+            RESPONSE=$(curl -F "match=" \
+                -F "is_correct=1"       \
+                -F "ticket=$1"          \
+                -F "password=$PASSWORD" \
+                -F "username=$USERNAME" \
+                'http://api.captchatrader.com/respond') || return
+
+            STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+            [ -n "$STR" ] && log_error "captcha.trader error: $STR"
+        fi
+    fi
+}
+
 # Negative acknowledge of reCaptcha answer
 # $1: id (given by recaptcha_process)
 recaptcha_nack() {

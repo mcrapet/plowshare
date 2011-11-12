@@ -170,7 +170,9 @@ wupload_download() {
 
             local FILE_URL=$(echo "$HTMLPAGE" | parse_attr_quiet '\/download\/' 'href')
             if [ -n "$FILE_URL" ]; then
+                recaptcha_ack $ID
                 log_debug "correct captcha"
+
                 echo "$FILE_URL"
                 test "$FILENAME" && echo "$FILENAME"
                 return 0

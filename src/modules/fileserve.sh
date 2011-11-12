@@ -157,6 +157,7 @@ fileserve_download() {
         return $ERR_CAPTCHA
     fi
 
+    recaptcha_ack $ID
     log_debug "correct captcha"
     MSG1=$(curl -b "$COOKIEFILE" --referer "$URL" --data "downloadLink=wait" "$URL") || return
     if match 'fail404' "$MSG1"; then

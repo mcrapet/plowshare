@@ -130,6 +130,9 @@ depositfiles_download() {
             "$BASEURL/get_file.php") || return
 
         if match 'Download the file' "$DATA"; then
+            recaptcha_ack $ID
+            log_debug "correct captcha"
+
             echo "$DATA" | parse_form_action
             return 0
         fi

@@ -163,6 +163,9 @@ filesonic_download() {
                 return $ERR_CAPTCHA
             fi
 
+            recaptcha_ack $ID
+            log_debug "correct captcha"
+
         # wait
         elif match 'countDownDelay' "$PAGE"; then
             SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')

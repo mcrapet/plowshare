@@ -84,6 +84,9 @@ mediafire_download() {
             log_error "wrong captcha"
             return $ERR_CAPTCHA
         fi
+
+        recaptcha_ack $ID
+        log_debug "correct captcha"
     fi
 
     # When link is password protected, there's no facebook box

@@ -105,6 +105,9 @@ uploaded_to_download() {
     # retrieve real filename
     FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
+    recaptcha_ack $ID
+    log_debug "correct captcha"
+
     echo "$FILE_URL"
     echo "$FILE_NAME"
 }

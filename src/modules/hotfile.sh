@@ -135,6 +135,7 @@ hotfile_download() {
 
             local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
             if [ -n "$LINK" ]; then
+                recaptcha_ack $ID
                 log_debug "correct captcha"
 
                 FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
