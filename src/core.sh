@@ -994,7 +994,7 @@ recaptcha_process() {
 # Positive acknowledge of reCaptcha answer
 # $1: id (given by recaptcha_process)
 recaptcha_ack() {
-    if [ -n "$1" -a "$1" -ne 0 ]; then
+    if [[ "$1" -ne 0 ]]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local RESPONSE STR
 
@@ -1019,7 +1019,7 @@ recaptcha_ack() {
 # Negative acknowledge of reCaptcha answer
 # $1: id (given by recaptcha_process)
 recaptcha_nack() {
-    if [ -n "$1" -a "$1" -ne 0 ]; then
+    if [[ "$1" -ne 0 ]]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local RESPONSE STR
 
