@@ -35,6 +35,8 @@ fileserve_login() {
     local COOKIE_FILE=$2
     local BASEURL=$3
 
+    local LOGIN_DATA LOGIN_RESULT STATUS NAME
+
     LOGIN_DATA='loginUserName=$USER&loginUserPassword=$PASSWORD&loginFormSubmit=Login'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASEURL/login.php") || return
@@ -45,8 +47,10 @@ fileserve_login() {
         return $ERR_LOGIN_FAILED
     fi
 
-    NAME=$(curl -b "$COOKIE_FILE" "$BASEURL/dashboard.php" | \
-        parse 'Welcome ' '<strong>\([^<]*\)')
+    LOGIN_RESULT=$(curl -b "$COOKIE_FILE" "$BASEURL/dashboard.php") || return
+    NAME=$(echo "$LOGIN_RESULT" | parse_line_after 'Welcome' \
+            '<strong>\([^<]*\)') || return $ERR_LOGIN_FAILED
+
     log_notice "Successfully logged in as $NAME member"
 
     echo "$LOGIN_RESULT"
@@ -90,6 +94,8 @@ fileserve_download() {
             echo "$FILE_URL"
             return 0
         fi
+
+        log_debug "free account type"
     fi
 
     # Arbitrary wait (local variables)
