@@ -1140,7 +1140,7 @@ get_module() {
         local VAR="MODULE_${M}_REGEXP_URL"
         if match "${!VAR}" "$1"; then
             echo $MODULE
-            break;
+            break
         fi
     done <<< "$2"
     return 0
