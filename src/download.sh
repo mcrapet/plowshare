@@ -301,7 +301,8 @@ download() {
                 html_to_utf8 | uri_decode)
         fi
 
-        # Sanity check
+        # On most filesystems, maximum filename length is 255
+        # http://en.wikipedia.org/wiki/Comparison_of_file_systems
         if [ "${#FILENAME}" -ge 255 ]; then
             FILENAME="${FILENAME:0:254}"
             log_debug "filename is too long, truncating it"
