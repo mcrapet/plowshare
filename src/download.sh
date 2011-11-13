@@ -300,6 +300,12 @@ download() {
             FILENAME=$(basename_file "$FILE_URL" | sed "s/?.*$//" | tr -d '\r\n' |
                 html_to_utf8 | uri_decode)
         fi
+
+        # Sanity check
+        if [ "${#FILENAME}" -ge 255 ]; then
+            FILENAME="${FILENAME:0:254}"
+            log_debug "filename is too long, truncating it"
+        fi
         log_notice "Filename: $FILENAME"
 
         DRETVAL=0

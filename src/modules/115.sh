@@ -61,20 +61,14 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
     while read URL; do
         HEADERS=$(curl -I "$URL") || return
 
-        FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition)
+        FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition) || return
         if [ -n "$FILENAME" ]; then
             echo "$URL"
-
-            if [ "${#FILENAME}" -ge 255 ]; then
-                FILENAME="${FILENAME:0:254}"
-                log_debug "filename is too long, truncating it"
-            fi
-
             echo "$FILENAME"
             return 0
         fi
 
-        DIRECT=$(echo "$HEADERS" | grep_http_header_content_type)
+        DIRECT=$(echo "$HEADERS" | grep_http_header_content_type) || return
         if [ "$DIRECT" = 'application/octet-stream' ]; then
             echo "$URL"
             return 0
