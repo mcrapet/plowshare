@@ -955,7 +955,7 @@ recaptcha_process() {
     FILENAME=$(create_tempfile '.recaptcha.jpg') || return
 
     TRY=0
-    # FIXME: use retry_limit_not_reached() on non manual solving
+    # Arbitrary 100 limit is safer
     while (( TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
         log_debug "reCaptcha loop $TRY"
         log_debug "reCaptcha challenge: $CHALLENGE"
