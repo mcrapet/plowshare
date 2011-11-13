@@ -93,15 +93,15 @@ mediafire_download() {
     # When link is password protected, there's no facebook "I like" box (iframe).
     # Use that trick!
     if ! match 'facebook.com/plugins/like' "$PAGE"; then
-        log_debug "File is password protected"
-
-        if [ -z "$LINK_PASSWORD" ]; then
-            LINK_PASSWORD=$(prompt_for_password) || return
-        fi
-
-        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
-        log_error "not implemented"
+        log_error "Password-protected links are not supported"
         return $ERR_FATAL
+
+        # FIXME
+        #log_debug "File is password protected"
+        #if [ -z "$LINK_PASSWORD" ]; then
+        #    LINK_PASSWORD=$(prompt_for_password) || return
+        #fi
+        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
     fi
 
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || return
@@ -176,7 +176,7 @@ get_ofuscated_link() {
     log_debug "Dynamic page: $DYNAMIC_PATH"
 
     PAGE_JS=$(curl -b "$COOKIEFILE" "$BASE_URL/$DYNAMIC_PATH")
-    DYNAMIC_JS=$(echo "$PAGE_JS" | grep 'Error' | sed -e 's/\/\/-->.*//')
+    DYNAMIC_JS=$(echo "$PAGE_JS" | sed -n "/<script/,/<\/script>/p" | sed -e '1d;$d')
 
     FILE_URL=$(echo "
         function alert(x) {print(x); }
