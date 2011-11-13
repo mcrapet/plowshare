@@ -33,7 +33,7 @@ divshare_download() {
     local URL="$2"
     local BASE_URL='http://www.divshare.com'
 
-    PAGE=$(curl -c "$COOKIEFILE" "$URL")
+    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if match '<div id="fileInfoHeader">File Information</div>'; then
         log_debug "file not found"
@@ -44,8 +44,8 @@ divshare_download() {
 
     # Uploader can disable audio/video download (only streaming is available)
     REDIR_URL=$(echo "$PAGE" | parse_attr_quiet 'btn_download_new' 'href') || {
-        log_error "content download not allowed"
-        return $ERR_LINK_DEAD
+        log_error "content download not allowed";
+        return $ERR_LINK_DEAD;
     }
 
     if ! match '^http' "$REDIR_URL"; then
@@ -56,7 +56,7 @@ divshare_download() {
         # Usual wait time is 15 seconds
         wait $((WAIT_TIME)) seconds || return
 
-        PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL")
+        PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL") || return
     fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
