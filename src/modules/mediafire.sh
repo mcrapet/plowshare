@@ -59,10 +59,11 @@ mediafire_download() {
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -L -c $COOKIEFILE "$URL" | break_html_lines) || return 1
+    PAGE=$(curl -L -c $COOKIEFILE "$URL" | break_html_lines) || return
 
     if test "$CHECK_LINK"; then
-        match 'class="download_file_title"' "$PAGE" && return 0 || return 1
+        match 'class="download_file_title"' "$PAGE" && return 0
+        return $ERR_LINK_DEAD
     fi
 
     # reCaptcha
@@ -89,52 +90,60 @@ mediafire_download() {
         log_debug "correct captcha"
     fi
 
-    # When link is password protected, there's no facebook box
-    # and "share this link" box. Use that trick!
-    if ! match 'Share this file:' "$PAGE"; then
+    # When link is password protected, there's no facebook "I like" box (iframe).
+    # Use that trick!
+    if ! match 'facebook.com/plugins/like' "$PAGE"; then
         log_debug "File is password protected"
 
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
-        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return 1
+        #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
         log_error "not implemented"
         return $ERR_FATAL
     fi
 
-    FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || \
-        { log_error "error running Javascript code"; return 1; }
+    FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || return
 
     echo "$FILE_URL"
 }
 
 get_ofuscated_link() {
-    local PAGE=$1
-    local COOKIEFILE=$2
-    local BASE_URL="http://www.mediafire.com"
+    local PAGE="$1"
+    local COOKIEFILE="$2"
+    local BASE_URL='http://www.mediafire.com'
+
+    local PAGE_JS FUNCTION RESULT DIVID DYNAMIC_PATH DYNAMIC_JS FILE_URL
 
     detect_javascript || return
 
-    # Carriage-return in eval is not accepted by Spidermonkey, that's what the sed fixes
-    PAGE_JS=$(echo "$PAGE" | sed -n '/<input id="pagename"/,/<\/script>/p' |
-              grep "var PageLoaded" | first_line | sed "s/var cb=Math.random().*$/}/") ||
-        { log_error "cannot find main javascript code"; return $ERR_FATAL; }
+    # One single line
+    PAGE_JS=$(echo "$PAGE" | grep 'var PageLoaded' | \
+            sed -e 's/setTimeout(function(){\$(.*/}/' | \
+            replace 'PageLoaded=false' 'PageLoaded=true') || {
+        log_error "cannot find main javascript code";
+        return $ERR_FATAL;
+    }
 
+    # Get entrypoint function name
     FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
-               "cR();[[:space:]]*\([[:alnum:]]\+\)();") ||
-      { log_error "cannot find start function"; return $ERR_FATAL; }
+            "cR();[[:space:]]*\([[:alnum:]]\+\)();") || {
+        log_error "cannot find start function";
+        return $ERR_FATAL;
+    }
+
     log_debug "JS function: $FUNCTION"
 
-    { read DIVID; read DYNAMIC_PATH; } < <(echo "
-        noop = function() { }
+    RESULT=$(echo "
+        noop = function() {}
         // Functions and variables used but defined elsewhere, fake them.
-        DoShow = Eo = aa = ax = noop;
+        LoadTemplatesFromSource = DoShow = Eo = aa = ax = noop;
         fu = StartDownloadTried = pk = 0;
 
         // setTimeout() is being used to 'hide' function calls.
         function setTimeout(func, time) {
-          func();
+            func();
         }
 
         // Record accesses to the DOM
@@ -142,11 +151,11 @@ get_ofuscated_link() {
         var document = {
             getElementById: function(id) {
                 if (!namespace[id])
-                  namespace[id] = {style: ''}
+                    namespace[id] = {style: ''}
                 return namespace[id];
             },
         };
-        $PAGE_JS }
+        $PAGE_JS
         $FUNCTION();
         // DIV id is string of hexadecimal values of length 32
         for (key in namespace) {
@@ -154,13 +163,18 @@ get_ofuscated_link() {
                 print(key);
         }
         print(namespace.workframe2.src);
-        " | javascript) ||
-        { log_error "error running Javascript in main page"; return $ERR_FATAL; }
+    " | javascript) || {
+        log_error "error running Javascript in main page";
+        return $ERR_FATAL;
+    }
+
+    { read DIVID; read DYNAMIC_PATH; } <<<"$RESULT"
 
     log_debug "DIV id: $DIVID"
     log_debug "Dynamic page: $DYNAMIC_PATH"
-    DYNAMIC=$(curl -b "$COOKIEFILE" "$BASE_URL/$DYNAMIC_PATH")
-    DYNAMIC_JS=$(echo "$DYNAMIC" | sed -n "/<script/,/<\/script>/p" | sed -e '1d;$d')
+
+    PAGE_JS=$(curl -b "$COOKIEFILE" "$BASE_URL/$DYNAMIC_PATH")
+    DYNAMIC_JS=$(echo "$PAGE_JS" | grep 'Error' | sed -e 's/\/\/-->.*//')
 
     FILE_URL=$(echo "
         function alert(x) {print(x); }
@@ -177,9 +191,12 @@ get_ofuscated_link() {
         $DYNAMIC_JS
         dz();
         print(namespace['$DIVID'].innerHTML);
-    " | javascript | parse_attr 'href') ||
-        { log_error "error running Javascript in download page"; return $ERR_FATAL; }
+    " | javascript) || {
+        log_error "error running Javascript in download page";
+        return $ERR_FATAL;
+    }
 
+    FILE_URL=$(echo "$FILE_URL" | parse_attr 'http' 'href') || return
     echo "$FILE_URL"
 }
 
