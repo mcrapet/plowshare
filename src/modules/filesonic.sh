@@ -145,6 +145,11 @@ filesonic_download() {
             log_error "You're trying to download file larger than 400MB (only premium users can)."
             return $ERR_LINK_NEED_PERMISSIONS
 
+        # Free users may only download 1 file at a time.
+        elif match 'download 1 file at a time' "$PAGE"; then
+            log_error "No parallel download allowed"
+            return $ERR_LINK_TEMP_UNAVAILABLE
+
         # captcha
         elif match 'Please Enter Captcha' "$PAGE"; then
 
