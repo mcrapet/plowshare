@@ -105,8 +105,10 @@ mediafire_download() {
     fi
 
     FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || return
+    FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
     echo "$FILE_URL"
+    test -n "$FILENAME" && echo "$FILENAME"
 }
 
 get_ofuscated_link() {
