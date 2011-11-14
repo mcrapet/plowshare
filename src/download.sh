@@ -452,6 +452,7 @@ test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -lt 1 && { usage; exit $ERR_FATAL; }
 
 log_report_info
+log_report "plowdown version $VERSION"
 
 if [ -n "$TEMP_DIR" ]; then
     TEMP_DIR=$(echo "$TEMP_DIR" | sed -e "s/\/$//")

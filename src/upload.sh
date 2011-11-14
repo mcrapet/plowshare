@@ -134,6 +134,9 @@ MODULE=$(module_exist "$MODULES" "$1") || {
     }
 }
 
+log_report_info
+log_report "plowup version $VERSION"
+
 set_exit_trap
 
 FUNCTION=${MODULE}_upload
