@@ -83,7 +83,7 @@ process_item() {
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
           zip|rar|tar|gz|7z|bz2|mp3|avi)
-              log_error "'$ITEM' seems to be a binary file, ignoring"
+              log_error "Skip: '$ITEM' seems to be a binary file"
               ;;
           *)
               # Discard empty lines and comments
@@ -92,7 +92,7 @@ process_item() {
               ;;
         esac
     else
-        log_error "cannot stat '$ITEM': No such file or directory, ignoring"
+        log_error "Skip: cannot stat '$ITEM': No such file or directory"
     fi
 }
 
