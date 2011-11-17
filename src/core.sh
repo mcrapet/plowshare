@@ -482,7 +482,7 @@ html_to_utf8() {
         recode html..utf8
     elif check_exec 'perl'; then
         log_report "html_to_utf8: use perl"
-        perl -n -mHTML::Entities \
+        $(type -P perl) -n -mHTML::Entities \
              -e 'BEGIN { eval{binmode(STDOUT,q[:utf8]);}; }; print HTML::Entities::decode_entities($_);'
     else
         log_notice "recode binary not found, pass-through"
