@@ -879,6 +879,12 @@ captcha_process() {
                 -F "value=@$FILENAME;filename=file" \
                 'http://api.captchatrader.com/submit') || return
 
+            if [ -z "$RESPONSE" ]; then
+                log_error "captcha.trader empty anwser"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
             if match '503 Service Unavailable' "$RESPONSE"; then
                 log_error "captcha.trader server unavailable"
                 rm -f "$FILENAME"
