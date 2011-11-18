@@ -27,7 +27,7 @@ MODULE_MEGASHARES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_MEGASHARES_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-EMAIL,,email:,EMAIL,Field for notification email"
+TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 
 # $1: floating point number (example: "513.58")
 # $2: unit (KB | MB | GB)
@@ -184,7 +184,7 @@ megashares_upload() {
         -F "uploadFileDescription=$DESCRIPTION" \
         -F "passProtectUpload=$LINK_PASSWORD" \
         -F "searchable=on" \
-        -F "emailAddress=$EMAIL" \
+        -F "emailAddress=$TOEMAIL" \
         -F "upfile_0=@$FILE;filename=$DESTFILE" \
         -F "checkTOS=" \
         "$BASEURL/uploader.php?tmp_sid=$TMP_SID&ups_sid=$UPS_SID&uld=$ULOC&uloc=$ULOC") || return
