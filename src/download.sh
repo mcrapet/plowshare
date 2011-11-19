@@ -83,7 +83,7 @@ process_item() {
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
           zip|rar|tar|gz|7z|bz2|mp3|avi)
-              log_error "Skip: '$ITEM' seems to be a binary file"
+              log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
               ;;
           *)
               # Discard empty lines and comments
