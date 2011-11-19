@@ -92,32 +92,32 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
-    local BASE_URL="http://www.2shared.com"
+    local BASE_URL='http://www.2shared.com'
+    local COOKIEFILE ADMIN_PAGE FORM DL_LINK AD_LINK
 
     # Without cookie, it does not work
-    COOKIES=$(create_tempfile)
-    ADMIN_PAGE=$(curl -c $COOKIES "$URL")
+    COOKIEFILE=$(create_tempfile)
+    ADMIN_PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if ! match 'Delete File' "$ADMIN_PAGE"; then
         log_error "File not found"
-        rm -f $COOKIES
+        rm -f "$COOKIEFILE"
         return $ERR_LINK_DEAD
-    else
-        FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
-            log_error "can't get delete form, website updated?";
-            rm -f $COOKIES
-            return $ERR_FATAL
-        }
-
-        local ACTION=$(echo "$FORM" | parse_form_action)
-        local DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink' | uri_encode_strict)
-        local AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink' | uri_encode_strict)
-
-        curl -b $COOKIES --referer "$URL" \
-            --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
-            "$BASE_URL$ACTION" >/dev/null
-        # Can't parse for success, we get redirected to main page
-
-        rm -f $COOKIES
     fi
+
+    FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
+        log_error "can't get delete form, website updated?";
+        rm -f "$COOKIEFILE";
+        return $ERR_FATAL;
+    }
+
+    DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink' | uri_encode_strict)
+    AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink' | uri_encode_strict)
+
+    curl -b "$COOKIEFILE" --referer "$URL" -o /dev/null \
+        --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
+        "$URL"
+    # Can't parse for success, we get redirected to main page
+
+    rm -f "$COOKIEFILE"
 }
