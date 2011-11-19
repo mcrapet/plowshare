@@ -82,8 +82,12 @@ fileserve_download() {
         LOGIN_RESULT=$(fileserve_login "$AUTH" "$COOKIEFILE" "$BASEURL") || return
 
         # Check account type
-        if ! match '<h3>Free' "$LOGIN_RESULT"; then
-            FILE_URL=$(curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location)
+        if match '<h3>Premium ' "$LOGIN_RESULT"; then
+            local FILE_URL
+
+            # Works for both "Direct Download" enabled/disabled
+            FILE_URL=$(curl -i -b "$COOKIEFILE" --data "download=premium" "$URL" | \
+                    grep_http_header_location) || return
 
             test -z "$FILE_URL" && return $ERR_FATAL
             test "$CHECK_LINK" && return 0
