@@ -770,6 +770,11 @@ captcha_process() {
 
     if [ -z "$METHOD_SOLVE" ]; then
         METHOD_SOLVE=prompt
+    elif [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
+        if ! check_exec 'tesseract'; then
+            log_notice "tesseract was not found, fallback to manual entering"
+            METHOD_SOLVE=prompt
+        fi
     fi
 
     if [ -z "$METHOD_VIEW" ]; then
@@ -880,7 +885,7 @@ captcha_process() {
                 'http://api.captchatrader.com/submit') || return
 
             if [ -z "$RESPONSE" ]; then
-                log_error "captcha.trader empty anwser"
+                log_error "captcha.trader empty answer"
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
