@@ -870,7 +870,7 @@ captcha_process() {
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
 
-            log_notice "Use catpcha.trader ($USERNAME)"
+            log_notice "Using catpcha.trader ($USERNAME)"
 
             RESPONSE=$(curl -F "match=" \
                 -F "api_key=1645b45413c7e23a470475f33692cb63" \
