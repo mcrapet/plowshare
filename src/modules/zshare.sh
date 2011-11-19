@@ -127,7 +127,7 @@ zshare_delete() {
     eval "$(process_options zshare "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
-    local DELETE_PAGE
+    local DELETE_PAGE FORM_KILLCODE RESULT_PAGE
 
     DELETE_PAGE=$(curl -L "$URL") || return
 
@@ -135,9 +135,8 @@ zshare_delete() {
         log_error "File not found"
         return $ERR_LINK_DEAD
     else
-        local form_killcode=$(echo "$DELETE_PAGE" | parse_form_input_by_name "killCode")
-
-        RESULT_PAGE=$(curl --data "killCode=$form_killcode" "$URL")
+        FORM_KILLCODE=$(echo "$DELETE_PAGE" | parse_form_input_by_name "killCode")
+        RESULT_PAGE=$(curl --data "killCode=$FORM_KILLCODE" "$URL") || return
 
         if match 'Invalid removal code' "$RESULT_PAGE"; then
             log_error "bad removal code"
