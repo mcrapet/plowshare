@@ -29,6 +29,22 @@ MODULE_NETLOAD_IN_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_LIST_OPTIONS=""
 
+# Static function. Proceed with login
+# $1: $AUTH argument string
+# $2: cookie file
+# $3: netload.in baseurl
+netload_in_premium_login() {
+    # Even if login/passwd are wrong cookie content is returned
+    local LOGIN_DATA LOGIN_RESULT
+    LOGIN_DATA='txtuser=$USER&txtpass=$PASSWORD&txtcheck=login&txtlogin='
+    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return
+
+    if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
+        log_error "bad login and/or password"
+        return $ERR_LOGIN_FAILED
+    fi
+}
+
 # Output a netload.in file download URL
 # $1: cookie file
 # $2: netload.in url
@@ -38,7 +54,7 @@ netload_in_download() {
 
     local COOKIEFILE="$1"
     local URL=$(echo "$2" | replace 'www.' '')
-    local BASE_URL="http://netload.in"
+    local BASE_URL='http://netload.in'
 
     if [ -n "$AUTH" ]; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
@@ -72,77 +88,72 @@ netload_in_download() {
 
     detect_perl || return
 
-    local TRY=0
-    while retry_limit_not_reached || return; do
-        log_debug "Downloading captcha page (loop $TRY)"
-        ((TRY++))
-        WAIT_URL=$(curl --location -c $COOKIEFILE "$URL" | \
-            parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
-            { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    local WAIT_URL WAIT_HTML WAIT_TIME
 
-        test "$CHECK_LINK" && return 0
+    WAIT_URL=$(curl --location -c $COOKIEFILE "$URL" | \
+        parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
+        { log_debug "file not found"; return $ERR_LINK_DEAD; }
 
-        WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-        WAIT_HTML=$(curl -b $COOKIEFILE -e $URL --location $WAIT_URL)
-        WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
-                "countdown(\([[:digit:]]*\),'change()')")
+    test "$CHECK_LINK" && return 0
 
-        if test -n "$WAIT_TIME"; then
-            wait $((WAIT_TIME / 100)) seconds || return
-        fi
+    WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
+    WAIT_HTML=$(curl -b $COOKIEFILE -e $URL --location $WAIT_URL)
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
+            "countdown(\([[:digit:]]*\),'change()')")
 
-        CAPTCHA_URL=$(echo "$WAIT_HTML" | parse '<img style="vertical-align' \
-                'src="\([^"]*\)" alt="Sicherheitsbild"')
-        CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
+    wait $((WAIT_TIME / 100)) seconds || return
 
-        # Create new formatted image
-        CAPTCHA_IMG=$(create_tempfile) || return
-        curl -b $COOKIEFILE "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
-                convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
-                -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
-            rm -f "$CAPTCHA_IMG";
-            return $ERR_CAPTCHA;
-        }
+    CAPTCHA_URL=$(echo "$WAIT_HTML" | parse '<img style="vertical-align' \
+            'src="\([^"]*\)" alt="Sicherheitsbild"')
+    CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
-        CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
-        rm -f "$CAPTCHA_IMG"
+    # Create new formatted image
+    CAPTCHA_IMG=$(create_tempfile) || return
+    curl -b $COOKIEFILE "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
+            convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
+            -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
+        rm -f "$CAPTCHA_IMG";
+        return $ERR_CAPTCHA;
+    }
 
-        test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-        log_debug "Decoded captcha: $CAPTCHA"
+    CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+    rm -f "$CAPTCHA_IMG"
 
-        if [ "${#CAPTCHA}" -ne 4 ]; then
-            log_debug "Captcha length invalid"
-            continue
-        fi
+    if [ "${#CAPTCHA}" -lt 4 ]; then
+        log_debug "Captcha length invalid"
+        return $ERR_CAPTCHA
+    fi
 
-        # Send (post) form
-        local download_form=$(grep_form_by_order "$WAIT_HTML" 1)
-        local form_url=$(echo "$download_form" | parse_form_action)
-        local form_fid=$(echo "$download_form" | parse_form_input_by_name 'file_id')
+    test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
+    log_debug "Decoded captcha: $CAPTCHA"
 
-        WAIT_HTML2=$(curl -l -b $COOKIEFILE --data "file_id=${form_fid}&captcha_check=${CAPTCHA}&start=" \
-                "$BASE_URL/$form_url")
+    # Send (post) form
+    local DOWNLOAD_FORM FORM_URL FORM_FID WAIT_HTML2
+    DOWNLOAD_FORM=$(grep_form_by_order "$WAIT_HTML" 1)
+    FORM_URL=$(echo "$DOWNLOAD_FORM" | parse_form_action) || return
+    FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
 
-        match 'class="InPage_Error"' "$WAIT_HTML2" &&
-            { log_debug "Error (bad captcha), retry"; continue; }
+    WAIT_HTML2=$(curl -l -b $COOKIEFILE --data "file_id=${FORM_FID}&captcha_check=${CAPTCHA}&start=" \
+            "$BASE_URL/$FORM_URL") || return
 
-        log_debug "Correct captcha!"
+    if match 'class="InPage_Error"' "$WAIT_HTML2"; then
+        log_error "wrong captcha"
+        return $ERR_CAPTCHA
+    fi
 
-        WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \
-                "countdown(\([[:digit:]]*\),'change()')")
+    log_debug "correct captcha"
 
-        if [ -n "$WAIT_TIME2" ]; then
-            if [[ "$WAIT_TIME2" -gt 10000 ]]; then
-                log_debug "Download limit reached!"
-                wait $((WAIT_TIME2 / 100)) seconds || return
-            else
-                # Supress this wait will lead to a 400 http error (bad request)
-                wait $((WAIT_TIME2 / 100)) seconds || return
-                break
-            fi
-        fi
+    WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \
+            "countdown(\([[:digit:]]*\),'change()')")
 
-    done
+    if [[ "$WAIT_TIME2" -gt 10000 ]]; then
+        log_debug "Download limit reached!"
+        echo $((WAIT_TIME2 / 100))
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    # Supress this wait will lead to a 400 http error (bad request)
+    wait $((WAIT_TIME2 / 100)) seconds || return
 
     FILENAME=$(echo "$WAIT_HTML2" | \
         parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
@@ -152,20 +163,6 @@ netload_in_download() {
     echo $FILE_URL
     test -n "$FILENAME" && echo "$FILENAME"
     return 0
-}
-
-# $1: $AUTH argument string
-# $2: cookie file
-# $3: netload.in baseurl
-netload_in_premium_login() {
-    # Even if login/passwd are wrong cookie content is returned
-    LOGIN_DATA='txtuser=$USER&txtpass=$PASSWORD&txtcheck=login&txtlogin='
-    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return
-
-    if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
-        log_error "bad login and/or password"
-        return $ERR_LOGIN_FAILED
-    fi
 }
 
 # Upload a file to netload.in
@@ -188,7 +185,8 @@ netload_in_upload() {
 
     if test "$AUTH"; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-        curl -b "$COOKIEFILE" --data 'get=Get Auth Code' 'http://www.netload.in/index.php?id=56' >/dev/null
+        curl -b "$COOKIEFILE" --data 'get=Get Auth Code' -o /dev/null 'http://www.netload.in/index.php?id=56'
+
         AUTH_CODE=$(curl -b "$COOKIEFILE" 'http://www.netload.in/index.php?id=56' | \
             parse 'Your Auth Code' ';">\([^<]*\)') || return
         log_debug "auth=$AUTH_CODE"
