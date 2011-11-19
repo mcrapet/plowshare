@@ -34,10 +34,10 @@ x7_to_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
-    local BASE_URL="http://x7.to"
+    local BASE_URL='http://x7.to'
 
     if [ -z "$AUTH_FREE" ]; then
-        curl -c $COOKIEFILE -o /dev/null "$URL"
+        curl -c "$COOKIEFILE" -o /dev/null "$URL"
     else
         # Do the secure HTTP login! Adding --referer is mandatory.
         LOGIN_DATA='id=$USER&pw=$PASSWORD'
@@ -51,76 +51,72 @@ x7_to_download() {
         fi
     fi
 
-    while retry_limit_not_reached || return; do
-        WAIT_HTML=$(curl -L -b $COOKIEFILE "$URL")
+    local WAIT_HTML REF_FID FILE_REAL_NAME EXTENSION DATA
+    local J_TYPE J_WAIT J_LINK
 
-        local ref_fid=$(echo "$WAIT_HTML" | parse_quiet 'document.cookie[[:space:]]=[[:space:]]*' \
-                'ref_file=\([^&]*\)')
+    WAIT_HTML=$(curl -L -b $COOKIEFILE "$URL") || return
+    REF_FID=$(echo "$WAIT_HTML" | parse_quiet 'document.cookie[[:space:]]=[[:space:]]*' \
+            'ref_file=\([^&]*\)')
 
-        if [ -z "$ref_fid" ]; then
-            matchi 'file not found' "$WAIT_HTML" &&
-                log_error "File not found"
+    if [ -z "$REF_FID" ]; then
+        matchi 'file not found' "$WAIT_HTML" &&
+            log_error "File not found"
 
-            if match '<span id="foldertitle">' "$WAIT_HTML"
-            then
-                local textlist=$(echo "$WAIT_HTML" | parse_attr 'listplain' 'href')
-                log_error "This is a folder list (check $BASE_URL/$textlist)"
-            fi
-
-            return $ERR_LINK_DEAD
+        if match '<span id="foldertitle">' "$WAIT_HTML"; then
+            local textlist=$(echo "$WAIT_HTML" | parse_attr 'listplain' 'href')
+            log_error "This is a folder list (check $BASE_URL/$textlist)"
         fi
 
-        test "$CHECK_LINK" && return 0
+        return $ERR_LINK_DEAD
+    fi
 
-        # Check for errors:
-        # - The requested file is larger than 400MB, only premium members will be able to download the file!
-        if match 'requested file is larger than' "$WAIT_HTML"; then
-            log_debug "premium link"
-            return $ERR_LINK_NEED_PERMISSIONS
-        fi
+    test "$CHECK_LINK" && return 0
 
-        file_real_name=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
-                '>\([^<]*\)<small')
-        extension=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
-                '<small[^>]*>\([^<]*\)<\/small>')
-        file_real_name="$file_real_name$extension"
+    # Check for errors:
+    # - The requested file is larger than 400MB, only premium members will be able to download the file!
+    if match 'requested file is larger than' "$WAIT_HTML"; then
+        log_debug "premium link"
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
 
-        # According to http://x7.to/js/download.js
-        DATA=$(curl -b $COOKIEFILE -b "cookie_test=enabled; ref=ref_user=6649&ref_file=${ref_fid}&url=&date=1234567890" \
-                    --data-binary "" \
-                    --referer "$URL" \
-                    "$BASE_URL/james/ticket/dl/$ref_fid")
+    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
+            '>\([^<]*\)<small')
+    EXTENSION=$(echo "$WAIT_HTML" | parse_quiet '<span style="text-shadow:#5855aa 1px 1px 2px">' \
+            '<small[^>]*>\([^<]*\)<\/small>')
+    FILE_REAL_NAME="$FILE_REAL_NAME$EXTENSION"
 
-        # Parse JSON object
-        # {type:'download',wait:12,url:'http://stor2.x7.to/dl/Z5H3o51QqB'}
-        # {err:"Download denied."}
+    # According to http://x7.to/js/download.js
+    DATA=$(curl -b $COOKIEFILE \
+            -b "cookie_test=enabled; ref=ref_user=6649&ref_file=${REF_FID}&url=&date=1234567890" \
+            --data-binary "" \
+            --referer "$URL" \
+            "$BASE_URL/james/ticket/dl/$REF_FID") || return
 
-        local type=$(echo "$DATA" | parse_quiet '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)")
-        local wait=$(echo "$DATA" | parse_quiet '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)')
-        local link=$(echo "$DATA" | parse_quiet '^' "url[[:space:]]*:[[:space:]]*'\([^']*\)")
+    # Parse JSON object
+    # {type:'download',wait:12,url:'http://stor2.x7.to/dl/Z5H3o51QqB'}
+    # {err:"Download denied."}
 
-        if [ "$type" == "download" ]
-        then
-            wait $((wait)) seconds || return
-            break;
-        elif match 'limit-dl\|limit-parallel' "$DATA"
-        then
-            log_debug "Download limit reached!"
-            WAITTIME=5
-            wait $((WAITTIME)) minutes || return
-            continue
-        else
-            local error=$(echo "$DATA" | parse_quiet 'err:' '{err:"\([^"]*\)"}')
-            log_error "failed state [$error]"
-            return $ERR_FATAL
-        fi
-    done
+    local J_TYPE=$(echo "$DATA" | parse_quiet '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)")
+    local J_WAIT=$(echo "$DATA" | parse_quiet '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)')
+    local J_LINK=$(echo "$DATA" | parse_quiet '^' "url[[:space:]]*:[[:space:]]*'\([^']*\)")
+
+    if [ "$J_TYPE" == "download" ]; then
+        wait $((J_WAIT)) seconds || return
+    elif match 'limit-dl\|limit-parallel' "$DATA"; then
+        log_debug "Download limit reached!"
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    else
+        local ERROR=$(echo "$DATA" | parse_quiet 'err:' '{err:"\([^"]*\)"}')
+        log_error "failed state [$ERROR]"
+        return $ERR_FATAL
+    fi
 
     # Example of URL:
     # http://stor4.x7.to/dl/IMDju9Fk5y
     # Real filename is also stored in "Content-Disposition" HTTP header
 
-    echo $link
-    test -n "$file_real_name" && echo "$file_real_name"
+    echo "$J_LINK"
+    test -n "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
     return 0
 }
