@@ -27,14 +27,13 @@ MODULE_MEGAUPLOAD_DOWNLOAD_RESUME=yes
 MODULE_MEGAUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
-MULTIFETCH,m,multifetch,,Use URL multifetch upload
-CLEAR_LOG,,clear-log,,Clear upload log after upload process
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password (premium only)
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
-MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload"
+MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload (premium only)
+CLEAR_FETCH_LIST,,clear-fetch-list,,Clear fetch list (multifietch, premium only)"
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)"
 MODULE_MEGAUPLOAD_LIST_OPTIONS=""
@@ -50,10 +49,7 @@ megaupload_download() {
     local URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
                             replace 'video.com/' 'upload.com/')
     local BASEURL=$(basename_url "$URL")
-    local ERRORURL="http://www.megaupload.com/?c=msg"
-
-    # Arbitrary wait (local variable)
-    NO_FREE_SLOT_IDLE=125
+    local PAGE HTTPCODE ACC WAITTIME FILE_URL
 
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
@@ -61,114 +57,81 @@ megaupload_download() {
         post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL/?c=login" >/dev/null || return
     fi
 
-    TRY=0
-    while retry_limit_not_reached || return; do
-        TRY=$(($TRY + 1))
-        log_debug "Downloading waiting page (loop $TRY)"
-        PAGE=$(curl -b "$COOKIEFILE" "$URL") || { echo "Error getting page: $URL"; return 1; }
+    # We must save HTTP headers to detect premium account
+    # (expect "HTTP/1.1 302 Found" and empty Content-Length headers)
+    PAGE=$(curl -i -b "$COOKIEFILE" "$URL") || return
+    HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\).*/\1/p')
 
-        # Test for Premium account with "direct download" option
-        if [ -z "$PAGE" ]; then
-            curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location
-            return 0
-        fi
+    # Premium account with "direct downloads" option
+    if [ "$HTTPCODE"  = '302' ]; then
+        echo "$PAGE" | grep_http_header_location
+        return 0
+    fi
 
-        REDIRECT=$(echo "$PAGE" | parse_quiet "document.location" \
-            "location[[:space:]]*=[[:space:]]*[\"']\(.*\)[\"']" || true)
+    # Check for dead link
+    if match 'link you have clicked is not available' "$PAGE"; then
+        return $ERR_LINK_DEAD
 
-        if test "$REDIRECT" = "$ERRORURL"; then
-            log_debug "Server returned an error page: $REDIRECT"
-            WAITTIME=$(curl "$REDIRECT" | parse 'check back in' \
-                'check back in \([[:digit:]]\+\) minute')
-            # Fragile parsing, set a default waittime if something went wrong
-            test ! -z "$WAITTIME" -a "$WAITTIME" -ge 1 -a "$WAITTIME" -le 20 ||
-                WAITTIME=2
-            wait $WAITTIME minutes || return
-            continue
+    # Test for big files (premium account required)
+    elif match "The file you are trying to download is larger than" "$PAGE"; then
+        log_debug "Premium link"
+        test "$CHECK_LINK" && return 0
+        return $ERR_LINK_NEED_PERMISSIONS
 
-        # Check for dead link
-        elif match 'link you have clicked is not available' "$PAGE"; then
-            return $ERR_LINK_DEAD
-
-        # Test for big files (premium account required)
-        elif match "The file you are trying to download is larger than" "$PAGE"; then
-            log_debug "Premium link"
-            test "$CHECK_LINK" && return 0
-            return $ERR_LINK_NEED_PERMISSIONS
-
-        # Test if the file is password protected
-        elif match 'name="filepassword"' "$PAGE"; then
-            test "$CHECK_LINK" && return 0
-
-            log_debug "File is password protected"
-
-            if [ -z "$LINK_PASSWORD" ]; then
-                LINK_PASSWORD=$(prompt_for_password) || return
-            fi
-
-            DATA="filepassword=$LINK_PASSWORD"
-
-            # We must save HTTP headers to detect premium account
-            # (expect "HTTP/1.1 302 Found" return header)
-            PAGE=$(curl -i -b "$COOKIEFILE" -d "$DATA" "$URL")
-            HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\).*/\1/p')
-
-            # Premium account with "direct download" option
-            if [ "$HTTPCODE"  = "302" ]; then
-                echo "$PAGE" | grep_http_header_location
-                return 0
-            fi
-
-            match 'name="filepassword"' "$PAGE" &&
-                { log_error "Link password incorrect"; return 1; }
-
-            if [ -z "$AUTH" ]; then
-                WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-                    "count=\([[:digit:]]\+\);") || return
-                break
-            fi
-
-        # Test for "come back later". Language is guessed with the help of http-user-agent.
-        elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
-            echo $NO_FREE_SLOT_IDLE
-            return $ERR_LINK_TEMP_UNAVAILABLE
-        fi
-
-        # ---
-
+    # Test if the file is password protected
+    elif match 'name="filepassword"' "$PAGE"; then
         test "$CHECK_LINK" && return 0
 
-        # Test for Premium account without "direct download" option
-        ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account")
+        log_debug "File is password protected"
 
-        if ! match '<b>Regular</b>' "$ACC" && test "$AUTH"; then
-            FILEURL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
-            echo "$FILEURL"
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD=$(prompt_for_password) || return
+        fi
+
+        PAGE=$(curl -i -b "$COOKIEFILE" --data "filepassword=$LINK_PASSWORD" "$URL") || return
+        HTTPCODE=$(echo "$PAGE" | sed -ne '1s/HTTP\/[^ ]*\s\(...\).*/\1/p')
+
+        # Premium account with "direct downloads" option
+        if [ "$HTTPCODE"  = '302' ]; then
+            echo "$PAGE" | grep_http_header_location
             return 0
         fi
 
-        # Look for a download link (anonymous & Free account)
-        FILEURL=$(echo "$PAGE" | parse_attr_quiet 'id="downloadlink"' 'href')
-        if test "$FILEURL"; then
-            WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-                "count=\([[:digit:]]\+\);") || return
-            break
+        if match 'name="filepassword"' "$PAGE"; then
+            log_error "Link password incorrect"
+            return $ERR_LINK_PASSWORD_REQUIRED
         fi
 
-        # There's no more captcha on megaupload!
-        log_error "unknown state, site updated?"
-        return $ERR_FATAL
-    done
-
-    FILEURL=$(echo "$PAGE" | parse_attr 'id="downloadlink"' 'href')
-    if [ -z "$FILEURL" ]; then
-        log_error "Can't parse filename (unexpected characters?)"
-        return $ERR_FATAL
+    # Test for "come back later". Language is guessed with the help of http-user-agent.
+    elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
+        echo 125
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
+
+    # ---
+
+    test "$CHECK_LINK" && return 0
+
+    if [ -n "$AUTH" ]; then
+        # Test for Premium account without "direct downloads" option
+        ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account") || return
+
+        if ! match '<b>Regular</b>' "$ACC" && test "$AUTH"; then
+            FILE_URL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
+            echo "$FILE_URL"
+            return 0
+        fi
+    fi
+
+    # Look for a download link (anonymous & Free account)
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'id="downloadlink"' 'href') || return
+
+    WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
+            "count=\([[:digit:]]\+\);") || return
 
     wait $((WAITTIME+1)) seconds || return
 
-    echo "$FILEURL"
+    echo "$FILE_URL"
 }
 
 # Upload a file to megaupload
@@ -182,65 +145,88 @@ megaupload_upload() {
     local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local LOGINURL="http://www.megaupload.com/?c=login"
-    local BASEURL=$(basename_url "$LOGINURL")
+    local BASE_URL='http://www.megaupload.com'
+    local LOGIN_DATA PAGE ACC FORM_URL UPLOAD_ID
 
     if [ -n "$AUTH" ]; then
         LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$LOGINURL" >/dev/null || return
-    elif [ -n "$LINK_PASSWORD" ]; then
-        log_error "password ignored, premium only"
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/?c=login" >/dev/null || return
+
+        # Detect account type
+        PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=account") || return
+        if match '<b>Regular</b>' "$PAGE"; then
+            ACC=free
+        else
+            ACC=premium
+        fi
+    else
+        ACC=anonymous
+
+        if [ -n "$LINK_PASSWORD" ]; then
+            log_error "password ignored, premium only"
+            LINK_PASSWORD=""
+        fi
+
+        if [ -n "$MULTIEMAIL" ]; then
+            log_error "multiple recipients ignored, premium only"
+            MULTIEMAIL=""
+        fi
     fi
 
-    if [ "$MULTIFETCH" ]; then
-        UPLOADURL="http://www.megaupload.com/?c=multifetch"
-        STATUSURL="http://www.megaupload.com/?c=multifetch&s=transferstatus"
-        STATUSLOOPTIME=5
+    # Test for "HTTP / FTP file fetching"
+    if match_remote_url "$FILE"; then
 
-        # Cookie file must contain sessionid
-        [ -s "$COOKIEFILE" ] || return $ERR_LOGIN_FAILED
+        # Feature is for premium users
+        if [ "$ACC" != 'premium' ]; then
+            log_error "Remote file fetching is for premium users only"
+            return $ERR_LINK_NEED_PERMISSIONS
+        fi
 
-        log_debug "spawn URL fetch process: $FILE"
-        UPLOADID=$(curl -b "$COOKIEFILE" -L \
+        PAGE=$(curl -b "$COOKIEFILE" -L \
             -F "fetchurl=$FILE" \
             -F "description=$DESCRIPTION" \
             -F "youremail=$FROMEMAIL" \
             -F "receiveremail=$TOEMAIL" \
             -F "password=$LINK_PASSWORD" \
             -F "multiplerecipients=$MULTIEMAIL" \
-            "$UPLOADURL"| parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) ||
-                { log_error "cannot start multifetch upload"; return 1; }
+            "$BASE_URL/?c=multifetch") || return
+
+        UPLOAD_ID=$(echo "$PAGE" | parse "estimated_" 'id="estimated_\([[:digit:]]*\)' ) || return
+        log_debug "upload id:$UPLOAD_ID"
+
+        local CSS='display:[[:space:]]*none'
+        local TEXT1 TEXT2 TEXT3
+
         while true; do
-            CSS="display:[[:space:]]*none"
-            STATUS=$(curl -b "$COOKIEFILE" "$STATUSURL")
-            ERROR=$(echo "$STATUS" | grep -v "$CSS" | \
-                parse_quiet "status_$UPLOADID" '>\(.*\)<\/div>' | xargs) || true
-            test "$ERROR" && { log_error "Status reported error: $ERROR"; break; }
-            echo "$STATUS" | grep "completed_$UPLOADID" | grep -q "$CSS" || break
-            INFO=$(echo "$STATUS" | parse "estimated_$UPLOADID" \
-                "estimated_$UPLOADID\">\(.*\)<\/div>" | xargs)
-            log_debug "waiting for the upload $UPLOADID to finish: $INFO"
-            sleep $STATUSLOOPTIME
+            PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=multifetch&s=transferstatus") || return
+
+            TEXT1=$(echo "$PAGE" | sed -e "/$CSS/d" | parse "id=\"status_$UPLOAD_ID\"" '">\([^<]*\)<\/font>') || return
+            log_debug "[$TEXT1]"
+            TEXT2=$(echo "$PAGE" | sed -e "/$CSS/d" | parse_quiet "id=\"estimated_$UPLOAD_ID\"" '">\([^<]*\)<\/div>')
+            log_debug "[$TEXT2]"
+
+            TEXT3=$(echo "$PAGE" | sed -e "/$CSS/d" | parse_quiet "id=\"completed_$UPLOAD_ID\"" '">\(.*\)<\/div>')
+            match '100%' "$TEXT3" && break
+
+            wait 5 seconds || return
         done
-        log_debug "fetching process finished"
-        STATUS=$(curl -b "$COOKIEFILE" "$STATUSURL")
-        if [ "$CLEAR_LOG" ]; then
-            log_debug "clearing upload log for task $UPLOADID"
-            CLEARURL=$(echo "$STATUS" | parse "cancel=$UPLOADID" "href=[\"']\([^\"']*\)")
-            log_debug "clear URL: $BASEURL/$CLEARURL"
-            curl -b "$COOKIEFILE" "$BASEURL/$CLEARURL" > /dev/null
+
+        echo "$STATUS" | parse_attr "downloadurl_$UPLOAD_ID" 'href'
+
+        if [ -n "$CLEAR_FETCH_LIST" ]; then
+            log_debug "clear fetch list, as requested"
+            curl -b "$COOKIEFILE" -o /dev/null "$BASE_URL/?c=multifetch&s=transferstatus&clear=1" || return
         fi
-        echo "$STATUS" | parse "downloadurl_$UPLOADID" "href=[\"']\([^\"']*\)"
 
     else
-        UPLOADURL="http://www.megaupload.com/multiupload/"
-        log_debug "downloading upload page: $UPLOADURL"
+        # Sanity check
+        [ -n "$CLEAR_FETCH_LIST"] && \
+            log_debug "unexpected option --clear-fetch-list, ignoring"
 
-        local PAGE=$(curl "$UPLOADURL")
-        local FORM_URL=$(grep_form_by_name "$PAGE" 'uploadform' | parse_form_action)
-        local UPLOAD_ID=$(echo "$FORM_URL" | parse 'IDENTIFIER' '=\(.*\)')
+        PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/multiupload/") || return
 
-        log_debug "starting file upload: $FILE"
+        FORM_URL=$(grep_form_by_name "$PAGE" 'uploadform' | parse_form_action)
+        UPLOAD_ID=$(echo "$FORM_URL" | parse 'IDENTIFIER' '=\(.*\)')
 
         PAGE=$(curl_with_log -b "$COOKIEFILE" \
             -F "UPLOAD_IDENTIFIER=$UPLOAD_ID" \
@@ -256,54 +242,64 @@ megaupload_upload() {
         echo "$PAGE" | parse "downloadurl" "url = '\([^']*\)"
 
         # This is a trick for free account to set a password
-        if [ -n "$AUTH" -a -n "$LINK_PASSWORD" ]; then
-            ACC=$(curl -b "$COOKIEFILE" "$BASEURL/?c=account") || return
-            if match '<b>Regular</b>' "$ACC"; then
-                local ID=$(echo "$PAGE" | parse "downloadurl" "d=\([^']*\)");
-                local T="$(date +%s)000"
-                PAGE=$(curl -b "$COOKIEFILE" \
-                    --data "action=edit&id=${ID}&name=${DESTFILE}&description=${DESCRIPTION}&password=$LINK_PASSWORD" \
-                    'http://www.megaupload.com/?c=filemanager&ajax=1&r=${T}') || return
-            fi
+        if [ "$ACC" = 'free' ]; then
+            local ID=$(echo "$PAGE" | parse "downloadurl" "d=\([^']*\)");
+            local T="$(date +%s)000"
+            curl -b "$COOKIEFILE" -o /dev/null \
+                --data "action=edit&id=${ID}&name=${DESTFILE}&description=${DESCRIPTION}&password=$LINK_PASSWORD" \
+                "$BASE_URL/?c=filemanager&ajax=1&r=$T" || return
         fi
-
     fi
 }
 
 # Delete a file on megaupload (requires an account)
-# $1: delete link
+# $1: delete link (is actually download link)
 megaupload_delete() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
-    local BASE_URL=$(basename_url $URL)
+    local URL="$1"
+    local BASE_URL='http://www.megaupload.com'
+    local COOKIEFILE LOGIN_DATA TOTAL_FILES FILEID HTML FILES
 
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot delete links."
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    COOKIES=$(create_tempfile)
+    FILEID=$(echo "$URL" | parse_quiet "." "d=\(.*\)")
+    if [ -n "$FILEID" ]; then
+        URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
+                          replace 'video.com/' 'upload.com/')
+    else
+        # Assuming megavideo
+        FILEID=$(echo "$URL" | parse "." "v=\(.*\)") || return
+        BASE_URL=$(basename_url $URL)
+    fi
+
+    COOKIEFILE=$(create_tempfile)
     LOGIN_DATA='login=1&redir=1&username=$USER&password=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" $BASE_URL"/?c=login" >/dev/null || {
-        rm -f $COOKIES
-        return $ERR_FATAL
+    post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/?c=login" >/dev/null || {
+        rm -f "$COOKIEFILE";
+        return $ERR_FATAL;
     }
 
-    TOTAL_FILES=$(curl -b $COOKIES $BASE_URL"/?c=account" | \
-        parse_all '<strong>' '<strong>*\([^<]*\)' | nth_line 3)
+    if match 'megavideo' "$URL"; then
+        HTML=$(curl -b "$COOKIEFILE" -d "action=delete&delids=$FILEID" "$BASE_URL/?c=videomanager&ajax=1") || return
+        rm -f "$COOKIEFILE"
+    else
+        # Filemanager is in flash, use "Total files uploaded" info
+        TOTAL_FILES=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=account" | \
+            parse_all '<strong>' '<strong>*\([^<]*\)' | nth_line 3)
 
-    FILEID=$(echo "$URL" | parse "." "d=\(.*\)")
-    DATA="action=delete&delids=$FILEID"
-    DELETE=$(curl -b $COOKIES -d "$DATA" $BASE_URL"/?c=filemanager&ajax=1") || return
+        HTML=$(curl -b "$COOKIEFILE" -d "action=delete&delids=$FILEID" "$BASE_URL/?c=filemanager&ajax=1") || return
+        rm -f "$COOKIEFILE"
 
-    rm -f $COOKIES
+        FILES=$(echo "$HTML" | parse 'totalfiles' 'totalfiles":"\(.*\)","noresults":') || return
 
-    FILES=$(echo "$DELETE" | parse_quiet 'totalfiles' 'totalfiles":"\(.*\)","noresults":')
-
-    if [ $TOTAL_FILES -eq $FILES ]; then
-        log_error "error deleting link"
-        return $ERR_FATAL
+        if [ "$TOTAL_FILES" -eq "$FILES" ]; then
+            log_error "error deleting link, are you owning the link?"
+            return $ERR_FATAL
+        fi
     fi
 }
 
@@ -314,8 +310,8 @@ megaupload_delete() {
 megaupload_list() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_LIST_OPTIONS" "$@")"
 
-    local URL=$1
-    local XMLURL="http://www.megaupload.com/xml/folderfiles.php"
+    local URL="$1"
+    local XMLURL='http://www.megaupload.com/xml/folderfiles.php'
     local XML FOLDERID
 
     FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') || return
