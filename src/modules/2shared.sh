@@ -33,7 +33,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 # stdout: real file download link
 2shared_download() {
     local URL="$2"
-    local PAGE
+    local PAGE FILE_URL FILENAME
 
     PAGE=$(curl "$URL") || return
 
@@ -41,10 +41,10 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         return $ERR_LINK_DEAD
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return $ERR_FATAL
+    FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
     test "$CHECK_LINK" && return 0
 
-    FILENAME=$(echo "$PAGE" | parse '<title>' 'download *\([^<]*\)') || true
+    FILENAME=$(echo "$PAGE" | parse_quiet '<title>' 'download *\([^<]*\)')
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
