@@ -35,12 +35,14 @@ EMAIL,,email:,EMAIL,Field for notification email"
 # $1: cookie file
 # $2: 1fichier.tld url
 # stdout: real file download link
+#
+# Note: Consecutive HTTP requests must be delayed (>10s).
+#       Otherwise you'll get the parallel download message.
 1fichier_download() {
+    eval "$(process_options 1fichier "$MODULE_1FICHIER_DOWNLOAD_OPTIONS" "$@")"
+
     local COOKIEFILE="$1"
     local URL="$2"
-
-    # Arbitrary wait (local variable)
-    NO_FREE_SLOT_IDLE=10
 
     PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
@@ -52,7 +54,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
     test "$CHECK_LINK" && return 0
 
     if match "Téléchargements en cours" "$PAGE"; then
-        echo $NO_FREE_SLOT_IDLE
+        log_error "No parallel download allowed"
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
