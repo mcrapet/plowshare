@@ -35,6 +35,7 @@ euroshare_eu_download() {
     local COOKIEFILE="$1"
     local URL="$2"
     local BASEURL=$(basename_url "$URL")
+    local PAGE DL_URL FILE_URL FILENAME
 
     # html returned uses utf-8 charset
     PAGE=$(curl "$URL") || return
@@ -54,32 +55,24 @@ euroshare_eu_download() {
         fi
     fi
 
-    # Arbitrary wait (local variable)
-    NO_FREE_SLOT_IDLE=125
-
     # html returned uses utf-8 charset
-    PAGE=$(curl -b "$COOKIEFILE" "$URL")
+    PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
 
     if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
         log_error "You are already downloading a file from this IP."
-        return $ERR_FATAL
-    fi
-
-    if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
-        echo $NO_FREE_SLOT_IDLE
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href')
-    if ! test "$DL_URL"; then
-        log_error "Can't parse download URL, site updated?"
-        return $ERR_FATAL
+    if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
+        # Arbitrary wait
+        echo 125
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    DL_URL=$(curl -I "$DL_URL")
+    DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href') || return
+    DL_URL=$(curl --head "$DL_URL") || return
 
     FILENAME=$(echo "$DL_URL" | grep_http_header_content_disposition)
-
     FILE_URL=$(echo "$DL_URL" | grep_http_header_location)
     if ! test "$FILE_URL"; then
         log_error "Location not found"
