@@ -28,6 +28,8 @@ MODULE_FILESERVE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_FILESERVE_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
 MODULE_FILESERVE_LIST_OPTIONS=""
+MODULE_FILESERVE_DELETE_OPTIONS="
+CONFIRM_CODE,,code:,CODE,Confirmation code for premium link deletion"
 
 # Static function. Proceed with login (free-membership or premium)
 fileserve_login() {
@@ -67,7 +69,7 @@ fileserve_download() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
-    local BASEURL="http://www.fileserve.com"
+    local BASEURL='http://www.fileserve.com'
 
     # URL must be well formed (issue #280)
     local ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
@@ -196,7 +198,7 @@ fileserve_upload() {
     local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local BASEURL="http://www.fileserve.com"
+    local BASEURL='http://www.fileserve.com'
 
     local USERID SID TIMEOUT
 
@@ -276,4 +278,46 @@ fileserve_list() {
     done <<< "$PAGE"
 
     return 0
+}
+
+# Delete a file from fileserve
+# $1: delete link
+fileserve_delete() {
+    eval "$(process_options zshare "$MODULE_FILESERVE_DELETE_OPTIONS" "$@")"
+
+    local URL="$1"
+    local DELETE_PAGE NEED_CODE
+
+    DELETE_PAGE=$(curl -L "$URL") || return
+    NEED_CODE=$(parse 'confirm_delete_file' 'style="\([^"]*\)' <<<"$DELETE_PAGE")
+
+    if [ "$NEED_CODE" = 'display:block' ]; then
+        local BASEURL='http://www.fileserve.com'
+
+        log_debug "Confirmation code required to confirm deletion"
+
+        if [ -z "$CONFIRM_CODE" ]; then
+            CONFIRM_CODE=$(prompt_for_password) || return
+        fi
+
+        local FORM_HTML FORM_ACTION FORM_URL FORM_DELETEURL
+        FORM_HTML=$(grep_form_by_name "$DELETE_PAGE" 'confirmDeleteFolderForm')
+        FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action)
+        FORM_URL=$(echo "$FORM_HTML" | parse_form_input_by_name 'url')
+        FORM_DELETEURL=$(echo "$FORM_HTML" | parse_form_input_by_name 'deleteUrl')
+
+        DELETE_PAGE=$(curl -v --data \
+                "confirmationCode=${CONFIRM_CODE}&url=${FORM_URL}&deleteUrl=$FORM_DELETEURL" \
+                "$BASEURL$FORM_ACTION") || return
+
+        # FIXME
+        # <span id="confirm_delete_error" class="fail_info">Invalid cofirmation code. Please try again.</span>
+
+    elif matchi 'File Delete Fail.' "$DELETE_PAGE"; then
+        return $ERR_LINK_DEAD
+    elif matchi 'File Deleted.' "$DELETE_PAGE"; then
+        return 0
+    fi
+
+    return $ERR_FATAL
 }
