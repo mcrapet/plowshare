@@ -37,7 +37,7 @@ mediafire_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
-    local LOCATION
+    local LOCATION PAGE FILE_URL FILENAME
 
     LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
 
