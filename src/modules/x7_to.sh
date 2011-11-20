@@ -95,10 +95,9 @@ x7_to_download() {
     # Parse JSON object
     # {type:'download',wait:12,url:'http://stor2.x7.to/dl/Z5H3o51QqB'}
     # {err:"Download denied."}
-
-    local J_TYPE=$(echo "$DATA" | parse_quiet '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)")
-    local J_WAIT=$(echo "$DATA" | parse_quiet '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)')
-    local J_LINK=$(echo "$DATA" | parse_quiet '^' "url[[:space:]]*:[[:space:]]*'\([^']*\)")
+    J_TYPE=$(echo "$DATA" | parse_quiet '^' "type[[:space:]]*:[[:space:]]*'\([^']*\)")
+    J_WAIT=$(echo "$DATA" | parse_quiet '^' 'wait[[:space:]]*:[[:space:]]*\([[:digit:]]*\)')
+    J_LINK=$(echo "$DATA" | parse_quiet '^' "url[[:space:]]*:[[:space:]]*'\([^']*\)")
 
     if [ "$J_TYPE" == "download" ]; then
         wait $((J_WAIT)) seconds || return
