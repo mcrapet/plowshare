@@ -836,8 +836,8 @@ captcha_process() {
             local IMG_PNM=$(create_tempfile '.pnm')
             convert "$FILENAME" -negate -depth 8 pnm:$IMG_PNM
             aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
-                -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<< "q" | \
-                sed  -e '1d;/\x0C/,/\x0C/d' | grep -v "^[[:space:]]*$" 1>&2
+                -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<<'q' | \
+                sed  -e '1d;/\x0C/,/\x0C/d' | sed -e '/^[[:space:]]*$/d' 1>&2
             rm -f "$IMG_PNM"
             ;;
         tiv)
