@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # humyo.com module
-# Copyright (c) 2010 Plowshare team
+# Copyright (c) 2010-2011 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -29,28 +29,28 @@ MODULE_HUMYO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: humyo.com url
 # stdout: real file download link
 humyo_download() {
-    local BASEURL="http://www.humyo.com"
-    local URL=$2
+    local URL="$2"
+    local PAGE FILE_URL FILENAME
 
     # test for direct download links
-    FILENAME=$(curl -I "$1" | grep_http_header_content_disposition) || true
-    test "$FILENAME" && {
+    FILENAME=$(curl --head "$URL" | grep_http_header_content_disposition)
+    if [ -n "$FILENAME" ]; then
         test "$CHECK_LINK" && return 0
-
-        echo $URL
-        echo $FILENAME
+        echo "$URL"
+        echo "$FILENAME"
         return 0
-    }
+    fi
 
-    PAGE=$(curl "$URL")
-    matchi "<h1>File Not Found</h1>" "$PAGE" &&
-        { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    PAGE=$(curl "$URL" | break_html_lines) || return
 
-    FILE_URL=$(echo "$PAGE" | break_html_lines| \
-               parse_attr 'Download this \(file\|image\|photo\)' 'href') ||
-        { log_error "download link not found"; return $ERR_FATAL; }
+    if matchi "<h1>File Not Found</h1>" "$PAGE"; then
+        log_debug "file not found"
+        return $ERR_LINK_DEAD
+    fi
+
+    FILE_URL=$(echo "$PAGE" | parse_attr '"lcap"' 'href') || return
 
     test "$CHECK_LINK" && return 0
 
-    echo "${BASEURL}${FILE_URL}"
+    echo "$FILE_URL"
 }
