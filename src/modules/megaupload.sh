@@ -200,18 +200,21 @@ megaupload_upload() {
         while true; do
             PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=multifetch&s=transferstatus") || return
 
-            TEXT1=$(echo "$PAGE" | sed -e "/$CSS/d" | parse "id=\"status_$UPLOAD_ID\"" '">\([^<]*\)<\/font>') || return
-            log_debug "[$TEXT1]"
-            TEXT2=$(echo "$PAGE" | sed -e "/$CSS/d" | parse_quiet "id=\"estimated_$UPLOAD_ID\"" '">\([^<]*\)<\/div>')
-            log_debug "[$TEXT2]"
-
             TEXT3=$(echo "$PAGE" | sed -e "/$CSS/d" | parse_quiet "id=\"completed_$UPLOAD_ID\"" '">\(.*\)<\/div>')
             match '100%' "$TEXT3" && break
 
-            wait 5 seconds || return
+            # Experienced states:
+            # - Pending
+            # - Fetch in progress
+            TEXT1=$(echo "$PAGE" | sed -e "/$CSS/d" | parse "id=\"status_$UPLOAD_ID\"" '">\([^<]*\)<\/font>') || return
+            log_debug "Status: $TEXT1"
+            #TEXT2=$(echo "$PAGE" | sed -e "/$CSS/d" | parse_quiet "id=\"estimated_$UPLOAD_ID\"" '">\([^<]*\)<\/div>')
+            #log_debug "[$TEXT2]"
+
+            wait 10 seconds || return
         done
 
-        echo "$STATUS" | parse_attr "downloadurl_$UPLOAD_ID" 'href'
+        echo "$PAGE" | parse_attr "downloadurl_$UPLOAD_ID" 'href'
 
         if [ -n "$CLEAR_FETCH_LIST" ]; then
             log_debug "clear fetch list, as requested"
