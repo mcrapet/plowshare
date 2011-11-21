@@ -31,6 +31,7 @@ $ PREFIX=$HOME bash setup.sh install
 Plowshare has been reported to work on:
 - Buffalo LinkStation Live (HS-DHxxxGL) (+ optware packages)
 - DealExtreme NAS WLX-652 (Snake OS firmware)
+- Fonera 2.0n (OpenWrt)
 - GuruPlug Server Plus (+ custom-built Ångstrom distribution)
 - Linksys NSLU2 (running SlugOS/BE 5.3)
 - Qnap TS-219 Turbo NAS

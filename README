@@ -132,7 +132,7 @@ $ plowup -a myuser:mypassword -d "My description" megaupload /path/myfile.txt
 
 4. Upload a file to Megaupload with a premium account and multifetch upload
 $ plowup -a myuser:mypassword -d "My description" megaupload \
-    --multifetch http://www.somewherefarbeyond.com/somefile
+    http://www.somewherefarbeyond.com/somefile
 
 5. Upload a bunch of files (anonymously to 2shared)
 $ plowup 2shared /path/myphotos/*
@@ -182,6 +182,6 @@ A common approch is also to study existing modules.
 Feedback
 ========
 
-If you find a bug in plowshare or want to propose an enhancement open
-a new ticket here:
+If you find a bug in plowshare or want to propose an enhancement,
+open a new ticket here:
 http://code.google.com/p/plowshare/issues/list
