@@ -27,7 +27,7 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowup version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
