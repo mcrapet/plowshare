@@ -32,10 +32,10 @@ MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
-LIMIT_RATE,r:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,,max-retries:,N,Set maximum retries for captcha solving
+MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
