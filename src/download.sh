@@ -38,7 +38,7 @@ TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
-GLOBAL_COOKIES,,cookies:,FILE,Force use of a cookies file (login will be skipped)
+GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies) for each link
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
@@ -203,6 +203,11 @@ download() {
         local DRETVAL=0
         local COOKIES=$(create_tempfile)
         local DRESULT=$(create_tempfile)
+
+        # Use provided cookie
+        if [ -s "$GLOBAL_COOKIES" ]; then
+            cat "$GLOBAL_COOKIES" > "$COOKIES"
+        fi
 
         $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
 
@@ -456,7 +461,7 @@ log_report "plowdown version $VERSION"
 
 if [ -n "$TEMP_DIR" ]; then
     TEMP_DIR=$(echo "$TEMP_DIR" | sed -e "s/\/$//")
-    log_error "temporary directory: $TEMP_DIR"
+    log_notice "temporary directory: $TEMP_DIR"
     mkdir -p "$TEMP_DIR"
     if [ ! -w "$TEMP_DIR" ]; then
         log_error "error: no write permission"
@@ -466,12 +471,20 @@ fi
 
 if [ -n "$OUTPUT_DIR" ]; then
     OUTPUT_DIR=$(echo "$OUTPUT_DIR" | sed -e "s/\/$//")
-    log_error "output directory: $OUTPUT_DIR"
+    log_notice "output directory: $OUTPUT_DIR"
     mkdir -p "$OUTPUT_DIR"
     if [ ! -w "$OUTPUT_DIR" ]; then
         log_error "error: no write permission"
         exit $ERR_FATAL
     fi
+fi
+
+if [ -n "$GLOBAL_COOKIES" ]; then
+    if [ ! -f "$GLOBAL_COOKIES" ]; then
+        log_error "error: can't find cookies file"
+        exit $ERR_FATAL
+    fi
+    log_notice "plowdown: using provided cookies file"
 fi
 
 # Print chosen options

@@ -42,7 +42,6 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
 #   - INTERFACE        Network interface (used by curl)
 #   - LIMIT_RATE       Network speed (used by curl)
-#   - GLOBAL_COOKIES   User provided cookie
 #   - LIBDIR           Absolute path to plowshare's libdir
 #   - CAPTCHA_TRADER   CaptchaTrader account
 #
@@ -124,11 +123,7 @@ curl() {
     test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
     test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" "--limit-rate" "$LIMIT_RATE")
 
-    if test -z "$GLOBAL_COOKIES"; then
-        set -- $(type -P curl) "${OPTIONS[@]}" "$@"
-    else
-        set -- $(type -P curl) "-b $GLOBAL_COOKIES" "${OPTIONS[@]}" "$@"
-    fi
+    set -- $(type -P curl) "${OPTIONS[@]}" "$@"
 
     if test $(verbose_level) -lt 4; then
         "$@" || DRETVAL=$?
@@ -584,21 +579,11 @@ prompt_for_password() {
 # stdout: html result (can be null string)
 # $? is zero on success
 post_login() {
-    local AUTH=$1
-    local COOKIE=$2
+    local AUTH="$1"
+    local COOKIE="$2"
     local POSTDATA=$3
     local LOGINURL=$4
     local CURL_ARGS=$5
-
-    if test "$GLOBAL_COOKIES"; then
-        REGEXP=$(echo "$LOGINURL" | basename_url | grep -o "[^.]*\.[^.]*$")
-        if grep -q "^\.\?$REGEXP" "$GLOBAL_COOKIES" 2>/dev/null; then
-            log_debug "cookies for site ($REGEXP) found in cookies file, login skipped"
-            return
-        fi
-        log_debug "cookies not found for site ($REGEXP), continue login process"
-    fi
-
     local USER PASSWORD DATA RESULT
 
     # Seem faster than
@@ -619,7 +604,7 @@ post_login() {
 
     # For now "-z" test is kept.
     # There is no known case of a null $RESULT on successful login.
-    if [ -z "$RESULT" -o ! -s "${GLOBAL_COOKIES:-$COOKIE}" ]; then
+    if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
         log_error "login request failed"
         return $ERR_LOGIN_FAILED
     fi
