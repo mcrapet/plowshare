@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "August 16, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "November 22, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -29,7 +29,7 @@ plowup \- Command-line uploader for file-sharing websites
 [\fIOPTIONS\fP]...
 [\fIMODULE_OPTIONS\fP]...
 \fIMODULE\fP
-\fIFILE[:\fIDESTNAME\fP]\fP...
+\fIURL\fP|\fIFILE\fP[\fI:DESTNAME\fP]...
 
 .SH DESCRIPTION
 .B plowup
@@ -51,7 +51,7 @@ See specific module options below.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
-.BI -r, " " --limit-rate "=SPEED"
+.BI -l, " " --limit-rate "=SPEED"
 Limit upload speed in bytes per seconds. Suffixes are:
 .RS 
 \fBk\fR  for kilobytes (Kb),
@@ -116,23 +116,20 @@ Protect your files with a password. May require premium account.
 .TP
 .BI -d, " " --description "=DESCRIPTION"
 Set file description.
-.P
-All switches are not implemented nor required for all modules.
-See help message for detailed modules option list.
-
-.SS Megaupload specific
-.TP
-.B -m, --multifetch 
-Use URL multifetch upload.
-.TP
-.B "   " --clear-log
-Clear upload log after upload process.
 .TP
 .BI "   " " " --email-from "=EMAIL"
 <From> field for notification email.
 .TP
 .BI "   " " " --email-to "=EMAIL"
 <To> field for notification email.
+.P
+All switches are not implemented nor required for all modules.
+See help message for detailed modules option list.
+
+.SS Megaupload specific (for premium users only)
+.TP
+.B "   " --clear-fetch-list
+Clear upload log after remote upload process.
 .TP
 .BI "   " " " --multiemail "=EMAIL1[;EMAIL2;...]"
 List of emails to notify upload.
@@ -153,6 +150,16 @@ $ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt
 .sp 1
 # Change destination filename
 $ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt:anothername.txt
+.fi
+.SS 3) Remote upload
+URL fetching is rarely implemented by modules.
+
+.nf
+# Feature dedicated to premium members
+$ plowup \-a myuser:mypassword megaupload http://www.somewherefarbeyond.com/somefile
+.sp 1
+# Change destination filename
+$ plowup \-a myuser:mypassword megaupload http://www.somewherefarbeyond.com/somefile:anothername
 .fi
 
 .\" ****************************************************************************

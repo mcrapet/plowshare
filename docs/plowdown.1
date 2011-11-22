@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "November 5, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "November 22, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -84,7 +84,7 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
-.BI -r, " " --limit-rate "=SPEED"
+.BI -l, " " --limit-rate "=SPEED"
 Limit download speed in bytes per seconds. Suffixes are:
 .RS 
 \fBk\fR  for kilobytes (Kb),
@@ -99,7 +99,7 @@ Limit download speed in bytes per seconds. Suffixes are:
 .BI -t, " " --timeout "=SECS"
 Cancel download after \fISECS\fR seconds of waits. Default is disabled.
 .TP
-.BI "   " " " --max-retries "=N"
+.BI -r, " " --max-retries "=N"
 Set maximum retries for loops. Option mostly dedicated to hosting sites
 with captchas. Default is 1.
 .TP
@@ -178,7 +178,7 @@ Don't forget to single-quote string if your password contain shell expandable ch
 .nf
 $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 .sp 1
-# Downloads are successive (not parrallel)
+# Downloads are successive (not parallel)
 $ plowdown http://x7.to/abcdef http://www.megaupload.com/?d=ghijklmn
 .sp 1
 # Download a password-protected file from megaupload
@@ -190,7 +190,7 @@ $ plowdown \-m file_with_links.txt
 .fi
 .SS 3) Download with restrictions
 .nf
-$ plowdown \-r 50K \-i eth1 http://depositfiles.com/es/files/abcdefghi
+$ plowdown \-l 50K \-i eth1 http://depositfiles.com/es/files/abcdefghi
 .fi
 .SS 4) Download with a proxy (3128 is the default port)
 .nf
