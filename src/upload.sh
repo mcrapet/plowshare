@@ -60,7 +60,7 @@ absolute_path() {
 
 # Print usage
 usage() {
-    echo "Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] FILE[:DESTNAME]..."
+    echo "Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] URL|FILE[:DESTNAME]..."
     echo
     echo "  Upload file(s) to a file-sharing site."
     echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
@@ -153,8 +153,14 @@ for FILE in "$@"; do
 
     # Check for remote upload
     if match_remote_url "$FILE"; then
-        LOCALFILE=$(echo "$FILE" | strip | uri_encode)
-        DESTFILE="dummy"
+        IFS=":" read P1 P2 DESTFILE <<< "$FILE"
+
+        if [ -z "$DESTFILE" ]; then
+            LOCALFILE=$(echo "$FILE" | strip | uri_encode)
+            DESTFILE='dummy'
+        else
+            LOCALFILE=$(echo "$P1$P2" | strip | uri_encode)
+        fi
     else
         # non greedy parsing
         IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
