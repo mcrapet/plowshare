@@ -29,7 +29,7 @@ AUTH,a:,auth:,USER:PASSWORD,Use an account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 MESSAGE,d:,message:,MESSAGE,Set file message (is send with notification email)
 DOMAIN,,domain:,ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
-EMAIL,,email:,EMAIL,Field for notification email"
+TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 
 # Output a 1fichier file download URL
 # $1: cookie file
@@ -93,7 +93,7 @@ EMAIL,,email:,EMAIL,Field for notification email"
 
     STATUS=$(curl_with_log -b "$COOKIEFILE" \
         -F "message=$MESSAGE" \
-        -F "mail=$EMAIL" \
+        -F "mail=$TOEMAIL" \
         -F "dpass=$LINK_PASSWORD" \
         -F "domain=$DOMAIN" \
         -F "file[]=@$FILE;filename=$DESTFILE" \
