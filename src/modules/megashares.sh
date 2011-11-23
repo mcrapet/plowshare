@@ -78,18 +78,16 @@ megashares_download() {
     elif matchi 'try again momentarily' "$PAGE"; then
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
+    # You have reached your maximum download limit
+    elif matchi 'maximum download limit' "$PAGE"; then
+        log_debug 'You have reached your maximum download limit.'
+        #declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)<\/strong>:')
+        #echo $((60 * MIN)) minutes
+        echo 600
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     test "$CHECK_LINK" && return 0
-
-    # Test maximum download limit
-    while match 'You have reached your maximum download limit' "$PAGE"; do
-        log_debug 'You have reached your maximum download limit.'
-        #declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)<\/strong>:')
-        #wait $((MIN + 1)) minutes || return
-        wait 10 minutes
-        PAGE=$(curl "$URL") || return
-    done
 
     # Captcha must be validated
     if match 'Security Code' "$PAGE"; then
@@ -157,7 +155,7 @@ megashares_upload() {
 
     local FILE="$2"
     local DESTFILE="$3"
-    local BASEURL="http://www.megashares.com"
+    local BASEURL='http://www.megashares.com'
 
     local PAGE CATEGORY SEARCH DL_LINK DEL_LINK
 
