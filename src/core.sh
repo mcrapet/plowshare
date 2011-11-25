@@ -443,7 +443,7 @@ parse_all_form_input_by_type_with_id() {
     parse_all "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "id=[\"']\?\([^'\">]*\)" 2>/dev/null
 }
 
-# Get accessor for cookies
+# Get accessor for cookies (netscape/mozilla cookie file format)
 # Example: LANG=$(parse_cookie "lang" < "$COOKIES")
 parse_cookie() {
     parse_quiet "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
