@@ -107,7 +107,7 @@ fileserve_download() {
     # Arbitrary wait (local variables)
     STOP_FLOODING=360
 
-    if [ -s $COOKIEFILE ]; then
+    if [ -s "$COOKIEFILE" ]; then
         MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return
     else
         MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
