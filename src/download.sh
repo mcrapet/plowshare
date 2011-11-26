@@ -35,7 +35,7 @@ TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downlo
 LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving
+MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
@@ -197,10 +197,10 @@ download() {
     FUNCTION=${MODULE}_download
     log_debug "start download ($MODULE): $DURL"
     timeout_init $TIMEOUT
-    retry_limit_init $MAXRETRIES
 
     while true; do
         local DRETVAL=0
+        local TRY=0
         local COOKIES=$(create_tempfile)
         local DRESULT=$(create_tempfile)
 
@@ -209,20 +209,45 @@ download() {
             cat "$GLOBAL_COOKIES" > "$COOKIES"
         fi
 
-        $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
+        if test -z "$CHECK_LINK"; then
+            while true; do
+                $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
 
-        # if --no-arbitrary-wait option not specified
-        if test -z "$NOARBITRARYWAIT" -a -z "$CHECK_LINK"; then
-            while [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; do
-               read AWAIT <$DRESULT
-               log_debug "arbitrary wait"
-               wait ${AWAIT:-60} seconds || {
-                   DRETVAL=$?;
-                   break;
-               }
-               DRETVAL=0
-               $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
+                if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+                    read AWAIT <$DRESULT
+
+                    # --no-arbitrary-wait option specified
+                    test -n "$NOARBITRARYWAIT" && break;
+
+                    if [ -z "$AWAIT" ]; then
+                        log_debug "arbitrary wait"
+                    fi
+                    wait ${AWAIT:-60} seconds || {
+                        DRETVAL=$?;
+                        break;
+                    }
+
+                elif [ $DRETVAL -ne $ERR_CAPTCHA ]; then
+                    break
+                fi
+
+                (( TRY++))
+                if [[ "$MAXRETRIES" -gt 0 ]]; then
+                    if [ "$MAXRETRIES" -lt "$TRY" ]; then
+                        DRETVAL=$ERR_MAX_TRIES_REACHED
+                        break
+                    fi
+                    log_notice "start download ($MODULE): retry ${TRY}/$MAXRETRIES"
+                elif [[ "$MAXRETRIES" -eq 0 ]]; then
+                    log_debug "no retry explicitly requested"
+                    break
+                else
+                    log_notice "start download ($MODULE): retry $TRY"
+                fi
+                DRETVAL=0
             done
+        else
+            $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
         fi
 
         { read FILE_URL; read FILENAME; } <$DRESULT || true

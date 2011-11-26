@@ -47,7 +47,6 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
-#   - PS_RETRY_LIMIT   Number of tries for loops (mainly for captchas)
 #   - RECAPTCHA_SERVER Server URL (defined below)
 #
 # Logs are sent to stderr stream.
@@ -728,12 +727,10 @@ wait() {
     fi
 }
 
-# Related to --max-retries plowdown command line option
+# This function is depecated. Modules should not use it anymore.
 retry_limit_not_reached() {
-    test -z "$PS_RETRY_LIMIT" && return
-    log_notice "Tries left: $PS_RETRY_LIMIT"
-    (( PS_RETRY_LIMIT-- ))
-    test "$PS_RETRY_LIMIT" -ge 0 || return $ERR_MAX_TRIES_REACHED
+    log_debug "deprecated call"
+    return 0
 }
 
 # $1: local image filename (with full path). No specific image format expected.
@@ -1067,11 +1064,6 @@ check_exec() {
 # Related to --timeout plowdown command line option
 timeout_init() {
     PS_TIMEOUT=$1
-}
-
-# Related to --max-retries plowdown command line option
-retry_limit_init() {
-    PS_RETRY_LIMIT=$1
 }
 
 # Show help info for options
