@@ -120,12 +120,12 @@ netload_in_download() {
     rm -f "$CAPTCHA_IMG"
 
     if [ "${#CAPTCHA}" -lt 4 ]; then
-        log_debug "Captcha length invalid"
+        log_debug "captcha length invalid"
         return $ERR_CAPTCHA
+    elif [ "${#CAPTCHA}" -gt 4 ]; then
+        CAPTCHA="${CAPTCHA:0:4}"
     fi
-
-    test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-    log_debug "Decoded captcha: $CAPTCHA"
+    log_debug "decoded captcha: $CAPTCHA"
 
     # Send (post) form
     local DOWNLOAD_FORM FORM_URL FORM_FID WAIT_HTML2

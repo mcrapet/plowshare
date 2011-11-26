@@ -105,13 +105,13 @@ megashares_download() {
         CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
         rm -f "$CAPTCHA_IMG"
 
-        test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-        log_debug "decoded captcha: $CAPTCHA"
-
-        if [ "${#CAPTCHA}" -ne 4 ]; then
+        if [ "${#CAPTCHA}" -lt 4 ]; then
             log_debug "captcha length invalid"
             return $ERR_CAPTCHA
+        elif [ "${#CAPTCHA}" -gt 4 ]; then
+            CAPTCHA="${CAPTCHA:0:4}"
         fi
+        log_debug "decoded captcha: $CAPTCHA"
 
         RANDOM_NUM=$(echo "$PAGE" | parse_attr 'random_num' 'value')
         PASSPORT_NUM=$(echo "$PAGE" | parse_attr 'passport_num' 'value')
