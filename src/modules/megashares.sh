@@ -53,7 +53,7 @@ megashares_download() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_DOWNLOAD_OPTIONS" "$@")"
 
     local URL="$2"
-    local ID URL PAGE BASEURL
+    local ID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL
 
     detect_perl || return
 
@@ -91,45 +91,44 @@ megashares_download() {
 
     # Captcha must be validated
     if match 'Security Code' "$PAGE"; then
-        while retry_limit_not_reached || return; do
-            CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
+        CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
 
-            # Create new formatted image
-            CAPTCHA_IMG=$(create_tempfile) || return
-            curl "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
-                    convert - -quantize gray -colors 32 -blur 10% -contrast-stretch 6% \
-                    -compress none -level 45%,45% tif:"$CAPTCHA_IMG" || { \
-                rm -f "$CAPTCHA_IMG";
-                return $ERR_CAPTCHA;
-            }
+        # Create new formatted image
+        CAPTCHA_IMG=$(create_tempfile) || return
+        curl "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
+                convert - -quantize gray -colors 32 -blur 10% -contrast-stretch 6% \
+                -compress none -level 45%,45% tif:"$CAPTCHA_IMG" || { \
+            rm -f "$CAPTCHA_IMG";
+            return $ERR_CAPTCHA;
+        }
 
-            CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
-            rm -f "$CAPTCHA_IMG"
+        CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+        rm -f "$CAPTCHA_IMG"
 
-            test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-            log_debug "Decoded captcha: $CAPTCHA"
+        test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
+        log_debug "decoded captcha: $CAPTCHA"
 
-            if [ "${#CAPTCHA}" -ne 4 ]; then
-                log_debug "Captcha length invalid"
-                PAGE=$(curl "$URL") || return
-                continue
-            fi
+        if [ "${#CAPTCHA}" -ne 4 ]; then
+            log_debug "captcha length invalid"
+            return $ERR_CAPTCHA
+        fi
 
-            RANDOM_NUM=$(echo "$PAGE" | parse_attr 'random_num' 'value')
-            PASSPORT_NUM=$(echo "$PAGE" | parse_attr 'passport_num' 'value')
-            MTIME="$(date +%s)000"
+        RANDOM_NUM=$(echo "$PAGE" | parse_attr 'random_num' 'value')
+        PASSPORT_NUM=$(echo "$PAGE" | parse_attr 'passport_num' 'value')
+        # Javascript: "now = new Date(); print(now.getTime());"
+        MTIME="$(date +%s)000"
 
-            # Get passport
-            VALIDATE_PASSPORT=$(curl --get \
-                    --data "rs=check_passport_renewal&rsargs[]=${CAPTCHA}&rsargs[]=${RANDOM_NUM}&rsargs[]=${PASSPORT_NUM}&rsargs[]=replace_sec_pprenewal&rsrnd=$MTIME" \
-                    $URL)
+        # Get passport
+        VALIDATE_PASSPORT=$(curl --get \
+                --data "rs=check_passport_renewal&rsargs[]=${CAPTCHA}&rsargs[]=${RANDOM_NUM}&rsargs[]=${PASSPORT_NUM}&rsargs[]=replace_sec_pprenewal&rsrnd=$MTIME" \
+                $URL)
 
-            match 'Thank you for reactivating your passport' "$VALIDATE_PASSPORT" && break
+        if ! match 'Thank you for reactivating your passport' "$VALIDATE_PASSPORT"; then
+            log_error "wrong captcha"
+            return $ERR_CAPTCHA
+        fi
 
-            log_debug "Wrong captcha"
-            PAGE=$(curl "$URL") || return
-        done
-        log_debug "Correct captcha!"
+        log_debug "correct captcha"
     fi
 
     QUOTA_LEFT=`parse_kilobytes $(echo "$PAGE" | grep '[KMG]B' | last_line)`
@@ -137,12 +136,12 @@ megashares_download() {
 
     # This link's filesize is larger than what you have left on your Passport.
     if [ "$QUOTA_LEFT" -lt "$FILE_SIZE" ]; then
-        log_debug "cannot retrieve file entirely, but start anyway"
+        log_error "Cannot retrieve file entirely, but start anyway"
         log_debug "quota left: $QUOTA_LEFT (required: $FILE_SIZE)"
     fi
 
-    FILEURL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href')
-    echo "$FILEURL"
+    FILE_URL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href')
+    echo "$FILE_URL"
 }
 
 # Upload a file to megashares.com
