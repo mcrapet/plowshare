@@ -29,73 +29,79 @@ MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # $2: badongo url
 # stdout: real file download link
 badongo_download() {
+    eval "$(process_options fileserve "$MODULE_BADONGO_DOWNLOAD_OPTIONS" "$@")"
+
     local COOKIEFILE="$1"
     local URL=$(echo "$2" | replace '/audio/' '/file/')
-    local BASEURL="http://www.badongo.com"
+    local BASEURL='http://www.badongo.com'
     local APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
+
+    local PAGE JSCODE ACTION MTIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA
+    local CAP_ID CAP_SECRET WAIT_PAGE LINK_PART2 LINK_PART1 LAST_PAGE LINK_FINAL FILE_URL
 
     PAGE=$(curl "$URL") || return
 
-    match '"recycleMessage">' "$PAGE" &&
-        { log_debug "file in recycle bin"; return $ERR_LINK_DEAD; }
-    match '"fileError">' "$PAGE" &&
-        { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    if match '"recycleMessage">' "$PAGE"; then
+        log_debug "file in recycle bin"
+        return $ERR_LINK_DEAD
+    fi
+
+    if match '"fileError">' "$PAGE"; then
+        log_debug "file not found"
+        return $ERR_LINK_DEAD
+    fi
 
     detect_javascript || return
     detect_perl || return
 
-    local TRY=1
+    JSCODE=$(curl \
+        -F "rs=refreshImage" \
+        -F "rst=" \
+        -F "rsrnd=$MTIME" \
+        "$URL" | break_html_lines_alt)
 
-    while retry_limit_not_reached || return; do
-        log_debug "Downloading captcha page (loop $TRY)"
-        (( TRY++ ))
-        JSCODE=$(curl \
-            -F "rs=refreshImage" \
-            -F "rst=" \
-            -F "rsrnd=$MTIME" \
-            "$URL" | break_html_lines_alt)
+    ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') || return
 
-        ACTION=$(echo "$JSCODE" | parse "form" 'action=\\"\([^\\]*\)\\"') ||
-            { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    test "$CHECK_LINK" && return 0
 
-        test "$CHECK_LINK" && return 0
+    # Javascript: "now = new Date(); print(now.getTime());"
+    MTIME="$(date +%s)000"
 
-        MTIME="$(date +%s)000"
+    # 200x60 jpeg file
+    CAPTCHA_URL=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
 
-        # 200x60 jpeg file
-        CAPTCHA_URL=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
+    # Create new formatted image
+    CAPTCHA_IMG=$(create_tempfile) || return
+    curl "$BASEURL$CAPTCHA_URL" | perl 'strip_threshold.pl' 125 | \
+            convert - +matte -colorspace gray -level 45%,45% gif:"$CAPTCHA_IMG" || { \
+        rm -f "$CAPTCHA_IMG";
+        return $ERR_CAPTCHA;
+    }
 
-        # Create new formatted image
-        CAPTCHA_IMG=$(create_tempfile) || return
-        curl "$BASEURL$CAPTCHA_URL" | perl 'strip_threshold.pl' 125 | \
-                convert - +matte -colorspace gray -level 45%,45% gif:"$CAPTCHA_IMG" || { \
-            rm -f "$CAPTCHA_IMG";
-            return $ERR_CAPTCHA;
-        }
+    CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_upper) || return
+    rm -f "$CAPTCHA_IMG"
 
-        CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_upper) || return
-        rm -f "$CAPTCHA_IMG"
+    if [ "${#CAPTCHA}" -lt 4 ]; then
+        log_debug "captcha length invalid"
+        return $ERR_CAPTCHA
+    elif [ "${#CAPTCHA}" -gt 4 ]; then
+        CAPTCHA="${CAPTCHA:0:4}"
+    fi
+    log_debug "decoded captcha: $CAPTCHA"
 
-        test "${#CAPTCHA}" -gt 4 && CAPTCHA="${CAPTCHA:0:4}"
-        log_debug "Decoded captcha: $CAPTCHA"
+    CAP_ID=$(echo "$JSCODE" | parse_form_input_by_name 'cap_id')
+    CAP_SECRET=$(echo "$JSCODE" | parse_form_input_by_name 'cap_secret')
 
-        if [ "${#CAPTCHA}" -ne 4 ]; then
-            log_debug "Captcha length invalid"
-            continue
-        fi
+    WAIT_PAGE=$(curl -c $COOKIEFILE \
+        --data "user_code=${CAPTCHA}&cap_id=${CAP_ID}&cap_secret=$CAP_SECRET" \
+        "$ACTION")
 
-        CAP_ID=$(echo "$JSCODE" | parse_form_input_by_name 'cap_id')
-        CAP_SECRET=$(echo "$JSCODE" | parse_form_input_by_name 'cap_secret')
+    if ! match 'id="link_container"' "$WAIT_PAGE"; then
+        log_error "wrong captcha"
+        return $ERR_CAPTCHA
+    fi
 
-        WAIT_PAGE=$(curl -c $COOKIEFILE \
-            --data "user_code=${CAPTCHA}&cap_id=${CAP_ID}&cap_secret=$CAP_SECRET" \
-            "$ACTION")
-
-        match 'id="link_container"' "$WAIT_PAGE" && break
-        log_debug "Wrong captcha"
-    done
-
-    log_debug "Correct captcha!"
+    log_debug "correct captcha"
 
     JSCODE=$(unescape_javascript "$WAIT_PAGE" 6)
 
@@ -117,8 +123,7 @@ badongo_download() {
     # Start remote timer
     JSON=$(curl -b $COOKIEFILE \
             --data "id=${FILEID}&type=${FILETYPE}&ext=&f=download%3Ainit&z=${GLF_Z}&h=${GLF_H}" \
-            --referer "$ACTION" "$APIURL") ||
-        { log_error "error json (#1), site updated?"; return 1; }
+            --referer "$ACTION" "$APIURL") || return
     JSCODE=$(unescape_javascript "$JSON" 1)
 
     # Parse received window['getFileLinkInitOpt'] object
@@ -146,7 +151,7 @@ badongo_download() {
 
     JSCODE=$(curl --get -b "_gflCur=0" -b $COOKIEFILE \
         --data "rs=getFileLink&rst=&rsrnd=${MTIME}&rsargs[]=0&rsargs[]=yellow&rsargs[]=${GLF_Z}&rsargs[]=${GLF_H}&rsargs[]=${GLF_T}&rsargs[]=${FILETYPE}&rsargs[]=${FILEID}&rsargs[]=" \
-        --referer "$ACTION" "$ACTION" | break_html_lines)
+        --referer "$ACTION" "$ACTION" | break_html_lines) || return
 
     LINK_PART1=$(echo "$JSCODE" | parse_last 'javascript' "\\\\'\(http[^\\]*\)") ||
             { log_error "can't parse base url"; return $ERR_FATAL; }
@@ -160,9 +165,10 @@ badongo_download() {
     # Look for new location.href
     LINK_FINAL=$(echo "$JSCODE" | parse_last 'location\.href' "= '\([^']*\)") ||
         { log_error "error parsing final link, site updated?"; return 1; }
-    FILE_URL=$(curl -i -b $COOKIEFILE --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | grep_http_header_location)
+    FILE_URL=$(curl -i -b $COOKIEFILE --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | \
+        grep_http_header_location) || return
 
-    test "$FILE_URL" || { log_error "location not found"; return 1; }
+    test "$FILE_URL" || { log_error "location not found"; return $ERR_FATAL; }
     echo "$FILE_URL"
 }
 
