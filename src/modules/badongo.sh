@@ -97,7 +97,7 @@ badongo_download() {
         "$ACTION")
 
     if ! match 'id="link_container"' "$WAIT_PAGE"; then
-        log_error "wrong captcha"
+        log_debug "wrong captcha"
         return $ERR_CAPTCHA
     fi
 
