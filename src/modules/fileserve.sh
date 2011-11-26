@@ -214,9 +214,8 @@ fileserve_upload() {
     fi
 
     # Get sessionId
-    # Javascript: now = new Date(); print(now.getTime());
-    T=$(date +%s)
-    T=$(( T * 1000 ))
+    # Javascript: "now = new Date(); print(now.getTime());"
+    T="$(date +%s)000"
     JSON=$(curl --referer "$BASEURL/" -H "Expect:" \
             "http://upload.fileserve.com/upload/$USERID/$TIMEOUT/?callback=jsonp$T&_=$$") || return
 
