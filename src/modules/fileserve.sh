@@ -109,6 +109,17 @@ fileserve_download() {
 
     if [ -s "$COOKIEFILE" ]; then
         MAINPAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+
+        # Provided PHPSESSID is a premium account ?
+        # Returned data 4 bytes: UTF-8 BOM + \n
+        if ! match 'html' "$MAINPAGE"; then
+            FILE_URL=$(curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location) || return
+            test -z "$FILE_URL" && return $ERR_FATAL
+            test "$CHECK_LINK" && return 0
+            MODULE_FILESERVE_DOWNLOAD_RESUME=yes
+            echo "$FILE_URL"
+            return 0
+        fi
     else
         MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
     fi
