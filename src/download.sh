@@ -232,15 +232,15 @@ download() {
                 fi
 
                 (( TRY++))
-                if [[ "$MAXRETRIES" -gt 0 ]]; then
-                    if [ "$MAXRETRIES" -lt "$TRY" ]; then
+                if [ -n "$MAXRETRIES" ]; then
+                    if [[ "$MAXRETRIES" -eq 0 ]]; then
+                        log_debug "no retry explicitly requested"
+                        break
+                    elif [ "$MAXRETRIES" -lt "$TRY" ]; then
                         DRETVAL=$ERR_MAX_TRIES_REACHED
                         break
                     fi
                     log_notice "start download ($MODULE): retry ${TRY}/$MAXRETRIES"
-                elif [[ "$MAXRETRIES" -eq 0 ]]; then
-                    log_debug "no retry explicitly requested"
-                    break
                 else
                     log_notice "start download ($MODULE): retry $TRY"
                 fi
