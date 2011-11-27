@@ -39,7 +39,7 @@ wupload_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
-    local LINK_ID DOMAIN START_HTML WAIT_HTML FILENAME
+    local LINK_ID DOMAIN START_HTML WAIT_HTML FILENAME FILE_URL MSG
 
     if match '/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -100,101 +100,98 @@ wupload_download() {
         return 0
     fi
 
-    while retry_limit_not_reached || return; do
+    if [ -s "$COOKIEFILE" ]; then
+        START_HTML=$(curl -b "$COOKIEFILE" "$URL") || return
+    else
         START_HTML=$(curl -c "$COOKIEFILE" "$URL") || return
+    fi
 
-        # Sorry! This file has been deleted.
-        if match 'This file has been deleted' "$START_HTML"; then
-            log_debug "File not found"
-            return $ERR_LINK_DEAD
+    # Sorry! This file has been deleted.
+    if match 'This file has been deleted' "$START_HTML"; then
+        log_debug "File not found"
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
+
+    FILENAME=$(echo "$START_HTML" | parse '<title>' '>Get \(.*\) on ') || return
+
+    # post request with empty Content-Length
+    WAIT_HTML=$(curl -b "$COOKIEFILE" --data "" -H "X-Requested-With: XMLHttpRequest" \
+            --referer "$URL" "${URL}/${LINK_ID}?start=1") || return
+
+    # <div id="freeUserDelay" class="section CL3">
+    if match 'freeUserDelay' "$WAIT_HTML"; then
+        local WAIT_TIME FORM_TM FORM_TMHASH
+
+        WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
+        FORM_TM=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm')
+        FORM_TMHASH=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm_hash')
+
+        wait $((WAIT_TIME)) seconds || return
+
+        WAIT_HTML=$(curl -b "$COOKIEFILE" --data "tm=${FORM_TM}&tm_hash=${FORM_TMHASH}" \
+                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" "${URL}?start=1")
+
+    # <div id="downloadErrors" class="section CL3">
+    # - You can only download 1 file at a time.
+    elif match 'downloadErrors' "$WAIT_HTML"; then
+        MSG=$(echo "$WAIT_HTML" | parse_quiet '<h3><span>' '<span>\([^<]*\)<')
+        log_error "error: $MSG"
+        return $ERR_FATAL
+
+    # <div id="downloadLink" class="section CL3">
+    # wupload is bugged when I requested several parallel download
+    # link returned lead to an (302) error..
+    elif match 'Download Ready' "$WAIT_HTML"; then
+        FILE_URL=$(echo "$WAIT_HTML" | parse_attr '<a' 'href')
+        log_debug "parallel download?"
+        echo "$FILE_URL"
+        test "$FILENAME" && echo "$FILENAME"
+        return 0
+
+    else
+        log_debug "no wait delay, go on"
+    fi
+
+    # reCaptcha page
+    if match 'Please enter the captcha below' "$WAIT_HTML"; then
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
+            "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+            "${URL}?start=1") || return
+
+        if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+            recaptcha_nack $ID
+            log_error "wrong captcha"
+            return $ERR_CAPTCHA
         fi
 
-        test "$CHECK_LINK" && return 0
+        FILE_URL=$(echo "$HTMLPAGE" | parse_attr '\/download\/' 'href')
+        if [ -n "$FILE_URL" ]; then
+            recaptcha_ack $ID
+            log_debug "correct captcha"
 
-        FILENAME=$(echo "$START_HTML" | parse '<title>' '>Get \(.*\) on ') || return
-
-        # post request with empty Content-Length
-        WAIT_HTML=$(curl -b "$COOKIEFILE" --data "" -H "X-Requested-With: XMLHttpRequest" \
-                --referer "$URL" "${URL}/${LINK_ID}?start=1") || return
-
-        # <div id="freeUserDelay" class="section CL3">
-        if match 'freeUserDelay' "$WAIT_HTML"; then
-            local SLEEP=$(echo "$WAIT_HTML" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
-            local form_tm=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm')
-            local form_tmhash=$(echo "$WAIT_HTML" | parse_form_input_by_name 'tm_hash')
-
-            wait $((SLEEP)) seconds || return
-
-            WAIT_HTML=$(curl -b "$COOKIEFILE" --data "tm=${form_tm}&tm_hash=${form_tmhash}" \
-                    -H "X-Requested-With: XMLHttpRequest" --referer "$URL" "${URL}?start=1")
-
-        # <div id="downloadErrors" class="section CL3">
-        # - You can only download 1 file at a time.
-        elif match 'downloadErrors' "$WAIT_HTML"; then
-            local MSG=$(echo "$WAIT_HTML" | parse_quiet '<h3><span>' '<span>\([^<]*\)<')
-            log_error "error: $MSG"
-            break
-
-        # <div id="downloadLink" class="section CL3">
-        # wupload is bugged when I requested several parallel download
-        # link returned lead to an (302) error..
-        elif match 'Download Ready' "$WAIT_HTML"; then
-            local FILE_URL=$(echo "$WAIT_HTML" | parse_attr '<a' 'href')
-            log_debug "parallel download?"
             echo "$FILE_URL"
             test "$FILENAME" && echo "$FILENAME"
             return 0
-
-        else
-            log_debug "no wait delay, go on"
         fi
 
-        # reCaptcha page
-        if match 'Please enter the captcha below' "$WAIT_HTML"; then
+    # <div id="downloadErrors" class="section CL3">
+    # - The file that you're trying to download is larger than 2048Mb.
+    elif match 'downloadErrors' "$WAIT_HTML"; then
+        MSG=$(echo "$WAIT_HTML" | parse_quiet '<h3><span>' '<span>\([^<]*\)<')
+        log_error "error: $MSG"
+        break
+    fi
 
-            local PUBKEY WCI CHALLENGE WORD ID
-            PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-            WCI=$(recaptcha_process $PUBKEY) || return
-            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-            HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
-                "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-                "${URL}?start=1") || return
-
-            if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
-                recaptcha_nack $ID
-                log_debug "wrong captcha"
-                break
-            fi
-
-            local FILE_URL=$(echo "$HTMLPAGE" | parse_attr_quiet '\/download\/' 'href')
-            if [ -n "$FILE_URL" ]; then
-                recaptcha_ack $ID
-                log_debug "correct captcha"
-
-                echo "$FILE_URL"
-                test "$FILENAME" && echo "$FILENAME"
-                return 0
-            fi
-
-            log_debug "reCaptcha error"
-            return $ERR_CAPTCHA
-
-        # <div id="downloadErrors" class="section CL3">
-        # - The file that you're trying to download is larger than 2048Mb.
-        elif match 'downloadErrors' "$WAIT_HTML"; then
-            local MSG=$(echo "$WAIT_HTML" | parse_quiet '<h3><span>' '<span>\([^<]*\)<')
-            log_error "error: $MSG"
-            break
-
-        else
-            log_error "Unknown state, give up!"
-            break
-        fi
-
-    done
-
+    log_error "Unknown state, give up!"
     return $ERR_FATAL
 }
 
@@ -208,7 +205,8 @@ wupload_upload() {
 
     local FILE="$2"
     local DESTFILE="$3"
-    local BASE_URL="http://api.wupload.com/"
+    local BASE_URL='http://api.wupload.com/'
+    local JSON URL LINK
 
     if test "$AUTH"; then
         local USER="${AUTH%%:*}"
