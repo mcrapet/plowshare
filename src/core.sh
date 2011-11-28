@@ -572,7 +572,7 @@ prompt_for_password() {
 #
 # $1: String 'username:password' (password can contain semicolons)
 # $2: Cookie filename (see create_tempfile() modules)
-# $3: Postdata string (ex: 'user=\$USER&password=\$PASSWORD')
+# $3: Postdata string (ex: 'user=$USER&password=$PASSWORD')
 # $4: URL to post
 # $5: Additional curl arguments (optional)
 # stdout: html result (can be null string)
@@ -594,7 +594,7 @@ post_login() {
         PASSWORD=$(prompt_for_password) || true
     fi
 
-    log_notice "Starting login process: $USER/$(sed 's/./*/g' <<< "$PASSWORD")"
+    log_notice "Starting login process: $USER/${PASSWORD//?/*}"
 
     DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
 
