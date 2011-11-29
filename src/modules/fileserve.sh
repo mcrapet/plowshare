@@ -70,6 +70,7 @@ fileserve_download() {
 
     local COOKIEFILE="$1"
     local BASEURL='http://www.fileserve.com'
+    local ID URL LOGIN_RESULT FILE_URL MAINPAGE JSON1 JSON2 MSG1 MSG2 MSG3 WAIT_TIME
 
     # URL must be well formed (issue #280)
     local ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
@@ -85,13 +86,18 @@ fileserve_download() {
 
         # Check account type
         if match '<h3>Premium ' "$LOGIN_RESULT"; then
-            local FILE_URL
-
             # Works for both "Direct Download" enabled/disabled
             FILE_URL=$(curl -i -b "$COOKIEFILE" --data "download=premium" "$URL" | \
                     grep_http_header_location) || return
 
             test -z "$FILE_URL" && return $ERR_FATAL
+
+            if [ "${FILE_URL:0:1}" = '/' ]; then
+                MSG1=$(curl -L -b "$COOKIEFILE" "$URL" | parse_attr_quiet '0; URL' 'CONTENT')
+                log_debug "fileserve internal error (${MSG1:7})"
+                return $ERR_FATAL
+            fi
+
             test "$CHECK_LINK" && return 0
 
             # Non premium cannot resume downloads
@@ -114,7 +120,12 @@ fileserve_download() {
         # Returned data 4 bytes: UTF-8 BOM + \n
         if ! match 'html' "$MAINPAGE"; then
             FILE_URL=$(curl -i -b "$COOKIEFILE" "$URL" | grep_http_header_location) || return
-            test -z "$FILE_URL" && return $ERR_FATAL
+
+            if [ -z "$FILE_URL" ]; then
+                log_debug "invalid cookie?"
+                return $ERR_FATAL
+            fi
+
             test "$CHECK_LINK" && return 0
             MODULE_FILESERVE_DOWNLOAD_RESUME=yes
             echo "$FILE_URL"
@@ -167,8 +178,8 @@ fileserve_download() {
         "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&recaptcha_shortencode_field=$SHORT" \
         "http://www.fileserve.com/checkReCaptcha.php") || return
 
-    local ret=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
-    if [ "$ret" != "1" ] ; then
+    local RET=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
+    if [ "$RET" != "1" ] ; then
         recaptcha_nack $ID
         log_error "wrong captcha"
         return $ERR_CAPTCHA
