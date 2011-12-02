@@ -145,14 +145,14 @@ mark_queue() {
 # stdout: non existing filename
 create_alt_filename() {
     local FILENAME="$1"
-    local count=1
+    local COUNT=1
 
-    while [ "$count" -le 99 ]; do
-        if [ ! -f "${FILENAME}.$count" ]; then
-            FILENAME="${FILENAME}.$count"
+    while [ "$COUNT" -le 99 ]; do
+        if [ ! -f "${FILENAME}.$COUNT" ]; then
+            FILENAME="${FILENAME}.$COUNT"
             break
         fi
-        ((count++))
+        (( ++COUNT ))
     done
     echo "$FILENAME"
 }
@@ -232,7 +232,7 @@ download() {
                     break
                 fi
 
-                (( TRY++))
+                (( ++TRY ))
                 if [ -n "$MAXRETRIES" ]; then
                     if [[ "$MAXRETRIES" -eq 0 ]]; then
                         log_debug "no retry explicitly requested"

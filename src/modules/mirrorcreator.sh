@@ -55,7 +55,7 @@ mirrorcreator_upload() {
         log_debug "Hosting sites:"
         while read H; do
             log_debug "- $H"
-            (( N++ ))
+            (( ++N ))
         done <<< "$HOSTERS"
     fi
 

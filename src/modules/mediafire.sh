@@ -264,7 +264,7 @@ mediafire_upload() {
     local TRY=0
     local QUICK_KEY=""
     while [ "$TRY" -lt 3 ]; do
-        (( TRY++ ))
+        (( ++TRY ))
         XML=$(curl "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG")
 
         if match '<description>No more requests for this key</description>' "$XML"; then
