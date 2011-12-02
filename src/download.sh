@@ -523,18 +523,27 @@ RETVALS=()
 for ITEM in "$@"; do
     for INFO in $(process_item "$ITEM"); do
         IFS="|" read TYPE URL <<< "$INFO"
-        MODULE=$(get_module "$URL" "$MODULES")
 
+        MODULE=$(get_module "$URL" "$MODULES")
         if [ -z "$MODULE" ]; then
-            if test "$NO_MODULE_FALLBACK"; then
+            # Test for simple HTTP 30X redirection
+            # (disable User-Agent because some proxy can fake it)
+            log_debug "No module found, try simple redirection"
+            URL=$(curl --user-agent '' -i "$URL" | grep_http_header_location)
+
+            if [ -n "$URL" ]; then
+                MODULE=$(get_module "$URL" "$MODULES")
+            elif test "$NO_MODULE_FALLBACK"; then
                 log_notice "No module found, do a simple HTTP GET as requested"
                 MODULE='module_null'
-            else
-                log_error "Skip: no module for URL ($URL)"
-                RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
-                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
-                continue
             fi
+        fi
+
+        if [ -z "$MODULE" ]; then
+            log_error "Skip: no module for URL ($URL)"
+            RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
+            continue
         elif test "$GET_MODULE"; then
             echo "$MODULE"
             continue
