@@ -78,7 +78,8 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
     local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local UPLOADURL="http://upload.1fichier.com"
+    local UPLOADURL='http://upload.1fichier.com'
+    local LOGIN_DATA S_ID RESPONSE DOWNLOAD_ID REMOVE_ID DOMAIN_ID
 
     detect_javascript || return
 
@@ -87,23 +88,21 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
         post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
     fi
 
-    S_ID=$(echo "var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; for( var i=0; i < 5; i++ ) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);" | javascript)
+    S_ID=$(echo "var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);" | javascript)
 
-    ! test "$DOMAIN" && DOMAIN=0
-
-    STATUS=$(curl_with_log -b "$COOKIEFILE" \
+    RESPONSE=$(curl_with_log -b "$COOKIEFILE" \
         -F "message=$MESSAGE" \
         -F "mail=$TOEMAIL" \
         -F "dpass=$LINK_PASSWORD" \
-        -F "domain=$DOMAIN" \
+        -F "domain=${DOMAIN:-0}" \
         -F "file[]=@$FILE;filename=$DESTFILE" \
         "$UPLOADURL/upload.cgi?id=$S_ID") || return
 
     RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
 
-    local DOWNLOAD_ID=$(echo "$RESPONSE" | nth_line 3)
-    local REMOVE_ID=$(echo "$RESPONSE" | nth_line 4)
-    local DOMAIN_ID=$(echo "$RESPONSE" | nth_line 5)
+    DOWNLOAD_ID=$(echo "$RESPONSE" | nth_line 3)
+    REMOVE_ID=$(echo "$RESPONSE" | nth_line 4)
+    DOMAIN_ID=$(echo "$RESPONSE" | nth_line 5)
 
     case "$DOMAIN_ID" in
         0)  echo -e "http://$DOWNLOAD_ID.1fichier.com (http://www.1fichier.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
