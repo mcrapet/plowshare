@@ -29,6 +29,7 @@ VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (def
 QUIET,q,quiet,,Alias for -v0
 LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
+MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
 "
@@ -183,9 +184,26 @@ for FILE in "$@"; do
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     log_notice "Destination file: $DESTFILE"
 
-    : > "$UPCOOKIE"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE" || \
-        RETVALS=(${RETVALS[@]} "$?")
+    TRY=0
+    while true; do
+        : > "$UPCOOKIE"
+        URETVAL=0
+        $FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE" || URETVAL=$?
+
+        (( ++TRY ))
+        if [[ "$MAXRETRIES" -eq 0 ]]; then
+            break
+        elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK ]; then
+            break
+        elif [ "$MAXRETRIES" -lt "$TRY" ]; then
+            URETVAL=$ERR_MAX_TRIES_REACHED
+            break
+        fi
+
+        log_notice "Starting upload ($MODULE): retry ${TRY}/$MAXRETRIES"
+    done
+
+    RETVALS=(${RETVALS[@]} "$URETVAL")
 done
 
 rm -f "$UPCOOKIE"
