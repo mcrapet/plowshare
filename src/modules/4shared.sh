@@ -33,13 +33,14 @@ MODULE_4SHARED_LIST_OPTIONS=""
 4shared_download() {
     local COOKIEFILE="$1"
     local URL="$2"
+    local REAL_URL URL PAGE WAIT_URL FILE_URL FILE_NAME
 
-    REAL_URL=$(curl -I "$URL" | grep_http_header_location)
+    REAL_URL=$(curl -I "$URL" | grep_http_header_location) || return
     if test "$REAL_URL"; then
         URL=$REAL_URL
     fi
 
-    PAGE=$(curl -c $COOKIEFILE "$URL")
+    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
     if match '4shared\.com/dir/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
@@ -48,24 +49,24 @@ MODULE_4SHARED_LIST_OPTIONS=""
         return $ERR_LINK_DEAD
     fi
 
-    WAIT_URL=$(echo "$PAGE" | parse_attr "4shared\.com\/get\/" 'href')
+    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com\/get\/' 'href')
 
     test "$CHECK_LINK" && return 0
 
-    WAIT_HTML=$(curl -b $COOKIEFILE "$WAIT_URL") || return
+    WAIT_HTML=$(curl -b "$COOKIEFILE" "$WAIT_URL") || return
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
-            "[[:space:]]\([[:digit:]]\+\);")
-    FILE_URL=$(echo "$WAIT_HTML" | parse_attr "4shared\.com\/download\/" 'href')
+            '[[:space:]]\([[:digit:]]\+\);')
+    FILE_URL=$(echo "$WAIT_HTML" | parse_attr '4shared\.com\/download\/' 'href')
 
     # Try to figure the real filename from HTML
-    FILE_REAL_NAME=$(echo "$WAIT_HTML" | parse_quiet '<b class="blue xlargen">' \
-                    'n">\([^<]\+\)' | html_to_utf8 | uri_decode)
+    FILE_NAME=$(echo "$WAIT_HTML" | parse_quiet '<b class="blue xlargen">' \
+            'n">\([^<]\+\)' | html_to_utf8 | uri_decode)
 
     wait $((WAIT_TIME)) seconds || return
 
     echo "$FILE_URL"
-    test "$FILE_REAL_NAME" && echo "$FILE_REAL_NAME"
+    test "$FILE_NAME" && echo "$FILE_NAME"
     return 0
 }
 
