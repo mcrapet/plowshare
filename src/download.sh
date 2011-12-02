@@ -35,7 +35,7 @@ TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downlo
 LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry.
+MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
@@ -195,12 +195,11 @@ download() {
     shift 12
 
     FUNCTION=${MODULE}_download
-    log_debug "start download ($MODULE): $DURL"
+    log_notice "Starting download ($MODULE): $DURL"
     timeout_init $TIMEOUT
 
     while true; do
         local DRETVAL=0
-        local TRY=0
         local COOKIES=$(create_tempfile)
         local DRESULT=$(create_tempfile)
 
@@ -210,6 +209,8 @@ download() {
         fi
 
         if test -z "$CHECK_LINK"; then
+            local TRY=0
+
             while true; do
                 $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
 
@@ -240,9 +241,9 @@ download() {
                         DRETVAL=$ERR_MAX_TRIES_REACHED
                         break
                     fi
-                    log_notice "start download ($MODULE): retry ${TRY}/$MAXRETRIES"
+                    log_notice "Starting download ($MODULE): retry ${TRY}/$MAXRETRIES"
                 else
-                    log_notice "start download ($MODULE): retry $TRY"
+                    log_notice "Starting download ($MODULE): retry $TRY"
                 fi
                 DRETVAL=0
             done
@@ -401,7 +402,7 @@ download() {
                 fi
             fi
 
-            CODE=$(curl_with_log ${CURL_ARGS[@]} -w "%{http_code}" --fail --globoff \
+            CODE=$(curl_with_log ${CURL_ARGS[@]} -w '%{http_code}' --fail --globoff \
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$COOKIES"
