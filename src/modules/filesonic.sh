@@ -160,7 +160,7 @@ filesonic_download() {
 
             DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
             PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                        --referer "$URL" --data "$DATA" "$URL?start=1")
+                        --referer "$URL" --data "$DATA" "$URL?start=1") || return
 
             if match 'Please Enter Captcha' "$PAGE"; then
                 recaptcha_nack $ID
@@ -182,7 +182,7 @@ filesonic_download() {
             TM_HASH=$(echo "$PAGE" | parse_attr "name='tm_hash'" "value")
 
             PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                        --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1")
+                        --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return
 
         else
             log_debug "$URL"
@@ -211,7 +211,7 @@ filesonic_upload() {
 # FIXME: use official API
 
     # update URL if there is a specific .ccTLD location from there
-    LOCATION=$(curl -I "$URL" | grep_http_header_location)
+    LOCATION=$(curl -I "$URL" | grep_http_header_location) || return
     if test "$LOCATION"; then
         URL=$(basename_url "$LOCATION")
     fi
@@ -240,9 +240,9 @@ filesonic_upload() {
 
     # send file and get Location to completed URL
     # Note: explicitely remove "Expect: 100-continue" header that curl wants to send
-    STATUS=$(curl -D - -b "$COOKIEFILE" --referer "$URL" -H "Expect:" \
+    STATUS=$(curl_with_log -D - -b "$COOKIEFILE" --referer "$URL" -H "Expect:" \
         -F "files[]=@$FILE;filename=$DESTFILE" $FOLDER \
-        "http://$SERVER/?callbackUrl=$URL/upload-completed/:uploadProgressId&X-Progress-ID=$ID")
+        "http://$SERVER/?callbackUrl=$URL/upload-completed/:uploadProgressId&X-Progress-ID=$ID") || return
 
     if ! test "$STATUS"; then
         log_error "Upload error"
@@ -251,7 +251,12 @@ filesonic_upload() {
         log_error "Upload failed: server error"
         return $ERR_FATAL
     fi
+
     COMPLETED=$(echo "$STATUS" | grep_http_header_location)
+    if ! test "$COMPLETED"; then
+        log_error "Upload failed: bad answer"
+        return $ERR_FATAL
+    fi
 
     # get information
     INFOS=$(curl -b "$COOKIEFILE" -e "$URL" "$COMPLETED") || return
@@ -270,7 +275,7 @@ filesonic_upload() {
     # get download link
     LINKID=$(echo "$INFOS" | parse_quiet '"linkId":"[^"]*"' '"linkId":"\([^"]*\)"')
     BROWSE=$(curl -b "$COOKIEFILE" -H 'X-Requested-With: XMLHttpRequest' \
-            -e "$URL" "$URL/filesystem/generate-link/$LINKID")
+            -e "$URL" "$URL/filesystem/generate-link/$LINKID") || return
     LINK=$(echo "$BROWSE" | parse_attr 'id="URL_' 'value')
 
     if ! test "$LINK"; then
