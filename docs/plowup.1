@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "November 22, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "December 3, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -62,6 +62,9 @@ Limit upload speed in bytes per seconds. Suffixes are:
 .RS
 \fBg\fR  for gigabytes (Gb).
 .RE
+.TP
+.BI -r, " " --max-retries "=N"
+Set maximum retries for upload failures. Default is 0 (no retry).
 .TP
 .BI "   " " " --name-prefix "=STRING"
 Prepend argument to each destination filename.
