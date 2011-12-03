@@ -596,7 +596,7 @@ post_login() {
 
     log_notice "Starting login process: $USER/${PASSWORD//?/*}"
 
-    DATA=$(eval echo $(echo "$POSTDATA" | sed "s/&/\\\\&/g"))
+    DATA=$(eval echo "${POSTDATA//&/\\&}")
 
     # Yes, no quote around $CURL_ARGS
     RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL") || return
