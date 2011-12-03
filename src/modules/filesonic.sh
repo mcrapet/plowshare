@@ -174,12 +174,18 @@ filesonic_download() {
         # wait
         elif match 'countDownDelay' "$PAGE"; then
             SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
-            wait $SLEEP seconds || return
 
             # for wait time > 5min. these values may not be present
             # it just means we need to try again so the following code is fine
-            TM=$(echo "$PAGE" | parse_attr "name='tm'" "value")
-            TM_HASH=$(echo "$PAGE" | parse_attr "name='tm_hash'" "value")
+            TM=$(echo "$PAGE" | parse_attr_quiet "name='tm'" "value")
+            TM_HASH=$(echo "$PAGE" | parse_attr_quiet "name='tm_hash'" "value")
+
+            if [ -z "$TM" -o -z "$TM_HASH" ]; then
+                echo $SLEEP
+                return $ERR_LINK_TEMP_UNAVAILABLE
+            fi
+
+            wait $SLEEP seconds || return
 
             PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
                         --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return
