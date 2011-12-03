@@ -36,6 +36,8 @@ hotfile_download() {
 
     local COOKIEFILE="$1"
     local URL="${2}&lang=en"
+    local BASE_URL='http://hotfile.com'
+    local FILE_URL WAIT_HTML WAIT_HTML2 SLEEP LINK
 
     if match 'hotfile\.com/list/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -64,94 +66,84 @@ hotfile_download() {
         return 0
     fi
 
-    BASE_URL='http://hotfile.com'
+    WAIT_HTML=$(curl -c "$COOKIEFILE" "$URL") || return
 
-    while retry_limit_not_reached || return; do
-        WAIT_HTML=$(curl -c $COOKIEFILE "$URL") || return
+    # "This file is either removed due to copyright claim or is deleted by the uploader."
+    if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
+        log_debug "File not found"
+        return $ERR_LINK_DEAD
+    fi
 
-        # "This file is either removed due to copyright claim or is deleted by the uploader."
-        if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
-            log_debug "File not found"
-            return $ERR_LINK_DEAD
+    SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
+        { log_error "can't get sleep time"; return $ERR_FATAL; }
+
+    test "$CHECK_LINK" && return 0
+
+    # Send (post) form
+    local FORM_HTML FORM_URL FORM_ACTION FORM_TM FORM_TMHASH FORM_WAIT FORM_WAITHASH FORM_UPIDHASH
+    FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f')
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_input_by_name 'action')
+    FORM_TM=$(echo "$FORM_HTML" | parse_form_input_by_name 'tm')
+    FORM_TMHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
+    FORM_WAIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'wait')
+    FORM_WAITHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'waithash')
+    FORM_UPIDHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'upidhash')
+
+    wait $((SLEEP / 1000)) seconds || return
+
+    WAIT_HTML2=$(curl -b $COOKIEFILE --data \
+        "action=${FORM_ACTION}&tm=${FORM_TM}&tmhash=${FORM_TMHASH}&wait=${FORM_WAIT}&waithash=${FORM_WAITHASH}&upidhash=$FORM_UPIDHASH" \
+        "${BASE_URL}$FORM_URL") || return
+
+    # Direct download (no captcha)
+    if match 'Click here to download' "$WAIT_HTML2"; then
+        LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href')
+        FILE_URL=$(curl -b "$COOKIEFILE" --include "$LINK" | grep_http_header_location)
+        echo "$FILE_URL"
+        return 0
+
+    elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
+        # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
+        WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);')
+        echo $((WAIT_TIME / 1000))
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # reCaptcha page
+    elif match 'api\.recaptcha\.net' "$WAIT_HTML2"; then
+
+        local FORM2_HTML FORM2_URL FORM2_ACTION HTMLPAGE
+        FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
+        FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action)
+        FORM2_ACTION=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
+            "action=${FORM2_ACTION}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            "${BASE_URL}$FORM2_URL") || return
+
+        if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+            recaptcha_nack $ID
+            log_error "wrong captcha"
+            return $ERR_CAPTCHA
         fi
 
-        SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-            { log_error "can't get sleep time"; return $ERR_FATAL; }
+        LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
+        if [ -n "$LINK" ]; then
+            recaptcha_ack $ID
+            log_debug "correct captcha"
 
-        test "$CHECK_LINK" && return 0
-
-        # Send (post) form
-        local FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f')
-        local form_url=$(echo "$FORM_HTML" | parse_form_action)
-        local form_action=$(echo "$FORM_HTML" | parse_form_input_by_name 'action')
-        local form_tm=$(echo "$FORM_HTML" | parse_form_input_by_name 'tm')
-        local form_tmhash=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
-        local form_wait=$(echo "$FORM_HTML" | parse_form_input_by_name 'wait')
-        local form_waithash=$(echo "$FORM_HTML" | parse_form_input_by_name 'waithash')
-        local form_upidhash=$(echo "$FORM_HTML" | parse_form_input_by_name 'upidhash')
-
-        SLEEP=$((SLEEP / 1000))
-        wait $((SLEEP)) seconds || return
-
-        WAIT_HTML2=$(curl -b $COOKIEFILE --data "action=${form_action}&tm=${form_tm}&tmhash=${form_tmhash}&wait=${form_wait}&waithash=${form_waithash}&upidhash=${form_upidhash}" \
-            "${BASE_URL}${form_url}") || return
-
-        # Direct download (no captcha)
-        if match 'Click here to download' "$WAIT_HTML2"; then
-            local LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href')
-            FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
-            echo "$FILEURL"
+            FILE_URL=$(curl -b "$COOKIEFILE" --include "$LINK" | grep_http_header_location)
+            echo "$FILE_URL"
             return 0
-
-        elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
-            # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
-            WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-                { log_error "can't get wait time"; return $ERR_FATAL; }
-            WAIT_TIME=$((WAIT_TIME / 60000))
-            wait $((WAIT_TIME)) minutes || return
-            continue
-
-        # reCaptcha page
-        elif match 'api\.recaptcha\.net' "$WAIT_HTML2"; then
-
-            local FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
-            local form2_url=$(echo "$FORM2_HTML" | parse_form_action)
-            local form2_action=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
-
-            local PUBKEY WCI CHALLENGE WORD ID
-            PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'
-            WCI=$(recaptcha_process $PUBKEY) || return
-            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-            HTMLPAGE=$(curl -b $COOKIEFILE --data \
-                "action=${form2_action}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                "${BASE_URL}${form2_url}") || return
-
-            if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
-                recaptcha_nack $ID
-                log_error "wrong captcha"
-                return $ERR_CAPTCHA
-            fi
-
-            local LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
-            if [ -n "$LINK" ]; then
-                recaptcha_ack $ID
-                log_debug "correct captcha"
-
-                FILEURL=$(curl -b $COOKIEFILE --include "$LINK" | grep_http_header_location)
-                echo "$FILEURL"
-                return 0
-            fi
-
-            log_error "reCaptcha error"
-            break
-
-        else
-            log_error "Unknown state, give up!"
-            break
         fi
-    done
+    fi
 
+    log_error "Unknown state, give up!"
     return $ERR_FATAL
 }
 
@@ -161,30 +153,33 @@ hotfile_download() {
 # stdout: list of links
 hotfile_list() {
     local URL="$1"
+    local PAGE NB FILENAME LINK
 
     if ! match 'hotfile\.com/list/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl "$URL" | grep 'hotfile.com/dl/')
+    PAGE=$(curl "$URL") || return
 
-    if test -z "$PAGE"; then
-        log_error "Wrong directory list link"
-        return $ERR_FATAL
+    NB=$(echo "$PAGE" | parse ' files)' "(\([[:digit:]]*\) files")
+    log_debug "There is $NB file(s) in the folder"
+
+    if [ "$NB" -gt 0 ]; then
+        PAGE=$(echo "$PAGE" | grep 'hotfile.com/dl/')
+
+        # First pass : print debug message
+        while read LINE; do
+            FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
+            log_debug "$FILENAME"
+        done <<< "$PAGE"
+
+        # Second pass : print links (stdout)
+        while read LINE; do
+            LINK=$(echo "$LINE" | parse_attr '<a' 'href')
+            echo "$LINK"
+        done <<< "$PAGE"
     fi
-
-    # First pass : print debug message
-    while read LINE; do
-        FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
-        log_debug "$FILENAME"
-    done <<< "$PAGE"
-
-    # Second pass : print links (stdout)
-    while read LINE; do
-        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$LINK"
-    done <<< "$PAGE"
 
     return 0
 }
