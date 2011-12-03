@@ -14,7 +14,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|-l|--limit-rate)
+        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|-l|--limit-rate|-r|--max-retries)
             # don't complete
             return 0
             ;;
@@ -22,8 +22,8 @@ _plowup()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
-            -q -i -l \
-            --limit-rate --interface --name-prefix --name-suffix' -- $cur ) )
+            -q -i -l -r \
+            --limit-rate --interface --max-retries --name-prefix --name-suffix' -- $cur ) )
     else
         _get_first_arg
         if [ -z $arg ]; then
