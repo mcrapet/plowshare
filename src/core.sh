@@ -1258,7 +1258,7 @@ process_configfile_options() {
             VALUE=$(echo "${LINE#*=}" | strip)
 
             # Look for optional double quote (protect leading/trailing spaces)
-            if [ "${VALUE:0:1}" = '"' -a "${VALUE:(-1):1}" = '"' ]; then
+            if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
                 VALUE="${VALUE%?}"
                 VALUE="${VALUE:1}"
             fi
@@ -1307,7 +1307,7 @@ process_configfile_module_options() {
                 VALUE=$(echo "${LINE#*=}" | strip)
 
                 # Look for optional double quote (protect leading/trailing spaces)
-                if [ "${VALUE:0:1}" = '"' -a "${VALUE:(-1):1}" = '"' ]; then
+                if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
                     VALUE="${VALUE%?}"
                     VALUE="${VALUE:1}"
                 fi
