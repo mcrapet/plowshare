@@ -530,9 +530,10 @@ for ITEM in "$@"; do
             # Test for simple HTTP 30X redirection
             # (disable User-Agent because some proxy can fake it)
             log_debug "No module found, try simple redirection"
-            URL=$(curl --user-agent '' -i "$URL" | grep_http_header_location)
+            URL_TEMP=$(curl --user-agent '' -i "$URL" | grep_http_header_location)
 
-            if [ -n "$URL" ]; then
+            if [ -n "$URL_TEMP" ]; then
+                URL="$URL_TEMP"
                 MODULE=$(get_module "$URL" "$MODULES")
             elif test "$NO_MODULE_FALLBACK"; then
                 log_notice "No module found, do a simple HTTP GET as requested"
