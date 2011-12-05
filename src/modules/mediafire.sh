@@ -145,11 +145,13 @@ get_ofuscated_link() {
 
         // setTimeout() is being used to 'hide' function calls.
         function setTimeout(func, time) {
+            if (time == 50) return; // disable pmsrvr.com callback
             func();
         }
 
         // Record accesses to the DOM
         namespace = {};
+        window = {};
         var document = {
             getElementById: function(id) {
                 if (!namespace[id])
