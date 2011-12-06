@@ -39,6 +39,8 @@ mediafire_download() {
     local URL="$2"
     local LOCATION PAGE FILE_URL FILENAME
 
+    detect_javascript || return
+
     LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
 
     if match '^http://download' "$LOCATION"; then
@@ -117,8 +119,6 @@ get_ofuscated_link() {
     local BASE_URL='http://www.mediafire.com'
 
     local PAGE_JS FUNCTION RESULT DIVID DYNAMIC_PATH DYNAMIC_JS FILE_URL
-
-    detect_javascript || return
 
     # One single line
     PAGE_JS=$(echo "$PAGE" | grep 'var PageLoaded' | \
