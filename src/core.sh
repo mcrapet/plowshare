@@ -335,7 +335,7 @@ grep_form_by_order() {
     local N=${2:-"1"}
 
     while [ "$N" -gt "1" ]; do
-        (( N-- ))
+        (( --N ))
         DATA=$(echo "$DATA" | sed -ne '/<\/form>/,$p' | sed -e '1s/<\/form>/<_form>/1')
     done
 
@@ -718,7 +718,7 @@ wait() {
       while [ "$REMAINING" -gt 0 ]; do
           log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
           sleep 1
-          (( REMAINING-- ))
+          (( --REMAINING ))
       done
       log_notice -e "\r$MSG done${CLEAR}"
     else
