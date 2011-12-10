@@ -25,7 +25,7 @@ MODULE_1FICHIER_DOWNLOAD_RESUME=yes
 MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_1FICHIER_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use an account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 MESSAGE,d:,message:,MESSAGE,Set file message (is send with notification email)
 DOMAIN,,domain:,ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
