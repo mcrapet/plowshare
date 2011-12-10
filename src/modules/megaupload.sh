@@ -49,7 +49,7 @@ megaupload_download() {
     local URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
                             replace 'video.com/' 'upload.com/')
     local BASEURL=$(basename_url "$URL")
-    local PAGE HTTPCODE ACC WAITTIME FILE_URL
+    local LOGIN_DATA PAGE HTTPCODE ACC WAITTIME FILE_URL
 
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
@@ -116,15 +116,15 @@ megaupload_download() {
         # Test for Premium account without "direct downloads" option
         ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account") || return
 
-        if ! match '<b>Regular</b>' "$ACC" && test "$AUTH"; then
-            FILE_URL=$(echo "$PAGE" | parse_attr 'class="down_ad_butt1"' 'href')
+        if ! match '">Regular' "$ACC" && test "$AUTH"; then
+            FILE_URL=$(echo "$PAGE" | parse_attr 'class="download_premium_but"' 'href')
             echo "$FILE_URL"
             return 0
         fi
     fi
 
     # Look for a download link (anonymous & Free account)
-    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'id="downloadlink"' 'href') || return
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'class="download_regular_usual' 'href') || return
 
     WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
             "count=\([[:digit:]]\+\);") || return
@@ -154,7 +154,7 @@ megaupload_upload() {
 
         # Detect account type
         PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=account") || return
-        if match '<b>Regular</b>' "$PAGE"; then
+        if match '">Regular' "$PAGE"; then
             ACC=free
         else
             ACC=premium
@@ -291,8 +291,8 @@ megaupload_delete() {
         rm -f "$COOKIEFILE"
     else
         # Filemanager is in flash, use "Total files uploaded" info
-        TOTAL_FILES=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=account" | \
-            parse_all '<strong>' '<strong>*\([^<]*\)' | nth_line 3)
+        TOTAL_FILES=$(curl -b "$COOKIEFILE" "$BASE_URL/?c=account" | parse_line_after \
+            'Total files uploaded' '">[[:space:]]*\([[:digit:]]\+\)') || return
 
         HTML=$(curl -b "$COOKIEFILE" -d "action=delete&delids=$FILEID" "$BASE_URL/?c=filemanager&ajax=1") || return
         rm -f "$COOKIEFILE"
