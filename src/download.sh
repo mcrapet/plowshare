@@ -265,7 +265,7 @@ download() {
             0)
                 ;;
             $ERR_LOGIN_FAILED)
-                log_notice "Login process failed. Bad username/password or unepected content"
+                log_notice "Login process failed. Bad username/password or unexpected content"
                 rm -f "$COOKIES"
                 return $DRETVAL
                 ;;
