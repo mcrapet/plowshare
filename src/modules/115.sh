@@ -20,48 +20,56 @@
 
 MODULE_115_REGEXP_URL="http://\(\w\+\.\)\?115\.com/file/"
 
-MODULE_115_DOWNLOAD_OPTIONS=""
+MODULE_115_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_115_DOWNLOAD_RESUME=no
 MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 # Output a 115.com file download URL
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: 115.com url
 # stdout: real file download link
 115_download() {
+    eval "$(process_options rapidshare "$MODULE_115_DOWNLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE="$1"
     local URL="$2"
-    local PAGE LINKS HEADERS DIRECT FILENAME WAITTIME
+    local PAGE JSON LINKS HEADERS DIRECT FILENAME
 
-    PAGE=$(curl -L "$URL" | break_html_lines) || return
+    if [ -z "$AUTH" ]; then
+        log_error "Anonymous users cannot download links"
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
 
-    # FIXME: it is still relevant?
-    if match 'file-notfound"' "$PAGE"; then
+    LOGIN_DATA=$(echo \
+        'login[account]=$USER&login[passwd]=$PASSWORD&back=http%3A%2F%2Fwww.115.com&goto=http%3A%2F%2F115.com' | uri_encode)
+    post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" 'http://passport.115.com/?ac=login' '-L' >/dev/null || return
+
+    PAGE=$(curl -L -b "$COOKIEFILE" "$URL" | break_html_lines) || return
+
+    if matchi "file_size:[[:space:]]*'0B'," "$PAGE"; then
         log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 
-    if match 'ico-fail"' "$PAGE"; then
-        log_debug "file not alive anymore"
-        return $ERR_LINK_DEAD
-    fi
-
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'ds_url' 'href')
-    if [ -z "$LINKS" ]; then
+    URL=$(echo "$PAGE" | parse_last 'url:' "'\(\/?ct=download[^']*\)")
+    if [ -z "$URL" ]; then
         log_error "no link found, site updated?"
         return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
 
-    # Look for wait time
-    WAITTIME=$(echo "$PAGE" | parse_quiet 'id="js_get_download_second"' '">\([^<]\+\)<\/b>')
-    log_debug "should wait ${WAITTIME}s"
+    # {"state":true,"urls":[{"client":1,"url":"http:\/\/119. ...
+    JSON=$(curl -b "$COOKIEFILE" "http://115.com$URL") || return
+    LINKS=$(echo "$JSON" | sed -e 's/,/,\n/g' | parse 'url' '"url":"\([^"]*\)"') || return
+    LINKS=${LINKS//[\\]/}
 
     # There are usually mirrors (do a HTTP HEAD request to check dead mirror)
     while read URL; do
         HEADERS=$(curl -I "$URL") || return
 
-        FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition) || return
+        FILENAME=$(echo "$HEADERS" | grep_http_header_content_disposition)
         if [ -n "$FILENAME" ]; then
             echo "$URL"
             echo "$FILENAME"
