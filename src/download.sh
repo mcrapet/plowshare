@@ -218,7 +218,7 @@ download() {
                     read AWAIT <$DRESULT
 
                     # --no-arbitrary-wait option specified
-                    test -n "$NOARBITRARYWAIT" && break;
+                    test -n "$NOARBITRARYWAIT" && break
 
                     if [ -z "$AWAIT" ]; then
                         log_debug "arbitrary wait"
@@ -527,17 +527,20 @@ for ITEM in "$@"; do
 
         MODULE=$(get_module "$URL" "$MODULES")
         if [ -z "$MODULE" ]; then
-            # Test for simple HTTP 30X redirection
-            # (disable User-Agent because some proxy can fake it)
-            log_debug "No module found, try simple redirection"
-            URL_TEMP=$(curl --user-agent '' -i "$URL" | grep_http_header_location)
+            if match_remote_url "$URL"; then
+                # Test for simple HTTP 30X redirection
+                # (disable User-Agent because some proxy can fake it)
+                log_debug "No module found, try simple redirection"
 
-            if [ -n "$URL_TEMP" ]; then
-                URL="$URL_TEMP"
-                MODULE=$(get_module "$URL" "$MODULES")
-            elif test "$NO_MODULE_FALLBACK"; then
-                log_notice "No module found, do a simple HTTP GET as requested"
-                MODULE='module_null'
+                URL_TEMP=$(curl --user-agent '' -i "$URL" | grep_http_header_location) || true
+
+                if [ -n "$URL_TEMP" ]; then
+                    URL="$URL_TEMP"
+                    MODULE=$(get_module "$URL" "$MODULES")
+                elif test "$NO_MODULE_FALLBACK"; then
+                    log_notice "No module found, do a simple HTTP GET as requested"
+                    MODULE='module_null'
+                fi
             fi
         fi
 
