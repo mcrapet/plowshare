@@ -69,7 +69,7 @@ megaupload_download() {
     fi
 
     # Check for dead link
-    if match 'link you have clicked is not available' "$PAGE"; then
+    if matchi 'Invalid link' "$PAGE"; then
         return $ERR_LINK_DEAD
 
     # Test for big files (premium account required)
