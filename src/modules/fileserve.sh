@@ -87,9 +87,14 @@ fileserve_download() {
         # Check account type
         if match '<h3>Premium ' "$LOGIN_RESULT"; then
             # Works for both "Direct Download" enabled/disabled
-            FILE_URL=$(curl -i -b "$COOKIEFILE" --data "download=premium" "$URL" | \
-                    grep_http_header_location) || return
+            MAINPAGE=$(curl -i -b "$COOKIEFILE" --data "download=premium" "$URL") || return
 
+            if match 'File not available' "$MAINPAGE"; then
+                log_debug "File not found"
+                return $ERR_LINK_DEAD
+            fi
+
+            FILE_URL=$(echo "$MAINPAGE" | grep_http_header_location)
             test -z "$FILE_URL" && return $ERR_FATAL
 
             if [ "${FILE_URL:0:1}" = '/' ]; then
