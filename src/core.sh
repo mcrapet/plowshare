@@ -43,7 +43,8 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - INTERFACE        Network interface (used by curl)
 #   - LIMIT_RATE       Network speed (used by curl)
 #   - LIBDIR           Absolute path to plowshare's libdir
-#   - CAPTCHA_TRADER   CaptchaTrader account
+#   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
+#   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
@@ -747,7 +748,12 @@ captcha_process() {
 
     if [ ! -f "$FILENAME" ]; then
         log_error "image file not found"
-        return $ERR_CAPTCHA
+        return $ERR_FATAL
+    fi
+
+    # plowdown --captchamethod
+    if [ -n "$CAPTCHA_METHOD" ]; then
+        captcha_method_translate "$CAPTCHA_METHOD" METHOD_SOLVE METHOD_VIEW
     fi
 
     if [ -z "$METHOD_SOLVE" ]; then
@@ -846,6 +852,10 @@ captcha_process() {
     # How to solve captcha
     case "$METHOD_SOLVE" in
         none)
+            [ -n "$PRGPID" ] && log_debug "PID $PRGPID should be killed"
+            rm -f "$FILENAME"
+            # don't return $ERR_CAPTCHA, because it could loop
+            return $ERR_MAX_TRIES_REACHED
             ;;
         captchatrader)
             if [ -z "$CAPTCHA_TRADER" ]; then
@@ -917,7 +927,7 @@ captcha_process() {
         *)
             log_error "unknown solve method: $METHOD_SOLVE"
             rm -f "$FILENAME"
-            return $ERR_CAPTCHA
+            return $ERR_FATAL
             ;;
     esac
 }
@@ -1336,6 +1346,27 @@ log_report_info() {
         log_report "[sed ] `$(type -P ${G}sed) --version | sed -ne '/version/p'`"
         log_report '=== SYSTEM INFO END ==='
     fi
+}
+
+# Translate plowdown --captchamethod argument
+# to solve & view method (used by captcha_process)
+# $1: method (string)
+# $2 (optional): solve method (variable name)
+# $3 (optional): display method (variable name)
+captcha_method_translate() {
+    case "$1" in
+        none)
+            [[ "$2" ]] && unset "$2" && eval $2=\"\$1\"
+            [[ "$3" ]] && unset "$3" && eval $3=\"none\"
+            ;;
+        prompt)
+            [[ "$2" ]] && unset "$2" && eval $2=\"\$1\"
+            [[ "$3" ]] && unset "$3" && eval $3=\"\"
+            ;;
+        *)
+            return $ERR_FATAL
+            ;;
+    esac
 }
 
 ## ----------------------------------------------------------------------------

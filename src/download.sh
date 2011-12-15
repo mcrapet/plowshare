@@ -36,6 +36,7 @@ LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, 
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
+CAPTCHA_METHOD,,captchamethod:,METH, Force specific captcha solving method. Available: prompt, none.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
@@ -511,6 +512,13 @@ if [ -n "$GLOBAL_COOKIES" ]; then
         exit $ERR_FATAL
     fi
     log_notice "plowdown: using provided cookies file"
+fi
+
+if [ -n "$CAPTCHA_METHOD" ]; then
+    if captcha_method_translate "$CAPTCHA_METHOD"; then
+        log_error "error: unknown captcha method: $CAPTCHA_METHOD"
+    fi
+    log_notice "plowdown: force captcha method ($CAPTCHA_METHOD)"
 fi
 
 # Print chosen options
