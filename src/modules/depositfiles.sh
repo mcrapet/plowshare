@@ -20,23 +20,72 @@
 
 MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles\.com/"
 
-MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS=""
+MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Gold account"
 MODULE_DEPOSITFILES_DOWNLOAD_RESUME=yes
 MODULE_DEPOSITFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DEPOSITFILES_LIST_OPTIONS=""
 
 # Output a depositfiles file download URL (free download)
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: depositfiles.com url
 # stdout: real file download link
 depositfiles_download() {
+    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE="$1"
     local URL="$2"
-    local BASEURL="http://depositfiles.com"
+    local BASE_URL='http://depositfiles.com'
 
-    local START DLID WAITTIME DATA FID SLEEP
+    local START DLID WAITTIME DATA FID SLEEP FILE_URL
 
-    START=$(curl -L "$URL") || return
+    # reCaptcha
+    local PUBKEY WCI CHALLENGE WORD ID
+    PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
+
+    if [ -n "$AUTH" ]; then
+        local LOGIN_DATA LOGIN_RESULT
+
+        LOGIN_DATA='go=1&login=$USER&password=$PASSWORD'
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" \
+            "$BASE_URL/login.php" "-b lang_current=en") || return
+
+        if match 'recaptcha' "$LOGIN_RESULT"; then
+            log_debug "recaptcha solving required for login"
+
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+            local USER="${AUTH%%:*}"
+            local PASSWORD="${AUTH#*:}"
+
+            LOGIN_RESULT=$(curl -c "$COOKIEFILE" -b "lang_current=en" --data \
+                "go=1&login=$USER&password=$PASSWORD&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+                "$BASE_URL/login.php") || return
+
+            # <div class="error_message">Security code not valid.</div>
+            if match 'code not valid' "$LOGIN_RESULT"; then
+                recaptcha_nack $ID
+                log_debug "reCaptcha error"
+                return $ERR_CAPTCHA
+            fi
+
+            recaptcha_ack $ID
+            log_debug "correct captcha"
+        fi
+
+        # <div class="error_message">Your password or login is incorrect</div>
+        if match 'login is incorrect' "$LOGIN_RESULT"; then
+            return $ERR_LOGIN_FAILED
+        fi
+    fi
+
+    if [ -s "$COOKIEFILE" ]; then
+        START=$(curl -L -b "$COOKIEFILE" -b "lang_current=en" "$URL") || return
+    else
+        START=$(curl -L -b "lang_current=en" "$URL") || return
+    fi
 
     if match "no_download_msg" "$START"; then
         log_debug "file not found"
@@ -46,8 +95,7 @@ depositfiles_download() {
     test "$CHECK_LINK" && return 0
 
     if match "download_started()" "$START"; then
-        log_debug "direct download"
-        FILE_URL=$(echo "$START" | parse "download_started()" 'action="\([^"]*\)"') || return
+        FILE_URL=$(echo "$START" | parse_attr 'download_started()' 'href') || return
         echo "$FILE_URL"
         return 0
     fi
@@ -70,7 +118,7 @@ depositfiles_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    DATA=$(curl --data "gateway_result=1" "$BASEURL/en/files/$DLID") || return
+    DATA=$(curl --data "gateway_result=1" "$BASE_URL/en/files/$DLID") || return
 
     # 2. Check if we have been redirected to initial page
     if match '<input type="button" value="Gold downloading"' "$DATA"; then
@@ -107,20 +155,18 @@ depositfiles_download() {
     # Usual wait time is 60 seconds
     wait $((SLEEP + 1)) seconds || return
 
-    DATA=$(curl --location "$BASEURL/get_file.php?fid=$FID") || return
+    DATA=$(curl --location "$BASE_URL/get_file.php?fid=$FID") || return
 
     # reCaptcha page (challenge forced)
     if match 'load_recaptcha();' "$DATA"; then
 
-        local PUBKEY WCI CHALLENGE WORD ID
-        PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
         DATA=$(curl --get --location --data \
             "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
             -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-            "$BASEURL/get_file.php") || return
+            "$BASE_URL/get_file.php") || return
 
         if match 'Download the file' "$DATA"; then
             recaptcha_ack $ID
@@ -143,7 +189,8 @@ depositfiles_download() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 depositfiles_list() {
-    local URL=$1
+    local URL="$1"
+    local LINKS FILE_NAME FILE_URL
 
     if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then
         log_error "This is not a directory list"
