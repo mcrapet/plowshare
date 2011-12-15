@@ -36,74 +36,67 @@ depositfiles_download() {
 
     local START DLID WAITTIME DATA FID SLEEP
 
-    while retry_limit_not_reached || return; do
-        START=$(curl -L "$URL") || return
+    START=$(curl -L "$URL") || return
 
-        if match "no_download_msg" "$START"; then
-            log_debug "file not found"
-            return $ERR_LINK_DEAD
+    if match "no_download_msg" "$START"; then
+        log_debug "file not found"
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
+
+    if match "download_started()" "$START"; then
+        log_debug "direct download"
+        FILE_URL=$(echo "$START" | parse "download_started()" 'action="\([^"]*\)"') || return
+        echo "$FILE_URL"
+        return 0
+    fi
+
+    DLID=$(echo "$START" | parse 'form action=' 'files%2F\([^"]*\)')
+    log_debug "download ID: $DLID"
+    if [ -z "$DLID" ]; then
+        log_error "Can't parse download id, site updated"
+        return $ERR_FATAL
+    fi
+
+    # 1. Check for error messages (first page)
+
+    # - You have reached your download time limit.<br>Try in 10 minutes or use GOLD account.
+    if match 'download time limit' "$START"; then
+        WAITTIME=$(echo "$START" | parse 'Try in' "in \([[:digit:]:]*\) minutes")
+        if [[ "$WAITTIME" -gt 0 ]]; then
+            echo $((WAITTIME * 60))
         fi
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
-        test "$CHECK_LINK" && return 0
+    DATA=$(curl --data "gateway_result=1" "$BASEURL/en/files/$DLID") || return
 
-        match "download_started()" "$START" && {
-            log_debug "direct download"
-            FILE_URL=$(echo "$START" | parse "download_started()" 'action="\([^"]*\)"') ||
-                { log_error "form parse error in direct download"; return 1; }
-            echo "$FILE_URL"
-            return 0
-        }
+    # 2. Check if we have been redirected to initial page
+    if match '<input type="button" value="Gold downloading"' "$DATA"; then
+        log_error "FIXME"
+        return $ERR_FATAL
+    fi
 
-        DLID=$(echo "$START" | parse 'form action=' 'files%2F\([^"]*\)')
-        log_debug "download ID: $DLID"
-        if [ -z "$DLID" ]; then
-            log_error "Can't parse download id, site updated"
-            return $ERR_FATAL
-        fi
+    # 3. Check for error messages (second page)
 
-        # 1. Check for error messages (first page)
+    # - Attention! You used up your limit for file downloading!
+    if match 'limit for file' "$DATA"; then
+        WAITTIME=$(echo "$DATA" | \
+            parse 'class="html_download_api-limit_interval"' 'l">\([^<]*\)<')
+        log_debug "limit reached: waiting $WAITTIME seconds"
+        echo $((WAITTIME))
+        return $ERR_LINK_TEMP_UNAVAILABLE
 
-        # - You have reached your download time limit.<br>Try in 10 minutes or use GOLD account.
-        if match 'download time limit' "$START"; then
-            WAITTIME=$(echo "$START" | parse 'Try in' "in \([[:digit:]:]*\) minutes")
-            if [[ "$WAITTIME" -gt 0 ]]; then
-                wait "$WAITTIME" minutes || return
-            else
-                # Arbitrary wait
-                wait 60 seconds || return
-            fi
-            continue
-        fi
+    # - Such file does not exist or it has been removed for infringement of copyrights.
+    elif match 'html_download_api-not_exists' "$DATA"; then
+        log_error "file does not exist anymore"
+        return $ERR_LINK_DEAD
 
-        DATA=$(curl --data "gateway_result=1" "$BASEURL/en/files/$DLID") || return
-
-        # 2. Check if we have been redirected to initial page
-        if match '<input type="button" value="Gold downloading"' "$DATA"; then
-            continue
-        fi
-
-        # 3. Check for error messages (second page)
-
-        # - Attention! You used up your limit for file downloading!
-        if match 'limit for file' "$DATA"; then
-           WAITTIME=$(echo "$DATA" | parse 'class="html_download_api-limit_interval"' \
-                   'l">\([^<]*\)<')
-           log_debug "limit reached: waiting $WAITTIME seconds"
-           wait $((WAITTIME)) seconds || return
-           continue
-
-        # - Such file does not exist or it has been removed for infringement of copyrights.
-        elif match 'html_download_api-not_exists' "$DATA"; then
-            log_error "file does not exist anymore"
-            return $ERR_LINK_DEAD
-
-        # - We are sorry, but all downloading slots for your country are busy.
-        elif match 'html_download_api-limit_country' "$DATA"; then
-            return $ERR_LINK_TEMP_UNAVAILABLE
-        fi
-
-        break
-    done
+    # - We are sorry, but all downloading slots for your country are busy.
+    elif match 'html_download_api-limit_country' "$DATA"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     FID=$(echo "$DATA" | parse 'var[[:space:]]fid[[:space:]]=' "[[:space:]]'\([^']*\)") ||
         { log_error "cannot find fid"; return $ERR_FATAL; }
