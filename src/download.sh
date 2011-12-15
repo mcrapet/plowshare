@@ -515,8 +515,9 @@ if [ -n "$GLOBAL_COOKIES" ]; then
 fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then
-    if captcha_method_translate "$CAPTCHA_METHOD"; then
+    if ! captcha_method_translate "$CAPTCHA_METHOD"; then
         log_error "error: unknown captcha method: $CAPTCHA_METHOD"
+        exit $ERR_FATAL
     fi
     log_notice "plowdown: force captcha method ($CAPTCHA_METHOD)"
 fi
