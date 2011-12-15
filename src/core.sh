@@ -1389,7 +1389,8 @@ splitseconds() {
     [ "$DIV_S" -eq 0 ] && echo || echo "${DIV_S}s"
 }
 
-# called by wait
+# Called by wait
+# See also timeout_init()
 timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
