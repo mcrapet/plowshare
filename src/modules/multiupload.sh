@@ -38,7 +38,7 @@ MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 # stdout: real file download link
 multiupload_download() {
     local URL="$2"
-    local PAGE
+    local PAGE FILE_URL
 
     PAGE=$(curl "$URL" | break_html_lines) || return
 
@@ -49,7 +49,8 @@ multiupload_download() {
 
     test "$CHECK_LINK" && return 0
 
-    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'id=\"downloadbutton_\"' 'href') || {
+    # document.getElementById('dlbutton').href='http://www47.multiupload.com:81/files/...'
+    FILE_URL=$(echo "$PAGE" | parse_quiet "'dlbutton'" "href='\([^']*\)") || {
         log_debug "direct download not available";
         return $ERR_LINK_TEMP_UNAVAILABLE;
     }
@@ -70,7 +71,8 @@ multiupload_upload() {
     local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local BASE_URL="http://www.multiupload.com"
+    local BASE_URL='http://www.multiupload.com'
+    local PAGE FORM_HTML FORM_URL FORM_U FORM_X DLID
 
     if test "$AUTH"; then
         local USER PASSWORD LOGIN_RESULT
@@ -90,14 +92,14 @@ multiupload_upload() {
         fi
     fi
 
-    local PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL" | break_html_lines_alt)
+    PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL" | break_html_lines_alt) || return
 
-    local form=$(grep_form_by_id "$PAGE" uploadfrm)
-    local form_action=$(echo "$form" | parse_form_action)
-    local form_u=$(echo "$form" | parse_form_input_by_name 'u')
-    local form_x=$(echo "$form" | parse_form_input_by_name 'X-Progress-ID')
+    FORM_HTML=$(grep_form_by_id "$PAGE" uploadfrm)
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_U=$(echo "$FORM_HTML" | parse_form_input_by_name 'u')
+    FORM_X=$(echo "$FORM_HTML" | parse_form_input_by_name 'X-Progress-ID')
 
-    log_debug "Upload ID: $form_u / ${form_x:-No Progress-ID}"
+    log_debug "Upload ID: $FORM_U / ${FORM_X:-No Progress-ID}"
 
     # List:
     # service_1 : MU (Megaupload)
@@ -117,15 +119,15 @@ multiupload_upload() {
     # - 2011.10.29: MU, UK, DF, HF, UH, ZS, FC, FS, WU
 
     # Keep default settings
-    local form_site1=$(echo "$form" | parse_form_input_by_name 'service_1')
-    local form_site2=$(echo "$form" | parse_form_input_by_name 'service_16')
-    local form_site3=$(echo "$form" | parse_form_input_by_name 'service_7')
-    local form_site4=$(echo "$form" | parse_form_input_by_name 'service_9')
-    local form_site5=$(echo "$form" | parse_form_input_by_name 'service_17')
-    local form_site6=$(echo "$form" | parse_form_input_by_name 'service_6')
-    local form_site7=$(echo "$form" | parse_form_input_by_name 'service_15')
-    local form_site8=$(echo "$form" | parse_form_input_by_name 'service_14')
-    local form_site9=$(echo "$form" | parse_form_input_by_name 'service_18')
+    local form_site1=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_1')
+    local form_site2=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_16')
+    local form_site3=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_7')
+    local form_site4=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_9')
+    local form_site5=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_17')
+    local form_site6=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_6')
+    local form_site7=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_15')
+    local form_site8=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_14')
+    local form_site9=$(echo "$FORM_HTML" | parse_form_input_by_name 'service_18')
 
     test "$NO_HOTFILE" && form_site4=''
 
@@ -136,8 +138,8 @@ multiupload_upload() {
     PAGE=$(curl_with_log -0 -b "$COOKIEFILE" \
         -F "file0=@$FILE;filename=$DESTFILE" \
         -F "description_0=$DESCRIPTION" \
-        -F "X-Progress-ID=$form_x" \
-        -F "u=$form_u" \
+        -F "X-Progress-ID=$FORM_X" \
+        -F "u=$FORM_U" \
         -F "service_1=$form_site1"  -F "username_1="  -F "password_1="  -F "remember_1="  \
         -F "service_16=$form_site2" -F "username_16=" -F "password_16=" -F "remember_16=" \
         -F "service_7=$form_site3"  -F "username_7="  -F "password_7="  -F "remember_7="  \
@@ -147,7 +149,7 @@ multiupload_upload() {
         -F "service_15=$form_site7" -F "username_15=" -F "password_15=" -F "remember_15=" \
         -F "service_14=$form_site8" -F "username_14=" -F "password_14=" -F "remember_14=" \
         -F "service_18=$form_site9" -F "username_18=" -F "password_18=" -F "remember_18=" \
-        -F "fromemail=$FROMEMAIL" -F "toemail=$TOEMAIL" $form_action) || return
+        -F "fromemail=$FROMEMAIL" -F "toemail=$TOEMAIL" $FORM_URL) || return
 
     DLID=$(echo "$PAGE" | parse_quiet 'downloadid' 'downloadid":"\([^"]*\)')
     log_debug "Download ID: $DLID"
