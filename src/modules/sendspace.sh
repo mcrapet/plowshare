@@ -73,31 +73,32 @@ sendspace_upload() {
     local DATA DL_LINK DEL_LINK
 
     DATA=$(curl 'http://www.sendspace.com') || return
-    local FORM_HTML=$(grep_form_by_order "$DATA" 3 | break_html_lines_alt)
-    local form_url=$(echo "$FORM_HTML" | parse_form_action)
-    local form_maxfsize=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
-    local form_uid=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
-    local form_ddir=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR')
-    local form_jsena=$(echo "$FORM_HTML" | parse_form_input_by_name 'js_enabled')
-    local form_sign=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature')
-    local form_ufiles=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_files')
-    local form_terms=$(echo "$FORM_HTML" | parse_form_input_by_name 'terms')
 
-    log_debug "starting file upload: $FILE"
+    local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_DDIR FORM_JSEMA FORM_SIGN FORM_UFILES FORM_TERMS
+    FORM_HTML=$(grep_form_by_order "$DATA" 3 | break_html_lines_alt)
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
+    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
+    FORM_DDIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR')
+    FORM_JSENA=$(echo "$FORM_HTML" | parse_form_input_by_name 'js_enabled')
+    FORM_SIGN=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature')
+    FORM_UFILES=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_files')
+    FORM_TERMS=$(echo "$FORM_HTML" | parse_form_input_by_name 'terms')
+
     DATA=$(curl_with_log \
-        -F "MAX_FILE_SIZE=$form_maxfsize" \
-        -F "UPLOAD_IDENTIFIER=$form_uid"  \
-        -F "DESTINATION_DIR=$form_ddir"   \
-        -F "js_enabled=$form_jsena"       \
-        -F "signature=$form_sign"         \
-        -F "upload_files=$form_ufiles"    \
-        -F "terms=$form_terms"            \
+        -F "MAX_FILE_SIZE=$FORM_MAXFSIZE" \
+        -F "UPLOAD_IDENTIFIER=$FORM_UID"  \
+        -F "DESTINATION_DIR=$FORM_DDIR"   \
+        -F "js_enabled=$FORM_JSENA"       \
+        -F "signature=$FORM_SIGN"         \
+        -F "upload_files=$FORM_UFILES"    \
+        -F "terms=$FORM_TERMS"            \
         -F "file[]="                      \
         -F "description[]=$DESCRIPTION"   \
         -F "ownemail="                    \
         -F "recpemail="                   \
         -F "upload_file[]=@$FILE;filename=$DESTFILE" \
-        "$form_url") || return
+        "$FORM_URL") || return
 
     DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href') || return
     DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href') || return
@@ -111,16 +112,16 @@ sendspace_delete() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
-    local PAGE
+    local PAGE FORM_HTML FORM_URL FORM_SUBMIT
 
     PAGE=$(curl "$URL") || return
 
     if match 'You are about to delete the folowing file' "$PAGE"; then
-        local FORM_HTML=$(grep_form_by_order "$PAGE" 3)
-        local form_url=$(echo "$FORM_HTML" | parse_form_action)
-        local form_submit=$(echo "$FORM_HTML" | parse_form_input_by_name 'delete')
+        FORM_HTML=$(grep_form_by_order "$PAGE" 3)
+        FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+        FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'delete')
 
-        PAGE=$(curl_with_log -F "submit=$form_submit" $form_url) || return
+        PAGE=$(curl_with_log -F "submit=$FORM_SUBMIT" $FORM_URL) || return
 
         if ! match 'file has been successfully deleted' "$PAGE"; then
             return $ERR_FATAL
