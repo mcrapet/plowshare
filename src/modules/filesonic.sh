@@ -349,7 +349,6 @@ filesonic_delete() {
         return $ERR_FATAL
     fi
 
-    log_notice "File deleted"
     return 0
 }
 

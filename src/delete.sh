@@ -119,7 +119,8 @@ for URL in "$@"; do
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || \
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" && \
+        log_notice "File removed successfully" || \
         RETVALS=(${RETVALS[@]} "$?")
 done
 

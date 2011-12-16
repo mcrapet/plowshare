@@ -212,6 +212,5 @@ rapidshare_delete() {
         return $ERR_FATAL
     fi
 
-    log_debug "file removed successfully"
     return 0
 }
