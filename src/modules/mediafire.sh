@@ -121,87 +121,35 @@ get_ofuscated_link() {
     local PAGE_JS FUNCTION RESULT DIVID DYNAMIC_PATH DYNAMIC_JS FILE_URL
 
     # One single line
-    PAGE_JS=$(echo "$PAGE" | grep 'var PageLoaded' | \
-            sed -e 's/setTimeout(function(){\$(.*/}/' | \
-            replace 'PageLoaded=false' 'PageLoaded=true') || {
+    PAGE_JS=$(echo "$PAGE" | grep 'function SaveFileToMyAccount') || {
         log_error "cannot find main javascript code";
         return $ERR_FATAL;
     }
-
-    # Get entrypoint function name
-    FUNCTION=$(echo "$PAGE" | parse 'DoShow("notloggedin_wrapper")' \
-            "cR();[[:space:]]*\([[:alnum:]]\+\)();") || {
-        log_error "cannot find start function";
-        return $ERR_FATAL;
-    }
-
-    log_debug "JS function: $FUNCTION"
-
-    RESULT=$(echo "
-        noop = function() {}
-        // Functions and variables used but defined elsewhere, fake them.
-        LoadTemplatesFromSource = DoShow = Eo = aa = ax = noop;
-        fu = StartDownloadTried = pk = 0;
-
-        // setTimeout() is being used to 'hide' function calls.
-        function setTimeout(func, time) {
-            if (time == 50) return; // disable pmsrvr.com callback
-            func();
-        }
-
-        // Record accesses to the DOM
-        namespace = {};
-        window = {};
-        var document = {
-            getElementById: function(id) {
-                if (!namespace[id])
-                    namespace[id] = {style: ''}
-                return namespace[id];
-            },
+    
+    FNAME=$(echo "$PAGE_JS" | parse_all 'function' 'function \([[:alnum:]]\+\)()' | head -n1) ||
+      { log_error "cannot get JS function name"; return $ERR_FATAL; }
+    
+    ZINDEX_MOD=$(echo "
+        ax = dC = jQuery = setTimeout = DoShow = LoadTemplatesFromSource = function() {};
+        old_eval = eval;
+        eval = function(code) {
+            if(code.match(/\.download_link/)) {
+              print(code);
+            } else { 
+              return old_eval(code);
+            }
         };
-        $PAGE_JS
-        $FUNCTION();
-        // DIV id is string of hexadecimal values of length 32
-        for (key in namespace) {
-            if (key.length == 32)
-                print(key);
-        }
-        print(namespace.workframe2.src);
-    " | javascript) || {
-        log_error "error running Javascript in main page";
-        return $ERR_FATAL;
-    }
+        fu = 1;
+        $PAGE_JS;
+        $FNAME();
+    " | js | parse 'z-index' 'z-index.*[[:space:]]*%[[:space:]]*\([[:digit:]]\+\)') ||
+        { log_error "cannot get z-index modulo"; return $ERR_FATAL; }    
 
-    { read DIVID; read DYNAMIC_PATH; } <<<"$RESULT"
-
-    log_debug "DIV id: $DIVID"
-    log_debug "Dynamic page: $DYNAMIC_PATH"
-
-    PAGE_JS=$(curl -b "$COOKIEFILE" "$BASE_URL/$DYNAMIC_PATH")
-    DYNAMIC_JS=$(echo "$PAGE_JS" | sed -n "/<script/,/<\/script>/p" | sed -e '1d;$d')
-
-    FILE_URL=$(echo "
-        function alert(x) {print(x); }
-        var namespace = {};
-        var parent = {
-            document: {
-                getElementById: function(id) {
-                    namespace[id] = {};
-                    return namespace[id];
-                },
-            },
-            aa: function(x, y) { print (x,y);},
-        };
-        $DYNAMIC_JS
-        dz();
-        print(namespace['$DIVID'].innerHTML);
-    " | javascript) || {
-        log_error "error running Javascript in download page";
-        return $ERR_FATAL;
-    }
-
-    FILE_URL=$(echo "$FILE_URL" | parse_attr 'http' 'href') || return
-    echo "$FILE_URL"
+    echo "$PAGE" | sed "s/<div/\n<div/g" | grep 'class="download_link"' | 
+                   sed 's/.*z-index:\([[:digit:]]\+\).*href="\([^"]\+\)".*/\1 \2/' | 
+                   while read ZINDEX URL; do
+        echo "$(($ZINDEX % $ZINDEX_MOD)) $URL"
+    done | sort -rn | head -n1 | cut -d" " -f2-
 }
 
 # Upload a file to mediafire
