@@ -202,7 +202,6 @@ download() {
     while true; do
         local DRETVAL=0
         local COOKIES=$(create_tempfile)
-        local DRESULT=$(create_tempfile)
 
         # Use provided cookie
         if [ -s "$GLOBAL_COOKIES" ]; then
@@ -210,6 +209,7 @@ download() {
         fi
 
         if test -z "$CHECK_LINK"; then
+            local DRESULT=$(create_tempfile)
             local TRY=0
 
             while true; do
@@ -248,18 +248,18 @@ download() {
                 fi
                 DRETVAL=0
             done
+
+            { read FILE_URL; read FILENAME; } <$DRESULT || true
+            rm -f "$DRESULT"
         else
-            $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
-        fi
+            $FUNCTION "$@" "$COOKIES" "$DURL" >/dev/null || DRETVAL=$?
 
-        { read FILE_URL; read FILENAME; } <$DRESULT || true
-        rm -f "$DRESULT"
-
-        if test $DRETVAL -eq 0 -a "$CHECK_LINK"; then
-            log_notice "Link active: $DURL"
-            echo "$DURL"
-            rm -f "$COOKIES"
-            break
+            if [ $DRETVAL -eq 0 -o $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+                log_notice "Link active: $DURL"
+                echo "$DURL"
+                rm -f "$COOKIES"
+                break
+            fi
         fi
 
         case "$DRETVAL" in
