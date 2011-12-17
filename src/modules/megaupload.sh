@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|rotic\|porn\|video\).com/"
+MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|video\)\.com/"
 
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
@@ -46,10 +46,15 @@ megaupload_download() {
     eval "$(process_options megaupload "$MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
-    local URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
-                            replace 'video.com/' 'upload.com/')
+    local URL=$(echo "$2" | replace 'video.com/' 'upload.com/')
     local BASEURL=$(basename_url "$URL")
-    local LOGIN_DATA PAGE HTTPCODE ACC WAITTIME FILE_URL
+    local FILEID LOGIN_DATA PAGE HTTPCODE ACC WAITTIME FILE_URL
+
+    # URL schemes:
+    # - http://www.megaupload.com/?d=xxx
+    # - http://www.megaupload.com/en/?d=xxx
+    FILEID=$(echo "$URL" | parse "." "d=\(.*\)") || return
+    URL="${BASEURL}/?d=$FILEID"
 
     # Try to login (if $AUTH not null)
     if [ -n "$AUTH" ]; then
@@ -271,8 +276,7 @@ megaupload_delete() {
 
     FILEID=$(echo "$URL" | parse_quiet "." "d=\(.*\)")
     if [ -n "$FILEID" ]; then
-        URL=$(echo "$2" | replace 'rotic.com/' 'porn.com/' | \
-                          replace 'video.com/' 'upload.com/')
+        URL=$(echo "$2" | replace 'video.com/' 'upload.com/')
     else
         # Assuming megavideo
         FILEID=$(echo "$URL" | parse "." "v=\(.*\)") || return
