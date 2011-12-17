@@ -6,7 +6,7 @@
 badongo      | download |        |        |      |
 data_hu      | download |        |        |      |
 dataport_cz  | download | upload | delete |      |
-depositfiles | download |        |        | list |
+depositfiles | download | upload | delete | list |
 divshare     | download |        |        |      |
 dl_free_fr   | download | upload |        |      |
 duckload     | download |        |        |      |

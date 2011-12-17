@@ -21,13 +21,60 @@
 MODULE_DEPOSITFILES_REGEXP_URL="http://\(\w\+\.\)\?depositfiles\.com/"
 
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Gold account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_DEPOSITFILES_DOWNLOAD_RESUME=yes
 MODULE_DEPOSITFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
+MODULE_DEPOSITFILES_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account"
+MODULE_DEPOSITFILES_DELETE_OPTIONS=""
 MODULE_DEPOSITFILES_LIST_OPTIONS=""
 
-# Output a depositfiles file download URL (free download)
+# Static function. Proceed with login (free & gold account)
+depositfiles_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+
+    local LOGIN_DATA LOGIN_RESULT
+
+    LOGIN_DATA='go=1&login=$USER&password=$PASSWORD'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/login.php" '-b lang_current=en') || return
+
+    if match 'recaptcha' "$LOGIN_RESULT"; then
+        log_debug "recaptcha solving required for login"
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        local USER="${AUTH%%:*}"
+        local PASSWORD="${AUTH#*:}"
+
+        LOGIN_RESULT=$(curl -c "$COOKIE_FILE" -b 'lang_current=en' --data \
+            "go=1&login=$USER&password=$PASSWORD&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            "$BASE_URL/login.php") || return
+
+        # <div class="error_message">Security code not valid.</div>
+        if match 'code not valid' "$LOGIN_RESULT"; then
+            recaptcha_nack $ID
+            log_debug "reCaptcha error"
+            return $ERR_CAPTCHA
+        fi
+
+        recaptcha_ack $ID
+        log_debug "correct captcha"
+    fi
+
+    # <div class="error_message">Your password or login is incorrect</div>
+    if match 'login is incorrect' "$LOGIN_RESULT"; then
+        return $ERR_LOGIN_FAILED
+    fi
+}
+
+# Output a depositfiles file download URL
 # $1: cookie file
 # $2: depositfiles.com url
 # stdout: real file download link
@@ -37,57 +84,24 @@ depositfiles_download() {
     local COOKIEFILE="$1"
     local URL="$2"
     local BASE_URL='http://depositfiles.com'
-
     local START DLID WAITTIME DATA FID SLEEP FILE_URL
 
-    # reCaptcha
-    local PUBKEY WCI CHALLENGE WORD ID
-    PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
-
     if [ -n "$AUTH" ]; then
-        local LOGIN_DATA LOGIN_RESULT
-
-        LOGIN_DATA='go=1&login=$USER&password=$PASSWORD'
-        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" \
-            "$BASE_URL/login.php" "-b lang_current=en") || return
-
-        if match 'recaptcha' "$LOGIN_RESULT"; then
-            log_debug "recaptcha solving required for login"
-
-            WCI=$(recaptcha_process $PUBKEY) || return
-            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-            local USER="${AUTH%%:*}"
-            local PASSWORD="${AUTH#*:}"
-
-            LOGIN_RESULT=$(curl -c "$COOKIEFILE" -b "lang_current=en" --data \
-                "go=1&login=$USER&password=$PASSWORD&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-                "$BASE_URL/login.php") || return
-
-            # <div class="error_message">Security code not valid.</div>
-            if match 'code not valid' "$LOGIN_RESULT"; then
-                recaptcha_nack $ID
-                log_debug "reCaptcha error"
-                return $ERR_CAPTCHA
-            fi
-
-            recaptcha_ack $ID
-            log_debug "correct captcha"
-        fi
-
-        # <div class="error_message">Your password or login is incorrect</div>
-        if match 'login is incorrect' "$LOGIN_RESULT"; then
-            return $ERR_LOGIN_FAILED
-        fi
+        depositfiles_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
     fi
 
     if [ -s "$COOKIEFILE" ]; then
-        START=$(curl -L -b "$COOKIEFILE" -b "lang_current=en" "$URL") || return
+        START=$(curl -L -b "$COOKIEFILE" -b 'lang_current=en' "$URL") || return
     else
-        START=$(curl -L -b "lang_current=en" "$URL") || return
+        START=$(curl -L -b 'lang_current=en' "$URL") || return
     fi
 
     if match "no_download_msg" "$START"; then
+        # Please try again in 1 min until file processing is complete.
+        if match 'html_download_api-temporary_unavailable' "$START"; then
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
         log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
@@ -100,7 +114,7 @@ depositfiles_download() {
         return 0
     fi
 
-    DLID=$(echo "$START" | parse 'form action=' 'files%2F\([^"]*\)')
+    DLID=$(echo "$START" | parse 'switch_lang' 'files%2F\([^"]*\)')
     log_debug "download ID: $DLID"
     if [ -z "$DLID" ]; then
         log_error "Can't parse download id, site updated"
@@ -160,6 +174,8 @@ depositfiles_download() {
     # reCaptcha page (challenge forced)
     if match 'load_recaptcha();' "$DATA"; then
 
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
@@ -182,6 +198,69 @@ depositfiles_download() {
     fi
 
     echo "$DATA" | parse_form_action
+}
+
+# Upload a file to depositfiles
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: depositfiles download link
+depositfiles_upload() {
+    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_UPLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE="$1"
+    local FILE="$2"
+    local DESTFILE="$3"
+    local DATA DL_LINK DEL_LINK
+
+    if [ -n "$AUTH" ]; then
+        depositfiles_login "$AUTH" "$COOKIEFILE" 'http://depositfiles.com' || return
+    fi
+
+    DATA=$(curl -b "$COOKIEFILE" 'http://depositfiles.com') || return
+
+    local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_GO FORM_AGREE
+    FORM_HTML=$(grep_form_by_id "$DATA" 'upload_form')
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
+    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
+    FORM_GO=$(echo "$FORM_HTML" | parse_form_input_by_name 'go')
+    FORM_AGREE=$(echo "$FORM_HTML" | parse_form_input_by_name 'agree')
+
+    DATA=$(curl_with_log -b "$COOKIEFILE" \
+        -F "MAX_FILE_SIZE=$FORM_MAXFSIZE"    \
+        -F "UPLOAD_IDENTIFIER=$FORM_UID"     \
+        -F "go=$FORM_GO"                     \
+        -F "agree=$FORM_AGREE"               \
+        -F "files=@$FILE;filename=$DESTFILE" \
+        "$FORM_URL") || return
+
+    DL_LINK=$(echo "$DATA" | parse 'ud_download_url[[:space:]]' "'\([^']*\)'") || return
+    DEL_LINK=$(echo "$DATA" | parse 'ud_delete_url' "'\([^']*\)'") || return
+
+    echo "$DL_LINK ($DEL_LINK)"
+}
+
+# Delete a file on depositfiles
+# (authentication not required, we can delete anybody's files)
+# $1: delete link
+depositfiles_delete() {
+    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DELETE_OPTIONS" "$@")"
+
+    local URL="$1"
+    local PAGE
+
+    PAGE=$(curl "$URL") || return
+
+    # File has been deleted and became inaccessible for download.
+    if matchi 'File has been deleted' "$PAGE"; then
+        return 0
+
+    # No such downlodable file or incorrect removal code.
+    else
+        log_error "bad deletion code"
+        return $ERR_FATAL
+    fi
 }
 
 # List a depositfiles shared file folder URL
