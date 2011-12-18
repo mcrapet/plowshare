@@ -118,7 +118,7 @@ get_ofuscated_link() {
     local COOKIEFILE="$2"
     local BASE_URL='http://www.mediafire.com'
 
-    local PAGE_JS FUNCTION RESULT DIVID DYNAMIC_PATH DYNAMIC_JS FILE_URL
+    local PAGE_JS FNAME ZINDEX_MOD ZINDEX_LINKS
 
     # One single line
     PAGE_JS=$(echo "$PAGE" | grep 'function SaveFileToMyAccount') || {
@@ -126,7 +126,7 @@ get_ofuscated_link() {
         return $ERR_FATAL;
     }
     
-    FNAME=$(echo "$PAGE_JS" | parse_all 'function' 'function \([[:alnum:]]\+\)()' | head -n1) ||
+    FNAME=$(echo "$PAGE_JS" | parse_all 'function' 'function \([[:alnum:]]\+\)()' | first_line) ||
       { log_error "cannot get JS function name"; return $ERR_FATAL; }
     
     ZINDEX_MOD=$(echo "
@@ -145,11 +145,11 @@ get_ofuscated_link() {
     " | js | parse 'z-index' 'z-index.*[[:space:]]*%[[:space:]]*\([[:digit:]]\+\)') ||
         { log_error "cannot get z-index modulo"; return $ERR_FATAL; }    
 
-    echo "$PAGE" | sed "s/<div/\n<div/g" | grep 'class="download_link"' | 
-                   sed 's/.*z-index:\([[:digit:]]\+\).*href="\([^"]\+\)".*/\1 \2/' | 
-                   while read ZINDEX URL; do
+    ZINDEX_LINKS=$(echo "$PAGE" | sed "s/<div/\n<div/g" | grep 'class="download_link"' |
+            sed 's/.*z-index:\([[:digit:]]\+\).*href="\([^"]\+\)".*/\1 \2/') 
+    echo "$ZINDEX_LINKS" | while read ZINDEX URL; do
         echo "$(($ZINDEX % $ZINDEX_MOD)) $URL"
-    done | sort -rn | head -n1 | cut -d" " -f2-
+    done | sort -rn | first_line | cut -d" " -f2-
 }
 
 # Upload a file to mediafire
