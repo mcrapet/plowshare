@@ -60,13 +60,18 @@ _plowdown()
             _available_interfaces -a
             return 0
             ;;
+        --captchamethod)
+            COMPREPLY=( $( compgen -W 'none prompt' -- $cur ) )
+            return 0
+            ;;
     esac
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
             -q -i -l -o -m -x -t -r \
             --limit-rate --interface --check-link --mark-downloaded --no-overwrite \
-            --output-directory --temp-directory --timeout --max-retries --captchatrader' -- $cur ) )
+            --output-directory --temp-directory --timeout --max-retries \
+            --fallback --captchatrader --captchamethod' -- $cur ) )
     else
         _filedir
     fi
