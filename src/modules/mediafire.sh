@@ -125,17 +125,17 @@ get_ofuscated_link() {
         log_error "cannot find main javascript code";
         return $ERR_FATAL;
     }
-    
+
     FNAME=$(echo "$PAGE_JS" | parse_all 'function' 'function \([[:alnum:]]\+\)()' | first_line) ||
-      { log_error "cannot get JS function name"; return $ERR_FATAL; }
-    
+        { log_error "cannot get JS function name"; return $ERR_FATAL; }
+
     ZINDEX_MOD=$(echo "
         ax = dC = jQuery = setTimeout = DoShow = LoadTemplatesFromSource = function() {};
         old_eval = eval;
         eval = function(code) {
             if(code.match(/\.download_link/)) {
               print(code);
-            } else { 
+            } else {
               return old_eval(code);
             }
         };
@@ -143,10 +143,10 @@ get_ofuscated_link() {
         $PAGE_JS;
         $FNAME();
     " | js | parse 'z-index' 'z-index.*[[:space:]]*%[[:space:]]*\([[:digit:]]\+\)') ||
-        { log_error "cannot get z-index modulo"; return $ERR_FATAL; }    
+        { log_error "cannot get z-index modulo"; return $ERR_FATAL; }
 
     ZINDEX_LINKS=$(echo "$PAGE" | sed "s/<div/\n<div/g" | grep 'class="download_link"' |
-            sed 's/.*z-index:\([[:digit:]]\+\).*href="\([^"]\+\)".*/\1 \2/') 
+            sed 's/.*z-index:\([[:digit:]]\+\).*href="\([^"]\+\)".*/\1 \2/')
     echo "$ZINDEX_LINKS" | while read ZINDEX URL; do
         echo "$(($ZINDEX % $ZINDEX_MOD)) $URL"
     done | sort -rn | first_line | cut -d" " -f2-
