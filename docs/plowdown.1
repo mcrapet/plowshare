@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "December 3, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "December 18, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -100,10 +100,13 @@ Limit download speed in bytes per seconds. Suffixes are:
 Cancel download after \fISECS\fR seconds of waits. Default is disabled.
 .TP
 .BI -r, " " --max-retries "=N"
-Set maximum retries for captcha solving. Default is infinite retries.
+Set maximum retries for download failures (only captcha errors for now). Default is infinite retries. \fB-r 0\fP means no retry, so one single download try is made.
 .TP
 .BI "   " " " --captchatrader "=USER:PASSWORD"
 Use CaptchaTrader account to solve captcha. If not specified, display image and prompt for manual entering.
+.TP
+.BI "   " " " --captchamethod "=METHOD"
+Force specific captcha solving method. Available values: \fBprompt\fP and \fBnone\fP.
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"
 Directory where files are temporarily downloaded.
@@ -205,9 +208,9 @@ $ plowdown \-c file_with_links.txt > file_with_active_links.txt
 .nf
 $ plowdown \-\-run\-download='wget \-O "%filename" \-\-load\-cookies "%cookies" "%url"' http://x7.to/abcdef 
 .fi
-.SS 7) Safe download. Each URL will be limited in the number of tries (mainly for captchas) and wait delays. 
+.SS 7) Safe download. Each URL will be limited in the number of tries and wait delays.
 .nf
-$ alias plowdown='plowdown \-\-no\-overwrite \-\-max\-retries=20 \-\-timeout=3600'
+$ alias plowdown='plowdown \-\-no\-overwrite \-\-max\-retries=10 \-\-timeout=3600'
 .sp 0
 $ plowdown \-m file_with_links.txt
 .fi
