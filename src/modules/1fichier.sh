@@ -43,8 +43,14 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 
     local COOKIEFILE="$1"
     local URL="$2"
+    local PAGE FILE_URL FILENAME
 
     PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+
+    # Location: http://www.1fichier.com/?c=SCAN
+    if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     if match "Le fichier demandé n'existe pas." "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -57,7 +63,7 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse_attr 'Cliquez ici pour' 'href')
+    FILE_URL=$(echo "$PAGE" | parse_attr 'Cliquez ici pour' 'href') || return
     FILENAME=$(echo "$PAGE" | parse_quiet '<title>' '<title>Téléchargement du fichier : *\([^<]*\)')
 
     echo "$FILE_URL"
