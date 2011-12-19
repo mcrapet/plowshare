@@ -854,8 +854,7 @@ captcha_process() {
         none)
             [ -n "$PRGPID" ] && log_debug "PID $PRGPID should be killed"
             rm -f "$FILENAME"
-            # don't return $ERR_CAPTCHA, because it could loop
-            return $ERR_MAX_TRIES_REACHED
+            return $ERR_CAPTCHA
             ;;
         captchatrader)
             if [ -z "$CAPTCHA_TRADER" ]; then

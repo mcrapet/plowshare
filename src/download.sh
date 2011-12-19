@@ -233,6 +233,11 @@ download() {
                     break
                 fi
 
+                if [ "$CAPTCHA_METHOD" = 'none' ]; then
+                    log_debug "captcha method set to none, abort"
+                    break
+                fi
+
                 (( ++TRY ))
                 if [ -n "$MAXRETRIES" ]; then
                     if [[ "$MAXRETRIES" -eq 0 ]]; then
