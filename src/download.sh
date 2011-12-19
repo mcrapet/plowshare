@@ -231,9 +231,8 @@ download() {
 
                 elif [ $DRETVAL -ne $ERR_CAPTCHA ]; then
                     break
-                fi
-
-                if [ "$CAPTCHA_METHOD" = 'none' ]; then
+                # [ $DRETVAL -eq $ERR_CAPTCHA ]
+                elif [ "$CAPTCHA_METHOD" = 'none' ]; then
                     log_debug "captcha method set to none, abort"
                     break
                 fi
