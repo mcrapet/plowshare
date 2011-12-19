@@ -108,7 +108,6 @@ wupload_download() {
 
     # Sorry! This file has been deleted.
     if match 'This file has been deleted' "$START_HTML"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     fi
 

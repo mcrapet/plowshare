@@ -40,7 +40,6 @@ euroshare_eu_download() {
     # html returned uses utf-8 charset
     PAGE=$(curl "$URL") || return
     if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
-        log_error "File not found."
         return $ERR_LINK_DEAD
     elif test "$CHECK_LINK"; then
         return 0

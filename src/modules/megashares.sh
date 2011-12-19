@@ -71,7 +71,6 @@ megashares_download() {
 
     # Check for dead link
     if matchi 'file does not exist\|invalid link' "$PAGE"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     # All download slots for this link are currently filled.
     # Please try again momentarily.

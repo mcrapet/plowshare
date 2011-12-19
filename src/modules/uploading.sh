@@ -40,7 +40,6 @@ uploading_download() {
     DATA=$(curl -c "$COOKIEFILE" -b "lang=1" "$URL") || return
 
     if match "requested file is not found" "$DATA"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     fi
 

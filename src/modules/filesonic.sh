@@ -123,7 +123,6 @@ filesonic_download() {
                 --referer "$URL?start=1" --data "" "$URL?start=1") || return
 
     if match 'File does not exist' "$PAGE"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     fi
 

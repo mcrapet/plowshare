@@ -48,7 +48,6 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
     PAGE=$(curl -L -b "$COOKIEFILE" "$URL" | break_html_lines) || return
 
     if matchi "file_size:[[:space:]]*'0B'," "$PAGE"; then
-        log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 

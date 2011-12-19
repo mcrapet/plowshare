@@ -51,7 +51,6 @@ uploaded_to_download() {
 
     # file does not exist
     if match 'uploaded\.to/404' "$URL"; then
-        log_error "File not found"
         return $ERR_LINK_DEAD
     fi
 

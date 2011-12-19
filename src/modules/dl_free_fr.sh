@@ -42,7 +42,6 @@ dl_free_fr_download() {
     local ERR1="erreur 500 - erreur interne du serveur"
     local ERR2="erreur 404 - document non trouv."
     if matchi "$ERR1\|$ERR2" "$HTML_PAGE"; then
-        log_error "file not found"
         return $ERR_LINK_DEAD
     fi
 

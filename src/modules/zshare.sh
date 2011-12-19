@@ -38,8 +38,9 @@ zshare_download() {
                             replace '/video/' '/download/')
 
     WAITPAGE=$(curl -L -c $COOKIEFILE --data "download=1" "$URL") || return
-    match "File Not Found" "$WAITPAGE" &&
-        { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    if matchi 'File Not Found' "$WAITPAGE"; then
+        return $ERR_LINK_DEAD
+    fi
 
     test "$CHECK_LINK" && return 0
 

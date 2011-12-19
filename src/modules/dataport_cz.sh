@@ -38,7 +38,6 @@ dataport_cz_download() {
     local PAGE=$(curl --location "$URL")
 
     if match '<h2>Soubor nebyl nalezen</h2>' "$PAGE"; then
-        log_error "File not found."
         return $ERR_LINK_DEAD
     fi
 

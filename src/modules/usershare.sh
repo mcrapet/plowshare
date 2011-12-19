@@ -42,7 +42,6 @@ usershare_download() {
     fi
 
     if match 'File Not Found' "$PAGE"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     fi
 

@@ -102,7 +102,6 @@ depositfiles_download() {
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
-        log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 
@@ -152,7 +151,6 @@ depositfiles_download() {
 
     # - Such file does not exist or it has been removed for infringement of copyrights.
     elif match 'html_download_api-not_exists' "$DATA"; then
-        log_error "file does not exist anymore"
         return $ERR_LINK_DEAD
 
     # - We are sorry, but all downloading slots for your country are busy.

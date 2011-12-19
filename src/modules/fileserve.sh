@@ -90,7 +90,6 @@ fileserve_download() {
             MAINPAGE=$(curl -i -b "$COOKIEFILE" --data "download=premium" "$URL") || return
 
             if match 'File not available' "$MAINPAGE"; then
-                log_debug "File not found"
                 return $ERR_LINK_DEAD
             fi
 
@@ -142,7 +141,6 @@ fileserve_download() {
 
     # "The file could not be found. Please check the download link."
     if match 'File not available' "$MAINPAGE"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     fi
 

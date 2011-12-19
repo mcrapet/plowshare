@@ -292,7 +292,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_LINK_DEAD)
-                log_notice "Warning: file link is not alive"
+                log_notice "Link is not alive: file not found"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "NOTFOUND"
                 rm -f "$COOKIES"
                 return $DRETVAL

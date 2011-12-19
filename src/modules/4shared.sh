@@ -45,7 +45,6 @@ MODULE_4SHARED_LIST_OPTIONS=""
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
-        log_error "File not found!"
         return $ERR_LINK_DEAD
     fi
 

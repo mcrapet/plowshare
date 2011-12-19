@@ -32,8 +32,11 @@ data_hu_download() {
     local URL="$2"
 
     PAGE=$(curl -L "$URL") || return
-    match "/missing.php" "$PAGE" &&
-        { log_debug "file not found"; return $ERR_LINK_DEAD; }
+
+    if match "/missing.php" "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
     FILE_URL=$(echo "$PAGE" | parse_attr "download_box_button" "href") ||
         { log_error "download link not found"; return $ERR_FATAL; }
 

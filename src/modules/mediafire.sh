@@ -48,13 +48,10 @@ mediafire_download() {
         echo "$LOCATION"
         return 0
     elif match 'errno=999$' "$LOCATION"; then
-        log_error "private link"
-        return $ERR_LINK_DEAD
+        return $ERR_LINK_NEED_PERMISSIONS
     elif match 'errno=320$' "$LOCATION"; then
-        log_error "invalid or deleted file"
         return $ERR_LINK_DEAD
     elif match 'errno=378$' "$LOCATION"; then
-        log_error "file removed for violation"
         return $ERR_LINK_DEAD
     elif match 'errno=' "$LOCATION"; then
         log_error "site redirected with an unknown error"

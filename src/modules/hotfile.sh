@@ -70,7 +70,6 @@ hotfile_download() {
 
     # "This file is either removed due to copyright claim or is deleted by the uploader."
     if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
-        log_debug "File not found"
         return $ERR_LINK_DEAD
     fi
 

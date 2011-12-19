@@ -47,7 +47,6 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
     PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if match "Le fichier demandé n'existe pas." "$PAGE"; then
-        log_error "File not found."
         return $ERR_LINK_DEAD
     fi
 

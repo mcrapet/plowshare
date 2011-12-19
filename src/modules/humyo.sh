@@ -44,7 +44,6 @@ humyo_download() {
     PAGE=$(curl "$URL" | break_html_lines) || return
 
     if matchi "<h1>File Not Found</h1>" "$PAGE"; then
-        log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 

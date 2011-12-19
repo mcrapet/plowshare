@@ -90,14 +90,13 @@ netload_in_download() {
 
     local WAIT_URL WAIT_HTML WAIT_TIME
 
-    WAIT_URL=$(curl --location -c $COOKIEFILE "$URL" | \
-        parse_quiet '<div class="Free_dl">' '><a href="\([^"]*\)') ||
-        { log_debug "file not found"; return $ERR_LINK_DEAD; }
+    WAIT_URL=$(curl --location -c "$COOKIEFILE" "$URL" | parse_quiet \
+        '<div class="Free_dl">' '><a href="\([^"]*\)') || return $ERR_LINK_DEAD
 
     test "$CHECK_LINK" && return 0
 
     WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-    WAIT_HTML=$(curl -b $COOKIEFILE -e $URL --location $WAIT_URL)
+    WAIT_HTML=$(curl -b "$COOKIEFILE" -e $URL --location $WAIT_URL)
     WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
 
@@ -109,7 +108,7 @@ netload_in_download() {
 
     # Create new formatted image
     CAPTCHA_IMG=$(create_tempfile) || return
-    curl -b $COOKIEFILE "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
+    curl -b "$COOKIEFILE" "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
             convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
             -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
         rm -f "$CAPTCHA_IMG";
@@ -133,7 +132,7 @@ netload_in_download() {
     FORM_URL=$(echo "$DOWNLOAD_FORM" | parse_form_action) || return
     FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
 
-    WAIT_HTML2=$(curl -l -b $COOKIEFILE --data "file_id=${FORM_FID}&captcha_check=${CAPTCHA}&start=" \
+    WAIT_HTML2=$(curl -l -b "$COOKIEFILE" --data "file_id=${FORM_FID}&captcha_check=${CAPTCHA}&start=" \
             "$BASE_URL/$FORM_URL") || return
 
     if match 'class="InPage_Error"' "$WAIT_HTML2"; then

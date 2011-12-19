@@ -47,7 +47,6 @@ badongo_download() {
     fi
 
     if match '"fileError">' "$PAGE"; then
-        log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 

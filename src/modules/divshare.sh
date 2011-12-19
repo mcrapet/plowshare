@@ -36,7 +36,6 @@ divshare_download() {
     PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if match '<div id="fileInfoHeader">File Information</div>'; then
-        log_debug "file not found"
         return $ERR_LINK_DEAD
     fi
 
@@ -60,9 +59,9 @@ divshare_download() {
     fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
-        { log_debug "can't get link, website updated?"; }
+        { log_debug "can't get link, website updated?"; return $ERR_FATAL; }
     FILENAME=$(echo "$PAGE" | parse '<title>' '<title>\([^<]*\)') ||
-        { log_debug "can't parse filename, website updated?"; }
+        { log_debug "can't parse filename, website updated?"; return $ERR_FATAL; }
 
     echo $FILE_URL
     echo "${FILENAME% - DivShare}"
