@@ -131,7 +131,7 @@ filesonic_download() {
 
     # Cases: download link, <400MB, captcha, wait
     # captcha/wait can redirect to any of the other cases
-    while retry_limit_not_reached || return; do
+    while true; do
 
         # download link
         if match 'Start download now' "$PAGE"; then

@@ -728,12 +728,6 @@ wait() {
     fi
 }
 
-# This function is depecated. Modules should not use it anymore.
-retry_limit_not_reached() {
-    log_debug "deprecated call"
-    return 0
-}
-
 # $1: local image filename (with full path). No specific image format expected.
 # $2 (optional): solve method
 # $3 (optional): view method (null string means autodetect)
