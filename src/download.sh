@@ -259,7 +259,10 @@ download() {
         else
             $FUNCTION "$@" "$COOKIES" "$DURL" >/dev/null || DRETVAL=$?
 
-            if [ $DRETVAL -eq 0 -o $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+            if [ $DRETVAL -eq 0 -o \
+                    $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE -o \
+                    $DRETVAL -eq $ERR_LINK_NEED_PERMISSIONS -o \
+                    $DRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
                 log_notice "Link active: $DURL"
                 echo "$DURL"
                 rm -f "$COOKIES"

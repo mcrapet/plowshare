@@ -54,7 +54,7 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
     URL=$(echo "$PAGE" | parse_last 'url:' "'\(\/?ct=download[^']*\)")
     if [ -z "$URL" ]; then
         log_error "no link found, site updated?"
-        return $ERR_LINK_DEAD
+        return $ERR_FATAL
     fi
 
     test "$CHECK_LINK" && return 0

@@ -35,6 +35,7 @@ uploaded_to_download() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
+    local BASE_URL='http://uploaded.to'
     local URL FILE_ID HTML SLEEP FILE_NAME
 
     # uploaded.to redirects all possible urls of a file to the canonical one
@@ -54,7 +55,7 @@ uploaded_to_download() {
         return $ERR_LINK_DEAD
     fi
 
-    local BASE_URL='http://uploaded.to'
+    test "$CHECK_LINK" && return 0
 
     # extract the raw file id
     FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')

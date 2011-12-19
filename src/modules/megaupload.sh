@@ -80,12 +80,11 @@ megaupload_download() {
     # Test for big files (premium account required)
     elif match "The file you are trying to download is larger than" "$PAGE"; then
         log_debug "Premium link"
-        test "$CHECK_LINK" && return 0
         return $ERR_LINK_NEED_PERMISSIONS
 
     # Test if the file is password protected
     elif match 'name="filepassword"' "$PAGE"; then
-        test "$CHECK_LINK" && return 0
+        test "$CHECK_LINK" && return $ERR_LINK_PASSWORD_REQUIRED
 
         log_debug "File is password protected"
 

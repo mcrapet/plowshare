@@ -93,7 +93,7 @@ mediafire_download() {
     # Use that trick!
     if ! match 'facebook.com/plugins/like' "$PAGE"; then
         log_error "Password-protected links are not supported"
-        return $ERR_FATAL
+        return $ERR_LINK_PASSWORD_REQUIRED
 
         # FIXME
         #log_debug "File is password protected"
