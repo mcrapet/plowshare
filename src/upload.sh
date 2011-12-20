@@ -194,16 +194,15 @@ for FILE in "$@"; do
         if [[ "$MAXRETRIES" -eq 0 ]]; then
             break
         elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK ]; then
+            RETVALS=(${RETVALS[@]} "$URETVAL")
             break
         elif [ "$MAXRETRIES" -lt "$TRY" ]; then
-            URETVAL=$ERR_MAX_TRIES_REACHED
+            RETVALS=(${RETVALS[@]} "$ERR_MAX_TRIES_REACHED")
             break
         fi
 
         log_notice "Starting upload ($MODULE): retry ${TRY}/$MAXRETRIES"
     done
-
-    RETVALS=(${RETVALS[@]} "$URETVAL")
 done
 
 rm -f "$UPCOOKIE"
