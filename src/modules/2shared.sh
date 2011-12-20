@@ -60,10 +60,11 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 
     local FILE="$2"
     local DESTFILE="$3"
-    local UPLOADURL="http://www.2shared.com/"
+    local UPLOAD_URL='http://www.2shared.com'
+    local DATA ACTION COMPLETE STATUS FILE_URL FILE_ADMIN
 
-    log_debug "downloading upload page: $UPLOADURL"
-    DATA=$(curl "$UPLOADURL") || return
+    log_debug "downloading upload page: $UPLOAD_URL"
+    DATA=$(curl "$UPLOAD_URL") || return
     ACTION=$(grep_form_by_name "$DATA" "uploadForm" | parse_form_action) ||
         { log_debug "cannot get upload form URL"; return $ERR_FATAL; }
     COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
@@ -79,11 +80,11 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         return $ERR_FATAL
     fi
 
-    DATA=$(curl "$UPLOADURL/$COMPLETE") || return
-    local URL=$(echo "$DATA" | parse 'name="downloadLink"' "\(http:[^<]*\)")
-    local ADMIN=$(echo "$DATA" | parse 'name="adminLink"' "\(http:[^<]*\)")
+    DATA=$(curl "$UPLOAD_URL/$COMPLETE") || return
+    FILE_URL=$(echo "$DATA" | parse 'name="downloadLink"' "\(http:[^<]*\)") || return
+    FILE_ADMIN=$(echo "$DATA" | parse 'name="adminLink"' "\(http:[^<]*\)")
 
-    echo "$URL ($ADMIN)"
+    echo "$FILE_URL ($FILE_ADMIN)"
 }
 
 # Delete a file uploaded to 2shared
