@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-# Retreive list of links from a shared-folder (sharing site) url
+# Retrieve list of links from a shared-folder (sharing site) url
 # Copyright (c) 2010-2011 Plowshare team
 #
 # Output links (one per line) on standard output.
@@ -60,7 +60,7 @@ absolute_path() {
 usage() {
     echo "Usage: plowlist [OPTIONS] [MODULE_OPTIONS] URL..."
     echo
-    echo "  Retreive list of links from a shared-folder (sharing site) url."
+    echo "  Retrieve list of links from a shared-folder (sharing site) url."
     echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
     echo
     echo "Global options:"
@@ -120,7 +120,7 @@ for URL in "$@"; do
     process_configfile_module_options 'Plowlist' "$MODULE" 'LIST'
 
     FUNCTION=${MODULE}_list
-    log_notice "Retreiving list ($MODULE): $URL"
+    log_notice "Retrieving list ($MODULE): $URL"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" || \
         RETVALS=(${RETVALS[@]} "$?")
 done

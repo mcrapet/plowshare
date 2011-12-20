@@ -412,7 +412,7 @@ parse_all_attr_quiet() {
     parse_all_attr "$@" 2>/dev/null
 }
 
-# Retreive "action" attribute (URL) from a <form> marker
+# Retrieve "action" attribute (URL) from a <form> marker
 #
 # stdin: (X)HTML data (idealy, call grep_form_by_xxx before)
 # stdout: result
@@ -420,7 +420,7 @@ parse_form_action() {
     parse '<[Ff][Oo][Rr][Mm]' 'action="\([^"]*\)"'
 }
 
-# Retreive "value" attribute from a named <input> marker
+# Retrieve "value" attribute from a named <input> marker
 #
 # $1: name attribute of <input> marker
 # stdin: (X)HTML data
@@ -429,7 +429,7 @@ parse_form_input_by_name() {
     parse_quiet "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
-# Retreive "value" attribute from a typed <input> marker
+# Retrieve "value" attribute from a typed <input> marker
 #
 # $1: type attribute of <input> marker (for example: "submit")
 # stdin: (X)HTML data
@@ -438,7 +438,7 @@ parse_form_input_by_type() {
     parse_quiet "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
-# Retreive "id" attributes from typed <input> marker(s)
+# Retrieve "id" attributes from typed <input> marker(s)
 parse_all_form_input_by_type_with_id() {
     parse_all "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "id=[\"']\?\([^'\">]*\)" 2>/dev/null
 }
