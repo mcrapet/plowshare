@@ -1419,9 +1419,9 @@ splitseconds() {
 timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
-    log_notice "Time left to timeout: $PS_TIMEOUT secs"
+    log_debug "time left to timeout: $PS_TIMEOUT secs"
     if [[ "$PS_TIMEOUT" -lt "$WAIT" ]]; then
-        log_debug "timeout reached (asked $WAIT secs to wait, but remaining time is $PS_TIMEOUT)"
+        log_notice "Timeout reached (asked to wait $WAIT seconds, but remaining time is $PS_TIMEOUT)"
         return $ERR_MAX_WAIT_REACHED
     fi
     (( PS_TIMEOUT -= WAIT ))

@@ -422,9 +422,17 @@ download() {
                     continue
                 fi
                 DRETVAL=$ERR_NETWORK
-            fi
 
-            test "$DRETVAL" -eq 0 || return $DRETVAL
+            elif [ "$DRETVAL" -eq $ERR_NETWORK ]; then
+                if [ "$CODE" = 503 ]; then
+                    log_error "Unexpected HTTP code ${CODE}, retry after a safety wait"
+                    wait 120 seconds || return
+                    continue
+                fi
+
+            elif [ "$DRETVAL" -ne 0 ]; then
+                return $DRETVAL
+            fi
 
             if [ "$CODE" = 416 ]; then
                 # If module can resume transfer, we assume here that this error
@@ -438,8 +446,8 @@ download() {
                     rm -f "$FILENAME_TMP"
                     continue
                 fi
-            elif ! match "20." "$CODE"; then
-                log_error "Unexpected HTTP code $CODE"
+            elif [ "${CODE:0:2}" = 20 ]; then
+                log_error "Unexpected HTTP code ${CODE}, restart download"
                 continue
             fi
 
