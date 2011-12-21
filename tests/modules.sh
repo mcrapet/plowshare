@@ -34,13 +34,12 @@ TEST_INDEX=(10 400 700)
 
 # plowdown
 download() {
-    $SRCDIR/download.sh -q --no-overwrite --no-arbitrary-wait \
-        --max-retries=50 --timeout=600 "$@"
+    $SRCDIR/download.sh --no-overwrite --max-retries=5 --timeout=400 "$@"
 }
 
 # plowup
 upload() {
-    $SRCDIR/upload.sh -q "$@"
+    $SRCDIR/upload.sh -q --max-retries=2 "$@"
 }
 
 # plowdel
@@ -155,9 +154,9 @@ test_case_up_down_del() {
     local RET LINKS OFILE DL_LINK DEL_LINK
 
     # Check for double-dash (no option)
-    [ "${OPTS_UP:0:2}" = '--' ] && OPTS_UP=
-    [ "${OPTS_DN:0:2}" = '--' ] && OPTS_DN=
-    [ "${OPTS_DEL:0:2}" = '--' ] && OPTS_DEL=
+    [ "$OPTS_UP" = '--' ] && OPTS_UP=
+    [ "$OPTS_DN" = '--' ] && OPTS_DN=
+    [ "$OPTS_DEL" = '--' ] && OPTS_DEL=
 
     RET=0
     LINKS=$(upload $OPTS_UP "$MODULE" "$FILE") || RET=$?
@@ -192,7 +191,7 @@ test_case_up_down_del() {
     echo -n "up ok > "
 
     # Check link
-    download --check-link $OPTS_DN "$DL_LINK" >/dev/null || RET=$?
+    download --check-link -q $OPTS_DN "$DL_LINK" >/dev/null || RET=$?
     if [ "$RET" -ne 0 ]; then
         # ERR_LINK_TEMP_UNAVAILABLE
         if [ "$RET" -eq 10 ]; then
@@ -208,25 +207,36 @@ test_case_up_down_del() {
 
     echo -n "check link ok > "
 
-    # FIXME: ugly hack!!!
-    [ "$MODULE" = '1fichier' ] && sleep 10
-
-    OFILE=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK") || RET=$?
+    LOG_FILE="$TEMP_DIR/${MODULE}.log"
+    OFILE=$(download -v4 --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK" 2>"$LOG_FILE") || RET=$?
     if [ "$RET" -ne 0 ]; then
         # ERR_LINK_TEMP_UNAVAILABLE
         if [ "$RET" -eq 10 ]; then
             echo -n "down KO (link not available)"
+        # ERR_MAX_WAIT_REACHED
+        elif [ "$RET" -eq 5 ]; then
+            echo -n "down KO (wait timeout)"
+        # ERR_MAX_TRIES_REACHED
+        elif [ "$RET" -eq 6 ]; then
+            echo -n "down KO (max retries)"
+        # ERR_CAPTCHA
+        elif [ "$RET" -eq 7 ]; then
+            echo -n "down KO (captcha solving failure)"
+        # ERR_LINK_NEED_PERMISSIONS
+        elif [ "$RET" -eq 12 ]; then
+            echo -n "down KO (authentication required)"
         else
             echo -n "down KO"
         fi
 
         status 3
         stderr "ERR ($RET): plowdown $OPTS_DN $DL_LINK"
+        stderr "ERR ($RET): logfile: $LOG_FILE"
         return
     else
         # Compare files
         diff -q "$FILE" "$OFILE" >/dev/null || stderr "ERR: uploaded and downloaded are binary different"
-        rm -f "$OFILE"
+        rm -f "$OFILE" "$LOG_FILE"
     fi
 
     echo -n "down ok > "
@@ -262,10 +272,10 @@ test_signle_down() {
     local F
 
     # Check for double-dash (no option)
-    [ "${OPTS_DN:0:2}" = '--' ] && OPTS_DN=
+    [ "$OPTS_DN" = '--' ] && OPTS_DN=
 
     RET=0
-    F=$(download --temp-directory=$TEMP_DIR $OPTS_DN "$LINK") || RET=$?
+    F=$(download -q --temp-directory=$TEMP_DIR $OPTS_DN "$LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
         echo -n "down KO"
         status 1
@@ -288,10 +298,10 @@ test_check_wrong_link() {
     local OPTS_DN=$2
 
     # Check for double-dash (no option)
-    [ "${OPTS_DN:0:2}" = '--' ] && OPTS_DN=
+    [ "$OPTS_DN" = '--' ] && OPTS_DN=
 
     RET=0
-    download --check-link $OPTS_DN "$LINK" >/dev/null || RET=$?
+    download --check-link -q $OPTS_DN "$LINK" >/dev/null || RET=$?
 
     # ERR_LINK_DEAD=13
     if [ "$RET" -ne 13 ]; then
