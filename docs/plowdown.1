@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "December 18, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "December 21, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -244,11 +244,11 @@ No available module (provided URL is not supported).
 .IP 3
 Network error. Mostly curl related.
 .IP 4
-Site login failed.
+Authentication failed (bad login/password).
 .IP 5
 Timeout reached (refer to \fI-t/--timeout\fP command-line option).
 .IP 6
-Maximumn tries reached (refer to \fI--max-retries\fP command-line option).
+Maximumn tries reached (refer to \fI-r/--max-retries\fP command-line option).
 .IP 7
 Captcha generic error.
 .IP 8
@@ -258,11 +258,13 @@ Link alive but temporarily unavailable.
 .IP 11
 Link alive but requires a password.
 .IP 12
-Link alive but requires some authentication (premium link).
+Link alive but requires some authentication (private or premium link).
 .IP 13
 Link is dead.
-.TP
-If plowdown is invoked with multiple links or a link-list file and if one or several errors occur, the first error code is returned added with 100.
+.PP
+If
+.B plowdown
+is invoked with multiple links or a link-list file and one or several errors occur, the first error code is returned added with 100.
 
 .\" ****************************************************************************
 .\" * Authors / See Also                                                       *
@@ -270,7 +272,7 @@ If plowdown is invoked with multiple links or a link-list file and if one or sev
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2011 The Plowshare Team 
+Plowshare is (C) 2010-2011 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowup (1),
 .BR plowdel (1),
