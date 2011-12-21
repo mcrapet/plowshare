@@ -119,9 +119,15 @@ for URL in "$@"; do
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" && \
-        log_notice "File removed successfully" || \
-        RETVALS=(${RETVALS[@]} "$?")
+
+    if [ $DRETVAL -eq 0 ]; then
+        log_notice "File removed successfully"
+    else
+        RETVALS=(${RETVALS[@]} "$DRETVAL")
+        if [ $DRETVAL -eq $ERR_LINK_DEAD ]; then
+            log_error "Not found or already deleted"
+        fi
+    fi
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then

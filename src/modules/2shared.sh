@@ -101,7 +101,6 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     ADMIN_PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if ! match 'Delete File' "$ADMIN_PAGE"; then
-        log_error "File not found"
         rm -f "$COOKIEFILE"
         return $ERR_LINK_DEAD
     fi
@@ -117,7 +116,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 
     curl -b "$COOKIEFILE" --referer "$URL" -o /dev/null \
         --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
-        "$URL"
+        "$URL" || return
     # Can't parse for success, we get redirected to main page
 
     rm -f "$COOKIEFILE"

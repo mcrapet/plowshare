@@ -338,7 +338,6 @@ filesonic_delete() {
         log_debug "Delete error"
         return $ERR_FATAL
     elif match 'Item not found' "$DELETE"; then
-        log_error "Not found or already deleted"
         return $ERR_LINK_DEAD
     fi
 
