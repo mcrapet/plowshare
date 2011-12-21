@@ -78,7 +78,7 @@ megaupload_download() {
         return $ERR_LINK_DEAD
 
     # Test for big files (premium account required)
-    elif match "The file you are trying to download is larger than" "$PAGE"; then
+    elif match '<div class="download_large_main">' "$PAGE"; then
         log_debug "Premium link"
         return $ERR_LINK_NEED_PERMISSIONS
 
