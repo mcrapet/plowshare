@@ -503,7 +503,7 @@ log_report "plowdown version $VERSION"
 
 if [ -n "$TEMP_DIR" ]; then
     TEMP_DIR=$(echo "$TEMP_DIR" | sed -e "s/\/$//")
-    log_notice "temporary directory: $TEMP_DIR"
+    log_notice "Temporary directory: $TEMP_DIR"
     mkdir -p "$TEMP_DIR"
     if [ ! -w "$TEMP_DIR" ]; then
         log_error "error: no write permission"
@@ -513,7 +513,7 @@ fi
 
 if [ -n "$OUTPUT_DIR" ]; then
     OUTPUT_DIR=$(echo "$OUTPUT_DIR" | sed -e "s/\/$//")
-    log_notice "output directory: $OUTPUT_DIR"
+    log_notice "Output directory: $OUTPUT_DIR"
     mkdir -p "$OUTPUT_DIR"
     if [ ! -w "$OUTPUT_DIR" ]; then
         log_error "error: no write permission"
