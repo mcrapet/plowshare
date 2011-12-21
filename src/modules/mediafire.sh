@@ -128,6 +128,7 @@ get_ofuscated_link() {
 
     ZINDEX_MOD=$(echo "
         ax = dC = jQuery = setTimeout = DoShow = LoadTemplatesFromSource = function() {};
+        window = {};
         old_eval = eval;
         eval = function(code) {
             if(code.match(/\.download_link/)) {
