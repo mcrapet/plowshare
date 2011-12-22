@@ -13,7 +13,7 @@ $ PREFIX=/home/$USER make install
 # If you are on a cross compilation environment:
 # (default prefix is /usr/local)
 $ make install DESTDIR=/media/rootfs
-or 
+or
 $ make install PREFIX=/opt DESTDIR=/media/rootfs
 
 
