@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "November 5, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowshare.conf" "5" "December 22, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -32,7 +32,7 @@ plowshare.conf \- Configuration file for Plowshare
 .B Plowshare
 (plowdown, plowup, plowdel or plowlist) uses a configuration file called 
 .I plowshare.conf
-for its initial septup. This configuration file is searched for the following places when plowshare is started:
+for its initial setup. This configuration file is searched for in the following places when plowshare is started:
 .PP
 .RS 4
 .nf
@@ -41,9 +41,8 @@ for its initial septup. This configuration file is searched for the following pl
 .fi
 .RE
 .PP
-The
 .I plowshare.conf
-file is composed of five sections which may be present in any order. Each section may contain lines of the form:
+file uses an INI-style format. It is composed of five sections which may be present in any order. Each section may contain lines of the form:
 .PP
 .RS 4
 .nf
@@ -75,8 +74,13 @@ Whitespace before and after a \fItoken\fP or \fIvalue\fP is ignored (although a 
 .IP .
 Double quoting \fIvalue\fP is optional.
 .PP
-Valid configuration token names are long-option command-line arguments of plowshare. Tokens are always lowercase. Options in general section
-prevail over Plow* section. Options given on the command line prevail over configuration file options.
+Valid tokens are always lowercase.
+Names are long-option command-line arguments of plowshare. For example: \fItemp-directory\fP.
+For modules options, tokens are prepended by module name and a slash character. For example: \fIhotfile/auth\fP (short-option are also possible here).
+
+For values, no backslash interpretations is made. "\\t" is a regular string with two characters, it is not a tab character.
+
+Options in general section prevail over Plow* section. Options given on the command line prevail over configuration file options.
 
 .\" ****************************************************************************
 .\" * Example                                                                  *
@@ -95,10 +99,10 @@ megaupload/a = "matt:4 dead beef "
 
 [Plowdown]
 captchatrader=matt:blablabla
-no-arbitrary-wait = yes
-timeout=456
+timeout=3600
 
 [Plowup]
+max-retries=2
 multiupload/auth = foo:bar
 multiupload/no-hf = yes
 

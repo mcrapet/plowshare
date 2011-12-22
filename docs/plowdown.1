@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "December 21, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "December 22, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -97,7 +97,7 @@ Limit download speed in bytes per seconds. Suffixes are:
 .RE
 .TP
 .BI -t, " " --timeout "=SECS"
-Cancel download after \fISECS\fR seconds of waits. Default is disabled.
+Cancel download after \fISECS\fR seconds of waits. This value applies for one download. Default is disabled (no timeout).
 .TP
 .BI -r, " " --max-retries "=N"
 Set maximum retries for download failures (only captcha errors for now). Default is infinite retries. \fB-r 0\fP means no retry, so one single download try is made.
@@ -111,8 +111,9 @@ Force specific captcha solving method. Available values: \fBprompt\fP and \fBnon
 .BI "   " " " --temp-directory "=DIRECTORY"
 Directory where files are temporarily downloaded.
 .TP
-.B "   " --no-arbitrary-wait
-Do not wait on temporarily unavailable link (when no time delay information is registered).
+.B "   " --no-extra-wait
+Don't wait on uncommon events (file temporarily unavailable with or without time delay information, unallowed parallel downloads, download quota reached, come back later message, ...).
+Don't use this switch if unsure, prefer \fI-r/--max-retries\fP instead.
 .SS Miscellaneous options
 .TP
 .B "   " --get-module

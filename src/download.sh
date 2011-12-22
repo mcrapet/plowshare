@@ -38,7 +38,7 @@ TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
 CAPTCHA_METHOD,,captchamethod:,METH, Force specific captcha solving method. Available: prompt, none.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
-NOARBITRARYWAIT,,no-arbitrary-wait,,Do not wait on temporarily unavailable file with no time delay information
+NOEXTRAWAIT,,no-extra-wait,,Do not wait on uncommon events (unavailable file, unallowed parallel downloads, ...)
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies) for each link
@@ -191,7 +191,7 @@ download() {
     local CHECK_LINK=$8
     local TIMEOUT=$9
     local MAXRETRIES=${10}
-    local NOARBITRARYWAIT=${11}
+    local NOEXTRAWAIT=${11}
     local DOWNLOAD_INFO=${12}
     shift 12
 
@@ -218,8 +218,8 @@ download() {
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <$DRESULT
 
-                    # --no-arbitrary-wait option specified
-                    test -n "$NOARBITRARYWAIT" && break
+                    # --no-extra-wait option specified
+                    test -n "$NOEXTRAWAIT" && break
 
                     if [ -z "$AWAIT" ]; then
                         log_debug "arbitrary wait"
@@ -539,7 +539,7 @@ fi
 
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
-[ -n "$NOARBITRARYWAIT" ] && log_debug "plowdown: --no-arbitrary-wait selected"
+[ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
 [ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
 
 set_exit_trap
@@ -583,7 +583,7 @@ for ITEM in "$@"; do
 
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
             "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
-            "$NOARBITRARYWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
+            "$NOEXTRAWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
                 RETVALS=(${RETVALS[@]} "$?")
     done
 done

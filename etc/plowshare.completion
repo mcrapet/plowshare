@@ -70,7 +70,7 @@ _plowdown()
         COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
             -q -i -l -o -m -x -t -r \
             --limit-rate --interface --check-link --mark-downloaded --no-overwrite \
-            --output-directory --temp-directory --timeout --max-retries \
+            --output-directory --temp-directory --timeout --max-retries --no-extra-wait \
             --fallback --captchatrader --captchamethod' -- $cur ) )
     else
         _filedir
