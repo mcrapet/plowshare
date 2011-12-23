@@ -121,8 +121,8 @@ for URL in "$@"; do
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
 
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL"
-    DRETVAL=$?
+    DRETVAL=0
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || DRETVAL=$?
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
