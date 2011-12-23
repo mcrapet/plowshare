@@ -446,7 +446,7 @@ download() {
                     rm -f "$FILENAME_TMP"
                     continue
                 fi
-            elif [ "${CODE:0:2}" = 20 ]; then
+            elif [ "${CODE:0:2}" != 20 ]; then
                 log_error "Unexpected HTTP code ${CODE}, restart download"
                 continue
             fi
