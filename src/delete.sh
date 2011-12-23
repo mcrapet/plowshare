@@ -102,13 +102,14 @@ set_exit_trap
 
 RETVALS=()
 for URL in "$@"; do
+
     if [ -z "$URL" ]; then
         log_debug "empty argument, skipping"
         continue
     fi
 
     MODULE=$(get_module "$URL" "$MODULES")
-    if test -z "$MODULE"; then
+    if [ -z "$MODULE" ]; then
         log_error "Skip: no module for URL ($URL)"
         RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
         continue
@@ -119,6 +120,9 @@ for URL in "$@"; do
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
+
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL"
+    DRETVAL=$?
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
