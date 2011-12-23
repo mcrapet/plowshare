@@ -140,7 +140,7 @@ get_ofuscated_link() {
         fu = 1;
         $PAGE_JS;
         $FNAME();
-    " | js | parse 'z-index' 'z-index.*[[:space:]]*%[[:space:]]*\([[:digit:]]\+\)') ||
+    " | javascript | parse 'z-index' 'z-index.*[[:space:]]*%[[:space:]]*\([[:digit:]]\+\)') ||
         { log_error "cannot get z-index modulo"; return $ERR_FATAL; }
 
     ZINDEX_LINKS=$(echo "$PAGE" | sed "s/<div/\n<div/g" | grep 'class="download_link"' |
