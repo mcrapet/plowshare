@@ -53,7 +53,7 @@ megashares_download() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_DOWNLOAD_OPTIONS" "$@")"
 
     local URL="$2"
-    local ID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL
+    local ID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL FILE_NAME
 
     detect_perl || return
 
@@ -139,8 +139,12 @@ megashares_download() {
         log_debug "quota left: $QUOTA_LEFT (required: $FILE_SIZE)"
     fi
 
+    FILE_NAME=$(echo "$PAGE" | parse_attr '<h1' 'title')
     FILE_URL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href')
+
     echo "$FILE_URL"
+    test "$FILE_NAME" && echo "$FILE_NAME"
+    return 0
 }
 
 # Upload a file to megashares.com
