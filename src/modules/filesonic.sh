@@ -133,8 +133,8 @@ filesonic_download() {
     while true; do
 
         # download link
-        if match 'Start download now' "$PAGE"; then
-            FILE_URL=$(echo "$PAGE" | parse_quiet 'Start download now' 'href="\([^"]*\)"')
+        if match '[Ss]tart [Dd]ownload [Nn]ow' "$PAGE"; then
+            FILE_URL=$(echo "$PAGE" | parse_quiet '[Ss]tart [Dd]ownload [Nn]ow' 'href="\([^"]*\)"')
             echo "$FILE_URL"
             test "$FILENAME" && echo "$FILENAME"
             return 0
