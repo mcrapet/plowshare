@@ -605,7 +605,7 @@ post_login() {
     # For now "-z" test is kept.
     # There is no known case of a null $RESULT on successful login.
     if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
-        log_error "login request failed"
+        log_debug "login request failed"
         return $ERR_LOGIN_FAILED
     fi
 
