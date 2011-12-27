@@ -44,7 +44,7 @@ mediafire_download() {
     LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
 
     if match '^http://download' "$LOCATION"; then
-        log_notice "direct download"
+        log_debug "direct download"
         echo "$LOCATION"
         return 0
     elif match 'errno=999$' "$LOCATION"; then

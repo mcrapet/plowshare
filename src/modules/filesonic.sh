@@ -53,7 +53,7 @@ filesonic_login() {
     fi
 
     ROLE=$(parse_cookie "role" < "$COOKIES")
-    log_notice "Successfully logged in as $ROLE member"
+    log_debug "Successfully logged in as $ROLE member"
 
     return 0
 }

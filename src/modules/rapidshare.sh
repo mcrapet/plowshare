@@ -73,7 +73,7 @@ rapidshare_download() {
 
     if match "need to wait" "$ERROR"; then
         WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") || return
-        log_notice "Server has asked to wait $WAIT seconds"
+        log_debug "Server has asked to wait $WAIT seconds"
         echo $((WAIT))
         return $ERR_LINK_TEMP_UNAVAILABLE
 

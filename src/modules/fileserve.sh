@@ -53,7 +53,7 @@ fileserve_login() {
     NAME=$(echo "$LOGIN_RESULT" | parse_line_after 'Welcome' \
             '<strong>\([^<]*\)') || return $ERR_LOGIN_FAILED
 
-    log_notice "Successfully logged in as $NAME member"
+    log_debug "Successfully logged in as $NAME member"
 
     echo "$LOGIN_RESULT"
     return 0
