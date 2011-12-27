@@ -127,7 +127,7 @@ get_ofuscated_link() {
         { log_error "cannot get JS function name"; return $ERR_FATAL; }
 
     ZINDEX_MOD=$(echo "
-        ax = dC = jQuery = setTimeout = DoShow = LoadTemplatesFromSource = function() {};
+        $ = ax = dC = jQuery = setTimeout = DoShow = LoadTemplatesFromSource = function() {};
         window = {};
         old_eval = eval;
         eval = function(code) {
