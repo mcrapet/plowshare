@@ -73,12 +73,12 @@ fileserve_download() {
     local ID URL LOGIN_RESULT FILE_URL MAINPAGE JSON1 JSON2 MSG1 MSG2 MSG3 WAIT_TIME
 
     # URL must be well formed (issue #280)
-    local ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
+    ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if [ -z "$ID" ]; then
         log_debug "Cannot parse URL to extract file id, try anyway"
-        local URL="$2"
+        URL="$2"
     else
-        local URL="http://www.fileserve.com/file/$ID"
+        URL="http://www.fileserve.com/file/$ID"
     fi
 
     if [ -n "$AUTH" ]; then
@@ -98,7 +98,7 @@ fileserve_download() {
 
             if [ "${FILE_URL:0:1}" = '/' ]; then
                 MSG1=$(curl -L -b "$COOKIEFILE" "$URL" | parse_attr_quiet '0; URL' 'CONTENT')
-                log_debug "fileserve internal error (${MSG1:7})"
+                log_error "fileserve internal error (${BASEURL}${MSG1:7})"
                 return $ERR_FATAL
             fi
 
