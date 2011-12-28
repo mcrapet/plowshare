@@ -44,6 +44,7 @@ GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
 DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies) for each link
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 "
 
 

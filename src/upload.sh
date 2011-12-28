@@ -32,6 +32,7 @@ INTERFACE,i:,interface:,IFACE,Force IFACE interface
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 "
 
 

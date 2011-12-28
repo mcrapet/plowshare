@@ -40,9 +40,10 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 
 # Global variables used (defined in other .sh)
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
+#   - LIBDIR           Absolute path to plowshare's libdir
 #   - INTERFACE        Network interface (used by curl)
 #   - LIMIT_RATE       Network speed (used by curl)
-#   - LIBDIR           Absolute path to plowshare's libdir
+#   - NO_CURLRC        Do not read of use curlrc config
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
 #   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
 #
@@ -122,6 +123,7 @@ curl() {
 
     test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
     test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" "--limit-rate" "$LIMIT_RATE")
+    test -n "$NO_CURLRC" && OPTIONS=('-q' "${OPTIONS[@]}")
 
     set -- $(type -P curl) "${OPTIONS[@]}" "$@"
 
