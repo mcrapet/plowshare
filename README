@@ -96,7 +96,7 @@ $ plowdown file_with_links.txt
 $ plowdown -m file_with_links.txt
 
 5. Limit the download rate (you can use curl rates: K=Kbps, M=Mbps, G=Gbps)
-$ plowdown -r 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+$ plowdown -l 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
 6. Download a file from Megaupload using a free membership account 
    (note ':' is used to separate user from password)
