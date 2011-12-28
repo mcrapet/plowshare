@@ -68,7 +68,7 @@ filesonic_download() {
 
     local COOKIEFILE="$1"
     local URL="$2"
-    local LINK_ID DOMAIN PAGE FILENAME
+    local LINK_ID DOMAIN PAGE FILENAME ROLE HEADERS
 
     if match '/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -80,7 +80,7 @@ filesonic_download() {
     # /file/12345/filename.zip          => 12345
     # /file/r54321/12345                => r54321-12345
     # /file/r54321/12345/filename.zip   => r54321-12345
-    LINK_ID=$(echo "$URL" | parse '\/file\/' 'file\/\(\([a-z][0-9]\+\/\)\?\([0-9]\+\)\)') || return
+    LINK_ID=$(echo "$URL" | parse '\/file\/' 'file\/\(\([a-z][0-9]\+\/\)\?\([[:alnum:]]\+\)\)') || return
     log_debug "Link ID: $LINK_ID"
     LINK_ID=${LINK_ID##*/}
 
@@ -94,199 +94,182 @@ filesonic_download() {
         URL="http://www.filesonic.com/file/$LINK_ID"
     fi
 
-    # obtain mainpage first (unauthenticated) to get filename
-    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    HEADERS=''
+    if [ -s "$COOKIEFILE" ]; then
+        PAGE=$(curl -i -b "$COOKIEFILE" "$URL") || return
+        # premium cookie
+        if matchi '^location' "$PAGE"; then
+            HEADERS="$PAGE"
+            PAGE=$(curl "$URL") || return
+        fi
+    else
+        # obtain mainpage first (unauthenticated) to get filename
+        PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    fi
 
     # do not obtain filename from "<span>Filename:" because it is shortened
     # with "..." if too long; instead, take it from title
     FILENAME=$(echo "$PAGE" | parse_quiet "<title>" ">Download \(.*\) for free")
 
-    # Account user
+    # User account
     if test "$AUTH"; then
         local BASEURL=$(basename_url "$URL")
         filesonic_login "$AUTH" "$COOKIEFILE" "$BASEURL" || return
 
-        FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
-        if ! test "$FILE_URL"; then
-            log_error "No link received (most likely premium account expired)"
-            return $ERR_FATAL
+        ROLE=$(parse_cookie "role" < "$COOKIEFILE")
+        if [ "$ROLE" != 'free' ]; then
+            FILE_URL=$(curl -I -b "$COOKIEFILE" "$URL" | grep_http_header_location)
+            if ! test "$FILE_URL"; then
+                log_error "No link received (most likely premium account expired)"
+                return $ERR_FATAL
+            fi
+
+            echo "$FILE_URL"
+            test "$FILENAME" && echo "$FILENAME"
+
+            return 0
         fi
+    else
+        ROLE=$(parse_cookie "role" < "$COOKIEFILE")
+        if [ "$ROLE" != 'free' -a -n "$HEADERS" ]; then
+            echo "$HEADERS" | grep_http_header_location
+            test "$FILENAME" && echo "$FILENAME"
 
-        echo "$FILE_URL"
-        test "$FILENAME" && echo "$FILENAME"
-
-        return 0
+            return 0
+        fi
     fi
 
-    # Normal user
-    PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                --referer "$URL?start=1" --data "" "$URL?start=1") || return
-
-    if match 'File does not exist' "$PAGE"; then
+    # The file has been deleted as per a copyright notification
+    if match 'errorDoesNotExist' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
 
-    # Cases: download link, <400MB, captcha, wait
-    # captcha/wait can redirect to any of the other cases
-    while true; do
+    # Normal user
+    PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+                --referer "$URL?start=1" --data "" "$URL?start=1") || return
 
-        # download link
-        if match '[Ss]tart [Dd]ownload [Nn]ow' "$PAGE"; then
-            FILE_URL=$(echo "$PAGE" | parse_quiet '[Ss]tart [Dd]ownload [Nn]ow' 'href="\([^"]*\)"')
-            echo "$FILE_URL"
-            test "$FILENAME" && echo "$FILENAME"
-            return 0
+    # Free users cannot download files > 400MB
+    if match 'download is larger than 400Mb.' "$PAGE"; then
+        log_error "You're trying to download file larger than 400MB (only premium users can)."
+        return $ERR_LINK_NEED_PERMISSIONS
 
-        # free users can download files < 400MB
-        elif match 'download is larger than 400Mb.' "$PAGE"; then
-            log_error "You're trying to download file larger than 400MB (only premium users can)."
-            return $ERR_LINK_NEED_PERMISSIONS
+    # Free users may only download 1 file at a time.
+    elif match 'download 1 file at a time' "$PAGE"; then
+        log_error "No parallel download allowed"
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
-        # Free users may only download 1 file at a time.
-        elif match 'download 1 file at a time' "$PAGE"; then
-            log_error "No parallel download allowed"
+    # wait step
+    if match 'countDownDelay' "$PAGE"; then
+        SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
+
+        # for wait time > 5min. these values may not be present
+        # it just means we need to try again so the following code is fine
+        TM=$(echo "$PAGE" | parse_attr_quiet "name='tm'" "value")
+        TM_HASH=$(echo "$PAGE" | parse_attr_quiet "name='tm_hash'" "value")
+
+        if [ -z "$TM" -o -z "$TM_HASH" ]; then
+            echo $SLEEP
             return $ERR_LINK_TEMP_UNAVAILABLE
-
-        # captcha
-        elif match 'Please Enter Captcha' "$PAGE"; then
-
-            local PUBKEY WCI CHALLENGE WORD ID
-            PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
-            WCI=$(recaptcha_process $PUBKEY) || return
-            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-            DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-            PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                        --referer "$URL" --data "$DATA" "$URL?start=1") || return
-
-            if match 'Please Enter Captcha' "$PAGE"; then
-                recaptcha_nack $ID
-                log_error "wrong captcha"
-                return $ERR_CAPTCHA
-            fi
-
-            recaptcha_ack $ID
-            log_debug "correct captcha"
-
-        # wait
-        elif match 'countDownDelay' "$PAGE"; then
-            SLEEP=$(echo "$PAGE" | parse_quiet 'var countDownDelay = ' 'countDownDelay = \([0-9]*\);')
-
-            # for wait time > 5min. these values may not be present
-            # it just means we need to try again so the following code is fine
-            TM=$(echo "$PAGE" | parse_attr_quiet "name='tm'" "value")
-            TM_HASH=$(echo "$PAGE" | parse_attr_quiet "name='tm_hash'" "value")
-
-            if [ -z "$TM" -o -z "$TM_HASH" ]; then
-                echo $SLEEP
-                return $ERR_LINK_TEMP_UNAVAILABLE
-            fi
-
-            wait $SLEEP seconds || return
-
-            PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
-                        --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return
-
-        else
-            log_debug "$URL"
-            log_error "No match. Site update?"
-            return $ERR_FATAL
         fi
-    done
 
+        wait $SLEEP seconds || return
+
+        PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+                    --referer "$URL" --data "tm=$TM&tm_hash=$TM_HASH" "$URL?start=1") || return
+    fi
+
+    # captcha step
+    if match 'Please Enter Captcha' "$PAGE"; then
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LdNWbsSAAAAAIMksu-X7f5VgYy8bZiiJzlP83Rl'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
+        PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
+                    --referer "$URL" --data "$DATA" "$URL?start=1") || return
+
+        if match 'Please Enter Captcha' "$PAGE"; then
+            recaptcha_nack $ID
+            log_error "wrong captcha"
+            return $ERR_CAPTCHA
+        fi
+
+        recaptcha_ack $ID
+        log_debug "correct captcha"
+    fi
+
+    # download link
+    if matchi 'start download now' "$PAGE"; then
+        FILE_URL=$(echo "$PAGE" | parse_attr 'downloadLink' 'href')
+        echo "$FILE_URL"
+        test "$FILENAME" && echo "$FILENAME"
+        return 0
+    fi
+
+    log_error "Unknown state, give up!"
     return $ERR_FATAL
 }
 
-# Upload a file to filesonic
-# $1: cookie file
+# Upload a file to filesonic (requires an account)
+# $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download link on filesonic
 filesonic_upload() {
     eval "$(process_options filesonic "$MODULE_FILESONIC_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local FOLDERID=0
-    local URL='http://www.filesonic.com'
+    local BASE_URL='http://api.filesonic.com/'
+    local JSON URL LINK
 
-# FIXME: use official API
+    # This is based on wupload.
+    # We don't use filesonic_login here.
 
-    # update URL if there is a specific .ccTLD location from there
-    LOCATION=$(curl -I "$URL" | grep_http_header_location) || return
-    if test "$LOCATION"; then
-        URL=$(basename_url "$LOCATION")
+    if [ -z "$AUTH" ]; then
+        log_error "Anonymous users cannot upload files"
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    local FOLDER=""
+    local USER="${AUTH%%:*}"
+    local PASSWORD="${AUTH#*:}"
 
-    # Attempt to authenticate
-    if test "$AUTH"; then
-        filesonic_login "$AUTH" "$COOKIEFILE" "$URL" || return
-        FOLDER="-F folderId=$FOLDERID"
+    if [ "$AUTH" = "$PASSWORD" ]; then
+        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
 
-    # get main page to pick up an upload server
-    PAGE=$(curl -b "$COOKIES" "$URL") || return
-    SERVER=$(echo "$PAGE" | parse_quiet 'uploadServerHostname' "\s*=\s'*\([^']*\)';")
+    # Not secure !
+    JSON=$(curl "$BASE_URL/upload?method=getUploadUrl&u=$USER&p=$PASSWORD") || return
 
-    if ! test "$SERVER"; then
-        log_error "Can't find an upload server, site updated?"
+    # Login failed. Please check username or password.
+    if match "Login failed" "$JSON"; then
+        log_debug "login failed"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    log_debug "Successfully logged in as $USER member"
+
+    URL=$(echo "$JSON" | parse 'url' ':"\([^"]*json\)"') || return
+    URL=${URL//[\\]/}
+
+    # Upload one file per request
+    JSON=$(curl_with_log -L \
+        -F "folderId=0" \
+        -F "files[]=@$FILE;filename=$DESTFILE" "$URL") || return
+
+    if ! match 'success' "$JSON"; then
+        log_error "upload failed"
         return $ERR_FATAL
     fi
 
-    # prepare upload file id - browser uses the following javascript, we can do it in bash
-    # "upload_"+new Date().getTime()+"_<PHPSESSID>_"+Math.floor(Math.random()*90000)
-    PHPSESSID=$(parse_cookie "PHPSESSID" < "$COOKIEFILE")
-    ID="upload_$(date '+%s')123_${PHPSESSID}_$RANDOM"
-
-    # send file and get Location to completed URL
-    # Note: explicitely remove "Expect: 100-continue" header that curl wants to send
-    STATUS=$(curl_with_log -D - -b "$COOKIEFILE" --referer "$URL" -H "Expect:" \
-        -F "files[]=@$FILE;filename=$DESTFILE" $FOLDER \
-        "http://$SERVER/?callbackUrl=$URL/upload-completed/:uploadProgressId&X-Progress-ID=$ID") || return
-
-    if ! test "$STATUS"; then
-        log_error "Upload error"
-        return $ERR_FATAL
-    elif match 'An error occurred' "$STATUS"; then
-        log_error "Upload failed: server error"
-        return $ERR_FATAL
-    fi
-
-    COMPLETED=$(echo "$STATUS" | grep_http_header_location)
-    if ! test "$COMPLETED"; then
-        log_error "Upload failed: bad answer"
-        return $ERR_FATAL
-    fi
-
-    # get information
-    INFOS=$(curl -b "$COOKIEFILE" -e "$URL" "$COMPLETED") || return
-    STATUSCODE=$(echo "$INFOS" | parse_quiet '"statusCode":[0-9]*' '"statusCode":\([0-9]*\)')
-    STATUSMESSAGE=$(echo "$INFOS" | parse_quiet '"statusMessage":"[^"]*"' '"statusMessage":"\([^"]*\)"')
-
-    if ! test "$STATUSCODE"; then
-        log_error "Upload failed (no info)"
-        return $ERR_FATAL
-    elif [ $STATUSCODE -ne 0 ]; then
-        log_error "Upload failed: $STATUSMESSAGE ($STATUSCODE)"
-        return $ERR_FATAL
-    fi
-    log_debug "Upload succeeded: $STATUSMESSAGE"
-
-    # get download link
-    LINKID=$(echo "$INFOS" | parse_quiet '"linkId":"[^"]*"' '"linkId":"\([^"]*\)"')
-    BROWSE=$(curl -b "$COOKIEFILE" -H 'X-Requested-With: XMLHttpRequest' \
-            -e "$URL" "$URL/filesystem/generate-link/$LINKID") || return
-    LINK=$(echo "$BROWSE" | parse_attr 'id="URL_' 'value')
-
-    if ! test "$LINK"; then
-        log_error "Can't parse download link, site updated?"
-        return $ERR_FATAL
-    fi
+    # {"FSApi_Upload":{"postFile":{"response":{"files":[{"name":"foobar.abc","url":"http:\/\/www.filesonic.com...
+    LINK=$(echo "$JSON" | parse 'url' ':"\([^"]*\)\",\"size')
+    LINK=${LINK//[\\]/}
 
     echo "$LINK"
     return 0
