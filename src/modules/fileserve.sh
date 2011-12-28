@@ -59,7 +59,7 @@ fileserve_login() {
     return 0
 }
 
-# Output a fileserve.com file download URL (anonymous)
+# Output a fileserve.com file download URL
 # $1: cookie file
 # $2: fileserve.com url
 # stdout: real file download link
