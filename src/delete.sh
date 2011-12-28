@@ -54,13 +54,14 @@ absolute_path() {
 }
 
 # Print usage
+# Note: $MODULES is a multi-line list
 usage() {
-    echo "Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL..."
+    echo 'Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL...'
     echo
-    echo "  Delete a file-link from a file sharing site."
-    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
+    echo '  Delete a file-link from a file sharing site.'
+    echo '  Available modules:' $MODULES
     echo
-    echo "Global options:"
+    echo 'Global options:'
     echo
     print_options "$OPTIONS" '  '
     print_module_options "$MODULES" 'DELETE'

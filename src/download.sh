@@ -99,13 +99,14 @@ process_item() {
 }
 
 # Print usage
+# Note: $MODULES is a multi-line list
 usage() {
-    echo "Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]"
+    echo 'Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]'
     echo
-    echo "  Download files from file sharing servers."
-    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
+    echo '  Download files from file sharing servers.'
+    echo '  Available modules:' $MODULES
     echo
-    echo "Global options:"
+    echo 'Global options:'
     echo
     print_options "$OPTIONS" '  '
     print_module_options "$MODULES" 'DOWNLOAD'

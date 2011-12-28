@@ -1076,22 +1076,28 @@ timeout_init() {
 # $1: options
 # $2: indent string
 print_options() {
-    local OPTIONS=$1
+    local STRING
     while read OPTION; do
         test "$OPTION" || continue
         IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
-        STRING=$2
-        test "$SHORT" && {
-            STRING="$STRING-${SHORT%:}"
-            test "$VALUE" && STRING="$STRING $VALUE"
-        }
-        test "$LONG" -a "$SHORT" && STRING="$STRING, "
-        test "$LONG" && {
-            STRING="$STRING--${LONG%:}"
-            test "$VALUE" && STRING="$STRING=$VALUE"
-        }
+        if [ -n "$SHORT" ]; then
+            if test "$VALUE"; then
+                STRING="${2}-${SHORT%:} $VALUE"
+                test -n "$LONG" && STRING="$STRING, --${LONG%:}=$VALUE"
+            else
+                STRING="${2}-${SHORT%:}"
+                test -n "$LONG" && STRING="$STRING, --${LONG%:}"
+            fi
+        # long option only
+        else
+            if test "$VALUE"; then
+                STRING="${2}--${LONG%:}=$VALUE"
+            else
+                STRING="${2}--${LONG%:}"
+            fi
+        fi
         echo "$STRING: $HELP"
-    done <<< "$OPTIONS"
+    done <<< "$1"
 }
 
 # Show usage info for modules

@@ -61,13 +61,14 @@ absolute_path() {
 }
 
 # Print usage
+# Note: $MODULES is a multi-line list
 usage() {
-    echo "Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] URL|FILE[:DESTNAME]..."
+    echo 'Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] URL|FILE[:DESTNAME]...'
     echo
-    echo "  Upload file(s) to a file-sharing site."
-    echo "  Available modules:" $(echo "$MODULES" | tr '\n' ' ')
+    echo '  Upload file(s) to a file-sharing site.'
+    echo '  Available modules:' $MODULES
     echo
-    echo "Global options:"
+    echo 'Global options:'
     echo
     print_options "$OPTIONS" '  '
     print_module_options "$MODULES" 'UPLOAD'
