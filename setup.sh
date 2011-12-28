@@ -38,52 +38,60 @@ MANDIR5="${DESTDIR}${PREFIX}/share/man/man5"
 DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
 TESSERACTDIR="$DATADIR/tesseract"
-USAGE="Usage: setup.sh install|uninstall"
+USAGE='Usage: setup.sh install|uninstall'
 
 CP='cp -v'
 RM='rm -vf'
 LN_S='ln -sf'
 
-test $# -eq 0 && { echo "$USAGE"; exit 1; }
+if [ $# -eq 0 ]; then
+    echo "$USAGE"
+    exit 1
+fi
+
 test -n "$DESTDIR" -a ! -d "$DESTDIR" && mkdir -p "$DESTDIR"
-test -d "$PREFIX" || { echo "Error: bad prefix \`$PREFIX'"; exit 1; }
+
+if ! test -d "$PREFIX"; then
+    echo "Error: bad prefix \`$PREFIX' (directory does not exist)"
+    exit 1
+fi
 
 if [ "$1" = "uninstall" ]; then
-    $RM -r $DATADIR $DOCDIR
-    $RM $BINDIR/plowdown $BINDIR/plowup $BINDIR/plowdel $BINDIR/plowlist
-    $RM $MANDIR1/plowdown.1 $MANDIR1/plowup.1 $MANDIR1/plowdel.1 $MANDIR1/plowlist.1 $MANDIR5/plowshare.conf.5
+    $RM -r "$DATADIR" "$DOCDIR"
+    $RM "$BINDIR/plowdown" "$BINDIR/plowup" "$BINDIR/plowdel" "$BINDIR/plowlist"
+    $RM "$MANDIR1/plowdown.1" "$MANDIR1/plowup.1" "$MANDIR1/plowdel.1" "$MANDIR1/plowlist.1" "$MANDIR5/plowshare.conf.5"
 
 elif [ "$1" = "install" ]; then
     # Documentation
-    mkdir -p $DOCDIR $MANDIR1 $MANDIR5
-    $CP AUTHORS README $DOCDIR
-    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 $MANDIR1
-    $CP docs/plowshare.conf.5 $MANDIR5
+    mkdir -p "$DOCDIR" "$MANDIR1" "$MANDIR5"
+    $CP AUTHORS README "$DOCDIR"
+    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 "$MANDIR1"
+    $CP docs/plowshare.conf.5 "$MANDIR5"
 
     # Common library
-    mkdir -p $DATADIR
+    mkdir -p "$DATADIR"
     $CP -p src/core.sh     \
         src/download.sh    \
         src/upload.sh      \
         src/delete.sh      \
         src/list.sh        \
         src/strip_single_color.pl \
-        src/strip_threshold.pl $DATADIR
+        src/strip_threshold.pl "$DATADIR"
 
     # Modules
-    mkdir -p $MODULESDIR
-    $CP src/modules/*.sh src/modules/config $MODULESDIR
+    mkdir -p "$MODULESDIR"
+    $CP src/modules/*.sh src/modules/config "$MODULESDIR"
 
     # Tesseract
-    mkdir -p $TESSERACTDIR
-    $CP src/tesseract/* $TESSERACTDIR
+    mkdir -p "$TESSERACTDIR"
+    $CP src/tesseract/* "$TESSERACTDIR"
 
     # Binary files
-    mkdir -p $BINDIR
-    $LN_S $DATADIR_FINAL/download.sh $BINDIR/plowdown
-    $LN_S $DATADIR_FINAL/upload.sh $BINDIR/plowup
-    $LN_S $DATADIR_FINAL/delete.sh $BINDIR/plowdel
-    $LN_S $DATADIR_FINAL/list.sh $BINDIR/plowlist
+    mkdir -p "$BINDIR"
+    $LN_S "$DATADIR_FINAL/download.sh" "$BINDIR/plowdown"
+    $LN_S "$DATADIR_FINAL/upload.sh" "$BINDIR/plowup"
+    $LN_S "$DATADIR_FINAL/delete.sh" "$BINDIR/plowdel"
+    $LN_S "$DATADIR_FINAL/list.sh" "$BINDIR/plowlist"
 
 else
     echo "$USAGE"
