@@ -24,10 +24,10 @@ set -o pipefail
 # 0 means success or link alive
 ERR_FATAL=1                      # Unexpected result (upstream site updated, etc)
 ERR_NOMODULE=2                   # No module found for processing request
-ERR_NETWORK=3                    # Specific network error (socket reset, curl, etc)
+ERR_NETWORK=3                    # Generic network error (socket reset, curl, etc)
 ERR_LOGIN_FAILED=4               # Correct login/password argument is required
-ERR_MAX_WAIT_REACHED=5           # Refer to plowdown wait timeout (see -t/--timeout command line option)
-ERR_MAX_TRIES_REACHED=6          # Refer to plowdown max tries reached (see --max-retries command line option)
+ERR_MAX_WAIT_REACHED=5           # Wait timeout (see -t/--timeout command line option)
+ERR_MAX_TRIES_REACHED=6          # Max tries reached (see -r/--max-retries command line option)
 ERR_CAPTCHA=7                    # Captcha solving failure
 ERR_SYSTEM=8                     # System failure (missing executable, local filesystem, wrong behavior, etc)
 ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable
@@ -35,7 +35,7 @@ ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable
 ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
 ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (private or premium link)
                                  # or operation not allowed for anonymous user
-ERR_LINK_DEAD=13                 # plowdel: means file is not found or previously deleted
+ERR_LINK_DEAD=13                 # (plowdel: file not found or previously deleted)
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in other .sh)
