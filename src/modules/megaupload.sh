@@ -320,6 +320,12 @@ megaupload_list() {
     local XMLURL='http://www.megaupload.com/xml/folderfiles.php'
     local XML FOLDERID
 
+    # check whether it looks like a folder link
+    if ! match '\(?\|&\)f=' "$URL"; then
+        log_error "This is not a folder"
+        return $ERR_FATAL
+    fi
+
     FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') || return
     XML=$(curl "$XMLURL/?folderid=$FOLDERID") || return
 
