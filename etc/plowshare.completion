@@ -10,20 +10,25 @@ _plowup()
     prev=`_get_pword`
 
     case "$prev" in
+        -v)
+            COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
+            return 0
+            ;;
         -i|--interface)
             _available_interfaces -a
             return 0
             ;;
         -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|-l|--limit-rate|-r|--max-retries)
-            # don't complete
+            # argument required but no completions available
             return 0
             ;;
     esac
 
     if [[ "$cur" == -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
-            -q -i -l -r \
-            --limit-rate --interface --max-retries --name-prefix --name-suffix' -- $cur ) )
+        COMPREPLY=( $( compgen -W '--help --version --quiet \
+            -v -q -i -l -r \
+            --limit-rate --interface --max-retries --name-prefix --name-suffix \
+            --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         _get_first_arg
         if [ -z $arg ]; then
@@ -48,8 +53,12 @@ _plowdown()
     prev=`_get_pword`
 
     case "$prev" in
+        -v)
+            COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
+            return 0
+            ;;
         -a|-b|-p|--auth-free|--auth|--link-password|--captchatrader|-l|--limit-rate|-r|--max-retries)
-            # don't complete
+            # argument required but no completions available
             return 0
             ;;
         -o|--output-directory|--temp-directory)
@@ -67,13 +76,43 @@ _plowdown()
     esac
 
     if [[ "$cur" == -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version -v1 -v2 -v3 -v4 --quiet \
-            -q -i -l -o -m -x -t -r \
+        COMPREPLY=( $( compgen -W '--help --version --quiet \
+            -v -q -i -l -o -m -x -t -r \
             --limit-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --timeout --max-retries --no-extra-wait \
-            --fallback --captchatrader --captchamethod' -- $cur ) )
+            --fallback --captchatrader --captchamethod --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         _filedir
     fi
 } &&
 complete -F _plowdown plowdown
+
+have plowdel &&
+_plowdel()
+{
+    local cur prev
+
+    COMPREPLY=()
+    cur=`_get_cword`
+    prev=`_get_pword`
+
+    case "$prev" in
+        -v)
+            COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
+            return 0
+            ;;
+        -i|--interface)
+            _available_interfaces -a
+            return 0
+            ;;
+    esac
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W '--help --version --quiet \
+            -v -q -i --interface  --no-plowsharerc' -- $cur ) )
+    else
+        # URL pattern expected
+        _filedir
+    fi
+} &&
+complete -F _plowdel plowdel
