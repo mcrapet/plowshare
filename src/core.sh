@@ -242,7 +242,7 @@ delete_last_line() {
 #
 # $? is zero on success
 match() {
-    grep -q "$1" <<< "$2"
+    grep -q -- "$1" <<< "$2"
 }
 
 # Check if a string ($2) matches a regexp ($1)
@@ -250,7 +250,7 @@ match() {
 #
 # $? is zero on success
 matchi() {
-    grep -iq "$1" <<< "$2"
+    grep -iq -- "$1" <<< "$2"
 }
 
 # Check if URL is suitable for remote upload

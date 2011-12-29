@@ -33,6 +33,7 @@ MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
 
@@ -104,8 +105,9 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options
-process_configfile_options 'Plowup' "$OPTIONS"
+# Get configuration file options. Command-line is not parsed yet.
+match '--no-plowsharerc' "$@" || \
+    process_configfile_options 'Plowup' "$OPTIONS"
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
 eval "$(process_options 'plowup' "$OPTIONS$MODULE_OPTIONS" "$@")"
@@ -150,7 +152,8 @@ RETVALS=()
 UPCOOKIE=$(create_tempfile)
 
 # Get configuration file module options
-process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
+test -z "$NO_PLOWSHARERC" && \
+    process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
 
 for FILE in "$@"; do
 

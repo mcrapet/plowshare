@@ -26,6 +26,7 @@ GETVERSION,,version,,Return plowdel version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
 
@@ -80,8 +81,9 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options
-process_configfile_options 'Plowdel' "$OPTIONS"
+# Get configuration file options. Command-line is not parsed yet.
+match '--no-plowsharerc' "$@" || \
+    process_configfile_options 'Plowdel' "$OPTIONS"
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
 eval "$(process_options 'plowdel' "$OPTIONS$MODULE_OPTIONS" "$@")"
@@ -117,7 +119,8 @@ for URL in "$@"; do
     fi
 
     # Get configuration file module options
-    process_configfile_module_options 'Plowdel' "$MODULE" 'DELETE'
+    test -z "$NO_PLOWSHARERC" && \
+        process_configfile_module_options 'Plowdel' "$MODULE" 'DELETE'
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"

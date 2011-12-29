@@ -45,6 +45,7 @@ DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %fil
 DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
 
@@ -481,8 +482,9 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options
-process_configfile_options 'Plowdown' "$OPTIONS"
+# Get configuration file options. Command-line is not parsed yet.
+match '--no-plowsharerc' "$@" || \
+    process_configfile_options 'Plowdown' "$OPTIONS"
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
 eval "$(process_options 'plowdown' "$OPTIONS$MODULE_OPTIONS" "$@")"
@@ -581,7 +583,8 @@ for ITEM in "$@"; do
         fi
 
         # Get configuration file module options
-        process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
+        test -z "$NO_PLOWSHARERC" && \
+            process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
 
         download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
             "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \

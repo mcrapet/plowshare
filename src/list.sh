@@ -29,6 +29,7 @@ VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (def
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 RECURSE,r,recursive,,Recurse into sub folders
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
 
@@ -83,8 +84,9 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options
-process_configfile_options 'Plowlist' "$OPTIONS"
+# Get configuration file options. Command-line is not parsed yet.
+match '--no-plowsharerc' "$@" || \
+    process_configfile_options 'Plowlist' "$OPTIONS"
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
 eval "$(process_options 'plowlist' "$OPTIONS$MODULE_OPTIONS" "$@")"
@@ -118,7 +120,8 @@ for URL in "$@"; do
     fi
 
     # Get configuration file module options
-    process_configfile_module_options 'Plowlist' "$MODULE" 'LIST'
+    test -z "$NO_PLOWSHARERC" && \
+        process_configfile_module_options 'Plowlist' "$MODULE" 'LIST'
 
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
