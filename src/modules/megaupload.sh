@@ -227,7 +227,7 @@ megaupload_upload() {
 
     else
         # Sanity check
-        [ -n "$CLEAR_FETCH_LIST"] && \
+        [ -n "$CLEAR_FETCH_LIST" ] && \
             log_debug "unexpected option --clear-fetch-list, ignoring"
 
         PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/multiupload/") || return
