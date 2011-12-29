@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "December 22, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "December 29, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -116,6 +116,19 @@ Don't wait on uncommon events (file temporarily unavailable with or without time
 Don't use this switch if unsure, prefer \fI-r/--max-retries\fP instead.
 .SS Miscellaneous options
 .TP
+.BI "   " " " --cookies "=FILE"
+Use provided cookie file for HTTP requests. This can be used to bypass login process on registered (premium) accounts.
+This is not implemented by all modules.
+.TP
+.B "   " --fallback
+If no module is found for link, simply download it (HTTP GET).
+.TP
+.B "   " --no-curlrc
+Do not use curl config file (~/.curlrc).
+.TP
+.B "   " --no-plowsharerc
+Do not use local or global config file (plowshare.conf).
+.TP
 .B "   " --get-module
 Get module(s) for URL(s) and quit. Useful for wrappers.
 .TP
@@ -126,10 +139,6 @@ Available interpolations: %filename, %cookies, %url
 .BI "   " " " --download-info-only "=TEMPLATE"
 Don't download the file but echo a string.
 Available interpolations: %filename, %cookies, %url
-.TP
-.BI "   " " " --cookies "=FILE"
-Use this option to bypass login process on registered (premium) accounts.
-Force use of an external cookie file.
 .SS Generic program information
 .TP
 .B -h, --help

@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "August 16, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowlist" "1" "December 29, 2011" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowlist \- Command-line link-lister for file-sharing websites
@@ -46,6 +46,12 @@ Currently supported hosting sites list is available in README file.
 .TP
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
+.TP
+.B -r, --recursive
+Recurse into sub folders.
+.TP
+.B "   " --no-plowsharerc
+Do not use local or global config file (plowshare.conf).
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
@@ -88,12 +94,12 @@ None yet!
 .\" ****************************************************************************
 .SH EXAMPLES
 
-.SS 1) List links one shared-folder page
+.SS 1) List links from one shared-folder link
 .nf
 $ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110
 .sp 1
-# Process first URL, then the second one
-$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110 http://www.mediafire.com/?sharekey=695c8c1ed055a
+# First URL is processed, then the second one (this is not parallel)
+$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110 http://www.megaupload.com/?f=12345678
 .fi
 
 .\" ****************************************************************************
