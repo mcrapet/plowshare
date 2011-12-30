@@ -277,7 +277,13 @@ test_signle_down() {
     RET=0
     F=$(download -q --temp-directory=$TEMP_DIR $OPTS_DN "$LINK") || RET=$?
     if [ "$RET" -ne 0 ]; then
-        echo -n "down KO"
+        # ERR_LINK_NEED_PERMISSIONS
+        if [ "$RET" -eq 12 ]; then
+            echo -n "down KO (authentication required)"
+        else
+            echo -n "down KO"
+        fi
+
         status 1
         stderr "ERR ($RET): plowdown $OPTS_DN $LINK"
         return
@@ -311,7 +317,7 @@ test_check_wrong_link() {
         return
     fi
 
-    echo -n "check link ok (link dead as expexted)"
+    echo -n "check link ok (link dead as expected)"
 
     status 0
     return
