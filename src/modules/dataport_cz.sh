@@ -25,9 +25,9 @@ MODULE_DATAPORT_CZ_DOWNLOAD_RESUME=yes
 MODULE_DATAPORT_CZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DATAPORT_CZ_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or VIP account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_DATAPORT_CZ_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Login to free or VIP account (required)"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 
 # Output a dataport.cz file download URL
 # $1: cookie file (unused here)

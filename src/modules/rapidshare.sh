@@ -26,9 +26,9 @@ MODULE_RAPIDSHARE_DOWNLOAD_RESUME=yes
 MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 MODULE_RAPIDSHARE_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 
 # Output a rapidshare file download URL
 # $1: cookie file (unused here)

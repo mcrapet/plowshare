@@ -21,14 +21,14 @@
 MODULE_FILESONIC_REGEXP_URL="http://\(www\.\)\?filesonic\.[a-z]\+/"
 
 MODULE_FILESONIC_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_FILESONIC_DOWNLOAD_RESUME=no
 MODULE_FILESONIC_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_FILESONIC_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 MODULE_FILESONIC_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 MODULE_FILESONIC_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free-membership or premium)

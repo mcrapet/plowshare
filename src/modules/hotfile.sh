@@ -21,13 +21,13 @@
 MODULE_HOTFILE_REGEXP_URL="http://\(www\.\)\?hotfile\.com/"
 
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_HOTFILE_DOWNLOAD_RESUME=no
 MODULE_HOTFILE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_HOTFILE_LIST_OPTIONS=""
 
-# Output a hotfile.com file download URL (anonymous or premium)
+# Output a hotfile.com file download URL
 # $1: cookie file
 # $2: hotfile.com url
 # stdout: real file download link

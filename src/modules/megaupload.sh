@@ -21,13 +21,13 @@
 MODULE_MEGAUPLOAD_REGEXP_URL="http://\(www\.\)\?mega\(upload\|video\)\.com/"
 
 MODULE_MEGAUPLOAD_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Free-membership or Premium account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_MEGAUPLOAD_DOWNLOAD_RESUME=yes
 MODULE_MEGAUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEGAUPLOAD_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or Premium account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password (premium only)
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
@@ -35,7 +35,7 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 MULTIEMAIL,,multiemail:,EMAIL1[;EMAIL2;...],List of emails to notify upload (premium only)
 CLEAR_FETCH_LIST,,clear-fetch-list,,Clear fetch list (multifietch, premium only)"
 MODULE_MEGAUPLOAD_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Login to free or Premium account (required)"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 MODULE_MEGAUPLOAD_LIST_OPTIONS=""
 
 # Output a megaupload file download URL
@@ -117,7 +117,7 @@ megaupload_download() {
     test "$CHECK_LINK" && return 0
 
     if [ -n "$AUTH" ]; then
-        # Test for Premium account without "direct downloads" option
+        # Test for premium account without "direct downloads" option
         ACC=$(curl -b $COOKIEFILE "$BASEURL/?c=account") || return
 
         if ! match '">Regular' "$ACC" && test "$AUTH"; then
@@ -127,7 +127,7 @@ megaupload_download() {
         fi
     fi
 
-    # Look for a download link (anonymous & Free account)
+    # Look for a download link (anonymous & free account)
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'class="download_regular_usual' 'href') || return
 
     WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \

@@ -21,7 +21,7 @@
 MODULE_115_REGEXP_URL="http://\(\w\+\.\)\?115\.com/file/"
 
 MODULE_115_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 MODULE_115_DOWNLOAD_RESUME=no
 MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 

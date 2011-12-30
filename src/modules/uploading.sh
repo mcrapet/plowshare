@@ -24,7 +24,7 @@ MODULE_UPLOADING_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADING_DOWNLOAD_RESUME=no
 MODULE_UPLOADING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
-# Output a uploading file download URL (anonymous, not premium)
+# Output a uploading file download URL (anonymous)
 # $1: cookie file
 # $2: uploading.com url
 # stdout: real file download link
