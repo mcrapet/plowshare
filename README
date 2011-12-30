@@ -61,10 +61,6 @@ Install
 =======
 See INSTALL file for details.
 
-Plowshare is also available for several Linux distribution (Debian, Fedora, ...):
-Consult online documentation for up-to-date list:
-http://code.google.com/p/plowshare/wiki/Readme
-
 
 Usage examples
 ==============
@@ -185,3 +181,5 @@ Feedback
 If you find a bug in plowshare or want to propose an enhancement,
 open a new ticket here:
 http://code.google.com/p/plowshare/issues/list
+
+# vim: set fileencoding utf-8
