@@ -862,7 +862,7 @@ captcha_process() {
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
 
-            log_notice "Using catpcha.trader ($USERNAME)"
+            log_notice "Using captcha.trader ($USERNAME)"
 
             RESPONSE=$(curl -F "match=" \
                 -F "api_key=1645b45413c7e23a470475f33692cb63" \
@@ -999,7 +999,7 @@ recaptcha_ack() {
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
 
-            log_debug "catpcha.trader report ack ($USERNAME)"
+            log_debug "captcha.trader report ack ($USERNAME)"
 
             RESPONSE=$(curl -F "match=" \
                 -F "is_correct=1"       \
@@ -1024,7 +1024,7 @@ recaptcha_nack() {
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
 
-            log_debug "catpcha.trader report nack ($USERNAME)"
+            log_debug "captcha.trader report nack ($USERNAME)"
 
             RESPONSE=$(curl -F "match=" \
                 -F "is_correct=0"       \
