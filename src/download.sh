@@ -28,7 +28,7 @@ GETVERSION,,version,,Return plowdown version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,Check if a link exists and return
-MARK_DOWN,m,mark-downloaded,,Mark downloaded links in (regular) FILE arguments
+MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
@@ -36,7 +36,7 @@ LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, 
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
-CAPTCHA_METHOD,,captchamethod:,METH, Force specific captcha solving method. Available: prompt, none.
+CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: prompt, none.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 NOEXTRAWAIT,,no-extra-wait,,Do not wait on uncommon events (unavailable file, unallowed parallel downloads, ...)
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
