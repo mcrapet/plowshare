@@ -74,7 +74,8 @@ test:
 	@cd tests && ./modules.sh -l
 
 install_bash_completion:
-	@sed -e "s,CDIR=/usr/local/share/plowshare,CDIR=$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare
+	@$(INSTALL) -d $(DESTDIR)$(ETCDIR)/bash_completion.d
+	@sed -e "/cut/s,/usr/local/share/plowshare,$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare
 
 dist: distdir
 	@tar -cf - $(DISTDIR)/* | gzip -9 >$(DISTDIR).tar.gz

@@ -6,6 +6,10 @@ _plowup()
 {
     local cur prev arg
     COMPREPLY=()
+
+    # fix colon separator issue. See item E13 at http://tiswww.case.edu/php/chet/bash/FAQ
+    COMP_WORDBREAKS=${COMP_WORDBREAKS//:}
+
     cur=`_get_cword`
     prev=`_get_pword`
 
@@ -30,15 +34,22 @@ _plowup()
             --limit-rate --interface --max-retries --name-prefix --name-suffix \
             --no-curlrc --no-plowsharerc' -- $cur ) )
     else
-        _get_first_arg
-        if [ -z $arg ]; then
-            # replace with proper path
-            local CDIR=/usr/local/share/plowshare/modules/config
-            COMPREPLY=($(compgen -W "$(sed -ne \
-                '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' $CDIR | cut -d'|' -f1)" -- $cur))
-        else
-            _filedir
-        fi
+        local m list
+        list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
+            /usr/local/share/plowshare/modules/config | cut -d'|' -f1)
+
+        # check for already given module name
+        # note: _get_first_arg is not accurate enough (option with argument)
+        for m in $list; do
+            for (( i=0; i < ${#COMP_WORDS[@]}; i++ )); do
+                if [ "${COMP_WORDS[i]}" == $m ]; then
+                    _filedir
+                    return 0
+                fi
+            done
+        done
+
+        COMPREPLY=( $(compgen -W "$list" -- $cur ) )
     fi
 } &&
 complete -F _plowup plowup
@@ -116,3 +127,35 @@ _plowdel()
     fi
 } &&
 complete -F _plowdel plowdel
+
+have plowlist &&
+_plowlist()
+{
+    local cur prev
+
+    COMPREPLY=()
+    cur=`_get_cword`
+    prev=`_get_pword`
+
+    case "$prev" in
+        -v)
+            COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
+            return 0
+            ;;
+        -i|--interface)
+            _available_interfaces -a
+            return 0
+            ;;
+    esac
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W '--help --version --quiet \
+            -v -q -i -r --interface  --recursive' -- $cur ) )
+    else
+        # URL pattern expected
+        _filedir
+    fi
+} &&
+complete -F _plowlist plowlist
+
+# ex: ts=4 sw=4 et filetype=sh
