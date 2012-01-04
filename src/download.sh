@@ -82,7 +82,7 @@ process_item() {
     local ITEM="$1"
 
     if match_remote_url "$ITEM"; then
-        echo "url|$(echo "$ITEM" | strip | uri_encode)"
+        echo "url|$(echo "$ITEM" | strip)"
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
           zip|rar|tar|gz|7z|bz2|mp3|avi)
@@ -90,8 +90,7 @@ process_item() {
               ;;
           *)
               # Discard empty lines and comments
-              sed -ne "s,^[[:space:]]*\([^ #].*\)[[:space:]]*$,file|\1,p" "$ITEM" | \
-                  strip | uri_encode
+              sed -ne "s,^[[:space:]]*\([^#].*\)$,file|\1,p" "$ITEM" | strip
               ;;
         esac
     else
@@ -114,31 +113,29 @@ usage() {
 }
 
 # Mark status of link (inside file or to stdout). See --mark-downloaded switch.
+# $1: type (file or url)
+# $2: MARK_DOWN option flag
 mark_queue() {
-    local TYPE=$1
-    local MARK_DOWN=$2
     local FILELIST=$3
     local URL=$4
     local TEXT=$5
     local TAIL=$6
 
-    test -z "$MARK_DOWN" && return 0
+    if [ -n "$2" ]; then
+        if [ 'file' = "$1" ]; then
+            if test -w "$FILELIST"; then
+                TAIL=${TAIL//,/\\,}
+                URL=${URL//,/\\,}
 
-    if test "$TYPE" = "file"; then
-        if test -w "$FILELIST"; then
-            local URL_DECODED=$(echo "$URL" | uri_decode)
-
-            TAIL=${TAIL//,/\\,}
-            URL=${URL_DECODED//,/\\,}
-
-            sed -i -e "s,^[[:space:]]*\($URL\)[[:space:]]*$,#$TEXT \1$TAIL," "$FILELIST" &&
-                log_notice "link marked in file: $FILELIST (#$TEXT)" ||
-                log_error "failed marking link in file: $FILELIST (#$TEXT)"
+                sed -i -e "s,^[[:space:]]*\($URL\)[[:space:]]*$,#$TEXT \1$TAIL," "$FILELIST" &&
+                    log_notice "link marked in file: $FILELIST (#$TEXT)" ||
+                    log_error "failed marking link in file: $FILELIST (#$TEXT)"
+            else
+                log_notice "error: can't mark link, no write permission ($FILELIST)"
+            fi
         else
-            log_notice "error: can't mark link, no write permission ($FILELIST)"
+            echo "#${TEXT} $URL"
         fi
-    else
-        echo "#${TEXT} $URL"
     fi
 }
 
@@ -183,9 +180,11 @@ module_null_download() {
     echo "$2"
 }
 
+# Note: $ITEM, $NOOVERWRITE, $CAPTCHA_METHOD, $GLOBAL_COOKIES
+#       should not be used directly.
 download() {
     local MODULE=$1
-    local DURL=$2
+    local URL_RAW=$2
     local DOWNLOAD_APP=$3
     local TYPE=$4
     local MARK_DOWN=$5
@@ -198,8 +197,10 @@ download() {
     local DOWNLOAD_INFO=${12}
     shift 12
 
+    local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
+
     FUNCTION=${MODULE}_download
-    log_notice "Starting download ($MODULE): $DURL"
+    log_notice "Starting download ($MODULE): $URL_ENCODED"
     timeout_init $TIMEOUT
 
     while true; do
@@ -216,7 +217,7 @@ download() {
             local TRY=0
 
             while true; do
-                $FUNCTION "$@" "$COOKIES" "$DURL" >$DRESULT || DRETVAL=$?
+                $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >$DRESULT || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <$DRESULT
@@ -259,14 +260,14 @@ download() {
             { read FILE_URL; read FILENAME; } <$DRESULT || true
             rm -f "$DRESULT"
         else
-            $FUNCTION "$@" "$COOKIES" "$DURL" >/dev/null || DRETVAL=$?
+            $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >/dev/null || DRETVAL=$?
 
             if [ $DRETVAL -eq 0 -o \
                     $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE -o \
                     $DRETVAL -eq $ERR_LINK_NEED_PERMISSIONS -o \
                     $DRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
-                log_notice "Link active: $DURL"
-                echo "$DURL"
+                log_notice "Link active: $URL_ENCODED"
+                echo "$URL_ENCODED"
                 rm -f "$COOKIES"
                 break
             fi
@@ -287,7 +288,7 @@ download() {
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
                 log_notice "You must provide a password"
-                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "PASSWORD"
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'PASSWORD'
                 rm -f "$COOKIES"
                 return $DRETVAL
                 ;;
@@ -298,7 +299,7 @@ download() {
                 ;;
             $ERR_LINK_DEAD)
                 log_notice "Link is not alive: file not found"
-                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "NOTFOUND"
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'NOTFOUND'
                 rm -f "$COOKIES"
                 return $DRETVAL
                 ;;
@@ -463,7 +464,7 @@ download() {
             echo "$FILENAME_OUT"
 
         fi
-        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$DURL" "" "|$FILENAME_OUT"
+        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" "" "|$FILENAME_OUT"
         break
     done
     return 0
@@ -550,21 +551,23 @@ set_exit_trap
 
 RETVALS=()
 for ITEM in "$@"; do
-    for INFO in $(process_item "$ITEM"); do
-        IFS="|" read TYPE URL <<< "$INFO"
-
+    while read INFO; do
+        TYPE="${INFO%%|*}"
+        URL="${INFO#*|}"
         MODULE=$(get_module "$URL" "$MODULES")
+
         if [ -z "$MODULE" ]; then
             if match_remote_url "$URL"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
                 log_debug "No module found, try simple redirection"
 
-                URL_TEMP=$(curl --user-agent '' -i "$URL" | grep_http_header_location) || true
+                URL_ENCODED=$(echo "$URL" | uri_encode)
+                URL_TEMP=$(curl --user-agent '' -i "$URL_ENCODED" | grep_http_header_location) || true
 
                 if [ -n "$URL_TEMP" ]; then
-                    URL="$URL_TEMP"
-                    MODULE=$(get_module "$URL" "$MODULES")
+                    MODULE=$(get_module "$URL_TEMP" "$MODULES")
+                    test "$MODULE" && URL="$URL_TEMP"
                 elif test "$NO_MODULE_FALLBACK"; then
                     log_notice "No module found, do a simple HTTP GET as requested"
                     MODULE='module_null'
@@ -575,7 +578,7 @@ for ITEM in "$@"; do
         if [ -z "$MODULE" ]; then
             log_error "Skip: no module for URL ($URL)"
             RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" "NOMODULE"
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" 'NOMODULE'
             continue
         elif test "$GET_MODULE"; then
             echo "$MODULE"
@@ -590,7 +593,7 @@ for ITEM in "$@"; do
             "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
             "$NOEXTRAWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
                 RETVALS=(${RETVALS[@]} "$?")
-    done
+    done <<< "$(process_item "$ITEM")"
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
