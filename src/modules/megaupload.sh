@@ -131,9 +131,11 @@ megaupload_download() {
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'class="download_regular_usual' 'href') || return
 
     WAITTIME=$(echo "$PAGE" | parse_quiet "^[[:space:]]*count=" \
-            "count=\([[:digit:]]\+\);") || return
+            "count=\([[:digit:]]\+\);")
 
-    wait $((WAITTIME+1)) seconds || return
+    if [ -n "$WAITTIME" ]; then
+        wait $((WAITTIME+1)) seconds || return
+    fi
 
     echo "$FILE_URL"
 }
