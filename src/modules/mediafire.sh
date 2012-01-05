@@ -104,51 +104,11 @@ mediafire_download() {
         #PAGE=$(curl -L -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
     fi
 
-    FILE_URL=$(get_ofuscated_link "$PAGE" "$COOKIEFILE") || return
+    FILE_URL=$(echo "$PAGE" | parse_attr "<div.*download_link" "href") || return
     FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
     echo "$FILE_URL"
     test -n "$FILENAME" && echo "$FILENAME"
-}
-
-get_ofuscated_link() {
-    local PAGE="$1"
-    local COOKIEFILE="$2"
-    local BASE_URL='http://www.mediafire.com'
-
-    local PAGE_JS FNAME ZINDEX_MOD ZINDEX_LINKS
-
-    # One single line
-    PAGE_JS=$(echo "$PAGE" | grep 'function SaveFileToMyAccount') || {
-        log_error "cannot find main javascript code";
-        return $ERR_FATAL;
-    }
-
-    FNAME=$(echo "$PAGE_JS" | parse_all 'function' 'function \([[:alnum:]]\+\)()' | first_line) ||
-        { log_error "cannot get JS function name"; return $ERR_FATAL; }
-
-    ZINDEX_MOD=$(echo "
-        $ = ax = dC = jQuery = setTimeout = DoShow = LoadTemplatesFromSource = function() {};
-        window = {};
-        old_eval = eval;
-        eval = function(code) {
-            if(code.match(/\.download_link/)) {
-              print(code);
-            } else {
-              return old_eval(code);
-            }
-        };
-        fu = 1;
-        $PAGE_JS;
-        $FNAME();
-    " | javascript | parse 'z-index' 'z-index.*[[:space:]]*%[[:space:]]*\([[:digit:]]\+\)') ||
-        { log_error "cannot get z-index modulo"; return $ERR_FATAL; }
-
-    ZINDEX_LINKS=$(echo "$PAGE" | sed "s/<div/\n<div/g" | grep 'class="download_link"' |
-            sed 's/.*z-index:\([[:digit:]]\+\).*href="\([^"]\+\)".*/\1 \2/')
-    echo "$ZINDEX_LINKS" | while read ZINDEX URL; do
-        echo "$(($ZINDEX % $ZINDEX_MOD)) $URL"
-    done | sort -rn | first_line | cut -d" " -f2-
 }
 
 # Upload a file to mediafire
