@@ -172,12 +172,17 @@ for FILE in "$@"; do
         IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
 
         if [ -d "$LOCALFILE" ]; then
-            log_notice "Skipping directory: $LOCALFILE"
+            log_notice "Skipping ($LOCALFILE): directory"
             continue
         fi
 
         if [ ! -f "$LOCALFILE" ]; then
-            log_notice "Cannot find file: $LOCALFILE"
+            log_notice "Skipping ($LOCALFILE): cannot find file"
+            continue
+        fi
+
+        if [ ! -s "$LOCALFILE" ]; then
+            log_notice "Skipping ($LOCALFILE): filesize is null"
             continue
         fi
     fi
