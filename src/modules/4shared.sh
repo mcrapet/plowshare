@@ -40,7 +40,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
         URL=$REAL_URL
     fi
 
-    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl -c "$COOKIEFILE" -b '4langcookie=en' "$URL") || return
     if match '4shared\.com/dir/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
@@ -48,7 +48,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
         return $ERR_LINK_DEAD
     fi
 
-    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com\/get\/' 'href')
+    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com\/get\/' 'href') || return
 
     test "$CHECK_LINK" && return 0
 
