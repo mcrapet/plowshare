@@ -34,7 +34,7 @@ TEST_INDEX=(10 400 700)
 
 # plowdown
 download() {
-    $SRCDIR/download.sh --no-overwrite --max-retries=5 --timeout=400 "$@"
+    $SRCDIR/download.sh --no-overwrite --max-retries=6 --timeout=400 "$@"
 }
 
 # plowup
