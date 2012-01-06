@@ -106,8 +106,8 @@ wupload_download() {
         START_HTML=$(curl -c "$COOKIEFILE" "$URL") || return
     fi
 
-    # Sorry! This file has been deleted.
-    if match 'This file has been deleted' "$START_HTML"; then
+    # Sorry, this file has been removed.
+    if match 'class="deletedFile"' "$START_HTML"; then
         return $ERR_LINK_DEAD
     fi
 
