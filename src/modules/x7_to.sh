@@ -60,7 +60,7 @@ x7_to_download() {
 
     if [ -z "$REF_FID" ]; then
         matchi 'file not found' "$WAIT_HTML" &&
-            log_error "File not found"
+            log_debug "File not found"
 
         if match '<span id="foldertitle">' "$WAIT_HTML"; then
             local textlist=$(echo "$WAIT_HTML" | parse_attr 'listplain' 'href')
