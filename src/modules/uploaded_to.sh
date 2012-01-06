@@ -31,15 +31,17 @@ MODULE_UPLOADED_TO_LIST_OPTIONS=""
 # $1: cookie file
 # $2: upload.to url
 # stdout: real file download link
+# Note: Anonymous download restriction: 1 file every 60 minutes.
 uploaded_to_download() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE="$1"
     local BASE_URL='http://uploaded.to'
-    local URL FILE_ID HTML SLEEP FILE_NAME
+    local URL FILE_ID HTML SLEEP FILE_NAME FILE_URL
 
     # uploaded.to redirects all possible urls of a file to the canonical one
-    URL=$(curl -I "$2" | grep_http_header_location) || return
+    # (URL can have two lines)
+    URL=$(curl -I -L "$2" | grep_http_header_location | last_line) || return
     if test -z "$URL"; then
         URL="$2"
     fi
@@ -62,7 +64,7 @@ uploaded_to_download() {
     log_debug "file id=$FILE_ID"
 
     # set website language to english
-    curl -c $COOKIEFILE "$BASE_URL/language/en" || return
+    curl -c "$COOKIEFILE" "$BASE_URL/language/en" || return
 
     HTML=$(curl -c $COOKIEFILE "$URL")
 
@@ -95,21 +97,24 @@ uploaded_to_download() {
         return $ERR_CAPTCHA
     elif match 'limit\|err' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
+    # {type:'download',url:'http://storXXXX.uploaded.to/dl/...'}
     elif match 'url' "$PAGE"; then
-        local FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
+        FILE_URL=$(echo "$PAGE" | parse 'url' "url:'\(http.*\)'")
     else
         log_error "No match. Site update?"
         return $ERR_FATAL
     fi
 
-    # retrieve real filename
-    FILE_NAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
+    # retrieve (truncated) filename
+    # Only 1 access to "final" URL is allowed, so we can't get complete name
+    # using "Content-Disposition:"
+    FILE_NAME=$(echo "$HTML" | parse_quiet 'id="filename"' 'name">\([^<]*\)')
 
     recaptcha_ack $ID
     log_debug "correct captcha"
 
     echo "$FILE_URL"
-    echo "$FILE_NAME"
+    test "$FILE_NAME" && echo "$FILE_NAME"
 }
 
 # Upload a file to uploaded.to
