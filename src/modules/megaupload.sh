@@ -73,7 +73,7 @@ megaupload_download() {
         return 0
     fi
 
-    # Check for dead link
+    # Test for dead link
     if matchi 'Invalid link' "$PAGE"; then
         return $ERR_LINK_DEAD
 
@@ -106,8 +106,8 @@ megaupload_download() {
             return $ERR_LINK_PASSWORD_REQUIRED
         fi
 
-    # Test for "come back later". Language is guessed with the help of http-user-agent.
-    elif match 'file you are trying to access is temporarily unavailable' "$PAGE"; then
+    # Test for link temporarily not available (download.css, access_header.png)
+    elif match '<div class="access_na_text">' "$PAGE"; then
         echo 125
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
