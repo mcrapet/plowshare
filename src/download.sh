@@ -82,7 +82,7 @@ process_item() {
     local ITEM="$1"
 
     if match_remote_url "$ITEM"; then
-        echo "url|$(echo "$ITEM" | strip)"
+        echo "url|$(echo "$ITEM" | strip | replace ' ' '%20')"
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
           zip|rar|tar|gz|7z|bz2|mp3|avi)
@@ -90,7 +90,7 @@ process_item() {
               ;;
           *)
               # Discard empty lines and comments
-              sed -ne "s,^[[:space:]]*\([^#].*\)$,file|\1,p" "$ITEM" | strip
+              sed -ne "s,^[[:space:]]*\([^#].*\)$,file|\1,p" "$ITEM" | strip | replace ' ' '%20'
               ;;
         esac
     else
@@ -551,7 +551,7 @@ set_exit_trap
 
 RETVALS=()
 for ITEM in "$@"; do
-    while read INFO; do
+    for INFO in $(process_item "$ITEM"); do
         TYPE="${INFO%%|*}"
         URL="${INFO#*|}"
         MODULE=$(get_module "$URL" "$MODULES")
@@ -593,7 +593,7 @@ for ITEM in "$@"; do
             "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
             "$NOEXTRAWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
                 RETVALS=(${RETVALS[@]} "$?")
-    done <<< "$(process_item "$ITEM")"
+    done
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
