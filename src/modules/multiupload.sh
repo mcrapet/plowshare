@@ -87,7 +87,7 @@ multiupload_upload() {
         LOGIN_RESULT=$(curl -L -c "$COOKIEFILE" -F "username=$USER" \
                 -F "password=$PASSWORD" "$BASE_URL/login") || return
 
-        if ! match 'Logged in' "$LOGIN_RESULT"; then
+        if ! match '>Log out<' "$LOGIN_RESULT"; then
             return $ERR_LOGIN_FAILED
         fi
     fi
