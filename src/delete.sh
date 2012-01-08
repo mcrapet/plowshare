@@ -130,12 +130,12 @@ for URL in "$@"; do
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
-    else
-        RETVALS=(${RETVALS[@]} "$DRETVAL")
-        if [ $DRETVAL -eq $ERR_LINK_DEAD ]; then
-            log_error "Not found or already deleted"
-        fi
+    elif [ $DRETVAL -eq $ERR_LINK_DEAD ]; then
+        log_error "Not found or already deleted"
+    elif [ $DRETVAL -eq $ERR_LOGIN_FAILED ]; then
+        log_error "Login process failed. Bad username/password or unexpected content"
     fi
+    RETVALS=(${RETVALS[@]} "$DRETVAL")
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then

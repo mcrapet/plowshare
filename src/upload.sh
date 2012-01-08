@@ -204,15 +204,19 @@ for FILE in "$@"; do
         if [[ "$MAXRETRIES" -eq 0 ]]; then
             break
         elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK ]; then
-            RETVALS=(${RETVALS[@]} "$URETVAL")
             break
         elif [ "$MAXRETRIES" -lt "$TRY" ]; then
-            RETVALS=(${RETVALS[@]} "$ERR_MAX_TRIES_REACHED")
+            URETVAL=$ERR_MAX_TRIES_REACHED
             break
         fi
 
         log_notice "Starting upload ($MODULE): retry ${TRY}/$MAXRETRIES"
     done
+
+    if [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
+        log_error "Login process failed. Bad username/password or unexpected content"
+    fi
+    RETVALS=(${RETVALS[@]} "$URETVAL")
 done
 
 rm -f "$UPCOOKIE"
