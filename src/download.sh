@@ -433,8 +433,9 @@ download() {
                     wait 120 seconds || return
                     continue
                 fi
+            fi
 
-            elif [ "$DRETVAL" -ne 0 ]; then
+            if [ "$DRETVAL" -ne 0 ]; then
                 return $DRETVAL
             fi
 
