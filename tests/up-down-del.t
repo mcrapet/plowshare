@@ -42,13 +42,12 @@ megaupload
 --
 --
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-netload_in
+multiupload
 --
 --
 --
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Anonynous upload is not available anymore!
-rapidshare
+netload_in
 --
 --
 --
