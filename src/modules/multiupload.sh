@@ -50,7 +50,7 @@ multiupload_download() {
     test "$CHECK_LINK" && return 0
 
     # document.getElementById('dlbutton').href='http://www47.multiupload.com:81/files/...'
-    FILE_URL=$(echo "$PAGE" | parse_quiet "'dlbutton'" "href='\([^']*\)") || {
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet '"dlbutton"' 'href') || {
         log_debug "direct download not available";
         return $ERR_LINK_TEMP_UNAVAILABLE;
     }
