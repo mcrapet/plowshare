@@ -82,7 +82,8 @@ process_item() {
     local ITEM="$1"
 
     if match_remote_url "$ITEM"; then
-        echo "url|$(echo "$ITEM" | strip | replace ' ' '%20')"
+        echo 'url'
+        echo "$ITEM" | strip
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
           zip|rar|tar|gz|7z|bz2|mp3|avi)
@@ -90,7 +91,8 @@ process_item() {
               ;;
           *)
               # Discard empty lines and comments
-              sed -ne "s,^[[:space:]]*\([^#].*\)$,file|\1,p" "$ITEM" | strip | replace ' ' '%20'
+              echo 'file'
+              sed -ne "s,^[[:space:]]*\([^#].*\)$,\1,p" "$ITEM" | strip
               ;;
         esac
     else
@@ -552,9 +554,15 @@ set_exit_trap
 
 RETVALS=()
 for ITEM in "$@"; do
-    for INFO in $(process_item "$ITEM"); do
-        TYPE="${INFO%%|*}"
-        URL="${INFO#*|}"
+    OLD_IFS="$IFS"
+    IFS=$'\n'
+    ELEMENTS=( $(process_item "$ITEM") )
+    IFS="$OLD_IFS"
+
+    TYPE="${ELEMENTS[0]}"
+    unset ELEMENTS[0]
+
+    for URL in "${ELEMENTS[@]}"; do
         MODULE=$(get_module "$URL" "$MODULES")
 
         if [ -z "$MODULE" ]; then
