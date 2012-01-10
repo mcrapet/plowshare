@@ -184,7 +184,7 @@ fileserve_download() {
     local RET=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$RET" != "1" ] ; then
         recaptcha_nack $ID
-        log_error "wrong captcha"
+        log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 

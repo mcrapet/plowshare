@@ -168,7 +168,7 @@ wupload_download() {
 
         if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
             recaptcha_nack $ID
-            log_error "wrong captcha"
+            log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 

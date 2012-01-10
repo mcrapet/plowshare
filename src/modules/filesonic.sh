@@ -195,7 +195,7 @@ filesonic_download() {
 
         if match 'Please Enter Captcha' "$PAGE"; then
             recaptcha_nack $ID
-            log_error "wrong captcha"
+            log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 

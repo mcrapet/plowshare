@@ -84,7 +84,7 @@ filepost_download() {
     # {"id":"12345","js":{"error":"You entered a wrong CAPTCHA code. Please try again."},"text":""}
     if matchi 'wrong CAPTCHA code' "$JSON"; then
         recaptcha_nack $ID
-        log_error "wrong captcha"
+        log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 

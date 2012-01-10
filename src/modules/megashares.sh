@@ -123,7 +123,7 @@ megashares_download() {
                 $URL)
 
         if ! match 'Thank you for reactivating your passport' "$VALIDATE_PASSPORT"; then
-            log_debug "wrong captcha"
+            log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 

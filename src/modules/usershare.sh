@@ -85,6 +85,7 @@ usershare_download() {
         "$URL") || return
 
     if match 'Wrong captcha' "$PAGE"; then
+        log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 

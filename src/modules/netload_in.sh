@@ -136,7 +136,7 @@ netload_in_download() {
             "$BASE_URL/$FORM_URL") || return
 
     if match 'class="InPage_Error"' "$WAIT_HTML2"; then
-        log_debug "wrong captcha"
+        log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 
