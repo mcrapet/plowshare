@@ -35,7 +35,8 @@ ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable
 ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
 ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (private or premium link)
                                  # or operation not allowed for anonymous user
-ERR_LINK_DEAD=13                 # (plowdel: file not found or previously deleted)
+ERR_LINK_DEAD=13                 # plowdel: file not found or previously deleted
+                                 # plowlist: remote folder does not exist or is empty
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in other .sh)
@@ -269,6 +270,11 @@ parse_all() {
     local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p")
     test "$STRING" && echo "$STRING" ||
         { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
+}
+
+# Like parse_all, but hide possible error
+parse_all_quiet() {
+    parse_all "$@" 2>/dev/null
 }
 
 # Like parse_all, but get only first match

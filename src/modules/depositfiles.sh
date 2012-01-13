@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # depositfiles.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -267,15 +267,16 @@ depositfiles_delete() {
 # stdout: list of links
 depositfiles_list() {
     local URL="$1"
-    local LINKS FILE_NAME FILE_URL
+    local PAGE LINKS FILE_NAME FILE_URL
 
     if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    LINKS=$(curl -L "$URL" | parse_all 'target="_blank"' '\(<a href="http[^<]*<\/a>\)') || \
-        { log_error "Wrong directory list link"; return 1; }
+    PAGE=$(curl -L "$URL") || return
+    LINKS=$(echo "$PAGE" | parse_all 'target="_blank"' \
+        '\(<a href="http[^<]*<\/a>\)') || return $ERR_LINK_DEAD
 
     # First pass : print debug message
     while read LINE; do

@@ -18,11 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEPOST_REGEXP_URL="http://\(www\.\)\?filepost\.com/"
+MODULE_FILEPOST_REGEXP_URL="https\?://\(www\.\)\?filepost\.com/"
 
 MODULE_FILEPOST_DOWNLOAD_OPTIONS=""
 MODULE_FILEPOST_DOWNLOAD_RESUME=yes
 MODULE_FILEPOST_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
+MODULE_FILEPOST_LIST_OPTIONS=""
 
 # $1: cookie file
 # $2: filepost.com url
@@ -97,4 +99,51 @@ filepost_download() {
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
+}
+
+# List a filepost web folder URL
+# $1: filepost URL
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+filepost_list() {
+    if ! match 'filepost\.com/folder/' "$1"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    filepost_list_rec "$2" "$1" || return
+}
+
+# static recursive function
+# $1: recursive flag
+# $2: web folder URL
+filepost_list_rec() {
+    local REC="$1"
+    local URL="$2"
+    local PAGE LINKS FOLDERS FILE_URL RET
+
+    RET=$ERR_LINK_DEAD
+    PAGE=$(curl -L "$URL") || return
+    LINKS=$(echo "$PAGE" | sed -ne '/class="dl"/p')
+
+    #  Print links (stdout)
+    while read LINE; do
+        test "$LINE" || continue
+        FILE_URL=$(echo "$LINE" | parse_attr '.' 'href')
+        echo "$FILE_URL"
+    done <<< "$LINKS"
+
+    test "$LINKS" && RET=0
+
+    if test "$REC"; then
+        FOLDERS=$(echo "$PAGE" | sed -ne '/class="go"/p')
+        while read LINE; do
+            test "$LINE" || continue
+            FILE_URL=$(echo "$LINE" | parse_attr '.' 'href')
+            log_debug "entering sub folder: $FILE_URL"
+            filepost_list_rec "$REC" "$FILE_URL" && RET=0
+        done <<< "$FOLDERS"
+    fi
+
+    return $RET
 }

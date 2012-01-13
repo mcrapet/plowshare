@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 4shared.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -75,6 +75,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
 # stdout: list of links
 4shared_list() {
     local URL=$(echo "$1" | replace '/folder/' '/dir/')
+    local PAGE
 
     # There are two views:
     # - Simple view link (URL with /folder/)
@@ -84,10 +85,13 @@ MODULE_4SHARED_LIST_OPTIONS=""
         return $ERR_FATAL
     fi
 
+    test "$2" && log_debug "recursive flag is not supported"
+
     PAGE=$(curl "$URL") || return
 
     match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
-        { log_error "Link not found"; return $ERR_LINK_DEAD; }
-    echo "$PAGE" | parse_all_attr_quiet 'class="icon16 download"' href || \
-        log_debug "no files in this folder"
+        { log_error "Site updated?"; return $ERR_FATAL; }
+
+    echo "$PAGE" | parse_all_attr_quiet \
+        'class="icon16 download"' href || return $ERR_LINK_DEAD
 }

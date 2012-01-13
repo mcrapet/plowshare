@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # hotfile.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -152,7 +152,7 @@ hotfile_download() {
 # stdout: list of links
 hotfile_list() {
     local URL="$1"
-    local PAGE NB FILENAME LINK
+    local PAGE NUM LINKS FILE_NAME FILE_URL
 
     if ! match 'hotfile\.com/list/' "$URL"; then
         log_error "This is not a directory list"
@@ -160,25 +160,21 @@ hotfile_list() {
     fi
 
     PAGE=$(curl "$URL") || return
+    NUM=$(echo "$PAGE" | parse ' files)' '(\([[:digit:]]*\) files')
+    log_debug "There is/are $NUM file(s) in the folder"
 
-    NB=$(echo "$PAGE" | parse ' files)' "(\([[:digit:]]*\) files")
-    log_debug "There is $NB file(s) in the folder"
+    LINKS=$(echo "$PAGE" | grep 'hotfile.com/dl/')
+    test "$LINKS" || return $ERR_LINK_DEAD
 
-    if [ "$NB" -gt 0 ]; then
-        PAGE=$(echo "$PAGE" | grep 'hotfile.com/dl/')
+    # First pass : print debug message
+    while read LINE; do
+        FILE_NAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
 
-        # First pass : print debug message
-        while read LINE; do
-            FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
-            log_debug "$FILENAME"
-        done <<< "$PAGE"
-
-        # Second pass : print links (stdout)
-        while read LINE; do
-            LINK=$(echo "$LINE" | parse_attr '<a' 'href')
-            echo "$LINK"
-        done <<< "$PAGE"
-    fi
-
-    return 0
+    # Second pass : print links (stdout)
+    while read LINE; do
+        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$FILE_URL"
+    done <<< "$LINKS"
 }

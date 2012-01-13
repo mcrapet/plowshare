@@ -2,6 +2,7 @@
 #
 # uploaded.to module
 # Copyright (c) 2011 Krompo@speed.1s.fr
+# Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -151,7 +152,10 @@ uploaded_to_upload() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 uploaded_to_list() {
+    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_LIST_OPTIONS" "$@")"
+
     local URL="$1"
+    local PAGE LINKS FILE_NAME FILE_ID
 
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder/" "$URL"; then
@@ -159,26 +163,20 @@ uploaded_to_list() {
         return $ERR_FATAL
     fi
 
-    local PAGE=$(curl -L "$URL")
-
-    if test -z "$PAGE"; then
-        log_error "Cannot retrieve page"
-        return $ERR_FATAL
-    fi
+    PAGE=$(curl -L "$URL") || return
+    LINKS=$(echo "$PAGE" | grep 'onclick="visit($(this))')
+    test "$LINKS" || return $ERR_LINK_DEAD
 
     # First pass: print file names (debug)
     while read LINE; do
-        local NAME=$(echo "$LINE" | parse_quiet '<h2><a href="file\/' \
-          'onclick="visit($(this))">\([^<]*\)<\/a>')
-        test $NAME && log_debug "$NAME"
-    done <<< "$PAGE"
+        FILE_NAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
 
     # Second pass: print links (stdout)
     while read LINE; do
-        local LINK=$(echo "$LINE" | parse_quiet '<h2><a href="file\/' \
-          'href="\([^"]*\)"')
-        test $LINK && echo "http://uploaded.to/$LINK"
-    done <<< "$PAGE"
-
-    return 0
+        #FILE_ID=$(echo "$LINE" | parse_attr '<a' 'href')
+        FILE_ID=file/$(echo "$LINE" | parse '.' 'file\/\([^/]\+\)')
+        echo "http://uploaded.to/$FILE_ID"
+    done <<< "$LINKS"
 }

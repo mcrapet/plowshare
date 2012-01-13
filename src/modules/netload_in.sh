@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # netload.in module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -27,7 +27,8 @@ MODULE_NETLOAD_IN_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_NETLOAD_IN_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Premium account"
-MODULE_NETLOAD_IN_LIST_OPTIONS=""
+MODULE_NETLOAD_IN_LIST_OPTIONS="
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used for password-protected folder"
 
 # Static function. Proceed with login
 # $1: $AUTH argument string
@@ -236,20 +237,34 @@ netload_in_upload() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 netload_in_list() {
+    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_LIST_OPTIONS" "$@")"
+
     local URL="$1"
+    local PAGE LINKS
 
-    if ! match 'folder' "$URL"; then
+    if ! match '/folder' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr 'Link_[[:digit:]]' 'href') || \
-        { log_error "Wrong directory list link"; return $ERR_FATAL; }
+    PAGE=$(curl "$URL" | break_html_lines_alt) || return
 
-    if test -z "$LINKS"; then
-        log_error "This is not a directory list"
-        return $ERR_FATAL
+    # Folder can have a password
+    if match '<div id="Password">' "$PAGE"; then
+        log_debug "Password-protected folder"
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD=$(prompt_for_password) || return
+        fi
+        PAGE=$(curl --data "password=$LINK_PASSWORD" "$URL" | \
+            break_html_lines_alt) || return
+
+        #<div class="InPage_Error"><pre>&bull; Passwort ist ung&uuml;ltig!<br/></pre></div>
+        match '"InPage_Error">' "$PAGE" && \
+            return $ERR_LINK_PASSWORD_REQUIRED
     fi
+
+    LINKS=$(echo "$PAGE" | parse_all_attr 'Link_[[:digit:]]' 'href')
+    test "$LINKS" || return $ERR_LINK_DEAD
 
     echo "$LINKS"
     return 0

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # sendspace.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -141,8 +141,10 @@ sendspace_delete() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links (file and/or folder)
 sendspace_list() {
+    eval "$(process_options sendspace "$MODULE_SENDSPACE_LIST_OPTIONS" "$@")"
+
     local URL="$1"
-    local PAGE LINKS SUBDIRS
+    local PAGE LINKS SUBDIRS FILE_NAME FILE_URL
 
     if ! match 'sendspace\.com/folder/' "$URL"; then
         log_error "This is not a directory list"
@@ -150,18 +152,20 @@ sendspace_list() {
     fi
 
     PAGE=$(curl "$URL") || return
-    LINKS=$(echo "$PAGE" | parse_all '<td class="dl" align="center"' \
-            '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
-    SUBDIRS=$(echo "$PAGE" | parse_all '\/folder\/' \
-            '\(<a href="http[^<]*<\/a>\)' 2>/dev/null)
+    LINKS=$(echo "$PAGE" | parse_all_quiet \
+        '<td class="dl" align="center"' '\(<a href="http[^<]*<\/a>\)')
+    SUBDIRS=$(echo "$PAGE" | parse_all_quiet \
+        '\/folder\/' '\(<a href="http[^<]*<\/a>\)')
 
     if [ -z "$LINKS" -a -z "$SUBDIRS" ]; then
-        log_debug "empty folder"
-        return 0
+        return $ERR_LINK_DEAD
     fi
 
     # Stay at depth=1 (we do not recurse into directories)
-    LINKS=$(echo "$LINKS" "$SUBDIRS")
+    if test "$2"; then
+        log_debug "recursive flag is not fully supported"
+        LINKS=$(echo "$LINKS" "$SUBDIRS")
+    fi
 
     # First pass : print debug message
     while read LINE; do
@@ -174,6 +178,4 @@ sendspace_list() {
         FILE_URL=$(echo "$LINE" | parse_attr 'a' 'href')
         echo "$FILE_URL"
     done <<< "$LINKS"
-
-    return 0
 }

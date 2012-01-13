@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # mediafire.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -217,38 +217,42 @@ mediafire_upload() {
 # stdout: list of links
 mediafire_list() {
     local URL="$1"
+    local LOCATION DATA QUICKKEY NUM ITEMS FILE_NAME
 
-    PAGE=$(curl "$URL" | break_html_lines_alt)
-
-    if ! match '/js/myfiles.php/' "$PAGE"; then
-        log_error "not a shared folder"
-        return $ERR_FATAL
+    if match '/?sharekey=' "$URL"; then
+        LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
+        if ! match '^/' "$LOCATION"; then
+            log_error "not a shared folder"
+            return $ERR_FATAL
+        fi
+        URL="http://www.mediafire.com$LOCATION"
     fi
 
-    local JS_URL=$(echo "$PAGE" | parse 'LoadJS(' '("\(\/js\/myfiles\.php\/[^"]*\)')
-    local DATA=$(curl "http://mediafire.com$JS_URL" | sed "s/\([)']\);/\1;\n/g")
+    QUICKKEY=$(echo "$URL" | parse 'mediafire\.com\/?' '?\([^&"]*\)')
+    log_debug "quickkey: $QUICKKEY"
 
-    # get number of files
-    NB=$(echo "$DATA" | parse '^var oO' "'\([[:digit:]]*\)'")
+    # remark: response_format=json is also possible
+    URL="http://www.mediafire.com/api/folder/get_info.php?r=abcd$$&recursive=yes&folder_key=${QUICKKEY}&response_format=xml&version=1"
+    DATA=$(curl "$URL" | break_html_lines) || return
 
-    log_debug "There is $NB file(s) in the folder"
+    NUM=$(echo "$DATA" | parse '<file_count>' ">\([[:digit:]]*\)<")
+    log_debug "There is/are $NUM file(s) in the folder"
 
-    # print filename as debug message & links (stdout)
-    # es[0]=Array('1','1',3,'te9rlz5ntf1','82de6544620807bf025c12bec1713a48','my_super_file.txt','14958589','14.27','MB','43','02/13/2010', ...
-    DATA=$(echo "$DATA" | grep 'es\[' | tr -d "'" | delete_last_line)
-    while IFS=, read -r _ _ _ FID _ FILENAME _; do
-        log_debug "$FILENAME"
-        echo "http://www.mediafire.com/?$FID"
-    done <<< "$DATA"
+    test "$NUM" -eq '0' && return $ERR_LINK_DEAD
 
-    # Alternate (more portable?) version:
-    #
-    # while read LINE; do
-    #     FID=$(echo "$LINE" | cut -d, -f4)
-    #     FILENAME=$(echo "$LINE" | cut -d, -f6)
-    #     log_debug "$FILENAME"
-    #     echo "http://www.mediafire.com/?$FID"
-    # done <<< "$DATA"
+    ITEMS=$(echo "$DATA" | grep '</filename>')
 
-    return 0
+    # First pass: print file names (debug)
+    while read LINE; do
+        FILE_NAME=$(echo "$LINE" | parse_quiet '.' 'filename>\([^<]\+\)')
+        log_debug "$FILE_NAME"
+    done <<< "$ITEMS"
+
+    ITEMS=$(echo "$DATA" | grep '</quickkey>')
+
+    # Second pass: print links (stdout)
+    while read LINE; do
+        QUICKKEY=$(echo "$LINE" | parse_quiet '.' 'quickkey>\([^<]\+\)')
+        echo "http://www.mediafire.com/?$QUICKKEY"
+    done <<< "$ITEMS"
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # megaupload.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -331,9 +331,8 @@ megaupload_list() {
     FOLDERID=$(echo "$URL" | parse '.' 'f=\([^=]\+\)') || return
     XML=$(curl "$XMLURL/?folderid=$FOLDERID") || return
 
-    if match "<FILES></FILES>" "$XML"; then
-        log_debug "empty folder"
-        return 0
+    if match '<FILES></FILES>' "$XML"; then
+        return $ERR_LINK_DEAD
     fi
 
     echo "$XML" | parse_all_attr "<ROW" "url"

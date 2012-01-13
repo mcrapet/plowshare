@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # wupload.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -255,38 +255,35 @@ wupload_upload() {
 }
 
 # List a wupload public folder URL
-# $1: wupload url
+# $1: wupload folder url
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 wupload_list() {
-    local URL="$1"
-    local PAGE FILENAME LINK
+    eval "$(process_options wupload "$MODULE_WUPLOAD_LIST_OPTIONS" "$@")"
 
-    test "$2" || log_debug "recursive flag is not supported"
+    local URL="$1"
+    local PAGE LINKS FILE_NAME FILE_URL
+
+    test "$2" && log_debug "recursive flag is not supported"
 
     if ! match "${MODULE_WUPLOAD_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a folder"
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_WUPLOAD_REGEXP_URL}file/")
-
-    if ! test "$PAGE"; then
-        log_error "wrong folder link (no download link detected)"
-        return $ERR_FATAL
-    fi
+    PAGE=$(curl -L "$URL") || return
+    LINKS=$(echo "$PAGE" | grep "<a href=\"${MODULE_WUPLOAD_REGEXP_URL}file/")
+    test "$LINKS" || return $ERR_LINK_DEAD
 
     # First pass: print file names (debug)
     while read LINE; do
-        FILENAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
-        log_debug "$FILENAME"
-    done <<< "$PAGE"
+        FILE_NAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
 
     # Second pass: print links (stdout)
     while read LINE; do
-        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$LINK"
-    done <<< "$PAGE"
-
-    return 0
+        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$FILE_URL"
+    done <<< "$LINKS"
 }

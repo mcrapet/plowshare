@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # filesonic.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -339,30 +339,36 @@ filesonic_delete() {
 # stdout: list of links
 filesonic_list() {
     local URL="$1"
+    local PAGE LINKS FILE_NAME FILE_URL
 
     if ! match "${MODULE_FILESONIC_REGEXP_URL}folder/" "$URL"; then
         log_error "This is not a folder"
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -L "$URL" | grep "<a href=\"${MODULE_FILESONIC_REGEXP_URL}file")
+    test "$2" && log_debug "recursive flag is not supported"
 
-    if ! test "$PAGE"; then
-        log_error "Wrong folder link (no download link detected)"
-        return $ERR_FATAL
+    PAGE=$(curl -L "$URL") || return
+
+    # Error 9001: Folder do not exist
+    # The requested folder do not exist or was deleted by the owner.
+    if match 'Error 9001:' "$PAGE"; then
+        log_error "Folder does not exist"
+        return $ERR_LINK_DEAD
     fi
+
+    LINKS=$(echo "$PAGE" | grep "<a href=\"${MODULE_FILESONIC_REGEXP_URL}file")
+    test "$LINKS" || return $ERR_LINK_DEAD
 
     # First pass: print file names (debug)
     while read LINE; do
-        FILENAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
-        log_debug "$FILENAME"
-    done <<< "$PAGE"
+        FILE_NAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
 
     # Second pass: print links (stdout)
     while read LINE; do
-        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$LINK"
-    done <<< "$PAGE"
-
-    return 0
+        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "$FILE_URL"
+    done <<< "$LINKS"
 }

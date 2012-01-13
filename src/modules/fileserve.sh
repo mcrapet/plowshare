@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # fileserve.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -276,32 +276,28 @@ fileserve_upload() {
 # stdout: list of links
 fileserve_list() {
     local URL="$1"
+    local PAGE LINKS FILE_NAME FILE_ID
 
     if ! match 'fileserve\.com/list/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl "$URL" | grep '<a href="/file/')
-
-    if test -z "$PAGE"; then
-        log_error "Wrong directory list link"
-        return $ERR_FATAL
-    fi
+    PAGE=$(curl "$URL") || return
+    LINKS=$(echo "$PAGE" | grep '<a href="/file/')
+    test "$LINKS" || return $ERR_LINK_DEAD
 
     # First pass: print file names (debug)
     while read LINE; do
-        FILENAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
-        log_debug "$FILENAME"
-    done <<< "$PAGE"
+        FILE_NAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
+        log_debug "$FILE_NAME"
+    done <<< "$LINKS"
 
     # Second pass: print links (stdout)
     while read LINE; do
-        LINK=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "http://www.fileserve.com$LINK"
-    done <<< "$PAGE"
-
-    return 0
+        FILE_ID=$(echo "$LINE" | parse_attr '<a' 'href')
+        echo "http://www.fileserve.com$FILE_ID"
+    done <<< "$LINKS"
 }
 
 # Delete a file from fileserve

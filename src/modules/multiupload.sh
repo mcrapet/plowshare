@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # multiupload.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -166,16 +166,23 @@ multiupload_upload() {
 # $1: multiupload.com link
 # $2: recurse subfolders (non sense for this module)
 # stdout: list of links
+#
+# Notes:
+# - multiupload.com direct link is not printed
+# - empty folder (return $ERR_LINK_DEAD) is not possible
 multiupload_list() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_LIST_OPTIONS" "$@")"
 
     local URL="$1"
+    local PAGE LINKS
 
-    LINKS=$(curl "$URL" | break_html_lines_alt | parse_all_attr '"urlhref' 'href') || \
-        { log_error "Wrong directory list link"; return $ERR_FATAL; }
+    PAGE=$(curl "$URL" | break_html_lines_alt) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr '"urlhref' 'href')
+
+    test "$2" && log_debug "recursive flag has no sense with this module"
 
     if test -z "$LINKS"; then
-        log_error "This is not a directory list"
+        log_error "Wrong directory list link"
         return $ERR_FATAL
     fi
 
