@@ -27,10 +27,16 @@ SRCDIR="$ROOTDIR/src"
 TPUT=tput
 
 # Test data
-TEST_FILES=('up-down-del.t' 'single_link_download.t' 'check_wrong_link.t')
-TEST_LETTER=('T' 'S' 'C')
-TEST_INDEX=(10 400 700)
-
+TEST_FILES=('up-down-del.t'
+    'up-down-del+recaptcha.t'
+    'single_link_download.t'
+    'check_wrong_link.t')
+TEST_LETTER=('T' 'R' 'S' 'C')
+TEST_INDEX=(10 220 330 440)
+TEST_TITLE=('*** Anonymous upload, download and delete'
+'*** Anonymous upload, download (using reCaptcha) and delete'
+'*** Single URL anonymous download'
+'*** Check wrong link suite')
 
 # plowdown
 download() {
@@ -47,10 +53,10 @@ delete() {
     $SRCDIR/delete.sh -q "$@"
 }
 
-# plowlist
-list() {
-    $SRCDIR/list.sh -q "$@"
-}
+# plowlist - not used yet!
+#list() {
+#    $SRCDIR/list.sh -q "$@"
+#}
 
 stderr() {
     echo "$@" >&2;
@@ -386,22 +392,32 @@ done
 
 if [ $TESTOP = 'li' ]; then
     let i=${TEST_INDEX[0]}
+    echo "${TEST_TITLE[0]}"
     while readx M O1 O2 O3; do
         echo "${TEST_LETTER[0]}$i: $M ($O1)"
         let i++
     done < "${TEST_FILES[0]}"
 
     let i=${TEST_INDEX[1]}
-    while readx URL F O1; do
-        echo "${TEST_LETTER[1]}$i: $URL ($O1)"
+    echo "${TEST_TITLE[1]}"
+    while readx M O1 O2 O3; do
+        echo "${TEST_LETTER[1]}$i: $M ($O1)"
         let i++
     done < "${TEST_FILES[1]}"
 
     let i=${TEST_INDEX[2]}
-    while readx URL O1; do
+    echo "${TEST_TITLE[2]}"
+    while readx URL F O1; do
         echo "${TEST_LETTER[2]}$i: $URL ($O1)"
         let i++
     done < "${TEST_FILES[2]}"
+
+    let i=${TEST_INDEX[3]}
+    echo "${TEST_TITLE[3]}"
+    while readx URL O1; do
+        echo "${TEST_LETTER[3]}$i: $URL ($O1)"
+        let i++
+    done < "${TEST_FILES[3]}"
 
 else
     # FIXME: Do 1 pass for now..
@@ -422,24 +438,34 @@ else
         done < "${TEST_FILES[0]}"
 
         let i=${TEST_INDEX[1]}
-        while readx URL F O1; do
+        while readx M O1 O2 O3; do
             if exists TEST_ITEMS "${TEST_LETTER[1]}$i"; then
-                echo -n "testing $URL ..."
-                test_signle_down "$URL" "$F" "$O1" || true
+                echo -n "testing $M ..."
+                test_case_up_down_del "$FILE1" $M "$O1" "$O2" "$O3" || true
                 let n++
             fi
             let i++
         done < "${TEST_FILES[1]}"
 
         let i=${TEST_INDEX[2]}
-        while readx URL O1; do
+        while readx URL F O1; do
             if exists TEST_ITEMS "${TEST_LETTER[2]}$i"; then
+                echo -n "testing $URL ..."
+                test_signle_down "$URL" "$F" "$O1" || true
+                let n++
+            fi
+            let i++
+        done < "${TEST_FILES[2]}"
+
+        let i=${TEST_INDEX[3]}
+        while readx URL O1; do
+            if exists TEST_ITEMS "${TEST_LETTER[3]}$i"; then
                 echo -n "testing $URL ..."
                 test_check_wrong_link "$URL" "$O1" || true
                 let n++
             fi
             let i++
-        done < "${TEST_FILES[2]}"
+        done < "${TEST_FILES[3]}"
 
         if [ "$n" -eq 0 ]; then
             echo "error: bad test name \"${TEST_ITEMS[0]}\""
@@ -459,14 +485,18 @@ else
             echo -n "testing $M ..."
             test_case_up_down_del "$FILE1" $M "$O1" "$O2" "$O3" || true
         done < "${TEST_FILES[0]}"
+        while readx M O1 O2 O3; do
+            echo -n "testing $M ..."
+            test_case_up_down_del "$FILE1" $M "$O1" "$O2" "$O3" || true
+        done < "${TEST_FILES[1]}"
         while readx URL F O1; do
             echo -n "testing $URL ..."
             test_signle_down "$URL" "$F" "$O1" || true
-        done < "${TEST_FILES[1]}"
+        done < "${TEST_FILES[2]}"
         while readx URL O1; do
             echo -n "testing $URL ..."
             test_check_wrong_link "$URL" "$O1" || true
-        done < "${TEST_FILES[2]}"
+        done < "${TEST_FILES[3]}"
     fi
 
     rm -f "$FILE1"

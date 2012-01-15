@@ -1,5 +1,6 @@
 ##
 # Black-box test : upload, download and delete file
+# Download will use captcha.trader (stored in plowshare.conf).
 # Delete function is optional.
 # Remark: Most hosters remove inactive files.
 #
@@ -11,50 +12,28 @@
 ##
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1fichier
+depositfiles
 --no-plowsharerc
---no-plowsharerc
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2shared
---no-plowsharerc
---no-plowsharerc
+--
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Note: Test is too long... link is always unavailable.
-dataport_cz
+fileserve
 --no-plowsharerc
---no-plowsharerc --no-extra-wait
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# reCaptcha can happen but it's rare
-mediafire
---no-plowsharerc
---no-plowsharerc
+--
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-megashares
---no-plowsharerc
---no-plowsharerc
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-megaupload
---no-plowsharerc
---no-plowsharerc
+multiupload
+--no-plowsharerc --no-hf
+--
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-netload_in
+uploaded_to
 --no-plowsharerc
---no-plowsharerc
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sendspace
---no-plowsharerc
---no-plowsharerc
+--
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zshare
+wupload
 --no-plowsharerc
---no-plowsharerc
+--
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
