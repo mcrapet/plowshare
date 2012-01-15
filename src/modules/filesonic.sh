@@ -150,8 +150,8 @@ filesonic_download() {
     PAGE=$(curl -b "$COOKIEFILE" -H "X-Requested-With: XMLHttpRequest" \
                 --referer "$URL?start=1" --data "" "$URL?start=1") || return
 
-    # Free users cannot download files > 400MB
-    if match 'download is larger than 400Mb.' "$PAGE"; then
+    # This file is not a collaboration file and is too big to be downloaded by free users.
+    if match '<div class="downloadSteps errorSize">' "$PAGE"; then
         log_error "You're trying to download file larger than 400MB (only premium users can)."
         return $ERR_LINK_NEED_PERMISSIONS
 
