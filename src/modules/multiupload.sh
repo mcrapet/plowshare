@@ -38,7 +38,7 @@ MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 # stdout: real file download link
 multiupload_download() {
     local URL="$2"
-    local PAGE FILE_URL
+    local PAGE FID JSON FILE_URL
 
     PAGE=$(curl "$URL" | break_html_lines) || return
 
@@ -49,11 +49,31 @@ multiupload_download() {
 
     test "$CHECK_LINK" && return 0
 
-    # document.getElementById('dlbutton').href='http://www47.multiupload.com:81/files/...'
-    FILE_URL=$(echo "$PAGE" | parse_attr_quiet '"dlbutton"' 'href') || {
-        log_debug "direct download not available";
-        return $ERR_LINK_TEMP_UNAVAILABLE;
-    }
+    # reCaptcha
+    # <a href="javascript:directdownload();" onclick="launchpopunder();" id="dlbutton">
+    local PUBKEY WCI CHALLENGE WORD ID
+    PUBKEY='6Ldk3ssSAAAAAGhnqt8O_xgLW-NVR0cqwOON1Pg3'
+    WCI=$(recaptcha_process $PUBKEY) || return
+    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+    FID=$(echo "$PAGE" | parse 'checkCaptcha()' "'\(\?c=[^']\+\)") || return
+    JSON=$(curl --data \
+        "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+        -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+        "$URL$FID") || return
+
+    # {"response":"0"}
+    if match '"response"' "$JSON"; then
+        recaptcha_nack $ID
+        log_error "Wrong captcha"
+        return $ERR_CAPTCHA
+    fi
+
+    recaptcha_ack $ID
+    log_debug "correct captcha"
+
+    # {"href":"http:\/\/www44.multiupload.com:81\/files\/ ... "}
+    FILE_URL=$(echo "$JSON" | parse 'href' '"href"[[:space:]]*:[[:space:]]*"\([^"]*\)"') || return
 
     echo "$FILE_URL"
 }
