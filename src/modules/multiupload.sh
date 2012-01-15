@@ -49,31 +49,34 @@ multiupload_download() {
 
     test "$CHECK_LINK" && return 0
 
-    # reCaptcha
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet '"dlbutton"' 'href')
+
     # <a href="javascript:directdownload();" onclick="launchpopunder();" id="dlbutton">
-    local PUBKEY WCI CHALLENGE WORD ID
-    PUBKEY='6Ldk3ssSAAAAAGhnqt8O_xgLW-NVR0cqwOON1Pg3'
-    WCI=$(recaptcha_process $PUBKEY) || return
-    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+    if match 'javascript:' "$FILE_URL"; then
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6Ldk3ssSAAAAAGhnqt8O_xgLW-NVR0cqwOON1Pg3'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-    FID=$(echo "$PAGE" | parse 'checkCaptcha()' "'\(\?c=[^']\+\)") || return
-    JSON=$(curl --data \
-        "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-        -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-        "$URL$FID") || return
+        FID=$(echo "$PAGE" | parse 'checkCaptcha()' "'\(\?c=[^']\+\)") || return
+        JSON=$(curl --data \
+            "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+            "$URL$FID") || return
 
-    # {"response":"0"}
-    if match '"response"' "$JSON"; then
-        recaptcha_nack $ID
-        log_error "Wrong captcha"
-        return $ERR_CAPTCHA
+        # {"response":"0"}
+        if match '"response"' "$JSON"; then
+            recaptcha_nack $ID
+            log_error "Wrong captcha"
+            return $ERR_CAPTCHA
+        fi
+
+        recaptcha_ack $ID
+        log_debug "correct captcha"
+
+        # {"href":"http:\/\/www44.multiupload.com:81\/files\/ ... "}
+        FILE_URL=$(echo "$JSON" | parse 'href' '"href"[[:space:]]*:[[:space:]]*"\([^"]*\)"') || return
     fi
-
-    recaptcha_ack $ID
-    log_debug "correct captcha"
-
-    # {"href":"http:\/\/www44.multiupload.com:81\/files\/ ... "}
-    FILE_URL=$(echo "$JSON" | parse 'href' '"href"[[:space:]]*:[[:space:]]*"\([^"]*\)"') || return
 
     echo "$FILE_URL"
 }
