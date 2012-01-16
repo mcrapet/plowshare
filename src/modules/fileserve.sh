@@ -78,7 +78,7 @@ fileserve_download() {
         log_debug "Cannot parse URL to extract file id, try anyway"
         URL="$2"
     else
-        URL="http://www.fileserve.com/file/$ID"
+        URL="$BASEURL/file/$ID"
     fi
 
     if [ -n "$AUTH" ]; then
@@ -179,7 +179,7 @@ fileserve_download() {
     # Should return {"success":1}
     JSON2=$(curl -b "$COOKIEFILE" --referer "$URL" --data \
         "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&recaptcha_shortencode_field=$SHORT" \
-        "http://www.fileserve.com/checkReCaptcha.php") || return
+        "$BASEURL/checkReCaptcha.php") || return
 
     local RET=$(echo "$JSON2" | parse_quiet 'success' 'success"\?[[:space:]]\?:[[:space:]]\?\([[:digit:]]*\)')
     if [ "$RET" != "1" ] ; then
