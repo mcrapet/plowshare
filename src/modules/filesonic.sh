@@ -108,8 +108,10 @@ filesonic_download() {
     fi
 
     # do not obtain filename from "<span>Filename:" because it is shortened
-    # with "..." if too long; instead, take it from title
-    FILENAME=$(echo "$PAGE" | parse_quiet "<title>" ">Download \(.*\) for free")
+    # with "..." if too long; instead, take it from title:
+    # <script type="text/javascript">document.write('<title>&#68;&#111; ... ');</script>
+    FILENAME=$(echo "$PAGE" | parse_quiet "<title>" "<title>\([^<]\+\)" | html_to_utf8)
+    FILENAME=$(echo "$FILENAME" | parse_quiet '.' 'Download \(.*\) for free on F')
 
     # User account
     if test "$AUTH"; then
