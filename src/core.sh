@@ -1330,6 +1330,8 @@ process_configfile_module_options() {
 
                 eval "$VAR=$(quote "$VALUE")"
                 log_notice "$M: take --$LONG option from configuration file"
+            else
+                unset "$VAR"
             fi
         done <<< "$OPTIONS"
     fi
