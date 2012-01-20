@@ -21,10 +21,10 @@
 MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/"
 
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
-EASYSHARE,,easyshare,,Include this additional host site
-FILESERVE,,fileserve,,Include this additional host site
 HOTFILE,,hotfile,,Include this additional host site
-RAPIDSHARE,,rapidshare,,Include this additional host site"
+MEDIAFIRE,,mediafire,,Include this additional host site
+RAPIDSHARE,,rapidshare,,Include this additional host site
+ZSHARE,,zshare,,Include this additional host site"
 
 # Upload a file to mirrorcreator.com
 # $1: cookie file (unused here)
@@ -37,82 +37,70 @@ mirrorcreator_upload() {
     local FILE="$2"
     local DESTFILE="$3"
     local SZ=$(get_filesize "$FILE")
-    local BASE_URL="http://www.mirrorcreator.com"
+    local BASE_URL='http://www.mirrorcreator.com'
+    local PAGE FORM SITES_SEL SITES_ALL DATA
 
     # Warning message
     if [ "$SZ" -gt 419430400 ]; then
         log_error "warning: file is bigger than 400MB, some site may not support it"
     fi
 
-    PAGE=$(curl "$BASE_URL")
+    PAGE=$(curl "$BASE_URL") || return
+    FORM=$(grep_form_by_id "$PAGE" 'uu_upload' | break_html_lines)
 
-    local FORM=$(grep_form_by_id "$PAGE" 'uu_upload')
+    # Retrieve complete hosting site list
+    SITES_ALL=$(echo "$FORM" | parse_all_form_input_by_type_with_id 'checkbox')
 
-    # Informational only
-    HOSTERS=$(echo "$FORM" | parse_all 'checked' '">\([^<]*\)<br')
-    N=0
-    if [ -n "$HOSTERS" ]; then
-        log_debug "Hosting sites:"
-        while read H; do
-            log_debug "- $H"
-            (( ++N ))
-        done <<< "$HOSTERS"
-    fi
-
-    # Retrieve complete hosters list
-    local SITES=$(echo "$FORM" | parse_all_form_input_by_type_with_id 'checkbox')
-
-    if [ -z "$SITES" ]; then
+    if [ -z "$SITES_ALL" ]; then
         log_error "Empty list, site updated?"
         return $ERR_FATAL
+    else
+        log_debug "Available sites:" $SITES_ALL
     fi
 
-    # Do not seem needed..
-    #PAGE=$(curl "$BASE_URL/fnvalidator.php?fn=${DESTFILE};&fid=upfile_123;")
-
-    # Set N to a bigger value to upload to more hosters
-    CURL_STRING=''
-    while read H; do
-        (( N-- <= 0 )) && break;
-        CURL_STRING="$CURL_STRING -F ${H}=on"
-    done <<< "$SITES"
+    # Default hosting sites selection
+    SITES_SEL=$(echo "$FORM" | parse_all_attr 'checked=' 'value')
 
     # Check command line additionnal hosters
-    if [ -n "$EASYSHARE" ]; then
-        CURL_STRING="$CURL_STRING -F easyshare=on"
-        log_debug "- EasyShare"
-    fi
-    if [ -n "$FILESERVE" ]; then
-        CURL_STRING="$CURL_STRING -F fileserve=on"
-        log_debug "- FileServe"
-    fi
-    if [ -n "$HOTFILE" ]; then
-        CURL_STRING="$CURL_STRING -F hotfile=on"
-        log_debug "- HotFile"
-    fi
-    if [ -n "$RAPIDSHARE" ]; then
-        CURL_STRING="$CURL_STRING -F rapidshare=on"
-        log_debug "- RapidShare"
+    [ -n "$HOTFILE" ]    && SITES_SEL="$SITES_SEL hotfile"
+    [ -n "$MEDIAFIRE" ]  && SITES_SEL="$SITES_SEL mediafire"
+    [ -n "$RAPIDSHARE" ] && SITES_SEL="$SITES_SEL rapidshare"
+    [ -n "$ZSHARE" ]     && SITES_SEL="$SITES_SEL zshare"
+
+    if [ -n "$SITES_SEL" ]; then
+        log_debug "Selected sites:" $SITES_SEL
     fi
 
-    # Site is using third part uploader component: Uber-Uploader
-    # (http://uber-uploader.sourceforge.net/)
-    # Remark: Calling "uber/ubr_set_progress.php" and "uber/ubr_get_progress.php"
-    # is not required here.
+    # Do not seem needed.. (account stuff?)
+    #PAGE=$(curl "$BASE_URL/fnvalidator.php?fn=${DESTFILE};&fid=upfile_123;")
 
-    ID=$(curl "$BASE_URL/uber/ubr_link_upload.php?_=1306654898605" | parse_quiet 'startUpload' '("\([^"]*\)')
-    log_debug "Upload ID: $ID"
+    PAGE=$(curl_with_log "$BASE_URL/uploadify/uploadify.php" \
+        --user-agent "Shockwave Flash" \
+        -F "Filename=$DESTFILE" \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
+        -F 'folder=/uploads' -F 'Upload=Submit Query')
 
-    PAGE=$(curl_with_log -L \
-        -F "upfile_123=@$FILE;filename=$DESTFILE" -F "mail=" \
-        $CURL_STRING \
-        "$BASE_URL/cgi-bin/ubr_upload.pl?upload_id=$ID") ||
-        { log_error "Couldn't upload file!"; return $ERR_FATAL; }
+    # Filename can be renamed if "slot" already taken!
+    # {"fileName": "RFC-all.tar.gz"}
+    DESTFILE=$(echo "$PAGE" | parse 'fileName' ':[[:space:]]*"\([^"]\+\)"')
+    log_debug "filename=$DESTFILE"
 
-    # Custom version of "uber/ubr_finished.php"
-    PAGE=$(curl "$BASE_URL/process.php?upload_id=$ID") ||
-        { log_error "Can't get results"; return $ERR_FATAL; }
+    # Some basic base64 encoding:
+    # > FilesNames +=value + '#0#' + filesCompletedSize[key]+ ';0;';
+    # > submitData = filesNames + '@e@' + email + '#H#' + selectedHost +'#P#' + pass;
+    # Example: RFC-all.tar.gz#0#225280;0;@e@#H#zshare;wupload;#P#
+    DATA=$(echo "$SITES_SEL" | replace ' ' ';' | tr '\n' ';')
 
-    echo "$PAGE" | parse_attr 'getElementById("link2")' 'href'
+##
+# FIXME: something is wrong, only the 2 first entries are taken of my list.
+##
+
+    log_debug "sites=$DATA"
+    DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA}#P#" | base64)
+    PAGE=$(curl --referer "$BASE_URL" \
+        "$BASE_URL/process.php?data=$DATA") || return
+
+
+    echo "$PAGE" | parse_attr 'getElementById("link2")' 'href' || return
     return 0
 }
