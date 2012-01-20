@@ -56,6 +56,7 @@ netload_in_download() {
     local COOKIEFILE="$1"
     local URL=$(echo "$2" | replace 'www.' '')
     local BASE_URL='http://netload.in'
+    local WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA FILE_URL
 
     if [ -n "$AUTH" ]; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
@@ -88,8 +89,6 @@ netload_in_download() {
     fi
 
     detect_perl || return
-
-    local WAIT_URL WAIT_HTML WAIT_TIME
 
     WAIT_URL=$(curl --location -c "$COOKIEFILE" "$URL" | parse_quiet \
         '<div class="Free_dl">' '><a href="\([^"]*\)') || return $ERR_LINK_DEAD
@@ -133,7 +132,7 @@ netload_in_download() {
     FORM_URL=$(echo "$DOWNLOAD_FORM" | parse_form_action) || return
     FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
 
-    WAIT_HTML2=$(curl -l -b "$COOKIEFILE" --data "file_id=${FORM_FID}&captcha_check=${CAPTCHA}&start=" \
+    WAIT_HTML2=$(curl -b "$COOKIEFILE" --data "file_id=${FORM_FID}&captcha_check=${CAPTCHA}&start=" \
             "$BASE_URL/$FORM_URL") || return
 
     if match 'class="InPage_Error"' "$WAIT_HTML2"; then
@@ -157,6 +156,15 @@ netload_in_download() {
 
     FILENAME=$(echo "$WAIT_HTML2" | \
         parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
+
+    # if filename is truncated, take the one from url
+    if [ "${#FILENAME}" -ge 57 -a '..' = "${FILENAME:(-2):2}" ]; then
+        if match '\.htm$' "$URL"; then
+            FILENAME=$(basename_file "$URL")
+            FILENAME="${FILENAME:0:${#FILENAME}-4}"
+        fi
+    fi
+
     FILE_URL=$(echo "$WAIT_HTML2" | \
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
