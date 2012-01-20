@@ -142,7 +142,8 @@ depositfiles_download() {
     # 3. Check for error messages (second page)
 
     # - Attention! You used up your limit for file downloading!
-    if match 'limit for file' "$DATA"; then
+    # - Attention! Connection limit has been exhausted for your IP address!
+    if match 'limit for file\|exhausted for your IP' "$DATA"; then
         WAITTIME=$(echo "$DATA" | \
             parse 'class="html_download_api-limit_interval"' 'l">\([^<]*\)<')
         log_debug "limit reached: waiting $WAITTIME seconds"
