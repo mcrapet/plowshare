@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -103,37 +103,33 @@ log_error() {
 # $1..$n are curl arguments
 curl() {
     local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300)
-
-    # Check if caller has specified a User-Agent, if so, don't put one
-    local exist=0
-    for e; do
-        if [ "$e" = '-A' -o "$e" = '--user-agent' ]; then
-            exist=1
-            break
-        fi
-    done
-    if [ "$exist" -eq 0 ]; then
-        OPTIONS[5]='--user-agent'
-        OPTIONS[6]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
-    fi
-
     local DRETVAL=0
 
-    # no verbose unless debug level; don't show progress meter for report level too
-    test $(verbose_level) -ne 3 && OPTIONS=("${OPTIONS[@]}" "--silent")
+    # Check if caller has specified a User-Agent, if so, don't put one
+    if ! find_in_array OPTIONS[@] '-A' '--user-agent'; then
+        OPTIONS[${#OPTIONS[@]}]='--user-agent'
+        OPTIONS[${#OPTIONS[@]}]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
+    fi
 
-    test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" "--interface" "$INTERFACE")
-    test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" "--limit-rate" "$LIMIT_RATE")
+    # Check if caller has allowed redirection, if so, limit it
+    if find_in_array OPTIONS[@] '-L' '--location'; then
+        OPTIONS[${#OPTIONS[@]}]='--max-redirs'
+        OPTIONS[${#OPTIONS[@]}]=5
+    fi
+
+    # no verbose unless debug level; don't show progress meter for report level too
+    test $(verbose_level) -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
+
+    test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" '--interface' "$INTERFACE")
+    test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" '--limit-rate' "$LIMIT_RATE")
     test -n "$NO_CURLRC" && OPTIONS=('-q' "${OPTIONS[@]}")
 
-    set -- $(type -P curl) "${OPTIONS[@]}" "$@"
-
     if test $(verbose_level) -lt 4; then
-        "$@" || DRETVAL=$?
+        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
-        log_report "$@"
-        "$@" --show-error 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
+        log_report "${OPTIONS[@]} $@"
+        $(type -P curl) --show-error "${OPTIONS[@]}" "$@" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes"
         log_report "=== CURL BEGIN ==="
@@ -896,6 +892,9 @@ captcha_process() {
             if [ "$RET" -eq '-1' ]; then
                 log_error "captcha.trader error: $WORD"
                 rm -f "$FILENAME"
+                if [ 'INSUFFICIENT CREDITS' = "$WORD" ]; then
+                    return $ERR_FATAL
+                fi
                 return $ERR_CAPTCHA
             fi
 
@@ -1465,4 +1464,16 @@ ocr() {
 
     cat "$TEXT"
     rm -f "$TIFF" "$TEXT"
+}
+
+# Look for one element in a array
+# $1: array[@]
+# $2: element to find
+# $3: alternate element to find (can be null)
+# $?: 0 for success (one element found), not found otherwise
+find_in_array() {
+    for ELT in "${!1}"; do
+        [ "$ELT" = "$2" -o "$ELT" = "$3" ] && return 0
+    done
+    return 1
 }
