@@ -17,7 +17,6 @@ hotfile      | download |        |        | list |
 humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
 megashares   | download | upload |        |      |
-megaupload   | download | upload | delete | list |
 mirrorcreator|          | upload |        |      |
 multiupload  | download | upload |        | list |
 netload_in   | download | upload |        | list |
