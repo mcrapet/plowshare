@@ -76,6 +76,9 @@ multiupload_download() {
 
         # {"href":"http:\/\/www44.multiupload.com:81\/files\/ ... "}
         FILE_URL=$(echo "$JSON" | parse 'href' '"href"[[:space:]]*:[[:space:]]*"\([^"]*\)"') || return
+    elif [ -z "$FILE_URL" ]; then
+        log_debug "direct download not available";
+        return $ERR_LINK_TEMP_UNAVAILABLE;
     fi
 
     echo "$FILE_URL"
