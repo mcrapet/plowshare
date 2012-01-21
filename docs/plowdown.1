@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "January 20, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "January 21, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -191,10 +191,13 @@ Don't forget to single-quote string if your password contain shell expandable ch
 $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 .sp 1
 # Downloads are successive (not parallel)
-$ plowdown http://x7.to/abcdef http://www.megaupload.com/?d=ghijklmn
+$ plowdown http://x7.to/abcdef http://www.filesonic.com/file/yUl25ql
 .sp 1
-# Download a password-protected file from megaupload
-$ plowdown \-p somepassword http://www.megaupload.com/?d=opqrstuv
+# Download a password-protected file from mediafire
+$ plowdown \-p somepassword http://www.mediafire.com/?mt0egmhietj60iy
+.sp 1
+# Download using an account (free or premium, not supported by all modules)
+$ plowdown \-a myuser:mypassword http://www.filesonic.com/file/yUl25ql
 .fi
 .SS 2) Download a list of links (one link per line) commenting out (with #) those successfully downloaded 
 .nf
@@ -282,7 +285,7 @@ is invoked with multiple links or a link-list file and one or several errors occ
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2011 The Plowshare Team
+Plowshare is (C) 2010-2012 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowup (1),
 .BR plowdel (1),

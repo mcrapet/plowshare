@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "December 29, 2011" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "January 21, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -136,14 +136,6 @@ Set file description.
 All switches are not implemented nor required for all modules.
 See help message for detailed modules option list.
 
-.SS Megaupload specific (for premium users only)
-.TP
-.B "   " --clear-fetch-list
-Clear upload log after remote upload process.
-.TP
-.BI "   " " " --multiemail "=EMAIL1[;EMAIL2;...]"
-List of emails to notify upload.
-
 .\" ****************************************************************************
 .\" * Examples                                                                 *
 .\" ****************************************************************************
@@ -151,25 +143,25 @@ List of emails to notify upload.
 
 .SS 1) Upload a single file anonymously
 .nf
-$ plowup zshare /path/foobar
+$ plowup wupload /tmp/foo.bar
+.sp 1
+# Add a text description
+$ plowup \-d "Important document" megashares /path/myfile.tex
 .fi
 .SS 2) Upload a single file with authentication
 .nf
-# Add a text description
-$ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt 
-.sp 1
 # Change destination filename
-$ plowup \-a myuser:mypassword \-d "My description" megaupload /path/myfile.txt:anothername.txt
+$ plowup \-a myuser:mypassword fileserve /path/myfile.txt:anothername.txt
 .fi
 .SS 3) Remote upload
 URL fetching is rarely implemented by modules.
 
 .nf
 # Feature dedicated to premium members
-$ plowup \-a myuser:mypassword megaupload http://www.somewherefarbeyond.com/somefile
+$ plowup \-a myuser:mypassword <modulename> http://www.somewherefarbeyond.com/somefile
 .sp 1
 # Change destination filename
-$ plowup \-a myuser:mypassword megaupload http://www.somewherefarbeyond.com/somefile:anothername
+$ plowup \-a myuser:mypassword <modulename> http://www.somewherefarbeyond.com/somefile:anothername
 .fi
 
 .\" ****************************************************************************
@@ -217,7 +209,7 @@ is invoked with multiple links and one or several errors occur, the first error 
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2011 The Plowshare Team
+Plowshare is (C) 2010-2012 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowdown (1),
 .BR plowdel (1),

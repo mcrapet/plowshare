@@ -94,12 +94,12 @@ $ plowdown -m file_with_links.txt
 5. Limit the download rate (you can use curl rates: K=Kbps, M=Mbps, G=Gbps)
 $ plowdown -l 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-6. Download a file from Megaupload using a free membership account 
+6. Download a file from Filesonic using an account (free or premium)
    (note ':' is used to separate user from password)
-$ plowdown -a myuser:mypassword http://www.megaupload.com/?d=132348234
+$ plowdown -a myuser:mypassword http://www.filesonic.com/file/yUl25ql
 
-7. Download a password-protected file from Megaupload:
-$ plowdown -p somepassword http://www.megaupload.com/?d=ieo1g52v
+7. Download a password-protected file from Mediafire:
+$ plowdown -p somepassword http://www.mediafire.com/?mt0egmhietj60iy
 
 8. Advanced use. Use a different web retriever for the last file download. 
    File URL, file name and cookies are available through interpolations. 
@@ -117,30 +117,32 @@ $ plowdown --max-retries=20 --timeout=3600 http://x7.to/x469d5y
 Plowup
 ------
 
-1. Upload a file to dataport.cz (account required)
-$ plowup -a myuser:mypassword dataport_cz /tmp/foo.bz2
+1. Upload a single file anonymously to wupload
+$ plowup wupload /tmp/foo.bar
 
-2. Upload a file to Multiupload changing uploaded file name
-$ plowup multiupload /path/myfile.txt:anothername.txt
-
-3. Upload a file to Megaupload with a free membership account:
-$ plowup -a myuser:mypassword -d "My description" megaupload /path/myfile.txt
-
-4. Upload a file to Megaupload with a premium account and multifetch upload
-$ plowup -a myuser:mypassword -d "My description" megaupload \
-    http://www.somewherefarbeyond.com/somefile
-
-5. Upload a bunch of files (anonymously to 2shared)
+2. Upload a bunch of files anonymously to 2shared
 $ plowup 2shared /path/myphotos/*
 Notice that only files will be sent, subdirectories will be ignored.
 
-6. Upload a file to Zshare anonymously with a proxy.
+3. Upload a file to Multiupload changing uploaded file name
+$ plowup multiupload /path/myfile.txt:anothername.txt
+
+4. Upload a file to megashares (anonymously) + set description
+$ plowup -d "Important document" megashares /path/myfile.tex
+
+5. Upload a file to Mediafire with a free membership account:
+$ plowup -b myuser:mypassword mediafire /path/myfile.txt
+
+6. Upload a file to Fileserve with an account (premium or free)
+$ plowup -a myuser:mypassword fileserve /path/xxx
+
+7. Upload a file to Zshare anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowup zshare /path/myfile.txt
 
-7. Modify remote filenames
-$ plowup mirrorcreator --name-prefix="2011.jul-" *.rar
+8. Modify remote filenames
+$ plowup --name-prefix="2011.jul-" mirrorcreator *.rar
 
 Be aware that curl is not capable of uploading files containing a comma (,)
 in their name, so make sure to rename them before using plowup.
@@ -148,15 +150,24 @@ in their name, so make sure to rename them before using plowup.
 Plowdel
 -------
 
-1. Delete a file from megaupload (account is required)
-$ plowdel -a myuser:mypassword http://www.megaupload.com/?d=132348234
+1. Delete a file from zshare ("delete" link required)
+$ plowdel http://www.zshare.net/delete/1234567890ABCD/
+
+2. Delete files (deletes are successive, not parallel)
+$ plowdel http://www.zshare.net/delete/1234567890ABCD/ http://depositfiles.com/rmv/1643181821669253
+
+3. Delete a file from filesonic (account is required)
+$ plowdel -a myuser:mypassword http://www.filesonic.com/file/yUl25ql
 
 Plowlist
 --------
 
 1. List links contained in a shared-folder link and download them all
-$ plowlist http://www.mediafire.com/?sharekey=79ac821ea0110 > links.txt
+$ plowlist http://www.mediafire.com/?qouncpzfe74s9 > links.txt
 $ plowdown -m links.txt
+
+2. List two shared folders (first URL is processed, then the second one, this is not parallel)
+$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.filesonic.com/folder/1192211
 
 
 Implement your own modules
