@@ -27,6 +27,8 @@ MODULE_WUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_WUPLOAD_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Use a free-membership or premium account"
+MODULE_WUPLOAD_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_WUPLOAD_LIST_OPTIONS=""
 
 # Official API documentation: http://api.wupload.com/user

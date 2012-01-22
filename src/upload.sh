@@ -92,6 +92,14 @@ module_exist() {
     return 1
 }
 
+# Example: "MODULE_ZSHARE_UPLOAD_REMOTE_SUPPORT=no"
+# $1: module name
+module_config_remote_upload() {
+    MODULE=$1
+    VAR="MODULE_$(echo $MODULE | uppercase)_UPLOAD_REMOTE_SUPPORT"
+    test "${!VAR}" = 'yes'
+}
+
 #
 # Main
 #
@@ -166,6 +174,18 @@ for FILE in "$@"; do
             DESTFILE='dummy'
         else
             LOCALFILE=$(echo "$P1$P2" | strip | uri_encode)
+        fi
+
+        if ! module_config_remote_upload "$MODULE"; then
+            log_notice "Skipping ($LOCALFILE): remote upload is not supported"
+            continue
+        fi
+
+        # Check if URL is alive
+        CODE=$(curl --head -L -w '%{http_code}' "$LOCALFILE" | last_line) || true
+        if [ "${CODE:0:1}" = 4 -o "${CODE:0:1}" = 5 ]; then
+            log_notice "Skipping ($LOCALFILE): cannt access link (HTTP status $CODE)"
+            continue
         fi
     else
         # non greedy parsing

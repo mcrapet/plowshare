@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # megashares.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -28,6 +28,7 @@ MODULE_MEGASHARES_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+MODULE_MEGASHARES_UPLOAD_REMOTE_SUPPORT=no
 
 # $1: floating point number (example: "513.58")
 # $2: unit (KB | MB | GB)

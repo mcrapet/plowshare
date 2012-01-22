@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zshare.net module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -26,6 +26,8 @@ MODULE_ZSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_ZSHARE_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
+MODULE_ZSHARE_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_ZSHARE_DELETE_OPTIONS=""
 
 # Output a zshare file download URL

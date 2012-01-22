@@ -2,6 +2,7 @@
 #
 # 1fichier.com module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
+# Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -30,6 +31,7 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 MESSAGE,d:,message:,MESSAGE,Set file message (is send with notification email)
 DOMAIN,,domain:,ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
 # Output a 1fichier file download URL
 # $1: cookie file

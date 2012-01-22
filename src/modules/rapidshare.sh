@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidshare.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -27,6 +27,8 @@ MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
+MODULE_RAPIDSHARE_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_RAPIDSHARE_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # mirrorcreator.com module
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -25,6 +25,7 @@ HOTFILE,,hotfile,,Include this additional host site
 MEDIAFIRE,,mediafire,,Include this additional host site
 RAPIDSHARE,,rapidshare,,Include this additional host site
 ZSHARE,,zshare,,Include this additional host site"
+MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 # Upload a file to mirrorcreator.com
 # $1: cookie file (unused here)

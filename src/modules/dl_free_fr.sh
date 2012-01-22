@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # dl.free.fr module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -25,6 +25,7 @@ MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
 MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
+MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 
 # Output a dl.free.fr file download URL (anonymous)
 # $1: cookie file

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 2share.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -25,6 +25,8 @@ MODULE_2SHARED_DOWNLOAD_RESUME=yes
 MODULE_2SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_2SHARED_UPLOAD_OPTIONS=""
+MODULE_2SHARED_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_2SHARED_DELETE_OPTIONS=""
 
 # Output a 2shared file download URL

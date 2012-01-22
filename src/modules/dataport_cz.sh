@@ -2,6 +2,7 @@
 #
 # dataport.cz module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
+# Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -26,6 +27,8 @@ MODULE_DATAPORT_CZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DATAPORT_CZ_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account"
+MODULE_DATAPORT_CZ_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_DATAPORT_CZ_DELETE_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 

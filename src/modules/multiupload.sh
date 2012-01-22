@@ -30,6 +30,8 @@ AUTH,a:,auth:,USER:PASSWORD,User account
 FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 NO_HOTFILE,,no-hf,,Exclude Hotfile.com from host list"
+MODULE_MULTIUPLOAD_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 
 # Output a multiupload.com "direct download" link
