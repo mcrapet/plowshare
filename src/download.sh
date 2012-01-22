@@ -205,7 +205,7 @@ download() {
     log_notice "Starting download ($MODULE): $URL_ENCODED"
     timeout_init $TIMEOUT
 
-    while true; do
+    while :; do
         local DRETVAL=0
         local COOKIES=$(create_tempfile)
 
@@ -218,7 +218,7 @@ download() {
             local DRESULT=$(create_tempfile)
             local TRY=0
 
-            while true; do
+            while :; do
                 $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >$DRESULT || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then

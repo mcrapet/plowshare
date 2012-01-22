@@ -1193,7 +1193,7 @@ process_options() {
     eval set -- "$ARGUMENTS"
 
     local -a UNUSED_OPTIONS=()
-    while true; do
+    while :; do
         test "$1" = "--" && { shift; break; }
         while read OPTION; do
             IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"

@@ -214,7 +214,7 @@ for FILE in "$@"; do
     log_notice "Destination file: $DESTFILE"
 
     TRY=0
-    while true; do
+    while :; do
         : > "$UPCOOKIE"
         URETVAL=0
         $FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE" || URETVAL=$?
