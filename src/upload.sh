@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Upload a file to file sharing servers
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # Output URL to standard output.
 #
@@ -82,7 +82,7 @@ usage() {
 # $?: zero for found, non zero otherwie
 # stdout: lowercase module name (if found)
 module_exist() {
-    N=$(echo "$2" | lowercase)
+    local N=$(lowercase "$2")
     while read MODULE; do
         if test "$N" = "$MODULE"; then
             echo "$N"
@@ -95,8 +95,7 @@ module_exist() {
 # Example: "MODULE_ZSHARE_UPLOAD_REMOTE_SUPPORT=no"
 # $1: module name
 module_config_remote_upload() {
-    MODULE=$1
-    VAR="MODULE_$(echo $MODULE | uppercase)_UPLOAD_REMOTE_SUPPORT"
+    local VAR="MODULE_$(uppercase "$1")_UPLOAD_REMOTE_SUPPORT"
     test "${!VAR}" = 'yes'
 }
 

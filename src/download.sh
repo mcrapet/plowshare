@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Download files from file sharing servers
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # Output filenames are printed on standard output (one per line).
 #
@@ -161,16 +161,16 @@ create_alt_filename() {
 }
 
 # Example: "MODULE_FILESONIC_DOWNLOAD_RESUME=no"
+# $1: module name
 module_config_resume() {
-    MODULE=$1
-    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_RESUME"
+    local VAR="MODULE_$(uppercase "$1")_DOWNLOAD_RESUME"
     test "${!VAR}" = "yes"
 }
 
 # Example: "MODULE_FILESONIC_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
+# $1: module name
 module_config_need_cookie() {
-    MODULE=$1
-    VAR="MODULE_$(echo $MODULE | uppercase)_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
+    local VAR="MODULE_$(uppercase "$1")_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
     test "${!VAR}" = "yes"
 }
 

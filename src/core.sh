@@ -197,13 +197,15 @@ strip() {
 
 # Return uppercase string : tr '[:lower:]' '[:upper:]'
 # Note: Busybox "tr" command may not have classes support (CONFIG_FEATURE_TR_CLASSES)
+# $*: input string(s)
 uppercase() {
-    tr '[a-z]' '[A-Z]'
+    tr '[a-z]' '[A-Z]' <<< "$*"
 }
 
 # Return lowercase string : tr '[:upper:]' '[:lower:]'
+# $*: input string(s)
 lowercase() {
-    tr '[A-Z]' '[a-z]'
+    tr '[A-Z]' '[a-z]' <<< "$*"
 }
 
 # Grep first line of a text
@@ -1140,8 +1142,7 @@ get_all_modules_options() {
 # $2: module name list (one per line)
 get_module() {
     while read MODULE; do
-        local M=$(uppercase <<< "$MODULE")
-        local VAR="MODULE_${M}_REGEXP_URL"
+        local VAR="MODULE_$(uppercase "$MODULE")_REGEXP_URL"
         if match "${!VAR}" "$1"; then
             echo $MODULE
             break
@@ -1308,7 +1309,7 @@ process_configfile_module_options() {
               sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
-        local M=$(echo "$2" | lowercase)
+        local M=$(lowercase "$2")
 
         # For example:
         # AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
@@ -1412,8 +1413,7 @@ drop_empty_lines() {
 # $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 get_module_options() {
-    local MODULE=$(uppercase <<< "$1")
-    local VAR="MODULE_${MODULE}_${2}_OPTIONS"
+    local VAR="MODULE_$(uppercase "$1")_${2}_OPTIONS"
     echo "${!VAR}"
 }
 
