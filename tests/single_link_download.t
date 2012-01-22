@@ -21,9 +21,3 @@ RFC-all.tar.gz
 http://www.divshare.com/download/11577646-29a
 plowshare.abc
 --
-
-# megaupload (link with password)
-http://www.megaupload.com/?d=4YF0D6A3
-asound.conf
--p test1
-

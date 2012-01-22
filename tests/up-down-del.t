@@ -38,11 +38,6 @@ megashares
 --no-plowsharerc
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-megaupload
---no-plowsharerc
---no-plowsharerc
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 netload_in
 --no-plowsharerc
 --no-plowsharerc
