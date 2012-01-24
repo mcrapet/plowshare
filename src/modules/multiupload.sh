@@ -120,7 +120,7 @@ multiupload_upload() {
         fi
     fi
 
-    PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL" | break_html_lines_alt) || return
+    PAGE=$(curl -L -b "$COOKIEFILE" "$BASE_URL" | break_html_lines_alt) || return
 
     FORM_HTML=$(grep_form_by_id "$PAGE" uploadfrm)
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
