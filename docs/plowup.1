@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "January 21, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "January 27, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -51,8 +51,8 @@ See specific module options below.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
-.BI -l, " " --limit-rate "=SPEED"
-Limit upload speed in bytes per seconds. Suffixes are:
+.BI "   " " " --max-rate "=SPEED"
+Limit upload maximum speed in bytes per seconds. Suffixes are:
 .RS 
 \fBk\fR  for kilobytes (Kb),
 .RE
@@ -62,6 +62,10 @@ Limit upload speed in bytes per seconds. Suffixes are:
 .RS
 \fBg\fR  for gigabytes (Gb).
 .RE
+.TP
+.BI "   " " " --min-rate "=SPEED"
+Limit upload minimum speed in bytes per seconds (for a delay of 30 seconds).
+\fBK\fR or \fBk\fR suffixes can be specified.
 .TP
 .BI -r, " " --max-retries "=N"
 Set maximum retries for upload failures (fatal or network errors). Default is 0 (no retry).
@@ -147,6 +151,9 @@ $ plowup wupload /tmp/foo.bar
 .sp 1
 # Add a text description
 $ plowup \-d "Important document" megashares /path/myfile.tex
+.sp 1
+# Abort slow upload (if rate is below limit during 30 seconds)
+$ plowup \--min-rate 100k mediafire /path/bigfile.zip
 .fi
 .SS 2) Upload a single file with authentication
 .nf

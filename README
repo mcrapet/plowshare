@@ -92,7 +92,7 @@ $ plowdown file_with_links.txt
 $ plowdown -m file_with_links.txt
 
 5. Limit the download rate (you can use curl rates: K=Kbps, M=Mbps, G=Gbps)
-$ plowdown -l 50K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+$ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
 6. Download a file from Filesonic using an account (free or premium)
    (note ':' is used to separate user from password)
@@ -130,16 +130,16 @@ $ plowup multiupload /path/myfile.txt:anothername.txt
 4. Upload a file to megashares (anonymously) + set description
 $ plowup -d "Important document" megashares /path/myfile.tex
 
-5. Upload a file to Mediafire with a free membership account:
-$ plowup -b myuser:mypassword mediafire /path/myfile.txt
-
-6. Upload a file to Fileserve with an account (premium or free)
+5. Upload a file to Fileserve with an account (premium or free)
 $ plowup -a myuser:mypassword fileserve /path/xxx
 
-7. Upload a file to Zshare anonymously with a proxy.
+6. Upload a file to Zshare anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowup zshare /path/myfile.txt
+
+7. Abort slow upload (if rate is below limit during 30 seconds)
+$ plowup --min-rate 100k mediafire /path/bigfile.zip
 
 8. Modify remote filenames
 $ plowup --name-prefix="2011.jul-" mirrorcreator *.rar

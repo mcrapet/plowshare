@@ -32,7 +32,7 @@ MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list argumen
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
-LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.

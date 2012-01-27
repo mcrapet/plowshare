@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "January 21, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "January 27, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -84,7 +84,7 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
-.BI -l, " " --limit-rate "=SPEED"
+.BI "   " " " --max-rate "=SPEED"
 Limit download speed in bytes per seconds. Suffixes are:
 .RS 
 \fBk\fR  for kilobytes (Kb),
@@ -205,7 +205,7 @@ $ plowdown \-m file_with_links.txt
 .fi
 .SS 3) Download with restrictions
 .nf
-$ plowdown \-l 50K \-i eth1 http://depositfiles.com/es/files/abcdefghi
+$ plowdown \--max-rate 900K \-i eth1 http://depositfiles.com/es/files/abcdefghi
 .fi
 .SS 4) Download with a proxy (3128 is the default port)
 .nf

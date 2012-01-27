@@ -43,7 +43,8 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
 #   - LIBDIR           Absolute path to plowshare's libdir
 #   - INTERFACE        Network interface (used by curl)
-#   - LIMIT_RATE       Network speed (used by curl)
+#   - MAX_LIMIT_RATE   Network maximum speed (used by curl)
+#   - MIN_LIMIT_RATE   Network minimum speed (used by curl)
 #   - NO_CURLRC        Do not read of use curlrc config
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
 #   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
@@ -120,9 +121,19 @@ curl() {
     # no verbose unless debug level; don't show progress meter for report level too
     test $(verbose_level) -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
 
-    test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" '--interface' "$INTERFACE")
-    test -n "$LIMIT_RATE" && OPTIONS=("${OPTIONS[@]}" '--limit-rate' "$LIMIT_RATE")
     test -n "$NO_CURLRC" && OPTIONS=('-q' "${OPTIONS[@]}")
+    test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" '--interface' "$INTERFACE")
+
+    if test -n "$MAX_LIMIT_RATE"; then
+        OPTIONS[${#OPTIONS[@]}]='--limit-rate'
+        OPTIONS[${#OPTIONS[@]}]="$MAX_LIMIT_RATE"
+    fi
+    if test -n "$MIN_LIMIT_RATE"; then
+        OPTIONS[${#OPTIONS[@]}]='--speed-time'
+        OPTIONS[${#OPTIONS[@]}]=30
+        OPTIONS[${#OPTIONS[@]}]='--speed-limit'
+        OPTIONS[${#OPTIONS[@]}]="$MIN_LIMIT_RATE"
+    fi
 
     if test $(verbose_level) -lt 4; then
         $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?

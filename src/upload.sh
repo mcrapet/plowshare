@@ -27,7 +27,8 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowup version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-LIMIT_RATE,l:,limit-rate:,SPEED,Limit speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+MIN_LIMIT_RATE,,min-rate:,SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 INTERFACE,i:,interface:,IFACE,Force IFACE interface
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
@@ -59,6 +60,20 @@ absolute_path() {
     TARGET="$PWD"
     cd "$SAVED_PWD"
     echo "$TARGET"
+}
+
+# Convert to byte value. Does not deal with floating notation.
+# $1: rate with optional suffix (example: "50K")
+# stdout: number
+parse_rate() {
+    local N="${1//[^0-9]}"
+    if test "${1:(-1):1}" = "K"; then
+        echo $((N * 1000))
+    elif test "${1:(-1):1}" = "k"; then
+        echo $((N * 1024))
+    else
+        echo $((N))
+    fi
 }
 
 # Print usage
@@ -161,6 +176,11 @@ UPCOOKIE=$(create_tempfile)
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
+
+# Curl minimal rate (--speed-limit) does not support suffixes
+if [ -n "$MIN_LIMIT_RATE" ]; then
+    MIN_LIMIT_RATE=$(parse_rate "$MIN_LIMIT_RATE")
+fi
 
 for FILE in "$@"; do
 
