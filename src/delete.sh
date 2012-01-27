@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Delete a file from file sharing servers
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -25,7 +25,7 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-INTERFACE,i:,interface:,IFACE,Force IFACE interface
+INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
