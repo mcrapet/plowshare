@@ -1061,7 +1061,7 @@ remove_tempfiles() {
 
 # Exit callback (task: clean temporal files)
 set_exit_trap() {
-    trap "remove_tempfiles" EXIT
+    trap remove_tempfiles EXIT
 }
 
 # Check existance of executable in path
