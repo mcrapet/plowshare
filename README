@@ -96,7 +96,7 @@ $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_
 
 6. Download a file from Filesonic using an account (free or premium)
    (note ':' is used to separate user from password)
-$ plowdown -a myuser:mypassword http://www.filesonic.com/file/yUl25ql
+$ plowdown -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
 
 7. Download a password-protected file from Mediafire:
 $ plowdown -p somepassword http://www.mediafire.com/?mt0egmhietj60iy
@@ -156,8 +156,8 @@ $ plowdel http://www.zshare.net/delete/1234567890ABCD/
 2. Delete files (deletes are successive, not parallel)
 $ plowdel http://www.zshare.net/delete/1234567890ABCD/ http://depositfiles.com/rmv/1643181821669253
 
-3. Delete a file from filesonic (account is required)
-$ plowdel -a myuser:mypassword http://www.filesonic.com/file/yUl25ql
+3. Delete a file from fileserve (account is required)
+$ plowdel -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
 
 Plowlist
 --------
@@ -167,7 +167,7 @@ $ plowlist http://www.mediafire.com/?qouncpzfe74s9 > links.txt
 $ plowdown -m links.txt
 
 2. List two shared folders (first URL is processed, then the second one, this is not parallel)
-$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.filesonic.com/folder/1192211
+$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.fileserve.com/list/1192211
 
 
 Implement your own modules

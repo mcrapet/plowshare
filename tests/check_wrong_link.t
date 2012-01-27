@@ -22,10 +22,6 @@ http://depositfiles.com/files/abcdefghi
 http://www.fileserve.com/file/1234ABC
 --no-plowsharerc
 
-# filesonic
-http://www.filesonic.com/file/1234ABC
---no-plowsharerc
-
 # megashares
 http://d01.megashares.com/dl/abcdefg
 --no-plowsharerc
