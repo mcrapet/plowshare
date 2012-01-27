@@ -43,7 +43,3 @@ http://uploading.com/files/a123456b
 # wupload
 http://www.wupload.com/file/12344567890
 --no-plowsharerc
-
-# x7.to
-http://x7.to/abcdef
---no-plowsharerc

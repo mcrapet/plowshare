@@ -25,6 +25,5 @@ sendspace    | download | upload | delete | list |
 uploading    | download |        |        |      |
 uploaded_to  | download | upload |        | list |
 usershare    | download |        |        |      |
-x7_to        | download |        |        |      |
 zshare       | download | upload | delete |      |
 wupload      | download | upload |        | list |

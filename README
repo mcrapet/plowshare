@@ -112,7 +112,7 @@ $ plowdown -c file_with_links.txt > file_with_active_links.txt
 
 10. Avoid never-ending downloads: limited the number of tries 
     (mainly for captchas) and wait delays for each link
-$ plowdown --max-retries=20 --timeout=3600 http://x7.to/x469d5y
+$ plowdown --max-retries=20 --timeout=3600 http://depositfiles.com/files/fv2u9xqya
 
 Plowup
 ------
