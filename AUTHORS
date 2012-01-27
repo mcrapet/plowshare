@@ -22,17 +22,15 @@ MODULES MAINTAINERS
 	filesonic module support (feb 2011)
 	dl.free.fr module support (feb 2010)
 
-- Petr Pulpán <Pulpan3@gmail.com>
-	Official maintainer [2011.02.14-...]
-	dataport.cz and euroshare.eu modules (feb 2011)
-	1fichier.com module (mar 2011)
-
 
 CONTRIBUTORS (alphabet sorted)
 ============
 
 Alex Rea <amplitude@gmail.com>
 	Support on OSX related issues
+
+Baptiste <baptiste.brun@gmail.com>
+	bayfiles module (jan 2012)
 
 Fabiano Francesconi <fabiano.francesconi@gmail.com>
 	loadfiles.in module (feb 2010)
@@ -49,6 +47,11 @@ Maurus Cuelenaere  <mcuelenaere@gmail.com>
 Pavel Alexeev <Pahan@hubbitus.info>
 	Early letitbit module using gocr (nov 2009)
 
+Petr Pulpán <Pulpan3@gmail.com>
+	Official maintainer [2011.02.14-2011.04.08] with 19 commits.
+	dataport.cz and euroshare.eu modules (feb 2011)
+	1fichier.com module (mar 2011)
+
 Ryan <ryan.b.shaw@gmail.com>
 	divshare, sendspace and usershare modules (jan 2010)
 
@@ -59,7 +62,7 @@ Thomas Jensen <thomas.otvald@gmail.com>
 	Early sharingmatrix/filesonic module (before using reCaptcha) (sep 2010)
 
 Walid Iguer <Walid.Iger@gmail.com>
-	Official maintainer [2010.12-2011.01]
+	Official maintainer [2010.12.06-2011.01] with 1 commit
 	hotfile premium support (dec 2010)
 
 Wesley Barroso <wesleybl@gmail.com>
