@@ -22,7 +22,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|-l|--limit-rate|-r|--max-retries)
+        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries)
             # argument required but no completions available
             return 0
             ;;
@@ -30,8 +30,8 @@ _plowup()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i -l -r \
-            --limit-rate --interface --max-retries --name-prefix --name-suffix \
+            -v -q -i -r \
+            --min-rate --max-rate --interface --max-retries --name-prefix --name-suffix \
             --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         local m list
@@ -68,7 +68,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|-p|--auth-free|--auth|--link-password|--captchatrader|-l|--limit-rate|-r|--max-retries)
+        -a|-b|-p|--auth-free|--auth|--link-password|--captchatrader|--max-rate|-r|--max-retries)
             # argument required but no completions available
             return 0
             ;;
@@ -88,8 +88,8 @@ _plowdown()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i -l -o -m -x -t -r \
-            --limit-rate --interface --check-link --mark-downloaded --no-overwrite \
+            -v -q -i -o -m -x -t -r \
+            --max-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --timeout --max-retries --no-extra-wait \
             --fallback --captchatrader --captchamethod --no-curlrc --no-plowsharerc' -- $cur ) )
     else
