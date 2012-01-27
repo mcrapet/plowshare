@@ -407,12 +407,22 @@ download() {
                 module_config_resume "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
             module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-b $COOKIES")
 
-            if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
-                if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
-                    FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
-                    FILENAME_TMP="$FILENAME_OUT"
+            if [ -f "$FILENAME_OUT" ]; then
+                if [ -n "$NOOVERWRITE" ]; then
+                    if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
+                        FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                        FILENAME_TMP="$FILENAME_OUT"
+                    else
+                        FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                    fi
                 else
-                    FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                    # Can we overwrite destination file?
+                    if [ ! -w "$FILENAME_OUT" ]; then
+                        module_config_resume "$MODULE" && \
+                            log_error "error: no write permission, cannot resume" || \
+                            log_error "error: no write permission, cannot overwrite"
+                        return $ERR_SYSTEM
+                    fi
                 fi
             fi
 
@@ -515,7 +525,7 @@ if [ -n "$TEMP_DIR" ]; then
     mkdir -p "$TEMP_DIR"
     if [ ! -w "$TEMP_DIR" ]; then
         log_error "error: no write permission"
-        exit $ERR_FATAL
+        exit $ERR_SYSTEM
     fi
 fi
 
@@ -525,14 +535,14 @@ if [ -n "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
     if [ ! -w "$OUTPUT_DIR" ]; then
         log_error "error: no write permission"
-        exit $ERR_FATAL
+        exit $ERR_SYSTEM
     fi
 fi
 
 if [ -n "$GLOBAL_COOKIES" ]; then
     if [ ! -f "$GLOBAL_COOKIES" ]; then
         log_error "error: can't find cookies file"
-        exit $ERR_FATAL
+        exit $ERR_SYSTEM
     fi
     log_notice "plowdown: using provided cookies file"
 fi
