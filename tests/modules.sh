@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Test functions for modules (see "modules" directory)
-# Copyright (c) 2011 Plowshare team
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -23,20 +23,17 @@
 ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
 SRCDIR="$ROOTDIR/src"
 
-# External tools
-TPUT=tput
-
 # Test data
-TEST_FILES=('up-down-del.t'
-    'up-down-del+recaptcha.t'
-    'single_link_download.t'
-    'check_wrong_link.t')
+TEST_FILES=( 'up-down-del.t'
+  'up-down-del+recaptcha.t'
+  'single_link_download.t'
+  'check_wrong_link.t')
 TEST_LETTER=('T' 'R' 'S' 'C')
 TEST_INDEX=(10 220 330 440)
 TEST_TITLE=('*** Anonymous upload, download and delete'
-'*** Anonymous upload, download (using reCaptcha) and delete'
-'*** Single URL anonymous download'
-'*** Check wrong link suite')
+  '*** Anonymous upload, download (using reCaptcha) and delete'
+  '*** Single URL anonymous download'
+  '*** Check wrong link suite')
 
 # plowdown
 download() {
@@ -59,7 +56,7 @@ delete() {
 #}
 
 stderr() {
-    echo "$@" >&2;
+    echo "$@" >&2
 }
 
 # Print test result
@@ -68,13 +65,13 @@ status() {
     local RET=$1
     if [ "$FANCY_OUTPUT" -ne 0 ]; then
         # based on /lib/lsb/init-functions
-        RALIGN="\\r\\033[$[`$TPUT cols`-6]C"
-        NORMAL=`$TPUT op`
+        RALIGN="\\r\\033[$[`tput cols`-6]C"
+        NORMAL=$(tput op)
         if [ "$RET" -eq 0 ]; then
-            GREEN=`$TPUT setaf 2`
+            GREEN=$(tput setaf 2)
             echo -e "${RALIGN}[${GREEN}DONE${NORMAL}]"
         else
-            RED=`$TPUT setaf 1`
+            RED=$(tput setaf 1)
             echo -e "${RALIGN}[${RED}FAIL${NORMAL}]"
         fi
     else
@@ -122,17 +119,18 @@ readx() {
 }
 
 # Create a random file of a specific size
-# $1: block size (examples: 100k, 2M)
-# $2: block count
+# $1: prefix name
+# $2: block size (examples: 100k, 2M)
+# $3: block count
 # stdout: filename
 create_temp_file() {
-    NAME=$(mktemp plowshare-$$.XXX)
+    NAME=$(mktemp "${1}.XXX")
     if [ -c '/dev/urandom' ]; then
         INPUT='/dev/urandom'
     else
         INPUT='/dev/zero'
     fi
-    dd if=$INPUT of=$NAME bs=$1 count=${2:-1} 2>/dev/null
+    dd if=$INPUT of=$NAME bs=$2 count=${3:-1} 2>/dev/null
     echo "$NAME"
 }
 
@@ -352,13 +350,20 @@ EOF
 
 TEMP_DIR=$(gettemp)
 
+# stdout is a color terminal ?
+FANCY_OUTPUT=0
+if [ -t 1 ]; then
+    if [[ "$(tput colors)" -ge 8 ]]; then
+        FANCY_OUTPUT=1
+    fi
+fi
+
 TESTOP=te
-FANCY_OUTPUT=1
 PASS=1
 TEST_FILESIZES=( '200k' '2M' '5M' )
 TEST_ITEMS=()
 
-# parse command line options
+# parse command line options (getopts is bash builtin)
 while getopts "hldp:" OPTION
 do
     case $OPTION in
@@ -421,7 +426,11 @@ if [ $TESTOP = 'li' ]; then
 
 else
     # FIXME: Do 1 pass for now..
-    FILE1=$(create_temp_file 200k 1)
+    NAME="plowshare-$$"
+    FILE1=$(create_temp_file "$NAME" 200k 1)
+
+    # Trap CTRL+C
+    trap "rm ${NAME}*" EXIT
 
     # Perform tests specified in TEST_ITEMS array
     if [ ${#TEST_ITEMS[@]} -ne 0 ]; then
