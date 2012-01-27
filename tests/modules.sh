@@ -430,7 +430,7 @@ else
     FILE1=$(create_temp_file "$NAME" 200k 1)
 
     # Trap CTRL+C
-    trap "rm ${NAME}*" EXIT
+    trap "{ rm ${NAME}*; exit 1; }" INT
 
     # Perform tests specified in TEST_ITEMS array
     if [ ${#TEST_ITEMS[@]} -ne 0 ]; then

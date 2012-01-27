@@ -27,7 +27,7 @@ http://d01.megashares.com/dl/abcdefg
 --no-plowsharerc
 
 # multiupload
-http://multiupload.com/1234567890
+http://www.multiupload.com/1234567890
 --no-plowsharerc
 
 # uploaded.to
