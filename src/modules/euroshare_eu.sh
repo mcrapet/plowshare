@@ -2,6 +2,7 @@
 #
 # euroshare.eu module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
+# Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -21,7 +22,7 @@
 MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
 
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-membership"
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_EUROSHARE_EU_DOWNLOAD_RESUME=no
 MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 

@@ -21,7 +21,7 @@
 MODULE_WUPLOAD_REGEXP_URL="http://\(www\.\)\?wupload\(.com\?\)\?\.[a-z]\+/"
 
 MODULE_WUPLOAD_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Use premium account"
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_WUPLOAD_DOWNLOAD_RESUME=no
 MODULE_WUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 

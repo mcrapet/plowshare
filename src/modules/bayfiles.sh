@@ -21,12 +21,12 @@
 MODULE_BAYFILES_REGEXP_URL="https\?://\(www\.\)\?bayfiles\.com/"
 
 MODULE_BAYFILES_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-user account"
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_BAYFILES_DOWNLOAD_RESUME=yes
 MODULE_BAYFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BAYFILES_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-user account
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 PRINT_ALL_LINKS,,print-all-links,,Print admin and delete links next to the download link"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
