@@ -82,7 +82,7 @@ for MODULE in $MODULES; do
 done
 
 # Get configuration file options. Command-line is not parsed yet.
-match '--no-plowsharerc' "$@" || \
+match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowdel' "$OPTIONS"
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
