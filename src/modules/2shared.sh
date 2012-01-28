@@ -99,7 +99,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     local COOKIEFILE ADMIN_PAGE FORM DL_LINK AD_LINK
 
     # Without cookie, it does not work
-    COOKIEFILE=$(create_tempfile)
+    COOKIEFILE=$(create_tempfile) || return
     ADMIN_PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if ! match 'Delete File' "$ADMIN_PAGE"; then
