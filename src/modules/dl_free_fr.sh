@@ -64,19 +64,20 @@ dl_free_fr_upload() {
 
     local FILE="$2"
     local DESTFILE="$3"
-    local UPLOADURL="http://dl.free.fr"
+    local UPLOADURL='http://dl.free.fr'
+    local PAGE FORM ACTION SESSIONID H STATUS MON_PL WAITTIME
 
     log_debug "downloading upload page: $UPLOADURL"
-    PAGE=$(curl "$UPLOADURL")
+    PAGE=$(curl "$UPLOADURL") || return
 
-    local FORM=$(grep_form_by_order "$PAGE" 2) || {
+    FORM=$(grep_form_by_order "$PAGE" 2) || {
         log_error "can't get upload from, website updated?";
         return $ERR_FATAL
     }
 
     ACTION=$(echo "$FORM" | parse_form_action)
     SESSIONID=$(echo "$ACTION" | cut -d? -f2)
-    H=$(create_tempfile)
+    H=$(create_tempfile) || return
 
     # <input> markers are: ufile, mail1, mail2, mail3, mail4, message, password
     # Returns 302. Answer headers are not returned with -i switch, I must
