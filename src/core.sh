@@ -541,8 +541,8 @@ uri_encode() {
 # stdin: data (example: absolute URL)
 # stdout: data (nearly complain RFC3986)
 uri_decode() {
-    sed -e 's/%20/\x20/g' -e 's/%5B/\[/g' -e 's/%5D/\]/g' \
-        -e 's/%2C/,/g' -e 's/%28/(/g' -e 's/%29/)/g' -e 's/%2B/+/g'
+    sed -e 's/%20/\x20/g' -e 's/%26/\&/g' -e 's/%2C/,/g' -e 's/%28/(/g' \
+        -e 's/%29/)/g' -e 's/%2B/+/g' -e 's/%3D/=/g' -e 's/%5B/\[/g' -e 's/%5D/\]/g'
 }
 
 # Retrieves size of file
@@ -619,9 +619,8 @@ post_login() {
     # Yes, no quote around $CURL_ARGS
     RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL") || return
 
-    # For now "-z" test is kept.
-    # There is no known case of a null $RESULT on successful login.
-    if [ -z "$RESULT" -o ! -s "$COOKIE" ]; then
+    # "$RESULT" can be empty, this is not necessarily an error
+    if [ ! -s "$COOKIE" ]; then
         log_debug "post_login failed"
         return $ERR_LOGIN_FAILED
     fi

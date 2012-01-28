@@ -21,14 +21,42 @@
 
 MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\|ul\)\.to/"
 
-MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS=""
+MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
-MODULE_UPLOADED_TO_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_UPLOADED_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
-MODULE_UPLOADED_TO_UPLOAD_OPTIONS=""
+MODULE_UPLOADED_TO_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account
+DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 MODULE_UPLOADED_TO_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_UPLOADED_TO_DELETE_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 MODULE_UPLOADED_TO_LIST_OPTIONS=""
+
+# Static function. Proceed with login (free-membership or premium)
+uploaded_to_login() {
+    local AUTH="$1"
+    local COOKIE_FILE="$2"
+    local BASEURL="$3"
+
+    local LOGIN_DATA LOGIN_RESULT NAME
+
+    LOGIN_DATA='id=$USER&pw=$PASSWORD'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASEURL/io/login") || return
+
+    # Note: "auth" entry is present in cookie too
+    NAME=$(parse_cookie 'login' < "$COOKIE_FILE")
+    if [ -n "$NAME" ]; then
+        NAME=$(echo "$NAME" | uri_decode | cut -d'&' -f2)
+ 	    log_debug "Successfully logged in as ${NAME:3} member"
+        return 0
+    fi
+
+    return $ERR_LOGIN_FAILED
+}
 
 # Output an uploaded.to file download URL
 # $1: cookie file
@@ -40,10 +68,10 @@ uploaded_to_download() {
 
     local COOKIEFILE="$1"
     local BASE_URL='http://uploaded.to'
-    local URL FILE_ID HTML SLEEP FILE_NAME FILE_URL
+    local URL FILE_ID HTML SLEEP FILE_NAME FILE_URL PAGE
 
     # uploaded.to redirects all possible urls of a file to the canonical one
-    # (URL can have two lines)
+    # ($URL result can have two lines before 'last_line')
     URL=$(curl -I -L "$2" | grep_http_header_location | last_line) || return
     if test -z "$URL"; then
         URL="$2"
@@ -62,14 +90,39 @@ uploaded_to_download() {
 
     test "$CHECK_LINK" && return 0
 
+    if [ -n "$AUTH" ]; then
+        uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+
+        # save HTTP headers to detect "direct downloads" option
+        HTML=$(curl -i -b "$COOKIEFILE" "$URL") || return
+
+        # Premium user ?
+        if ! match 'Choose your download method' "$HTML"; then
+            FILE_URL=$(echo "$HTML" | grep_http_header_location)
+            if [ -z "$FILE_URL" ]; then
+                FILE_URL=$(echo "$HTML" | parse_attr 'stor' 'action') || return
+            fi
+
+            FILE_NAME=$(curl --head -b "$COOKIEFILE" "$FILE_URL" | \
+                grep_http_header_content_disposition)
+
+            # Non premium cannot resume downloads
+            MODULE_UPLOADED_TO_DOWNLOAD_RESUME=yes
+
+            echo "$FILE_URL"
+            echo "$FILE_NAME"
+            return 0
+        fi
+    else
+        HTML=$(curl -c "$COOKIEFILE" "$URL") || return
+    fi
+
     # extract the raw file id
     FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
     log_debug "file id=$FILE_ID"
 
     # set website language to english
-    curl -c "$COOKIEFILE" "$BASE_URL/language/en" || return
-
-    HTML=$(curl -c $COOKIEFILE "$URL")
+    curl -b "$COOKIEFILE" "$BASE_URL/language/en" || return
 
     # check for files that need a password
     local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
@@ -90,9 +143,9 @@ uploaded_to_download() {
     { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
     local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-    local PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
-        --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID")
-    log_debug "Captcha resonse: $PAGE"
+    PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
+        --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID") || return
+    log_debug "Captcha response: $PAGE"
 
     # check for possible errors
     if match 'captcha' "$PAGE"; then
@@ -108,45 +161,102 @@ uploaded_to_download() {
         return $ERR_FATAL
     fi
 
-    # retrieve (truncated) filename
-    # Only 1 access to "final" URL is allowed, so we can't get complete name
-    # using "Content-Disposition:"
-    FILE_NAME=$(echo "$HTML" | parse_quiet 'id="filename"' 'name">\([^<]*\)')
-
     recaptcha_ack $ID
     log_debug "correct captcha"
+
+    # retrieve real filename
+    FILE_NAME=$(curl -I -b "$COOKIEFILE" "$FILE_URL" | grep_http_header_content_disposition)
+    if [ -z "$FILE_NAME" ]; then
+        # retrieve (truncated) filename
+        FILE_NAME=$(echo "$HTML" | parse_quiet 'id="filename"' 'name">\([^<]*\)')
+    fi
 
     echo "$FILE_URL"
     test "$FILE_NAME" && echo "$FILE_NAME"
 }
 
 # Upload a file to uploaded.to
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: ul.to download link
 uploaded_to_upload() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_UPLOAD_OPTIONS" "$@")"
 
+    local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
+    local BASE_URL='http://uploaded.to'
 
-    local JS SERVER DATA
+    local JS SERVER DATA FILE_ID AUTH_DATA ADMIN_CODE
 
-    JS=$(curl 'http://uploaded.to/js/script.js') || return
+    JS=$(curl "$BASE_URL/js/script.js") || return
     SERVER=$(echo "$JS" | parse '\/\/stor' "[[:space:]]'\([^']*\)") || return
 
     log_debug "uploadServer: $SERVER"
 
+    if [ -n "$AUTH" ]; then
+        uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+        AUTH_DATA=$(cat "$COOKIEFILE" | parse_cookie 'login' | uri_decode)
+    fi
+
     # TODO: Allow changing admin code (used for deletion)
+    ADMIN_CODE="noyiva$$"
 
     DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
         -F "Filename=$DESTFILE" \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
         -F 'Upload=Submit Query' \
-        "${SERVER}upload?admincode=noyiva") || return
+        "${SERVER}upload?admincode=${ADMIN_CODE}$AUTH_DATA") || return
+    FILE_ID="${DATA%%,*}"
 
-    echo "http://ul.to/${DATA%%,*}"
+    if [ -n "$DESCRIPTION" ]; then
+        if [ -n "$AUTH" ]; then
+            DATA=$(curl -b "$COOKIEFILE" --referer "$BASE_URL/manage" \
+            -F "description=$DESCRIPTION" \
+            "$BASE_URL/file/$FILE_ID/edit/description") || return
+            log_debug "description set to: $DATA"
+        else
+            log_error "Anonymous users cannot set description"
+        fi
+    fi
+
+    echo "http://ul.to/$FILE_ID"
+}
+
+# Delete a file on uploaded.to
+# $1: uploaded.to (download) link
+uploaded_to_delete() {
+    eval "$(process_options rapidshare "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
+
+    local URL="$1"
+    local BASE_URL='http://uploaded.to'
+    local PAGE FILE_ID COOKIE_FILE
+
+    if ! test "$AUTH"; then
+        log_error "Anonymous users cannot delete files"
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    # extract the raw file id
+    PAGE=$(curl -L "$URL") || return
+
+    # <h1>Page not found<br /><small class="cL">Error: 404</small></h1>
+    if match "Error: 404" "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    FILE_ID=$(echo "$PAGE" | parse 'file\/' 'file\/\([^/"]\+\)') || return
+    log_debug "file id=$FILE_ID"
+
+    COOKIE_FILE=$(create_tempfile) || return
+    uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/file/$FILE_ID/delete") || return
+    rm -f "$COOKIE_FILE"
+
+    # {succ:true}
+    match 'true' "$PAGE" || return $ERR_FATAL
 }
 
 # List an uploaded.to shared file folder URL
