@@ -37,9 +37,12 @@ AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 # $2: dataport.cz url
 # stdout: real file download link
 dataport_cz_download() {
-    local URL=$(uri_encode_file "$2")
-    local PAGE=$(curl --location "$URL")
+    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS" "$@")"
 
+    local URL=$(uri_encode_file "$2")
+    local PAGE DL_URL FILENAME FILE_URL
+
+    PAGE=$(curl --location "$URL") || return
     if match '<h2>Soubor nebyl nalezen</h2>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
@@ -89,7 +92,7 @@ dataport_cz_upload() {
     local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local UPLOADURL="http://dataport.cz/"
+    local UPLOADURL='http://dataport.cz'
 
     detect_javascript || return
 
@@ -123,7 +126,7 @@ dataport_cz_upload() {
         return $ERR_FATAL
     fi
 
-    DOWN_URL=$(curl -b "$COOKIEFILE" "http://dataport.cz/links/$ID/1" | parse_attr 'id="download-link"' 'value')
+    DOWN_URL=$(curl -b "$COOKIEFILE" "$UPLOADURL/links/$ID/1" | parse_attr 'id="download-link"' 'value')
 
     if ! test "$DOWN_URL"; then
         log_error "Can't parse download link, site updated?"
@@ -147,7 +150,7 @@ dataport_cz_delete() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    COOKIES=$(create_tempfile)
+    COOKIES=$(create_tempfile) || return
     LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
     post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || {
         rm -f $COOKIES
