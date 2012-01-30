@@ -27,7 +27,7 @@ MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
 MODULE_UPLOADED_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_UPLOADED_TO_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
+AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
 MODULE_UPLOADED_TO_UPLOAD_REMOTE_SUPPORT=no
 
@@ -190,15 +190,18 @@ uploaded_to_upload() {
 
     local JS SERVER DATA FILE_ID AUTH_DATA ADMIN_CODE
 
+    if [ -z "$AUTH" ]; then
+        log_error "Anonymous users cannot upload files"
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
     JS=$(curl "$BASE_URL/js/script.js") || return
     SERVER=$(echo "$JS" | parse '\/\/stor' "[[:space:]]'\([^']*\)") || return
 
     log_debug "uploadServer: $SERVER"
 
-    if [ -n "$AUTH" ]; then
-        uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-        AUTH_DATA=$(cat "$COOKIEFILE" | parse_cookie 'login' | uri_decode)
-    fi
+    uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+    AUTH_DATA=$(cat "$COOKIEFILE" | parse_cookie 'login' | uri_decode)
 
     # TODO: Allow changing admin code (used for deletion)
     ADMIN_CODE="noyiva$$"
