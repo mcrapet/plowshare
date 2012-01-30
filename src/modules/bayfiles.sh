@@ -21,12 +21,12 @@
 MODULE_BAYFILES_REGEXP_URL="https\?://\(www\.\)\?bayfiles\.com/"
 
 MODULE_BAYFILES_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-user account"
 MODULE_BAYFILES_DOWNLOAD_RESUME=yes
 MODULE_BAYFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BAYFILES_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free-user account
 PRINT_ALL_LINKS,,print-all-links,,Print admin and delete links next to the download link"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
@@ -44,23 +44,23 @@ bayfiles_login() {
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
     LOGIN_JSON_DATA=$(curl "${APIURL}/account/login/${USER}/${PASSWORD}") || return
-    SESSION=$(echo "$LOGIN_JSON_DATA" | parse_quiet 'session' 'session":"\([^"]*\)') || return $ERR_LOGIN_FAILED
+    SESSION=$(echo "$LOGIN_JSON_DATA" | parse 'session' 'session":"\([^"]*\)') || return $ERR_LOGIN_FAILED
 
     echo "$SESSION"
     return 0
 }
 
 # Output a bayiles file download URL
-# $1: cookie file
+# $1: cookie file (unused here)
 # $2: bayfiles url
 # stdout: real file download link
 # Same for free-user and anonymous user, not tested with premium
 bayfiles_download() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
     local URL="$2"
-    local APIURL="http://api.bayfiles.com/v1"
+    local APIURL='http://api.bayfiles.com/v1'
+    local AJAX_URL='http://bayfiles.com/ajax_download'
     local PAGE FILE_URL FILENAME
 
     # Try to login (if $AUTH_FREE not null)
@@ -69,7 +69,7 @@ bayfiles_download() {
     fi
 
     # No way to download a file with the api
-    PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl "$URL") || return
 
     if match 'The link is incorrect' "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -77,11 +77,49 @@ bayfiles_download() {
 
     test "$CHECK_LINK" && return 0
 
-    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'class="highlighted-btn' 'href') || return
+    # Now there are two cases, with small files, nothing changed and with
+    # big ones, now there is a countdown timer and we have to wait 5min
+    # between downloads
+    if match 'Premium Download' "$PAGE"; then
+        # Big files case
+
+        local VFID DELAY TOKEN
+        local JSON_COUNT DATA_DL
+
+        # it's always print 5 min, don't need to match time
+        if match 'Upgrade to premium or wait' "$PAGE"; then
+            echo $((5*60))
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        VFID=$(echo "$PAGE" | parse "var vfid = " "= \([[:digit:]]\+\);") || return
+
+        # If no delay were found, we try without
+        DELAY=$(echo "$PAGE" | parse_quiet "var delay = " "= \([[:digit:]]\+\);")
+
+        JSON_COUNT=$(curl -G --data "action=startTimer&vfid=$VFID" \
+            $AJAX_URL) || return
+
+        TOKEN=$(echo "$JSON_COUNT" |\
+            parse 'token' 'token":"\([^"]*\)') || return
+
+        wait $((DELAY)) "seconds" || return
+
+        DATA_DL=$(curl --data "action=getLink&vfid=$VFID&token=$TOKEN" \
+            $AJAX_URL) || return
+
+        FILE_URL=$(echo "$DATA_DL" |\
+            parse 'onclick' "\(http[^']*\)") || return
+    else
+        # Small files case, no countdown timer, no 5 min to wait between downloads
+        # Maybe that this case work with a premium account
+
+        FILE_URL=$(echo "$PAGE" | parse_attr 'class="highlighted-btn' 'href') || return
+    fi
 
     echo "$FILE_URL"
 
-    # Extract filename from $PAGE
+    # Extract filename from $PAGE, work for both cases
     FILENAME=$(echo "$PAGE" | parse_attr_quiet 'title="' 'title')
 
     test "$FILENAME" && echo "$FILENAME"
@@ -98,7 +136,7 @@ bayfiles_upload() {
     local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
-    local APIURL="http://api.bayfiles.com/v1"
+    local APIURL='http://api.bayfiles.com/v1'
 
     local SESSION_GET UPLOAD_JSON_DATA UPLOAD_URL UPLOADED_FILE_JSON_DATA URL DELETE_URL ADMIN_URL
 
@@ -114,23 +152,23 @@ bayfiles_upload() {
 
     # "/" seems to be the only backslashed char
     UPLOAD_URL=$(echo "$UPLOAD_JSON_DATA" |\
-        parse_quiet 'uploadUrl' 'uploadUrl":"\([^"]*\)' |\
+        parse 'uploadUrl' 'uploadUrl":"\([^"]*\)' |\
         replace '\/' '/') || return
 
     UPLOADED_FILE_JSON_DATA=$(curl_with_log -b "$COOKIEFILE"\
         -F "file=@$FILE;filename=$DESTFILE" "$UPLOAD_URL") || return
 
     URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-        parse_quiet 'downloadUrl' 'downloadUrl":"\([^"]*\)' |\
+        parse 'downloadUrl' 'downloadUrl":"\([^"]*\)' |\
         replace '\/' '/') || return
 
     if test -n "$PRINT_ALL_LINKS"; then
         ADMIN_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-            parse_quiet 'linksUrl' 'linksUrl":"\([^"]*\)' |\
+            parse 'linksUrl' 'linksUrl":"\([^"]*\)' |\
             replace '\/' '/') || return
 
         DELETE_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-            parse_quiet 'deleteUrl' 'deleteUrl":"\([^"]*\)' |\
+            parse 'deleteUrl' 'deleteUrl":"\([^"]*\)' |\
             replace '\/' '/') || return
 
         echo "$URL ($ADMIN_URL) ($DELETE_URL)"
