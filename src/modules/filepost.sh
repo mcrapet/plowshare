@@ -124,7 +124,7 @@ filepost_list_rec() {
 
     RET=$ERR_LINK_DEAD
     PAGE=$(curl -L "$URL") || return
-    LINKS=$(echo "$PAGE" | sed -ne '/class="dl"/p')
+    LINKS=$(echo "$PAGE" | grep 'class="dl"')
 
     #  Print links (stdout)
     while read LINE; do
@@ -136,7 +136,7 @@ filepost_list_rec() {
     test "$LINKS" && RET=0
 
     if test "$REC"; then
-        FOLDERS=$(echo "$PAGE" | sed -ne '/class="go"/p')
+        FOLDERS=$(echo "$PAGE" | grep 'class="dl"')
         while read LINE; do
             test "$LINE" || continue
             FILE_URL=$(echo "$LINE" | parse_attr '.' 'href')
