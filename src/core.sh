@@ -193,9 +193,10 @@ curl_with_log() {
 # $1: substring to find (this is not a regexp)
 # $2: replacement string (this is not a regexp)
 replace() {
-    S="$(cat)"
+    # Using $(< /dev/stdin) gives same results
+    local S="$(cat)"
     # We must escape '\' character
-    FROM="${1//\\/\\\\}"
+    local FROM="${1//\\/\\\\}"
     echo "${S//$FROM/$2}"
 }
 
