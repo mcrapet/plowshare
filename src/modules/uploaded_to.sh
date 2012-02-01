@@ -201,7 +201,7 @@ uploaded_to_upload() {
     log_debug "uploadServer: $SERVER"
 
     uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-    AUTH_DATA=$(cat "$COOKIEFILE" | parse_cookie 'login' | uri_decode)
+    AUTH_DATA=$(parse_cookie 'login' < "$COOKIEFILE" | uri_decode)
 
     # TODO: Allow changing admin code (used for deletion)
     ADMIN_CODE="noyiva$$"
