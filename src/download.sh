@@ -38,6 +38,7 @@ TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
 CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: prompt, none.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
+CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
 NOEXTRAWAIT,,no-extra-wait,,Do not wait on uncommon events (unavailable file, unallowed parallel downloads, ...)
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
@@ -559,6 +560,7 @@ fi
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
 [ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
 [ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
+[ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
 
 set_exit_trap
 

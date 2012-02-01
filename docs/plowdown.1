@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "January 27, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "February 1, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -102,11 +102,20 @@ Cancel download after \fISECS\fR seconds of waits. This value applies for one do
 .BI -r, " " --max-retries "=N"
 Set maximum retries for download failures (only captcha errors for now). Default is infinite retries. \fB-r 0\fP means no retry, so one single download try is made.
 .TP
+.BI "   " " " --antigate "=KEY"
+Use Antigate.com service to solve captcha.
+.TP
 .BI "   " " " --captchatrader "=USER:PASSWORD"
-Use CaptchaTrader account to solve captcha. If not specified, display image and prompt for manual entering.
+Use CaptchaTrader service to solve captcha.
 .TP
 .BI "   " " " --captchamethod "=METHOD"
-Force specific captcha solving method. Available values: \fBprompt\fP and \fBnone\fP.
+Force specific captcha solving method. Available values:
+.RS
+\fBprompt\fR  display image and prompt for manual entering.
+.RE
+.RS
+\fBnone\fR  abort if captcha solving is requested (even if automatic solving service is available).
+.RE
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"
 Directory where files are temporarily downloaded.

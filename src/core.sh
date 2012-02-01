@@ -48,6 +48,7 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - NO_CURLRC        Do not read of use curlrc config
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
 #   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
+#   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
@@ -867,6 +868,66 @@ captcha_process() {
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
+        antigate)
+            if [ -z "$CAPTCHA_ANTIGATE" ]; then
+                log_error "antigate missing captcha key"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            log_notice "Using antigate captcha recognition system"
+
+            RESPONSE=$(curl -F 'method=post' \
+                -F "file=@$FILENAME;filename=file.jpg" \
+                -F "key=$CAPTCHA_ANTIGATE" \
+                -F 'is_russian=0' \
+                'http://antigate.com/in.php') || return
+
+            if [ 'ERROR_IP_NOT_ALLOWED' = "$RESPONSE" ]; then
+                log_error "antigate error: IP not allowed"
+                rm -f "$FILENAME"
+                return $ERR_FATAL
+            elif [ 'ERROR_ZERO_BALANCE' = "$RESPONSE" ]; then
+                log_error "antigate error: no credits"
+                rm -f "$FILENAME"
+                return $ERR_FATAL
+            elif match 'ERROR_' "$RESPONSE"; then
+                log_error "antigate error: $RESPONSE"
+                rm -f "$FILENAME"
+                return $ERR_FATAL
+            fi
+
+            local RET I WORD
+            RET=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
+
+            for I in 8 5 5 6 6 7 7 8; do
+                wait $I seconds
+                RESPONSE=$(curl --get \
+                    --data "key=${CAPTCHA_ANTIGATE}&action=get&id=$RET"  \
+                    'http://antigate.com/res.php') || return
+
+                if [ 'CAPCHA_NOT_READY' = "$RESPONSE" ]; then
+                    continue
+                elif match '^OK|' "$RESPONSE"; then
+                    WORD=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
+                    break
+                else
+                    log_error "antigate error: $RESPONSE"
+                    rm -f "$FILENAME"
+                    return $ERR_FATAL
+                fi
+            done
+
+            if [ -z "$WORD" ]; then
+                log_error "antigate error: service not unavailable"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            # result on two lines
+            echo "$WORD"
+            echo $RET
+            ;;
         captchatrader)
             if [ -z "$CAPTCHA_TRADER" ]; then
                 log_error "captcha.trader missing account data"
@@ -981,10 +1042,12 @@ recaptcha_process() {
         log_debug "reCaptcha image URL: $URL"
         curl "$URL" -o "$FILENAME" || return
 
-        if [ -z "$CAPTCHA_TRADER" ]; then
-            WORDS=$(captcha_process "$FILENAME") || return
-        else
+        if captcha_antigate_ready "$CAPTCHA_ANTIGATE"; then
+            WORDS=$(captcha_process "$FILENAME" 'antigate' 'none') || return
+        elif [ -n "$CAPTCHA_TRADER" ]; then
             WORDS=$(captcha_process "$FILENAME" 'captchatrader' 'none') || return
+        else
+            WORDS=$(captcha_process "$FILENAME") || return
         fi
         rm -f "$FILENAME"
 
@@ -1036,8 +1099,17 @@ recaptcha_ack() {
 # $1: id (given by recaptcha_process)
 recaptcha_nack() {
     if [[ "$1" -ne 0 ]]; then
-        if [ -n "$CAPTCHA_TRADER" ]; then
-            local RESPONSE STR
+        local RESPONSE STR
+
+        if [ -n "$CAPTCHA_ANTIGATE" ]; then
+            RESPONSE=$(curl --get \
+                --data "key=${CAPTCHA_ANTIGATE}&action=reportbad&id=$1"  \
+                'http://antigate.com/res.php') || return
+
+            [ 'OK_REPORT_RECORDED' = "$RESPONSE" ] || \
+                log_error "antigate error: $RESPONSE"
+
+        elif [ -n "$CAPTCHA_TRADER" ]; then
 
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
@@ -1489,4 +1561,26 @@ find_in_array() {
         [ "$ELT" = "$2" -o "$ELT" = "$3" ] && return 0
     done
     return 1
+}
+
+# Verify balance (antigate)
+# $1: antigate.com captcha key
+# $?: 0 for success (enough credits)
+captcha_antigate_ready() {
+    local KEY="$1"
+    local AMOUNT
+
+    [ -z "$KEY" ] && return $ERR_FATAL
+
+    AMOUNT=$(curl --get --data "key=${CAPTCHA_ANTIGATE}&action=getbalance"  \
+        'http://antigate.com/res.php') || return
+
+    if match '^ERROR' "$AMOUNT"; then
+        log_error "antigate error: $AMOUNT"
+    elif [ '0.0000' = "$AMOUNT" -o '-' = "${AMOUNT:0:1}" ]; then
+        log_notice "antigate: no more credits"
+        return $ERR_FATAL
+    else
+        log_debug "antigate credits: \$$AMOUNT"
+    fi
 }
