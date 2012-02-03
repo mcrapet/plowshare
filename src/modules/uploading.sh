@@ -55,6 +55,9 @@ uploading_download() {
         WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute")
         test -n "$WAIT" && echo $((WAIT*60))
         return $ERR_LINK_TEMP_UNAVAILABLE
+    elif match '<h2>File is still uploading</h2>' "$DATA"; then
+        log_debug "file is still uploading"
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     local FORM_HTML FORM_URL FORM_FID FORM_CODE
@@ -82,7 +85,7 @@ uploading_download() {
 
     # Second attempt (note: filename might be truncated in the page)
     test -z "$FILENAME" &&
-        FILENAME=$(echo "$DATA" | grep -A1 ico_big_download_file.gif | last_line | parse 'h2' '<h2>\([^<]*\)')
+        FILENAME=$(echo "$DATA" | grep 'File size'  | strip | parse . '^\([^ 	]*\)')
 
     wait $WAIT seconds || return
 
