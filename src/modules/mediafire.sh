@@ -126,7 +126,7 @@ mediafire_upload() {
     local DESTFILE="$3"
     local SZ=$(get_filesize "$FILE")
     local BASE_URL='http://www.mediafire.com'
-    local XML UKEY USER FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY TRY
+    local XML UKEY USER FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY N
 
     if [ -n "$AUTH_FREE" ]; then
         # Get ukey cookie entry (mandatory)
@@ -154,10 +154,10 @@ mediafire_upload() {
     XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
             { log_error "Couldn't upload file!"; return 1; }
 
-    UKEY=$(echo "$XML" | parse_quiet ukey '<ukey>\([^<]*\)<\/ukey>')
-    USER=$(echo "$XML" | parse_quiet user '<user>\([^<]*\)<\/user>')
-    FOLDER_KEY=$(echo "$XML" | parse_quiet folderkey '<folderkey>\([^<]*\)<\/folderkey>')
-    MFUL_CONFIG=$(echo "$XML" | parse_quiet MFULConfig '<MFULConfig>\([^<]*\)<\/MFULConfig>')
+    UKEY=$(echo "$XML" | parse_tag_quiet ukey)
+    USER=$(echo "$XML" | parse_tag_quiet user)
+    FOLDER_KEY=$(echo "$XML" | parse_tag_quiet folderkey)
+    MFUL_CONFIG=$(echo "$XML" | parse_tag_quiet MFULConfig)
 
     log_debug "folderkey: $FOLDER_KEY"
     log_debug "ukey: $UKEY"
@@ -186,23 +186,25 @@ mediafire_upload() {
     #   <key>sf22seu6p7d</key>
     #  </doupload>
     # </response>
-    UPLOAD_KEY=$(echo "$XML" | parse_quiet 'key' '<key>\([^<]*\)<\/key>')
+    UPLOAD_KEY=$(echo "$XML" | parse_tag_quiet key)
 
     # Get error code (<result>)
     if [ -z "$UPLOAD_KEY" ]; then
-        local ERR_CODE=$(echo "$XML" | parse_quiet 'result' '<result>\([^<]*\)')
+        local ERR_CODE=$(echo "$XML" | parse_tag_quiet result)
         log_error "mediafire internal error: ${ERR_CODE:-n/a}"
         return $ERR_FATAL
     fi
 
     log_debug "polling for status update (with key $UPLOAD_KEY)"
 
-    for TRY in 1 2 3; do
-        wait 2 seconds || return
+    for N in 4 3 3 2 2 2; do
+        wait $N seconds || return
 
         XML=$(curl "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG") || return
+
+        # <description>Verifying File</description>
         if match '<description>No more requests for this key</description>' "$XML"; then
-            QUICK_KEY=$(echo "$XML" | parse_quiet 'quickkey' '<quickkey>\([^<]*\)<\/quickkey>')
+            QUICK_KEY=$(echo "$XML" | parse_tag_quiet quickkey)
 
             echo "$BASE_URL/?$QUICK_KEY"
             return 0
@@ -237,7 +239,7 @@ mediafire_list() {
     URL="http://www.mediafire.com/api/folder/get_info.php?r=abcd$$&recursive=yes&folder_key=${QUICKKEY}&response_format=xml&version=1"
     DATA=$(curl "$URL" | break_html_lines) || return
 
-    NUM=$(echo "$DATA" | parse '<file_count>' ">\([[:digit:]]*\)<")
+    NUM=$(echo "$DATA" | parse_tag_quiet file_count) || NUM=0
     log_debug "There is/are $NUM file(s) in the folder"
 
     test "$NUM" -eq '0' && return $ERR_LINK_DEAD
@@ -246,7 +248,7 @@ mediafire_list() {
 
     # First pass: print file names (debug)
     while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_quiet '.' 'filename>\([^<]\+\)')
+        FILE_NAME=$(echo "$LINE" | parse_tag_quiet filename)
         log_debug "$FILE_NAME"
     done <<< "$ITEMS"
 
@@ -254,7 +256,7 @@ mediafire_list() {
 
     # Second pass: print links (stdout)
     while read LINE; do
-        QUICKKEY=$(echo "$LINE" | parse_quiet '.' 'quickkey>\([^<]\+\)')
+        QUICKKEY=$(echo "$LINE" | parse_tag_quiet quickkey)
         echo "http://www.mediafire.com/?$QUICKKEY"
     done <<< "$ITEMS"
 }
