@@ -279,7 +279,7 @@ wupload_list() {
 
     # First pass: print file names (debug)
     while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_tag a)
+        FILE_NAME=$(echo "$LINE" | parse_tag_quiet a)
         log_debug "$FILE_NAME"
     done <<< "$LINKS"
 
