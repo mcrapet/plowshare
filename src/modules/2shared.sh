@@ -46,7 +46,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
     test "$CHECK_LINK" && return 0
 
-    FILENAME=$(echo "$PAGE" | parse_quiet '<title>' 'download *\([^<]*\)')
+    FILENAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) 2shared - download$')
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
