@@ -168,7 +168,7 @@ hotfile_list() {
 
     # First pass : print debug message
     while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse 'href' '>\([^<]*\)<\/a>')
+        FILE_NAME=$(echo "$LINE" | parse_tag_quiet a)
         log_debug "$FILE_NAME"
     done <<< "$LINKS"
 

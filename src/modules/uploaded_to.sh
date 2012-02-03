@@ -284,13 +284,15 @@ uploaded_to_list() {
 
     # First pass: print file names (debug)
     while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_quiet 'href' '>\([^<]*\)<\/a>')
+        FILE_NAME=$(echo "$LINE" | parse_tag_quiet a)
         log_debug "$FILE_NAME"
     done <<< "$LINKS"
 
     # Second pass: print links (stdout)
     while read LINE; do
+        # This gives links: "file/$FILE_ID/from/folderid"
         #FILE_ID=$(echo "$LINE" | parse_attr '<a' 'href')
+
         FILE_ID=file/$(echo "$LINE" | parse '.' 'file\/\([^/]\+\)')
         echo "http://uploaded.to/$FILE_ID"
     done <<< "$LINKS"

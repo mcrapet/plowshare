@@ -201,7 +201,7 @@ replace() {
     echo "${S//$FROM/$2}"
 }
 
-# Delete leading and trailing spaces, tabs, \r, ...
+# Delete leading and trailing whitespace.
 # stdin: input string (can be multiline)
 # stdout: result string
 strip() {
@@ -224,7 +224,7 @@ lowercase() {
 # Grep first line of a text
 # stdin: input string (multiline)
 first_line() {
-    # equivalent to `sed -e 1q`
+    # equivalent to `sed -e q` or `sed -e 1q`
     head -n1
 }
 
@@ -274,13 +274,26 @@ match_remote_url() {
 
 # Get lines that match filter+match regular expressions and extract string from it.
 #
+# $1: regexp to filter (take lines matching $1 pattern)
+# $2: regexp to match (must contain parentheses). Example: "url:'\(http.*\)'"
 # stdin: text data
-# $1: POSIX-regexp to filter (get only the first matching line).
-# $2: POSIX-regexp to match (use parenthesis) on the matched line.
+# stdout: result
 parse_all() {
-    local STRING=$(sed -n "/$1/s/^.*$2.*$/\1/p")
+    local STRING REGEXP
+    if [ '^' = "${2:0:1}" ]; then
+        if [ '$' = "${2:(-1):1}" ]; then
+            REGEXP="$2"
+        else
+            REGEXP="$2.*$"
+        fi
+    elif [ '$' = "${2:(-1):1}" ]; then
+            REGEXP="^.*$2"
+    else
+            REGEXP="^.*$2.*$"
+    fi
+    STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
     test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
+        { log_error "parse failed: sed -n \"/$1/s/$REGEXP\""; return $ERR_FATAL; }
 }
 
 # Like parse_all, but hide possible error
@@ -293,25 +306,26 @@ parse() {
     parse_all "$@" | head -n1
 }
 
-# Like parse_all, but get only last match
-parse_last() {
-    parse_all "$@" | tail -n1
-}
-
 # Like parse, but hide possible error
 parse_quiet() {
     parse "$@" 2>/dev/null
 }
 
-# Get lines that first filter regex, then apply match regex on the line after
+# Like parse_all, but get only last match
+parse_last() {
+    parse_all "$@" | tail -n1
+}
+
+# Get lines that first filter regex, then apply match regex on the line after.
 #
+# $1: regexp to filter (take lines matching $1 pattern)
+# $2: regexp to match (on the lines after filter)
 # stdin: text data
-# $1: POSIX-regexp to filter (get only the first matching line).
-# $2: POSIX-regexp to match (use parenthesis) on the matched line.
+# stdout: result
 parse_line_after_all() {
     local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}")
     test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: sed -n \"/$1/$2\""; return $ERR_FATAL; }
+        { log_error "parse failed: sed -n \"/$1/s/$2\""; return $ERR_FATAL; }
 }
 
 # Like parse_line_after_all, but get only first match
@@ -399,7 +413,7 @@ grep_form_by_id() {
 # stdin: (X)HTML data
 # stdout: result
 break_html_lines() {
-    sed 's/\(<\/[^>]*>\)/\1\n/g'
+    sed -e 's/<\/[^>]*>/&\n/g'
 }
 
 # Split into several lines html markers.
@@ -408,20 +422,49 @@ break_html_lines() {
 # stdin: (X)HTML data
 # stdout: result
 break_html_lines_alt() {
-    sed 's/\(<[^>]*>\)/\1\n/g'
+    sed -e 's/<[^>]*>/&\n/g'
 }
 
-# Return value of html attribute
-parse_attr() {
-    parse "$1" "$2=[\"']\?\([^\"'>]*\)"
+# Parse single named HTML tag content
+# <tag>..</tag>
+# <tag attr="x">..</tag>
+# Notes:
+# - beginning and ending tag are on the same line
+# - this is non greedy, first occurrence is taken
+# - "parse_xxx tag" is a shortcut for "parse_xxx tag tag"
+#
+# $1: regexp to filter (take lines matching $1 pattern)
+# $2: tag name. Example: "span".
+# stdin: (X)HTML data
+# stdout: result
+parse_all_tag() {
+    local T=${2:-"$1"}
+    local STRING=$(sed -ne "/$1/s/<\/$T>.*$//p" | sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
+    test "$STRING" && echo "$STRING" ||
+        { log_error "parse_tag failed: sed -n \"/$1/s/<$T>\""; return $ERR_FATAL; }
 }
 
-# Like parse_attr, but hide possible error
-parse_attr_quiet() {
-    parse_attr "$@" 2>/dev/null
+# Like parse_all_tag, but hide possible error
+parse_all_tag_quiet() {
+    parse_all_tag "$@" 2>/dev/null
 }
 
-# Return value of html attribute
+# Like parse_all_tag, but get only first match
+parse_tag() {
+    parse_all_tag "$@" | head -n1
+}
+
+# Like parse_tag, but hide possible error
+parse_tag_quiet() {
+    parse_tag "$@" 2>/dev/null
+}
+
+# Parse HTML attribute content
+#
+# $1: regexp to filter (take lines matching $1 pattern)
+# $2: attribute name. Example: "href".
+# stdin: (X)HTML data
+# stdout: result
 parse_all_attr() {
     parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"
 }
@@ -429,6 +472,16 @@ parse_all_attr() {
 # Like parse_all_attr, but hide possible error
 parse_all_attr_quiet() {
     parse_all_attr "$@" 2>/dev/null
+}
+
+# Return value of html attribute
+parse_attr() {
+    parse_all_attr "$@" | head -n1
+}
+
+# Like parse_attr, but hide possible error
+parse_attr_quiet() {
+    parse_attr "$@" 2>/dev/null
 }
 
 # Retrieve "action" attribute (URL) from a <form> marker
@@ -439,7 +492,8 @@ parse_form_action() {
     parse '<[Ff][Oo][Rr][Mm]' 'action="\([^"]*\)"'
 }
 
-# Retrieve "value" attribute from a named <input> marker
+# Retrieve "value" attribute from an <input> marker with "name" attribute
+# Note: "value" attribute must be placed after "name" attribute.
 #
 # $1: name attribute of <input> marker
 # stdin: (X)HTML data
@@ -448,13 +502,24 @@ parse_form_input_by_name() {
     parse_quiet "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
-# Retrieve "value" attribute from a typed <input> marker
+# Retrieve "value" attribute from an <input> marker with "type" attribute
+# Note: "value" attribute must be placed after "type" attribute.
 #
 # $1: type attribute of <input> marker (for example: "submit")
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
     parse_quiet "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+}
+
+# Retrieve "value" attribute from an <input> marker with "id" attribute
+# Note: "value" attribute must be placed after "id" attribute.
+#
+# $1: id attribute of <input> marker
+# stdin: (X)HTML data
+# stdout: result (can be null string if <input> has no value attribute)
+parse_form_input_by_id() {
+    parse_quiet "<input\([[:space:]]*[^ ]*\)*id=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
 # Retrieve "id" attributes from typed <input> marker(s)
