@@ -156,13 +156,14 @@ megashares_download() {
 megashares_upload() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_UPLOAD_OPTIONS" "$@")"
 
+    local COOKIEFILE="$1"
     local FILE="$2"
     local DESTFILE="$3"
     local BASEURL='http://www.megashares.com'
 
-    local PAGE CATEGORY SEARCH DL_LINK DEL_LINK
+    local PAGE CATEGORY DL_LINK DEL_LINK
 
-    PAGE=$(curl "$BASEURL") || return
+    PAGE=$(curl -c "$COOKIEFILE" "$BASEURL") || return
 
     # Upload Category: video doc application music image
     CATEGORY='video'
@@ -170,14 +171,16 @@ megashares_upload() {
     # Note: To make link non searchable/public, delete "searchable=on" line.
     # Putting "off" or any other value means "enabled".
 
-    APC_UPLOAD_PROGRESS=$(echo "$PAGE" | parse_attr 'name="APC_UPLOAD_PROGRESS"' 'value')
-    MSUP_ID=$(echo "$PAGE" | parse_attr 'name="msup_id"' 'value')
-    DOWNLOADPROGRESSURL=$(echo "$PAGE" | parse_attr 'name="downloadProgressURL"' 'value')
-    ULOC=$(echo "$PAGE" | parse_attr 'id="uloc"' 'value')
-    TMP_SID=$(echo "$PAGE" | parse_attr 'id="tmp_sid"' 'value')
-    UPS_SID=$(echo "$PAGE" | parse_attr 'id="ups_sid"' 'value')
+    local FORM_HTML APC_UPLOAD_PROGRESS MSUP_IDD OWNLOADPROGRESSURL
+    FORM_HTML=$(grep_form_by_name "$PAGE" 'form_upload')
+    APC_UPLOAD_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name 'APC_UPLOAD_PROGRESS')
+    MSUP_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'msup_id')
+    DOWNLOADPROGRESSURL=$(echo "$FORM_HTML" | parse_form_input_by_name 'downloadProgressURL')
+    ULOC=$(echo "$FORM_HTML" | parse_form_input_by_id 'uloc')
+    TMP_SID=$(echo "$FORM_HTML" | parse_form_input_by_id 'tmp_sid')
+    UPS_SID=$(echo "$FORM_HTML" | parse_form_input_by_id 'ups_sid')
 
-    PAGE=$(curl_with_log \
+    PAGE=$(curl_with_log -b "$COOKIEFILE" \
         -F "APC_UPLOAD_PROGRESS=$APC_UPLOAD_PROGRESS" \
         -F "msup_id=$MSUP_ID" \
         -F "downloadProgressURL=$DOWNLOADPROGRESSURL" \
@@ -187,11 +190,28 @@ megashares_upload() {
         -F "searchable=on" \
         -F "emailAddress=$TOEMAIL" \
         -F "upfile_0=@$FILE;filename=$DESTFILE" \
-        -F "checkTOS=" \
-        "$BASEURL/uploader.php?tmp_sid=$TMP_SID&ups_sid=$UPS_SID&uld=$ULOC&uloc=$ULOC") || return
+        -F "checkTOS=1" \
+        -F "uploadFileURL=" \
+        "$BASEURL/9999.php?tmp_sid=$TMP_SID&ups_sid=$UPS_SID&uld=$ULOC&uloc=$ULOC") || return
 
-    DL_LINK=$(echo "$PAGE" | parse 'dlLink' '>\([^<]*\)<\/div>')
-    DEL_LINK=$(echo "$PAGE" | parse 'delLink' '>\([^<]*\)<\/div>')
+    # <body><div id='uplMsg'>error</div><div id='err-message'>Error on upload</div></body>
+    if match 'err-message' "$PAGE"; then
+        local ERR=$(echo "$PAGE" | parse_quiet 'err-message' "message'>\([^<]*\)")
+        log_error "upload failure ($ERR)"
+        return $ERR_FATAL
+    fi
+
+    # <script type="text/javascript">eval('parent.location = "http://www.megashares.com/upostproc.php?fid=25936274"');</script>
+    local URL
+    URL=$(echo "$PAGE" | parse 'location' '= "\(http[^"]*\)')
+    PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+
+    # <dt>Download Link to share:</dt>
+    DL_LINK=$(echo "$PAGE" | parse_tag '\/dl\/' a)
+
+    # Needs "uloader" entry in cookie file to get delete link
+    # <dt>Delete Link (keep this in a safe place):</dt>
+    DEL_LINK=$(echo "$PAGE" | parse_tag '?dl=' a)
 
     echo "$DL_LINK ($DEL_LINK)"
 }
