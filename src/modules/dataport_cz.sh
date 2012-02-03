@@ -49,36 +49,32 @@ dataport_cz_download() {
 
     test "$CHECK_LINK" && return 0
 
-    # Arbitrary wait (local variable)
-    NO_FREE_SLOT_IDLE=125
-
-    # html returned uses utf-8 charset
+    # Returned HTML uses UTF-8 charset
+    # <strong><span style="color:green">Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span></strong>
+    # <strong><span style="color:red">Volné sloty pro stažení zdarma jsou v tuhle chvíli vyčerpány.</span></strong>
     PAGE=$(curl --location "$URL") || return
-    if ! match "Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span>" "$PAGE"; then
-        echo $NO_FREE_SLOT_IDLE
+
+    if ! match 'color:green">Volné sloty pro' "$PAGE"; then
+        echo 120
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    DL_URL=$(echo "$PAGE" | parse_quiet '<td>' '<td><a href="\([^"]*\)')
-    if ! test "$DL_URL"; then
-        log_error "Can't parse download URL, site updated?"
-        return $ERR_FATAL
-    fi
+    FILENAME=$(echo "$PAGE" | parse_tag 'color: red' 'h2')
+
+    # Can't use parse_attr because there are 2 href on the same line
+    DL_URL=$(echo "$PAGE" | sed -e 's/<strong/\n<strong/g' | \
+        parse_attr 'ui-state-default' href) || return
+
+    # Is this required ?
     DL_URL=$(uri_encode_file "$DL_URL")
 
-    FILENAME=$(echo "$PAGE" | parse_quiet '<td><strong>' '<td><strong>*\([^<]*\)')
+    FILE_URL=$(curl -I "$DL_URL" | grep_http_header_location) || return
 
-    FILE_URL=$(curl -I "$DL_URL" | grep_http_header_location)
-    if ! test "$FILE_URL"; then
-        log_error "Location not found"
-        return $ERR_FATAL
-    fi
+    # Is this required ?
     FILE_URL=$(uri_encode_file "$FILE_URL")
 
     echo "$FILE_URL"
     test "$FILENAME" && echo "$FILENAME"
-
-    return 0
 }
 
 # Upload a file to dataport.cz
