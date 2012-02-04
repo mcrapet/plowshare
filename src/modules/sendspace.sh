@@ -37,7 +37,7 @@ MODULE_SENDSPACE_LIST_OPTIONS=""
 # stdout: real file download link
 sendspace_download() {
     local URL="$2"
-    local PAGE
+    local PAGE FILE_URL
 
     if match 'sendspace\.com/folder/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -54,8 +54,7 @@ sendspace_download() {
     fi
 
     PAGE=$(curl --referer "$URL" "$URL") || return
-
-    local FILE_URL=$(echo "$PAGE" | parse_attr 'download_button' 'href')
+    FILE_URL=$(echo "$PAGE" | parse_attr 'download_button' 'href') || return
 
     test "$CHECK_LINK" && return 0
 
