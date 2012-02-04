@@ -50,7 +50,7 @@ mirrorcreator_upload() {
     FORM=$(grep_form_by_id "$PAGE" 'uu_upload' | break_html_lines)
 
     # Retrieve complete hosting site list
-    SITES_ALL=$(echo "$FORM" | parse_all_form_input_by_type_with_id 'checkbox')
+    SITES_ALL=$(echo "$FORM" | grep 'checkbox' | parse_all_attr 'id=' value)
 
     if [ -z "$SITES_ALL" ]; then
         log_error "Empty list, site updated?"

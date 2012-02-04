@@ -522,11 +522,6 @@ parse_form_input_by_id() {
     parse_quiet "<input\([[:space:]]*[^ ]*\)*id=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
-# Retrieve "id" attributes from typed <input> marker(s)
-parse_all_form_input_by_type_with_id() {
-    parse_all "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "id=[\"']\?\([^'\">]*\)" 2>/dev/null
-}
-
 # Get accessor for cookies (netscape/mozilla cookie file format)
 # Example: LANG=$(parse_cookie "lang" < "$COOKIES")
 parse_cookie() {
