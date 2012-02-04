@@ -25,32 +25,33 @@ To run plowshare you will require:
 
 > A POSIX compliant operating system: 
     - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
-    - Cygwin
     - BSD (requires GNU-sed and GNU-getopt)
     - Mac OSX: need homebrew
-> Bash (version >= 3.0)
+    - Cygwin
+> Bash (version >= 3.0, version >= 3.0.12 recommended)
 > Curl (with SSL support, usually required for premium account)
-
 > Character encoding converter (recommended)
     - recode or
     - perl + HTML::Entities
+
+> Some websites are using reCaptcha. You'll need a (X11 or ascii) picture viewer 
+  for manual console entry or an account to an automatic solving service:
+    - display (imagemagick) or
+    - aview (libaa) or
+    - img2txt (libcaca) or
+    - tiv (perl script using Image::Magick) or
+    - CapthaTrader account or
+    - Antigate.com account
 
 > Some websites requires javascript interpreter [1]
     - spidermonkey or
     - rhino
 
 > Some websites are using captchas [2]. You'll need:
-    - imagemagick (with GIF and TIFF support)
-    - tesseract-ocr (with TIFF support; version >=2.04)
+    - imagemagick (with GIF and TIFF support) and
+    - tesseract-ocr (with TIFF support; version >=2.04) and
     - perl + Image::Magick (aka PerlMagick)
 
-> X11 picture viewer (used on site using reCaptcha)
-    - display (imagemagick)
-
-> Picture ascii-art viewer (optional)
-    - aview or
-    - libcaca or
-    - tiv
 
 ---
 [1] Used by 1fichier (upload), badongo, dataport.cz, mediafire and zshare modules
@@ -94,7 +95,7 @@ $ plowdown -m file_with_links.txt
 5. Limit the download rate (you can use curl rates: K=Kbps, M=Mbps, G=Gbps)
 $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-6. Download a file from Filesonic using an account (free or premium)
+6. Download a file from Fileserve using an account (free or premium)
    (note ':' is used to separate user from password)
 $ plowdown -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
 
@@ -102,7 +103,7 @@ $ plowdown -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
 $ plowdown -p somepassword http://www.mediafire.com/?mt0egmhietj60iy
 
 8. Advanced use. Use a different web retriever for the last file download. 
-   File URL, file name and cookies are available through interpolations. 
+   File URL, file name and cookie file are available through interpolations. 
    Assuming you want to use wget:
 $ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"' \
     http://www.2shared.com/file/4446939/c9fd70d6/Test.html
