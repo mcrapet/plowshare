@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # divshare.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -32,6 +32,7 @@ divshare_download() {
     local COOKIEFILE="$1"
     local URL="$2"
     local BASE_URL='http://www.divshare.com'
+    local PAGE REDIR_URL WAIT_PAGE WAIT_TIME FILE_URL FILENAME
 
     PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
@@ -47,7 +48,7 @@ divshare_download() {
         return $ERR_LINK_DEAD;
     }
 
-    if ! match '^http' "$REDIR_URL"; then
+    if ! match_remote_url "$REDIR_URL"; then
         WAIT_PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL")
         WAIT_TIME=$(echo "$WAIT_PAGE" | parse_quiet 'http-equiv="refresh"' 'content="\([^;]*\)')
         REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)')
@@ -58,10 +59,8 @@ divshare_download() {
         PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL") || return
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') ||
-        { log_debug "can't get link, website updated?"; return $ERR_FATAL; }
-    FILENAME=$(echo "$PAGE" | parse '<title>' '<title>\([^<]*\)') ||
-        { log_debug "can't parse filename, website updated?"; return $ERR_FATAL; }
+    FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') || return
+    FILENAME=$(echo "$PAGE" | parse_tag title)
 
     echo $FILE_URL
     echo "${FILENAME% - DivShare}"
