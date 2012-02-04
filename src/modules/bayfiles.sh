@@ -117,12 +117,11 @@ bayfiles_download() {
         FILE_URL=$(echo "$PAGE" | parse_attr 'class="highlighted-btn' 'href') || return
     fi
 
-    echo "$FILE_URL"
-
     # Extract filename from $PAGE, work for both cases
     FILENAME=$(echo "$PAGE" | parse_attr_quiet 'title="' 'title')
 
-    test "$FILENAME" && echo "$FILENAME"
+    echo "$FILE_URL"
+    echo "$FILENAME"
 }
 
 # Upload a file to bayfiles

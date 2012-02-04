@@ -220,10 +220,10 @@ download() {
             local TRY=0
 
             while :; do
-                $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >$DRESULT || DRETVAL=$?
+                $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
-                    read AWAIT <$DRESULT
+                    read AWAIT <"$DRESULT"
 
                     # --no-extra-wait option specified
                     test -n "$NOEXTRAWAIT" && break
@@ -260,7 +260,7 @@ download() {
                 DRETVAL=0
             done
 
-            { read FILE_URL; read FILENAME; } <$DRESULT || true
+            { read FILE_URL; read FILENAME; } <"$DRESULT" || true
             rm -f "$DRESULT"
         else
             $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >/dev/null || DRETVAL=$?

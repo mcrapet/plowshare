@@ -172,7 +172,7 @@ uploaded_to_download() {
     fi
 
     echo "$FILE_URL"
-    test "$FILE_NAME" && echo "$FILE_NAME"
+    echo "$FILE_URL"
 }
 
 # Upload a file to uploaded.to

@@ -110,7 +110,7 @@ mediafire_download() {
     FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
     echo "$FILE_URL"
-    test -n "$FILENAME" && echo "$FILENAME"
+    echo "$FILENAME"
 }
 
 # Upload a file to mediafire

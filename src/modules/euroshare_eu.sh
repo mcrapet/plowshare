@@ -80,7 +80,5 @@ euroshare_eu_download() {
     fi
 
     echo "$FILE_URL"
-    test "$FILENAME" && echo "$FILENAME"
-
-    return 0
+    echo "$FILENAME"
 }

@@ -49,7 +49,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     FILENAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) 2shared - download$')
 
     echo "$FILE_URL"
-    test "$FILENAME" && echo "$FILENAME"
+    echo "$FILENAME"
 }
 
 # Upload a file to 2shared.com

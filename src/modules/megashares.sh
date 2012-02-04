@@ -144,8 +144,7 @@ megashares_download() {
     FILE_URL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href')
 
     echo "$FILE_URL"
-    test "$FILE_NAME" && echo "$FILE_NAME"
-    return 0
+    echo "$FILE_NAME"
 }
 
 # Upload a file to megashares.com

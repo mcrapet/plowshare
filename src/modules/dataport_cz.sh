@@ -74,7 +74,7 @@ dataport_cz_download() {
     FILE_URL=$(uri_encode_file "$FILE_URL")
 
     echo "$FILE_URL"
-    test "$FILENAME" && echo "$FILENAME"
+    echo "$FILENAME"
 }
 
 # Upload a file to dataport.cz

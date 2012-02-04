@@ -170,9 +170,8 @@ netload_in_download() {
     FILE_URL=$(echo "$WAIT_HTML2" | \
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
-    echo $FILE_URL
-    test -n "$FILENAME" && echo "$FILENAME"
-    return 0
+    echo "$FILE_URL"
+    echo "$FILENAME"
 }
 
 # Upload a file to netload.in

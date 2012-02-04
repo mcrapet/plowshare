@@ -65,8 +65,7 @@ MODULE_4SHARED_LIST_OPTIONS=""
     wait $((WAIT_TIME)) seconds || return
 
     echo "$FILE_URL"
-    test "$FILE_NAME" && echo "$FILE_NAME"
-    return 0
+    echo "$FILE_NAME"
 }
 
 # List a 4shared folder URL

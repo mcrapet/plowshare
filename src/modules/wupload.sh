@@ -148,7 +148,7 @@ wupload_download() {
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr '<a' 'href')
         log_debug "parallel download?"
         echo "$FILE_URL"
-        test "$FILENAME" && echo "$FILENAME"
+        echo "$FILENAME"
         return 0
 
     else
@@ -180,7 +180,7 @@ wupload_download() {
             log_debug "correct captcha"
 
             echo "$FILE_URL"
-            test "$FILENAME" && echo "$FILENAME"
+            echo "$FILENAME"
             return 0
         fi
 

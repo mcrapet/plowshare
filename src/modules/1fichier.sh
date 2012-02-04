@@ -69,9 +69,7 @@ MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
     FILENAME=$(echo "$PAGE" | parse_quiet '<title>' '<title>Téléchargement du fichier : *\([^<]*\)')
 
     echo "$FILE_URL"
-    test "$FILENAME" && echo "$FILENAME"
-
-    return 0
+    echo "$FILENAME"
 }
 
 # Upload a file to 1fichier.tld
