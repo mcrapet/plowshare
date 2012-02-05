@@ -290,7 +290,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
-                log_notice "You must provide a password"
+                log_notice "You must provide a valid password"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'PASSWORD'
                 rm -f "$COOKIES"
                 return $DRETVAL
