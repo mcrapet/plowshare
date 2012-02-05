@@ -65,7 +65,7 @@ dl_free_fr_upload() {
     local FILE="$2"
     local DESTFILE="$3"
     local UPLOADURL='http://dl.free.fr'
-    local PAGE FORM ACTION SESSIONID H STATUS MON_PL WAITTIME
+    local PAGE FORM ACTION SESSIONID H STATUS MON_PL WAITTIME DL RM
 
     log_debug "downloading upload page: $UPLOADURL"
     PAGE=$(curl "$UPLOADURL") || return
@@ -100,7 +100,7 @@ dl_free_fr_upload() {
 
     WAITTIME=5
     while [ $WAITTIME -lt 320 ] ; do
-        PAGE=$(curl "$MON_PL")
+        PAGE=$(curl "$MON_PL") || return
 
         if match 'En attente de traitement...' "$PAGE"; then
             log_debug "please wait"
@@ -120,7 +120,9 @@ dl_free_fr_upload() {
                     "window\.open('\(http:\/\/dl.free.fr\/[^?]*\)')" | html_to_utf8)
             RM=$(echo "$PAGE" | parse 'en ligne' \
                     "window\.open('\(http:\/\/dl.free.fr\/rm\.pl[^']*\)" | html_to_utf8)
-            echo "$DL ($RM)"
+
+            echo "$DL"
+            echo "$RM"
             return 0
         else
             log_error "unknown state, abort"

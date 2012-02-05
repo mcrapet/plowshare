@@ -26,8 +26,7 @@ MODULE_BAYFILES_DOWNLOAD_RESUME=yes
 MODULE_BAYFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BAYFILES_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
-PRINT_ALL_LINKS,,print-all-links,,Print admin and delete links next to the download link"
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login (free-user or premium)
@@ -161,17 +160,15 @@ bayfiles_upload() {
         parse 'downloadUrl' 'downloadUrl":"\([^"]*\)' |\
         replace '\/' '/') || return
 
-    if test -n "$PRINT_ALL_LINKS"; then
-        ADMIN_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-            parse 'linksUrl' 'linksUrl":"\([^"]*\)' |\
-            replace '\/' '/') || return
+    DELETE_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
+        parse 'deleteUrl' 'deleteUrl":"\([^"]*\)' |\
+        replace '\/' '/') || return
 
-        DELETE_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-            parse 'deleteUrl' 'deleteUrl":"\([^"]*\)' |\
-            replace '\/' '/') || return
+    ADMIN_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
+        parse 'linksUrl' 'linksUrl":"\([^"]*\)' |\
+        replace '\/' '/') || return
 
-        echo "$URL ($ADMIN_URL) ($DELETE_URL)"
-    else
-        echo "$URL"
-    fi
+    echo "$URL"
+    echo "$DELETE_URL"
+    echo "$ADMIN_URL"
 }

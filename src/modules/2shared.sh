@@ -86,7 +86,9 @@ MODULE_2SHARED_DELETE_OPTIONS=""
     FILE_URL=$(echo "$DATA" | parse 'name="downloadLink"' "\(http:[^<]*\)") || return
     FILE_ADMIN=$(echo "$DATA" | parse 'name="adminLink"' "\(http:[^<]*\)")
 
-    echo "$FILE_URL ($FILE_ADMIN)"
+    echo "$FILE_URL"
+    echo
+    echo "$FILE_ADMIN"
 }
 
 # Delete a file uploaded to 2shared

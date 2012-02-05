@@ -268,8 +268,8 @@ fileserve_upload() {
     ID_DEL=$(echo "$PAGE" | parse_quiet 'deleteCode' 'deleteCode":"\([^"]*\)') || return
     FILENAME=$(echo "$PAGE" | parse_quiet 'fileName' 'fileName":"\([^"]*\)') || return
 
-    echo "$BASEURL/file/$ID/$FILENAME ($BASEURL/file/$ID/delete/$ID_DEL)"
-    return 0
+    echo "$BASEURL/file/$ID/$FILENAME"
+    echo "$BASEURL/file/$ID/delete/$ID_DEL"
 }
 
 # List a fileserve public folder URL

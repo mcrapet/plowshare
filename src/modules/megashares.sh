@@ -212,5 +212,6 @@ megashares_upload() {
     # <dt>Delete Link (keep this in a safe place):</dt>
     DEL_LINK=$(echo "$PAGE" | parse_tag '?dl=' a)
 
-    echo "$DL_LINK ($DEL_LINK)"
+    echo "$DL_LINK"
+    echo "$DEL_LINK"
 }

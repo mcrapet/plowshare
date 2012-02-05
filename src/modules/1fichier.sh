@@ -109,32 +109,15 @@ MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
     REMOVE_ID=$(echo "$RESPONSE" | nth_line 4)
     DOMAIN_ID=$(echo "$RESPONSE" | nth_line 5)
 
-    case "$DOMAIN_ID" in
-        0)  echo -e "http://$DOWNLOAD_ID.1fichier.com (http://www.1fichier.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        1)  echo -e "http://$DOWNLOAD_ID.alterupload.com (http://www.alterupload.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        2)  echo -e "http://$DOWNLOAD_ID.cjoint.net (http://www.cjoint.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        3)  echo -e "http://$DOWNLOAD_ID.desfichiers.com (http://www.desfichiers.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        4)  echo -e "http://$DOWNLOAD_ID.dfichiers.com (http://www.dfichiers.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        5)  echo -e "http://$DOWNLOAD_ID.megadl.fr (http://www.megadl.fr/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        6)  echo -e "http://$DOWNLOAD_ID.mesfichiers.net (http://www.mesfichiers.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        7)  echo -e "http://$DOWNLOAD_ID.piecejointe.net (http://www.piecejointe.net/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        8)  echo -e "http://$DOWNLOAD_ID.pjointe.com (http://www.pjointe.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        9)  echo -e "http://$DOWNLOAD_ID.tenvoi.com (http://www.tenvoi.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        10) echo -e "http://$DOWNLOAD_ID.dl4free.com (http://www.dl4free.com/remove/$DOWNLOAD_ID/$REMOVE_ID)"
-            ;;
-        *)  log_error "Bad domain ID response, maybe API updated?"
-            return $ERR_FATAL
-            ;;
-    esac
-    return 0
+    local -a DOMAIN_STR=('1fichier.com' 'alterupload.com' 'cjoint.net' 'desfichiers.com' \
+        'dfichiers.com' 'megadl.fr' 'mesfichiers.net' 'piecejointe.net' 'pjointe.com' \
+        'tenvoi.com' 'dl4free.com' )
+
+    if [[ "$DOMAIN_ID" -gt 10 && "$DOMAIN_ID" -lt 0 ]]; then
+        log_error "Bad domain ID response, maybe API updated?"
+        return $ERR_FATAL
+    fi
+
+    echo "http://${DOWNLOAD_ID}.${DOMAIN_STR[$DOMAIN_ID]}"
+    echo "http://www.${DOMAIN_STR[$DOMAIN_ID]}/remove/$DOWNLOAD_ID/$REMOVE_ID"
 }

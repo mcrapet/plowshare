@@ -73,10 +73,9 @@ zshare_upload() {
 
     local FILE="$2"
     local DESTFILE="$3"
-    local UPLOADURL="http://www.zshare.net/"
+    local DATA ACTION INFOPAGE DESCR ID DOWNLOAD_URL DELETE_URL
 
-    log_debug "downloading upload page: $UPLOADURL"
-    DATA=$(curl "$UPLOADURL") || return
+    DATA=$(curl 'http://www.zshare.net/') || return
 
     ACTION=$(grep_form_by_name "$DATA" 'upload' | parse_form_action) ||
         { log_debug "cannot get upload form URL"; return $ERR_FATAL; }
@@ -121,7 +120,8 @@ zshare_upload() {
     DELETE_URL=$(echo "$INFOPAGE" | parse_attr "http:\/\/www\.zshare\.net\/delete" 'value') ||
         { log_debug "can't parse delete link, website updated?"; return $ERR_FATAL; }
 
-    echo "$DOWNLOAD_URL ($DELETE_URL)"
+    echo "$DOWNLOAD_URL"
+    echo "$DELETE_URL"
 }
 
 # Delete a file from zshare

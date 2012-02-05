@@ -239,7 +239,8 @@ depositfiles_upload() {
     DL_LINK=$(echo "$DATA" | parse 'ud_download_url[[:space:]]' "'\([^']*\)'") || return
     DEL_LINK=$(echo "$DATA" | parse 'ud_delete_url' "'\([^']*\)'") || return
 
-    echo "$DL_LINK ($DEL_LINK)"
+    echo "$DL_LINK"
+    echo "$DEL_LINK"
 }
 
 # Delete a file on depositfiles

@@ -235,9 +235,9 @@ for FILE in "$@"; do
 
     TRY=0
     while :; do
-        : > "$UPCOOKIE"
+        :> "$UPCOOKIE"
         URETVAL=0
-        $FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE" || URETVAL=$?
+        URESULT=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE") || URETVAL=$?
 
         (( ++TRY ))
         if [[ "$MAXRETRIES" -eq 0 ]]; then
@@ -252,7 +252,25 @@ for FILE in "$@"; do
         log_notice "Starting upload ($MODULE): retry ${TRY}/$MAXRETRIES"
     done
 
-    if [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
+    if [ $URETVAL -eq 0 ]; then
+        { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <<< "$URESULT" || true
+        if [ -n "$DL_URL" ]; then
+            if [ -n "$DEL_URL" ]; then
+                if [ -n "$ADMIN_URL_OR_CODE" ]; then
+                    echo "$DL_URL ($DEL_URL) ($ADMIN_URL_OR_CODE)"
+                else
+                    echo "$DL_URL ($DEL_URL)"
+                fi
+            elif [ -n "$ADMIN_URL_OR_CODE" ]; then
+                echo "$DL_URL ($ADMIN_URL_OR_CODE)"
+            else
+                echo "$DL_URL"
+            fi
+        else
+            log_error "Output URL expected"
+            URETVAL=$ERR_FATAL
+        fi
+    elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
     fi
     RETVALS=(${RETVALS[@]} "$URETVAL")

@@ -43,7 +43,7 @@ netload_in_premium_login() {
     LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return
 
     if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
-        log_error "bad login and/or password"
+        log_debug "bad login and/or password"
         return $ERR_LOGIN_FAILED
     fi
 }
@@ -223,7 +223,8 @@ netload_in_upload() {
 
     case "$RETCODE" in
         UPLOAD_OK)
-            echo "$DL ($DEL)"
+            echo "$DL"
+            echo "$DEL"
             return 0
             ;;
         rar_password)
