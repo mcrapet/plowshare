@@ -171,7 +171,8 @@ FUNCTION=${MODULE}_upload
 shift 1
 
 RETVALS=()
-UPCOOKIE=$(create_tempfile)
+UCOOKIE=$(create_tempfile)
+URESULT=$(create_tempfile)
 
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
@@ -235,9 +236,9 @@ for FILE in "$@"; do
 
     TRY=0
     while :; do
-        :> "$UPCOOKIE"
+        :> "$UCOOKIE"
         URETVAL=0
-        URESULT=$($FUNCTION "${UNUSED_OPTIONS[@]}" "$UPCOOKIE" "$LOCALFILE" "$DESTFILE") || URETVAL=$?
+        $FUNCTION "${UNUSED_OPTIONS[@]}" "$UCOOKIE" "$LOCALFILE" "$DESTFILE" >"$URESULT" || URETVAL=$?
 
         (( ++TRY ))
         if [[ "$MAXRETRIES" -eq 0 ]]; then
@@ -253,7 +254,7 @@ for FILE in "$@"; do
     done
 
     if [ $URETVAL -eq 0 ]; then
-        { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <<< "$URESULT" || true
+        { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true
         if [ -n "$DL_URL" ]; then
             if [ -n "$DEL_URL" ]; then
                 if [ -n "$ADMIN_URL_OR_CODE" ]; then
@@ -276,7 +277,7 @@ for FILE in "$@"; do
     RETVALS=(${RETVALS[@]} "$URETVAL")
 done
 
-rm -f "$UPCOOKIE"
+rm -f "$UCOOKIE" "$URESULT"
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
     exit 0
