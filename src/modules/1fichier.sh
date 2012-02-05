@@ -52,9 +52,7 @@ MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
-
-    if match "Le fichier demandé n'existe pas." "$PAGE"; then
+    elif match "Le fichier demandé n'existe pas." "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -62,6 +60,9 @@ MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
     if match "Téléchargements en cours" "$PAGE"; then
         log_error "No parallel download allowed"
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    # Please wait until the file has been scanned by our anti-virus
+    elif match 'Please wait until the file has been scanned' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
