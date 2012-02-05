@@ -141,6 +141,13 @@ fileserve_download() {
         MAINPAGE=$(curl -c "$COOKIEFILE" "$URL") || return
     fi
 
+    # Location: /blocked-ip.php
+    if [ -z "$MAINPAGE" ]; then
+        local ERR=$(curl --head "$URL" | grep_http_header_location)
+        log_error "This is bad ($ERR)"
+        return $ERR_FATAL
+    fi
+
     # "The file could not be found. Please check the download link."
     if match 'File not available' "$MAINPAGE"; then
         return $ERR_LINK_DEAD
