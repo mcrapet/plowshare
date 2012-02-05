@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)/\?$"
+MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)/\?"
 
 MODULE_1FICHIER_DOWNLOAD_OPTIONS=""
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
@@ -32,6 +32,8 @@ MESSAGE,d:,message:,MESSAGE,Set file message (is send with notification email)
 DOMAIN,,domain:,ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
+
+MODULE_1FICHIER_DELETE_OPTIONS=""
 
 # Output a 1fichier file download URL
 # $1: cookie file
@@ -114,11 +116,41 @@ MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
         'dfichiers.com' 'megadl.fr' 'mesfichiers.net' 'piecejointe.net' 'pjointe.com' \
         'tenvoi.com' 'dl4free.com' )
 
-    if [[ "$DOMAIN_ID" -gt 10 && "$DOMAIN_ID" -lt 0 ]]; then
+    if [[ "$DOMAIN_ID" -gt 10 || "$DOMAIN_ID" -lt 0 ]]; then
         log_error "Bad domain ID response, maybe API updated?"
         return $ERR_FATAL
     fi
 
     echo "http://${DOWNLOAD_ID}.${DOMAIN_STR[$DOMAIN_ID]}"
     echo "http://www.${DOMAIN_STR[$DOMAIN_ID]}/remove/$DOWNLOAD_ID/$REMOVE_ID"
+}
+
+# Delete a file uploaded to 1fichier
+# $1: delete url
+1fichier_delete() {
+    eval "$(process_options 1fichier "$MODULE_1FICHIER_DELETE_OPTIONS" "$@")"
+
+    local URL="$1"
+    local PAGE
+
+    if match '/bg/remove/' "$URL"; then
+        URL=$(echo "$URL" | replace '/bg/' '/en/')
+    elif ! match '/en/remove/' "$URL"; then
+        URL=$(echo "$URL" | replace '/remove/' '/en/remove/')
+    fi
+
+    PAGE=$(curl "$URL") || return
+
+    # Invalid link - File not found
+    if match 'File not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    PAGE=$(curl "$URL" -F "force=1") || return
+
+    # <div style="width:250px;margin:25px;padding:25px">The file has been destroyed</div>
+    if ! match 'file has been' "$PAGE"; then
+        log_debug "unexpected result, site updated?"
+        return $ERR_FATAL
+    fi
 }
