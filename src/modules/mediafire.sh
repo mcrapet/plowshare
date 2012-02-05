@@ -42,8 +42,6 @@ mediafire_download() {
     local URL="$2"
     local LOCATION PAGE FILE_URL FILENAME
 
-    detect_javascript || return
-
     LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
 
     if match '^http://download' "$LOCATION"; then
