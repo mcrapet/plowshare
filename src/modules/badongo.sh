@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # badongo.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -139,7 +139,7 @@ badongo_download() {
             --data "id=${FILEID}&type=${FILETYPE}&ext=&f=download%3Acheck&z=${GLF_Z}&h=${GLF_H}&t=${GLF_T}" \
             --referer "$ACTION" \
             "$APIURL") ||
-        { log_error "error json (#2), site updated?"; return 1; }
+        { log_error "error json (#2), site updated?"; return $ERR_FATAL; }
     JSCODE=$(unescape_javascript "$JSON" 1)
 
     # Parse again received window['getFileLinkInitOpt'] object
@@ -163,7 +163,7 @@ badongo_download() {
 
     # Look for new location.href
     LINK_FINAL=$(echo "$JSCODE" | parse_last 'location\.href' "= '\([^']*\)") ||
-        { log_error "error parsing final link, site updated?"; return 1; }
+        { log_error "error parsing final link, site updated?"; return $ERR_FATAL; }
     FILE_URL=$(curl -i -b $COOKIEFILE --referer "$FILE_URL" "${BASEURL}${LINK_FINAL}" | \
         grep_http_header_location) || return
 

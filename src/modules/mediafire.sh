@@ -152,7 +152,7 @@ mediafire_upload() {
 
     log_debug "Get uploader configuration"
     XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
-            { log_error "Couldn't upload file!"; return 1; }
+            { log_error "Couldn't upload file!"; return $ERR_FATAL; }
 
     UKEY=$(echo "$XML" | parse_tag_quiet ukey)
     USER=$(echo "$XML" | parse_tag_quiet user)

@@ -79,7 +79,7 @@ zshare_upload() {
     DATA=$(curl "$UPLOADURL") || return
 
     ACTION=$(grep_form_by_name "$DATA" 'upload' | parse_form_action) ||
-        { log_debug "cannot get upload form URL"; return 1; }
+        { log_debug "cannot get upload form URL"; return $ERR_FATAL; }
 
     log_debug "form action: $ACTION"
     log_debug "starting file upload: $FILE"
@@ -114,12 +114,12 @@ zshare_upload() {
     fi
 
     match "was successfully uploaded" "$INFOPAGE" ||
-        { log_error "upload unsuccessful"; return 1; }
+        { log_error "upload unsuccessful"; return $ERR_FATAL; }
 
     DOWNLOAD_URL=$(echo "$INFOPAGE" | parse_attr 'http:\/\/www\.zshare\.net\/\(download\|audio\|video\)' 'href') ||
-        { log_debug "can't parse download link, website updated?"; return 1; }
+        { log_debug "can't parse download link, website updated?"; return $ERR_FATAL; }
     DELETE_URL=$(echo "$INFOPAGE" | parse_attr "http:\/\/www\.zshare\.net\/delete" 'value') ||
-        { log_debug "can't parse delete link, website updated?"; return 1; }
+        { log_debug "can't parse delete link, website updated?"; return $ERR_FATAL; }
 
     echo "$DOWNLOAD_URL ($DELETE_URL)"
 }
