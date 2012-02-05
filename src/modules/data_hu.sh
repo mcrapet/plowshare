@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # data.hu module
-# Copyright (c) 2010 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -30,6 +30,7 @@ MODULE_DATA_HU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # stdout: real file download link
 data_hu_download() {
     local URL="$2"
+    local PAGE
 
     PAGE=$(curl -L "$URL") || return
 
@@ -37,10 +38,10 @@ data_hu_download() {
         return $ERR_LINK_DEAD
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse_attr "download_box_button" "href") ||
-        { log_error "download link not found"; return $ERR_FATAL; }
+    FILE_URL=$(echo "$PAGE" | \
+        parse_attr 'download_box_button' 'href') || return
 
     test "$CHECK_LINK" && return 0
 
-    echo $FILE_URL
+    echo "$FILE_URL"
 }
