@@ -208,11 +208,11 @@ download() {
 
     while :; do
         local DRETVAL=0
-        local COOKIES=$(create_tempfile)
+        local DCOOKIE=$(create_tempfile)
 
         # Use provided cookie
         if [ -s "$GLOBAL_COOKIES" ]; then
-            cat "$GLOBAL_COOKIES" > "$COOKIES"
+            cat "$GLOBAL_COOKIES" > "$DCOOKIE"
         fi
 
         if test -z "$CHECK_LINK"; then
@@ -220,7 +220,7 @@ download() {
             local TRY=0
 
             while :; do
-                $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
+                $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <"$DRESULT"
@@ -263,7 +263,7 @@ download() {
             { read FILE_URL; read FILENAME; } <"$DRESULT" || true
             rm -f "$DRESULT"
         else
-            $FUNCTION "$@" "$COOKIES" "$URL_ENCODED" >/dev/null || DRETVAL=$?
+            $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
 
             if [ $DRETVAL -eq 0 -o \
                     $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE -o \
@@ -271,7 +271,7 @@ download() {
                     $DRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
                 log_notice "Link active: $URL_ENCODED"
                 echo "$URL_ENCODED"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 break
             fi
         fi
@@ -281,54 +281,54 @@ download() {
                 ;;
             $ERR_LOGIN_FAILED)
                 log_notice "Login process failed. Bad username/password or unexpected content"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_TEMP_UNAVAILABLE)
                 log_notice "Warning: file link is alive but not currently available, try later"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
                 log_notice "You must provide a valid password"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'PASSWORD'
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
                 log_notice "Insufficient permissions (premium link?)"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_DEAD)
                 log_notice "Link is not alive: file not found"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'NOTFOUND'
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_MAX_WAIT_REACHED)
                 log_notice "Delay limit reached (${FUNCTION})"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_MAX_TRIES_REACHED)
                 log_notice "Retry limit reached (${FUNCTION})"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_CAPTCHA)
                 log_notice "Error: decoding captcha (${FUNCTION})"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_SYSTEM)
                 log_notice "System failure (${FUNCTION})"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             *)
                 log_error "failed inside ${FUNCTION}() [$DRETVAL]"
-                rm -f "$COOKIES"
+                rm -f "$DCOOKIE"
                 return $ERR_FATAL
                 ;;
         esac
@@ -336,7 +336,7 @@ download() {
         # Sanity check
         if test -z "$FILE_URL"; then
             log_error "Output URL expected"
-            rm -f "$COOKIES"
+            rm -f "$DCOOKIE"
             return $ERR_FATAL
         fi
 
@@ -363,10 +363,10 @@ download() {
             COMMAND=$(echo "$DOWNLOAD_APP" |
                 replace "%url" "$FILE_URL" |
                 replace "%filename" "$FILENAME" |
-                replace "%cookies" "$COOKIES")
+                replace "%cookies" "$DCOOKIE")
             log_notice "Running command: $COMMAND"
             eval $COMMAND || DRETVAL=$?
-            test "$COOKIES" && rm -f "$COOKIES"
+            test "$DCOOKIE" && rm -f "$DCOOKIE"
             log_notice "Command exited with retcode: $DRETVAL"
             test $DRETVAL -eq 0 || break
 
@@ -374,8 +374,8 @@ download() {
             local OUTPUT_COOKIES=""
             if match '%cookies' "$DOWNLOAD_INFO"; then
                 # Keep temporary cookie
-                OUTPUT_COOKIES="$(dirname "$COOKIES")/$(basename_file $0).cookies.$$.txt"
-                cp "$COOKIES" "$OUTPUT_COOKIES"
+                OUTPUT_COOKIES="$(dirname "$DCOOKIE")/$(basename_file $0).cookies.$$.txt"
+                cp "$DCOOKIE" "$OUTPUT_COOKIES"
             fi
             echo "$DOWNLOAD_INFO" |
                 replace "%url" "$FILE_URL" |
@@ -406,7 +406,7 @@ download() {
 
             [ -z "$NOOVERWRITE" ] && \
                 module_config_resume "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
-            module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-b $COOKIES")
+            module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-b $DCOOKIE")
 
             if [ -f "$FILENAME_OUT" ]; then
                 if [ -n "$NOOVERWRITE" ]; then
@@ -430,7 +430,7 @@ download() {
             CODE=$(curl_with_log ${CURL_ARGS[@]} -w '%{http_code}' --fail --globoff \
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
-            rm -f "$COOKIES"
+            rm -f "$DCOOKIE"
 
             if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                 # Obtained HTTP return status are 200 and 206
