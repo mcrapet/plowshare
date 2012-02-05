@@ -59,7 +59,7 @@ mediafire_download() {
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -L -c $COOKIEFILE "$URL" | break_html_lines) || return
+    PAGE=$(curl -L -c "$COOKIEFILE" "$URL" | break_html_lines) || return
 
     if ! match 'class="download_file_title"' "$PAGE"; then
         return $ERR_LINK_DEAD
