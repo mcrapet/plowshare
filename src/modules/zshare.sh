@@ -56,7 +56,7 @@ zshare_download() {
     JSCODE=$(echo "$WAITPAGE" | grep "var link_enc")
 
     FILE_URL=$(echo "$JSCODE" "; print(link);" | javascript)
-    FILENAME=$(echo "$WAITPAGE" |\
+    FILENAME=$(echo "$WAITPAGE" | \
         parse '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
 
     echo "$FILE_URL"
@@ -93,7 +93,7 @@ zshare_upload() {
             -F "is_private=0"       \
             -F "TOS=1"              \
             -F "pass="              \
-            "$ACTION")
+            "$ACTION") || return
     else
         DATA=$(curl "${ACTION}uberupload/ubr_link_upload.php?rnd_id=$RANDOM")
         ID=$(echo "$DATA" | parse 'startUpload(' 'd("\([^"]*\)')
@@ -109,7 +109,7 @@ zshare_upload() {
             -F "is_private=0"       \
             -F "TOS=1"              \
             -F "pass="              \
-            "${ACTION}cgi-bin/ubr_upload.pl?upload_id=${ID}&descr=$DESCR")
+            "${ACTION}cgi-bin/ubr_upload.pl?upload_id=${ID}&descr=$DESCR") || return
     fi
 
     match "was successfully uploaded" "$INFOPAGE" ||
