@@ -147,13 +147,15 @@ netload_in_download() {
     WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
 
+    # <!--./share/templates/download_limit.tpl-->
+    # <!--./share/templates/download_wait.tpl-->
     if [[ "$WAIT_TIME2" -gt 10000 ]]; then
         log_debug "Download limit reached!"
         echo $((WAIT_TIME2 / 100))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Supress this wait will lead to a 400 http error (bad request)
+    # Suppress this wait will lead to a 400 http error (bad request)
     wait $((WAIT_TIME2 / 100)) seconds || return
 
     FILENAME=$(echo "$WAIT_HTML2" | \
@@ -162,8 +164,8 @@ netload_in_download() {
     # if filename is truncated, take the one from url
     if [ "${#FILENAME}" -ge 57 -a '..' = "${FILENAME:(-2):2}" ]; then
         if match '\.htm$' "$URL"; then
-            FILENAME=$(basename_file "$URL")
-            FILENAME="${FILENAME:0:${#FILENAME}-4}"
+            local FILENAME2=$(basename_file "$URL")
+            match '^datei' "$FILENAME2" || FILENAME="${FILENAME2%.*}"
         fi
     fi
 
