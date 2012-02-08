@@ -342,6 +342,12 @@ download() {
 
         log_notice "File URL: $FILE_URL"
 
+        # Sanity check 2
+        if [ "$FILE_URL" = "$FILENAME" ]; then
+            log_error "Output filename is wrong, check module download function"
+            FILENAME=""
+        fi
+
         if test -z "$FILENAME"; then
             FILENAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
                 html_to_utf8 | uri_decode)
