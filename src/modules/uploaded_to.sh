@@ -83,8 +83,9 @@ uploaded_to_download() {
         return $ERR_FATAL
     fi
 
-    # file does not exist
-    if match 'uploaded\.to/404' "$URL"; then
+    # Page not found
+    # The requested file isn't available anymore!
+    if match 'uploaded\.to/\(404\|410\)' "$URL"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -172,7 +173,7 @@ uploaded_to_download() {
     fi
 
     echo "$FILE_URL"
-    echo "$FILE_URL"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to uploaded.to
