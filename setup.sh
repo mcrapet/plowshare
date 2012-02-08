@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Install files in usual Linux paths
 # Copyright (c) 2010 Arnau Sanchez
+# Copyright (c) 2011-2012 Plowshare team
 #
 # This script is kept simple for portability purpose
 # (`install' from GNU coreutils is not used here).
@@ -44,24 +45,26 @@ CP='cp -v'
 RM='rm -vf'
 LN_S='ln -sf'
 
-if [ $# -eq 0 ]; then
+if [ $# -ne 1 ]; then
     echo "$USAGE"
     exit 1
 fi
 
-test -n "$DESTDIR" -a ! -d "$DESTDIR" && mkdir -p "$DESTDIR"
-
-if ! test -d "$PREFIX"; then
+if test -n "$DESTDIR"; then
+    if ! test -d "$DESTDIR"; then
+        mkdir -p "$DESTDIR"
+    fi
+elif ! test -d "$PREFIX"; then
     echo "Error: bad prefix \`$PREFIX' (directory does not exist)"
     exit 1
 fi
 
-if [ "$1" = "uninstall" ]; then
+if [ "$1" = 'uninstall' ]; then
     $RM -r "$DATADIR" "$DOCDIR"
     $RM "$BINDIR/plowdown" "$BINDIR/plowup" "$BINDIR/plowdel" "$BINDIR/plowlist"
     $RM "$MANDIR1/plowdown.1" "$MANDIR1/plowup.1" "$MANDIR1/plowdel.1" "$MANDIR1/plowlist.1" "$MANDIR5/plowshare.conf.5"
 
-elif [ "$1" = "install" ]; then
+elif [ "$1" = 'install' ]; then
     # Documentation
     mkdir -p "$DOCDIR" "$MANDIR1" "$MANDIR5"
     $CP AUTHORS README "$DOCDIR"
