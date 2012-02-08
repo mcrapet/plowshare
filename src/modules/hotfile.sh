@@ -57,7 +57,7 @@ hotfile_download() {
         FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return
 
         # Hotfile API error messages starts with a dot, if no dot then the download link is available
-        if [ ${FILE_URL:0:1} == "." ]; then
+        if [ "${FILE_URL:0:1}" = '.' ]; then
             log_error "login request failed (bad login/password or link invalid/removed)"
             return $ERR_LOGIN_FAILED
         fi

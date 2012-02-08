@@ -241,7 +241,7 @@ for FILE in "$@"; do
         $FUNCTION "${UNUSED_OPTIONS[@]}" "$UCOOKIE" "$LOCALFILE" "$DESTFILE" >"$URESULT" || URETVAL=$?
 
         (( ++TRY ))
-        if [[ "$MAXRETRIES" -eq 0 ]]; then
+        if [[ $MAXRETRIES -eq 0 ]]; then
             break
         elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK ]; then
             break

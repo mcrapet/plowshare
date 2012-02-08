@@ -246,7 +246,7 @@ download() {
 
                 (( ++TRY ))
                 if [ -n "$MAXRETRIES" ]; then
-                    if [[ "$MAXRETRIES" -eq 0 ]]; then
+                    if [[ $MAXRETRIES -eq 0 ]]; then
                         log_debug "no retry explicitly requested"
                         break
                     elif [ "$MAXRETRIES" -lt "$TRY" ]; then

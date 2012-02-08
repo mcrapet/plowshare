@@ -670,7 +670,7 @@ post_login() {
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
     PASSWORD=$(echo "${AUTH#*:}" | uri_encode_strict)
 
-    if [ -z "$PASSWORD" -o "$AUTH" == "$PASSWORD" ]; then
+    if [ -z "$PASSWORD" -o "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || true
     fi
 
@@ -1133,7 +1133,7 @@ recaptcha_process() {
 # Positive acknowledge of reCaptcha answer
 # $1: id (given by recaptcha_process)
 recaptcha_ack() {
-    if [[ "$1" -ne 0 ]]; then
+    if [[ $1 -ne 0 ]]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local RESPONSE STR
 
@@ -1158,7 +1158,7 @@ recaptcha_ack() {
 # Negative acknowledge of reCaptcha answer
 # $1: id (given by recaptcha_process)
 recaptcha_nack() {
-    if [[ "$1" -ne 0 ]]; then
+    if [[ $1 -ne 0 ]]; then
         local RESPONSE STR
 
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
@@ -1578,7 +1578,7 @@ timeout_update() {
     local WAIT=$1
     test -z "$PS_TIMEOUT" && return
     log_debug "time left to timeout: $PS_TIMEOUT secs"
-    if [[ "$PS_TIMEOUT" -lt "$WAIT" ]]; then
+    if [[ $PS_TIMEOUT -lt $WAIT ]]; then
         log_notice "Timeout reached (asked to wait $WAIT seconds, but remaining time is $PS_TIMEOUT)"
         return $ERR_MAX_WAIT_REACHED
     fi

@@ -149,7 +149,7 @@ netload_in_download() {
 
     # <!--./share/templates/download_limit.tpl-->
     # <!--./share/templates/download_wait.tpl-->
-    if [[ "$WAIT_TIME2" -gt 10000 ]]; then
+    if [[ $WAIT_TIME2 -gt 10000 ]]; then
         log_debug "Download limit reached!"
         echo $((WAIT_TIME2 / 100))
         return $ERR_LINK_TEMP_UNAVAILABLE

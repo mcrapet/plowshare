@@ -127,7 +127,7 @@ depositfiles_download() {
     # - You have reached your download time limit.<br>Try in 10 minutes or use GOLD account.
     if match 'download time limit' "$START"; then
         WAITTIME=$(echo "$START" | parse 'Try in' "in \([[:digit:]:]*\) minutes")
-        if [[ "$WAITTIME" -gt 0 ]]; then
+        if [[ $WAITTIME -gt 0 ]]; then
             echo $((WAITTIME * 60))
         fi
         return $ERR_LINK_TEMP_UNAVAILABLE

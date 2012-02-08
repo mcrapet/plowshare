@@ -116,7 +116,7 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
         'dfichiers.com' 'megadl.fr' 'mesfichiers.net' 'piecejointe.net' 'pjointe.com' \
         'tenvoi.com' 'dl4free.com' )
 
-    if [[ "$DOMAIN_ID" -gt 10 || "$DOMAIN_ID" -lt 0 ]]; then
+    if [[ $DOMAIN_ID -gt 10 || $DOMAIN_ID -lt 0 ]]; then
         log_error "Bad domain ID response, maybe API updated?"
         return $ERR_FATAL
     fi
