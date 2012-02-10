@@ -185,7 +185,7 @@ depositfiles_download() {
             -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
             "$BASE_URL/get_file.php") || return
 
-        if match 'Download the file' "$DATA"; then
+        if match 'Download the file\|Descarga del fichero' "$DATA"; then
             recaptcha_ack $ID
             log_debug "correct captcha"
 
