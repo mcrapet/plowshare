@@ -643,6 +643,9 @@ prompt_for_password() {
     read -p "Enter password: " PASSWORD
     stty echo
 
+    # Add missing trailing newline (see read -p)
+    stderr
+
     echo "$PASSWORD"
     test -n "$PASSWORD" || return $ERR_LINK_PASSWORD_REQUIRED
 }
