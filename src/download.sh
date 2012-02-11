@@ -340,8 +340,6 @@ download() {
             return $ERR_FATAL
         fi
 
-        log_notice "File URL: $FILE_URL"
-
         # Sanity check 2
         if [ "$FILE_URL" = "$FILENAME" ]; then
             log_error "Output filename is wrong, check module download function"
@@ -349,8 +347,13 @@ download() {
         fi
 
         if test -z "$FILENAME"; then
-            FILENAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
-                html_to_utf8 | uri_decode)
+            if [ '/' = "${FILE_URL:(-1):1}" ]; then
+                log_error "Output filename not specified, module download function must be wrong"
+                FILENAME="dummy-$$"
+            else
+                FILENAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
+                    html_to_utf8 | uri_decode)
+            fi
         fi
 
         # On most filesystems, maximum filename length is 255
@@ -359,6 +362,8 @@ download() {
             FILENAME="${FILENAME:0:254}"
             log_debug "filename is too long, truncating it"
         fi
+
+        log_notice "File URL: $FILE_URL"
         log_notice "Filename: $FILENAME"
 
         DRETVAL=0
