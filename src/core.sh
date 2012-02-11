@@ -622,6 +622,7 @@ get_filesize() {
 }
 
 # Create a tempfile and return path
+# Note for later: use mktemp (GNU coreutils)
 #
 # $1: Suffix
 create_tempfile() {
