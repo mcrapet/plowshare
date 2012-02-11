@@ -20,21 +20,98 @@
 
 MODULE_FILEPOST_REGEXP_URL="https\?://\(www\.\)\?filepost\.com/"
 
-MODULE_FILEPOST_DOWNLOAD_OPTIONS=""
+MODULE_FILEPOST_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_FILEPOST_DOWNLOAD_RESUME=yes
 MODULE_FILEPOST_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_FILEPOST_LIST_OPTIONS=""
 
+# Static function. Proceed with login (premium)
+filepost_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+    local LOGIN_DATA LOGIN_RESULT STATUS SID
+
+    # Get SID cookie entry
+    # Note: Giving SID as cookie input seems optional
+    #       (adding "-b $COOKIE_FILE" as last argument to post_login is not required)
+    curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL"
+    SID=$(parse_cookie 'SID' < "$COOKIE_FILE")
+
+    LOGIN_DATA='email=$USER&password=$PASSWORD&remember=on&recaptcha_response_field='
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/general/login_form/?SID=$SID&JsHttpRequest=$(date +%s000)-xml") || return
+
+    # JsHttpRequest is important to get JSON answers, if unused, we get an extra
+    # cookie entry named "error" (in case of incorrect login)
+
+    # Sometimes prompts for reCaptcha (like depositfiles)
+    # {"id":"1234","js":{"answer":{"captcha":true}},"text":""}
+    if match '"captcha":true' "$LOGIN_RESULT"; then
+        log_debug "recaptcha solving required for login"
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6Leu6cMSAAAAAFOynB3meLLnc9-JYi-4l94A6cIE'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        LOGIN_DATA="email=\$USER&password=\$PASSWORD&remember=on&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "$BASE_URL/general/login_form/?SID=$SID&JsHttpRequest=$(date +%s000)-xml") || return
+
+        # {"id":"1234","js":{"error":"Incorrect e-mail\/password combination"},"text":""}
+        if match 'Incorrect e-mail' "$LOGIN_RESULT"; then
+            recaptcha_ack $ID
+            return $ERR_LOGIN_FAILED
+        # {"id":"1234","js":{"answer":{"success":true},"redirect":"http:\/\/filepost.com\/"},"text":""}
+        elif match '"succes":true' "$LOGIN_RESULT"; then
+            recaptcha_ack $ID
+            log_debug "correct captcha"
+        # {"id":"1234","js":{"answer":{"captcha":true},"error":"The code you entered is incorrect. Please try again."},"text":""}
+        else
+            recaptcha_nack $ID
+            log_debug "reCaptcha error"
+            return $ERR_CAPTCHA
+        fi
+    fi
+
+    # If successful, two entries are added into cookie file: u and remembered_user
+    STATUS=$(parse_cookie 'remembered_user' < "$COOKIE_FILE")
+    if [ -z "$STATUS" ]; then
+        return $ERR_LOGIN_FAILED
+    fi
+}
+
 # $1: cookie file
 # $2: filepost.com url
 # stdout: real file download link
 filepost_download() {
+    eval "$(process_options filepost "$MODULE_FILEPOST_DOWNLOAD_OPTIONS" "$@")"
+
     local COOKIEFILE="$1"
     local URL="$2"
+    local BASE_URL='http://filepost.com'
     local PAGE FILE_NAME JSON SID CODE FILE_PASS TID JSURL WAIT
 
-    if [ -s "$COOKIEFILE" ]; then
+    if [ -n "$AUTH" ]; then
+        filepost_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+        PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
+
+        # duplicated code (see below)
+        if matchi 'file not found' "$PAGE"; then
+            return $ERR_LINK_DEAD
+        fi
+
+        FILE_URL=$(echo "$PAGE" | parse '\/get_file\/' "('\(http[^']*\)") || return
+        FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
+
+        echo "$FILE_URL"
+        echo "$FILE_NAME"
+        return 0
+
+    elif [ -s "$COOKIEFILE" ]; then
         PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
     else
         PAGE=$(curl -L -c "$COOKIEFILE" "$URL") || return
@@ -46,15 +123,15 @@ filepost_download() {
 
     test "$CHECK_LINK" && return 0
 
-    FILE_NAME=$(echo "$PAGE" | parse_quiet '<title>' ': Download \(.*\) - fast')
+    FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
     FILE_PASS=
 
     CODE=$(echo "$URL" | parse '\/files\/' 'files\/\([^/]*\)') || return
-    TID="t${RANDOM}"
+    TID="t$RANDOM"
 
     # Cookie is just needed for SID
     SID=$(parse_cookie 'SID' < "$COOKIEFILE")
-    JSURL="http://filepost.com/files/get/?SID=$SID&JsHttpRequest=$(date +%s000)-xml"
+    JSURL="$BASE_URL/files/get/?SID=$SID&JsHttpRequest=$(date +%s000)-xml"
 
     log_debug "code=$CODE, sid=$SID"
 
