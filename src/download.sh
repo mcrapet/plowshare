@@ -559,19 +559,20 @@ if [ -n "$GLOBAL_COOKIES" ]; then
     log_notice "plowdown: using provided cookies file"
 fi
 
+# Print chosen options
+[ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
+[ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
+
 if [ -n "$CAPTCHA_METHOD" ]; then
     if ! captcha_method_translate "$CAPTCHA_METHOD"; then
         log_error "error: unknown captcha method: $CAPTCHA_METHOD"
         exit $ERR_FATAL
     fi
     log_notice "plowdown: force captcha method ($CAPTCHA_METHOD)"
+else
+    [ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
 fi
-
-# Print chosen options
-[ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
-[ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
-[ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
-[ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
 
 set_exit_trap
 
