@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_4SHARED_REGEXP_URL="http://\(www\.\)\?4shared\.com/"
+MODULE_4SHARED_REGEXP_URL="https\?://\(www\.\)\?4shared\.com/"
 
 MODULE_4SHARED_DOWNLOAD_OPTIONS=""
 MODULE_4SHARED_DOWNLOAD_RESUME=no
