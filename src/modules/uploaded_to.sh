@@ -231,7 +231,7 @@ uploaded_to_upload() {
 # Delete a file on uploaded.to
 # $1: uploaded.to (download) link
 uploaded_to_delete() {
-    eval "$(process_options rapidshare "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
+    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
 
     local URL="$1"
     local BASE_URL='http://uploaded.to'
