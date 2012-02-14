@@ -184,10 +184,10 @@ megashares_upload() {
         -F "msup_id=$MSUP_ID" \
         -F "downloadProgressURL=$DOWNLOADPROGRESSURL" \
         -F "uploadFileCategory=$CATEGORY" \
-        -F "uploadFileDescription=$DESCRIPTION" \
-        -F "passProtectUpload=$LINK_PASSWORD" \
+        --form-string "uploadFileDescription=$DESCRIPTION" \
+        --form-string "passProtectUpload=$LINK_PASSWORD" \
+        --form-string "emailAddress=$TOEMAIL" \
         -F "searchable=on" \
-        -F "emailAddress=$TOEMAIL" \
         -F "upfile_0=@$FILE;filename=$DESTFILE" \
         -F "checkTOS=1" \
         -F "uploadFileURL=" \

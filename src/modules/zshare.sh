@@ -88,8 +88,8 @@ zshare_upload() {
     # I'm keeping both, just in case.
     if [ -z "$DESCRIPTION" ]; then
         INFOPAGE=$(curl_with_log -L \
+            --form-string "descr=$DESCRIPTION"  \
             -F "file=@$FILE;filename=$DESTFILE" \
-            -F "descr=$DESCRIPTION" \
             -F "is_private=0"       \
             -F "TOS=1"              \
             -F "pass="              \
@@ -104,8 +104,8 @@ zshare_upload() {
 
         # Note: description is taken from URL and not from form field
         INFOPAGE=$(curl_with_log -L \
+            --form-string "descr=$DESCRIPTION"  \
             -F "file=@$FILE;filename=$DESTFILE" \
-            -F "descr=$DESCRIPTION" \
             -F "is_private=0"       \
             -F "TOS=1"              \
             -F "pass="              \

@@ -95,10 +95,10 @@ sendspace_upload() {
         -F "upload_files=$FORM_UFILES"    \
         -F "terms=$FORM_TERMS"            \
         -F "file[]="                      \
-        -F "description[]=$DESCRIPTION"   \
         -F "ownemail="                    \
         -F "recpemail="                   \
         -F "upload_file[]=@$FILE;filename=$DESTFILE" \
+        --form-string "description[]=$DESCRIPTION"   \
         "$FORM_URL") || return
 
     DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href') || return

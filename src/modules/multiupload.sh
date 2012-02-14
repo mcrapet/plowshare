@@ -164,8 +164,8 @@ multiupload_upload() {
     # - fetchfield0 & fetchdesc0 are not used here
     # - there is a special variable "rsaccount" for RS (can be "C" or "P")
     PAGE=$(curl_with_log -0 -b "$COOKIEFILE" \
+        --form-string "description_0=$DESCRIPTION" \
         -F "file0=@$FILE;filename=$DESTFILE" \
-        -F "description_0=$DESCRIPTION" \
         -F "X-Progress-ID=$FORM_X" \
         -F "u=$FORM_U" \
         -F "service_1=$form_site1"  -F "username_1="  -F "password_1="  -F "remember_1="  \
@@ -177,7 +177,8 @@ multiupload_upload() {
         -F "service_15=$form_site7" -F "username_15=" -F "password_15=" -F "remember_15=" \
         -F "service_14=$form_site8" -F "username_14=" -F "password_14=" -F "remember_14=" \
         -F "service_18=$form_site9" -F "username_18=" -F "password_18=" -F "remember_18=" \
-        -F "fromemail=$FROMEMAIL" -F "toemail=$TOEMAIL" $FORM_URL) || return
+        --form-string "fromemail=$FROMEMAIL" \
+        --form-string "toemail=$TOEMAIL" $FORM_URL) || return
 
     DLID=$(echo "$PAGE" | parse_quiet 'downloadid' 'downloadid":"\([^"]*\)')
     log_debug "Download ID: $DLID"

@@ -99,8 +99,8 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
     S_ID=$(echo "var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);" | javascript)
 
     RESPONSE=$(curl_with_log -b "$COOKIEFILE" \
-        -F "message=$MESSAGE" \
-        -F "mail=$TOEMAIL" \
+        --form-string "message=$MESSAGE" \
+        --form-string "mail=$TOEMAIL" \
         -F "dpass=$LINK_PASSWORD" \
         -F "domain=${DOMAIN:-0}" \
         -F "file[]=@$FILE;filename=$DESTFILE" \

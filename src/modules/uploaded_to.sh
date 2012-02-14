@@ -217,7 +217,7 @@ uploaded_to_upload() {
     if [ -n "$DESCRIPTION" ]; then
         if [ -n "$AUTH" ]; then
             DATA=$(curl -b "$COOKIEFILE" --referer "$BASE_URL/manage" \
-            -F "description=$DESCRIPTION" \
+            --form-string "description=$DESCRIPTION" \
             "$BASE_URL/file/$FILE_ID/edit/description") || return
             log_debug "description set to: $DATA"
         else
