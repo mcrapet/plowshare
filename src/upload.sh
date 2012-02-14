@@ -228,6 +228,12 @@ for FILE in "$@"; do
     fi
 
     DESTFILE=$(basename_file "${DESTFILE:-$LOCALFILE}")
+
+    if match '[;,]' "$DESTFILE"; then
+        log_notice "Skipping ($LOCALFILE): curl can't upload filenames that contain , or ;"
+        continue
+    fi
+
     test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE}"
     test "$NAME_SUFFIX" && DESTFILE="${DESTFILE}${NAME_SUFFIX}"
 
