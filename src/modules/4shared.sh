@@ -24,7 +24,8 @@ MODULE_4SHARED_DOWNLOAD_OPTIONS=""
 MODULE_4SHARED_DOWNLOAD_RESUME=no
 MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
-MODULE_4SHARED_LIST_OPTIONS=""
+MODULE_4SHARED_LIST_OPTIONS="
+DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
 
 # Output a 4shared file download URL
 # $1: cookie file
@@ -73,6 +74,8 @@ MODULE_4SHARED_LIST_OPTIONS=""
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 4shared_list() {
+    eval "$(process_options 4shared "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
+
     local URL=$(echo "$1" | replace '/folder/' '/dir/')
     local PAGE
 
@@ -91,6 +94,12 @@ MODULE_4SHARED_LIST_OPTIONS=""
     match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
         { log_error "Site updated?"; return $ERR_FATAL; }
 
-    echo "$PAGE" | parse_all_attr_quiet \
-        'class="icon16 download"' href || return $ERR_LINK_DEAD
+    if test "$DIRECT_LINKS"; then
+        log_debug "Note: provided links are temporary! Use 'curl -J -O' on it."
+        echo "$PAGE" | parse_all_attr_quiet \
+            'class="icon16 download"' href || return $ERR_LINK_DEAD
+    else
+        echo "$PAGE" | parse_all "openNewWindow('" \
+            "('\([^']*\)" || return $ERR_LINK_DEAD
+    fi
 }
