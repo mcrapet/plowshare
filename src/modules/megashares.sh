@@ -30,6 +30,8 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 MODULE_MEGASHARES_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_MEGASHARES_DELETE_OPTIONS=""
+
 # $1: floating point number (example: "513.58")
 # $2: unit (KB | MB | GB)
 # stdout: fixed point number (in kilobytes)
@@ -214,4 +216,33 @@ megashares_upload() {
 
     echo "$DL_LINK"
     echo "$DEL_LINK"
+}
+
+# Delete a file from megashares.com
+# $1: megashares.com (delete) link
+megashares_delete() {
+    eval "$(process_options megashares "$MODULE_MEGASHARES_DELETE_OPTIONS" "$@")"
+
+    local URL="$1"
+    local PAGE FORM_HTML FORM_ACTION
+
+    PAGE=$(curl -L "$URL") || return
+
+    # Link has already been deleted.
+    # Link not found. Meaning it is not in our DB so the supplied d01 is invalid.
+    if matchi 'already been deleted\|link not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    elif ! match 'id="deleteConfirm"' "$PAGE"; then
+        log_error "This is not a delete link"
+        return $ERR_FATAL
+    fi
+
+    FORM_HTML=$(grep_form_by_order "$PAGE")
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action | html_to_utf8) || return
+
+    # HTTP POST request
+    PAGE=$(curl --data '' "http://d01.megashares.com$FORM_ACTION") || return
+
+    # Link successfully deleted.
+    match 'successfully deleted' "$PAGE" || return $ERR_FATAL
 }

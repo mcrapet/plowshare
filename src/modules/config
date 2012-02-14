@@ -16,7 +16,7 @@ fileserve    | download | upload | delete | list |
 hotfile      | download |        |        | list |
 humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
-megashares   | download | upload |        |      |
+megashares   | download | upload | delete |      |
 mirrorcreator|          | upload |        |      |
 multiupload  | download | upload |        | list |
 netload_in   | download | upload |        | list |
