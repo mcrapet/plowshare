@@ -123,7 +123,7 @@ sendspace_delete() {
         FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
         FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'delete')
 
-        PAGE=$(curl_with_log -F "submit=$FORM_SUBMIT" $FORM_URL) || return
+        PAGE=$(curl -F "submit=$FORM_SUBMIT" $FORM_URL) || return
 
         if ! match 'file has been successfully deleted' "$PAGE"; then
             return $ERR_FATAL
