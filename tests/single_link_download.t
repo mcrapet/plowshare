@@ -7,17 +7,12 @@
 # 3. plowdown options ("--" means no option)
 ##
 
-# 115.com
-http://u.115.com/file/f52e198c21
-Guilty_OST.rar
---
-
-# depositfiles (220KB file)
-http://depositfiles.com/files/fv2u9xqyo
+# Uploading.com
+http://uploading.com/files/39268me4/RFC-all.tar.gz/
 RFC-all.tar.gz
---
+--no-plowsharerc
 
 # divShare
 http://www.divshare.com/download/11577646-29a
 plowshare.abc
---
+--no-plowsharerc

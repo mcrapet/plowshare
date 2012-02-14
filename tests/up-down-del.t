@@ -21,6 +21,11 @@
 --no-plowsharerc
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bayfiles
+--no-plowsharerc
+--no-plowsharerc
+--no-plowsharerc
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Note: Test is too long... link is always unavailable.
 dataport_cz
 --no-plowsharerc
