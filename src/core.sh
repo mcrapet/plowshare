@@ -669,6 +669,11 @@ post_login() {
     local CURL_ARGS=$5
     local USER PASSWORD DATA RESULT
 
+    if [ -z "$AUTH" ]; then
+        log_error "Authentication string is empty"
+        return $ERR_LOGIN_FAILED
+    fi
+
     # Seem faster than
     # IFS=":" read USER PASSWORD <<< "$AUTH"
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
