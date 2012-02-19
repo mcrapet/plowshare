@@ -127,7 +127,7 @@ bayfiles_download() {
 # $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
-# stdout: download link and if --print-all-links is used admin and delete links
+# stdout: download link + delete link + admin link
 bayfiles_upload() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_UPLOAD_OPTIONS" "$@")"
 
