@@ -214,10 +214,10 @@ netload_in_upload() {
     UPLOAD_SERVER=$(curl 'http://api.netload.in/getserver.php') || return
 
     PAGE=$(curl_with_log $EXTRA_PARAMS \
-        -F "auth=$AUTH_CODE" \
+        --form-string "auth=$AUTH_CODE" \
         -F "modus=file_upload" \
         -F "file_link=@$FILE;filename=$DESTFILE" \
-        $UPLOAD_SERVER) || return
+        "$UPLOAD_SERVER") || return
 
     # Expected result:
     # return_code;filename;filesize;download_link;delete_link
