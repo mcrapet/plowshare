@@ -2,7 +2,7 @@
 115          | download |        |        |      |
 1fichier     | download | upload | delete |      |
 2shared      | download | upload | delete |      |
-4shared      | download |        |        | list |
+4shared      | download | upload |        | list |
 badongo      | download |        |        |      |
 bayfiles     | download | upload |        |      |
 data_hu      | download |        |        |      |
