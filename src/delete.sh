@@ -144,5 +144,8 @@ elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
     log_debug "retvals:${RETVALS[@]}"
+    # Drop success values
+    RETVALS=(${RETVALS[@]/#0*} -$ERR_FATAL_MULTIPLE)
+
     exit $((ERR_FATAL_MULTIPLE + ${RETVALS[0]}))
 fi
