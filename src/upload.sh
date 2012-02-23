@@ -33,7 +33,7 @@ INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
-PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format. Default string is: \"%u (%D)\".
+PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format (for each upload). Default string is: \"%u (%D)\".
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
