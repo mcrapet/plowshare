@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "January 27, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "February 23, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -75,6 +75,41 @@ Prepend argument to each destination filename.
 .TP
 .BI "   " " " --name-suffix "=STRING"
 Append argument to each destination filename.
+.TP
+.BI "   " " " --printf "=FORMAT"
+Print results in a given format. Default string is: \fI"%u (%D)"\fR. Interpreted sequences are:
+.RS
+.TP
+\fI%%\fR
+raw % character
+.TP
+\fI%a\fR
+admin url or admin code
+.TP
+\fI%d\fR
+delete url
+.TP
+\fI%D\fR
+%d or %a (if %d is null string)
+.TP
+\fI%f\fR
+destination filename
+.TP
+\fI%m\fR
+module name
+.TP
+\fI%n\fR
+newline
+.TP
+\fI%s\fR
+filesize (in bytes)
+.TP
+\fI%t\fR
+tabulation character
+.TP
+\fI%u\fR
+download url
+.RE
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"

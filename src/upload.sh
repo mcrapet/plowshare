@@ -33,6 +33,7 @@ INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
+PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format. Default string is: \"%u (%D)\".
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
@@ -114,6 +115,58 @@ module_config_remote_upload() {
     test "${!VAR}" = 'yes'
 }
 
+# Plowup printf format
+# ---
+# Interpreted sequences are:
+# %f: destination filename
+# %u: download url
+# %d: delete url
+# %a: admin url or admin code
+# %m: module name
+# %s: filesize (in bytes)
+# %D: %d or %a (if %d is empty)
+# and also:
+# %n: newline
+# %t: tabulation
+# %%: raw %
+# ---
+#
+# Check user given format
+# $1: format string
+pretty_check() {
+    # This must be non greedy!
+    local S TOKEN
+    S=${1//%[fudamsDnt%]}
+    TOKEN=$(parse_quiet . '\(%.\)' <<<"$S")
+    if [ -n "$TOKEN" ]; then
+        log_error "Bad format string: unknown sequence << $TOKEN >>"
+        return $ERR_FATAL
+    fi
+}
+
+# Note: don't use printf (coreutils).
+# $1: array[@] (module, lfile, dfile, dl, del, adm)
+# $2: format string
+pretty_print() {
+    local -a A=("${!1}")
+    local FMT=$2
+
+    test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
+    test "${FMT#*%s}" != "$FMT" && \
+         FMT=$(replace '%s' $(get_filesize "${A[1]}") <<< "$FMT")
+    test "${FMT#*%f}" != "$FMT" && FMT=$(replace '%f' "${A[2]}" <<< "$FMT")
+    test "${FMT#*%u}" != "$FMT" && FMT=$(replace '%u' "${A[3]}" <<< "$FMT")
+    test "${FMT#*%d}" != "$FMT" && FMT=$(replace '%d' "${A[4]}" <<< "$FMT")
+    test "${FMT#*%a}" != "$FMT" && FMT=$(replace '%a' "${A[5]}" <<< "$FMT")
+    test "${FMT#*%D}" != "$FMT" && \
+        FMT=$(replace '%D' "${A[4]:-${A[5]}}" <<< "$FMT")
+    test "${FMT#*%n}" != "$FMT" && FMT=$(replace '%n' $'\n' <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	'   <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%'   <<< "$FMT")
+
+    echo "$FMT"
+}
+
 #
 # Main
 #
@@ -181,6 +234,10 @@ test -z "$NO_PLOWSHARERC" && \
 # Curl minimal rate (--speed-limit) does not support suffixes
 if [ -n "$MIN_LIMIT_RATE" ]; then
     MIN_LIMIT_RATE=$(parse_rate "$MIN_LIMIT_RATE")
+fi
+
+if [ -n "$PRINTF_FORMAT" ]; then
+    pretty_check "$PRINTF_FORMAT" || exit
 fi
 
 for FILE in "$@"; do
@@ -262,17 +319,9 @@ for FILE in "$@"; do
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true
         if [ -n "$DL_URL" ]; then
-            if [ -n "$DEL_URL" ]; then
-                if [ -n "$ADMIN_URL_OR_CODE" ]; then
-                    echo "$DL_URL ($DEL_URL) ($ADMIN_URL_OR_CODE)"
-                else
-                    echo "$DL_URL ($DEL_URL)"
-                fi
-            elif [ -n "$ADMIN_URL_OR_CODE" ]; then
-                echo "$DL_URL ($ADMIN_URL_OR_CODE)"
-            else
-                echo "$DL_URL"
-            fi
+            DATA=("$MODULE" "$LOCALFILE" "$DESTFILE" \
+                  "$DL_URL" "$DEL_URL" "$ADMIN_URL_OR_CODE")
+            pretty_print DATA[@] "${PRINTF_FORMAT:-%u (%D)}"
         else
             log_error "Output URL expected"
             URETVAL=$ERR_FATAL

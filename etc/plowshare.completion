@@ -22,7 +22,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries)
+        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|--printf)
             # argument required but no completions available
             return 0
             ;;
@@ -32,7 +32,7 @@ _plowup()
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i -r \
             --min-rate --max-rate --interface --max-retries --name-prefix --name-suffix \
-            --no-curlrc --no-plowsharerc' -- $cur ) )
+            --printf --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         local m list
         list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
