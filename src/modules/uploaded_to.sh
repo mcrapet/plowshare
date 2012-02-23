@@ -129,6 +129,12 @@ uploaded_to_download() {
     local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
     test "$ERROR" && return $ERR_LOGIN_FAILED
 
+    # Our service is currently unavailable in your country. We are sorry about that.
+    if match '<h2>Not available</h2>' "$HTML"; then
+        echo 600
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     # retrieve the waiting time
     SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
         'period: <span>\([[:digit:]]\+\)<\/span>')
