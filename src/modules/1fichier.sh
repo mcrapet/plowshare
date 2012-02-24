@@ -23,7 +23,7 @@ MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|
 
 MODULE_1FICHIER_DOWNLOAD_OPTIONS=""
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
-MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_1FICHIER_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account
@@ -60,7 +60,8 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 
     test "$CHECK_LINK" && return 0
 
-    if match "Téléchargements en cours" "$PAGE"; then
+    # notice typo in 'telechargement'
+    if match "entre 2 télécharger\?ments" "$PAGE"; then
         log_error "No parallel download allowed"
         return $ERR_LINK_TEMP_UNAVAILABLE
     # Please wait until the file has been scanned by our anti-virus
