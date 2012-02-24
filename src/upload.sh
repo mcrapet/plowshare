@@ -217,16 +217,6 @@ MODULE=$(module_exist "$MODULES" "$1") || {
 log_report_info
 log_report "plowup version $VERSION"
 
-set_exit_trap
-
-FUNCTION=${MODULE}_upload
-
-shift 1
-
-RETVALS=()
-UCOOKIE=$(create_tempfile)
-URESULT=$(create_tempfile)
-
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
@@ -240,6 +230,16 @@ if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
 
+# Remove module name from argument list
+shift 1
+
+set_exit_trap
+
+UCOOKIE=$(create_tempfile) || exit
+URESULT=$(create_tempfile) || exit
+FUNCTION=${MODULE}_upload
+
+RETVALS=()
 for FILE in "$@"; do
 
     # Check for remote upload
