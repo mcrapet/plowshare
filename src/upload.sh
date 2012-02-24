@@ -329,7 +329,7 @@ for FILE in "$@"; do
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
     fi
-    RETVALS=(${RETVALS[@]} "$URETVAL")
+    RETVALS=(${RETVALS[@]} $URETVAL)
 done
 
 rm -f "$UCOOKIE" "$URESULT"

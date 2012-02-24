@@ -141,7 +141,7 @@ for URL in "$@"; do
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error "You must provide a valid password"
     fi
-    RETVALS=(${RETVALS[@]} "$LRETVAL")
+    RETVALS=(${RETVALS[@]} $LRETVAL)
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then

@@ -135,7 +135,7 @@ for URL in "$@"; do
     elif [ $DRETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
     fi
-    RETVALS=(${RETVALS[@]} "$DRETVAL")
+    RETVALS=(${RETVALS[@]} $DRETVAL)
 done
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
