@@ -612,20 +612,20 @@ for ITEM in "$@"; do
             log_error "Skip: no module for URL ($URL)"
             RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" 'NOMODULE'
-            continue
         elif test "$GET_MODULE"; then
+            RETVALS=(${RETVALS[@]} 0)
             echo "$MODULE"
-            continue
+        else
+            # Get configuration file module options
+            test -z "$NO_PLOWSHARERC" && \
+                process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
+
+            DRETVAL=0
+            download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
+                "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
+                "$NOEXTRAWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}"  || DRETVAL=$?
+            RETVALS=(${RETVALS[@]} $DRETVAL)
         fi
-
-        # Get configuration file module options
-        test -z "$NO_PLOWSHARERC" && \
-            process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
-
-        download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
-            "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
-            "$NOEXTRAWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}" || \
-                RETVALS=(${RETVALS[@]} "$?")
     done
 done
 
@@ -635,5 +635,8 @@ elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
     log_debug "retvals:${RETVALS[@]}"
+    # Drop success values
+    RETVALS=(${RETVALS[@]/#0*} -$ERR_FATAL_MULTIPLE)
+
     exit $((ERR_FATAL_MULTIPLE + ${RETVALS[0]}))
 fi
