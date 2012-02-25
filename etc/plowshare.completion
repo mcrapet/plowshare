@@ -22,8 +22,8 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|--printf)
-            # argument required but no completions available
+        -a|-b|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|--printf)
+            # argument required but no completion available
             return 0
             ;;
     esac
@@ -113,6 +113,10 @@ _plowdel()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
+        -a)
+            # argument required but no completion available
+            return 0
+            ;;
         -i|--interface)
             _available_interfaces -a
             return 0
@@ -141,6 +145,10 @@ _plowlist()
     case "$prev" in
         -v)
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
+            return 0
+            ;;
+        -p)
+            # argument required but no completion available
             return 0
             ;;
         -i|--interface)
