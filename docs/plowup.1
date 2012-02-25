@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "February 23, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "February 25, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -93,7 +93,7 @@ delete url
 %d or %a (if %d is null string)
 .TP
 \fI%f\fR
-destination filename
+destination (remote) filename
 .TP
 \fI%m\fR
 module name
@@ -188,7 +188,7 @@ $ plowup wupload /tmp/foo.bar
 $ plowup \-d "Important document" megashares /path/myfile.tex
 .sp 1
 # Abort slow upload (if rate is below limit during 30 seconds)
-$ plowup \--min-rate 100k mediafire /path/bigfile.zip
+$ plowup \-\-min\-rate 100k mediafire /path/bigfile.zip
 .fi
 .SS 2) Upload a single file with authentication
 .nf
@@ -243,7 +243,7 @@ System generic error.
 .PP
 If
 .B plowup
-is invoked with multiple links and one or several errors occur, the first error code is returned added with 100.
+is invoked with multiple files and one or several errors occur, the first error code is returned added with 100.
 
 .\" ****************************************************************************
 .\" * Authors / See Also                                                       *

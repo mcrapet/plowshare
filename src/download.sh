@@ -41,9 +41,9 @@ CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
 NOEXTRAWAIT,,no-extra-wait,,Do not wait on uncommon events (unavailable file, unallowed parallel downloads, ...)
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
-GET_MODULE,,get-module,,Get module(s) for URL(s) and exit
-DOWNLOAD_APP,,run-download:,COMMAND,run down command (interpolations: %url, %filename, %cookies) for each link
-DOWNLOAD_INFO,,download-info-only:,STRING,Echo string (interpolations: %url, %filename, %cookies) for each link
+GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
+PRINTF_FORMAT,,printf:,FORMAT,Don't process final link, print results in a given format (for each link)
+EXEC_COMMAND,,exec:,COMMAND,Don't process final link, execute command (for each link)
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
@@ -183,22 +183,20 @@ module_null_download() {
     echo "$2"
 }
 
-# Note: $ITEM, $NOOVERWRITE, $CAPTCHA_METHOD, $GLOBAL_COOKIES
-#       should not be used directly.
+# Note: $ITEM, $NOOVERWRITE, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
+#       $EXEC_COMMAND should not be used directly.
 download() {
     local MODULE=$1
     local URL_RAW=$2
-    local DOWNLOAD_APP=$3
-    local TYPE=$4
-    local MARK_DOWN=$5
-    local TEMP_DIR=$6
-    local OUTPUT_DIR=$7
-    local CHECK_LINK=$8
-    local TIMEOUT=$9
-    local MAXRETRIES=${10}
-    local NOEXTRAWAIT=${11}
-    local DOWNLOAD_INFO=${12}
-    shift 12
+    local TYPE=$3
+    local MARK_DOWN=$4
+    local TEMP_DIR=$5
+    local OUTPUT_DIR=$6
+    local CHECK_LINK=$7
+    local TIMEOUT=$8
+    local MAXRETRIES=$9
+    local NOEXTRAWAIT=${10}
+    shift 10
 
     local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
 
@@ -366,34 +364,9 @@ download() {
         log_notice "File URL: $FILE_URL"
         log_notice "Filename: $FILENAME"
 
-        DRETVAL=0
-
-        # External download or curl regular download
-        if test "$DOWNLOAD_APP"; then
-            test "$OUTPUT_DIR" && FILENAME="$OUTPUT_DIR/$FILENAME"
-            COMMAND=$(echo "$DOWNLOAD_APP" |
-                replace "%url" "$FILE_URL" |
-                replace "%filename" "$FILENAME" |
-                replace "%cookies" "$DCOOKIE")
-            log_notice "Running command: $COMMAND"
-            eval $COMMAND || DRETVAL=$?
-            test "$DCOOKIE" && rm -f "$DCOOKIE"
-            log_notice "Command exited with retcode: $DRETVAL"
-            test $DRETVAL -eq 0 || break
-
-        elif test "$DOWNLOAD_INFO"; then
-            local OUTPUT_COOKIES=""
-            if match '%cookies' "$DOWNLOAD_INFO"; then
-                # Keep temporary cookie
-                OUTPUT_COOKIES="$(dirname "$DCOOKIE")/$(basename_file $0).cookies.$$.txt"
-                cp "$DCOOKIE" "$OUTPUT_COOKIES"
-            fi
-            echo "$DOWNLOAD_INFO" |
-                replace "%url" "$FILE_URL" |
-                replace "%filename" "$FILENAME" |
-                replace "%cookies" "$OUTPUT_COOKIES"
-
-        else
+        # Process "final download link"
+        # First (usual) way: invoke curl
+        if [ -z "$PRINTF_FORMAT" -a -z "$EXEC_COMMAND" ]; then
             local FILENAME_TMP FILENAME_OUT
 
             # Temporary download path
@@ -438,6 +411,7 @@ download() {
                 fi
             fi
 
+            DRETVAL=0
             CODE=$(curl_with_log ${CURL_ARGS[@]} -w '%{http_code}' --fail --globoff \
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
@@ -488,11 +462,111 @@ download() {
             # Echo downloaded file (local) path
             echo "$FILENAME_OUT"
 
+        # Second (custom) way: pretty print and/or external command
+        else
+            log_debug "don't use regular curl command to download final link"
+            local DATA=("$MODULE" "$FILENAME" "$OUTPUT_DIR" "$DCOOKIE" \
+                        "$URL_ENCODED" "$FILE_URL")
+
+            # Pretty print requested
+            if test "$PRINTF_FORMAT"; then
+                pretty_print DATA[@] "$PRINTF_FORMAT"
+            fi
+
+            # External download requested
+            if test "$EXEC_COMMAND"; then
+                local CMD=$(pretty_print DATA[@] "$EXEC_COMMAND")
+
+                DRETVAL=0
+                eval "$CMD" || DRETVAL=$?
+
+                if [ $DRETVAL -ne 0 ]; then
+                    log_error "Command exited with retcode: $DRETVAL"
+                    rm -f "$DCOOKIE"
+                    return $ERR_FATAL
+                fi
+            fi
+
+            rm -f "$DCOOKIE"
         fi
+
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" "" "|$FILENAME_OUT"
         break
     done
     return 0
+}
+
+# Plowdown printf format
+# ---
+# Interpreted sequences are:
+# %c: final cookie file (with full path)
+# %C: %c or empty string if module does not require it
+# %d: download (final) url
+# %f: destination (local) filename
+# %F: destination (local) filename (with output directory)
+# %m: module name
+# %u: download (source) url
+# and also:
+# %n: newline
+# %t: tabulation
+# %%: raw %
+# ---
+#
+# Check user given format
+# $1: format string
+pretty_check() {
+    # This must be non greedy!
+    local S TOKEN
+    S=${1//%[cdfmuCFnt%]}
+    TOKEN=$(parse_quiet . '\(%.\)' <<<"$S")
+    if [ -n "$TOKEN" ]; then
+        log_error "Bad format string: unknown sequence << $TOKEN >>"
+        return $ERR_FATAL
+    fi
+}
+
+# Note: don't use printf (coreutils).
+# $1: array[@] (module, dfile, ddir, cfile, dls, dlf)
+# $2: format string
+pretty_print() {
+    local -a A=("${!1}")
+    local FMT=$2
+    local COOKIE_FILE
+
+    test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
+    test "${FMT#*%f}" != "$FMT" && FMT=$(replace '%f' "${A[1]}" <<< "$FMT")
+
+    if test "${FMT#*%F}" != "$FMT"; then
+        if test "${A[2]}"; then
+            FMT=$(replace '%F' "${A[2]}/${A[1]}" <<< "$FMT")
+        else
+            FMT=$(replace '%F' "${A[1]}" <<< "$FMT")
+        fi
+    fi
+
+    test "${FMT#*%u}" != "$FMT" && FMT=$(replace '%u' "${A[4]}" <<< "$FMT")
+    test "${FMT#*%d}" != "$FMT" && FMT=$(replace '%d' "${A[5]}" <<< "$FMT")
+
+    if test "${FMT#*%c}" != "$FMT"; then
+        COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file $0).cookies.$$.txt"
+        cp "${A[3]}" "$COOKIE_FILE"
+        FMT=$(replace '%c' "$COOKIE_FILE" <<< "$FMT")
+    fi
+    if test "${FMT#*%C}" != "$FMT"; then
+        if module_config_need_cookie "${A[0]}"; then
+            COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file $0).cookies.$$.txt"
+            cp "${A[3]}" "$COOKIE_FILE"
+        else
+            COOKIE_FILE=""
+        fi
+        FMT=$(replace '%C' "$COOKIE_FILE" <<< "$FMT")
+    fi
+
+    test "${FMT#*%n}" != "$FMT" && FMT=$(replace '%n' $'\n' <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	'   <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%'   <<< "$FMT")
+
+    echo "$FMT"
 }
 
 #
@@ -559,6 +633,13 @@ if [ -n "$GLOBAL_COOKIES" ]; then
     log_notice "plowdown: using provided cookies file"
 fi
 
+if [ -n "$PRINTF_FORMAT" ]; then
+    pretty_check "$PRINTF_FORMAT" || exit
+fi
+if [ -n "$EXEC_COMMAND" ]; then
+    pretty_check "$EXEC_COMMAND" || exit
+fi
+
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
 [ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
@@ -621,9 +702,9 @@ for ITEM in "$@"; do
                 process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
 
             DRETVAL=0
-            download "$MODULE" "$URL" "$DOWNLOAD_APP" "$TYPE" "$MARK_DOWN" \
-                "$TEMP_DIR" "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES" \
-                "$NOEXTRAWAIT" "$DOWNLOAD_INFO" "${UNUSED_OPTIONS[@]}"  || DRETVAL=$?
+            download "$MODULE" "$URL" "$TYPE" "$MARK_DOWN" "$TEMP_DIR" \
+                "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES"   \
+                "$NOEXTRAWAIT" "${UNUSED_OPTIONS[@]}"  || DRETVAL=$?
             RETVALS=(${RETVALS[@]} $DRETVAL)
         fi
     done

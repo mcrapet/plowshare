@@ -68,8 +68,8 @@ _plowdown()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|-p|--auth-free|--auth|--link-password|--antigate|--captchatrader|--max-rate|-r|--max-retries)
-            # argument required but no completions available
+        -a|-b|-p|--auth-free|--auth|--link-password|--antigate|--captchatrader|--max-rate|-r|--max-retries|--printf|--exec)
+            # argument required but no completion available
             return 0
             ;;
         -o|--output-directory|--temp-directory)
@@ -91,7 +91,8 @@ _plowdown()
             -v -q -i -o -m -x -t -r \
             --max-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --timeout --max-retries --no-extra-wait \
-            --fallback --antigate --captchatrader --captchamethod --no-curlrc --no-plowsharerc' -- $cur ) )
+            --fallback --antigate --captchatrader --captchamethod \
+            --printf --exec --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         _filedir
     fi

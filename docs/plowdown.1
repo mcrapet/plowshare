@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "February 1, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "February 25, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -141,13 +141,46 @@ Do not use local or global config file (plowshare.conf).
 .B "   " --get-module
 Get module(s) for URL(s) and quit. Useful for wrappers.
 .TP
-.BI "   " " " --run-download "=COMMAND"
-Run external HTTP downloader program (like wget).
-Available interpolations: %filename, %cookies, %url
+.BI "   " " " --printf "=FORMAT"
+Don't process final link, print results in a given format (for each link). This can be useful for wrappers. Interpreted sequences are:
+.RS
 .TP
-.BI "   " " " --download-info-only "=TEMPLATE"
-Don't download the file but echo a string.
-Available interpolations: %filename, %cookies, %url
+\fI%%\fR
+raw % character
+.TP
+\fI%c\fR
+final cookie file (with full path)
+.TP
+\fI%C\fR
+%c or empty string if module does not require it
+.TP
+\fI%d\fR
+download (final) url
+.TP
+\fI%f\fR
+destination (local) filename
+.TP
+\fI%F\fR
+destination (local) filename (with output directory)
+.TP
+\fI%m\fR
+module name
+.TP
+\fI%n\fR
+newline
+.TP
+\fI%t\fR
+tabulation character
+.TP
+\fI%u\fR
+download (source) url
+.RE
+.TP
+.BI "   " " " --exec "=COMMAND"
+Don't process final link, execute command (for each link). This can be useful to run external download manager (like wget).
+Interpreted sequences are the same used by \fI--printf\fP option.
+
+If this option is used several times, the last one will be used.
 .SS Generic program information
 .TP
 .B -h, --help
@@ -214,7 +247,7 @@ $ plowdown \-m file_with_links.txt
 .fi
 .SS 3) Download with restrictions
 .nf
-$ plowdown \--max-rate 900K \-i eth1 http://depositfiles.com/files/fv2u9xqya
+$ plowdown \-\-max\-rate 900K \-i eth1 http://depositfiles.com/files/fv2u9xqya
 .fi
 .SS 4) Download with a proxy (3128 is the default port)
 .nf
@@ -228,7 +261,7 @@ $ plowdown \-c file_with_links.txt > file_with_active_links.txt
 .fi
 .SS 6) Use an alternatice web retriever for the final file download
 .nf
-$ plowdown \-\-run\-download='wget \-O "%filename" \-\-load\-cookies "%cookies" "%url"' http://depositfiles.com/files/fv2u9xqya
+$ plowdown \-\-exec 'wget \-\-load\-cookies %c \-O "%f" %d' http://www.zshare.net/download/991482815663bbe3/
 .fi
 .SS 7) Safe download. Each URL will be limited in the number of tries and wait delays.
 .nf
@@ -286,7 +319,7 @@ Link is dead.
 .PP
 If
 .B plowdown
-is invoked with multiple links or a link-list file and one or several errors occur, the first error code is returned added with 100.
+is invoked with multiple links or link-list files and one or several errors occur, the first error code is returned added with 100.
 
 .\" ****************************************************************************
 .\" * Authors / See Also                                                       *

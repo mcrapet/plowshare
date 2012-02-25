@@ -118,7 +118,7 @@ module_config_remote_upload() {
 # Plowup printf format
 # ---
 # Interpreted sequences are:
-# %f: destination filename
+# %f: destination (remote) filename
 # %u: download url
 # %d: delete url
 # %a: admin url or admin code

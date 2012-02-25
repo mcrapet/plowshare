@@ -102,14 +102,16 @@ $ plowdown -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
 7. Download a password-protected file from Mediafire:
 $ plowdown -p somepassword http://www.mediafire.com/?mt0egmhietj60iy
 
-8. Advanced use. Use a different web retriever for the last file download. 
-   File URL, file name and cookie file are available through interpolations. 
-   Assuming you want to use wget:
-$ plowdown --run-download='wget -O "%filename" --load-cookies "%cookies" "%url"' \
-    http://www.2shared.com/file/4446939/c9fd70d6/Test.html
-
-9. Filter alive links in a text file
+8. Filter alive links in a text file
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
+
+9. Advanced use. Use a different download manager for the final link download.
+   File URL, file name and cookie file are available through interpolations. 
+$ plowdown --exec 'wget -O "%f" %d' http://www.mediafire.com/?k10t0egmhi23f
+$ plowdown --exec 'wget --load-cookies %c -O "%f" %d' http://www.zshare.net/download/991482815663bbe3/
+  For premium users, use 2 connections:
+$ plowdown -a user:password --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
+$ plowdown -a user:password --printf "Module  : %m" --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
 
 10. Avoid never-ending downloads: limited the number of tries 
     (mainly for captchas) and wait delays for each link
