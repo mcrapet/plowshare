@@ -159,6 +159,7 @@ uploaded_to_download() {
         recaptcha_nack $ID
         return $ERR_CAPTCHA
     elif match 'limit\|err' "$PAGE"; then
+        echo 600
         return $ERR_LINK_TEMP_UNAVAILABLE
     # {type:'download',url:'http://storXXXX.uploaded.to/dl/...'}
     elif match 'url' "$PAGE"; then
