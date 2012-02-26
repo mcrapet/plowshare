@@ -55,7 +55,7 @@ netload_in_premium_login() {
 netload_in_download() {
     eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local URL=$(echo "$2" | replace 'www.' '')
     local BASE_URL='http://netload.in'
     local WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA FILE_URL
@@ -187,9 +187,9 @@ netload_in_download() {
 netload_in_upload() {
     eval "$(process_options netload_in "$MODULE_NETLOAD_IN_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local BASE_URL="http://netload.in"
 
     local AUTH_CODE UPLOAD_SERVER EXTRA_PARAMS
@@ -251,7 +251,7 @@ netload_in_upload() {
 netload_in_list() {
     eval "$(process_options netload_in "$MODULE_NETLOAD_IN_LIST_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS
 
     if ! match '/folder' "$URL"; then

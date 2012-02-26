@@ -83,8 +83,8 @@ depositfiles_login() {
 depositfiles_download() {
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='http://depositfiles.com'
     local START DLID WAITTIME DATA FID SLEEP FILE_URL
 
@@ -209,9 +209,9 @@ depositfiles_download() {
 depositfiles_upload() {
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local DATA DL_LINK DEL_LINK
 
     if [ -n "$AUTH" ]; then
@@ -256,7 +256,7 @@ depositfiles_upload() {
 depositfiles_delete() {
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE
 
     PAGE=$(curl "$URL") || return
@@ -277,7 +277,7 @@ depositfiles_delete() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 depositfiles_list() {
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS FILE_NAME FILE_URL
 
     if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then

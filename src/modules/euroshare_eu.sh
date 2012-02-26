@@ -33,8 +33,8 @@ MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 euroshare_eu_download() {
     eval "$(process_options euroshare_eu "$MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local BASEURL=$(basename_url "$URL")
     local PAGE DL_URL FILE_URL FILENAME
 

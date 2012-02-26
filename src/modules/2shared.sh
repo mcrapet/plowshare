@@ -34,7 +34,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 # $2: 2shared url
 # stdout: real file download link
 2shared_download() {
-    local URL="$2"
+    local URL=$2
     local PAGE FILE_URL FILENAME
 
     PAGE=$(curl "$URL") || return
@@ -60,8 +60,8 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 2shared_upload() {
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local UPLOAD_URL='http://www.2shared.com'
     local DATA ACTION COMPLETE STATUS FILE_URL FILE_ADMIN
 
@@ -96,7 +96,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 2shared_delete() {
     eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local BASE_URL='http://www.2shared.com'
     local COOKIEFILE ADMIN_PAGE FORM DL_LINK AD_LINK
 

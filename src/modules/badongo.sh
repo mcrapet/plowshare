@@ -31,7 +31,7 @@ MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 badongo_download() {
     eval "$(process_options fileserve "$MODULE_BADONGO_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local URL=$(echo "$2" | replace '/audio/' '/file/')
     local BASEURL='http://www.badongo.com'
     local APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"

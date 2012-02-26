@@ -39,7 +39,7 @@ AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
 rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
 
-    local URL="$2"
+    local URL=$2
     local FILEID FILENAME BASE_URL PARAMS PAGE ERROR WAIT
 
     # Two possible URL format
@@ -133,8 +133,8 @@ rapidshare_download() {
 rapidshare_upload() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local USER PASSWORD SERVER_NUM UPLOAD_URL INFO ERROR
 
     if [ -z "$AUTH" ]; then
@@ -175,7 +175,7 @@ rapidshare_upload() {
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local USER PASSWORD FILEID RESPONSE
 
     if ! test "$AUTH"; then

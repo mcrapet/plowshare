@@ -85,9 +85,9 @@ dataport_cz_download() {
 dataport_cz_upload() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local UPLOADURL='http://dataport.cz'
 
     detect_javascript || return
@@ -138,7 +138,7 @@ dataport_cz_upload() {
 dataport_cz_delete() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local BASE_URL=$(basename_url $URL)
 
     if ! test "$AUTH"; then

@@ -39,7 +39,7 @@ MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 # $2: 2shared url
 # stdout: real file download link
 multiupload_download() {
-    local URL="$2"
+    local URL=$2
     local PAGE FID JSON FILE_URL
 
     PAGE=$(curl "$URL" | break_html_lines) || return
@@ -96,9 +96,9 @@ multiupload_download() {
 multiupload_upload() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local BASE_URL='http://www.multiupload.com'
     local PAGE FORM_HTML FORM_URL FORM_U FORM_X DLID
 
@@ -202,7 +202,7 @@ multiupload_upload() {
 multiupload_list() {
     eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_LIST_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS
 
     PAGE=$(curl "$URL" | break_html_lines_alt) || return

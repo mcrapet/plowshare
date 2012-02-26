@@ -90,8 +90,8 @@ filepost_login() {
 filepost_download() {
     eval "$(process_options filepost "$MODULE_FILEPOST_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='http://filepost.com'
     local PAGE FILE_NAME JSON SID CODE FILE_PASS TID JSURL WAIT
 
@@ -195,8 +195,8 @@ filepost_list() {
 # $1: recursive flag
 # $2: web folder URL
 filepost_list_rec() {
-    local REC="$1"
-    local URL="$2"
+    local REC=$1
+    local URL=$2
     local PAGE LINKS FOLDERS FILE_URL RET
 
     RET=$ERR_LINK_DEAD

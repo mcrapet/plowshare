@@ -45,8 +45,8 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 1fichier_download() {
     eval "$(process_options 1fichier "$MODULE_1FICHIER_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local PAGE FILE_URL FILENAME
 
     PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
@@ -84,9 +84,9 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 1fichier_upload() {
     eval "$(process_options 1fichier "$MODULE_1FICHIER_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local UPLOADURL='http://upload.1fichier.com'
     local LOGIN_DATA S_ID RESPONSE DOWNLOAD_ID REMOVE_ID DOMAIN_ID
 
@@ -131,7 +131,7 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 1fichier_delete() {
     eval "$(process_options 1fichier "$MODULE_1FICHIER_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE
 
     if match '/bg/remove/' "$URL"; then

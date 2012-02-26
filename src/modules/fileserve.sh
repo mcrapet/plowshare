@@ -70,7 +70,7 @@ fileserve_login() {
 fileserve_download() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local BASEURL='http://www.fileserve.com'
     local ID URL LOGIN_RESULT FILE_URL MAINPAGE JSON1 JSON2 MSG1 MSG2 MSG3 WAIT_TIME
 
@@ -229,9 +229,9 @@ fileserve_download() {
 fileserve_upload() {
     eval "$(process_options fileserve "$MODULE_FILESERVE_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local BASEURL='http://www.fileserve.com'
 
     local USERID SID TIMEOUT
@@ -284,7 +284,7 @@ fileserve_upload() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 fileserve_list() {
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS FILE_NAME FILE_ID
 
     if ! match 'fileserve\.com/list/' "$URL"; then
@@ -314,7 +314,7 @@ fileserve_list() {
 fileserve_delete() {
     eval "$(process_options zshare "$MODULE_FILESERVE_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local DELETE_PAGE NEED_CODE
 
     DELETE_PAGE=$(curl -L "$URL") || return

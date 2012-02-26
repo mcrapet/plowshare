@@ -36,7 +36,7 @@ MODULE_SENDSPACE_LIST_OPTIONS=""
 # $2: sendspace.com url
 # stdout: real file download link
 sendspace_download() {
-    local URL="$2"
+    local URL=$2
     local PAGE FILE_URL
 
     if match 'sendspace\.com/folder/' "$URL"; then
@@ -69,8 +69,8 @@ sendspace_download() {
 sendspace_upload() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local DATA DL_LINK DEL_LINK
 
     DATA=$(curl 'http://www.sendspace.com') || return
@@ -113,7 +113,7 @@ sendspace_upload() {
 sendspace_delete() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE FORM_HTML FORM_URL FORM_SUBMIT
 
     PAGE=$(curl "$URL") || return
@@ -145,7 +145,7 @@ sendspace_delete() {
 sendspace_list() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_LIST_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS SUBDIRS FILE_NAME FILE_URL
 
     if ! match 'sendspace\.com/folder/' "$URL"; then

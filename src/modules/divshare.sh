@@ -29,8 +29,8 @@ MODULE_DIVSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 # $2: divshare url
 # stdout: real file download link
 divshare_download() {
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='http://www.divshare.com'
     local PAGE REDIR_URL WAIT_PAGE WAIT_TIME FILE_URL FILENAME
 

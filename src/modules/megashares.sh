@@ -55,7 +55,7 @@ parse_kilobytes() {
 megashares_download() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_DOWNLOAD_OPTIONS" "$@")"
 
-    local URL="$2"
+    local URL=$2
     local ID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL FILE_NAME
 
     detect_perl || return
@@ -157,9 +157,9 @@ megashares_download() {
 megashares_upload() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local BASEURL='http://www.megashares.com'
 
     local PAGE CATEGORY DL_LINK DEL_LINK
@@ -223,7 +223,7 @@ megashares_upload() {
 megashares_delete() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE FORM_HTML FORM_ACTION
 
     PAGE=$(curl -L "$URL") || return

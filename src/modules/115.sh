@@ -32,8 +32,8 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 115_download() {
     eval "$(process_options rapidshare "$MODULE_115_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local PAGE JSON LINKS HEADERS DIRECT FILENAME
 
     if [ -z "$AUTH" ]; then

@@ -55,24 +55,24 @@ NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 #   translated (but results are correct too)
 # - Assume that $1 is correct (don't check for infinite loop)
 absolute_path() {
-    local SAVED_PWD="$PWD"
+    local SAVED_PWD=$PWD
     TARGET="$1"
 
     while [ -L "$TARGET" ]; do
         DIR=$(dirname "$TARGET")
         TARGET=$(readlink "$TARGET")
         cd -P "$DIR"
-        DIR="$PWD"
+        DIR=$PWD
     done
 
     if [ -f "$TARGET" ]; then
         DIR=$(dirname "$TARGET")
     else
-        DIR="$TARGET"
+        DIR=$TARGET
     fi
 
     cd -P "$DIR"
-    TARGET="$PWD"
+    TARGET=$PWD
     cd "$SAVED_PWD"
     echo "$TARGET"
 }
@@ -80,7 +80,7 @@ absolute_path() {
 # Guess if item is a generic URL (a simple link string) or a text file with links.
 # $1: single URL or file (containing links)
 process_item() {
-    local ITEM="$1"
+    local ITEM=$1
 
     if match_remote_url "$ITEM"; then
         echo 'url'
@@ -148,7 +148,7 @@ mark_queue() {
 # $1: filename (with or without path)
 # stdout: non existing filename
 create_alt_filename() {
-    local FILENAME="$1"
+    local FILENAME=$1
     local COUNT=1
 
     while [ "$COUNT" -le 99 ]; do
@@ -375,14 +375,14 @@ download() {
             elif test "$OUTPUT_DIR"; then
                 FILENAME_TMP="$OUTPUT_DIR/$FILENAME"
             else
-                FILENAME_TMP="$FILENAME"
+                FILENAME_TMP=$FILENAME
             fi
 
             # Final path
             if test "$OUTPUT_DIR"; then
                 FILENAME_OUT="$OUTPUT_DIR/$FILENAME"
             else
-                FILENAME_OUT="$FILENAME"
+                FILENAME_OUT=$FILENAME
             fi
 
             CURL_ARGS=()
@@ -396,7 +396,7 @@ download() {
                 if [ -n "$NOOVERWRITE" ]; then
                     if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
                         FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
-                        FILENAME_TMP="$FILENAME_OUT"
+                        FILENAME_TMP=$FILENAME_OUT
                     else
                         FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
                     fi
@@ -659,10 +659,10 @@ set_exit_trap
 
 RETVALS=()
 for ITEM in "$@"; do
-    OLD_IFS="$IFS"
+    OLD_IFS=$IFS
     IFS=$'\n'
     ELEMENTS=( $(process_item "$ITEM") )
-    IFS="$OLD_IFS"
+    IFS=$OLD_IFS
 
     TYPE="${ELEMENTS[0]}"
     unset ELEMENTS[0]

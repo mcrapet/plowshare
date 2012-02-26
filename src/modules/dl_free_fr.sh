@@ -32,7 +32,7 @@ MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 # $2: dl.free.fr url
 # stdout: real file download link
 dl_free_fr_download() {
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local HTML_PAGE=$(curl -L --cookie-jar $COOKIEFILE "$2")
 
     # Important note: If "free.fr" is your ISP, behavior is different.
@@ -62,8 +62,8 @@ dl_free_fr_download() {
 dl_free_fr_upload() {
     eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local UPLOADURL='http://dl.free.fr'
     local PAGE FORM ACTION SESSIONID H STATUS MON_PL WAITTIME DL RM
 

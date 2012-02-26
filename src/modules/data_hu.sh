@@ -29,7 +29,7 @@ MODULE_DATA_HU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: data.hu url
 # stdout: real file download link
 data_hu_download() {
-    local URL="$2"
+    local URL=$2
     local PAGE
 
     PAGE=$(curl -L "$URL") || return

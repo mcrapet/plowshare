@@ -35,8 +35,8 @@ MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 mirrorcreator_upload() {
     eval "$(process_options mirrorcreator "$MODULE_MIRRORCREATOR_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local SZ=$(get_filesize "$FILE")
     local BASE_URL='http://www.mirrorcreator.com'
     local PAGE FORM SITES_SEL SITES_ALL DATA

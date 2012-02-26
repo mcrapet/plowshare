@@ -365,7 +365,7 @@ grep_http_header_content_disposition() {
 # $2: (optional) Nth <form> (default is 1)
 # stdout: result
 grep_form_by_order() {
-    local DATA="$1"
+    local DATA=$1
     local N=${2:-"1"}
 
     while [ "$N" -gt "1" ]; do
@@ -384,7 +384,7 @@ grep_form_by_order() {
 # $2: "name" attribute of <form> marker
 # stdout: result
 grep_form_by_name() {
-    local DATA="$1"
+    local DATA=$1
 
     if [ -n "$2" ]; then
         # FIXME: sed will be greedy, if other forms are remaining they will be returned
@@ -399,7 +399,7 @@ grep_form_by_name() {
 # $2: "id" attribute of <form> marker
 # stdout: result
 grep_form_by_id() {
-    local DATA="$1"
+    local DATA=$1
 
     if [ -n "$2" ]; then
         # FIXME: sed will be greedy, if other forms are remaining they will be returned
@@ -662,8 +662,8 @@ prompt_for_password() {
 # stdout: html result (can be null string)
 # $? is zero on success
 post_login() {
-    local AUTH="$1"
-    local COOKIE="$2"
+    local AUTH=$1
+    local COOKIE=$2
     local POSTDATA=$3
     local LOGINURL=$4
     local CURL_ARGS=$5
@@ -823,7 +823,7 @@ wait() {
 #
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
-    local FILENAME="$1"
+    local FILENAME=$1
     local METHOD_SOLVE=$2
     local METHOD_VIEW=$3
 
@@ -1636,7 +1636,7 @@ find_in_array() {
 # $1: antigate.com captcha key
 # $?: 0 for success (enough credits)
 captcha_antigate_ready() {
-    local KEY="$1"
+    local KEY=$1
     local AMOUNT
 
     [ -z "$KEY" ] && return $ERR_FATAL

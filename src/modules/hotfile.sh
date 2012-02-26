@@ -34,7 +34,7 @@ MODULE_HOTFILE_LIST_OPTIONS=""
 hotfile_download() {
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local URL="${2}&lang=en"
     local BASE_URL='http://hotfile.com'
     local FILE_URL WAIT_HTML WAIT_HTML2 SLEEP LINK
@@ -151,7 +151,7 @@ hotfile_download() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 hotfile_list() {
-    local URL="$1"
+    local URL=$1
     local PAGE NUM LINKS FILE_NAME FILE_URL
 
     if ! match 'hotfile\.com/list/' "$URL"; then

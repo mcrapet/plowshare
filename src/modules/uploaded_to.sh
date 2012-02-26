@@ -37,9 +37,9 @@ MODULE_UPLOADED_TO_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free-membership or premium)
 uploaded_to_login() {
-    local AUTH="$1"
+    local AUTH=$1
     local COOKIE_FILE="$2"
-    local BASEURL="$3"
+    local BASEURL=$3
 
     local LOGIN_DATA LOGIN_RESULT NAME
 
@@ -66,7 +66,7 @@ uploaded_to_login() {
 uploaded_to_download() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local BASE_URL='http://uploaded.to'
     local URL FILE_ID HTML SLEEP FILE_NAME FILE_URL PAGE
 
@@ -190,9 +190,9 @@ uploaded_to_download() {
 uploaded_to_upload() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local BASE_URL='http://uploaded.to'
 
     local JS SERVER DATA FILE_ID AUTH_DATA ADMIN_CODE
@@ -239,7 +239,7 @@ uploaded_to_upload() {
 uploaded_to_delete() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local BASE_URL='http://uploaded.to'
     local PAGE FILE_ID COOKIE_FILE
 
@@ -276,7 +276,7 @@ uploaded_to_delete() {
 uploaded_to_list() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_LIST_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS FILE_NAME FILE_ID
 
     # check whether it looks like a folder link

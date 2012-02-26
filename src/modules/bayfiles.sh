@@ -33,7 +33,7 @@ MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 # i didn't test with a premium account but it should work (same API)
 bayfiles_login() {
     local AUTH_FREE="$1"
-    local APIURL="$2"
+    local APIURL=$2
 
     local SESSION LOGIN_JSON_DATA
 
@@ -57,7 +57,7 @@ bayfiles_login() {
 bayfiles_download() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_DOWNLOAD_OPTIONS" "$@")"
 
-    local URL="$2"
+    local URL=$2
     local APIURL='http://api.bayfiles.com/v1'
     local AJAX_URL='http://bayfiles.com/ajax_download'
     local PAGE FILE_URL FILENAME
@@ -131,9 +131,9 @@ bayfiles_download() {
 bayfiles_upload() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local APIURL='http://api.bayfiles.com/v1'
 
     local SESSION_GET UPLOAD_JSON_DATA UPLOAD_URL UPLOADED_FILE_JSON_DATA URL DELETE_URL ADMIN_URL

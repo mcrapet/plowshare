@@ -35,7 +35,7 @@ MODULE_ZSHARE_DELETE_OPTIONS=""
 # $2: zshare.net url
 # stdout: real file download link
 zshare_download() {
-    local COOKIEFILE="$1"
+    local COOKIEFILE=$1
     local URL=$(echo "$2" | replace '/audio/' '/download/' | \
                             replace '/video/' '/download/')
 
@@ -71,8 +71,8 @@ zshare_download() {
 zshare_upload() {
     eval "$(process_options zshare "$MODULE_ZSHARE_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local DATA ACTION INFOPAGE DESCR ID DOWNLOAD_URL DELETE_URL
 
     DATA=$(curl 'http://www.zshare.net/') || return
@@ -129,7 +129,7 @@ zshare_upload() {
 zshare_delete() {
     eval "$(process_options zshare "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local DELETE_PAGE FORM_KILLCODE RESULT_PAGE
 
     DELETE_PAGE=$(curl -L "$URL") || return

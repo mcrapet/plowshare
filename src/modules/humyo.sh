@@ -29,7 +29,7 @@ MODULE_HUMYO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: humyo.com url
 # stdout: real file download link
 humyo_download() {
-    local URL="$2"
+    local URL=$2
     local PAGE FILE_URL FILENAME
 
     # test for direct download links

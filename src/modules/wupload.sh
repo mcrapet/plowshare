@@ -39,8 +39,8 @@ MODULE_WUPLOAD_LIST_OPTIONS=""
 wupload_download() {
     eval "$(process_options wupload "$MODULE_WUPLOAD_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local LINK_ID DOMAIN START_HTML WAIT_HTML FILENAME FILE_URL MSG
 
     if match '/folder/' "$URL"; then
@@ -204,8 +204,8 @@ wupload_download() {
 wupload_upload() {
     eval "$(process_options wupload "$MODULE_WUPLOAD_UPLOAD_OPTIONS" "$@")"
 
-    local FILE="$2"
-    local DESTFILE="$3"
+    local FILE=$2
+    local DESTFILE=$3
     local BASE_URL='http://api.wupload.com/'
     local JSON URL LINK
 
@@ -263,7 +263,7 @@ wupload_upload() {
 wupload_list() {
     eval "$(process_options wupload "$MODULE_WUPLOAD_LIST_OPTIONS" "$@")"
 
-    local URL="$1"
+    local URL=$1
     local PAGE LINKS FILE_NAME FILE_URL
 
     test "$2" && log_debug "recursive flag is not supported"

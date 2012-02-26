@@ -63,8 +63,8 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
 4shared_download() {
     eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='https://www.4shared.com'
     local REAL_URL URL PAGE WAIT_URL FILE_URL FILE_NAME
 
@@ -135,9 +135,9 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
 4shared_upload() {
     eval "$(process_options 4shared "$MODULE_4SHARED_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local BASE_URL='http://www.4shared.com'
     local PAGE JSON DESTFILE_ENC SZ UP_URL DL_URL FILE_ID DIR_ID LOGIN_ID PASS_HASH
 

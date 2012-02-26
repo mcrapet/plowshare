@@ -38,8 +38,8 @@ MODULE_MEDIAFIRE_LIST_OPTIONS=""
 mediafire_download() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local LOCATION PAGE FILE_URL FILENAME
 
     LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
@@ -118,9 +118,9 @@ mediafire_download() {
 mediafire_upload() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local FILE="$2"
-    local DESTFILE="$3"
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
     local SZ=$(get_filesize "$FILE")
     local BASE_URL='http://www.mediafire.com'
     local XML UKEY USER FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY N
@@ -217,7 +217,7 @@ mediafire_upload() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 mediafire_list() {
-    local URL="$1"
+    local URL=$1
     local LOCATION DATA QUICKKEY NUM ITEMS FILE_NAME
 
     if match '/?sharekey=' "$URL"; then

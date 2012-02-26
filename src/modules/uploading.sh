@@ -31,8 +31,8 @@ MODULE_UPLOADING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 uploading_download() {
     eval "$(process_options uploading "$MODULE_UPLOADING_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE="$1"
-    local URL="$2"
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='http://uploading.com'
     local DATA ERR1 ERR2 WAIT JSURL FILENAME FILE_URL
 
