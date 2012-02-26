@@ -71,7 +71,13 @@ sendspace_upload() {
 
     local FILE=$2
     local DESTFILE=$3
+    local SZ=$(get_filesize "$FILE")
     local DATA DL_LINK DEL_LINK
+
+    # Warning message
+    if [ "$SZ" -gt 314572800 ]; then
+        log_error "warning: file is bigger than 300MB, site may not support it"
+    fi
 
     DATA=$(curl 'http://www.sendspace.com') || return
 
@@ -100,6 +106,11 @@ sendspace_upload() {
         -F "upload_file[]=@$FILE;filename=$DESTFILE" \
         --form-string "description[]=$DESCRIPTION"   \
         "$FORM_URL") || return
+
+    if [ -z "$DATA" ]; then
+        log_error "upload unsuccessful"
+        return $ERR_FATAL
+    fi
 
     DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href') || return
     DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href') || return
