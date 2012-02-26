@@ -180,12 +180,12 @@ depositfiles_download() {
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-        DATA=$(curl --get --location --data \
-            "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
+        DATA=$(curl --get --location -b 'lang_current=en' \
+            --data "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
             -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
             "$BASE_URL/get_file.php") || return
 
-        if match 'Download the file\|Descarga del fichero' "$DATA"; then
+        if match 'Download the file' "$DATA"; then
             recaptcha_ack $ID
             log_debug "correct captcha"
 
@@ -234,7 +234,14 @@ depositfiles_upload() {
         -F "go=$FORM_GO"                     \
         -F "agree=$FORM_AGREE"               \
         -F "files=@$FILE;filename=$DESTFILE" \
+        -F "padding=$(add_padding)"          \
         "$FORM_URL") || return
+
+    # Invalid local or global uploads dirs configuration
+    if match 'Invalid local or global' "$DATA"; then
+        log_error "upload failure, rename file and/or extension and retry"
+        return $ERR_FATAL
+    fi
 
     DL_LINK=$(echo "$DATA" | parse 'ud_download_url[[:space:]]' "'\([^']*\)'") || return
     DEL_LINK=$(echo "$DATA" | parse 'ud_delete_url' "'\([^']*\)'") || return
@@ -293,4 +300,13 @@ depositfiles_list() {
         FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
         echo "$FILE_URL"
     done <<< "$LINKS"
+}
+
+# http://img3.depositfiles.com/js/upload_utils.js
+# check_form() > add_padding()
+add_padding() {
+    local I STR
+    for ((I=0; I<3000; I++)); do
+        STR="$STR "
+    done
 }
