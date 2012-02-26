@@ -38,7 +38,7 @@ MODULE_UPLOADED_TO_LIST_OPTIONS=""
 # Static function. Proceed with login (free-membership or premium)
 uploaded_to_login() {
     local AUTH=$1
-    local COOKIE_FILE="$2"
+    local COOKIE_FILE=$2
     local BASEURL=$3
 
     local LOGIN_DATA LOGIN_RESULT NAME
@@ -74,7 +74,7 @@ uploaded_to_download() {
     # ($URL result can have two lines before 'last_line')
     URL=$(curl -I -L "$2" | grep_http_header_location | last_line) || return
     if test -z "$URL"; then
-        URL="$2"
+        URL=$2
     fi
 
     # recognize folders

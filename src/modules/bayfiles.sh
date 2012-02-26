@@ -32,7 +32,7 @@ MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 # Static function. Proceed with login (free-user or premium)
 # i didn't test with a premium account but it should work (same API)
 bayfiles_login() {
-    local AUTH_FREE="$1"
+    local AUTH_FREE=$1
     local APIURL=$2
 
     local SESSION LOGIN_JSON_DATA

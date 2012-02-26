@@ -78,7 +78,7 @@ fileserve_download() {
     ID=$(echo "$2" | parse_quiet '\/file\/' 'file\/\([^/]*\)')
     if [ -z "$ID" ]; then
         log_debug "Cannot parse URL to extract file id, try anyway"
-        URL="$2"
+        URL=$2
     else
         URL="$BASEURL/file/$ID"
     fi
