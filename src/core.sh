@@ -104,7 +104,7 @@ log_error() {
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
 curl() {
-    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 300)
+    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 240)
     local DRETVAL=0
 
     # Check if caller has specified a User-Agent, if so, don't put one
