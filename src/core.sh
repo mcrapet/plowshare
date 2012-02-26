@@ -426,7 +426,7 @@ break_html_lines_alt() {
 }
 
 # Parse single named HTML tag content
-# <tag>..</tag>
+# <tag>..</tag>
 # <tag attr="x">..</tag>
 # Notes:
 # - beginning and ending tag are on the same line
