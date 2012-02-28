@@ -172,12 +172,10 @@ uploaded_to_download() {
     recaptcha_ack $ID
     log_debug "correct captcha"
 
-    # retrieve real filename
-    FILE_NAME=$(curl -I -b "$COOKIEFILE" "$FILE_URL" | grep_http_header_content_disposition)
-    if [ -z "$FILE_NAME" ]; then
-        # retrieve (truncated) filename
-        FILE_NAME=$(echo "$HTML" | parse_quiet 'id="filename"' 'name">\([^<]*\)')
-    fi
+    # retrieve (truncated) filename
+    # Only 1 access to "final" URL is allowed, so we can't get complete name
+    # using "Content-Disposition:" header
+    FILE_NAME=$(echo "$HTML" | parse_quiet 'id="filename"' 'name">\([^<]*\)' | replace '&hellip;' '.')
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
