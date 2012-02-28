@@ -460,13 +460,16 @@ parse_tag_quiet() {
 }
 
 # Parse HTML attribute content
+# http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
+# Note:
+# - Do not deal with unquoted attribute-value syntax
 #
 # $1: regexp to filter (take lines matching $1 pattern)
 # $2: attribute name. Example: "href".
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
-    parse_all "$1" "$2=[\"']\?\([^\"'>]*\)"
+    parse_all "$1" "$2[[:space:]]*=[[:space:]]*[\"']\?\([^\"'>]*\)"
 }
 
 # Like parse_all_attr, but hide possible error
