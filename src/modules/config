@@ -22,6 +22,7 @@ multiupload  | download | upload |        | list |
 netload_in   | download | upload |        | list |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
+turbobit     | download | upload |        |      |
 uploading    | download |        |        |      |
 uploaded_to  | download | upload | delete | list |
 zshare       | download | upload | delete |      |

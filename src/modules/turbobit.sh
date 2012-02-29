@@ -1,0 +1,217 @@
+#!/bin/bash
+#
+# turbobit.net module
+# Copyright (c) 2012 Plowshare team
+#
+# This file is part of Plowshare.
+#
+# Plowshare is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Plowshare is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
+
+MODULE_TURBOBIT_REGEXP_URL="http\?://\(www\.\)\?turbobit\.net/"
+
+MODULE_TURBOBIT_DOWNLOAD_OPTIONS=""
+MODULE_TURBOBIT_DOWNLOAD_RESUME=yes
+MODULE_TURBOBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
+MODULE_TURBOBIT_UPLOAD_OPTIONS=""
+MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
+
+# Output a turbobit file download URL
+# $1: cookie file
+# $2: turbobit url
+# stdout: real file download link
+turbobit_download() {
+    eval "$(process_options turbobit "$MODULE_TURBOBIT_DOWNLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE=$1
+    local URL=$2
+    local ID_FILE FREE_URL PAGE PAGE_LINK PART_FILE_URL FILE_URL
+    local FILENAME WAIT_TIME WAIT_TIME2 CAPTCHA_IMG
+
+    # Get id from these url formats:
+    # http://turbobit.net/hsclfbvorabc/full.filename.avi.html
+    # http://turbobit.net/hsclfbvorabc.html
+    ID_FILE=$(echo "$URL" | parse_quiet '.html' '.net\/\([^/.]*\)')
+
+    # Get id from these url formats:
+    # http://turbobit.net/download/free/hsclfbvorabc
+    if [ -z "$ID_FILE" ]; then
+        ID_FILE=$(echo "$URL" | parse_quiet '\/download\/free\/' 'free\/\([^/]*\)')
+    fi
+
+    if [ -z "$ID_FILE" ]; then
+        log_error "Could not find id in url"
+        return $ERR_LINK_DEAD
+    fi
+
+    FREE_URL="http://turbobit.net/download/free/$ID_FILE"
+
+    # Force page in English
+    PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$FREE_URL") || return
+
+    # Check for dead link
+    if match 'File not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
+
+    # reCaptcha page
+    if match 'api\.recaptcha\.net' "$PAGE"; then
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LcTGLoSAAAAAHCWY9TTIrQfjUlxu6kZlTYP50_c'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        PAGE=$(curl -b "$COOKIEFILE" --data \
+            "captcha_subtype=&captcha_type=recaptcha&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            --referer "$FREE_URL" "$FREE_URL") || return
+
+        if match 'Incorrect, try again!' "$PAGE"; then
+            recaptcha_nack $ID
+            log_error "Wrong captcha"
+            return $ERR_CAPTCHA
+        fi
+
+        recaptcha_ack $ID
+        log_debug "correct captcha"
+
+    # Alternative captcha. Can be one of the following:
+    # - Securimage: http://www.phpcaptcha.org
+    # - Kohana: https://github.com/Yahasana/Kohana-Captcha
+    elif match 'onclick="updateCaptchaImage()"' "$PAGE"; then
+        local CAPTCHA_URL CAPTCHA_TYPE CAPTCHA_SUBTYPE
+
+        CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha-img"' 'src')
+        CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value)
+        CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
+
+        # TODO: solve automatically
+
+        CAPTCHA_IMG=$(create_tempfile '.captcha.png') || return
+
+        # Get new image captcha
+        curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || { \
+            rm -f "$CAPTCHA_IMG";
+            return $ERR_CAPTCHA;
+        }
+
+        CAPTCHA=$(lowercase $(captcha_process "$CAPTCHA_IMG")) || return
+        rm -f "$CAPTCHA_IMG"
+
+        PAGE=$(curl -b "$COOKIEFILE" --data \
+            "captcha_subtype=$CAPTCHA_SUBTYPE&captcha_type=$CAPTCHA_TYPE&captcha_response=$CAPTCHA" \
+             --referer "$FREE_URL" "$FREE_URL") || return
+
+        if match 'Incorrect, try again!' "$PAGE"; then
+            log_error "Wrong captcha ($CAPTCHA_SUBTYPE)"
+            return $ERR_CAPTCHA
+        fi
+    fi
+
+    # This code must stay below captcha
+    # case: You have reached the limit of connections
+    # case: From your IP range the limit of connections is reached
+    local ERR1="You have reached the limit of connections"
+    local ERR2="From your IP range the limit of connections is reached"
+    if match "$ERR1\|$ERR2" "$PAGE"; then
+        WAIT_TIME=$(echo "$PAGE" | parse 'limit: ' 'limit: \([^,]*\)') || \
+            { log_error "can't get sleep time"; return $ERR_FATAL; }
+        echo $WAIT_TIME
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    # This code must stay below captcha
+    # case: Unable to Complete Request
+    # case: The site is temporarily unavailable during upgrade process
+    ERR1="Unable to Complete Request"
+    ERR2="The site is temporarily unavailable during upgrade process"
+    if match "$ERR1\|$ERR2" "$PAGE"; then
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    # Wait time after correct captcha
+    WAIT_TIME2=$(echo "$PAGE" | parse 'minTimeLimit :' 'minTimeLimit : \([^,]*\)') || \
+        { log_error "can't get sleep time"; return $ERR_FATAL; }
+
+    wait $((WAIT_TIME2)) seconds || return
+
+    # Get the page containing the file url
+    PAGE_LINK=$(curl -b "$COOKIEFILE" --referer "$FREE_URL" \
+        -H "X-Requested-With: XMLHttpRequest" \
+        "http://turbobit.net/download/getLinkTimeout/$ID_FILE") || return
+
+    # Sanity check
+    if match 'code-404\|text-404' "$PAGE_LINK"; then
+        log_error "site updated?"
+        return $ERR_FATAL
+    fi
+
+    PART_FILE_URL=$(echo "$PAGE_LINK" | parse_attr '\/download\/redirect' 'href') || return
+    FILE_NAME=$(basename_file "$PART_FILE_URL")
+
+    FILE_URL="http://turbobit.net$PART_FILE_URL"
+    FILE_URL=$(curl --include "$FILE_URL" | grep_http_header_location) || return
+    FILE_URL=$(curl --include "$FILE_URL" | grep_http_header_location) || return
+
+    echo "$FILE_URL"
+    echo "$FILE_NAME"
+}
+
+# Upload a file to turbobit
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: turbobit download link + delete link
+turbobit_upload() {
+    eval "$(process_options turbobit "$MODULE_TURBOBIT_UPLOAD_OPTIONS" "$@")"
+
+    local COOKIEFILE=$1
+    local FILE=$2
+    local DESTFILE=$3
+
+    local URL PAGE UPLOAD_URL XML MESSAGE FILE_ID DELETE_ID
+
+    URL='http://turbobit.net'
+
+    PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$URL") || return
+
+    UPLOAD_URL=$(echo "$PAGE" | parse "flashvars=" "urlSite=\([^&]*\)")
+    APPTYPE=$(echo "$PAGE" | parse "flashvars=" 'apptype=\([^"]*\)')
+
+    #Cookie to error message in English
+    XML=$(curl_with_log "$UPLOAD_URL" \
+        -F "Filename=$DESTFILE" \
+        -F "apptype=$APPTYPE" \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
+        --user-agent 'Shockwave Flash' \
+        -b "$COOKIEFILE" \
+        --referer "$URL") || return
+
+    if match '"result":false' "$XML"; then
+        MESSAGE=$(echo "$XML" | parse '"message":' '"message":"\([^"]*\)')
+        log_error "turbobit error: $MESSAGE"
+        return $ERR_FATAL
+
+    elif match '"result":true' "$XML"; then
+        FILE_ID=$(echo "$XML" | parse '"id":"' '"id":"\([^"]*\)')
+        PAGE=$(curl "$URL/newfile/gridFile/$FILE_ID?_search=false&nd=1329575134913&rows=20&page=1&sidx=id&sord=asc") || return
+        DELETE_ID=$(echo "$PAGE" | parse 'null,null,' 'null,null,"\([^"]*\)')
+
+        echo "http://turbobit.net/$FILE_ID.html"
+        echo "http://turbobit.net/delete/file/$FILE_ID/$DELETE_ID"
+    fi
+}
