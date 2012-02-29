@@ -117,8 +117,16 @@ filepost_download() {
         PAGE=$(curl -L -c "$COOKIEFILE" "$URL") || return
     fi
 
+    # <div class="file_info file_info_deleted">
     if matchi 'file not found' "$PAGE"; then
         return $ERR_LINK_DEAD
+    # <div class="file_info file_info_temp_unavailable">
+    # We are sorry, the server where this file is located is currently unavailable,
+    # but should be recovered soon. Please try to download this file later.
+    elif matchi 'is currently unavailable' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    elif matchi 'files over 400MB can be' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     test "$CHECK_LINK" && return 0
@@ -171,6 +179,7 @@ filepost_download() {
     log_debug "correct captcha"
 
     # {"id":"12345","js":{"answer":{"link":"http:\/\/fs122.filepost.com\/get_file\/...\/"}},"text":""}
+    # {"id":"12345","js":{"error":"f"},"text":""}
     FILE_URL=$(echo "$JSON" | \
         parse '"answer":' '"link":[[:space:]]*"\([^"]*\)"') || return
 
