@@ -643,9 +643,7 @@ prompt_for_password() {
     local PASSWORD
 
     log_notice "No password specified, enter it now"
-    stty -echo
-    read -p "Enter password: " PASSWORD
-    stty echo
+    read -s -r -p "Enter password: " PASSWORD
 
     # Add missing trailing newline (see read -p)
     stderr
