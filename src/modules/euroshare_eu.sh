@@ -47,10 +47,13 @@ euroshare_eu_download() {
     fi
 
     if test "$AUTH_FREE"; then
-        LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
-        CHECK_LOGIN=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" "$BASEURL")
+        local LOGIN_DATA LOGIN_RESULT
 
-        if ! match "/logout" "$CHECK_LOGIN"; then
+        LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
+        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
+            "$BASEURL") || return
+
+        if ! match "/logout" "$LOGIN_RESULT"; then
             return $ERR_LOGIN_FAILED
         fi
     fi
