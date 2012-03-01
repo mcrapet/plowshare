@@ -23,7 +23,8 @@ MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 HOTFILE,,hotfile,,Include this additional host site
 MEDIAFIRE,,mediafire,,Include this additional host site
-RAPIDSHARE,,rapidshare,,Include this additional host site
+TURBOBIT,,turbobit,,Include this additional host site
+WUPLOAD,,wupload,,Include this additional host site
 ZSHARE,,zshare,,Include this additional host site"
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
@@ -63,10 +64,11 @@ mirrorcreator_upload() {
     SITES_SEL=$(echo "$FORM" | parse_all_attr 'checked=' 'value')
 
     # Check command line additionnal hosters
-    [ -n "$HOTFILE" ]    && SITES_SEL="$SITES_SEL hotfile"
-    [ -n "$MEDIAFIRE" ]  && SITES_SEL="$SITES_SEL mediafire"
-    [ -n "$RAPIDSHARE" ] && SITES_SEL="$SITES_SEL rapidshare"
-    [ -n "$ZSHARE" ]     && SITES_SEL="$SITES_SEL zshare"
+    [ -n "$HOTFILE" ]   && SITES_SEL="$SITES_SEL hotfile"
+    [ -n "$MEDIAFIRE" ] && SITES_SEL="$SITES_SEL mediafire"
+    [ -n "$TURBOBIT" ]  && SITES_SEL="$SITES_SEL turbobit"
+    [ -n "$WUPLOAD" ]   && SITES_SEL="$SITES_SEL wupload"
+    [ -n "$ZSHARE" ]    && SITES_SEL="$SITES_SEL zshare"
 
     if [ -n "$SITES_SEL" ]; then
         log_debug "Selected sites:" $SITES_SEL
@@ -92,15 +94,9 @@ mirrorcreator_upload() {
     # Example: RFC-all.tar.gz#0#225280;0;@e@#H#zshare;wupload;#P#
     DATA=$(echo "$SITES_SEL" | replace ' ' ';' | tr '\n' ';')
 
-##
-# FIXME: something is wrong, only the 2 first entries are taken of my list.
-##
-
-    log_debug "sites=$DATA"
-    DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA}#P#" | base64)
+    DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA}#P#" | base64 --wrap=0)
     PAGE=$(curl --referer "$BASE_URL" \
         "$BASE_URL/process.php?data=$DATA") || return
-
 
     echo "$PAGE" | parse_attr 'getElementById("link2")' 'href' || return
     return 0
