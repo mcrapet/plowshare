@@ -13,6 +13,7 @@ dl_free_fr   | download | upload |        |      |
 euroshare_eu | download |        |        |      |
 filepost     | download |        |        | list |
 fileserve    | download | upload | delete | list |
+freakshare   | download |        |        |      |
 hotfile      | download |        |        | list |
 humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
