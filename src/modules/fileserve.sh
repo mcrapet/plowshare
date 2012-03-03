@@ -99,7 +99,7 @@ fileserve_download() {
             test -z "$FILE_URL" && return $ERR_FATAL
 
             if [ "${FILE_URL:0:1}" = '/' ]; then
-                MSG1=$(curl -L -b "$COOKIEFILE" "$URL" | parse_attr_quiet '0; URL' 'CONTENT')
+                MSG1=$(curl -b "$COOKIEFILE" "${BASEURL}$FILE_URL" | parse_attr_quiet '0; URL' 'CONTENT')
                 log_error "fileserve internal error (${BASEURL}${MSG1:7})"
                 return $ERR_FATAL
             fi
