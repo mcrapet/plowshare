@@ -675,6 +675,11 @@ post_login() {
         return $ERR_LOGIN_FAILED
     fi
 
+    if [ -z "$COOKIE" ]; then
+        log_error "Cookie file expected"
+        return $ERR_LOGIN_FAILED
+    fi
+
     # Seem faster than
     # IFS=":" read USER PASSWORD <<< "$AUTH"
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
