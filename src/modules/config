@@ -19,7 +19,6 @@ humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
 megashares   | download | upload | delete |      |
 mirrorcreator|          | upload |        |      |
-multiupload  | download | upload |        | list |
 netload_in   | download | upload |        | list |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |

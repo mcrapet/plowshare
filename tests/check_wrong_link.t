@@ -26,10 +26,6 @@ http://www.fileserve.com/file/1234ABC
 http://d01.megashares.com/dl/abcdefg
 --no-plowsharerc
 
-# multiupload
-http://www.multiupload.com/1234567890
---no-plowsharerc
-
 # uploaded.to
 http://ul.to/01234567
 --no-plowsharerc

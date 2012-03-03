@@ -127,8 +127,8 @@ $ plowup wupload /tmp/foo.bar
 $ plowup 2shared /path/myphotos/*
 Notice that only files will be sent, subdirectories will be ignored.
 
-3. Upload a file to Multiupload changing uploaded file name
-$ plowup multiupload /path/myfile.txt:anothername.txt
+3. Upload a file to Mirrorcreator changing uploaded file name
+$ plowup mirrorcreator /path/myfile.txt:anothername.txt
 
 4. Upload a file to megashares (anonymously) + set description
 $ plowup -d "Important document" megashares /path/myfile.tex
