@@ -261,7 +261,7 @@ for FILE in "$@"; do
         # Check if URL is alive
         CODE=$(curl --head -L -w '%{http_code}' "$LOCALFILE" | last_line) || true
         if [ "${CODE:0:1}" = 4 -o "${CODE:0:1}" = 5 ]; then
-            log_notice "Skipping ($LOCALFILE): cannt access link (HTTP status $CODE)"
+            log_notice "Skipping ($LOCALFILE): cannot access link (HTTP status $CODE)"
             continue
         fi
     else
