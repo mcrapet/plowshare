@@ -374,7 +374,7 @@ grep_form_by_order() {
     done
 
     # FIXME: sed will be greedy, if other forms are remaining they will be returned
-    echo "$DATA" | sed -ne '/<form /,/<\/form>/p'
+    echo "$DATA" | sed -ne '/<[Ff][Oo][Rr][Mm] /,/<\/[Ff][Oo][Rr][Mm]>/p'
 }
 
 # Extract a named form from a HTML content.
