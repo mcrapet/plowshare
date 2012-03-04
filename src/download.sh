@@ -228,6 +228,8 @@ download() {
 
                     if [ -z "$AWAIT" ]; then
                         log_debug "arbitrary wait"
+                    else
+                        log_debug "arbitrary wait (from module)"
                     fi
                     wait ${AWAIT:-60} seconds || {
                         DRETVAL=$?;
