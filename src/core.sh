@@ -358,53 +358,81 @@ grep_http_header_content_disposition() {
 }
 
 # Extract a specific form from a HTML content.
-# We assume here that start marker <form> and end marker </form> are one separate lines.
-# HTML comments are just ignored. But it's enough for our needs.
+# Notes:
+# - start marker <form> and end marker </form> must be on separate lines
+# - HTML comments are just ignored
 #
 # $1: (X)HTML data
 # $2: (optional) Nth <form> (default is 1)
 # stdout: result
 grep_form_by_order() {
+    local N=${2:-'1'}
     local DATA=$1
-    local N=${2:-"1"}
 
     while [ "$N" -gt "1" ]; do
         (( --N ))
-        DATA=$(echo "$DATA" | sed -ne '/<\/form>/,$p' | sed -e '1s/<\/form>/<_form>/1')
+        DATA=$(echo "$DATA" | sed -ne '/<\/[Ff][Oo][Rr][Mm]>/,$p' | \
+            sed -e '1s/<\/[Ff][Oo][Rr][Mm]>/<_FORM_>/1')
+
+        test -z "$DATA" && break
     done
 
-    # FIXME: sed will be greedy, if other forms are remaining they will be returned
-    echo "$DATA" | sed -ne '/<[Ff][Oo][Rr][Mm] /,/<\/[Ff][Oo][Rr][Mm]>/p'
+    # Get first form only
+    local STRING=$(sed -ne \
+        '/<[Ff][Oo][Rr][Mm][[:space:]]/,/<\/[Ff][Oo][Rr][Mm]>/{p;/<\/[Ff][Oo][Rr][Mm]/q}' <<<"$DATA")
+
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"n=$N\""
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Extract a named form from a HTML content.
-# If several forms have the same name, take first one.
+# Notes:
+# - if several forms (with same name) are available: return all of them
+# - start marker <form> and end marker </form> must be on separate lines
+# - HTML comments are just ignored
 #
 # $1: (X)HTML data
-# $2: "name" attribute of <form> marker
+# $2: (optional) "name" attribute of <form> marker.
+#     If not specified: take forms having any "name" attribute (empty or not)
 # stdout: result
 grep_form_by_name() {
-    local DATA=$1
+    local A=${2:-'.*'}
+    local STRING=$(sed -ne \
+        "/<[Ff][Oo][Rr][Mm][[:space:]].*name[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
-    if [ -n "$2" ]; then
-        # FIXME: sed will be greedy, if other forms are remaining they will be returned
-        echo "$DATA" | sed -ne "/<[Ff][Oo][Rr][Mm][[:space:]].*name=\"\?$2\"\?/,/<\/[Ff][Oo][Rr][Mm]>/p"
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"name=$A\""
+        return $ERR_FATAL
     fi
+
+    echo "$STRING"
 }
 
 # Extract a id-specified form from a HTML content.
-# If several forms have the same id, take first one.
+# Notes:
+# - if several forms (with same name) are available: return all of them
+# - start marker <form> and end marker </form> must be on separate lines
+# - HTML comments are just ignored
 #
 # $1: (X)HTML data
-# $2: "id" attribute of <form> marker
+# $2: (optional) "id" attribute of <form> marker.
+#     If not specified: take forms having any "id" attribute (empty or not)
 # stdout: result
 grep_form_by_id() {
-    local DATA=$1
+    local A=${2:-'.*'}
+    local STRING=$(sed -ne \
+        "/<[Ff][Oo][Rr][Mm][[:space:]].*id[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
-    if [ -n "$2" ]; then
-        # FIXME: sed will be greedy, if other forms are remaining they will be returned
-        echo "$DATA" | sed -ne "/<[Ff][Oo][Rr][Mm][[:space:]].*id=\"\?$2\"\?/,/<\/[Ff][Oo][Rr][Mm]>/p"
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"id=$A\""
+        return $ERR_FATAL
     fi
+
+    echo "$STRING"
 }
 
 # Split into several lines html markers.
