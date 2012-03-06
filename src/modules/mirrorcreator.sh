@@ -119,7 +119,7 @@ mirrorcreator_upload() {
     DATA=$(echo "$SITES_SEL" | replace ' ' ';' | replace $'\n' ';')
 
     log_debug "sites=$DATA"
-    DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA}#P#${LINK_PASSWORD}#SC#" | base64 --wrap=0)
+    DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA};#P#${LINK_PASSWORD}#SC#" | base64 --wrap=0)
     PAGE=$(curl -b "$COOKIEFILE" --referer "$BASE_URL" \
         "$BASE_URL/process.php?data=$DATA") || return
 
