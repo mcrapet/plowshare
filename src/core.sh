@@ -441,8 +441,13 @@ break_html_lines_alt() {
 parse_all_tag() {
     local T=${2:-"$1"}
     local STRING=$(sed -ne "/$1/s/<\/$T>.*$//p" | sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
-    test "$STRING" && echo "$STRING" ||
-        { log_error "parse_tag failed (sed): \"/$1/ <$T>\""; return $ERR_FATAL; }
+
+    if [ -z "$STRING" ]; then
+        log_error "parse_tag failed (sed): \"/$1/ <$T>\""
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Like parse_all_tag, but hide possible error
@@ -474,22 +479,16 @@ parse_tag_quiet() {
 # stdout: result
 parse_all_attr() {
     local A=${2:-"$1"}
-    local STRING=$(sed -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*\([\"']\?[^\"'>]*\).*/\1/p")
-    if [[ ${#STRING} > 1 ]]; then
-        if [ '"' = "${STRING:0:1}" -o "'" = "${STRING:0:1}" ]; then
-            echo "${STRING:1}"
-        else
-            echo "${STRING%%[	 ]*}"
-        fi
-        return 0
-    # unquoted attribute with a single character
-    elif [[ ${#STRING} = 1 && ${STRING:0:1} != '"' && ${STRING:0:1} != "'" ]]; then
-        echo "$STRING"
-        return 0
+    local STRING=$(sed \
+        -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*/\1/p" \
+        -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*\([^\"'<=> 	]\+\).*/\1/p")
+
+    if [ -z "$STRING" ]; then
+        log_error "parse_attr failed (sed): \"/$1/ $A=\""
+        return $ERR_FATAL
     fi
 
-    log_error "parse_attr failed (sed): \"/$1/ $A=\""
-    return $ERR_FATAL
+    echo "$STRING"
 }
 
 # Like parse_all_attr, but hide possible error
