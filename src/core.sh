@@ -431,6 +431,7 @@ break_html_lines_alt() {
 # Notes:
 # - beginning and ending tag are on the same line
 # - this is non greedy, first occurrence is taken
+# - this is case sensitive, this should not
 # - "parse_xxx tag" is a shortcut for "parse_xxx tag tag"
 #
 # $1: regexp to filter (take lines matching $1 pattern)
@@ -441,7 +442,7 @@ parse_all_tag() {
     local T=${2:-"$1"}
     local STRING=$(sed -ne "/$1/s/<\/$T>.*$//p" | sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
     test "$STRING" && echo "$STRING" ||
-        { log_error "parse_tag failed: sed -n \"/$1/s/<$T>\""; return $ERR_FATAL; }
+        { log_error "parse_tag failed (sed): \"/$1/ <$T>\""; return $ERR_FATAL; }
 }
 
 # Like parse_all_tag, but hide possible error
@@ -462,14 +463,33 @@ parse_tag_quiet() {
 # Parse HTML attribute content
 # http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
 # Note:
-# - Do not deal with unquoted attribute-value syntax
+# - empty attribute syntax is not supported (ex: <input disabled>)
+# - this is greedy, last occurrence is taken
+# - this is case sensitive, this should not
+# - "parse_xxx attr" is a shortcut for "parse_xxx attr attr"
 #
 # $1: regexp to filter (take lines matching $1 pattern)
 # $2: attribute name. Example: "href".
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
-    parse_all "$1" "$2[[:space:]]*=[[:space:]]*[\"']\?\([^\"'>]*\)"
+    local A=${2:-"$1"}
+    local STRING=$(sed -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*\([\"']\?[^\"'>]*\).*/\1/p")
+    if [[ ${#STRING} > 1 ]]; then
+        if [ '"' = "${STRING:0:1}" -o "'" = "${STRING:0:1}" ]; then
+            echo "${STRING:1}"
+        else
+            echo "${STRING%%[	 ]*}"
+        fi
+        return 0
+    # unquoted attribute with a single character
+    elif [[ ${#STRING} = 1 && ${STRING:0:1} != '"' && ${STRING:0:1} != "'" ]]; then
+        echo "$STRING"
+        return 0
+    fi
+
+    log_error "parse_attr failed (sed): \"/$1/ $A=\""
+    return $ERR_FATAL
 }
 
 # Like parse_all_attr, but hide possible error
