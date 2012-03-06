@@ -453,13 +453,13 @@ break_html_lines_alt() {
     sed -e 's/<[^>]*>/&\n/g'
 }
 
-# Parse single named HTML tag content
+# Parse single named HTML marker content
 # <tag>..</tag>
 # <tag attr="x">..</tag>
 # Notes:
 # - beginning and ending tag are on the same line
 # - this is non greedy, first occurrence is taken
-# - this is case sensitive, this should not
+# - marker is case sensitive, it should not
 # - "parse_xxx tag" is a shortcut for "parse_xxx tag tag"
 #
 # $1: regexp to filter (take lines matching $1 pattern)
@@ -498,7 +498,7 @@ parse_tag_quiet() {
 # Note:
 # - empty attribute syntax is not supported (ex: <input disabled>)
 # - this is greedy, last occurrence is taken
-# - this is case sensitive, this should not
+# - attribute is case sensitive, it should not
 # - "parse_xxx attr" is a shortcut for "parse_xxx attr attr"
 #
 # $1: regexp to filter (take lines matching $1 pattern)
@@ -539,7 +539,7 @@ parse_attr_quiet() {
 # stdin: (X)HTML data (idealy, call grep_form_by_xxx before)
 # stdout: result
 parse_form_action() {
-    parse '<[Ff][Oo][Rr][Mm]' 'action="\([^"]*\)"'
+    parse_attr '<[Ff][Oo][Rr][Mm]' 'action'
 }
 
 # Retrieve "value" attribute from an <input> marker with "name" attribute
