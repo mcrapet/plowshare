@@ -317,7 +317,7 @@ test_check_wrong_link() {
     if [ "$RET" -ne 13 ]; then
         echo -n "check link KO"
         status 2
-        stderr "ERR ($RET): plowdown --check-link $OPTS_DN $DL_LINK"
+        stderr "ERR ($RET): plowdown --check-link $OPTS_DN $LINK"
         return
     fi
 
