@@ -624,13 +624,13 @@ html_to_utf8() {
 # stdin: data (example: relative URL)
 # stdout: data (should complain RFC3986)
 uri_encode_strict() {
-    sed -e 's/\%/%25/g'   -e 's/\x20/%20/g' \
-        -e 's/\x21/%21/g' -e 's/\x2A/%2A/g' -e 's/\x27/%27/g' \
-        -e 's/\x28/%28/g' -e 's/\x29/%29/g' -e 's/\x3B/%3B/g' \
-        -e 's/\x3A/%3A/g' -e 's/\x40/%40/g' -e 's/\x26/%26/g' \
-        -e 's/\x3D/%3D/g' -e 's/\x2B/%2B/g' -e 's/\$/%24/g'   \
-        -e 's/\x2C/%2C/g' -e 's|/|%2F|g'    -e 's/\x3F/%3F/g' \
-        -e 's/\x23/%23/g' -e 's/\[/%5B/g'   -e 's/\]/%5D/g'
+    sed -e 's/\%/%25/g' -e 's/ /%20/g' \
+        -e 's/!/%21/g' -e 's/*/%2A/g' -e 's/'\''/%27/g' \
+        -e 's/(/%28/g' -e 's/)/%29/g' -e 's/;/%3B/g'    \
+        -e 's/:/%3A/g' -e 's/@/%40/g' -e 's/&/%26/g'    \
+        -e 's/=/%3D/g' -e 's/+/%2B/g' -e 's/\$/%24/g'   \
+        -e 's/,/%2C/g' -e 's|/|%2F|g' -e 's/?/%3F/g'    \
+        -e 's/#/%23/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
 }
 
 # Encode a complete url.
@@ -643,7 +643,7 @@ uri_encode_strict() {
 # stdin: data (example: absolute URL)
 # stdout: data (nearly complain RFC3986)
 uri_encode() {
-    sed -e 's/\x20/%20/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
+    sed -e 's/ /%20/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
 }
 
 # Decode a complete url.
@@ -653,7 +653,7 @@ uri_encode() {
 # stdin: data (example: absolute URL)
 # stdout: data (nearly complain RFC3986)
 uri_decode() {
-    sed -e 's/%20/\x20/g' -e 's/%26/\&/g' -e 's/%2C/,/g' -e 's/%28/(/g' \
+    sed -e 's/%20/ /g' -e 's/%26/\&/g' -e 's/%2C/,/g' -e 's/%28/(/g' \
         -e 's/%29/)/g' -e 's/%2B/+/g' -e 's/%3D/=/g' -e 's/%5B/\[/g' -e 's/%5D/\]/g'
 }
 
@@ -960,6 +960,8 @@ captcha_process() {
             aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
                 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<<'q' | \
                 sed  -e '1d;/\x0C/,/\x0C/d' | sed -e '/^[[:space:]]*$/d' 1>&2
+
+            # FIXME: busybox sed does not support \xHH notation
             rm -f "$IMG_PNM"
             ;;
         tiv)
