@@ -280,6 +280,7 @@ match_remote_url() {
 # stdout: result
 parse_all() {
     local STRING REGEXP
+
     if [ '^' = "${2:0:1}" ]; then
         if [ '$' = "${2:(-1):1}" ]; then
             REGEXP="$2"
@@ -291,14 +292,21 @@ parse_all() {
     else
             REGEXP="^.*$2.*$"
     fi
+
     STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
-    test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: sed -n \"/$1/s/$REGEXP\""; return $ERR_FATAL; }
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP\""
+        log_notice_stack
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Like parse_all, but hide possible error
 parse_all_quiet() {
     parse_all "$@" 2>/dev/null
+    return 0
 }
 
 # Like parse_all, but get only first match
@@ -309,6 +317,7 @@ parse() {
 # Like parse, but hide possible error
 parse_quiet() {
     parse "$@" 2>/dev/null
+    return 0
 }
 
 # Like parse_all, but get only last match
@@ -325,7 +334,7 @@ parse_last() {
 parse_line_after_all() {
     local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}")
     test "$STRING" && echo "$STRING" ||
-        { log_error "parse failed: sed -n \"/$1/s/$2\""; return $ERR_FATAL; }
+        { log_error "$FUNCNAME failed: sed -n \"/$1/s/$2\""; return $ERR_FATAL; }
 }
 
 # Like parse_line_after_all, but get only first match
@@ -333,28 +342,36 @@ parse_line_after() {
     parse_line_after_all "$@" | head -n1
 }
 
-# Grep first "Location" (of http header)
+# Grep "Xxx" HTTP header. Can be:
+# - Location
+# - Content-Location
+# - Content-Type
+# Note: This is using parse_all, so result can be multiline
+#       (rare usage: curl -I -L ...).
 #
-# stdin: result of curl request (with -i/--include, -D/--dump-header or
+# stdin: result of curl request (with -i/--include, -D/--dump-header
 #        or -I/--head flag)
+# stdout: result
 grep_http_header_location() {
-    sed -n 's/^[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
+    parse_all '^[Ll]ocation:' 'n:[[:space:]]\+\(.*\)\r$'
 }
-
+grep_http_header_location_quiet() {
+    parse_all '^[Ll]ocation:' 'n:[[:space:]]\+\(.*\)\r$' 2>/dev/null
+    return 0
+}
 grep_http_header_content_location() {
-    sed -n 's/^[Cc]ontent-[Ll]ocation:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
+    parse_all '^[Cc]ontent-[Ll]ocation:' 'n:[[:space:]]\+\(.*\)\r$'
 }
-
 grep_http_header_content_type() {
-    sed -n 's/^[Cc]ontent-[Tt]ype:[[:space:]]\+\([^ ]*\)/\1/p' 2>/dev/null | tr -d "\r"
+    parse_all '^[Cc]ontent-[Tt]ype:' 'e:[[:space:]]\+\(.*\)\r$'
 }
 
-# Grep first "Content-Disposition" (of http header)
+# Grep "Content-Disposition" HTTP header
 #
-# stdin: same as grep_http_header_location() below
+# stdin: HTTP response headers (see below)
 # stdout: attachement filename
 grep_http_header_content_disposition() {
-    parse "[Cc]ontent-[Dd]isposition:" 'filename="\(.*\)"' 2>/dev/null
+    parse_all '^[Cc]ontent-[Dd]isposition:' 'filename="\(.*\)"'
 }
 
 # Extract a specific form from a HTML content.
@@ -468,10 +485,12 @@ break_html_lines_alt() {
 # stdout: result
 parse_all_tag() {
     local T=${2:-"$1"}
-    local STRING=$(sed -ne "/$1/s/<\/$T>.*$//p" | sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
+    local STRING=$(sed -ne "/$1/s/<\/$T>.*$//p" | \
+                   sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
 
     if [ -z "$STRING" ]; then
-        log_error "parse_tag failed (sed): \"/$1/ <$T>\""
+        log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
+        log_notice_stack
         return $ERR_FATAL
     fi
 
@@ -481,6 +500,7 @@ parse_all_tag() {
 # Like parse_all_tag, but hide possible error
 parse_all_tag_quiet() {
     parse_all_tag "$@" 2>/dev/null
+    return 0
 }
 
 # Like parse_all_tag, but get only first match
@@ -491,6 +511,7 @@ parse_tag() {
 # Like parse_tag, but hide possible error
 parse_tag_quiet() {
     parse_tag "$@" 2>/dev/null
+    return 0
 }
 
 # Parse HTML attribute content
@@ -512,7 +533,8 @@ parse_all_attr() {
         -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*\([^\"'<=> 	]\+\).*/\1/p")
 
     if [ -z "$STRING" ]; then
-        log_error "parse_attr failed (sed): \"/$1/ $A=\""
+        log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
+        log_notice_stack
         return $ERR_FATAL
     fi
 
@@ -522,6 +544,7 @@ parse_all_attr() {
 # Like parse_all_attr, but hide possible error
 parse_all_attr_quiet() {
     parse_all_attr "$@" 2>/dev/null
+    return 0
 }
 
 # Return value of html attribute
@@ -532,6 +555,7 @@ parse_attr() {
 # Like parse_attr, but hide possible error
 parse_attr_quiet() {
     parse_attr "$@" 2>/dev/null
+    return 0
 }
 
 # Retrieve "action" attribute (URL) from a <form> marker
@@ -1707,4 +1731,15 @@ captcha_antigate_ready() {
     else
         log_debug "antigate credits: \$$AMOUNT"
     fi
+}
+
+# Some debug information
+log_notice_stack() {
+    local N=
+    for N in "${!FUNCNAME[@]}"; do
+        [ "$N" -le 1 ] && continue
+        log_notice "failed inside ${FUNCNAME[$N]}(), line ${BASH_LINENO[$((N-1))]}, $(basename_file "${BASH_SOURCE[$N]}")"
+        # quit if we go outside core.sh
+        match '/core\.sh' "${BASH_SOURCE[$N]}" || break
+    done
 }

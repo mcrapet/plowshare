@@ -72,7 +72,7 @@ uploaded_to_download() {
 
     # uploaded.to redirects all possible urls of a file to the canonical one
     # ($URL result can have two lines before 'last_line')
-    URL=$(curl -I -L "$2" | grep_http_header_location | last_line) || return
+    URL=$(curl -I -L "$2" | grep_http_header_location_quiet | last_line) || return
     if test -z "$URL"; then
         URL=$2
     fi

@@ -96,8 +96,8 @@ freakshare_download() {
 
     elif match 'api\.recaptcha\.net' "$WAIT_HTML"; then
         local FORM2_HTML FORM2_URL FORM2_SECTION FROM2_DID HTMLPAGE
-        FORM2_HTML=$(grep_form_by_order "$WAIT_HTML" 1)
-        FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action)
+        FORM2_HTML=$(grep_form_by_order "$WAIT_HTML" 1) || return
+        FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action) || return
         FORM2_SECTION=$(echo "$FORM2_HTML" | parse_form_input_by_name 'section')
         FORM2_DID=$(echo "$FORM2_HTML" | parse_form_input_by_name 'did')
 
@@ -116,18 +116,15 @@ freakshare_download() {
             return $ERR_CAPTCHA
         fi
 
-        FILE_URL=$(echo "$HTMLPAGE" | grep_http_header_location) ||
-            { log_error "can't get location"; return $ERR_FATAL; }
+        recaptcha_ack $ID
+        log_debug "correct captcha"
 
-        if [ -n "$FILE_URL" ]; then
-            recaptcha_ack $ID
-            log_debug "correct captcha"
-            FILE_NAME=$(basename_file "$FORM2_URL")
+        FILE_URL=$(echo "$HTMLPAGE" | grep_http_header_location) || return
+        FILE_NAME=$(basename_file "$FORM2_URL")
 
-            echo "$FILE_URL"
-            echo "${FILE_NAME%.html}"
-            return 0
-        fi
+        echo "$FILE_URL"
+        echo "${FILE_NAME%.html}"
+        return 0
     fi
 
     log_error "Unknown Status"

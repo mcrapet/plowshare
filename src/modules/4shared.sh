@@ -68,7 +68,7 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
     local BASE_URL='https://www.4shared.com'
     local REAL_URL URL PAGE WAIT_URL FILE_URL FILE_NAME
 
-    REAL_URL=$(curl -I "$URL" | grep_http_header_location) || return
+    REAL_URL=$(curl -I "$URL" | grep_http_header_location_quiet) || return
     if test "$REAL_URL"; then
         URL=$REAL_URL
     fi

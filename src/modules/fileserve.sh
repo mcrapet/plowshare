@@ -95,8 +95,7 @@ fileserve_download() {
                 return $ERR_LINK_DEAD
             fi
 
-            FILE_URL=$(echo "$MAINPAGE" | grep_http_header_location)
-            test -z "$FILE_URL" && return $ERR_FATAL
+            FILE_URL=$(echo "$MAINPAGE" | grep_http_header_location) || return
 
             if [ "${FILE_URL:0:1}" = '/' ]; then
                 MSG1=$(curl -b "$COOKIEFILE" "${BASEURL}$FILE_URL" | parse_attr_quiet '0; URL' 'CONTENT')
@@ -271,12 +270,12 @@ fileserve_upload() {
     fi
 
     # parse jsonp result
-    ID=$(echo "$PAGE" | parse_quiet 'shortenCode' 'shortenCode":"\([^"]*\)') || return
+    ID=$(echo "$PAGE" | parse 'shortenCode' 'shortenCode":"\([^"]*\)') || return
     ID_DEL=$(echo "$PAGE" | parse_quiet 'deleteCode' 'deleteCode":"\([^"]*\)') || return
-    FILENAME=$(echo "$PAGE" | parse_quiet 'fileName' 'fileName":"\([^"]*\)') || return
+    FILENAME=$(echo "$PAGE" | parse 'fileName' 'fileName":"\([^"]*\)') || return
 
     echo "$BASEURL/file/$ID/$FILENAME"
-    echo "$BASEURL/file/$ID/delete/$ID_DEL"
+    test "$ID_DEL" && echo "$BASEURL/file/$ID/delete/$ID_DEL"
 }
 
 # List a fileserve public folder URL
