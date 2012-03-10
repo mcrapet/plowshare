@@ -36,7 +36,7 @@ euroshare_eu_download() {
     local COOKIEFILE=$1
     local URL=$2
     local BASEURL=$(basename_url "$URL")
-    local PAGE DL_URL FILE_URL FILENAME
+    local PAGE DL_URL FILE_URL
 
     # html returned uses utf-8 charset
     PAGE=$(curl "$URL") || return
@@ -72,16 +72,9 @@ euroshare_eu_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    DL_URL=$(echo "$PAGE" | parse_attr '<a class="stiahnut"' 'href') || return
+    DL_URL=$(echo "$PAGE" | parse_attr 'class="free"' href) || return
     DL_URL=$(curl --head "$DL_URL") || return
-
-    FILENAME=$(echo "$DL_URL" | grep_http_header_content_disposition)
-    FILE_URL=$(echo "$DL_URL" | grep_http_header_location)
-    if ! test "$FILE_URL"; then
-        log_error "Location not found"
-        return $ERR_FATAL
-    fi
+    FILE_URL=$(echo "$DL_URL" | grep_http_header_location) || return
 
     echo "$FILE_URL"
-    echo "$FILENAME"
 }
