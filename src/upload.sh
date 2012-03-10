@@ -328,6 +328,8 @@ for FILE in "$@"; do
         fi
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
+    else
+        log_error "failed inside ${FUNCTION}() [$URETVAL]"
     fi
     RETVALS=(${RETVALS[@]} $URETVAL)
 done
