@@ -38,7 +38,7 @@ filepost_login() {
     # Note: Giving SID as cookie input seems optional
     #       (adding "-b $COOKIE_FILE" as last argument to post_login is not required)
     curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL"
-    SID=$(parse_cookie 'SID' < "$COOKIE_FILE")
+    SID=$(parse_cookie_quiet 'SID' < "$COOKIE_FILE")
 
     LOGIN_DATA='email=$USER&password=$PASSWORD&remember=on&recaptcha_response_field='
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
@@ -78,7 +78,7 @@ filepost_login() {
     fi
 
     # If successful, two entries are added into cookie file: u and remembered_user
-    STATUS=$(parse_cookie 'remembered_user' < "$COOKIE_FILE")
+    STATUS=$(parse_cookie_quiet 'remembered_user' < "$COOKIE_FILE")
     if [ -z "$STATUS" ]; then
         return $ERR_LOGIN_FAILED
     fi
@@ -138,7 +138,7 @@ filepost_download() {
     TID="t$RANDOM"
 
     # Cookie is just needed for SID
-    SID=$(parse_cookie 'SID' < "$COOKIEFILE")
+    SID=$(parse_cookie 'SID' < "$COOKIEFILE") || return
     JSURL="$BASE_URL/files/get/?SID=$SID&JsHttpRequest=$(date +%s000)-xml"
 
     log_debug "code=$CODE, sid=$SID"

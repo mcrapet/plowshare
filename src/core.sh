@@ -269,7 +269,7 @@ matchi() {
 #
 # $1: string (URL or anything)
 match_remote_url() {
-    matchi "^[[:space:]]*https\?://" "$1"
+    matchi '^[[:space:]]*https\?://' "$1"
 }
 
 # Get lines that match filter+match regular expressions and extract string from it.
@@ -596,10 +596,17 @@ parse_form_input_by_id() {
     parse_quiet "<input\([[:space:]]*[^ ]*\)*id=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
 }
 
-# Get accessor for cookies (netscape/mozilla cookie file format)
-# Example: LANG=$(parse_cookie "lang" < "$COOKIES")
+# Get specific entry (value) from cookie
+#
+# $1: entry name (example: "lang")
+# stdin: cookie data (netscape/mozilla cookie file format)
+# stdout: result (can be null string no suck entry exists)
 parse_cookie() {
-    parse_quiet "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
+    parse_all "\t$1\t[^\t]*\$" "\t$1\t\(.*\)"
+}
+parse_cookie_quiet() {
+    parse_all "\t$1\t[^\t]*\$" "\t$1\t\(.*\)" 2>/dev/null
+    return 0
 }
 
 # Return base of URL

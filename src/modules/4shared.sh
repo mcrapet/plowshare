@@ -187,8 +187,8 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
     fi
 
     BASE_URL=$(basename_url "$UP_URL")
-    LOGIN_ID=$(parse_cookie 'Login' < "$COOKIEFILE")
-    PASS_HASH=$(parse_cookie 'Password' < "$COOKIEFILE")
+    LOGIN_ID=$(parse_cookie 'Login' < "$COOKIEFILE") || return
+    PASS_HASH=$(parse_cookie 'Password' < "$COOKIEFILE") || return
 
     # Note: x-cookie required here
     JSON=$(curl -X POST -H 'Content-Type: ' \

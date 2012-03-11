@@ -135,7 +135,7 @@ mediafire_upload() {
                 'https://www.mediafire.com/dynamic/login.php?popup=1' "-b $COOKIEFILE")
 
         # If successful, two entries are added into cookie file: user and session
-        SESSION=$(parse_cookie 'session' < "$COOKIEFILE")
+        SESSION=$(parse_cookie_quiet 'session' < "$COOKIEFILE")
         if [ -z "$SESSION" ]; then
             log_error "login process failed"
             return $ERR_FATAL

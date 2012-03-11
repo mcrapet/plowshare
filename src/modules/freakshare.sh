@@ -55,7 +55,7 @@ freakshare_download() {
 
         # If login successful we get "login" entry in cookie file
         # and HTTP redirection (Location: $BASE_URL)
-        L=$(parse_cookie 'login' < "$COOKIEFILE")
+        L=$(parse_cookie_quiet 'login' < "$COOKIEFILE")
         if [ -z "$L" ]; then
             # <p class="error">Wrong Username or Password!</p>
            return $ERR_LOGIN_FAILED

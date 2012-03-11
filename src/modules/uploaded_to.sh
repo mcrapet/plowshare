@@ -48,7 +48,7 @@ uploaded_to_login() {
         "$BASEURL/io/login") || return
 
     # Note: "auth" entry is present in cookie too
-    NAME=$(parse_cookie 'login' < "$COOKIE_FILE")
+    NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
     if [ -n "$NAME" ]; then
         NAME=$(echo "$NAME" | uri_decode | cut -d'&' -f2)
  	    log_debug "Successfully logged in as ${NAME:3} member"
@@ -207,7 +207,7 @@ uploaded_to_upload() {
     log_debug "uploadServer: $SERVER"
 
     uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-    AUTH_DATA=$(parse_cookie 'login' < "$COOKIEFILE" | uri_decode)
+    AUTH_DATA=$(parse_cookie 'login' < "$COOKIEFILE" | uri_decode) || return
 
     # TODO: Allow changing admin code (used for deletion)
     ADMIN_CODE="noyiva$$"
