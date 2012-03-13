@@ -34,7 +34,7 @@ uploading_download() {
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://uploading.com'
-    local DATA ERR1 ERR2 WAIT JSURL FILENAME FILE_URL
+    local DATA ERR1 ERR2 WAIT FILENAME FILE_URL
 
     # Force language to English
     DATA=$(curl -c "$COOKIEFILE" -b "lang=1" "$URL") || return
@@ -50,9 +50,9 @@ uploading_download() {
     if match "$ERR1\|$ERR2" "$DATA"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif match "<h2.*Download Limit.*</h2>" "$DATA"; then
+    elif match '<h2.*Download Limit.*</h2>' "$DATA"; then
         log_debug "Server asked to wait"
-        WAIT=$(echo "$DATA" | parse "download only one" "one file per \([[:digit:]]\+\) minute")
+        WAIT=$(echo "$DATA" | parse 'download only one' 'one file per \([[:digit:]]\+\) minute')
         test -n "$WAIT" && echo $((WAIT*60))
         return $ERR_LINK_TEMP_UNAVAILABLE
     elif match '<h2>File is still uploading</h2>' "$DATA"; then
@@ -79,7 +79,6 @@ uploading_download() {
         return $ERR_FATAL
     fi
 
-    JSURL="$BASE_URL/files/get/?JsHttpRequest=$(date +%s000)-xml"
     FILENAME=$(echo "$DATA" | parse_quiet '<title>' \
         '<title>Download \(.*\) for free on uploading.com<\/title>')
 
@@ -90,7 +89,8 @@ uploading_download() {
     wait $WAIT seconds || return
 
     DATA=$(curl -b "$COOKIEFILE" --data \
-        "action=get_link&file_id=${FORM_FID}&code=${FORM_CODE}&pass=undefined" "$JSURL") || return
+        "action=get_link&file_id=${FORM_FID}&code=${FORM_CODE}&pass=" \
+        "$BASE_URL/files/get/?ajax") || return
 
     # Example of answer:
     # { "id": "1268521606000", "js": { "answer": { "link": "http:\/\/up3.uploading.com\/get_file\/%3D%3DwARfyFZ3fKB8rJ ... " } }, "text": "" }
