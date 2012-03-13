@@ -106,15 +106,17 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
         fi
     fi
 
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse 'var c =' \
-            '[[:space:]]\([[:digit:]]\+\);')
+    # <div class="sec" id='downloadDelayTimeSec'>20</div>
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag_quiet 'downloadDelayTimeSec' 'div')
+    test -z "$WAIT_TIME" && WAIT_TIME=20
 
     # Try to figure the real filename from HTML
-    FILE_NAME=$(echo "$WAIT_HTML" | parse_quiet '<b class="blue xlargen">' \
-            'n">\([^<]\+\)' | html_to_utf8 | uri_decode)
+    FILE_NAME=$(echo "$WAIT_HTML" | parse_quiet 'fileNameTextSpan' '">\(.*\)\r$')
 
     if [ -z "$TORRENT" ]; then
-        FILE_URL=$(echo "$WAIT_HTML" | parse_attr '4shared\.com\/download\/' href) || return
+        FILE_URL=$(echo "$WAIT_HTML" | parse_attr_quiet 'linkShow' href)
+        test -z "$FILE_URL" && \
+            FILE_URL=$(echo "$WAIT_HTML" | parse 'window\.location' '= "\([^"]*\)') || return
     else
         MODULE_4SHARED_DOWNLOAD_RESUME=no
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr 'download-torrent' href) || return
