@@ -172,10 +172,13 @@ uploaded_to_download() {
     recaptcha_ack $ID
     log_debug "correct captcha"
 
-    # retrieve (truncated) filename
-    # Only 1 access to "final" URL is allowed, so we can't get complete name
-    # using "Content-Disposition:" header
-    FILE_NAME=$(echo "$HTML" | parse_quiet 'id="filename"' 'name">\([^<]*\)' | replace '&hellip;' '.')
+    FILE_NAME=$(curl "${URL%/}/status" | first_line) || return
+    if [ -z "$FILE_NAME" ]; then
+        # retrieve (truncated) filename
+        # Only 1 access to "final" URL is allowed, so we can't get complete name
+        # using "Content-Disposition:" header
+        FILE_NAME=$(echo "$HTML" | parse_tag_quiet 'id="filename"' 'a' | replace '&hellip;' '.')
+    fi
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
