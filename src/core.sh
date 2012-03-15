@@ -294,7 +294,7 @@ parse_all() {
 
     STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP\""
+        log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP/\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -331,9 +331,28 @@ parse_last() {
 # stdin: text data
 # stdout: result
 parse_line_after_all() {
-    local STRING=$(sed -n "/$1/{n;s/^.*$2.*$/\1/p}")
-    test "$STRING" && echo "$STRING" ||
-        { log_error "$FUNCNAME failed: sed -n \"/$1/s/$2\""; return $ERR_FATAL; }
+    local STRING REGEXP
+
+    if [ '^' = "${2:0:1}" ]; then
+        if [ '$' = "${2:(-1):1}" ]; then
+            REGEXP="$2"
+        else
+            REGEXP="$2.*$"
+        fi
+    elif [ '$' = "${2:(-1):1}" ]; then
+            REGEXP="^.*$2"
+    else
+            REGEXP="^.*$2.*$"
+    fi
+
+    STRING=$(sed -n "/$1/{n;s/$REGEXP/\1/p}")
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"/$1/{n;s/$REGEXP/}\""
+        log_notice_stack
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Like parse_line_after_all, but get only first match
