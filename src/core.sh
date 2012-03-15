@@ -65,9 +65,8 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 # $1: filename
 logcat_report() {
     if test -s "$1"; then
-        local STRING=$(sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' \
-                           -e 's/^/rep:/' "$1")
-        test $(verbose_level) -ge 4 && stderr "$STRING"
+        test $(verbose_level) -ge 4 && \
+            stderr "$(sed -e 's/^/rep:/' "$1")"
     fi
     return 0
 }
