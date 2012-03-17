@@ -172,7 +172,7 @@ uploaded_to_download() {
     recaptcha_ack $ID
     log_debug "correct captcha"
 
-    FILE_NAME=$(curl "${URL%/}/status" | first_line) || return
+    FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
     if [ -z "$FILE_NAME" ]; then
         # retrieve (truncated) filename
         # Only 1 access to "final" URL is allowed, so we can't get complete name
