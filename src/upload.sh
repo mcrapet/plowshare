@@ -27,7 +27,7 @@ HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowup version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=Kb, m=Mb, g=Gb)
+MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
 MIN_LIMIT_RATE,,min-rate:,SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
@@ -69,9 +69,9 @@ absolute_path() {
 parse_rate() {
     local N="${1//[^0-9]}"
     if test "${1:(-1):1}" = "K"; then
-        echo $((N * 1000))
-    elif test "${1:(-1):1}" = "k"; then
         echo $((N * 1024))
+    elif test "${1:(-1):1}" = "k"; then
+        echo $((N * 1000))
     else
         echo $((N))
     fi

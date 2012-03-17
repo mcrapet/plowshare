@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "February 25, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "March 17, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -54,18 +54,18 @@ If your machine has several network interfaces, force using \fIIFACE\fR interfac
 .BI "   " " " --max-rate "=SPEED"
 Limit upload maximum speed in bytes per seconds. Suffixes are:
 .RS 
-\fBk\fR  for kilobytes (Kb),
+\fBk\fR  for kilobytes (kB),
 .RE
 .RS
-\fBm\fR  for megabytes (Mb),
+\fBm\fR  for megabytes (MB),
 .RE
 .RS
-\fBg\fR  for gigabytes (Gb).
+\fBg\fR  for gigabytes (GB).
 .RE
 .TP
 .BI "   " " " --min-rate "=SPEED"
 Limit upload minimum speed in bytes per seconds (for a delay of 30 seconds).
-\fBK\fR or \fBk\fR suffixes can be specified.
+\fBK\fR (kibibyte) or \fBk\fR (kilobyte) suffixes can be specified.
 .TP
 .BI -r, " " --max-retries "=N"
 Set maximum retries for upload failures (fatal or network errors). Default is 0 (no retry).
