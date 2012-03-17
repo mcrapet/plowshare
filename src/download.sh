@@ -679,7 +679,7 @@ for ITEM in "$@"; do
                 log_debug "No module found, try simple redirection"
 
                 URL_ENCODED=$(echo "$URL" | uri_encode)
-                URL_TEMP=$(curl --user-agent '' -i "$URL_ENCODED" | grep_http_header_location) || true
+                URL_TEMP=$(curl --user-agent '' -i "$URL_ENCODED" | grep_http_header_location_quiet) || true
 
                 if [ -n "$URL_TEMP" ]; then
                     MODULE=$(get_module "$URL_TEMP" "$MODULES")
