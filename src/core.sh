@@ -1012,7 +1012,7 @@ captcha_process() {
             convert "$FILENAME" -negate -depth 8 pnm:$IMG_PNM
             aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
                 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<<'q' | \
-                sed  -e '1d;/\x0C/,/\x0C/d' | sed -e '/^[[:space:]]*$/d' 1>&2
+                sed  -e '1d;/\f/,/\f/d' | sed -e '/^[[:space:]]*$/d' 1>&2
 
             # FIXME: busybox sed does not support \xHH notation
             rm -f "$IMG_PNM"
