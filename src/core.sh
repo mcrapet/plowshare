@@ -223,14 +223,14 @@ lowercase() {
 # Grep first line of a text
 # stdin: input string (multiline)
 first_line() {
-    # equivalent to `sed -e q` or `sed -e 1q`
+    # equivalent to `sed -ne 1p` or `sed -e q` or `sed -e 1q`
     head -n1
 }
 
 # Grep last line of a text
 # stdin: input string (multiline)
 last_line() {
-    # equivalent to `sed -ne '$p'`
+    # equivalent to `sed -ne '$p'` or `sed -e '$!d'`
     tail -n1
 }
 
@@ -238,7 +238,7 @@ last_line() {
 # stdin: input string (multiline)
 # $1: line number (start at index 1)
 nth_line() {
-   # equivalent to `sed -e "${1}q;d"`
+   # equivalent to `sed -e "${1}q;d"` or `sed -e "${1}!d"`
    sed -ne "${1}p"
 }
 
@@ -534,7 +534,7 @@ parse_tag_quiet() {
 
 # Parse HTML attribute content
 # http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
-# Note:
+# Notes:
 # - empty attribute syntax is not supported (ex: <input disabled>)
 # - this is greedy, last occurrence is taken
 # - attribute is case sensitive, it should not
