@@ -231,7 +231,7 @@ wupload_upload() {
         URL=$(echo "$JSON" | parse 'url' ':"\([^"]*json\)"') || return
         URL=${URL//[\\]/}
     else
-        URL="http://s50.wupload.com/?callbackUrl=http://www.wupload.com/upload/done/:uploadProgressId&X-Progress-ID=upload_$$"
+        URL="http://web.eu.wupload.com/?callbackUrl=http://www.wupload.com/upload/done/:uploadProgressId&X-Progress-ID=upload_$$"
     fi
 
     # Upload one file per request
