@@ -106,17 +106,25 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
         fi
     fi
 
+    if match 'Login</a> to download this file' "$WAIT_HTML"; then
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
     # <div class="sec" id='downloadDelayTimeSec'>20</div>
     WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag_quiet 'downloadDelayTimeSec' 'div')
     test -z "$WAIT_TIME" && WAIT_TIME=20
 
     # Try to figure the real filename from HTML
     FILE_NAME=$(echo "$WAIT_HTML" | parse_quiet 'fileNameTextSpan' '">\(.*\)\r$')
+    if [ -z "$FILENAME" ]; then
+        FILE_NAME=$(echo "$WAIT_HTML" | parse_quiet 'blue xlargen"' '">\(.*\)<\/')
+    fi
 
     if [ -z "$TORRENT" ]; then
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr_quiet 'linkShow' href)
-        test -z "$FILE_URL" && \
+        if [ -z "$FILE_URL" ]; then
             FILE_URL=$(echo "$WAIT_HTML" | parse 'window\.location' '= "\([^"]*\)') || return
+        fi
     else
         MODULE_4SHARED_DOWNLOAD_RESUME=no
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr 'download-torrent' href) || return
