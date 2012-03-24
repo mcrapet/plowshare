@@ -1750,7 +1750,10 @@ captcha_antigate_ready() {
     [ -z "$KEY" ] && return $ERR_FATAL
 
     AMOUNT=$(curl --get --data "key=${CAPTCHA_ANTIGATE}&action=getbalance"  \
-        'http://antigate.com/res.php') || return
+        'http://antigate.com/res.php') || { \
+        log_notice "antigate: site seems to be down"
+        return $ERR_NETWORK
+    }
 
     if match '^ERROR' "$AMOUNT"; then
         log_error "antigate error: $AMOUNT"
