@@ -20,12 +20,45 @@
 
 MODULE_TURBOBIT_REGEXP_URL="http\?://\(www\.\)\?turbobit\.net/"
 
-MODULE_TURBOBIT_DOWNLOAD_OPTIONS=""
+MODULE_TURBOBIT_DOWNLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account free or premium"
 MODULE_TURBOBIT_DOWNLOAD_RESUME=yes
 MODULE_TURBOBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
-MODULE_TURBOBIT_UPLOAD_OPTIONS=""
+MODULE_TURBOBIT_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account free or premium"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
+
+# Proceed with login (free-membership or premium)
+turbobit_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASEURL=$3
+
+    local LOGIN_DATA LOGIN_RESULT EXTRA_ARGS USER_ISLOGGEDIN
+
+    # Force page in English
+    EXTRA_ARGS='-b user_lang=en'
+    LOGIN_DATA='user[login]=$USER&user[pass]=$PASSWORD&user[submit]=Login'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASEURL/user/login" "$EXTRA_ARGS") || return
+
+    USER_ISLOGGEDIN=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
+    if [ "$USER_ISLOGGEDIN" = '1' ]; then
+        IFS=":" read USER PASSWORD <<< "$AUTH"
+        log_debug "Successfully logged in as ${USER} member"
+        return 0
+    fi
+
+    return $ERR_LOGIN_FAILED
+}
+
+# Check for dead link
+# $1: page
+is_dead_turbobit(){
+    match 'File not found' "$1" && return $ERR_LINK_DEAD
+    return 0
+}
 
 # Output a turbobit file download URL
 # $1: cookie file
@@ -36,6 +69,8 @@ turbobit_download() {
 
     local COOKIEFILE=$1
     local URL=$2
+    local BASE_URL='http://turbobit.net'
+
     local ID_FILE FREE_URL PAGE PAGE_LINK PART_FILE_URL FILE_URL
     local FILENAME WAIT_TIME WAIT_TIME2 CAPTCHA_IMG
 
@@ -57,13 +92,36 @@ turbobit_download() {
 
     FREE_URL="http://turbobit.net/download/free/$ID_FILE"
 
-    # Force page in English
-    PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$FREE_URL") || return
+    if test -n "$AUTH"; then
+        turbobit_login "$AUTH" "$COOKIEFILE" "$BASE_URL" >/dev/null || return
+        PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL") || return
+
+        # Premium account
+        if match '<u>Turbo Access</u> to' "$PAGE"; then
+            PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+
+            # Check for dead link
+            is_dead_turbobit "$PAGE" || return
+
+            FILE_URL=$(echo "$PAGE" | parse_attr '\/redirect\/' 'href')
+            FILE_NAME=$(basename_file "$FILE_URL")
+
+            FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+                grep_http_header_location) || return
+            FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+                grep_http_header_location) || return
+
+            echo "$FILE_URL"
+            echo "$FILE_NAME"
+            return 0
+        fi
+	    PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$FREE_URL") || return
+    else
+        PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$FREE_URL") || return
+    fi
 
     # Check for dead link
-    if match 'File not found' "$PAGE"; then
-        return $ERR_LINK_DEAD
-    fi
+    is_dead_turbobit "$PAGE" || return
 
     test "$CHECK_LINK" && return 0
 
@@ -151,7 +209,7 @@ turbobit_download() {
 
     # Get the page containing the file url
     PAGE_LINK=$(curl -b "$COOKIEFILE" --referer "$FREE_URL" \
-        -H "X-Requested-With: XMLHttpRequest" \
+        -H 'X-Requested-With: XMLHttpRequest' \
         "http://turbobit.net/download/getLinkTimeout/$ID_FILE") || return
 
     # Sanity check
@@ -164,8 +222,10 @@ turbobit_download() {
     FILE_NAME=$(basename_file "$PART_FILE_URL")
 
     FILE_URL="http://turbobit.net$PART_FILE_URL"
-    FILE_URL=$(curl --include "$FILE_URL" | grep_http_header_location) || return
-    FILE_URL=$(curl --include "$FILE_URL" | grep_http_header_location) || return
+    FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+        grep_http_header_location) || return
+    FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+        grep_http_header_location) || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -183,35 +243,53 @@ turbobit_upload() {
     local FILE=$2
     local DESTFILE=$3
 
-    local URL PAGE UPLOAD_URL XML MESSAGE FILE_ID DELETE_ID
+    local URL PAGE UPLOAD_URL JSON MESSAGE FILE_ID DELETE_ID FORM_UID
 
     URL='http://turbobit.net'
 
-    PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$URL") || return
+    if test -n "$AUTH"; then
+        turbobit_login "$AUTH" "$COOKIEFILE" "$URL" >/dev/null || \
+            return
+        PAGE=$(curl -c "$COOKIEFILE" -b "$COOKIEFILE"  "$URL") || return
+    else
+        PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$URL") || return
+    fi
 
-    UPLOAD_URL=$(echo "$PAGE" | parse "flashvars=" "urlSite=\([^&]*\)")
-    APPTYPE=$(echo "$PAGE" | parse "flashvars=" 'apptype=\([^"]*\)')
+    UPLOAD_URL=$(echo "$PAGE" | parse "flashvars=" "urlSite=\([^&]*\)") || return
+    APPTYPE=$(echo "$PAGE" | parse "flashvars=" 'apptype=\([^"]*\)') || return
 
-    #Cookie to error message in English
-    XML=$(curl_with_log "$UPLOAD_URL" \
+    if test -n "$AUTH"; then
+        local USER_ID=$(echo "$PAGE" | \
+            parse_quiet "flashvars=" 'userId=\([^&]*\)')
+        FORM_UID="-F user_id=$USER_ID"
+    fi
+
+    # Cookie to error message in English
+    JSON=$(curl_with_log "$UPLOAD_URL" \
         -F "Filename=$DESTFILE" \
         -F "apptype=$APPTYPE" \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
+        $FORM_UID \
         --user-agent 'Shockwave Flash' \
         -b "$COOKIEFILE" \
         --referer "$URL") || return
 
-    if match '"result":false' "$XML"; then
-        MESSAGE=$(echo "$XML" | parse '"message":' '"message":"\([^"]*\)')
+    if match '"result":false' "$JSON"; then
+        MESSAGE=$(echo "$JSON" | parse '"message":' '"message":"\([^"]*\)')
         log_error "turbobit error: $MESSAGE"
         return $ERR_FATAL
 
-    elif match '"result":true' "$XML"; then
-        FILE_ID=$(echo "$XML" | parse '"id":"' '"id":"\([^"]*\)')
-        PAGE=$(curl "$URL/newfile/gridFile/$FILE_ID?_search=false&nd=1329575134913&rows=20&page=1&sidx=id&sord=asc") || return
+    elif match '"result":true' "$JSON"; then
+        FILE_ID=$(echo "$JSON" | parse '"id":"' '"id":"\([^"]*\)')
+        PAGE=$(curl -b "$COOKIEFILE" "$URL/newfile/gridFile/${FILE_ID}?_search=false&nd=$(date +%s000)&rows=20&page=1&sidx=id&sord=asc") || return
         DELETE_ID=$(echo "$PAGE" | parse 'null,null,' 'null,null,"\([^"]*\)')
 
         echo "http://turbobit.net/$FILE_ID.html"
-        echo "http://turbobit.net/delete/file/$FILE_ID/$DELETE_ID"
+        test "$DELETE_ID" && \
+            echo "http://turbobit.net/delete/file/$FILE_ID/$DELETE_ID"
+        return 0
     fi
+
+    log_error "Site updated?"
+    return $ERR_FATAL
 }
