@@ -21,8 +21,9 @@
 MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\|rs[[:digit:]][0-9a-z]*\.\)\?rapidshare\.com/"
 
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
-MODULE_RAPIDSHARE_DOWNLOAD_RESUME=yes
+AUTH,a:,auth:,USER:PASSWORD,Premium account
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+MODULE_RAPIDSHARE_DOWNLOAD_RESUME=no
 MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
@@ -62,6 +63,12 @@ rapidshare_download() {
 
     if test "$AUTH"; then
         IFS=":" read USER PASSWORD <<< "$AUTH"
+        if [ -z "$PASSWORD" ]; then
+            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+        fi
+        PARAMS="&login=$USER&password=$PASSWORD"
+    elif test "$AUTH_FREE"; then
+        IFS=":" read USER PASSWORD <<< "$AUTH_FREE"
         if [ -z "$PASSWORD" ]; then
             PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
         fi
@@ -117,8 +124,12 @@ rapidshare_download() {
     # https is only available for RapidPro customers
     BASE_URL="://$RSHOST/cgi-bin/rsapi.cgi?sub=download"
 
+    # SSL downloads are only available for RapidPro customers
     if test "$AUTH"; then
+        MODULE_RAPIDSHARE_DOWNLOAD_RESUME=yes
         echo "https$BASE_URL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
+    elif test "$AUTH_FREE"; then
+        echo "http$BASE_URL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
     else
         echo "http$BASE_URL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
     fi
