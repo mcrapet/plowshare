@@ -133,6 +133,8 @@ for URL in "$@"; do
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
+    elif [ $DRETVAL -eq $ERR_LINK_NEED_PERMISSIONS ]; then
+        log_error "Anonymous users cannot delete links"
     elif [ $DRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error "Not found or already deleted"
     elif [ $DRETVAL -eq $ERR_LOGIN_FAILED ]; then

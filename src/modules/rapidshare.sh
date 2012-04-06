@@ -190,10 +190,7 @@ rapidshare_delete() {
     local URL=$2
     local USER PASSWORD FILEID RESPONSE
 
-    if ! test "$AUTH"; then
-        log_error "Anonymous users cannot delete files"
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
     local USER="${AUTH%%:*}"
     local PASSWORD="${AUTH#*:}"

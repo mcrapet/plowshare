@@ -247,10 +247,7 @@ uploaded_to_delete() {
     local BASE_URL='http://uploaded.to'
     local PAGE FILE_ID
 
-    if ! test "$AUTH"; then
-        log_error "Anonymous users cannot delete files"
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
     # extract the raw file id
     PAGE=$(curl -L "$URL") || return

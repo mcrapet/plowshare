@@ -143,10 +143,7 @@ dataport_cz_delete() {
     local URL=$2
     local BASE_URL=$(basename_url $URL)
 
-    if ! test "$AUTH"; then
-        log_error "Anonymous users cannot delete links."
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
     LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
     post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || return
