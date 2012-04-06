@@ -296,7 +296,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
-                log_notice "Insufficient permissions (premium link?)"
+                log_notice "Insufficient permissions (file size limit exceeded or premium link)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
