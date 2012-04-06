@@ -24,10 +24,10 @@ MODULE_ORON_DOWNLOAD_OPTIONS=""
 MODULE_ORON_DOWNLOAD_RESUME=no
 MODULE_ORON_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
-MODULE_UPLOADED_TO_UPLOAD_OPTIONS=""
-MODULE_UPLOADED_TO_UPLOAD_REMOTE_SUPPORT=no
+MODULE_ORON_UPLOAD_OPTIONS=""
+MODULE_ORON_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_UPLOADED_TO_DELETE_OPTIONS=""
+MODULE_ORON_DELETE_OPTIONS=""
 
 # helper functions
 
@@ -62,9 +62,10 @@ oron_random_num() {
 # stdout: real file download link
 #         file name
 oron_download() {
+    eval "$(process_options oron "$MODULE_ORON_DOWNLOAD_OPTIONS" "$@")"
+
     local COOKIE_FILE=$1
     local URL=$2
-
     local HTML SLEEP FILE_ID FILE_NAME REF METHOD HOURS MINS SECS RND
 
     # extract ID
@@ -178,9 +179,12 @@ oron_download() {
 # stdout: download link
 #         delete link
 oron_upload() {
+    eval "$(process_options oron "$MODULE_ORON_UPLOAD_OPTIONS" "$@")"
+
     local COOKIE_FILE=$1
     local FILE=$2
     local DEST_FILE=$3
+
     local MAX_SIZE_FREE=$((400*1024*1024)) # anon uploads up to 400MB
     #local MAX_SIZE_REG=$((1024*1024*1024)) # reg uploads up to 1GB
     #local MAX_SIZE_PREM=$((2048*1024*1024)) # premium uploads up to 2GB
@@ -283,8 +287,9 @@ oron_upload() {
 # Delete a file on oron.com
 # $1: kill URL
 oron_delete() {
-    local URL=$1
+    eval "$(process_options oron "$MODULE_ORON_DELETE_OPTIONS" "$@")"
 
+    local URL=$1
     local HTML FILE_ID KILLCODE COOKIE_FILE
     local BASE_URL='http:\/\/oron\.com'
 
