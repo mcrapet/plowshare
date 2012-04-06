@@ -134,11 +134,13 @@ dataport_cz_upload() {
 }
 
 # Delete a file on dataport.cz (requires an account)
-# $1: download link
+# $1: cookie file
+# $2: download link
 dataport_cz_delete() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL=$(basename_url $URL)
 
     if ! test "$AUTH"; then
@@ -146,18 +148,12 @@ dataport_cz_delete() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    COOKIES=$(create_tempfile) || return
     LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
-    post_login "$AUTH" "$COOKIES" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || {
-        rm -f $COOKIES
-        return $ERR_FATAL
-    }
+    post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || return
 
     DEL_URL=$(echo "$URL" | replace 'file' 'delete')
 
-    DELETE=$(curl -I -b $COOKIES $DEL_URL | grep_http_header_location)
-
-    rm -f $COOKIES
+    DELETE=$(curl -I -b "$COOKIEFILE" $DEL_URL | grep_http_header_location)
 
     if ! match "vymazano" "$DELETE"; then
         log_error "Error deleting link."

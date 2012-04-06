@@ -127,11 +127,12 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 }
 
 # Delete a file uploaded to 1fichier
-# $1: delete url
+# $1: cookie file (unused here)
+# $2: delete url
 1fichier_delete() {
     eval "$(process_options 1fichier "$MODULE_1FICHIER_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local PAGE
 
     if match '/bg/remove/' "$URL"; then

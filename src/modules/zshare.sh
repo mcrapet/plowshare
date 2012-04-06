@@ -125,11 +125,12 @@ zshare_upload() {
 }
 
 # Delete a file from zshare
-# $1: delete link
+# $1: cookie file (unused here)
+# $2: delete link
 zshare_delete() {
     eval "$(process_options zshare "$MODULE_ZSHARE_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local DELETE_PAGE FORM_KILLCODE RESULT_PAGE
 
     DELETE_PAGE=$(curl -L "$URL") || return

@@ -237,13 +237,15 @@ uploaded_to_upload() {
 }
 
 # Delete a file on uploaded.to
-# $1: uploaded.to (download) link
+# $1: cookie file
+# $2: uploaded.to (download) link
 uploaded_to_delete() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='http://uploaded.to'
-    local PAGE FILE_ID COOKIE_FILE
+    local PAGE FILE_ID
 
     if ! test "$AUTH"; then
         log_error "Anonymous users cannot delete files"
@@ -261,11 +263,9 @@ uploaded_to_delete() {
     FILE_ID=$(echo "$PAGE" | parse 'file\/' 'file\/\([^/"]\+\)') || return
     log_debug "file id=$FILE_ID"
 
-    COOKIE_FILE=$(create_tempfile) || return
-    uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/file/$FILE_ID/delete") || return
-    rm -f "$COOKIE_FILE"
+    PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/file/$FILE_ID/delete") || return
 
     # {succ:true}
     match 'true' "$PAGE" || return $ERR_FATAL

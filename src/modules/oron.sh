@@ -285,15 +285,15 @@ oron_upload() {
 }
 
 # Delete a file on oron.com
-# $1: kill URL
+# $1: cookie file
+# $2: kill URL
 oron_delete() {
     eval "$(process_options oron "$MODULE_ORON_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
-    local HTML FILE_ID KILLCODE COOKIE_FILE
+    local COOKIEFILE=$1
+    local URL=$2
+    local HTML FILE_ID KILLCODE
     local BASE_URL='http:\/\/oron\.com'
-
-    COOKIE_FILE=$(create_tempfile) || return
 
     # check + parse URL
     FILE_ID=$(echo "$URL" | parse "$BASE_URL" \
@@ -304,18 +304,17 @@ oron_delete() {
         "^${BASE_URL}\/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
     log_debug "killcode: $KILLCODE"
 
-    oron_switch_lang "$COOKIE_FILE"
-    HTML=$(curl -b "$COOKIE_FILE" -L "$URL") || return
+    oron_switch_lang "$COOKIEFILE"
+    HTML=$(curl -b "$COOKIEFILE" -L "$URL") || return
 
     match "No such file exist" "$HTML" && return $ERR_LINK_DEAD
 
-    HTML=$(curl -b "$COOKIE_FILE" \
+    HTML=$(curl -b "$COOKIEFILE" \
         -F "op=del_file" \
         -F "id=$FILE_ID" \
         -F "del_id=$KILLCODE" \
         -F "confirm=yes" \
         'http://oron.com') || return
 
-    rm -f "$COOKIE_FILE"
     match "File deleted successfully" "$HTML" || return $ERR_FATAL
 }

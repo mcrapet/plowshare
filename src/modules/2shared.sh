@@ -92,26 +92,25 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 }
 
 # Delete a file uploaded to 2shared
-# $1: ADMIN_URL
+# $1: cookie file
+# $2: ADMIN_URL
 2shared_delete() {
     eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local COOKIEFILE=$1
+    local URL=$2
     local BASE_URL='http://www.2shared.com'
-    local COOKIEFILE ADMIN_PAGE FORM DL_LINK AD_LINK
+    local ADMIN_PAGE FORM DL_LINK AD_LINK
 
     # Without cookie, it does not work
-    COOKIEFILE=$(create_tempfile) || return
     ADMIN_PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
 
     if ! match 'Delete File' "$ADMIN_PAGE"; then
-        rm -f "$COOKIEFILE"
         return $ERR_LINK_DEAD
     fi
 
     FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
         log_error "can't get delete form, website updated?";
-        rm -f "$COOKIEFILE";
         return $ERR_FATAL;
     }
 
@@ -122,6 +121,4 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
         "$URL" || return
     # Can't parse for success, we get redirected to main page
-
-    rm -f "$COOKIEFILE"
 }

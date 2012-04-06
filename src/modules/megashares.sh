@@ -219,11 +219,12 @@ megashares_upload() {
 }
 
 # Delete a file from megashares.com
-# $1: megashares.com (delete) link
+# $1: cookie file (unused here)
+# $2: megashares.com (delete) link
 megashares_delete() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local PAGE FORM_HTML FORM_ACTION
 
     PAGE=$(curl -L "$URL") || return

@@ -120,11 +120,12 @@ sendspace_upload() {
 }
 
 # Delete a file on sendspace
-# $1: delete link
+# $1: cookie file (unused here)
+# $2: delete link
 sendspace_delete() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local PAGE FORM_HTML FORM_URL FORM_SUBMIT
 
     PAGE=$(curl "$URL") || return

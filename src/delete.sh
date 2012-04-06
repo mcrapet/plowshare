@@ -104,6 +104,8 @@ test $# -lt 1 && { usage; exit $ERR_FATAL; }
 set_exit_trap
 
 RETVALS=()
+DCOOKIE=$(create_tempfile) || exit
+
 for URL in "$@"; do
 
     if [ -z "$URL" ]; then
@@ -125,8 +127,9 @@ for URL in "$@"; do
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
 
+    :> "$DCOOKIE"
     DRETVAL=0
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" || DRETVAL=$?
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
@@ -137,6 +140,8 @@ for URL in "$@"; do
     fi
     RETVALS=(${RETVALS[@]} $DRETVAL)
 done
+
+rm -f "$DCOOKIE"
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
     exit 0

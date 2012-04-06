@@ -252,11 +252,12 @@ depositfiles_upload() {
 
 # Delete a file on depositfiles
 # (authentication not required, we can delete anybody's files)
-# $1: delete link
+# $1: cookie file (unused here)
+# $2: delete link
 depositfiles_delete() {
     eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local PAGE
 
     PAGE=$(curl "$URL") || return

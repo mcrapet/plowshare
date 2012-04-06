@@ -309,11 +309,12 @@ fileserve_list() {
 }
 
 # Delete a file from fileserve
-# $1: delete link
+# $1: cookie file (unused here)
+# $2: delete link
 fileserve_delete() {
     eval "$(process_options zshare "$MODULE_FILESERVE_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local DELETE_PAGE NEED_CODE
 
     DELETE_PAGE=$(curl -L "$URL") || return

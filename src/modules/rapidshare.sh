@@ -182,11 +182,12 @@ rapidshare_upload() {
 }
 
 # Delete a file on rapidshare
-# $1: rapidshare (download) link
+# $1: cookie file (unused here)
+# $2: rapidshare (download) link
 rapidshare_delete() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
 
-    local URL=$1
+    local URL=$2
     local USER PASSWORD FILEID RESPONSE
 
     if ! test "$AUTH"; then
