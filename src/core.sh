@@ -730,7 +730,7 @@ get_filesize() {
 # $1: Suffix
 create_tempfile() {
     SUFFIX=$1
-    FILE="${TMPDIR:-/tmp}/$(basename_file $0).$$.$RANDOM$SUFFIX"
+    FILE="${TMPDIR:-/tmp}/$(basename_file "$0").$$.$RANDOM$SUFFIX"
     :> "$FILE" || return $ERR_SYSTEM
     echo "$FILE"
 }
@@ -1509,7 +1509,7 @@ grep_list_modules() {
        return $ERR_SYSTEM
    fi
 
-   sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/p" $CONFIG | \
+   sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/p" "$CONFIG" | \
        cut -d'|' -f1 | strip
 }
 
