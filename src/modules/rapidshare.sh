@@ -148,10 +148,7 @@ rapidshare_upload() {
     local DESTFILE=$3
     local USER PASSWORD SERVER_NUM UPLOAD_URL INFO ERROR
 
-    if [ -z "$AUTH" ]; then
-        log_error "Anonymous users cannot upload files"
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
     USER="${AUTH%%:*}"
     PASSWORD="${AUTH#*:}"

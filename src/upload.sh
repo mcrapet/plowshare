@@ -326,6 +326,8 @@ for FILE in "$@"; do
             log_error "Output URL expected"
             URETVAL=$ERR_FATAL
         fi
+    elif [ $URETVAL -eq $ERR_LINK_NEED_PERMISSIONS ]; then
+        log_error "Anonymous users cannot upload links"
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
     else

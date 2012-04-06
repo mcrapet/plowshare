@@ -199,10 +199,7 @@ uploaded_to_upload() {
 
     local JS SERVER DATA FILE_ID AUTH_DATA ADMIN_CODE
 
-    if [ -z "$AUTH" ]; then
-        log_error "Anonymous users cannot upload files"
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
     JS=$(curl "$BASE_URL/js/script.js") || return
     SERVER=$(echo "$JS" | parse '\/\/stor' "[[:space:]]'\([^']*\)") || return
