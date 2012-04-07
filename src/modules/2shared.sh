@@ -82,7 +82,7 @@ MODULE_2SHARED_DELETE_OPTIONS=""
         return $ERR_FATAL
     fi
 
-    DATA=$(curl "$UPLOAD_URL/$COMPLETE") || return
+    DATA=$(curl "$UPLOAD_URL$COMPLETE") || return
     FILE_URL=$(echo "$DATA" | parse 'name="downloadLink"' "\(http:[^<]*\)") || return
     FILE_ADMIN=$(echo "$DATA" | parse 'name="adminLink"' "\(http:[^<]*\)")
 
