@@ -202,7 +202,7 @@ turbobit_download() {
     fi
 
     # Wait time after correct captcha
-    WAIT_TIME2=$(echo "$PAGE" | parse 'minTimeLimit :' 'minTimeLimit : \([^,]*\)') || \
+    WAIT_TIME2=$(echo "$PAGE" | parse 'minLimit[[:space:]]*:' 'minLimit[[:space:]]*: \([^,]*\)') || \
         { log_error "can't get sleep time"; return $ERR_FATAL; }
 
     wait $((WAIT_TIME2)) seconds || return
