@@ -151,10 +151,7 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
     local BASE_URL='http://www.4shared.com'
     local PAGE JSON DESTFILE_ENC SZ UP_URL DL_URL FILE_ID DIR_ID LOGIN_ID PASS_HASH
 
-    if [ -z "$AUTH_FREE" ]; then
-        log_error "Anonymous users cannot upload files"
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
 
     4shared_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" >/dev/null || return
 

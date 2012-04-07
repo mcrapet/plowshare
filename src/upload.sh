@@ -327,7 +327,7 @@ for FILE in "$@"; do
             URETVAL=$ERR_FATAL
         fi
     elif [ $URETVAL -eq $ERR_LINK_NEED_PERMISSIONS ]; then
-        log_error "Anonymous users cannot upload links"
+        log_error "Anonymous users cannot upload files"
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
     else
