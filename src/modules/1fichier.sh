@@ -69,7 +69,22 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse_attr 'Cliquez ici pour' 'href') || return
+    # Adyoulike (advertising) Captcha..
+    # Important: It is currenly disabled...
+    FILE_URL=$(curl -i -b "$COOKIEFILE" \
+        -d '_ayl_captcha_engine=adyoulike' \
+        -d '_ayl_response=' \
+        -d '_ayl_utf8_ie_fix=%E2%98%83' \
+        -d '_ayl_env=prod' \
+        -d '_ayl_token_challenge=VxuaYvYGUvk9npNIV6BKr3n4TNh%7EMjA4' \
+        -d '_ayl_tid=ABEIAuodCEKHRD30ntA6dojxuYaCfgd1' \
+        "$URL" | grep_http_header_location_quiet) || return
+
+    if [ -z "$FILE_URL" ]; then
+        log_error "Wrong captcha"
+        return $ERR_CAPTCHA
+    fi
+
     FILENAME=$(echo "$PAGE" | parse_quiet '<title>' '<title>Téléchargement du fichier : *\([^<]*\)')
 
     echo "$FILE_URL"
