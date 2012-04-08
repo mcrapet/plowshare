@@ -22,7 +22,7 @@ MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
 
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
-MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
@@ -32,26 +32,38 @@ MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 # $2: dl.free.fr url
 # stdout: real file download link
 dl_free_fr_download() {
-    local COOKIEFILE=$1
-    local HTML_PAGE=$(curl -L --cookie-jar $COOKIEFILE "$2")
+    eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS" "$@")"
 
-    # Important note: If "free.fr" is your ISP, behavior is different.
-    # There is no redirection html page, you can directly wget the URL
-    # (Content-Type: application/octet-stream)
-    # "curl -I" (http HEAD request) is detected and returns 404 error
+    local COOKIE_FILE=$1
+    local URL=$2
+
+    local PAGE
+
+    # "curl -I" (http HEAD request) returns HTTP 404 error
+    PAGE=$(curl -i -r 0-1024 "$COOKIEFILE" "$URL") || return
+
+    # Free is your ISP, this is direct download
+    if match '^HTTP/1.1 206' "$PAGE"; then
+        test "$CHECK_LINK" && return 0
+
+        echo "$URL"
+        return 0
+    fi
 
     local ERR1="erreur 500 - erreur interne du serveur"
     local ERR2="erreur 404 - document non trouv."
-    if matchi "$ERR1\|$ERR2" "$HTML_PAGE"; then
+    if matchi "$ERR1\|$ERR2" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
 
-    FILE_URL=$(echo "$HTML_PAGE" | parse "charger ce fichier" 'href="\([^"].*\)"') ||
-        { log_error "Could not parse file URL"; return $ERR_FATAL; }
+    # Retrieve entire content
+    PAGE=$(curl -L "$URL") || return
 
-    echo $FILE_URL
+    #echo "$PAGE" >/tmp/a
+    log_error "FIXME: not implemented"
+    return $ERR_FATAL
 }
 
 # Upload a file to dl.free.fr
