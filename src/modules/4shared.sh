@@ -178,38 +178,39 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
     FILE_ID=$(echo "$JSON" | parse 'fileId' 'fileId"[[:space:]]\?:[[:space:]]\?\([^,]*\)')
     DIR_ID=$(echo "$JSON" | parse 'uploadDir' 'uploadDir"[[:space:]]\?:[[:space:]]\?\([^,]*\)')
 
-    # Note: x-cookie missing
+    LOGIN_ID=$(parse_cookie 'Login' < "$COOKIEFILE") || return
+    PASS_HASH=$(parse_cookie 'Password' < "$COOKIEFILE") || return
+
     JSON=$(curl_with_log -X POST --data-binary "@$FILE" \
         -H "x-root-dir: $DIR_ID" \
         -H "x-upload-dir: $DIR_ID" \
         -H "x-file-name: $DESTFILE_ENC" \
+        -H "x-cookie: Login=$LOGIN_ID; Password=$PASS_HASH;" \
         -H "Content-Type: application/octet-stream" \
         "$UP_URL&resumableFileId=$FILE_ID&resumableFirstByte=0") || return
 
     # I should get { "status": "OK", "uploadedFileId": -1 }
     if match '"status"[[:space:]]\?:[[:space:]]\?"error"' "$JSON"; then
-        local ERR=$(echo "$JSON" | parse 'Message"' "Message\"[[:space:]]\?:[[:space:]]\?'\([^']*\)") || return
+        local ERR
+        ERR=$(echo "$JSON" | parse 'Message"' \
+            "Message\"[[:space:]]\?:[[:space:]]\?'\([^']*\)") || return
         log_error "site: $ERR"
         return $ERR_FATAL
     fi
 
     BASE_URL=$(basename_url "$UP_URL")
-    LOGIN_ID=$(parse_cookie 'Login' < "$COOKIEFILE") || return
-    PASS_HASH=$(parse_cookie 'Password' < "$COOKIEFILE") || return
-
-    # Note: x-cookie required here
     JSON=$(curl -X POST -H 'Content-Type: ' \
         -H "x-root-dir: $DIR_ID" \
         -H "x-cookie: Login=$LOGIN_ID; Password=$PASS_HASH;" \
         "$BASE_URL/rest/sharedFileUpload/finish?fileId=$FILE_ID") || return
-
-    echo "$DL_URL"
 
     # {"status":true}
     if ! match '"status"[[:space:]]\?:[[:space:]]\?true' "$JSON"; then
         log_error "bad answer, file moved to Incompleted folder"
         return $ERR_FATAL
     fi
+
+    echo "$DL_URL"
 }
 
 # List a 4shared folder URL
