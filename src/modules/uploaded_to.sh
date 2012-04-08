@@ -94,6 +94,10 @@ uploaded_to_download() {
     if [ -n "$AUTH" ]; then
         uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
 
+        # set website language to english
+        log_debug "must change account preferred language to english"
+        curl -b "$COOKIEFILE" "$BASE_URL/language/en" || return
+
         # save HTTP headers to detect "direct downloads" option
         HTML=$(curl -i -b "$COOKIEFILE" "$URL") || return
 
@@ -115,15 +119,15 @@ uploaded_to_download() {
             return 0
         fi
     else
-        HTML=$(curl -c "$COOKIEFILE" "$URL") || return
+        # set website language to english (currently default language)
+        curl -c "$COOKIEFILE" "$BASE_URL/language/en" || return
+
+        HTML=$(curl -b "$COOKIEFILE" "$URL") || return
     fi
 
     # extract the raw file id
     FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
     log_debug "file id=$FILE_ID"
-
-    # set website language to english
-    curl -b "$COOKIEFILE" "$BASE_URL/language/en" || return
 
     # check for files that need a password
     local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
