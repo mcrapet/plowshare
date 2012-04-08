@@ -34,13 +34,13 @@ MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 dl_free_fr_download() {
     eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIE_FILE=$1
+    #local COOKIE_FILE=$1
     local URL=$2
 
     local PAGE
 
     # "curl -I" (http HEAD request) returns HTTP 404 error
-    PAGE=$(curl -i -r 0-1024 "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl -i -r 0-1024 "$URL") || return
 
     # Free is your ISP, this is direct download
     if match '^HTTP/1.1 206' "$PAGE"; then
