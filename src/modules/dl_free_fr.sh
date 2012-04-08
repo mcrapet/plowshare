@@ -22,7 +22,7 @@ MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
 
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
-MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
@@ -34,13 +34,15 @@ MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 dl_free_fr_download() {
     eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS" "$@")"
 
-    #local COOKIE_FILE=$1
+    local COOKIE_FILE=$1
     local URL=$2
 
-    local PAGE
+    local PAGE FORM_HTML FORM_ACTION FORM_FILE FORM_SUBM SESSID
 
-    # "curl -I" (http HEAD request) returns HTTP 404 error
-    PAGE=$(curl -i -r 0-1024 "$URL") || return
+    # Notes:
+    # - "curl -I" (HTTP HEAD request) is ignored (returns 404 error)
+    # - Range request is ignored for non Free ISP users (due to redir?)
+    PAGE=$(curl -L -i -r 0-1024 "$URL") || return
 
     # Free is your ISP, this is direct download
     if match '^HTTP/1.1 206' "$PAGE"; then
@@ -58,12 +60,39 @@ dl_free_fr_download() {
 
     test "$CHECK_LINK" && return 0
 
-    # Retrieve entire content
-    PAGE=$(curl -L "$URL") || return
+    FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_FILE=$(echo "$FORM_HTML" | parse_form_input_by_name 'file' | uri_encode_strict)
+    FORM_SUBM=$(echo "$FORM_HTML" | parse_form_input_by_type 'submit' | uri_encode_strict)
 
-    #echo "$PAGE" >/tmp/a
-    log_error "FIXME: not implemented"
-    return $ERR_FATAL
+    local PUBKEY WCI CHALLENGE WORD ID
+    PUBKEY='6Lf-Ws8SAAAAAAO4ND_KCqpZzNZQKYEuOROs4edG'
+    WCI=$(recaptcha_process $PUBKEY) || return
+    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+    PAGE=$(curl -v -c "$COOKIE_FILE" \
+        -d "recaptcha_challenge_field=$CHALLENGE" \
+        -d "recaptcha_response_field=$WORD" \
+        -d "file=$FORM_FILE" \
+        -d "submit=$FORM_SUBM" \
+        -d '_ayl_token_challenge=undefined' \
+        -d '_ayl_captcha_engine=recaptcha' \
+        -d '_ayl_utf8_ie_fix=%E2%98%83' \
+        -d '_ayl_tid=undefined' \
+        -d '_ayl_env=prod' \
+        --referer "$URL" \
+        "http://dl.free.fr/$FORM_ACTION") || return
+
+    SESSID=$(parse_cookie_quiet 'getfile' < "$COOKIE_FILE")
+    if [ -z "$SESSID" ]; then
+        recaptcha_nack $ID
+        return $ERR_CAPTCHA
+    fi
+
+    recaptcha_ack $ID
+    log_debug "correct captcha"
+
+    echo "$URL"
 }
 
 # Upload a file to dl.free.fr
