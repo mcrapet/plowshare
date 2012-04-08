@@ -102,6 +102,10 @@ depositfiles_download() {
         # Please try again in 1 min until file processing is complete.
         if match 'html_download_api-temporary_unavailable' "$START"; then
             return $ERR_LINK_TEMP_UNAVAILABLE
+        # Attention! You have exceeded the 20 GB 24-hour limit.
+        elif match 'html_download_api-gold_traffic_limit' "$START"; then
+            log_error "Traffic limit exceeded (20 GB)"
+            return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
         return $ERR_LINK_DEAD
