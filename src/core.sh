@@ -1046,8 +1046,7 @@ captcha_process() {
             return $ERR_CAPTCHA
             ;;
         antigate)
-            if [ -z "$CAPTCHA_ANTIGATE" ]; then
-                log_error "antigate missing captcha key"
+            if ! captcha_antigate_ready "$CAPTCHA_ANTIGATE"; then
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
@@ -1219,7 +1218,7 @@ recaptcha_process() {
         log_debug "reCaptcha image URL: $URL"
         curl "$URL" -o "$FILENAME" || return
 
-        if captcha_antigate_ready "$CAPTCHA_ANTIGATE"; then
+        if [ -n "$CAPTCHA_ANTIGATE" ]; then
             WORDS=$(captcha_process "$FILENAME" 'antigate' 'none') || return
         elif [ -n "$CAPTCHA_TRADER" ]; then
             WORDS=$(captcha_process "$FILENAME" 'captchatrader' 'none') || return
@@ -1632,7 +1631,21 @@ captcha_method_translate() {
             [[ "$2" ]] && unset "$2" && eval $2=\"\$1\"
             [[ "$3" ]] && unset "$3" && eval $3=\"\"
             ;;
+        online)
+            local SITE
+            if [ -n "$CAPTCHA_ANTIGATE" ]; then
+                SITE=antigate
+            elif [ -n "$CAPTCHA_TRADER" ]; then
+                SITE=captchatrader
+            else
+                log_error "Error: no captcha solver account provided"
+                return $ERR_FATAL
+            fi
+            [[ "$2" ]] && unset "$2" && eval $2=\"\$SITE\"
+            [[ "$3" ]] && unset "$3" && eval $3=\"none\"
+            ;;
         *)
+            log_error "Error: unknown captcha method: $1"
             return $ERR_FATAL
             ;;
     esac
@@ -1747,7 +1760,10 @@ captcha_antigate_ready() {
     local KEY=$1
     local AMOUNT
 
-    [ -z "$KEY" ] && return $ERR_FATAL
+    if [ -z "$KEY" ]; then
+        log_error "antigate: missing captcha key"
+        return $ERR_FATAL
+    fi
 
     AMOUNT=$(curl --get --data "key=${CAPTCHA_ANTIGATE}&action=getbalance"  \
         'http://antigate.com/res.php') || { \
@@ -1758,7 +1774,7 @@ captcha_antigate_ready() {
     if match '^ERROR' "$AMOUNT"; then
         log_error "antigate error: $AMOUNT"
     elif [ '0.0000' = "$AMOUNT" -o '-' = "${AMOUNT:0:1}" ]; then
-        log_notice "antigate: no more credits"
+        log_notice "antigate: no more credits (or bad key)"
         return $ERR_FATAL
     else
         log_debug "antigate credits: \$$AMOUNT"

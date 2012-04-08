@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "March 17, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "April 8, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -111,10 +111,13 @@ Use CaptchaTrader service to solve captcha.
 .BI "   " " " --captchamethod "=METHOD"
 Force specific captcha solving method. Available values:
 .RS
-\fBprompt\fR  display image and prompt for manual entering.
+\fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBnone\fR  abort if captcha solving is requested (even if automatic solving service is available).
+\fBonline\fR : use captcha solving website (Antigate or CaptchaTrader account required).
+.RE
+.RS
+\fBprompt\fR : display image and prompt for manual entering.
 .RE
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"
