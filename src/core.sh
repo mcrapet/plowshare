@@ -194,9 +194,9 @@ curl_with_log() {
 # $2: replacement string (this is not a regexp)
 replace() {
     # Using $(< /dev/stdin) gives same results
-    local S="$(cat)"
+    local S=$(cat)
     # We must escape '\' character
-    local FROM="${1//\\/\\\\}"
+    local FROM=${1//\\/\\\\}
     echo "${S//$FROM/$2}"
 }
 
@@ -715,7 +715,7 @@ uri_decode() {
 # $1: filename
 # stdout: file length (in bytes)
 get_filesize() {
-    local SIZE=`stat -c %s "$1" 2>/dev/null`
+    local SIZE=$(stat -c %s "$1" 2>/dev/null)
     if [ -z "$SIZE" ]; then
         log_error "stat binary not found"
         echo "-1"
@@ -985,8 +985,8 @@ captcha_process() {
     local MAX_OUTPUT_WIDTH MAX_OUTPUT_HEIGHT
     if [ "$METHOD_VIEW" != 'none' -a "${METHOD_VIEW:0:1}" != 'X' ]; then
         if check_exec tput; then
-            MAX_OUTPUT_WIDTH=`tput cols`
-            MAX_OUTPUT_HEIGHT=`tput lines`
+            MAX_OUTPUT_WIDTH=$(tput cols)
+            MAX_OUTPUT_HEIGHT=$(tput lines)
             if check_exec identify; then
                 local DIMENSION=$(identify -quiet "$FILENAME" | cut -d' ' -f3)
                 local W=${DIMENSION%x*}
@@ -1446,7 +1446,7 @@ process_options() {
 
     # Even if function is called from a module which has no option,
     # getopt must be called to detect non existant options (like -a user:password)
-    local ARGUMENTS="$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$NAME" -- "$@")"
+    local ARGUMENTS=$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$NAME" -- "$@")
 
     # To correctly process whitespace and quotes.
     eval set -- "$ARGUMENTS"
@@ -1603,15 +1603,15 @@ log_report_info() {
 
     if test $(verbose_level) -ge 4; then
         log_report '=== SYSTEM INFO BEGIN ==='
-        log_report "[mach] `uname -a`"
-        log_report "[bash] `echo $BASH_VERSION`"
+        log_report "[mach] $(uname -a)"
+        log_report "[bash] $BASH_VERSION"
         if check_exec 'curl'; then
-            log_report "[curl] `$(type -P curl) --version | sed 1q`"
+            log_report "[curl] $($(type -P curl) --version | sed 1q)"
         else
             log_report '[curl] not found!'
         fi
         check_exec 'gsed' && G=g
-        log_report "[sed ] `$(type -P ${G}sed) --version | sed -ne '/version/p'`"
+        log_report "[sed ] $($(type -P ${G}sed) --version | sed -ne '/version/p')"
         log_report '=== SYSTEM INFO END ==='
     fi
 }
