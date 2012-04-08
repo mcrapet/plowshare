@@ -231,6 +231,8 @@ uploaded_to_upload() {
     fi
 
     echo "http://ul.to/$FILE_ID"
+    echo
+    echo "$ADMIN_CODE"
 }
 
 # Delete a file on uploaded.to
