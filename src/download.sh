@@ -654,6 +654,10 @@ else
     [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
 fi
 
+if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
+    log_debug "using local ~/.curlrc"
+fi
+
 set_exit_trap
 
 RETVALS=()

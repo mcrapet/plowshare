@@ -230,6 +230,10 @@ if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
 
+if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
+    log_debug "using local ~/.curlrc"
+fi
+
 # Remove module name from argument list
 shift 1
 
