@@ -81,7 +81,7 @@ _plowdown()
             return 0
             ;;
         --captchamethod)
-            COMPREPLY=( $( compgen -W 'none prompt' -- $cur ) )
+            COMPREPLY=( $( compgen -W 'none online prompt' -- $cur ) )
             return 0
             ;;
     esac
