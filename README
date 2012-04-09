@@ -95,9 +95,9 @@ $ plowdown -m file_with_links.txt
 5. Limit the download rate (you can use curl rates: K=Kbps, M=Mbps, G=Gbps)
 $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-6. Download a file from Fileserve using an account (free or premium)
+6. Download a file from HotFile using an account (free or premium)
    (note ':' is used to separate user from password)
-$ plowdown -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
+$ plowdown -a myuser:mypassword http://hotfile.com/dl/68261330/2f2926f/
 
 7. Download a password-protected file from Mediafire:
 $ plowdown -p somepassword http://www.mediafire.com/?mt0egmhietj60iy
@@ -120,21 +120,21 @@ $ plowdown --max-retries=20 --timeout=3600 http://depositfiles.com/files/fv2u9xq
 Plowup
 ------
 
-1. Upload a single file anonymously to bayfiles
+1. Upload a single file anonymously to BayFiles
 $ plowup bayfiles /tmp/foo.bar
 
-2. Upload a bunch of files anonymously to 2shared
+2. Upload a bunch of files anonymously to 2Shared
 $ plowup 2shared /path/myphotos/*
 Notice that only files will be sent, subdirectories will be ignored.
 
 3. Upload a file to Mirrorcreator changing uploaded file name
 $ plowup mirrorcreator /path/myfile.txt:anothername.txt
 
-4. Upload a file to megashares (anonymously) + set description
+4. Upload a file to MegaShares (anonymously) + set description
 $ plowup -d "Important document" megashares /path/myfile.tex
 
-5. Upload a file to Fileserve with an account (premium or free)
-$ plowup -a myuser:mypassword fileserve /path/xxx
+5. Upload a file to RapidShare with an account (premium or free)
+$ plowup -a myuser:mypassword rapidshare /path/xxx
 
 6. Upload a file to Zshare anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
@@ -153,14 +153,14 @@ in their name, so make sure to rename them before using plowup.
 Plowdel
 -------
 
-1. Delete a file from zshare ("delete" link required)
+1. Delete a file from Zshare ("delete" link required)
 $ plowdel http://www.zshare.net/delete/1234567890ABCD/
 
 2. Delete files (deletes are successive, not parallel)
 $ plowdel http://www.zshare.net/delete/1234567890ABCD/ http://depositfiles.com/rmv/1643181821669253
 
-3. Delete a file from fileserve (account is required)
-$ plowdel -a myuser:mypassword http://www.fileserve.com/file/yUl25ql
+3. Delete a file from RapidShare (account is required)
+$ plowdel -a myuser:mypassword http://rapidshare.com/files/293672730/foo.rar
 
 Plowlist
 --------
@@ -170,7 +170,7 @@ $ plowlist http://www.mediafire.com/?qouncpzfe74s9 > links.txt
 $ plowdown -m links.txt
 
 2. List two shared folders (first URL is processed, then the second one, this is not parallel)
-$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.fileserve.com/list/1192211
+$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
 
 
 Implement your own modules

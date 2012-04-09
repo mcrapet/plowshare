@@ -18,10 +18,6 @@ http://www.4shared.com/file/abcdefgh
 http://depositfiles.com/files/abcdefghi
 --no-plowsharerc
 
-# fileserve
-http://www.fileserve.com/file/1234ABC
---no-plowsharerc
-
 # megashares
 http://d01.megashares.com/dl/abcdefg
 --no-plowsharerc
