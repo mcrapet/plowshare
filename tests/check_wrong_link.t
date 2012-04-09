@@ -35,7 +35,3 @@ http://uploaded.to/01234567
 # uploading.com
 http://uploading.com/files/a123456b
 --no-plowsharerc
-
-# wupload
-http://www.wupload.com/file/12344567890
---no-plowsharerc

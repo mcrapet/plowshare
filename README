@@ -120,8 +120,8 @@ $ plowdown --max-retries=20 --timeout=3600 http://depositfiles.com/files/fv2u9xq
 Plowup
 ------
 
-1. Upload a single file anonymously to wupload
-$ plowup wupload /tmp/foo.bar
+1. Upload a single file anonymously to bayfiles
+$ plowup bayfiles /tmp/foo.bar
 
 2. Upload a bunch of files anonymously to 2shared
 $ plowup 2shared /path/myphotos/*
