@@ -90,20 +90,20 @@ mediafire_download() {
         log_debug "correct captcha"
     fi
 
-    # When link is password protected, there's no facebook "I like" box (iframe).
-    # Use that trick!
-    if ! match 'facebook.com/plugins/like' "$PAGE"; then
+    # Check for password protected link
+    if match 'name="downloadp"' "$PAGE"; then
         log_debug "File is password protected"
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD="$(prompt_for_password)" || return
         fi
-        PAGE=$(curl -L --post301 -b "$COOKIEFILE" --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
-        if ! match 'facebook.com/plugins/like' "$PAGE"; then
+        PAGE=$(curl -L --post301 -b "$COOKIEFILE" \
+            --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
+        if match 'name="downloadp"' "$PAGE"; then
             return $ERR_LINK_PASSWORD_REQUIRED
         fi
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse_attr "<div.*download_link" "href") || return
+    FILE_URL=$(echo "$PAGE" | parse_attr "<div.*download_link" 'href') || return
     FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
     echo "$FILE_URL"
