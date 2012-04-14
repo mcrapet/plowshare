@@ -152,6 +152,11 @@ curl() {
     case "$DRETVAL" in
         0)
            ;;
+        # Out of memory
+        2)
+            log_error "out of memory?"
+            return $ERR_SYSTEM
+            ;;
         # Partial file
         18)
             return $ERR_LINK_TEMP_UNAVAILABLE
