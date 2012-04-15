@@ -58,7 +58,7 @@ netload_in_download() {
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace 'www.' '')
     local BASE_URL='http://netload.in'
-    local WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA FILE_URL
+    local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA FILE_URL
 
     if [ -n "$AUTH" ]; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
@@ -92,20 +92,26 @@ netload_in_download() {
 
     detect_perl || return
 
-    WAIT_URL=$(curl --location -c "$COOKIEFILE" "$URL" | parse_quiet \
-        '<div class="Free_dl">' '><a href="\([^"]*\)') || return $ERR_LINK_DEAD
+    PAGE=$(curl --location -c "$COOKIEFILE" "$URL") || return
 
+    # This file can be only downloaded by Premium users in fact of its file size
+    if match 'This file is only for Premium Users' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    WAIT_URL=$(echo "$PAGE" | parse_attr_quiet '<div class="Free_dl">' 'href')
+
+    test "$WAIT_URL" || return $ERR_LINK_DEAD
     test "$CHECK_LINK" && return 0
 
     WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-    WAIT_HTML=$(curl -b "$COOKIEFILE" -e $URL --location $WAIT_URL)
+    WAIT_HTML=$(curl -b "$COOKIEFILE" --location --referer "$URL" "$WAIT_URL") || return
     WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
 
     wait $((WAIT_TIME / 100)) seconds || return
 
-    CAPTCHA_URL=$(echo "$WAIT_HTML" | parse '<img style="vertical-align' \
-            'src="\([^"]*\)" alt="Sicherheitsbild"')
+    CAPTCHA_URL=$(echo "$WAIT_HTML" | parse_attr '<img style="vertical-align' 'src') || return
     CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
     # Create new formatted image
