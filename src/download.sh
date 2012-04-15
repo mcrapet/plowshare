@@ -32,6 +32,7 @@ MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list argumen
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
 TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
+TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
 MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
@@ -184,7 +185,7 @@ module_null_download() {
 }
 
 # Note: $ITEM, $NOOVERWRITE, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
-#       $EXEC_COMMAND should not be used directly.
+#       $EXEC_COMMAND, $TEMP_RENAME should not be used directly.
 download() {
     local MODULE=$1
     local URL_RAW=$2
@@ -380,6 +381,10 @@ download() {
                 FILENAME_TMP=$FILENAME
             fi
 
+            if test "$TEMP_RENAME"; then
+                FILENAME_TMP="${FILENAME_TMP}.part"
+            fi
+
             # Final path
             if test "$OUTPUT_DIR"; then
                 FILENAME_OUT="$OUTPUT_DIR/$FILENAME"
@@ -390,8 +395,6 @@ download() {
             CURL_ARGS=()
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
 
-            [ -z "$NOOVERWRITE" ] && \
-                module_config_resume "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
             module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-b $DCOOKIE")
 
             if [ -f "$FILENAME_OUT" ]; then
@@ -409,6 +412,11 @@ download() {
                             log_error "error: no write permission, cannot resume" || \
                             log_error "error: no write permission, cannot overwrite"
                         return $ERR_SYSTEM
+                    fi
+
+                    if [ -s "$FILENAME_OUT" ]; then
+                        module_config_resume "$MODULE" && \
+                            CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
                     fi
                 fi
             fi
@@ -457,7 +465,8 @@ download() {
             fi
 
             if test "$FILENAME_TMP" != "$FILENAME_OUT"; then
-                log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
+                test "$TEMP_RENAME" || \
+                    log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
                 mv -f "$FILENAME_TMP" "$FILENAME_OUT"
             fi
 

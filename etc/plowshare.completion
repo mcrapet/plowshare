@@ -90,8 +90,8 @@ _plowdown()
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i -o -m -x -t -r \
             --max-rate --interface --check-link --mark-downloaded --no-overwrite \
-            --output-directory --temp-directory --timeout --max-retries --no-extra-wait \
-            --fallback --antigate --captchatrader --captchamethod \
+            --output-directory --temp-directory --temp-rename --timeout --max-retries \
+            --no-extra-wait --fallback --antigate --captchatrader --captchamethod \
             --printf --exec --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         _filedir
