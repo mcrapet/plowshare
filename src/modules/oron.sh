@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # oron.com module
-# Copyright (c) 2012 Krompo@speed.1s.fr
+# Copyright (c) 2012 krompospeed@googlemail.com
 #
 # This file is part of Plowshare.
 #
@@ -39,9 +39,9 @@ oron_switch_lang() {
         "http://oron.com/?op=change_lang&lang=english" || return
 }
 
-# generate a random number
+# generate a random decimal number
 # $1: digits
-# stout: random number with $1 digits
+# stdout: random number with $1 digits
 oron_random_num() {
     local CC NUM DIGIT
     CC=0
@@ -50,7 +50,7 @@ oron_random_num() {
     while [ "$CC" -lt $1 ]; do
         DIGIT=$(($RANDOM % 10))
         NUM=$(($NUM * 10 + $DIGIT))
-        CC=$((CC + 1))
+        (( CC++ ))
     done
 
     echo $NUM
@@ -66,14 +66,14 @@ oron_download() {
 
     local COOKIE_FILE=$1
     local URL=$2
-    local HTML SLEEP FILE_ID FILE_NAME REF METHOD HOURS MINS SECS RND
+    local HTML SLEEP FILE_ID FILE_NAME REF METHOD DAYS HOURS MINS SECS RND
 
     # extract ID
     FILE_ID=$(echo "$URL" | parse "." \
         "oron\.com\/\([[:alnum:]]\{12\}\)\/\?") || return
-    log_debug "file id=$FILE_ID"
+    log_debug "File ID=$FILE_ID"
 
-    oron_switch_lang "$COOKIE_FILE"
+    oron_switch_lang "$COOKIE_FILE" || return
     HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
 
     # check the file for availability
@@ -88,10 +88,10 @@ oron_download() {
     FILE_NAME=$(echo "$HTML" | parse_form_input_by_name "fname") || return
     REF=$(echo "$HTML" | parse_form_input_by_name "referer") || return
     METHOD=$(echo "$HTML" | parse_form_input_by_name "method_free" | \
-        replace ' ' '+') || return
-    log_debug "file name=$FILE_NAME"
-    log_debug "method=$METHOD"
-    log_debug "referer=$REF"
+        replace " " "+") || return
+    log_debug "File name=$FILE_NAME"
+    log_debug "Method=$METHOD"
+    log_debug "Referer=$REF"
 
     # send download form
     HTML=$(curl -b "$COOKIE_FILE" \
@@ -107,6 +107,8 @@ oron_download() {
     match "File could not be found" "$HTML" && return $ERR_LINK_DEAD
 
     # retrieve waiting time
+    DAYS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
+        ' \([[:digit:]]\+\) days\?')
     HOURS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
         ' \([[:digit:]]\+\) hours\?')
     MINS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
@@ -114,17 +116,18 @@ oron_download() {
     SECS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
         ' \([[:digit:]]\+\) seconds\?')
 
-    if [ -n "$HOURS" -o -n "$MINS" -o -n "$SECS" ]; then
+    if [ -n "$DAYS" -o -n "$HOURS" -o -n "$MINS" -o -n "$SECS" ]; then
+        [ -z "$DAYS" ]  && DAYS=0
         [ -z "$HOURS" ] && HOURS=0
-        [ -z "$MINS" ] && MINS=0
-        [ -z "$SECS" ] && SECS=0
-        echo $(($HOURS * 3600 + $MINS * 60 + $SECS))
+        [ -z "$MINS" ]  && MINS=0
+        [ -z "$SECS" ]  && SECS=0
+        echo $(( ((($DAYS * 24) + $HOURS) * 60 + $MINS) * 60 + $SECS ))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # retrieve random value
     RND=$(echo "$HTML" | parse_form_input_by_name "rand") || return
-    log_debug "random value: $RND"
+    log_debug "Random value: $RND"
 
     # retrieve sleep time
     # Please wait <span id="countdown">60</span> seconds
@@ -152,7 +155,7 @@ oron_download() {
 
     # check for possible errors
     if match "Wrong captcha" "$HTML"; then
-        log_debug "incorrect captcha"
+        log_debug "Incorrect captcha."
         recaptcha_nack $ID
         return $ERR_CAPTCHA
     elif match '<p class="err">Expired session</p>' "$HTML"; then
@@ -161,6 +164,9 @@ oron_download() {
     elif match "Download File</a></td>" "$HTML"; then
         log_debug "DL link found"
         FILE_URL=$(echo "$HTML" | parse_attr "Download File" "href") || return
+    elif match "Retype Password" "$HTML"; then
+        log_error "Link password incorrect."
+        return $ERR_LINK_PASSWORD_REQUIRED
     else
         log_error "No download link found. Site updated?"
         return $ERR_FATAL
@@ -184,6 +190,8 @@ oron_upload() {
     local COOKIE_FILE=$1
     local FILE=$2
     local DEST_FILE=$3
+    local BASE_URL="http://oron.com"
+    local HTML FORM SRV_ID SESS_ID SRV_URL RND FN ST SIZE MAX_SIZE REMOTE_SIZE ACCOUNT
 
     local MAX_SIZE_FREE=$((400*1024*1024)) # anon uploads up to 400MB
     #local MAX_SIZE_REG=$((1024*1024*1024)) # reg uploads up to 1GB
@@ -198,7 +206,7 @@ oron_upload() {
     fi
 
     oron_switch_lang "$COOKIE_FILE"
-    HTML=$(curl -b "$COOKIE_FILE" 'http://oron.com/') || return
+    HTML=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
 
     # gather relevant data from form
     FORM=$(grep_form_by_name "$HTML" "file") || return
@@ -207,16 +215,16 @@ oron_upload() {
     SRV_URL=$(echo "$FORM" | parse_form_input_by_name "srv_tmp_url") || return
     RND=$(oron_random_num 12)
 
-    log_debug "srvID: $SRV_ID"
-    log_debug "sessID: $SESS_ID"
-    log_debug "srvUrl: $SRV_URL"
+    log_debug "Server ID: $SRV_ID"
+    log_debug "Session ID: $SESS_ID"
+    log_debug "Server url: $SRV_URL"
 
     # prepare upload
     HTML=$(curl -b "$COOKIE_FILE" \
         "$SRV_URL/status.html?file=$RND=$DEST_FILE") || return
 
     if ! match "You are oroning" "$HTML"; then
-        log_error "Error uploading to server $SRV_URL"
+        log_error "Error uploading to server '$SRV_URL'."
         return $ERR_FATAL
     fi
 
@@ -245,10 +253,13 @@ oron_upload() {
     if [ "$ST" = "OK" ]; then
         log_debug "Upload was successfull."
     elif match "banned by administrator" "$ST"; then
-        log_error "File is banned."
+        log_error "File is banned by admin."
+        return $ERR_FATAL
+    elif match "triggered our security filters" "$ST"; then
+        log_error "File is banned by security filter."
         return $ERR_FATAL
     else
-        log_error "Unknown upload state: $ST"
+        log_error "Unknown upload state '$ST'"
         return $ERR_FATAL
     fi
 
@@ -269,10 +280,10 @@ oron_upload() {
 
     # get download url
     HTML=$(curl -b "$COOKIE_FILE" \
-        -L 'http://oron.com' \
         -F "op=upload_result" \
         -F "fn=$FN" \
-        -F "st=$ST") || return
+        -F "st=$ST" \
+        "$BASE_URL") || return
 
     local LINK DEL_LINK
     LINK=$(echo "$HTML" | parse_line_after "Direct Link:" \
@@ -296,15 +307,15 @@ oron_delete() {
     local BASE_URL='http:\/\/oron\.com'
 
     # check + parse URL
-    FILE_ID=$(echo "$URL" | parse "$BASE_URL" \
-        "^${BASE_URL}\/\([[:alnum:]]\{12\}\)?killcode=[[:alnum:]]\{10\}$") || return
-    log_debug "file ID: $FILE_ID"
+    FILE_ID=$(echo "$URL" | parse . \
+        "^$BASE_URL\/\([[:alnum:]]\{12\}\)?killcode=[[:alnum:]]\{10\}$") || return
+    log_debug "File ID: $FILE_ID"
 
-    KILLCODE=$(echo "$URL" | parse "$BASE_URL" \
-        "^${BASE_URL}\/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
-    log_debug "killcode: $KILLCODE"
+    KILLCODE=$(echo "$URL" | parse . \
+        "^$BASE_URL\/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
+    log_debug "Killcode: $KILLCODE"
 
-    oron_switch_lang "$COOKIEFILE"
+    oron_switch_lang "$COOKIEFILE" || return
     HTML=$(curl -b "$COOKIEFILE" -L "$URL") || return
 
     match "No such file exist" "$HTML" && return $ERR_LINK_DEAD
