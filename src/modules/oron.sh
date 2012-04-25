@@ -21,27 +21,51 @@
 MODULE_ORON_REGEXP_URL="http://\(www\.\)\?\(oron\)\.com/[[:alnum:]]\{12\}"
 
 MODULE_ORON_DOWNLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_ORON_DOWNLOAD_RESUME=no
 MODULE_ORON_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_ORON_UPLOAD_OPTIONS="
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+TOEMAIL,,email-to:,EMAIL,<To> field for notification email
+PRIVATE_FILE,,private,,Do not make file publicly accessable (account only)"
 MODULE_ORON_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_ORON_DELETE_OPTIONS=""
 
-# helper functions
-
-# switch language to english
+# Switch language to english
 # $1: cookie file
 # stdout: nothing
 oron_switch_lang() {
     curl -b "$1" -c "$1" -o /dev/null \
-        "http://oron.com/?op=change_lang&lang=english" || return
+        'http://oron.com/?op=change_lang&lang=english' || return
 }
 
-# generate a random decimal number
+# Static function. Proceed with login (free-membership or premium)
+# $1: authentification
+# $2: cookie file
+# stdout: account type ("free" or "premium") on success
+oron_login() {
+    local AUTH_FREE=$1
+    local COOKIE_FILE=$2
+    local TYPE='free'
+    local LOGIN_DATA HTML NAME
+
+    LOGIN_DATA='login=$USER&password=$PASSWORD&op=login&redirect=&rand='
+    HTML=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+       'http://oron.com/login' "-L -b $COOKIE_FILE") || return
+
+    NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
+    [ -n "$NAME" ] || return $ERR_LOGIN_FAILED
+    match 'Become a PREMIUM Member' "$HTML" || TYPE='premium' # bit of guessing...
+
+    log_debug "Successfully logged in as $TYPE member ${NAME}."
+    echo "$TYPE"
+    return 0
+}
+
+# Generate a random decimal number
 # $1: digits
 # stdout: random number with $1 digits
 oron_random_num() {
@@ -58,12 +82,22 @@ oron_random_num() {
     echo $NUM
 }
 
-# extract file id from download link
+# Determine whether checkbox/radio button with "name" attribute is checked.
+# Note: "checked" attribute must be placed after "name" attribute.
+#
+# $1: name attribute of checkbox/radio button
+# $2: (X)HTML data
+# $? is zero on success
+oron_is_checked() {
+    matchi "<input.*name=[\"']\?$1[\"']\?.*[[:space:]]checked" "$2"
+}
+
+# Extract file id from download link
 # $1: oron.com url
 # stdout: file id
 oron_extract_file_id() {
     local FILE_ID
-    FILE_ID=$(echo "$1" | parse "." "oron\.com\/\([[:alnum:]]\{12\}\)") || return
+    FILE_ID=$(echo "$1" | parse '.' 'oron\.com\/\([[:alnum:]]\{12\}\)') || return
     log_debug "File ID=$FILE_ID"
     echo "$FILE_ID"
 }
@@ -88,6 +122,11 @@ oron_download() {
     # check the file for availability
     match 'File Not Found' "$HTML" && return $ERR_LINK_DEAD
     test "$CHECK_LINK" && return 0
+
+    if [ -n "$AUTH_FREE" ]; then
+        # ignore returned account type
+        oron_login "$AUTH_FREE" "$COOKIE_FILE" > /dev/null || return
+    fi
 
     # check, if file is special
     match 'Free Users can only download files sized up to' "$HTML" && \
@@ -211,19 +250,39 @@ oron_upload() {
     local DEST_FILE=$3
     local BASE_URL='http://oron.com'
     local SIZE HTML FORM SRV_ID SESS_ID SRV_URL RND FN ST
-    local OPT_EMAIL
+    local OPT_EMAIL MAX_SIZE ACCOUNT
 
-    local MAX_SIZE_FREE=$((400*1024*1024)) # anon uploads up to 400MB
-    #local MAX_SIZE_REG=$((1024*1024*1024)) # reg uploads up to 1GB
-    #local MAX_SIZE_PREM=$((2048*1024*1024)) # premium uploads up to 2GB
+    oron_switch_lang "$COOKIE_FILE" || return
 
-    SIZE=$(get_filesize $FILE)
-    if [ $SIZE -gt $MAX_SIZE_FREE ]; then
-        log_error "File is too big - only $MAX_SIZE_FREE bytes are allowed."
-        return ERR_FATAL
+    # login and set max file size (depends on account type)
+    if [ -n "$AUTH_FREE" ]; then
+        ACCOUNT=$(oron_login "$AUTH_FREE" "$COOKIE_FILE") || return
+
+        case "$ACCOUNT" in
+            free) # up to 1GB
+                MAX_SIZE=$((1024*1024*1024))
+                ;;
+            premium) # up to 2GB
+                MAX_SIZE=$((2048*1024*1024))
+                ;;
+            *)
+                log_debug "Unknown account type '$ACCOUNT'."
+                return $ERR_FATAL
+                ;;
+        esac
+    else
+        MAX_SIZE=$((400*1024*1024)) # up to 400MB
+
+        [ -z "$PRIVATE_FILE" ] || \
+            log_error 'option "--private" ignored, account only'
     fi
 
-    oron_switch_lang "$COOKIE_FILE"
+    SIZE=$(get_filesize "$FILE")
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_error "File is too big, up to $MAX_SIZE bytes are allowed."
+        return $ERR_FATAL
+    fi
+
     HTML=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
 
     # gather relevant data from form
@@ -235,7 +294,7 @@ oron_upload() {
 
     log_debug "Server ID: $SRV_ID"
     log_debug "Session ID: $SESS_ID"
-    log_debug "Server url: $SRV_URL"
+    log_debug "Server URL: $SRV_URL"
 
     # prepare upload
     HTML=$(curl -b "$COOKIE_FILE" \
@@ -262,7 +321,7 @@ oron_upload() {
         "$SRV_URL/upload/$SRV_ID/?X-Progress-ID=$RND") || return
 
     # gather relevant data from form
-    FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines_alt)
+    FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines_alt) || return
     FN=$(echo "$FORM" | parse_form_input_by_name 'fn') || return
     ST=$(echo "$FORM" | parse_form_input_by_name 'st') || return
     log_debug "FN: $FN"
@@ -270,10 +329,10 @@ oron_upload() {
 
     if [ "$ST" = "OK" ]; then
         log_debug "Upload was successfull."
-    elif match "banned by administrator" "$ST"; then
+    elif match 'banned by administrator' "$ST"; then
         log_error "File is banned by admin."
         return $ERR_FATAL
-    elif match "triggered our security filters" "$ST"; then
+    elif match 'triggered our security filters' "$ST"; then
         log_error "File is banned by security filter."
         return $ERR_FATAL
     else
@@ -285,7 +344,7 @@ oron_upload() {
 
     # get download url (no double quote around $OPT_EMAIL)
     HTML=$(curl -b "$COOKIE_FILE" \
-        -F "op=upload_result" \
+        -F 'op=upload_result' \
         $OPT_EMAIL \
         -F "fn=$FN" \
         -F "st=$ST" \
@@ -293,9 +352,45 @@ oron_upload() {
 
     local LINK DEL_LINK
     LINK=$(echo "$HTML" | parse_line_after 'Direct Link:' \
-        'value=\"\([^\"]*\)\">') || return
+        'value="\([^"]*\)">') || return
     DEL_LINK=$(echo "$HTML" | parse_line_after 'Delete Link:' \
-        'value=\"\([^\"]*\)\">') || return
+        'value="\([^"]*\)">') || return
+
+    # do we need to edit the file? (change name/visibility)
+    if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ]; then
+        log_debug "Editing file..."
+
+        local FILE_ID F_NAME F_PASS F_PUB
+        FILE_ID=$(oron_extract_file_id "$LINK") || return
+
+        # retrieve current values
+        HTML=$(curl -b "$COOKIE_FILE" \
+            "$BASE_URL/?op=file_edit;file_code=$FILE_ID") || return
+
+        F_NAME=$(echo "$HTML" | parse_form_input_by_name 'file_name') || return
+        F_PASS=$(echo "$HTML" | parse_form_input_by_name 'file_password') || return
+        oron_is_checked 'file_public' "$HTML" && F_PUB='-F file_public=1'
+
+        log_debug "Current name: $F_NAME"
+        log_debug "Current pass: ${F_PASS//?/*}"
+        [ -n "$F_PUB" ] && log_debug 'Currently public'
+
+        [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] && F_PUB='-F file_public=1'
+
+        # post changes (include HTTP headers to check for proper redirection;
+        # no double quote around $F_PUB)
+        HTML=$(curl -i -b "$COOKIE_FILE" \
+            -F "file_name=$F_NAME" \
+            -F "file_password=$F_PASS" \
+            $F_PUB \
+            -F 'op=file_edit' \
+            -F "file_code=$FILE_ID" \
+            -F 'save=+Submit+' \
+            "$BASE_URL/?op=file_edit;file_code=$FILE_ID") || return
+
+        HTML=$(echo "$HTML" | grep_http_header_location) || return
+        match '?op=my_files' "$HTML" || log_error 'Could not edit file. Site update?'
+    fi
 
     echo "$LINK"
     echo "$DEL_LINK"
