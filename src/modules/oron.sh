@@ -58,6 +58,16 @@ oron_random_num() {
     echo $NUM
 }
 
+# extract file id from download link
+# $1: oron.com url
+# stdout: file id
+oron_extract_file_id() {
+    local FILE_ID
+    FILE_ID=$(echo "$1" | parse "." "oron\.com\/\([[:alnum:]]\{12\}\)") || return
+    log_debug "File ID=$FILE_ID"
+    echo "$FILE_ID"
+}
+
 # Output an oron.com file download URL
 # $1: cookie file
 # $2: oron.com url
@@ -71,11 +81,7 @@ oron_download() {
     local HTML SLEEP FILE_ID FILE_URL FILE_NAME REF METHOD DAYS HOURS MINS SECS
     local RND OPT_PASSWD
 
-    # extract ID
-    FILE_ID=$(echo "$URL" | parse "." \
-        "oron\.com\/\([[:alnum:]]\{12\}\)\/\?") || return
-    log_debug "File ID=$FILE_ID"
-
+    FILE_ID=$(oron_extract_file_id "$URL") || return
     oron_switch_lang "$COOKIE_FILE" || return
     HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
 
@@ -307,10 +313,7 @@ oron_delete() {
     local BASE_URL='http:\/\/oron\.com'
 
     # check + parse URL
-    FILE_ID=$(echo "$URL" | parse . \
-        "^$BASE_URL\/\([[:alnum:]]\{12\}\)?killcode=[[:alnum:]]\{10\}$") || return
-    log_debug "File ID: $FILE_ID"
-
+    FILE_ID=$(oron_extract_file_id "$URL") || return
     KILLCODE=$(echo "$URL" | parse . \
         "^$BASE_URL\/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
     log_debug "Killcode: $KILLCODE"
