@@ -204,7 +204,7 @@ oron_upload() {
     local FILE=$2
     local DEST_FILE=$3
     local BASE_URL='http://oron.com'
-    local SIZE HTML FORM SRV_ID SESS_ID SRV_URL RND RND2 FN ST
+    local SIZE HTML FORM SRV_ID SESS_ID SRV_URL RND FN ST
     local OPT_EMAIL
 
     local MAX_SIZE_FREE=$((400*1024*1024)) # anon uploads up to 400MB
@@ -272,21 +272,6 @@ oron_upload() {
         return $ERR_FATAL
     else
         log_error "Unknown upload state '$ST'"
-        return $ERR_FATAL
-    fi
-
-    # ask for progress
-    # (not sure if this is neccessary, but the browser does it at least once)
-    RND2=$(oron_random_num 17)
-    HTML=$(curl -b "$COOKIE_FILE" \
-        --referer "$SRV_URL/status.html?file=$RND=$DEST_FILE" \
-        --header "X-Progress-ID: $RND" \
-        "$SRV_URL/progress?0.$RND2") || return
-
-    # check upload state (yet again)
-    # new Object({ 'state' : 'done' })
-    if ! match "'state'[[:space:]]*:[[:space:]]*'done'" "$HTML"; then
-        log_error "Invalid state"
         return $ERR_FATAL
     fi
 
