@@ -152,10 +152,15 @@ curl() {
     case "$DRETVAL" in
         0)
            ;;
-        # Out of memory
+        # Failed to initialize.
         2)
             log_error "out of memory?"
             return $ERR_SYSTEM
+            ;;
+        # Failed to connect to host.
+        7)
+            log_error "can't connect: DNS or firewall error"
+            return $ERR_NETWORK
             ;;
         # Partial file
         18)
@@ -929,8 +934,8 @@ wait() {
 # $1: local image filename (with full path). No specific image format expected.
 # $2 (optional): solve method
 # $3 (optional): view method (null string means autodetect)
-# stdout: captcha answer + optional ID (on a second line)
-#         nothing is printed in case of error
+# stdout: On 2 lines: <word> \n <transaction_id>
+#         nothing is echoed in case of error
 #
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
@@ -948,11 +953,21 @@ captcha_process() {
         captcha_method_translate "$CAPTCHA_METHOD" METHOD_SOLVE METHOD_VIEW
     fi
 
-    if [ -z "$METHOD_SOLVE" ]; then
-        METHOD_SOLVE=prompt
-    elif [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
+    if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
         if ! check_exec 'tesseract'; then
-            log_notice "tesseract was not found, fallback to manual entering"
+            log_notice "tesseract was not found, probe for solving method"
+            METHOD_SOLVE=
+        fi
+    fi
+
+    if [ -z "$METHOD_SOLVE" ]; then
+        if [ -n "$CAPTCHA_ANTIGATE" ]; then
+            METHOD_SOLVE='antigate'
+            METHOD_VIEW='none'
+        elif [ -n "$CAPTCHA_TRADER" ]; then
+            METHOD_SOLVE='captchatrader'
+            METHOD_VIEW='none'
+        else
             METHOD_SOLVE=prompt
         fi
     fi
@@ -969,7 +984,7 @@ captcha_process() {
             fi
         fi
         if [ -z "$METHOD_VIEW" ]; then
-            log_debug "no X server available, try ascii display"
+            log_notice "no X server available, try ascii display"
             # libcaca
             if check_exec img2txt; then
                 METHOD_VIEW=img2txt
@@ -1010,16 +1025,15 @@ captcha_process() {
     # How to display image
     case "$METHOD_VIEW" in
         none)
-            log_debug "image: $FILENAME"
+            log_notice "image: $FILENAME"
             ;;
         aview)
+            # aview can only display files in PNM file format
             local IMG_PNM=$(create_tempfile '.pnm')
             convert "$FILENAME" -negate -depth 8 pnm:$IMG_PNM
             aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
                 -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<<'q' | \
                 sed  -e '1d;/\f/,/\f/d' | sed -e '/^[[:space:]]*$/d' 1>&2
-
-            # FIXME: busybox sed does not support \xHH notation
             rm -f "$IMG_PNM"
             ;;
         tiv)
@@ -1040,6 +1054,7 @@ captcha_process() {
     esac
 
     local RESPONSE
+    local TID=0
     local TEXT1='Leave this field blank and hit enter to get another captcha image'
     local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
 
@@ -1078,13 +1093,13 @@ captcha_process() {
                 return $ERR_FATAL
             fi
 
-            local RET I WORD
-            RET=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
+            local I WORD
+            TID=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
 
             for I in 8 5 5 6 6 7 7 8; do
                 wait $I seconds
                 RESPONSE=$(curl --get \
-                    --data "key=${CAPTCHA_ANTIGATE}&action=get&id=$RET"  \
+                    --data "key=${CAPTCHA_ANTIGATE}&action=get&id=$TID"  \
                     'http://antigate.com/res.php') || return
 
                 if [ 'CAPCHA_NOT_READY' = "$RESPONSE" ]; then
@@ -1107,7 +1122,7 @@ captcha_process() {
 
             # result on two lines
             echo "$WORD"
-            echo $RET
+            echo "a$TID"
             ;;
         captchatrader)
             if [ -z "$CAPTCHA_TRADER" ]; then
@@ -1140,11 +1155,11 @@ captcha_process() {
                 return $ERR_CAPTCHA
             fi
 
-            local RET WORD
-            RET=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
+            local WORD
+            TID=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
             WORD=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
 
-            if [ "$RET" -eq '-1' ]; then
+            if [ "$TID" -eq '-1' ]; then
                 log_error "captcha.trader error: $WORD"
                 rm -f "$FILENAME"
                 if [ 'INSUFFICIENT CREDITS' = "$WORD" ]; then
@@ -1155,7 +1170,7 @@ captcha_process() {
 
             # result on two lines
             echo "$WORD"
-            echo $RET
+            echo "c$TID"
             ;;
         ocr_digit)
             RESPONSE=$(ocr "$FILENAME" digit | sed -e 's/[^0-9]//g') || {
@@ -1164,6 +1179,7 @@ captcha_process() {
                 return $ERR_CAPTCHA;
             }
             echo "$RESPONSE"
+            echo $TID
             ;;
         ocr_upper)
             RESPONSE=$(ocr "$FILENAME" upper | sed -e 's/[^a-zA-Z]//g') || {
@@ -1172,12 +1188,14 @@ captcha_process() {
                 return $ERR_CAPTCHA;
             }
             echo "$RESPONSE"
+            echo $TID
             ;;
         prompt)
             log_notice $TEXT1
             read -p "$TEXT2" RESPONSE
             [ -n "$PRGPID" ] && disown $(kill -9 $PRGPID) 2>&1 1>/dev/null
             echo "$RESPONSE"
+            echo $TID
             ;;
         *)
             log_error "unknown solve method: $METHOD_SOLVE"
@@ -1223,13 +1241,7 @@ recaptcha_process() {
         log_debug "reCaptcha image URL: $URL"
         curl "$URL" -o "$FILENAME" || return
 
-        if [ -n "$CAPTCHA_ANTIGATE" ]; then
-            WORDS=$(captcha_process "$FILENAME" 'antigate' 'none') || return
-        elif [ -n "$CAPTCHA_TRADER" ]; then
-            WORDS=$(captcha_process "$FILENAME" 'captchatrader' 'none') || return
-        else
-            WORDS=$(captcha_process "$FILENAME") || return
-        fi
+        WORDS=$(captcha_process "$FILENAME") || return
         rm -f "$FILENAME"
 
         { read WORDS; read TID; } <<<"$WORDS"
@@ -1241,23 +1253,27 @@ recaptcha_process() {
 
         # Result: Recaptcha.finish_reload('...', 'image');
         VARS=$(curl "${SERVER}reload?k=${1}&c=${CHALLENGE}&reason=r&type=image&lang=en") || return
-        CHALLENGE=$(echo "$VARS" | parse_quiet 'finish_reload' "('\([^']*\)") || return
+        CHALLENGE=$(echo "$VARS" | parse 'finish_reload' "('\([^']*\)") || return
     done
 
     WORDS=$(echo "$WORDS" | uri_encode)
 
     echo "$WORDS"
     echo "$CHALLENGE"
-    echo "${TID:-0}"
+    echo $TID
 }
 
-# Positive acknowledge of reCaptcha answer
-# $1: id (given by recaptcha_process)
-recaptcha_ack() {
-    if [[ $1 -ne 0 ]]; then
-        if [ -n "$CAPTCHA_TRADER" ]; then
-            local RESPONSE STR
+# Positive acknowledge of captcha answer
+# $1: id (given by captcha_process or recpatcha_process)
+captcha_ack() {
+    [[ $1 -eq 0 ]] && return
 
+    local M=${1:0:1}
+    local TID=${1:1}
+    local RESPONSE STR
+log_error "###ACK[$1][$M][$TID]"
+    if [ c = "$M" ]; then
+        if [ -n "$CAPTCHA_TRADER" ]; then
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
 
@@ -1272,16 +1288,25 @@ recaptcha_ack() {
 
             STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
             [ -n "$STR" ] && log_error "captcha.trader error: $STR"
+        else
+            log_error "$FUNCNAME failed: captcha.trader missing account data"
         fi
+    else
+        log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
 
-# Negative acknowledge of reCaptcha answer
-# $1: id (given by recaptcha_process)
-recaptcha_nack() {
-    if [[ $1 -ne 0 ]]; then
-        local RESPONSE STR
+# Negative acknowledge of captcha answer
+# $1: id (given by captcha_process or recpatcha_process)
+captcha_nack() {
+    [[ $1 -eq 0 ]] && return
 
+    local M=${1:0:1}
+    local TID=${1:1}
+    local RESPONSE STR
+
+log_error "###NACK[$1][$M][$TID]"
+    if [ a = "$M" ]; then
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
             RESPONSE=$(curl --get \
                 --data "key=${CAPTCHA_ANTIGATE}&action=reportbad&id=$1"  \
@@ -1289,9 +1314,12 @@ recaptcha_nack() {
 
             [ 'OK_REPORT_RECORDED' = "$RESPONSE" ] || \
                 log_error "antigate error: $RESPONSE"
+        else
+            log_error "$FUNCNAME failed: antigate missing captcha key"
+        fi
 
-        elif [ -n "$CAPTCHA_TRADER" ]; then
-
+    elif [ c = "$M" ]; then
+        if [ -n "$CAPTCHA_TRADER" ]; then
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
 
@@ -1306,7 +1334,12 @@ recaptcha_nack() {
 
             STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
             [ -n "$STR" ] && log_error "captcha.trader error: $STR"
+        else
+            log_error "$FUNCNAME failed: captcha.trader missing account data"
         fi
+
+    else
+        log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
 
