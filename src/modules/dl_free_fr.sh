@@ -85,11 +85,11 @@ dl_free_fr_download() {
 
     SESSID=$(parse_cookie_quiet 'getfile' < "$COOKIE_FILE")
     if [ -z "$SESSID" ]; then
-        recaptcha_nack $ID
+        captcha_nack $ID
         return $ERR_CAPTCHA
     fi
 
-    recaptcha_ack $ID
+    captcha_ack $ID
     log_debug "correct captcha"
 
     echo "$URL"

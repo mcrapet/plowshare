@@ -58,7 +58,7 @@ netload_in_download() {
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace 'www.' '')
     local BASE_URL='http://netload.in'
-    local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA FILE_URL
+    local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG FILENAME FILE_URL
 
     if [ -n "$AUTH" ]; then
         netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
@@ -111,28 +111,32 @@ netload_in_download() {
 
     wait $((WAIT_TIME / 100)) seconds || return
 
+    # 74x29 jpeg file
     CAPTCHA_URL=$(echo "$WAIT_HTML" | parse_attr '<img style="vertical-align' 'src') || return
-    CAPTCHA_URL="$BASE_URL/$CAPTCHA_URL"
 
     # Create new formatted image
-    CAPTCHA_IMG=$(create_tempfile) || return
-    curl -b "$COOKIEFILE" "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
+    CAPTCHA_IMG=$(create_tempfile '.jpg') || return
+    curl -b "$COOKIEFILE" "$BASE_URL/$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
             convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
             -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
         rm -f "$CAPTCHA_IMG";
         return $ERR_CAPTCHA;
     }
 
-    CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+    local WI WORD ID
+    WI=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+    { read WORD; read ID; } <<<"$WI"
     rm -f "$CAPTCHA_IMG"
 
-    if [ "${#CAPTCHA}" -lt 4 ]; then
+    if [ "${#WORD}" -lt 4 ]; then
+        captcha_nack $ID
         log_debug "captcha length invalid"
         return $ERR_CAPTCHA
-    elif [ "${#CAPTCHA}" -gt 4 ]; then
-        CAPTCHA="${CAPTCHA:0:4}"
+    elif [ "${#WORD}" -gt 4 ]; then
+        WORD="${WORD:0:4}"
     fi
-    log_debug "decoded captcha: $CAPTCHA"
+
+    log_debug "decoded captcha: $WORD"
 
     # Send (post) form
     local DOWNLOAD_FORM FORM_URL FORM_FID WAIT_HTML2
@@ -140,14 +144,19 @@ netload_in_download() {
     FORM_URL=$(echo "$DOWNLOAD_FORM" | parse_form_action) || return
     FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
 
-    WAIT_HTML2=$(curl -b "$COOKIEFILE" --data "file_id=${FORM_FID}&captcha_check=${CAPTCHA}&start=" \
-            "$BASE_URL/$FORM_URL") || return
+    WAIT_HTML2=$(curl -b "$COOKIEFILE" \
+        -d "start=" \
+        -d "file_id=$FORM_FID" \
+        -d "captcha_check=$CAPTCHA" \
+        "$BASE_URL/$FORM_URL") || return
 
     if match 'class="InPage_Error"' "$WAIT_HTML2"; then
+        captcha_nack $ID
         log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 
+    captcha_ack $ID
     log_debug "correct captcha"
 
     WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \

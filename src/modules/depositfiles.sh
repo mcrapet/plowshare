@@ -61,12 +61,12 @@ depositfiles_login() {
 
         # <div class="error_message">Security code not valid.</div>
         if match 'code not valid' "$LOGIN_RESULT"; then
-            recaptcha_nack $ID
+            captcha_nack $ID
             log_debug "reCaptcha error"
             return $ERR_CAPTCHA
         fi
 
-        recaptcha_ack $ID
+        captcha_ack $ID
         log_debug "correct captcha"
     fi
 
@@ -190,14 +190,14 @@ depositfiles_download() {
             "$BASE_URL/get_file.php") || return
 
         if match 'Download the file' "$DATA"; then
-            recaptcha_ack $ID
+            captcha_ack $ID
             log_debug "correct captcha"
 
             echo "$DATA" | parse_form_action
             return 0
         fi
 
-        recaptcha_nack $ID
+        captcha_nack $ID
         log_debug "reCaptcha error"
         return $ERR_CAPTCHA
     fi

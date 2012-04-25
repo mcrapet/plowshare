@@ -169,7 +169,7 @@ oron_download() {
     # check for possible errors
     if match "Wrong captcha" "$HTML"; then
         log_error "Wrong captcha"
-        recaptcha_nack $ID
+        captcha_nack $ID
         return $ERR_CAPTCHA
     elif match '<p class="err">Expired session</p>' "$HTML"; then
         echo 10 # just some arbitrary small value
@@ -185,7 +185,7 @@ oron_download() {
         return $ERR_FATAL
     fi
 
-    recaptcha_ack $ID
+    captcha_ack $ID
 
     echo "$FILE_URL"
     echo "$FILE_NAME"

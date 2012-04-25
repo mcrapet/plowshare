@@ -56,7 +56,7 @@ megashares_download() {
     eval "$(process_options megashares "$MODULE_MEGASHARES_DOWNLOAD_OPTIONS" "$@")"
 
     local URL=$2
-    local ID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL FILE_NAME
+    local FID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL FILE_NAME
 
     detect_perl || return
 
@@ -65,15 +65,15 @@ megashares_download() {
     # Two kind of URL:
     # http://d01.megashares.com/?d01=8Ptv172
     # http://d01.megashares.com/dl/2eb56b0/Filename.rar
-    ID=$(echo "$2" | parse_quiet '\/dl\/' 'dl\/\([^/]*\)')
-    if [ -n "$ID" ]; then
-        URL="http://d01.megashares.com/index.php?d01=$ID"
+    FID=$(echo "$2" | parse_quiet '\/dl\/' 'dl\/\([^/]*\)')
+    if [ -n "$FID" ]; then
+        URL="http://d01.megashares.com/index.php?d01=$FID"
     fi
 
     PAGE=$(curl "$URL") || return
 
     # Check for dead link
-    if matchi 'file does not exist\|invalid link' "$PAGE"; then
+    if matchi 'file does not exist\|link is invalid' "$PAGE"; then
         return $ERR_LINK_DEAD
     # All download slots for this link are currently filled.
     # Please try again momentarily.
@@ -93,10 +93,12 @@ megashares_download() {
 
     # Captcha must be validated
     if match 'Security Code' "$PAGE"; then
+        local MTIME CAPTCHA_URL CAPTCHA_IMG
+
         CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
 
         # Create new formatted image
-        CAPTCHA_IMG=$(create_tempfile) || return
+        CAPTCHA_IMG=$(create_tempfile '.png') || return
         curl "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
                 convert - -quantize gray -colors 32 -blur 10% -contrast-stretch 6% \
                 -compress none -level 45%,45% tif:"$CAPTCHA_IMG" || { \
@@ -104,16 +106,20 @@ megashares_download() {
             return $ERR_CAPTCHA;
         }
 
-        CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+        local WI WORD ID
+        WI=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+        { read WORD; read ID; } <<<"$WI"
         rm -f "$CAPTCHA_IMG"
 
-        if [ "${#CAPTCHA}" -lt 4 ]; then
+        if [ "${#WORD}" -lt 4 ]; then
+            captcha_nack $ID
             log_debug "captcha length invalid"
             return $ERR_CAPTCHA
-        elif [ "${#CAPTCHA}" -gt 4 ]; then
-            CAPTCHA="${CAPTCHA:0:4}"
+        elif [ "${#WORD}" -gt 4 ]; then
+            WORD="${WORD:0:4}"
         fi
-        log_debug "decoded captcha: $CAPTCHA"
+
+        log_debug "decoded captcha: $WORD"
 
         RANDOM_NUM=$(echo "$PAGE" | parse_attr 'random_num' 'value')
         PASSPORT_NUM=$(echo "$PAGE" | parse_attr 'passport_num' 'value')
@@ -122,14 +128,18 @@ megashares_download() {
 
         # Get passport
         VALIDATE_PASSPORT=$(curl --get \
-                --data "rs=check_passport_renewal&rsargs[]=${CAPTCHA}&rsargs[]=${RANDOM_NUM}&rsargs[]=${PASSPORT_NUM}&rsargs[]=replace_sec_pprenewal&rsrnd=$MTIME" \
-                $URL)
+            -d "rs=check_passport_renewal" \
+            -d "rsargs[]=${WORD}&rsargs[]=${RANDOM_NUM}&rsargs[]=${PASSPORT_NUM}&rsargs[]=replace_sec_pprenewal" \
+            -d "rsrnd=$MTIME" \
+            "$URL") || return
 
         if ! match 'Thank you for reactivating your passport' "$VALIDATE_PASSPORT"; then
+            captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 
+        captcha_ack $ID
         log_debug "correct captcha"
     fi
 
@@ -143,7 +153,7 @@ megashares_download() {
     fi
 
     FILE_NAME=$(echo "$PAGE" | parse_attr '<h1' 'title')
-    FILE_URL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href')
+    FILE_URL=$(echo "$PAGE" | parse_attr 'download_file.png' 'href') || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"

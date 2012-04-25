@@ -160,7 +160,7 @@ uploaded_to_download() {
 
     # check for possible errors
     if match 'captcha' "$PAGE"; then
-        recaptcha_nack $ID
+        captcha_nack $ID
         return $ERR_CAPTCHA
     elif match 'limit\|err' "$PAGE"; then
         echo 600
@@ -173,7 +173,7 @@ uploaded_to_download() {
         return $ERR_FATAL
     fi
 
-    recaptcha_ack $ID
+    captcha_ack $ID
     log_debug "correct captcha"
 
     FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return

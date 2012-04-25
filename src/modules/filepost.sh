@@ -63,15 +63,15 @@ filepost_login() {
 
         # {"id":"1234","js":{"error":"Incorrect e-mail\/password combination"},"text":""}
         if match 'Incorrect e-mail' "$LOGIN_RESULT"; then
-            recaptcha_ack $ID
+            captcha_ack $ID
             return $ERR_LOGIN_FAILED
         # {"id":"1234","js":{"answer":{"success":true},"redirect":"http:\/\/filepost.com\/"},"text":""}
         elif match '"succes":true' "$LOGIN_RESULT"; then
-            recaptcha_ack $ID
+            captcha_ack $ID
             log_debug "correct captcha"
         # {"id":"1234","js":{"answer":{"captcha":true},"error":"The code you entered is incorrect. Please try again."},"text":""}
         else
-            recaptcha_nack $ID
+            captcha_nack $ID
             log_debug "reCaptcha error"
             return $ERR_CAPTCHA
         fi
@@ -171,12 +171,12 @@ filepost_download() {
 
     # {"id":"12345","js":{"error":"You entered a wrong CAPTCHA code. Please try again."},"text":""}
     if matchi 'wrong CAPTCHA code' "$JSON"; then
-        recaptcha_nack $ID
+        captcha_nack $ID
         log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 
-    recaptcha_ack $ID
+    captcha_ack $ID
     log_debug "correct captcha"
 
     # {"id":"12345","js":{"answer":{"link":"http:\/\/fs122.filepost.com\/get_file\/...\/"}},"text":""}

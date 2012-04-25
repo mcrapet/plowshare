@@ -955,11 +955,12 @@ captcha_process() {
 
     if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
         if ! check_exec 'tesseract'; then
-            log_notice "tesseract was not found, probe for solving method"
+            log_notice "tesseract was not found, look for alternative solving method"
             METHOD_SOLVE=
         fi
     fi
 
+    # Auto (guess) mode
     if [ -z "$METHOD_SOLVE" ]; then
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
             METHOD_SOLVE='antigate'
@@ -1271,7 +1272,7 @@ captcha_ack() {
     local M=${1:0:1}
     local TID=${1:1}
     local RESPONSE STR
-log_error "###ACK[$1][$M][$TID]"
+
     if [ c = "$M" ]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local USERNAME="${CAPTCHA_TRADER%%:*}"
@@ -1281,7 +1282,7 @@ log_error "###ACK[$1][$M][$TID]"
 
             RESPONSE=$(curl -F "match=" \
                 -F "is_correct=1"       \
-                -F "ticket=$1"          \
+                -F "ticket=$TID"        \
                 -F "password=$PASSWORD" \
                 -F "username=$USERNAME" \
                 'http://api.captchatrader.com/respond') || return
@@ -1305,11 +1306,10 @@ captcha_nack() {
     local TID=${1:1}
     local RESPONSE STR
 
-log_error "###NACK[$1][$M][$TID]"
     if [ a = "$M" ]; then
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
             RESPONSE=$(curl --get \
-                --data "key=${CAPTCHA_ANTIGATE}&action=reportbad&id=$1"  \
+                --data "key=${CAPTCHA_ANTIGATE}&action=reportbad&id=$TID"  \
                 'http://antigate.com/res.php') || return
 
             [ 'OK_REPORT_RECORDED' = "$RESPONSE" ] || \
@@ -1327,7 +1327,7 @@ log_error "###NACK[$1][$M][$TID]"
 
             RESPONSE=$(curl -F "match=" \
                 -F "is_correct=0"       \
-                -F "ticket=$1"          \
+                -F "ticket=$TID"        \
                 -F "password=$PASSWORD" \
                 -F "username=$USERNAME" \
                 'http://api.captchatrader.com/respond') || return
@@ -1809,8 +1809,12 @@ captcha_antigate_ready() {
         return $ERR_NETWORK
     }
 
-    if match '^ERROR' "$AMOUNT"; then
+    if match '503 Service Unavailable' "$AMOUNT"; then
+        log_error "antigate: server unavailable"
+        return $ERR_CAPTCHA
+    elif match '^ERROR' "$AMOUNT"; then
         log_error "antigate error: $AMOUNT"
+        return $ERR_FATAL
     elif [ '0.0000' = "$AMOUNT" -o '-' = "${AMOUNT:0:1}" ]; then
         log_notice "antigate: no more credits (or bad key)"
         return $ERR_FATAL

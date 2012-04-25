@@ -126,14 +126,14 @@ hotfile_download() {
             "${BASE_URL}$FORM2_URL") || return
 
         if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
-            recaptcha_nack $ID
+            captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 
         LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
         if [ -n "$LINK" ]; then
-            recaptcha_ack $ID
+            captcha_ack $ID
             log_debug "correct captcha"
 
             FILE_URL=$(curl -b "$COOKIEFILE" --include "$LINK" | grep_http_header_location)

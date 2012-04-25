@@ -138,12 +138,12 @@ turbobit_download() {
             --referer "$FREE_URL" "$FREE_URL") || return
 
         if match 'Incorrect, try again!' "$PAGE"; then
-            recaptcha_nack $ID
+            captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 
-        recaptcha_ack $ID
+        captcha_ack $ID
         log_debug "correct captcha"
 
     # Alternative captcha. Can be one of the following:
@@ -156,9 +156,7 @@ turbobit_download() {
         CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value)
         CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
 
-        # TODO: solve automatically
-
-        CAPTCHA_IMG=$(create_tempfile '.captcha.png') || return
+        CAPTCHA_IMG=$(create_tempfile '.png') || return
 
         # Get new image captcha
         curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || { \
@@ -166,17 +164,27 @@ turbobit_download() {
             return $ERR_CAPTCHA;
         }
 
-        CAPTCHA=$(lowercase $(captcha_process "$CAPTCHA_IMG")) || return
+        local WI WORD ID
+        WI=$(captcha_process "$CAPTCHA_IMG") || return
+        { read WORD; read ID; } <<<"$WI"
         rm -f "$CAPTCHA_IMG"
 
-        PAGE=$(curl -b "$COOKIEFILE" --data \
-            "captcha_subtype=$CAPTCHA_SUBTYPE&captcha_type=$CAPTCHA_TYPE&captcha_response=$CAPTCHA" \
-             --referer "$FREE_URL" "$FREE_URL") || return
+        log_debug "decoded captcha: $WORD"
+
+        PAGE=$(curl -b "$COOKIEFILE" \
+            -d "captcha_subtype=$CAPTCHA_SUBTYPE" \
+            -d "captcha_type=$CAPTCHA_TYPE" \
+            -d "captcha_response=$(lowercase $WORD)" \
+            --referer "$FREE_URL" "$FREE_URL") || return
 
         if match 'Incorrect, try again!' "$PAGE"; then
+            captcha_nack $ID
             log_error "Wrong captcha ($CAPTCHA_SUBTYPE)"
             return $ERR_CAPTCHA
         fi
+
+        captcha_ack $ID
+        log_debug "correct captcha"
     fi
 
     # This code must stay below captcha

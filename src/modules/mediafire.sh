@@ -81,12 +81,12 @@ mediafire_download() {
 
         # You entered the incorrect keyword below, please try again!
         if match 'incorrect keyword' "$PAGE"; then
-            recaptcha_nack $ID
+            captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 
-        recaptcha_ack $ID
+        captcha_ack $ID
         log_debug "correct captcha"
     fi
 

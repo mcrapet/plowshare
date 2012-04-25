@@ -36,7 +36,7 @@ badongo_download() {
     local BASEURL='http://www.badongo.com'
     local APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
 
-    local PAGE JSCODE ACTION MTIME CAPTCHA_URL CAPTCHA_IMG CAPTCHA
+    local PAGE JSCODE ACTION MTIME CAPTCHA_URL CAPTCHA_IMG
     local CAP_ID CAP_SECRET WAIT_PAGE LINK_PART2 LINK_PART1 LAST_PAGE LINK_FINAL FILE_URL
 
     PAGE=$(curl "$URL") || return
@@ -70,36 +70,44 @@ badongo_download() {
     CAPTCHA_URL=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
 
     # Create new formatted image
-    CAPTCHA_IMG=$(create_tempfile) || return
+    CAPTCHA_IMG=$(create_tempfile '.jpg') || return
     curl "$BASEURL$CAPTCHA_URL" | perl 'strip_threshold.pl' 125 | \
             convert - +matte -colorspace gray -level 45%,45% gif:"$CAPTCHA_IMG" || { \
         rm -f "$CAPTCHA_IMG";
         return $ERR_CAPTCHA;
     }
 
-    CAPTCHA=$(captcha_process "$CAPTCHA_IMG" ocr_upper) || return
+    local WI WORD ID
+    WI=$(captcha_process "$CAPTCHA_IMG" ocr_upper) || return
+    { read WORD; read ID; } <<<"$WI"
     rm -f "$CAPTCHA_IMG"
 
-    if [ "${#CAPTCHA}" -lt 4 ]; then
+    if [ "${#WORD}" -lt 4 ]; then
+        captcha_nack $ID
         log_debug "captcha length invalid"
         return $ERR_CAPTCHA
-    elif [ "${#CAPTCHA}" -gt 4 ]; then
-        CAPTCHA="${CAPTCHA:0:4}"
+    elif [ "${#WORD}" -gt 4 ]; then
+        WORD="${WORD:0:4}"
     fi
-    log_debug "decoded captcha: $CAPTCHA"
+
+    log_debug "decoded captcha: $WORD"
 
     CAP_ID=$(echo "$JSCODE" | parse_form_input_by_name 'cap_id')
     CAP_SECRET=$(echo "$JSCODE" | parse_form_input_by_name 'cap_secret')
 
-    WAIT_PAGE=$(curl -c $COOKIEFILE \
-        --data "user_code=${CAPTCHA}&cap_id=${CAP_ID}&cap_secret=$CAP_SECRET" \
+    WAIT_PAGE=$(curl -c "$COOKIEFILE" \
+        -d "user_code=${WORD}"        \
+        -d "cap_id=${CAP_ID}"         \
+        -d "cap_secret=$CAP_SECRET"   \
         "$ACTION")
 
     if ! match 'id="link_container"' "$WAIT_PAGE"; then
+        captcha_nack $ID
         log_error "Wrong captcha"
         return $ERR_CAPTCHA
     fi
 
+    captcha_ack $ID
     log_debug "correct captcha"
 
     JSCODE=$(unescape_javascript "$WAIT_PAGE" 6)
