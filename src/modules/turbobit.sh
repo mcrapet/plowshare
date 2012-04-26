@@ -115,7 +115,7 @@ turbobit_download() {
             echo "$FILE_NAME"
             return 0
         fi
-	    PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$FREE_URL") || return
+        PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$FREE_URL") || return
     else
         PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$FREE_URL") || return
     fi
@@ -158,7 +158,7 @@ turbobit_download() {
 
         CAPTCHA_IMG=$(create_tempfile '.png') || return
 
-        # Get new image captcha
+        # Get new image captcha (cookie is mandatory)
         curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || { \
             rm -f "$CAPTCHA_IMG";
             return $ERR_CAPTCHA;
