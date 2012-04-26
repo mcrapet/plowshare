@@ -1080,7 +1080,11 @@ captcha_process() {
                 -F 'is_russian=0' \
                 'http://antigate.com/in.php') || return
 
-            if [ 'ERROR_IP_NOT_ALLOWED' = "$RESPONSE" ]; then
+            if [ -z "$RESPONSE" ]; then
+                log_error "antigate empty answer"
+                rm -f "$FILENAME"
+                return $ERR_NETWORK
+            elif [ 'ERROR_IP_NOT_ALLOWED' = "$RESPONSE" ]; then
                 log_error "antigate error: IP not allowed"
                 rm -f "$FILENAME"
                 return $ERR_FATAL
@@ -1809,8 +1813,14 @@ captcha_antigate_ready() {
         return $ERR_NETWORK
     }
 
-    if match '503 Service Unavailable' "$AMOUNT"; then
-        log_error "antigate: server unavailable"
+    if match '500 Internal Server Error' "$AMOUNT"; then
+        log_error "antigate: internal server error (HTTP 500)"
+        return $ERR_CAPTCHA
+    elif match '502 Bad Gateway' "$AMOUNT"; then
+        log_error "antigate: bad gateway (HTTP 502)"
+        return $ERR_CAPTCHA
+    elif match '503 Service Unavailable' "$AMOUNT"; then
+        log_error "antigate: service unavailable (HTTP 503)"
         return $ERR_CAPTCHA
     elif match '^ERROR' "$AMOUNT"; then
         log_error "antigate error: $AMOUNT"
