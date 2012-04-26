@@ -52,7 +52,7 @@ uptobox_download() {
     FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
     FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
 
-    PAGE=$(curl -b "lang=english" -F 'referer=' \
+    PAGE=$(curl -b 'lang=english' -F 'referer=' \
         -F "op=$FORM_OP" \
         -F "usr_login=$FORM_USR" \
         -F "id=$FORM_ID" \
@@ -94,7 +94,7 @@ uptobox_download() {
         wait $((WAIT_TIME)) || return
 
         # Didn't included -F 'method_premium='
-        PAGE=$(curl -i -b "lang=english" -F "referer=$URL" \
+        PAGE=$(curl -b "lang=english" -F "referer=$URL" \
             -F "op=$FORM_OP" \
             -F "usr_login=$FORM_USR" \
             -F "id=$FORM_ID" \
@@ -103,7 +103,7 @@ uptobox_download() {
             -F "down_script=$FORM_DS" \
             -F "code=$CODE" "$URL") || return
 
-        FILE_URL=$(echo "$PAGE" | grep_http_header_location)
+        FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'start your download' href)
         if match_remote_url "$FILE_URL"; then
             echo "$FILE_URL"
             echo "$FORM_FNAME"
@@ -115,10 +115,22 @@ uptobox_download() {
             return $ERR_CAPTCHA
         fi
 
-    # <p class="err">You have reached the download-limit: 1024 Mb for last 1 days</p>
-    elif match 'reached the download.limit' "$PAGE"; then
-        echo 3600
-        return $ERR_LINK_TEMP_UNAVAILABLE
+    elif match '<p class="err">' "$PAGE"; then
+      # You have reached the download-limit: 1024 Mb for last 1 days</p>
+      if match 'reached the download.limit' "$PAGE"; then
+          echo 3600
+          return $ERR_LINK_TEMP_UNAVAILABLE
+      # You have to wait X minutes, Y second till next download
+      elif matchi 'You have to wait' "$PAGE"; then
+          local MINS SECS
+          MINS=$(echo "$PAGE" | \
+              parse_quiet 'class="err">' 'wait \([[:digit:]]\+\) minute')
+          SECS=$(echo "$PAGE" | \
+              parse_quiet 'class="err">' ', \([[:digit:]]\+\) second')
+
+          echo $(( $MINS * 60 + $SECS ))
+          return $ERR_LINK_TEMP_UNAVAILABLE
+      fi
     fi
 
     log_error "Unexpected content, site updated?"
