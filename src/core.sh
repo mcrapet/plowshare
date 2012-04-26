@@ -939,11 +939,19 @@ wait() {
 #
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
-    local FILENAME=$1
     local METHOD_SOLVE=$2
     local METHOD_VIEW=$3
+    local FILENAME
 
-    if [ ! -f "$FILENAME" ]; then
+    if [ -f "$1" ]; then
+        FILENAME=$1
+    elif match_remote_url "$1"; then
+        FILENAME=$(create_tempfile '.captcha') || return
+        curl -o "$FILENAME" "$1" || { \
+            rm -f "$FILENAME";
+            return $ERR_NETWORK;
+        }
+    else
         log_error "image file not found"
         return $ERR_FATAL
     fi
@@ -1208,6 +1216,11 @@ captcha_process() {
             return $ERR_FATAL
             ;;
     esac
+
+    # if captcha URL provided, drop temporary image file
+    if [ "$1" != "$FILENAME" ]; then
+        rm -f "$FILENAME"
+    fi
 }
 
 RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
