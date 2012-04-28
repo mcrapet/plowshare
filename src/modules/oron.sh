@@ -30,7 +30,7 @@ MODULE_ORON_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 PRIVATE_FILE,,private,,Do not make file publicly accessable (account only)"
-MODULE_ORON_UPLOAD_REMOTE_SUPPORT=no
+MODULE_ORON_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_ORON_DELETE_OPTIONS=""
 
@@ -277,10 +277,18 @@ oron_upload() {
             log_error 'option "--private" ignored, account only'
     fi
 
-    SIZE=$(get_filesize "$FILE")
-    if [ $SIZE -gt $MAX_SIZE ]; then
-        log_error "File is too big, up to $MAX_SIZE bytes are allowed."
-        return $ERR_FATAL
+    if match_remote_url "$FILE"; then
+        if [ -z "$ACCOUNT" ]; then
+            log_error "Remote upload requires an account (free or premium)"
+            return $ERR_LINK_NEED_PERMISSIONS
+        fi
+    else
+        # file size seem to matter only for file upload
+        SIZE=$(get_filesize "$FILE")
+        if [ $SIZE -gt $MAX_SIZE ]; then
+            log_error "File is too big, up to $MAX_SIZE bytes are allowed."
+            return $ERR_FATAL
+        fi
     fi
 
     HTML=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
@@ -297,8 +305,13 @@ oron_upload() {
     log_debug "Server URL: $SRV_URL"
 
     # prepare upload
-    HTML=$(curl -b "$COOKIE_FILE" \
-        "$SRV_URL/status.html?file=$RND=$DEST_FILE") || return
+    if match_remote_url "$FILE"; then
+        HTML=$(curl -b "$COOKIE_FILE" \
+            "$SRV_URL/status.html?url=$RND=$DEST_FILE") || return
+    else
+        HTML=$(curl -b "$COOKIE_FILE" \
+            "$SRV_URL/status.html?file=$RND=$DEST_FILE") || return
+    fi
 
     if ! match "You are oroning" "$HTML"; then
         log_error "Error uploading to server '$SRV_URL'."
@@ -306,37 +319,60 @@ oron_upload() {
     fi
 
     # upload file
-    HTML=$(curl_with_log -b "$COOKIE_FILE" \
-        -F "upload_type=file" \
-        -F "srv_id=$SRV_ID" \
-        -F "sess_id=$SESS_ID" \
-        -F "srv_tmp_url=$SRV_URL" \
-        -F "file_0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
-        -F "file_1=;filename=" \
-        -F "ut=file" \
-        -F "link_rcpt=$EMAIL" \
-        -F "link_pass=" \
-        -F "tos=1" \
-        -F "submit_btn= Upload! " \
-        "$SRV_URL/upload/$SRV_ID/?X-Progress-ID=$RND") || return
+    if match_remote_url "$FILE"; then
+        HTML=$(curl -b "$COOKIE_FILE" \
+            -F "srv_id=$SRV_ID" \
+            -F "sess_id=$SESS_ID" \
+            -F 'upload_type=url' \
+            -F 'utype=reg' \
+            -F "srv_tmp_url=$SRV_URL" \
+            -F 'mass_upload=1' \
+            -F "url_mass=$FILE" \
+            -F "link_rcpt=$EMAIL" \
+            -F 'link_pass=' \
+            -F 'tos=1' \
+            -F 'submit_btn= Upload! ' \
+            "$SRV_URL/cgi-bin/upload_url.cgi/?X-Progress-ID=$RND") || return
 
-    # gather relevant data from form
-    FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines_alt) || return
-    FN=$(echo "$FORM" | parse_form_input_by_name 'fn') || return
-    ST=$(echo "$FORM" | parse_form_input_by_name 'st') || return
+        # gather relevant data
+        FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines) || return
+        FN=$(echo "$FORM" | parse_tag 'fn' 'textarea') || return
+        ST=$(echo "$FORM" | parse_tag 'st' 'textarea') || return
+
+    else
+        HTML=$(curl_with_log -b "$COOKIE_FILE" \
+            -F 'upload_type=file' \
+            -F "srv_id=$SRV_ID" \
+            -F "sess_id=$SESS_ID" \
+            -F "srv_tmp_url=$SRV_URL" \
+            -F "file_0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+            -F 'file_1=;filename=' \
+            -F 'ut=file' \
+            -F "link_rcpt=$EMAIL" \
+            -F 'link_pass=' \
+            -F 'tos=1' \
+            -F 'submit_btn= Upload! ' \
+            "$SRV_URL/upload/$SRV_ID/?X-Progress-ID=$RND") || return
+
+        # gather relevant data
+        FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines_alt) || return
+        FN=$(echo "$FORM" | parse_form_input_by_name 'fn') || return
+        ST=$(echo "$FORM" | parse_form_input_by_name 'st') || return
+    fi
+
     log_debug "FN: $FN"
     log_debug "ST: $ST"
 
     if [ "$ST" = "OK" ]; then
-        log_debug "Upload was successfull."
+        log_debug 'Upload was successfull.'
     elif match 'banned by administrator' "$ST"; then
-        log_error "File is banned by admin."
+        log_error 'File is banned by admin.'
         return $ERR_FATAL
     elif match 'triggered our security filters' "$ST"; then
-        log_error "File is banned by security filter."
+        log_error 'File is banned by security filter.'
         return $ERR_FATAL
     else
-        log_error "Unknown upload state '$ST'"
+        log_error "Unknown upload state: $ST"
         return $ERR_FATAL
     fi
 
@@ -357,8 +393,9 @@ oron_upload() {
         'value="\([^"]*\)">') || return
 
     # do we need to edit the file? (change name/visibility)
-    if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ]; then
-        log_debug "Editing file..."
+    if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] || \
+        match_remote_url "$FILE" && [ "$DEST_FILE" != "dummy" ]; then
+        log_debug 'Editing file...'
 
         local FILE_ID F_NAME F_PASS F_PUB
         FILE_ID=$(oron_extract_file_id "$LINK") || return
@@ -375,6 +412,7 @@ oron_upload() {
         log_debug "Current pass: ${F_PASS//?/*}"
         [ -n "$F_PUB" ] && log_debug 'Currently public'
 
+        match_remote_url "$FILE" && [ "$DEST_FILE" != "dummy" ] && F_NAME=$DEST_FILE
         [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] && F_PUB='-F file_public=1'
 
         # post changes (include HTTP headers to check for proper redirection;
