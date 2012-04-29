@@ -32,17 +32,27 @@ Alex Rea <amplitude@gmail.com>
 Baptiste <baptiste.brun@gmail.com>
 	bayfiles module (jan 2012)
 
+Chu Chong Meng Steven <chu.chongmeng@gmail.com>
+	freakshare module (mar 2012)
+
 Fabiano Francesconi <fabiano.francesconi@gmail.com>
 	loadfiles.in module (feb 2010)
 
 Golam Sarwar <gsbabil@gmail.com>
 	Initial duckload.com download support (may 2011)
 
+Jan <krompospeed@googlemail.com>a
+	Initial uploaded.to download/list support (may 2011)
+	oron module (arp 2012)
+
 Hervé <test.drive@gmail.com>
 	uploading.com module (dec 2009)
 
-Maurus Cuelenaere  <mcuelenaere@gmail.com>
+Maurus Cuelenaere <mcuelenaere@gmail.com>
 	mediafire upload support (jun 2010)
+
+Nicolas Michaux <nicolas@michaux.homelinux.org>
+	uploadhero anonymous download (apr 2012)
 
 Pavel Alexeev <Pahan@hubbitus.info>
 	Early letitbit module using gocr (nov 2009)
@@ -67,6 +77,7 @@ Walid Iguer <Walid.Iger@gmail.com>
 
 Wesley Barroso <wesleybl@gmail.com>
 	megashares.com module (oct 2011)
+	turbobit module (feb 2012)
 
 ? <poomex.pl@gmail.com>
 	wupload.com download and list functions (jun 2011)
@@ -79,6 +90,6 @@ AND MORE...
 - scripts contributors
 - premium account contributors
 - donators (paypal, ssh box, ...)
-- distro packagers (fedora, ...)
+- distro packagers (ubuntu, fedora, ...)
 
 # vim:ts=8:fenc=utf-8
