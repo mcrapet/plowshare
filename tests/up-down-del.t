@@ -32,17 +32,6 @@ dataport_cz
 --no-plowsharerc --no-extra-wait
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# reCaptcha can happen but it's rare
-mediafire
---no-plowsharerc
---no-plowsharerc
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-megashares
---no-plowsharerc
---no-plowsharerc
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 netload_in
 --no-plowsharerc
 --no-plowsharerc
@@ -58,3 +47,7 @@ zshare
 --no-plowsharerc
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+megashares
+--no-plowsharerc
+--no-plowsharerc
+--no-plowsharerc
