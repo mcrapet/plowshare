@@ -102,8 +102,9 @@ log_error() {
 
 # Wrapper for curl: debug and infinite loop control
 # $1..$n are curl arguments
+# Important note: -D/--dump-header or -o/--output temporary files are deleted in case of error
 curl() {
-    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 240)
+    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 240 "$@")
     local DRETVAL=0
 
     # Check if caller has specified a User-Agent, if so, don't put one
@@ -136,51 +137,70 @@ curl() {
     fi
 
     if test $(verbose_level) -lt 4; then
-        $(type -P curl) "${OPTIONS[@]}" "$@" || DRETVAL=$?
+        $(type -P curl) "${OPTIONS[@]}" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
-        log_report "${OPTIONS[@]} $@"
-        $(type -P curl) --show-error "${OPTIONS[@]}" "$@" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
+        log_report "${OPTIONS[@]}"
+        $(type -P curl) --show-error "${OPTIONS[@]}" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes"
         log_report "=== CURL BEGIN ==="
         logcat_report "$TEMPCURL"
         log_report "=== CURL END ==="
-        rm -rf "$TEMPCURL"
+        rm -f "$TEMPCURL"
     fi
 
-    case "$DRETVAL" in
-        0)
-           ;;
-        # Failed to initialize.
-        2)
-            log_error "out of memory?"
-            return $ERR_SYSTEM
-            ;;
-        # Failed to connect to host.
-        7)
-            log_error "can't connect: DNS or firewall error"
-            return $ERR_NETWORK
-            ;;
-        # Partial file
-        18)
-            return $ERR_LINK_TEMP_UNAVAILABLE
-            ;;
-        # HTTP retrieve error / Operation timeout
-        22 | 28)
-            log_error "curl retrieve error"
-            return $ERR_NETWORK
-            ;;
-        # Write error
-        23)
-            log_error "write failed, disk full?"
-            return $ERR_SYSTEM
-            ;;
-        *)
-            log_error "curl failed ($DRETVAL)"
-            return $ERR_NETWORK
-            ;;
-    esac
+    if [ "$DRETVAL" != 0 ]; then
+        local INDEX F
+
+        if INDEX=$(index_in_array OPTIONS[@] '-D' '--dump-header'); then
+            F=${OPTIONS[$INDEX]}
+            if [ -f "$F" ]; then
+                log_debug "deleting temporary HTTP header file: $F"
+                rm -f "$F"
+            fi
+        fi
+
+        if INDEX=$(index_in_array OPTIONS[@] '-o' '--output'); then
+            F=${OPTIONS[$INDEX]}
+            # Test to reject "-o /dev/null" and final plowdown call
+            if [ -f "$F" -a ! -s "$F" ]; then
+                log_debug "deleting temporary output file: $F"
+                rm -f "$F"
+            fi
+        fi
+
+        case "$DRETVAL" in
+            # Failed to initialize.
+            2)
+                log_error "out of memory?"
+                return $ERR_SYSTEM
+                ;;
+            # Failed to connect to host.
+            7)
+                log_error "can't connect: DNS or firewall error"
+                return $ERR_NETWORK
+                ;;
+            # Partial file
+            18)
+                return $ERR_LINK_TEMP_UNAVAILABLE
+                ;;
+            # HTTP retrieve error / Operation timeout
+            22 | 28)
+                log_error "curl retrieve error"
+                return $ERR_NETWORK
+                ;;
+            # Write error
+            23)
+                log_error "write failed, disk full?"
+                return $ERR_SYSTEM
+                ;;
+            *)
+                log_error "curl failed ($DRETVAL)"
+                return $ERR_NETWORK
+                ;;
+        esac
+    fi
     return 0
 }
 
@@ -851,7 +871,7 @@ javascript() {
     log_report "=== JAVASCRIPT END ==="
 
     $JS_PRG "$TEMPSCRIPT"
-    rm -rf "$TEMPSCRIPT"
+    rm -f "$TEMPSCRIPT"
     return 0
 }
 
@@ -1804,6 +1824,25 @@ ocr() {
 find_in_array() {
     for ELT in "${!1}"; do
         [ "$ELT" = "$2" -o "$ELT" = "$3" ] && return 0
+    done
+    return 1
+}
+
+# Find next array index of one element
+# $1: array[@]
+# $2: element to find
+# $3: alternate element to find (can be null)
+# $?: 0 for success (one element found), not found otherwise
+# stdout: array index, undefined if not found.
+index_in_array() {
+    local I=0
+    for ELT in "${!1}"; do
+        (( ++I ))
+        if [ "$ELT" = "$2" -o "$ELT" = "$3" ]; then
+            # Note: assume that it is not last element
+            echo "$I"
+            return 0
+        fi
     done
     return 1
 }
