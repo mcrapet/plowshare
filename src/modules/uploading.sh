@@ -48,6 +48,7 @@ uploading_download() {
     ERR1="Your IP address.*file"
     ERR2="Sorry, you have reached your daily download limit."
     if match "$ERR1\|$ERR2" "$DATA"; then
+        echo 600
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     elif match '<h2.*Download Limit.*</h2>' "$DATA"; then
