@@ -8,7 +8,7 @@ For regular PC users
 $ sudo make install
 
 # For non root users, you can override default prefix (/usr/local)
-$ PREFIX=/home/$USER make install
+$ make install PREFIX=/home/$USER
 
 # If you are on a cross compilation environment:
 # (default prefix is /usr/local)
