@@ -248,13 +248,12 @@ for FILE in "$@"; do
 
     # Check for remote upload
     if match_remote_url "$FILE"; then
-        IFS=":" read P1 P2 DESTFILE <<< "$FILE"
-
-        if [ -z "$DESTFILE" ]; then
+        DESTFILE=${FILE##*:}
+        if [ "$DESTFILE" = "${DESTFILE/\/}" ]; then
+            LOCALFILE=$(echo  "${FILE%:*}" | strip | uri_encode)
+        else
             LOCALFILE=$(echo "$FILE" | strip | uri_encode)
             DESTFILE='dummy'
-        else
-            LOCALFILE=$(echo "$P1$P2" | strip | uri_encode)
         fi
 
         if ! module_config_remote_upload "$MODULE"; then
