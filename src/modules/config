@@ -24,6 +24,7 @@ rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
 turbobit     | download | upload |        |      |
 uptobox      | download |        |        |      |
+uploadhero   | download |        |        | list |
 uploading    | download |        |        |      |
 uploaded_to  | download | upload | delete | list |
 zshare       | download | upload | delete |      |
