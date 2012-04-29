@@ -34,7 +34,7 @@ ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable
                                  # (also refer to plowdown --no-extra-wait command line option)
 ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
 ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (private or premium link)
-                                 # plowdel: operation not allowed for anonymous users
+                                 # plowdel/plowup: operation not allowed for anonymous users
 ERR_LINK_DEAD=13                 # plowdel: file not found or previously deleted
                                  # plowlist: remote folder does not exist or is empty
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
