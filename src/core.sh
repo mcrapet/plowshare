@@ -759,8 +759,8 @@ get_filesize() {
 #
 # $1: Suffix
 create_tempfile() {
-    SUFFIX=$1
-    FILE="${TMPDIR:-/tmp}/$(basename_file "$0").$$.$RANDOM$SUFFIX"
+    local SUFFIX=$1
+    local FILE="${TMPDIR:-/tmp}/$(basename_file "$0").$$.$RANDOM$SUFFIX"
     :> "$FILE" || return $ERR_SYSTEM
     echo "$FILE"
 }
