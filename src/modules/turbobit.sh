@@ -159,10 +159,7 @@ turbobit_download() {
         CAPTCHA_IMG=$(create_tempfile '.png') || return
 
         # Get new image captcha (cookie is mandatory)
-        curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || { \
-            rm -f "$CAPTCHA_IMG";
-            return $ERR_CAPTCHA;
-        }
+        curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
 
         local WI WORD ID
         WI=$(captcha_process "$CAPTCHA_IMG") || return
@@ -250,10 +247,9 @@ turbobit_upload() {
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
+    local URL='http://turbobit.net'
 
-    local URL PAGE UPLOAD_URL JSON MESSAGE FILE_ID DELETE_ID FORM_UID
-
-    URL='http://turbobit.net'
+    local PAGE UPLOAD_URL JSON MESSAGE FILE_ID DELETE_ID FORM_UID
 
     if test -n "$AUTH"; then
         turbobit_login "$AUTH" "$COOKIEFILE" "$URL" >/dev/null || \
@@ -282,22 +278,18 @@ turbobit_upload() {
         -b "$COOKIEFILE" \
         --referer "$URL") || return
 
-    if match '"result":false' "$JSON"; then
-        MESSAGE=$(echo "$JSON" | parse '"message":' '"message":"\([^"]*\)')
-        log_error "turbobit error: $MESSAGE"
-        return $ERR_FATAL
-
-    elif match '"result":true' "$JSON"; then
-        FILE_ID=$(echo "$JSON" | parse '"id":"' '"id":"\([^"]*\)')
+    if match_json_true result "$JSON"; then
+        FILE_ID=$(echo "$JSON" | parse_json id) || return
         PAGE=$(curl -b "$COOKIEFILE" "$URL/newfile/gridFile/${FILE_ID}?_search=false&nd=$(date +%s000)&rows=20&page=1&sidx=id&sord=asc") || return
         DELETE_ID=$(echo "$PAGE" | parse 'null,null,' 'null,null,"\([^"]*\)')
 
-        echo "http://turbobit.net/$FILE_ID.html"
+        echo "$URL/$FILE_ID.html"
         test "$DELETE_ID" && \
-            echo "http://turbobit.net/delete/file/$FILE_ID/$DELETE_ID"
+            echo "$URL/delete/file/$FILE_ID/$DELETE_ID"
         return 0
     fi
 
-    log_error "Site updated?"
+    MESSAGE=$(echo "$JSON" | parse_json message)
+    log_error "turbobit error: $MESSAGE"
     return $ERR_FATAL
 }
