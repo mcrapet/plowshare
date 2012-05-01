@@ -29,6 +29,8 @@ MODULE_BAYFILES_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_BAYFILES_DELETE_OPTIONS=""
+
 # Static function. Proceed with login (free-user or premium)
 # i didn't test with a premium account but it should work (same API)
 bayfiles_login() {
@@ -162,4 +164,33 @@ bayfiles_upload() {
     echo "$URL"
     echo "$DELETE_URL"
     echo "$ADMIN_URL"
+}
+
+# Delete a file on bayfiles
+# $1: cookie file (unused here)
+# $2: delete link
+bayfiles_delete() {
+    eval "$(process_options bayfiles "$MODULE_BAYFILES_DELETE_OPTIONS" "$@")"
+
+    local URL=$2
+    local PAGE CONFIRM
+
+    PAGE=$(curl "$URL") || return
+
+    # Are you sure you want to <strong>delete</strong> this file?
+    if match 'Confirm Deletion' "$PAGE"; then
+        CONFIRM=$(echo "$PAGE" | parse_attr 'Confirm' href) || return
+        PAGE=$(curl "$URL$CONFIRM") || return
+
+        # File successfully deleted.
+        match 'successfully deleted' "$PAGE" && return 0
+
+    # The requested file could not be found.
+    elif match 'file could not be found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+
+    fi
+
+    # Invalid security token. Please check your link.
+    return $ERR_FATAL
 }
