@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 115.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -34,7 +34,7 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
     local COOKIEFILE=$1
     local URL=$2
-    local PAGE JSON LINKS HEADERS DIRECT FILENAME
+    local PAGE JSON LINKS HEADERS DIRECT FILENAME U1 U2
 
     if [ -z "$AUTH" ]; then
         log_error "Anonymous users cannot download links"
@@ -51,18 +51,20 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
         return $ERR_LINK_DEAD
     fi
 
-    URL=$(echo "$PAGE" | parse_last 'url:' "'\(\/?ct=download[^']*\)")
-    if [ -z "$URL" ]; then
-        log_error "no link found, site updated?"
-        return $ERR_FATAL
-    fi
+    U1=$(echo "$PAGE" | parse_last 'url:' "'\(\/?ct=download[^']*\)") || return
+    U2=$(echo "$PAGE" | parse 'GetMyDownloadAddress(' "('\([^']*\)") || return
 
     test "$CHECK_LINK" && return 0
 
     # {"state":true,"urls":[{"client":1,"url":"http:\/\/119. ...
-    JSON=$(curl -b "$COOKIEFILE" "http://115.com$URL") || return
-    LINKS=$(echo "$JSON" | sed -e 's/,/,\n/g' | parse 'url' '"url":"\([^"]*\)"') || return
-    LINKS=${LINKS//[\\]/}
+    JSON=$(curl -b "$COOKIEFILE" "http://115.com$U1$U2") || return
+
+    if ! match_json_true state "$JSON"; then
+        log_error "Bad state. Site updated?"
+        return $ERR_FATAL
+    fi
+
+    LINKS=$(echo "$JSON" | parse_json 'url' split) || return
 
     # There are usually mirrors (do a HTTP HEAD request to check dead mirror)
     while read URL; do
