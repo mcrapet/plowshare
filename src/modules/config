@@ -22,7 +22,7 @@ netload_in   | download | upload |        | list |
 oron         | download | upload | delete |      |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
-turbobit     | download | upload |        |      |
+turbobit     | download | upload | delete |      |
 uptobox      | download |        |        |      |
 uploadhero   | download |        |        | list |
 uploading    | download |        |        |      |

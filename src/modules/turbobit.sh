@@ -29,6 +29,8 @@ MODULE_TURBOBIT_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account free or premium"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_TURBOBIT_DELETE_OPTIONS=""
+
 # Proceed with login (free-membership or premium)
 turbobit_login() {
     local AUTH=$1
@@ -292,4 +294,31 @@ turbobit_upload() {
     MESSAGE=$(echo "$JSON" | parse_json message)
     log_error "turbobit error: $MESSAGE"
     return $ERR_FATAL
+}
+
+# Delete a file on turbobit
+# $1: cookie file (unused here)
+# $2: delete link
+turbobit_delete() {
+    eval "$(process_options turbobit "$MODULE_TURBOBIT_DELETE_OPTIONS" "$@")"
+
+    local URL=$2
+
+    PAGE=$(curl -b 'user_lang=en' "$URL") || return
+
+    # You can't remove this file - code is incorrect
+    if match 'code is incorrect' "$PAGE"; then
+        log_error "bad deletion code"
+        return $ERR_FATAL
+    # File was not found. It could possibly be deleted.
+    # File not found. Probably it was deleted.
+    elif match 'File\(was\)\? not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    URL=$(echo "$PAGE" | parse_attr '>Yes' href) || return
+    PAGE=$(curl -b 'user_lang=en' "http://turbobit.net$URL") || return
+
+    # File was deleted successfully
+    match 'deleted successfully' "$PAGE" || return $ERR_FATAL
 }
