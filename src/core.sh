@@ -773,7 +773,9 @@ prompt_for_password() {
     local PASSWORD
 
     log_notice "No password specified, enter it now"
-    read -s -r -p "Enter password: " PASSWORD
+
+    # Unset IFS to consider trailing and leading spaces
+    IFS= read -s -r -p 'Enter password: ' PASSWORD
 
     # Add missing trailing newline (see read -p)
     stderr
