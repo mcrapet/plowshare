@@ -99,8 +99,7 @@ bayfiles_download() {
         JSON_COUNT=$(curl -G --data "action=startTimer&vfid=$VFID" \
             $AJAX_URL) || return
 
-        TOKEN=$(echo "$JSON_COUNT" |\
-            parse 'token' 'token":"\([^"]*\)') || return
+        TOKEN=$(echo "$JSON_COUNT" | parse_json token) || return
 
         wait $((DELAY)) "seconds" || return
 
@@ -148,25 +147,17 @@ bayfiles_upload() {
 
     UPLOAD_JSON_DATA=$(curl -b "$COOKIEFILE" "${APIURL}/file/uploadUrl${SESSION_GET}") || return
 
-    # "/" seems to be the only backslashed char
-    UPLOAD_URL=$(echo "$UPLOAD_JSON_DATA" |\
-        parse 'uploadUrl' 'uploadUrl":"\([^"]*\)' |\
-        replace '\/' '/') || return
+    UPLOAD_URL=$(echo "$UPLOAD_JSON_DATA" | parse_json 'uploadUrl') || return
 
     UPLOADED_FILE_JSON_DATA=$(curl_with_log -b "$COOKIEFILE"\
         -F "file=@$FILE;filename=$DESTFILE" "$UPLOAD_URL") || return
 
-    URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-        parse 'downloadUrl' 'downloadUrl":"\([^"]*\)' |\
-        replace '\/' '/') || return
-
-    DELETE_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-        parse 'deleteUrl' 'deleteUrl":"\([^"]*\)' |\
-        replace '\/' '/') || return
-
-    ADMIN_URL=$(echo "$UPLOADED_FILE_JSON_DATA" |\
-        parse 'linksUrl' 'linksUrl":"\([^"]*\)' |\
-        replace '\/' '/') || return
+    URL=$(echo "$UPLOADED_FILE_JSON_DATA" | \
+        parse_json 'downloadUrl') || return
+    DELETE_URL=$(echo "$UPLOADED_FILE_JSON_DATA" | \
+        parse_json 'deleteUrl') || return
+    ADMIN_URL=$(echo "$UPLOADED_FILE_JSON_DATA" | \
+        parse_json 'linksUrl') || return
 
     echo "$URL"
     echo "$DELETE_URL"
