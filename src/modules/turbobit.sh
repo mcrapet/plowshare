@@ -302,9 +302,9 @@ turbobit_upload() {
 turbobit_delete() {
     eval "$(process_options turbobit "$MODULE_TURBOBIT_DELETE_OPTIONS" "$@")"
 
-    local URL=$2
+    local PAGE URL
 
-    PAGE=$(curl -b 'user_lang=en' "$URL") || return
+    PAGE=$(curl -b 'user_lang=en' "$2") || return
 
     # You can't remove this file - code is incorrect
     if match 'code is incorrect' "$PAGE"; then
