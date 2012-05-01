@@ -390,6 +390,74 @@ parse_line_after() {
     parse_line_after_all "$@" | head -n1
 }
 
+# Simple and limited JSON parsing
+#
+# Notes:
+# - Single line parsing oriented (user should strip newlines first): no tree model
+# - Array and Object types: no support
+# - String type: no support for escaped unicode characters (\uXXXX)
+# - No non standard C/C++ comments handling (like in JSONP)
+# - If several entries exist on same line: last occurrence is taken, but:
+#   consider precedence (order of priority): number, boolean/empty, string.
+# - If several entries exist on different lines: all are returned (it's a parse_all_json)
+#
+# $1: variable name (string)
+# $2: (optional) preprocess option. Accepted values are:
+#     - "join": make a single line of input stream.
+#     - "split": split input buffer on comma character (,).
+# stdin: JSON data
+# stdout: result
+parse_json() {
+    local STRING PRE
+    local END='\([, 	}].*\)\?$'
+
+    if [ "$2" = 'join' ]; then
+        PRE="tr -d '\n\r'"
+    elif [ "$2" = 'split' ]; then
+        PRE=sed\ -e\ 's/,[[:space:]]*"/\n"/g'
+    else
+        PRE='cat'
+    fi
+
+    STRING=$($PRE | sed \
+        -ne "s/^.*\"$1\"[[:space:]]*:[[:space:]]*\(-\?\(0\|[1-9][[:digit:]]*\)\(\.[[:digit:]]\+\)\?\([eE][-+]\?[[:digit:]]\+\)\?\)$END/\1/p" \
+        -ne "s/^.*\"$1\"[[:space:]]*:[[:space:]]*\(true\|false\|null\)$END/\1/p" \
+        -ne "s/\\\\\"/\\\\q/g;s/^.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\"$END/\1/p")
+
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (json): \"$1\""
+        log_notice_stack
+        return $ERR_FATAL
+    fi
+
+    # Translate two-character sequence escape representations
+    STRING=${STRING//\\\//\/}
+    STRING=${STRING//\\\\/\\}
+    STRING=${STRING//\\q/\"}
+    STRING=${STRING//\\b/$'\b'}
+    STRING=${STRING//\\f/$'\f'}
+    STRING=${STRING//\\n/$'\n'}
+    STRING=${STRING//\\r/$'\r'}
+    STRING=${STRING//\\t/	}
+
+    echo "$STRING"
+}
+
+# Like parse_json, but hide possible error
+parse_json_quiet() {
+    parse_json "$@" 2>/dev/null
+    return 0
+}
+
+# Check if JSON variable is true
+#
+# $1: JSON variable name
+# $2: JSON data
+# $? is zero on success
+match_json_true() {
+    grep -q "\"$1\"[[:space:]]*:[[:space:]]*true" <<< "$2"
+}
+
 # Grep "Xxx" HTTP header. Can be:
 # - Location
 # - Content-Location
