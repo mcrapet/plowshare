@@ -487,7 +487,7 @@ grep_http_header_content_type() {
 # stdin: HTTP response headers (see below)
 # stdout: attachement filename
 grep_http_header_content_disposition() {
-    parse_all '^[Cc]ontent-[Dd]isposition:' 'filename="\(.*\)"'
+    parse_all '^[Cc]ontent-[Dd]isposition:' "filename=[\"']\?\([^\"'>\r]*\)"
 }
 
 # Extract a specific form from a HTML content.
