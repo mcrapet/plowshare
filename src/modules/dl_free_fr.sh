@@ -27,6 +27,72 @@ MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 
+AYL_SERVER='http://api.adyoulike.com/'
+# Adyoulike decoding function
+# Main engine: http://api-ayl.appspot.com/static/js/ayl_lib.js
+#
+# $1: AYL site public key
+# $2 (optional): env value (default is "prod")
+# stdout: On 4 lines: <word> \n <challenge> \n <token_id> \n <transaction_id>
+captcha_ayl_process() {
+    local ENV=${2:-prod}
+    local URL="${AYL_SERVER}challenge?key=${1}&env=$ENV"
+    local TRY VARS TYPE WORDS RESPONSE TOKEN TOKEN_ID TID
+
+    TRY=0
+    # Arbitrary 100 limit is safer
+    while (( TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
+        log_debug "Adyoulike loop $TRY"
+
+        VARS=$(curl -L "$URL") || return
+
+        if [ -z "$VARS" ]; then
+            return $ERR_CAPTCHA
+        fi
+
+        WORDS=$(echo "$VARS" | parse_json_quiet 'instructions_visual' | tr -d '\302')
+        TOKEN=$(echo "$VARS" | parse_json 'token') || return
+        TOKEN_ID=$(echo "$VARS" | parse_json 'tid') || return
+        TYPE=$(echo "$VARS" | parse_json "medium_type" | replace '/' '_') || return
+
+        log_debug "Adyoulike challenge: $TOKEN"
+
+        # Easy case, captcha answer is written plain text :)
+        # UTF-8 characters: « (\uC2AB), » (\uC2BB)
+        if [ -n "$WORDS" -a "$TYPE" = 'image_adyoulike' ]; then
+            RESPONSE=$(echo "$WORDS" | parse_quiet . '\xAB \([^ ]*\) \xBB')
+            [ -n "$RESPONSE" ] && break
+
+        #elif [ "$TYPE" = 'video_youtube' ];
+        else
+            log_error "$FUNCNAME: $TYPE not handled, skipping"
+        fi
+
+        # Maybe we'll need this later?
+        # curl -b "ayl_tid=$TOKEN_ID" "${AYL_SERVER}iframe?iframe_type=${TYPE}&token=${TOKEN}&env=$ENV"
+
+        FILENAME=$(create_tempfile '.ayl.jpg') || return
+        curl -b "ayl_tid=$TOKEN_ID" -o "$FILENAME" \
+            "${AYL_SERVER}resource?token=${TOKEN}&env=$ENV" || return
+
+        WORDS=$(captcha_process "$FILENAME" prompt) || return
+        rm -f "$FILENAME"
+
+        { read RESPONSE; read TID; } <<<"$WORDS"
+
+        [ -n "$RESPONSE" ] && break
+
+        # Reload image
+        log_debug "empty, request another image"
+
+    done
+
+    echo "$RESPONSE"
+    echo "$TOKEN"
+    echo "$TOKEN_ID"
+    echo ${TID:-0}
+}
+
 # Output a dl.free.fr file download URL (anonymous)
 # $1: cookie file
 # $2: dl.free.fr url
@@ -36,7 +102,6 @@ dl_free_fr_download() {
 
     local COOKIE_FILE=$1
     local URL=$2
-
     local PAGE FORM_HTML FORM_ACTION FORM_FILE FORM_SUBM SESSID
 
     # Notes:
@@ -48,7 +113,9 @@ dl_free_fr_download() {
     if match '^HTTP/1.1 206' "$PAGE"; then
         test "$CHECK_LINK" && return 0
 
+        FILENAME=$(echo "$PAGE" | grep_http_header_content_disposition) || return
         echo "$URL"
+        echo "$FILENAME"
         return 0
     fi
 
@@ -65,24 +132,24 @@ dl_free_fr_download() {
     FORM_FILE=$(echo "$FORM_HTML" | parse_form_input_by_name 'file' | uri_encode_strict)
     FORM_SUBM=$(echo "$FORM_HTML" | parse_form_input_by_type 'submit' | uri_encode_strict)
 
-    local PUBKEY WCI CHALLENGE WORD ID
-    PUBKEY='6Lf-Ws8SAAAAAAO4ND_KCqpZzNZQKYEuOROs4edG'
-    WCI=$(recaptcha_process $PUBKEY) || return
-    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+    local PUBKEY WTTI WORD TOKEN TKID ID
+    PUBKEY='P~zQ~O0zV0WTiAzC-iw0navWQpCLoYEP'
+    WTTI=$(captcha_ayl_process $PUBKEY) || return
+    { read WORD; read TOKEN; read TKID; read ID; } <<<"$WTTI"
 
     PAGE=$(curl -v -c "$COOKIE_FILE" \
-        -d "recaptcha_challenge_field=$CHALLENGE" \
-        -d "recaptcha_response_field=$WORD" \
         -d "file=$FORM_FILE" \
         -d "submit=$FORM_SUBM" \
-        -d '_ayl_token_challenge=undefined' \
-        -d '_ayl_captcha_engine=recaptcha' \
+        -d "_ayl_response=$WORD" \
+        -d "_ayl_token_challenge=$TOKEN" \
+        -d '_ayl_captcha_engine=adyoulike' \
         -d '_ayl_utf8_ie_fix=%E2%98%83' \
-        -d '_ayl_tid=undefined' \
+        -d "_ayl_tid=$TKID" \
         -d '_ayl_env=prod' \
         --referer "$URL" \
         "http://dl.free.fr/$FORM_ACTION") || return
 
+    # Could also check for "Code incorrect" in $PAGE
     SESSID=$(parse_cookie_quiet 'getfile' < "$COOKIE_FILE")
     if [ -z "$SESSID" ]; then
         captcha_nack $ID
@@ -106,25 +173,21 @@ dl_free_fr_upload() {
     local FILE=$2
     local DESTFILE=$3
     local UPLOADURL='http://dl.free.fr'
-    local PAGE FORM ACTION SESSIONID H STATUS MON_PL WAITTIME DL RM
+    local PAGE FORM_HTML FORM_ACTION SESSIONID HEADERS STATUS MON_PL WAITTIME DL RM
 
     log_debug "downloading upload page: $UPLOADURL"
     PAGE=$(curl "$UPLOADURL") || return
 
-    FORM=$(grep_form_by_order "$PAGE" 2) || {
-        log_error "can't get upload from, website updated?";
-        return $ERR_FATAL
-    }
-
-    ACTION=$(echo "$FORM" | parse_form_action)
-    SESSIONID=$(echo "$ACTION" | cut -d? -f2)
-    H=$(create_tempfile) || return
+    FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    SESSIONID=$(echo "$FORM_ACTION" | cut -d? -f2)
 
     # <input> markers are: ufile, mail1, mail2, mail3, mail4, message, password
     # Returns 302. Answer headers are not returned with -i switch, I must
     # use -D. This should be reported to cURL bug tracker.
-    log_debug "starting file upload: $FILE"
-    STATUS=$(curl_with_log -D $H --referer "$UPLOADURL/index_nojs.pl" \
+    HEADERS=$(create_tempfile) || return
+    STATUS=$(curl_with_log -D "$HEADERS" \
+        --referer "$UPLOADURL/index_nojs.pl" \
         -F "ufile=@$FILE;filename=$DESTFILE" \
         -F "mail1=" \
         -F "mail2=" \
@@ -132,10 +195,10 @@ dl_free_fr_upload() {
         -F "mail4=" \
         -F "message=test" \
         -F "password=" \
-        "$UPLOADURL$ACTION")
+        "$UPLOADURL$FORM_ACTION") || return
 
-    MON_PL=$(cat "$H" | grep_http_header_location)
-    rm -f "$H"
+    MON_PL=$(cat "$HEADERS" | grep_http_header_location) || return
+    rm -f "$HEADERS"
 
     log_debug "Monitoring page: $MON_PL"
 
