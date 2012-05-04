@@ -1374,7 +1374,7 @@ recaptcha_process() {
 # Positive acknowledge of captcha answer
 # $1: id (given by captcha_process or recpatcha_process)
 captcha_ack() {
-    [[ $1 -eq 0 ]] && return
+    [ "$1" = 0 ] && return
 
     local M=${1:0:1}
     local TID=${1:1}
@@ -1407,7 +1407,7 @@ captcha_ack() {
 # Negative acknowledge of captcha answer
 # $1: id (given by captcha_process or recpatcha_process)
 captcha_nack() {
-    [[ $1 -eq 0 ]] && return
+    [ "$1" = 0 ] && return
 
     local M=${1:0:1}
     local TID=${1:1}
