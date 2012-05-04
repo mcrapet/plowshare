@@ -49,6 +49,7 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
 #   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
 #   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
+#   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
@@ -1066,6 +1067,9 @@ captcha_process() {
         elif [ -n "$CAPTCHA_TRADER" ]; then
             METHOD_SOLVE='captchatrader'
             METHOD_VIEW='none'
+        elif [ -n "$CAPTCHA_DEATHBY" ]; then
+            METHOD_SOLVE='deathbycaptcha'
+            METHOD_VIEW='none'
         else
             METHOD_SOLVE=prompt
         fi
@@ -1152,7 +1156,7 @@ captcha_process() {
             ;;
     esac
 
-    local RESPONSE
+    local RESPONSE WORD I
     local TID=0
     local TEXT1='Leave this field blank and hit enter to get another captcha image'
     local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
@@ -1196,7 +1200,6 @@ captcha_process() {
                 return $ERR_FATAL
             fi
 
-            local I WORD
             TID=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
 
             for I in 8 5 5 6 6 7 7 8; do
@@ -1248,7 +1251,7 @@ captcha_process() {
             if [ -z "$RESPONSE" ]; then
                 log_error "captcha.trader empty answer"
                 rm -f "$FILENAME"
-                return $ERR_CAPTCHA
+                return $ERR_NETWORK
             fi
 
             if match '503 Service Unavailable' "$RESPONSE"; then
@@ -1257,7 +1260,6 @@ captcha_process() {
                 return $ERR_CAPTCHA
             fi
 
-            local WORD
             TID=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
             WORD=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
 
@@ -1273,6 +1275,66 @@ captcha_process() {
             # result on two lines
             echo "$WORD"
             echo "c$TID"
+            ;;
+        deathbycaptcha)
+            local HTTP_CODE POLL_URL
+            local USERNAME="${CAPTCHA_DEATHBY%%:*}"
+            local PASSWORD="${CAPTCHA_DEATHBY#*:}"
+
+            if ! service_captchadeathby_ready "$USERNAME" "$PASSWORD"; then
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            log_notice "Using DeathByCaptcha service ($USERNAME)"
+
+            # Consider HTTP headers, don't use JSON answer
+            RESPONSE=$(curl --include --header 'Expect: ' \
+                --header 'Accept: application/json' \
+                -F "username=$USERNAME" \
+                -F "password=$PASSWORD" \
+                -F "captchafile=@$FILENAME" \
+                'http://api.dbcapi.me/api/captcha') || return
+
+            if [ -z "$RESPONSE" ]; then
+                log_error "DeathByCaptcha empty answer"
+                rm -f "$FILENAME"
+                return $ERR_NETWORK
+            fi
+
+            HTTP_CODE=$(echo "$RESPONSE" | first_line | \
+                parse . 'HTTP\/1\.. \([[:digit:]]\+\) ')
+
+            if [ "$HTTP_CODE" = 303 ]; then
+                POLL_URL=$(echo "$RESPONSE" | grep_http_header_location) || return
+
+                for I in 4 3 3 4 4 5 5; do
+                    wait $I seconds
+
+                    # {"status": 0, "captcha": 661085218, "is_correct": true, "text": ""}
+                    RESPONSE=$(curl --header 'Accept: application/json' \
+                        "$POLL_URL") || return
+
+                    if match_json_true 'is_correct' "$RESPONSE"; then
+                        WORD=$(echo "$RESPONSE" | parse_json_quiet text)
+                        if [ -n "$WORD" ]; then
+                            TID=$(echo "$RESPONSE" | parse_json_quiet captcha)
+                            echo "$WORD"
+                            echo "d$TID"
+                            return 0
+                        fi
+                    else
+                        log_error "DeathByCaptcha unknown error: $RESPONSE"
+                        rm -f "$FILENAME"
+                        return $ERR_CAPTCHA
+                    fi
+                done
+                log_error "DeathByCaptcha timeout: give up!"
+            else
+                log_error "DeathByCaptcha wrong http answer ($HTTP_CODE)"
+            fi
+            rm -f "$FILENAME"
+            return $ERR_CAPTCHA
             ;;
         ocr_digit)
             RESPONSE=$(ocr "$FILENAME" digit | sed -e 's/[^0-9]//g') || {
@@ -1379,7 +1441,9 @@ captcha_ack() {
     local TID=${1:1}
     local RESPONSE STR
 
-    if [ c = "$M" ]; then
+    if [ a = "$M" ]; then
+        :
+    elif [ c = "$M" ]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local USERNAME="${CAPTCHA_TRADER%%:*}"
             local PASSWORD="${CAPTCHA_TRADER#*:}"
@@ -1398,6 +1462,8 @@ captcha_ack() {
         else
             log_error "$FUNCNAME failed: captcha.trader missing account data"
         fi
+    elif [ d = "$M" ]; then
+        :
     else
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
@@ -1442,6 +1508,23 @@ captcha_nack() {
             [ -n "$STR" ] && log_error "captcha.trader error: $STR"
         else
             log_error "$FUNCNAME failed: captcha.trader missing account data"
+        fi
+
+    elif [ d = "$M" ]; then
+        if [ -n "$CAPTCHA_DEATHBY" ]; then
+            local USERNAME="${CAPTCHA_DEATHBY%%:*}"
+            local PASSWORD="${CAPTCHA_DEATHBY#*:}"
+
+            log_debug "DeathByCaptcha report nack ($USERNAME)"
+
+            RESPONSE=$(curl \
+                -F "username=$USERNAME" \
+                -F "password=$PASSWORD" \
+                "http://api.dbcapi.me/api/captcha/$TID/report") || return
+
+            log_error "DeathByCaptcha: report nack FIXME[$RESPONSE]"
+        else
+            log_error "$FUNCNAME failed: DeathByCaptcha missing account data"
         fi
 
     else
@@ -1986,6 +2069,52 @@ service_antigate_ready() {
     else
         log_debug "antigate credits: \$$AMOUNT"
     fi
+}
+
+# Verify balance (DeathByCaptcha)
+# $1: death by captcha username
+# $2: death by captcha password
+# $?: 0 for success (enough credits)
+service_captchadeathby_ready() {
+    local USER=$1
+    local JSON STATUS AMOUNT ERROR
+
+    if [ -z "$1" -o -z "$2" ]; then
+        log_error "DeathByCaptcha missing account data"
+        return $ERR_FATAL
+    fi
+
+    JSON=$(curl -F "username=$USER" -F "password=$2" \
+            --header 'Accept: application/json' \
+            'http://api.dbcapi.me/api/user') || { \
+        log_notice "DeathByCaptcha: site seems to be down"
+        return $ERR_NETWORK
+    }
+
+    STATUS=$(echo "$JSON" | parse_json_quiet 'status')
+
+    if [ "$STATUS" = 0 ]; then
+        AMOUNT=$(echo "$JSON" | parse_json 'balance')
+
+        if match_json_true 'is_banned' "$JSON"; then
+            log_error "DeathByCaptcha error: $USER is banned"
+            return $ERR_FATAL
+        fi
+
+        if [ "${AMOUNT%.*}" = 0 ]; then
+            log_notice "DeathByCaptcha: not enough credits ($USER)"
+            return $ERR_FATAL
+        fi
+    elif [ "$STATUS" = 255 ]; then
+        ERROR=$(echo "$JSON" | parse_json_quiet 'error')
+        log_error "DeathByCaptcha error: $ERROR"
+        return $ERR_FATAL
+    else
+        log_error "DeathByCaptcha unknown error: $JSON"
+        return $ERR_FATAL
+    fi
+
+    log_debug "DeathByCaptcha credits: $AMOUNT"
 }
 
 # Some debug information

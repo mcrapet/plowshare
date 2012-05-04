@@ -40,6 +40,7 @@ MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no
 CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: prompt, none, online.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
+CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWORD,DeathByCaptcha account
 NOEXTRAWAIT,,no-extra-wait,,Do not wait on uncommon events (unavailable file, unallowed parallel downloads, ...)
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
@@ -661,6 +662,7 @@ if [ -n "$CAPTCHA_METHOD" ]; then
 else
     [ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
     [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdown: --deathbycaptcha selected"
 fi
 
 if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then

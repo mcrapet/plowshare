@@ -40,8 +40,9 @@ To run plowshare you will require:
     - aview (libaa) or
     - img2txt (libcaca) or
     - tiv (perl script using Image::Magick) or
+    - Antigate.com account or
     - CapthaTrader account or
-    - Antigate.com account
+    - DeathByCaptcha account
 
 > Some websites requires javascript interpreter [1]
     - spidermonkey or

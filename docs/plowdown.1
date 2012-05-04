@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "April 15, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "May 4, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -106,7 +106,10 @@ Set maximum retries for download failures (only captcha errors for now). Default
 Use Antigate.com service to solve captcha.
 .TP
 .BI "   " " " --captchatrader "=USER:PASSWORD"
-Use CaptchaTrader service to solve captcha.
+Use Captcha Trader service to solve captcha.
+.TP
+.BI "   " " " --deathbycaptcha "=USER:PASSWORD"
+Use Death by Captcha service to solve captcha.
 .TP
 .BI "   " " " --captchamethod "=METHOD"
 Force specific captcha solving method. Available values:
