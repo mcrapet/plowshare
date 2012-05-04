@@ -78,23 +78,24 @@ rapidshare_download() {
     fi
 
     PAGE=$(curl "${BASE_URL}$PARAMS") || return
-    ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
+    ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" 'ERROR:[[:space:]]*\(.*\)')
 
-    if match "need to wait" "$ERROR"; then
-        WAIT=$(echo "$ERROR" | parse "." "wait \([[:digit:]]\+\) seconds") || return
+    if match 'need to wait' "$ERROR"; then
+        WAIT=$(echo "$ERROR" | parse '.' 'wait \([[:digit:]]\+\) seconds') || return
         log_debug "Server has asked to wait $WAIT seconds"
         echo $((WAIT))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif match "File \(deleted\|not found\|ID invalid\)" "$ERROR"; then
+    elif matchi 'File \(deleted\|not found\|ID invalid\|is marked as illegal\)' "$ERROR"; then
+        log_debug "website error: $ERROR"
         return $ERR_LINK_DEAD
 
-    elif match "flooding" "$ERROR"; then
+    elif match 'flooding' "$ERROR"; then
         log_debug "Server said we are flooding it."
         echo 360
         return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif match "slots" "$ERROR"; then
+    elif match 'slots' "$ERROR"; then
         log_debug "Server said there is no free slots available"
         return $ERR_LINK_TEMP_UNAVAILABLE
 
