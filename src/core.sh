@@ -1165,7 +1165,7 @@ captcha_process() {
             return $ERR_CAPTCHA
             ;;
         antigate)
-            if ! captcha_antigate_ready "$CAPTCHA_ANTIGATE"; then
+            if ! service_antigate_ready "$CAPTCHA_ANTIGATE"; then
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
@@ -1228,16 +1228,15 @@ captcha_process() {
             echo "a$TID"
             ;;
         captchatrader)
-            if [ -z "$CAPTCHA_TRADER" ]; then
-                log_error "captcha.trader missing account data"
+            local USERNAME="${CAPTCHA_TRADER%%:*}"
+            local PASSWORD="${CAPTCHA_TRADER#*:}"
+
+            if ! service_captchatrader_ready "$USERNAME" "$PASSWORD"; then
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
 
-            local USERNAME="${CAPTCHA_TRADER%%:*}"
-            local PASSWORD="${CAPTCHA_TRADER#*:}"
-
-            log_notice "Using captcha.trader ($USERNAME)"
+            log_notice "Using captcha.trader bypass service ($USERNAME)"
 
             RESPONSE=$(curl -F "match=" \
                 -F "api_key=1645b45413c7e23a470475f33692cb63" \
@@ -1917,10 +1916,44 @@ index_in_array() {
     return 1
 }
 
+# Verify balance (captcha.trader)
+# $1: captcha trader username
+# $2: captcha trader password (or passkey)
+# $?: 0 for success (enough credits)
+service_captchatrader_ready() {
+    local USER=$1
+    local RESPONSE STATUS AMOUNT ERROR
+
+    if [ -z "$1" -o -z "$2" ]; then
+        log_error "captcha.trader missing account data"
+        return $ERR_FATAL
+    fi
+
+    RESPONSE=$(curl "http://api.captchatrader.com/get_credits/$USER/$2") || { \
+        log_notice "captcha.trader: site seems to be down"
+        return $ERR_NETWORK
+    }
+
+    STATUS=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
+    if [ "$STATUS" = '0' ]; then
+        AMOUNT=$(echo "$RESPONSE" | parse_quiet . ',[[:space:]]*\([[:digit:]]\+\)')
+        if [[ $AMOUNT -lt 10 ]]; then
+            log_notice "captcha.trader: not enough credits ($USER)"
+            return $ERR_FATAL
+        fi
+    else
+        ERROR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+        log_error "captcha.trader error: $ERROR"
+        return $ERR_FATAL
+    fi
+
+    log_debug "captcha.trader credits: $AMOUNT"
+}
+
 # Verify balance (antigate)
 # $1: antigate.com captcha key
 # $?: 0 for success (enough credits)
-captcha_antigate_ready() {
+service_antigate_ready() {
     local KEY=$1
     local AMOUNT
 
@@ -1929,7 +1962,7 @@ captcha_antigate_ready() {
         return $ERR_FATAL
     fi
 
-    AMOUNT=$(curl --get --data "key=${CAPTCHA_ANTIGATE}&action=getbalance"  \
+    AMOUNT=$(curl --get --data "key=${CAPTCHA_ANTIGATE}&action=getbalance" \
         'http://antigate.com/res.php') || { \
         log_notice "antigate: site seems to be down"
         return $ERR_NETWORK
