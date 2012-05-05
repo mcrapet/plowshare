@@ -1176,6 +1176,7 @@ captcha_process() {
 
             log_notice "Using antigate captcha recognition system"
 
+            # Note for later: extra params can be supplied: min_len & max_len
             RESPONSE=$(curl -F 'method=post' \
                 -F "file=@$FILENAME;filename=file.jpg" \
                 -F "key=$CAPTCHA_ANTIGATE" \
