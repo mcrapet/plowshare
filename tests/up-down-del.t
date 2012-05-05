@@ -32,6 +32,11 @@ dataport_cz
 --no-plowsharerc --no-extra-wait
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+filebox
+--no-plowsharerc
+--no-plowsharerc
+--no-plowsharerc
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 netload_in
 --no-plowsharerc
 --no-plowsharerc
