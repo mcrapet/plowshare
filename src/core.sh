@@ -899,7 +899,7 @@ post_login() {
 
     # "$RESULT" can be empty, this is not necessarily an error
     if [ ! -s "$COOKIE" ]; then
-        log_debug "post_login failed"
+        log_debug "$FUNCNAME failed (empty cookie)"
         return $ERR_LOGIN_FAILED
     fi
 
