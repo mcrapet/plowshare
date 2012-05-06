@@ -814,13 +814,16 @@ uri_decode() {
 # $1: filename
 # stdout: file length (in bytes)
 get_filesize() {
-    local SIZE=$(stat -c %s "$1" 2>/dev/null)
-    if [ -z "$SIZE" ]; then
-        log_error "stat binary not found"
-        echo "-1"
-    else
-        echo "$SIZE"
+    local FILE_SIZE=$(stat -c %s "$1" 2>/dev/null)
+    if [ -z "$FILE_SIZE" ]; then
+        FILE_SIZE=$(ls -l "$1" 2>/dev/null | cut -d' ' -f5)
+        if [ -z "$FILE_SIZE" ]; then
+            log_error "can't get file size"
+            echo '-1'
+            return $ERR_SYSTEM
+        fi
     fi
+    echo "$FILE_SIZE"
 }
 
 # Create a tempfile and return path
