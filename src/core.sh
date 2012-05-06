@@ -1924,7 +1924,7 @@ drop_empty_lines() {
 }
 
 # Look for a configuration module variable
-# Example: MODULE_ZSHARE_DOWNLOAD_OPTIONS (result can be multiline)
+# Example: MODULE_4SHARED_DOWNLOAD_OPTIONS (result can be multiline)
 # $1: module name
 # $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)

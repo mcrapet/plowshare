@@ -108,7 +108,7 @@ module_exist() {
     return 1
 }
 
-# Example: "MODULE_ZSHARE_UPLOAD_REMOTE_SUPPORT=no"
+# Example: "MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no"
 # $1: module name
 module_config_remote_upload() {
     local VAR="MODULE_$(uppercase "$1")_UPLOAD_REMOTE_SUPPORT"

@@ -27,8 +27,7 @@ FREAKSHARE,,freakshare,,Include this additional host site
 HOTFILE,,hotfile,,Include this additional host site
 MEDIAFIRE,,mediafire,,Include this additional host site
 TURBOBIT,,turbobit,,Include this additional host site
-UPLOADEDTO,,uploadedto,,Include this additional host site
-ZSHARE,,zshare,,Include this additional host site"
+UPLOADEDTO,,uploadedto,,Include this additional host site"
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 # Upload a file to mirrorcreator.com
@@ -88,7 +87,6 @@ mirrorcreator_upload() {
     [ -n "$MEDIAFIRE" ]  && SITES_SEL="$SITES_SEL mediafire"
     [ -n "$TURBOBIT" ]   && SITES_SEL="$SITES_SEL turbobit"
     [ -n "$UPLOADEDTO" ] && SITES_SEL="$SITES_SEL uploadedto"
-    [ -n "$ZSHARE" ]     && SITES_SEL="$SITES_SEL zshare"
 
     if [ -n "$SITES_SEL" ]; then
         log_debug "Selected sites:" $SITES_SEL
@@ -113,7 +111,7 @@ mirrorcreator_upload() {
     # Some basic base64 encoding:
     # > FilesNames +=value + '#0#' + filesCompletedSize[key]+ ';0;';
     # > submitData = filesNames + '@e@' + email + '#H#' + selectedHost +'#P#' + pass + '#SC#' + scanvirus;
-    # Example: RFC-all.tar.gz#0#225280;0;@e@#H#zshare;hotfile;#P#
+    # Example: RFC-all.tar.gz#0#225280;0;@e@#H#turbobit;hotfile;#P#
     DATA=$(echo "$SITES_SEL" | replace ' ' ';' | replace $'\n' ';')
 
     log_debug "sites=$DATA"

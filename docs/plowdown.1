@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "May 4, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "May 6, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -270,7 +270,7 @@ $ plowdown \-c file_with_links.txt > file_with_active_links.txt
 .fi
 .SS 6) Use an alternatice web retriever for the final file download
 .nf
-$ plowdown \-\-exec 'wget \-\-load\-cookies %c \-O "%f" %d' http://www.zshare.net/download/991482815663bbe3/
+$ plowdown \-\-exec 'wget \-\-load\-cookies %c \-O "%f" %d' http://uploading.com/files/39267me4/foo.zip/
 .fi
 .SS 7) Safe download. Each URL will be limited in the number of tries and wait delays.
 .nf

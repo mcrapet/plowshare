@@ -55,7 +55,7 @@ To run plowshare you will require:
 
 
 ---
-[1] Used by 1fichier (upload), badongo, dataport.cz, mediafire and zshare modules
+[1] Used by 1fichier (upload), badongo, dataport.cz and mediafire modules
 [2] Used by badongo, megashares and netload.in modules
 
 
@@ -109,7 +109,7 @@ $ plowdown -c file_with_links.txt > file_with_active_links.txt
 9. Advanced use. Use a different download manager for the final link download.
    File URL, file name and cookie file are available through interpolations. 
 $ plowdown --exec 'wget -O "%f" %d' http://www.mediafire.com/?k10t0egmhi23f
-$ plowdown --exec 'wget --load-cookies %c -O "%f" %d' http://www.zshare.net/download/991482815663bbe3/
+$ plowdown --exec 'wget --load-cookies %c -O "%f" %d' http://uploading.com/files/39267me4/foo.zip/
   For premium users, use 2 connections:
 $ plowdown -a user:password --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
 $ plowdown -a user:password --printf "Module  : %m" --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
@@ -137,10 +137,10 @@ $ plowup -d "Important document" megashares /path/myfile.tex
 5. Upload a file to RapidShare with an account (premium or free)
 $ plowup -a myuser:mypassword rapidshare /path/xxx
 
-6. Upload a file to Zshare anonymously with a proxy.
+6. Upload a file to Oron anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
-$ plowup zshare /path/myfile.txt
+$ plowup oron /path/myfile.txt
 
 7. Abort slow upload (if rate is below limit during 30 seconds)
 $ plowup --min-rate 100k mediafire /path/bigfile.zip
@@ -154,11 +154,12 @@ in their name, so make sure to rename them before using plowup.
 Plowdel
 -------
 
-1. Delete a file from Zshare ("delete" link required)
-$ plowdel http://www.zshare.net/delete/1234567890ABCD/
+1. Delete a file from Oron ("delete" link required)
+$ plowdel http://oron.com/hymvzwi4mkk7?killcode=cmh5cer4s6
 
 2. Delete files (deletes are successive, not parallel)
-$ plowdel http://www.zshare.net/delete/1234567890ABCD/ http://depositfiles.com/rmv/1643181821669253
+$ plowdel http://oron.com/hymvzwi4mkk7?killcode=cmh5cer4s6 \
+      http://depositfiles.com/rmv/1643181821669253
 
 3. Delete a file from RapidShare (account is required)
 $ plowdel -a myuser:mypassword http://rapidshare.com/files/293672730/foo.rar
