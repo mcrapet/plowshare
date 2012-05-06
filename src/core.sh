@@ -1750,7 +1750,7 @@ process_configfile_options() {
     local CONFIG OPTIONS SECTION LINE NAME VALUE OPTION
 
     CONFIG="$HOME/.config/plowshare/plowshare.conf"
-    test ! -f "$CONFIG" && CONFIG="/etc/plowshare.conf"
+    test ! -f "$CONFIG" && CONFIG='/etc/plowshare.conf'
     test -f "$CONFIG" || return 0
 
     # Strip spaces in options
@@ -1787,8 +1787,20 @@ process_configfile_module_options() {
     local CONFIG OPTIONS SECTION OPTION LINE VALUE
 
     CONFIG="$HOME/.config/plowshare/plowshare.conf"
-    test ! -f "$CONFIG" && CONFIG="/etc/plowshare.conf"
-    test -f "$CONFIG" || return 0
+    if [ -f "$CONFIG" ]; then
+        if [ -O "$CONFIG" ]; then
+            local FILE_PERM=$(stat -c %A "$CONFIG")
+            test -z "$FILE_PERM" && FILE_PERM=$(ls -l "$CONFIG" | cut -b1-10)
+            if [[ ${FILE_PERM:4:6} != '------' ]]; then
+                log_notice "Warning (configuration file permissions): chmod 600 $CONFIG"
+            fi
+        else
+            log_notice "Warning (configuration file ownership): chown $USERNAME $CONFIG"
+        fi
+    else
+        CONFIG='/etc/plowshare.conf'
+        test -f "$CONFIG" || return 0
+    fi
 
     log_report "use $CONFIG"
 
