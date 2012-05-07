@@ -28,6 +28,7 @@ MODULE_ORON_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_ORON_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 PRIVATE_FILE,,private,,Do not make file publicly accessable (account only)"
 MODULE_ORON_UPLOAD_REMOTE_SUPPORT=yes
@@ -143,8 +144,8 @@ oron_download() {
 
     # send download form
     HTML=$(curl -b "$COOKIE_FILE" \
-        -F "op=download1" \
-        -F "usr_login=" \
+        -F 'op=download1' \
+        -F 'usr_login=' \
         -F "id=$FILE_ID" \
         -F "fname=$FILE_NAME" \
         -F "referer=$REF" \
@@ -152,11 +153,11 @@ oron_download() {
         "$URL") || return
 
     # check for availability (yet again)
-    match "File could not be found" "$HTML" && return $ERR_LINK_DEAD
+    match 'File could not be found' "$HTML" && return $ERR_LINK_DEAD
 
     # check for file password protection
     if match 'Password:[[:space:]]*<input' "$HTML"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD="$(prompt_for_password)" || return
         fi
@@ -183,7 +184,7 @@ oron_download() {
     fi
 
     # retrieve random value
-    RND=$(echo "$HTML" | parse_form_input_by_name "rand") || return
+    RND=$(echo "$HTML" | parse_form_input_by_name 'rand') || return
     log_debug "Random value: $RND"
 
     # retrieve sleep time
@@ -193,40 +194,40 @@ oron_download() {
 
     # solve ReCaptcha
     local PUBKEY WCI CHALLENGE WORD ID DATA
-    PUBKEY="6LdzWwYAAAAAAAzlssDhsnar3eAdtMBuV21rqH2N"
+    PUBKEY='6LdzWwYAAAAAAAzlssDhsnar3eAdtMBuV21rqH2N'
     WCI=$(recaptcha_process $PUBKEY) || return
     { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
     # send captcha form (no double quote around $OPT_PASSWD)
     HTML=$(curl -b "$COOKIE_FILE" \
-        -F "op=download2" \
+        -F 'op=download2' \
         -F "id=$FILE_ID" \
         -F "rand=$RND" \
         -F "referer=$URL" \
         -F "method_free=$METHOD" \
-        -F "method_premium=" \
+        -F 'method_premium=' \
         $OPT_PASSWD \
         -F "recaptcha_challenge_field=$CHALLENGE" \
         -F "recaptcha_response_field=$WORD" \
-        -F "down_direct=1" \
+        -F 'down_direct=1' \
         "$URL") || return
 
     # check for possible errors
-    if match "Wrong captcha" "$HTML"; then
-        log_error "Wrong captcha"
+    if match 'Wrong captcha' "$HTML"; then
+        log_error 'Wrong captcha'
         captcha_nack $ID
         return $ERR_CAPTCHA
     elif match '<p class="err">Expired session</p>' "$HTML"; then
         echo 10 # just some arbitrary small value
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match "Download File</a></td>" "$HTML"; then
-        log_debug "DL link found"
+    elif match 'Download File</a></td>' "$HTML"; then
+        log_debug 'DL link found'
         FILE_URL=$(echo "$HTML" | parse_attr 'Download File' 'href') || return
     elif match 'Retype Password' "$HTML"; then
-        log_error "Incorrect link password"
+        log_error 'Incorrect link password'
         return $ERR_LINK_PASSWORD_REQUIRED
     else
-        log_error "No download link found. Site updated?"
+        log_error 'No download link found. Site updated?'
         return $ERR_FATAL
     fi
 
@@ -275,11 +276,13 @@ oron_upload() {
 
         [ -z "$PRIVATE_FILE" ] || \
             log_error 'option "--private" ignored, account only'
+        [ -z "$LINK_PASSWORD" ] || \
+            log_error "Specified password is ignored for anonymous uploads"
     fi
 
     if match_remote_url "$FILE"; then
         if [ -z "$ACCOUNT" ]; then
-            log_error "Remote upload requires an account (free or premium)"
+            log_error 'Remote upload requires an account (free or premium)'
             return $ERR_LINK_NEED_PERMISSIONS
         fi
     else
@@ -313,7 +316,7 @@ oron_upload() {
             "$SRV_URL/status.html?file=$RND=$DEST_FILE") || return
     fi
 
-    if ! match "You are oroning" "$HTML"; then
+    if ! match 'You are oroning' "$HTML"; then
         log_error "Error uploading to server '$SRV_URL'."
         return $ERR_FATAL
     fi
@@ -329,7 +332,7 @@ oron_upload() {
             -F 'mass_upload=1' \
             -F "url_mass=$FILE" \
             -F "link_rcpt=$EMAIL" \
-            -F 'link_pass=' \
+            -F "link_pass=$LINK_PASSWORD" \
             -F 'tos=1' \
             -F 'submit_btn= Upload! ' \
             "$SRV_URL/cgi-bin/upload_url.cgi/?X-Progress-ID=$RND") || return
@@ -349,7 +352,7 @@ oron_upload() {
             -F 'file_1=;filename=' \
             -F 'ut=file' \
             -F "link_rcpt=$EMAIL" \
-            -F 'link_pass=' \
+            -F "link_pass=$LINK_PASSWORD" \
             -F 'tos=1' \
             -F 'submit_btn= Upload! ' \
             "$SRV_URL/upload/$SRV_ID/?X-Progress-ID=$RND") || return
@@ -363,7 +366,7 @@ oron_upload() {
     log_debug "FN: $FN"
     log_debug "ST: $ST"
 
-    if [ "$ST" = "OK" ]; then
+    if [ "$ST" = 'OK' ]; then
         log_debug 'Upload was successfull.'
     elif match 'banned by administrator' "$ST"; then
         log_error 'File is banned by admin.'
@@ -394,7 +397,7 @@ oron_upload() {
 
     # do we need to edit the file? (change name/visibility)
     if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] || \
-        match_remote_url "$FILE" && [ "$DEST_FILE" != "dummy" ]; then
+        match_remote_url "$FILE" && [ "$DEST_FILE" != 'dummy' ]; then
         log_debug 'Editing file...'
 
         local FILE_ID F_NAME F_PASS F_PUB
@@ -406,21 +409,21 @@ oron_upload() {
 
         F_NAME=$(echo "$HTML" | parse_form_input_by_name 'file_name') || return
         F_PASS=$(echo "$HTML" | parse_form_input_by_name 'file_password') || return
-        oron_is_checked 'file_public' "$HTML" && F_PUB='-F file_public=1'
+        oron_is_checked 'file_public' "$HTML" && F_PUB='1'
 
         log_debug "Current name: $F_NAME"
         log_debug "Current pass: ${F_PASS//?/*}"
         [ -n "$F_PUB" ] && log_debug 'Currently public'
 
-        match_remote_url "$FILE" && [ "$DEST_FILE" != "dummy" ] && F_NAME=$DEST_FILE
-        [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] && F_PUB='-F file_public=1'
+        match_remote_url "$FILE" && [ "$DEST_FILE" != 'dummy' ] && F_NAME=$DEST_FILE
+        [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] && F_PUB='1'
+        [ -n "$LINK_PASSWORD" ] && F_PASS="$LINK_PASSWORD"
 
-        # post changes (include HTTP headers to check for proper redirection;
-        # no double quote around $F_PUB)
+        # post changes (include HTTP headers to check for proper redirection)
         HTML=$(curl -i -b "$COOKIE_FILE" \
             -F "file_name=$F_NAME" \
             -F "file_password=$F_PASS" \
-            $F_PUB \
+            -F "file_public=$F_PUB" \
             -F 'op=file_edit' \
             -F "file_code=$FILE_ID" \
             -F 'save=+Submit+' \
@@ -454,13 +457,13 @@ oron_delete() {
     oron_switch_lang "$COOKIEFILE" || return
     HTML=$(curl -b "$COOKIEFILE" -L "$URL") || return
 
-    match "No such file exist" "$HTML" && return $ERR_LINK_DEAD
+    match 'No such file exist' "$HTML" && return $ERR_LINK_DEAD
 
     HTML=$(curl -b "$COOKIEFILE" \
-        -F "op=del_file" \
+        -F 'op=del_file' \
         -F "id=$FILE_ID" \
         -F "del_id=$KILLCODE" \
-        -F "confirm=yes" \
+        -F 'confirm=yes' \
         'http://oron.com') || return
 
     match 'File deleted successfully' "$HTML" || return $ERR_FATAL
