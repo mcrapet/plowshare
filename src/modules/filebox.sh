@@ -156,7 +156,8 @@ filebox_upload() {
     # Warning message
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$SIZE_LIMIT" ]; then
-        log_error "warning: file is bigger than $SIZE_LIMIT, site may not support it"
+        log_debug "file is bigger than $SIZE_LIMIT"
+        return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
     # Uses Uploadify (jQuery plugin) v2.1.4 for files upload

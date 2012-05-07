@@ -130,7 +130,7 @@ oron_download() {
 
     # check, if file is special
     match 'Free Users can only download files sized up to' "$HTML" && \
-        return $ERR_LINK_NEED_PERMISSIONS
+        return $ERR_SIZE_LIMIT_EXCEEDED
 
     # extract properties
     FILE_NAME=$(echo "$HTML" | parse_form_input_by_name 'fname') || return
@@ -283,11 +283,11 @@ oron_upload() {
             return $ERR_LINK_NEED_PERMISSIONS
         fi
     else
-        # file size seem to matter only for file upload
+        # File size seem to matter only for file upload
         SIZE=$(get_filesize "$FILE")
         if [ $SIZE -gt $MAX_SIZE ]; then
-            log_error "File is too big, up to $MAX_SIZE bytes are allowed."
-            return $ERR_FATAL
+            log_debug "file is bigger than $MAX_SIZE"
+            return $ERR_SIZE_LIMIT_EXCEEDED
         fi
     fi
 

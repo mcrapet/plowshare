@@ -45,9 +45,9 @@ mirrorcreator_upload() {
     local BASE_URL='http://www.mirrorcreator.com'
     local PAGE FORM SITES_SEL SITES_ALL DATA
 
-    # Warning message
+    # File size limit check (warning message only)
     if [ "$SZ" -gt 419430400 ]; then
-        log_error "warning: file is bigger than 400MB, some site may not support it"
+        log_debug "file is bigger than 400MB, some site may not support it"
     fi
 
     if [ -n "$AUTH_FREE" ]; then

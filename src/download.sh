@@ -298,7 +298,12 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
-                log_notice "Insufficient permissions (file size limit exceeded or private/premium link)"
+                log_notice "Insufficient permissions (private/premium link)"
+                rm -f "$DCOOKIE"
+                return $DRETVAL
+                ;;
+            $ERR_SIZE_LIMIT_EXCEEDED)
+                log_notice "Insufficient permissions (file size limit exceeded)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;

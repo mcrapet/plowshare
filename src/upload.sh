@@ -333,6 +333,8 @@ for FILE in "$@"; do
         log_error "Anonymous users cannot upload files"
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
+    elif [ $URETVAL -e $ERR_SIZE_LIMIT_EXCEEDED ]; then
+        log_error "Insufficient permissions (file size limit exceeded)"
     else
         log_error "failed inside ${FUNCTION}() [$URETVAL]"
     fi

@@ -144,9 +144,10 @@ mediafire_upload() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    # Warning message
+    # File size limit check
     if [ "$SZ" -gt 209715200 ]; then
-        log_error "warning: file is bigger than 200MB, site may not support it"
+        log_debug "file is bigger than 200MB"
+        return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
     log_debug "Get uploader configuration"

@@ -125,8 +125,9 @@ filepost_download() {
     # but should be recovered soon. Please try to download this file later.
     elif matchi 'is currently unavailable' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif matchi 'files over 400MB can be' "$PAGE" || \
-        matchi 'premium membership is required' "$PAGE"; then
+    elif matchi 'files over 400MB can be' "$PAGE"; then
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    elif matchi 'premium membership is required' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 

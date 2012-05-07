@@ -37,6 +37,8 @@ ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (
                                  # plowdel/plowup: operation not allowed for anonymous users
 ERR_LINK_DEAD=13                 # plowdel: file not found or previously deleted
                                  # plowlist: remote folder does not exist or is empty
+ERR_SIZE_LIMIT_EXCEEDED=14       # plowdown: can't download link because file is too big (need permissions)
+                                 # plowup: can't upload too big file (need permissions)
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in other .sh)

@@ -74,9 +74,10 @@ sendspace_upload() {
     local SZ=$(get_filesize "$FILE")
     local DATA DL_LINK DEL_LINK
 
-    # Warning message
+    # File size limit check
     if [ "$SZ" -gt 314572800 ]; then
-        log_error "warning: file is bigger than 300MB, site may not support it"
+        log_debug "file is bigger than 300MB"
+        return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
     DATA=$(curl 'http://www.sendspace.com') || return
