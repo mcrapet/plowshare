@@ -22,7 +22,8 @@
 MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\|ul\)\.to/"
 
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a:,auth:,USER:PASSWORD,User account
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
 MODULE_UPLOADED_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
@@ -129,9 +130,19 @@ uploaded_to_download() {
     FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
     log_debug "file id=$FILE_ID"
 
-    # check for files that need a password
-    local ERROR=$(echo "$HTML" | parse_quiet "<h2>authentification</h2>")
-    test "$ERROR" && return $ERR_LOGIN_FAILED
+    # check for files that need a password (file owner never needs password,
+    # so this comes after login)
+    if match '<h2>Authentification</h2>' "$HTML"; then
+        log_debug "File is password protected"
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD="$(prompt_for_password)" || return
+        fi
+
+        HTML=$(curl -b "$COOKIEFILE" -F "pw=$LINK_PASSWORD" "$URL") || return
+        if match '<h2>Authentification</h2>' "$HTML"; then
+            return $ERR_LINK_PASSWORD_REQUIRED
+        fi
+    fi
 
     # Our service is currently unavailable in your country. We are sorry about that.
     if match '<h2>Not available</h2>' "$HTML"; then
