@@ -158,20 +158,13 @@ uploaded_to_download() {
 
     wait $((SLEEP + 1)) seconds || return
 
-    # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
-    local PUBKEY WCI CHALLENGE WORD ID
-    PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
-    WCI=$(recaptcha_process $PUBKEY) || return
-    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-    local DATA="recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
     PAGE=$(curl -b "$COOKIEFILE" --referer "$URL" \
-        --data "$DATA" "$BASE_URL/io/ticket/captcha/$FILE_ID") || return
-    log_debug "Captcha response: $PAGE"
+        "$BASE_URL/io/ticket/captcha/$FILE_ID") || return
+    log_debug "Ticket response: $PAGE"
 
     # check for possible errors
     if match 'captcha' "$PAGE"; then
-        captcha_nack $ID
+        log_error 'Captchas reintroduced'
         return $ERR_CAPTCHA
     elif match 'limit\|err' "$PAGE"; then
         echo 600
@@ -183,9 +176,6 @@ uploaded_to_download() {
         log_error "No match. Site update?"
         return $ERR_FATAL
     fi
-
-    captcha_ack $ID
-    log_debug "correct captcha"
 
     FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
     if [ -z "$FILE_NAME" ]; then
