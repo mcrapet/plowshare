@@ -93,7 +93,7 @@ filebox_download() {
     test "$CHECK_LINK" && return 0
 
     if [ $WAIT_NEEDED -ne 0 ]; then
-        WAIT_TIME=$(echo "$PAGE" | parse_tag 'countdown_str">' span) || return
+        WAIT_TIME=$(echo "$PAGE" | parse_tag 'countdown_str">' span) || return
         wait $((WAIT_TIME)) || return
     fi
 
@@ -161,7 +161,7 @@ filebox_upload() {
 
     # Uses Uploadify (jQuery plugin) v2.1.4 for files upload
     # But we don't care, we just call directly server side upload script (cgi)!
-    RESPONSE=$(curl \
+    RESPONSE=$(curl_with_log \
         -F "Filename=$DESTFILE" \
         -F "sess_id=$(filebox_random z 16)" \
         -F 'folder=/' \
