@@ -96,7 +96,7 @@ oron_download() {
 
     local COOKIE_FILE=$1
     local URL=$2
-    local HTML SLEEP FILE_ID FILE_URL FILE_NAME REF METHOD DAYS HOURS MINS SECS
+    local HTML SLEEP FILE_ID FILE_URL FILE_NAME DAYS HOURS MINS SECS
     local RND OPT_PASSWD
 
     FILE_ID=$(oron_extract_file_id "$URL") || return
@@ -104,7 +104,7 @@ oron_download() {
     HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
 
     # check the file for availability
-    match 'File Not Found' "$HTML" && return $ERR_LINK_DEAD
+    match '<h2>File Not Found</h2>' "$HTML" && return $ERR_LINK_DEAD
     test "$CHECK_LINK" && return 0
 
     if [ -n "$AUTH_FREE" ]; then
@@ -112,18 +112,8 @@ oron_download() {
         oron_login "$AUTH_FREE" "$COOKIE_FILE" > /dev/null || return
     fi
 
-    # check, if file is special
-    match 'Free Users can only download files sized up to' "$HTML" && \
-        return $ERR_SIZE_LIMIT_EXCEEDED
-
     # extract properties
     FILE_NAME=$(echo "$HTML" | parse_form_input_by_name 'fname') || return
-    REF=$(echo "$HTML" | parse_form_input_by_name 'referer') || return
-    METHOD=$(echo "$HTML" | parse_form_input_by_name 'method_free' | \
-        replace ' ' '+') || return
-    log_debug "File name=$FILE_NAME"
-    log_debug "Method=$METHOD"
-    log_debug "Referer=$REF"
 
     # send download form
     HTML=$(curl -b "$COOKIE_FILE" \
@@ -131,12 +121,16 @@ oron_download() {
         -F 'usr_login=' \
         -F "id=$FILE_ID" \
         -F "fname=$FILE_NAME" \
-        -F "referer=$REF" \
-        -F "method_free=$METHOD" \
+        -F 'referer=' \
+        -F 'method_free= Regular Download ' \
         "$URL") || return
 
     # check for availability (yet again)
     match 'File could not be found' "$HTML" && return $ERR_LINK_DEAD
+
+    # check, if file is special
+    match 'Free Users can only download files sized up to' "$HTML" && \
+        return $ERR_SIZE_LIMIT_EXCEEDED
 
     # check for file password protection
     if match 'Password:[[:space:]]*<input' "$HTML"; then
@@ -187,7 +181,7 @@ oron_download() {
         -F "id=$FILE_ID" \
         -F "rand=$RND" \
         -F "referer=$URL" \
-        -F "method_free=$METHOD" \
+        -F 'method_free= Regular Download ' \
         -F 'method_premium=' \
         $OPT_PASSWD \
         -F "recaptcha_challenge_field=$CHALLENGE" \
@@ -201,6 +195,7 @@ oron_download() {
         captcha_nack $ID
         return $ERR_CAPTCHA
     elif match '<p class="err">Expired session</p>' "$HTML"; then
+        log_error 'Session expired'
         echo 10 # just some arbitrary small value
         return $ERR_LINK_TEMP_UNAVAILABLE
     elif match 'Download File</a></td>' "$HTML"; then
@@ -380,7 +375,7 @@ oron_upload() {
 
     # do we need to edit the file? (change name/visibility)
     if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] || \
-        match_remote_url "$FILE" && [ "$DEST_FILE" != 'dummy' ]; then
+        ( match_remote_url "$FILE" && [ "$DEST_FILE" != 'dummy' ] ); then
         log_debug 'Editing file...'
 
         local FILE_ID F_NAME F_PASS F_PUB
@@ -409,7 +404,7 @@ oron_upload() {
             -F "file_public=$F_PUB" \
             -F 'op=file_edit' \
             -F "file_code=$FILE_ID" \
-            -F 'save=+Submit+' \
+            -F 'save= Submit ' \
             "$BASE_URL/?op=file_edit;file_code=$FILE_ID") || return
 
         HTML=$(echo "$HTML" | grep_http_header_location) || return
