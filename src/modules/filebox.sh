@@ -121,9 +121,14 @@ filebox_download() {
         -F "method_premium=$FORM_METHOD_P" \
         "$URL") || return
 
-    # >>> Download File <<<<
-    # Note: less than and greater than should be entities (&lt; &gt;)
-    FILE_URL=$(echo "$PAGE" | parse_all_attr ' Download File ' href | last_line) || return
+    # Page layout is different for videos
+    if match 'embed' "$PAGE"; then
+        FILE_URL=$(echo "$PAGE" | parse_all_attr '>Download ' href | last_line) || return
+    else
+        # >>> Download File <<<<
+        # Note: less than and greater than should be entities (&lt; &gt;)
+        FILE_URL=$(echo "$PAGE" | parse_all_attr ' Download File ' href | last_line) || return
+    fi
 
     echo "$FILE_URL"
 }
