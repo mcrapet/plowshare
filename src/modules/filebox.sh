@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEBOX_REGEXP_URL="http://\(www\.\)\?filebox.com"
+MODULE_FILEBOX_REGEXP_URL="http://\(www\.\)\?filebox\.com"
 
 MODULE_FILEBOX_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account"
@@ -53,7 +53,7 @@ filebox_login() {
 
 # Output a filebox file download URL
 # $1: cookie file
-# $2: data.hu url
+# $2: filebox url
 # stdout: real file download link
 filebox_download() {
     eval "$(process_options filebox "$MODULE_FILEBOX_DOWNLOAD_OPTIONS" "$@")"
