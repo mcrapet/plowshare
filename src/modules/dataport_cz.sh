@@ -29,8 +29,7 @@ MODULE_DATAPORT_CZ_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_DATAPORT_CZ_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_DATAPORT_CZ_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
+MODULE_DATAPORT_CZ_DELETE_OPTIONS=""
 
 # Output a dataport.cz file download URL
 # $1: cookie file (unused here)
@@ -88,72 +87,53 @@ dataport_cz_upload() {
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
-    local UPLOADURL='http://dataport.cz'
-
-    detect_javascript || return
+    local BASE_URL='http://dataport.cz'
+    local IURL PAGE FORM_ACTION FORM_SUBMIT DL_LINK DEL_LINK
 
     if test "$AUTH"; then
         LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
-        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$UPLOADURL/prihlas/" >/dev/null || return
+        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || return
 
-        PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL") || return
+        PAGE=$(curl -b "$COOKIEFILE" --location "$BASE_URL") || return
 
         if ! match "http://dataport.cz/odhlasit/" "$PAGE"; then
             return $ERR_LOGIN_FAILED
         fi
+    else
+        PAGE=$(curl -L -c "$COOKIEFILE" "$BASE_URL") || return
     fi
 
-    PAGE=$(curl -b "$COOKIEFILE" --location "$UPLOADURL") || return
+    IURL=$(echo "$PAGE" | parse_attr '<iframe' 'src') || return
+    PAGE=$(curl -L -b "$COOKIEFILE" "$IURL") || return
 
-    REFERRER=$(echo "$PAGE" | parse_attr '<iframe' 'src')
-    UZIV_ID=$(echo "$REFERRER" | parse_quiet 'uziv_id' 'uziv_id=\(.*\)')
-    ID=$(echo "var uid = Math.floor(Math.random()*999999999); print(uid);" | javascript)
+    FORM_ACTION=$(echo "$PAGE" | parse_form_action | replace '&amp;' '&') || return
+    FORM_SUBMIT=$(echo "$PAGE" | parse_form_input_by_name 'uploadFormSubmit') || return
 
-    STATUS=$(curl_with_log -b "$COOKIEFILE" -e "$REFERRER" \
-        -F "id=$UZIV_ID" \
-        -F "folder=/upload/uploads" \
-        -F "uid=$ID" \
-        -F "Upload=Submit Query" \
-        -F "Filedata=@$FILE;filename=$DESTFILE" \
-        "http://www10.dataport.cz/save.php")
+    PAGE=$(curl_with_log -L -b "$COOKIEFILE" -e "$IURL" \
+        -F "file=@$FILE;filename=$DESTFILE" \
+        -F "uploadFormSubmit=$FORM_SUBMIT" \
+        -F "description=None" \
+        "$(basename_url "$IURL")$FORM_ACTION") || return
 
-    if ! test "$STATUS"; then
-        log_error "Uploading error."
-        return $ERR_FATAL
-    fi
+    DL_LINK=$(echo "$PAGE" | parse_attr '\/file\/' value) || return
+    DEL_LINK=$(echo "$PAGE" | parse_attr delete value)
 
-    DOWN_URL=$(curl -b "$COOKIEFILE" "$UPLOADURL/links/$ID/1" | parse_attr 'id="download-link"' 'value')
-
-    if ! test "$DOWN_URL"; then
-        log_error "Can't parse download link, site updated?"
-        return $ERR_FATAL
-    fi
-
-    echo "$DOWN_URL"
-    return 0
+    echo "$DL_LINK"
+    echo "$DEL_LINK"
 }
 
-# Delete a file on dataport.cz (requires an account)
-# $1: cookie file
+# Delete a file on dataport.cz
+# $1: cookie file (unused here)
 # $2: download link
 dataport_cz_delete() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
     local URL=$2
-    local BASE_URL=$(basename_url $URL)
+    local PAGE
 
-    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
+    PAGE=$(curl -L -I "$URL" | grep_http_header_location) || return
 
-    LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
-    post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || return
-
-    DEL_URL=$(echo "$URL" | replace 'file' 'delete')
-
-    DELETE=$(curl -I -b "$COOKIEFILE" $DEL_URL | grep_http_header_location)
-
-    if ! match "vymazano" "$DELETE"; then
-        log_error "Error deleting link."
+    if [ "$PAGE" = 'http://dataport.cz/' ]; then
         return $ERR_FATAL
     fi
 }
