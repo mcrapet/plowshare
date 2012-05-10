@@ -21,13 +21,16 @@
 MODULE_FILEPOST_REGEXP_URL="https\?://\(www\.\)\?filepost\.com/"
 
 MODULE_FILEPOST_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a:,auth:,EMAIL:PASSWORD,User account"
 MODULE_FILEPOST_DOWNLOAD_RESUME=yes
 MODULE_FILEPOST_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_FILEPOST_UPLOAD_OPTIONS="
+AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)"
+
 MODULE_FILEPOST_LIST_OPTIONS=""
 
-# Static function. Proceed with login (premium)
+# Static function. Proceed with login (free or premium)
 filepost_login() {
     local AUTH=$1
     local COOKIE_FILE=$2
@@ -49,7 +52,7 @@ filepost_login() {
 
     # Sometimes prompts for reCaptcha (like depositfiles)
     # {"id":"1234","js":{"answer":{"captcha":true}},"text":""}
-    if match '"captcha":true' "$LOGIN_RESULT"; then
+    if match_json_true 'captcha' "$LOGIN_RESULT"; then
         log_debug "recaptcha solving required for login"
 
         local PUBKEY WCI CHALLENGE WORD ID
@@ -66,7 +69,7 @@ filepost_login() {
             captcha_ack $ID
             return $ERR_LOGIN_FAILED
         # {"id":"1234","js":{"answer":{"success":true},"redirect":"http:\/\/filepost.com\/"},"text":""}
-        elif match '"succes":true' "$LOGIN_RESULT"; then
+        elif match_json_true 'success' "$LOGIN_RESULT"; then
             captcha_ack $ID
             log_debug "correct captcha"
         # {"id":"1234","js":{"answer":{"captcha":true},"error":"The code you entered is incorrect. Please try again."},"text":""}
@@ -93,7 +96,7 @@ filepost_download() {
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://filepost.com'
-    local PAGE FILE_NAME JSON SID CODE FILE_PASS TID JSURL WAIT
+    local PAGE FILE_NAME JSON SID CODE FILE_PASS TID JSURL WAIT ROLE
 
     if [ -n "$AUTH" ]; then
         filepost_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
@@ -104,13 +107,15 @@ filepost_download() {
             return $ERR_LINK_DEAD
         fi
 
-        FILE_URL=$(echo "$PAGE" | parse '\/get_file\/' "('\(http[^']*\)") || return
-        FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
+        ROLE=$(echo "$PAGE" | parse_tag 'Account type' span) || return
+        if [ "$ROLE" != 'Free' ]; then
+            FILE_URL=$(echo "$PAGE" | parse '\/get_file\/' "('\(http[^']*\)") || return
+            FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
 
-        echo "$FILE_URL"
-        echo "$FILE_NAME"
-        return 0
-
+            echo "$FILE_URL"
+            echo "$FILE_NAME"
+            return 0
+        fi
     elif [ -s "$COOKIEFILE" ]; then
         PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
     else
@@ -197,6 +202,58 @@ filepost_download() {
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
+}
+
+# Upload a file to filepost
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download_url
+filepost_upload() {
+    eval "$(process_options filepost "$MODULE_FILEPOST_UPLOAD_OPTIONS" "$@")"
+
+    local COOKIE_FILE=$1
+    local FILE=$2
+    local DESTFILE=$3
+    local BASE_URL='https://filepost.com'
+    local PAGE ROLE SERVER MAX_SIZE SID DONE_URL DATA FID
+
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
+
+    filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    PAGE=$(curl -L -b "$COOKIE_FILE" "$BASE_URL/files/upload") || return
+
+    ROLE=$(echo "$PAGE" | parse_tag 'Account type' span) || return
+    log_debug "Account type: $ROLE"
+
+    SERVER=$(echo "$PAGE" | parse '[[:space:]]upload_url' ":[[:space:]]'\([^']*\)") || return
+    MAX_SIZE=$(echo "$PAGE" | parse 'max_file_size:' ":[[:space:]]*\([^,]\+\)") || return
+
+    local SZ=$(get_filesize "$FILE")
+    if [ "$SZ" -gt "$MAX_SIZE" ]; then
+        log_debug "file is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    SID=$(echo "$PAGE" | parse 'SID:' ":[[:space:]]*'\([^']*\)") || return
+    DONE_URL=$(echo "$PAGE" | parse 'done_url:' ":[[:space:]]*'\([^']*\)") || return
+
+    DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
+        -F "Filename=$DESTFILE" \
+        -F "SID=$SID" \
+        -F "file=@$FILE;filename=$DESTFILE" \
+        -F 'Upload=Submit Query' \
+        "$SERVER") || return
+
+    # new Object({"answer":"4c8e89fa"})
+    FID=$(echo "$DATA" | parse_json answer) || return
+    log_debug "file id: $FID"
+
+    # Note: Account cookie required here
+    DATA=$(curl -b "$COOKIE_FILE" -b "SID=$SID" "$DONE_URL$FID") || return
+
+    echo "$DATA" | parse_attr 'id="down_link' value || return
+    echo "$DATA" | parse_attr 'id="edit_link' value || return
 }
 
 # List a filepost web folder URL
