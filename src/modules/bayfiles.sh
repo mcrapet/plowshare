@@ -185,7 +185,7 @@ bayfiles_delete() {
         # File successfully deleted.
         match 'successfully deleted' "$PAGE" && return 0
 
-    # The requested file could not be found.
+    # The requested file could not be found.
     elif match 'file could not be found' "$PAGE"; then
         return $ERR_LINK_DEAD
 

@@ -128,7 +128,7 @@ dl_free_fr_download() {
     test "$CHECK_LINK" && return 0
 
     FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_FILE=$(echo "$FORM_HTML" | parse_form_input_by_name 'file' | uri_encode_strict)
     FORM_SUBM=$(echo "$FORM_HTML" | parse_form_input_by_type 'submit' | uri_encode_strict)
 
@@ -179,7 +179,7 @@ dl_free_fr_upload() {
     PAGE=$(curl "$UPLOADURL") || return
 
     FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
     SESSIONID=$(echo "$FORM_ACTION" | cut -d? -f2)
 
     # <input> markers are: ufile, mail1, mail2, mail3, mail4, message, password
