@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ORON_REGEXP_URL="http://\(www\.\)\?\(oron\)\.com/[[:alnum:]]\{12\}"
+MODULE_ORON_REGEXP_URL="http://\(www\.\)\?\(oron\)\.com/"
 
 MODULE_ORON_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account
@@ -30,10 +30,12 @@ MODULE_ORON_UPLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
-PRIVATE_FILE,,private,,Do not make file publicly accessable (account only)"
+PRIVATE_FILE,,private,,Do not make file visible in folder view (account only)"
 MODULE_ORON_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_ORON_DELETE_OPTIONS=""
+
+MODULE_ORON_LIST_OPTIONS=""
 
 # Switch language to english
 # $1: cookie file
@@ -461,4 +463,53 @@ oron_delete() {
         'http://oron.com') || return
 
     match 'File deleted successfully' "$HTML" || return $ERR_FATAL
+}
+
+# List an oron web folder URL
+# $1: oron URL
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+oron_list() {
+    eval "$(process_options oron "$MODULE_ORON_LIST_OPTIONS" "$@")"
+
+    local URL=$1
+    local REC=$2
+    local HTML LINKS NAME URL
+
+    if ! match 'oron\.com/folder/' "$1"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    HTML=$(curl "$URL") || return
+    LINKS=$(echo "$HTML" | parse_all_quiet '<td id=' '^\(.*\)$')
+
+    #  Print links (if any)
+    if [ -n "$LINKS" ]; then
+        while read LINE; do
+            NAME=$(echo "$LINE" | parse_tag '.' 'small') || return
+            URL=$(echo "$LINE" | parse_attr '.' 'href') || return
+            log_debug "$NAME"
+            echo "$URL"
+        done <<< "$LINKS"
+    fi
+
+    # Are there any subfolders?
+    if match 'folder2.gif' "$HTML"; then
+        log_debug 'folders:'
+        LINKS=$(echo "$HTML" | parse_line_after_all 'folder2.gif' '^\(.*\)$')
+
+        while read LINE; do
+            NAME=$(echo "$LINE" | parse_tag '.' 'b') || return
+            URL=$(echo "$LINE" | parse_attr '.' 'href') || return
+            log_debug "$NAME ($URL)"
+
+            if [ -n "$REC" ]; then
+                log_debug "entering sub folder: $URL"
+                oron_list "$URL" "$REC" || return
+            else
+                echo "$URL"
+            fi
+        done <<< "$LINKS"
+    fi
 }

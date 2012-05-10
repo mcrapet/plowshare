@@ -21,7 +21,7 @@ mediafire    | download | upload |        | list |
 megashares   | download | upload | delete |      |
 mirrorcreator|          | upload |        |      |
 netload_in   | download | upload |        | list |
-oron         | download | upload | delete |      |
+oron         | download | upload | delete | list |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
 turbobit     | download | upload | delete |      |
