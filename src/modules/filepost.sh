@@ -27,6 +27,7 @@ MODULE_FILEPOST_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_FILEPOST_UPLOAD_OPTIONS="
 AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)"
+MODULE_FILEPOST_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_FILEPOST_LIST_OPTIONS=""
 
@@ -205,7 +206,7 @@ filepost_download() {
 }
 
 # Upload a file to filepost
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download_url
