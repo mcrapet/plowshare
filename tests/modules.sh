@@ -42,7 +42,7 @@ download() {
 
 # plowup
 upload() {
-    $SRCDIR/upload.sh -q --max-retries=2 "$@"
+    $SRCDIR/upload.sh --max-retries=2 --printf='%u	%D' "$@"
 }
 
 # plowdel
@@ -66,13 +66,13 @@ status() {
     if [ "$FANCY_OUTPUT" -ne 0 ]; then
         # based on /lib/lsb/init-functions
         RALIGN="\\r\\033[$[`tput cols`-6]C"
-        NORMAL=$(tput op)
+        OFF=$(tput op)
         if [ "$RET" -eq 0 ]; then
             GREEN=$(tput setaf 2)
-            echo -e "${RALIGN}[${GREEN}DONE${NORMAL}]"
+            echo -e "${RALIGN}[${GREEN}DONE${OFF}]"
         else
             RED=$(tput setaf 1)
-            echo -e "${RALIGN}[${RED}FAIL${NORMAL}]"
+            echo -e "${RALIGN}[${RED}FAIL${OFF}]"
         fi
     else
         echo
@@ -87,14 +87,14 @@ status() {
 exists()
 {
     local -a ARRAY=( $(eval "echo \${$1[@]}") )
-    local i
-    for i in ${ARRAY[@]}; do
+    local I
+    for I in ${ARRAY[@]}; do
 
         # Compare exact tnum (ex:"S402")
-        [ "$i" == "$2" ] && return 0
+        [ "$I" == "$2" ] && return 0
 
         # But accept one single lettre for all tests (ex:"S")
-        [ "${#i}" -eq 1 -a "${2:0:1}" = "$i" ] && return 0
+        [ "${#I}" -eq 1 -a "${2:0:1}" = "$I" ] && return 0
 
     done
     return 1
@@ -155,7 +155,7 @@ test_case_up_down_del() {
     local OPTS_DN=$4
     local OPTS_DEL=$5
 
-    local RET LINKS OFILE DL_LINK DEL_LINK
+    local RET LOG_FILE LINKS OFILE DL_LINK DEL_LINK
 
     # Check for double-dash (no option)
     [ "$OPTS_UP" = '--' ] && OPTS_UP=
@@ -163,27 +163,30 @@ test_case_up_down_del() {
     [ "$OPTS_DEL" = '--' ] && OPTS_DEL=
 
     RET=0
-    LINKS=$(upload $OPTS_UP "$MODULE" "$FILE") || RET=$?
+    LOG_FILE="$TEMP_DIR/${MODULE}.u.log"
+    LINKS=$(upload -v4 $OPTS_UP "$MODULE" "$FILE" 2>"$LOG_FILE") || RET=$?
     if [ "$RET" -ne 0 ]; then
         # ERR_LINK_NEED_PERMISSIONS
         if [ "$RET" -eq 12 ]; then
             echo -n "skip up (need account)"
-            status 1
         # ERR_SYSTEM
         elif [ "$RET" -eq 8 ]; then
             echo -n "skip up (system failure)"
-            status 1
         else
             echo -n "up KO"
-            status 1
-            stderr "ERR ($RET): plowup $OPTS_UP $MODULE $FILE"
         fi
+
+        status 1
+        stderr "ERR ($RET): plowup $OPTS_UP $MODULE $FILE"
+        stderr "ERR ($RET): logfile: $LOG_FILE"
         return
+    else
+        rm -f "$LOG_FILE"
     fi
 
     # Should return "download_link (delete_link)
-    DL_LINK=$(echo "$LINKS" | cut -d' ' -f1)
-    DEL_LINK=$(echo "$LINKS" | cut -d'(' -f2 | cut -d')' -f1)
+    DL_LINK=$(echo "$LINKS" | cut -d'	' -f1)
+    DEL_LINK=$(echo "$LINKS" | cut -d'	' -f2)
 
     # Sanity check
     if [ -z "$DL_LINK" ]; then
@@ -211,7 +214,7 @@ test_case_up_down_del() {
 
     echo -n "check link ok > "
 
-    LOG_FILE="$TEMP_DIR/${MODULE}.log"
+    LOG_FILE="$TEMP_DIR/${MODULE}.d.log"
     OFILE=$(download -v4 --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK" 2>"$LOG_FILE") || RET=$?
     if [ "$RET" -ne 0 ]; then
         # ERR_LINK_TEMP_UNAVAILABLE

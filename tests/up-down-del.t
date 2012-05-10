@@ -26,12 +26,6 @@ bayfiles
 --no-plowsharerc
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Note: Test is too long... link is always unavailable.
-dataport_cz
---no-plowsharerc
---no-plowsharerc --no-extra-wait
---no-plowsharerc
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 filebox
 --no-plowsharerc
 --no-plowsharerc
