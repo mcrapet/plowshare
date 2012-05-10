@@ -21,13 +21,13 @@
 MODULE_ORON_REGEXP_URL="http://\(www\.\)\?\(oron\)\.com/[[:alnum:]]\{12\}"
 
 MODULE_ORON_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_ORON_DOWNLOAD_RESUME=no
 MODULE_ORON_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_ORON_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email
 PRIVATE_FILE,,private,,Do not make file publicly accessable (account only)"
@@ -43,27 +43,33 @@ oron_switch_lang() {
         'http://oron.com/?op=change_lang&lang=english' || return
 }
 
-# Static function. Proceed with login (free-membership or premium)
+# Static function. Proceed with login (free or premium)
 # $1: authentification
 # $2: cookie file
 # stdout: account type ("free" or "premium") on success
 oron_login() {
-    local AUTH_FREE=$1
+    local AUTH=$1
     local COOKIE_FILE=$2
-    local TYPE='free'
-    local LOGIN_DATA HTML NAME
+    local LOGIN_DATA HTML NAME TYPE
 
     LOGIN_DATA='login=$USER&password=$PASSWORD&op=login&redirect=&rand='
-    HTML=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+    HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
        'http://oron.com/login' "-L -b $COOKIE_FILE") || return
 
     NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
     [ -n "$NAME" ] || return $ERR_LOGIN_FAILED
-    match 'Become a PREMIUM Member' "$HTML" || TYPE='premium' # bit of guessing...
 
-    log_debug "Successfully logged in as $TYPE member ${NAME}."
+    if match 'Become a PREMIUM Member' "$HTML"; then
+        TYPE='free'
+    elif match 'Extend Premium Account' "$HTML"; then
+        TYPE='premium'
+    else
+        log_error 'Could not determine account type. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    log_debug "Successfully logged in as $TYPE member '$NAME'"
     echo "$TYPE"
-    return 0
 }
 
 # Determine whether checkbox/radio button with "name" attribute is checked.
@@ -96,43 +102,45 @@ oron_download() {
 
     local COOKIE_FILE=$1
     local URL=$2
-    local HTML SLEEP FILE_ID FILE_URL FILE_NAME DAYS HOURS MINS SECS
-    local RND OPT_PASSWD
+    local HTML FILE_ID FILE_URL FILE_NAME METHOD_F METHOD_P
+    local RND OPT_PASSWD ACCOUNT
 
-    FILE_ID=$(oron_extract_file_id "$URL") || return
     oron_switch_lang "$COOKIE_FILE" || return
+
+    # login first so we get the direct download page for premium account
+    if [ -n "$AUTH" ]; then
+        ACCOUNT=$(oron_login "$AUTH" "$COOKIE_FILE") || return
+    fi
     HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
 
     # check the file for availability
     match '<h2>File Not Found</h2>' "$HTML" && return $ERR_LINK_DEAD
     test "$CHECK_LINK" && return 0
 
-    if [ -n "$AUTH_FREE" ]; then
-        # ignore returned account type
-        oron_login "$AUTH_FREE" "$COOKIE_FILE" > /dev/null || return
-    fi
-
-    # extract properties
+    FILE_ID=$(oron_extract_file_id "$URL") || return
     FILE_NAME=$(echo "$HTML" | parse_form_input_by_name 'fname') || return
 
-    # send download form
-    HTML=$(curl -b "$COOKIE_FILE" \
-        -F 'op=download1' \
-        -F 'usr_login=' \
-        -F "id=$FILE_ID" \
-        -F "fname=$FILE_NAME" \
-        -F 'referer=' \
-        -F 'method_free= Regular Download ' \
-        "$URL") || return
+    # request free download (anon, free)
+    if [ "$ACCOUNT" != 'premium' ]; then
+        # send download request form
+        HTML=$(curl -b "$COOKIE_FILE" \
+            -F 'op=download1' \
+            -F 'usr_login=' \
+            -F "id=$FILE_ID" \
+            -F "fname=$FILE_NAME" \
+            -F 'referer=' \
+            -F 'method_free= Regular Download ' \
+            "$URL") || return
 
-    # check for availability (yet again)
-    match 'File could not be found' "$HTML" && return $ERR_LINK_DEAD
+        # check for availability (yet again)
+        match 'File could not be found' "$HTML" && return $ERR_LINK_DEAD
 
-    # check, if file is special
-    match 'Free Users can only download files sized up to' "$HTML" && \
-        return $ERR_SIZE_LIMIT_EXCEEDED
+        # check, if file is too large
+        match 'Free Users can only download files sized up to' "$HTML" && \
+            return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
 
-    # check for file password protection
+    # check for file password protection (anon, free, premium)
     if match 'Password:[[:space:]]*<input' "$HTML"; then
         log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
@@ -141,51 +149,66 @@ oron_download() {
         OPT_PASSWD="-F password=$LINK_PASSWORD"
     fi
 
-    # retrieve waiting time
-    DAYS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
-        ' \([[:digit:]]\+\) days\?')
-    HOURS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
-        ' \([[:digit:]]\+\) hours\?')
-    MINS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
-        ' \([[:digit:]]\+\) minutes\?')
-    SECS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
-        ' \([[:digit:]]\+\) seconds\?')
+    if [ "$ACCOUNT" != 'premium' ]; then
+        # prepare free download (anon, free)
+        local SLEEP DAYS HOURS MINS SECS PUBKEY WCI CHALLENGE WORD ID
 
-    if [ -n "$DAYS" -o -n "$HOURS" -o -n "$MINS" -o -n "$SECS" ]; then
-        [ -z "$DAYS" ]  && DAYS=0
-        [ -z "$HOURS" ] && HOURS=0
-        [ -z "$MINS" ]  && MINS=0
-        [ -z "$SECS" ]  && SECS=0
-        echo $(( ((($DAYS * 24) + $HOURS) * 60 + $MINS) * 60 + $SECS ))
-        return $ERR_LINK_TEMP_UNAVAILABLE
+        # retrieve wait time
+        # You have to wait xx hours, xx minutes, xx seconds until the next download becomes available.
+        DAYS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
+            ' \([[:digit:]]\+\) days\?')
+        HOURS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
+            ' \([[:digit:]]\+\) hours\?')
+        MINS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
+            ' \([[:digit:]]\+\) minutes\?')
+        SECS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
+            ' \([[:digit:]]\+\) seconds\?')
+
+        if [ -n "$DAYS" -o -n "$HOURS" -o -n "$MINS" -o -n "$SECS" ]; then
+            [ -z "$DAYS" ]  && DAYS=0
+            [ -z "$HOURS" ] && HOURS=0
+            [ -z "$MINS" ]  && MINS=0
+            [ -z "$SECS" ]  && SECS=0
+            echo $(( ((($DAYS * 24) + $HOURS) * 60 + $MINS) * 60 + $SECS ))
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        # retrieve sleep time
+        # Please wait <span id="countdown">60</span> seconds
+        SLEEP=$(echo "$HTML" | parse_tag 'Please wait' 'span') || return
+        wait $((SLEEP + 1)) seconds || return
+
+        # solve ReCaptcha
+        PUBKEY='6LdzWwYAAAAAAAzlssDhsnar3eAdtMBuV21rqH2N'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        CHALLENGE="-F recaptcha_challenge_field=$CHALLENGE"
+        WORD="-F recaptcha_response_field=$WORD"
+        METHOD_F=' Regular Download '
+        METHOD_P=''
+    else
+        # premium
+        METHOD_F=''
+        METHOD_P='1'
+        MODULE_ORON_DOWNLOAD_RESUME=yes
     fi
 
-    # retrieve random value
+    # retrieve nonce (anon, free, premium)
     RND=$(echo "$HTML" | parse_form_input_by_name 'rand') || return
     log_debug "Random value: $RND"
 
-    # retrieve sleep time
-    # Please wait <span id="countdown">60</span> seconds
-    SLEEP=$(echo "$HTML" | parse_tag 'Please wait' 'span') || return
-    wait $((SLEEP + 1)) seconds || return
-
-    # solve ReCaptcha
-    local PUBKEY WCI CHALLENGE WORD ID DATA
-    PUBKEY='6LdzWwYAAAAAAAzlssDhsnar3eAdtMBuV21rqH2N'
-    WCI=$(recaptcha_process $PUBKEY) || return
-    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-    # send captcha form (no double quote around $OPT_PASSWD)
+    # request download (no double quote around $OPT_PASSWD, $CHALLENGE, $WORD)
     HTML=$(curl -b "$COOKIE_FILE" \
         -F 'op=download2' \
         -F "id=$FILE_ID" \
         -F "rand=$RND" \
         -F "referer=$URL" \
-        -F 'method_free= Regular Download ' \
-        -F 'method_premium=' \
+        -F "method_free=$METHOD_F" \
+        -F "method_premium=$METHOD_P" \
         $OPT_PASSWD \
-        -F "recaptcha_challenge_field=$CHALLENGE" \
-        -F "recaptcha_response_field=$WORD" \
+        $CHALLENGE \
+        $WORD \
         -F 'down_direct=1' \
         "$URL") || return
 
@@ -209,7 +232,7 @@ oron_download() {
         return $ERR_FATAL
     fi
 
-    captcha_ack $ID
+    [ "$ACCOUNT" != 'premium' ] && captcha_ack $ID
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -234,23 +257,16 @@ oron_upload() {
     oron_switch_lang "$COOKIE_FILE" || return
 
     # login and set max file size (depends on account type)
-    if [ -n "$AUTH_FREE" ]; then
-        ACCOUNT=$(oron_login "$AUTH_FREE" "$COOKIE_FILE") || return
+    if [ -n "$AUTH" ]; then
+        ACCOUNT=$(oron_login "$AUTH" "$COOKIE_FILE") || return
 
-        case "$ACCOUNT" in
-            free) # up to 1GB
-                MAX_SIZE=$((1024*1024*1024))
-                ;;
-            premium) # up to 2GB
-                MAX_SIZE=$((2048*1024*1024))
-                ;;
-            *)
-                log_debug "Unknown account type '$ACCOUNT'."
-                return $ERR_FATAL
-                ;;
-        esac
+        if [ "$ACCOUNT" = 'free' ]; then
+            MAX_SIZE=$((1024*1024*1024)) # free up to 1GB
+        else
+            MAX_SIZE=$((2048*1024*1024)) # premium up to 2GB
+        fi
     else
-        MAX_SIZE=$((400*1024*1024)) # up to 400MB
+        MAX_SIZE=$((400*1024*1024)) # anon up to 400MB
 
         [ -z "$PRIVATE_FILE" ] || \
             log_error 'option "--private" ignored, account only'
