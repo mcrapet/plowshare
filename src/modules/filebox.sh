@@ -25,7 +25,8 @@ AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_FILEBOX_DOWNLOAD_RESUME=yes
 MODULE_FILEBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
-MODULE_FILEBOX_UPLOAD_OPTIONS=""
+MODULE_FILEBOX_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_FILEBOX_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login
@@ -134,35 +135,42 @@ filebox_download() {
 }
 
 # Upload a file to filebox
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download_url
 filebox_upload() {
     eval "$(process_options filebox "$MODULE_FILEBOX_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://www.filebox.com'
-    local PAGE SRV_CGI RESPONSE CODE DEL_LINK
+    local PAGE SRV_CGI SIZE_LIMIT SESSID RESPONSE CODE DEL_LINK
 
-    PAGE=$(curl "$BASE_URL") || return
+    if [ -n "$AUTH" ]; then
+        filebox_login "$AUTH" "$COOKIE_FILE" || return
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
     SRV_CGI=$(echo "$PAGE" | parse "'script'" ":[[:space:]]*'\([^']\+\)") || return
     SIZE_LIMIT=$(echo "$PAGE" | parse "'sizeLimit'" ":[[:space:]]*\([^,]\+\)") || return
 
-    # Warning message
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$SIZE_LIMIT" ]; then
         log_debug "file is bigger than $SIZE_LIMIT"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
+    # Anonymous upload don't have SESSID
+    SESSID=$(echo "$PAGE" | parse_quiet 'scriptData' ':[[:space:]]*"\([^"]*\)')
+    [ -z "$SESSID" ] && SESSID=$(random d 16)
+
     # Uses Uploadify (jQuery plugin) v2.1.4 for files upload
     # But we don't care, we just call directly server side upload script (cgi)!
     RESPONSE=$(curl_with_log \
         -F "Filename=$DESTFILE" \
-        -F "sess_id=$(random d 16)" \
+        -F "sess_id=$SESSID" \
         -F 'folder=/' \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
         -F "Upload=Submit Query" \
