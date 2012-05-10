@@ -182,8 +182,18 @@ filepost_download() {
 
     # {"id":"12345","js":{"answer":{"link":"http:\/\/fs122.filepost.com\/get_file\/...\/"}},"text":""}
     # {"id":"12345","js":{"error":"f"},"text":""}
-    FILE_URL=$(echo "$JSON" | \
-        parse '"answer":' '"link":[[:space:]]*"\([^"]*\)"') || return
+    local ERR=$(echo "$JSON" | parse_json_quiet 'error')
+    if [ -n "$ERR" ]; then
+        # You still need to wait for the start of your download"
+        if match 'need to wait' "$ERR"; then
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        else
+            log_error "remote error: $ERR"
+            return $ERR_FATAL
+        fi
+    fi
+
+    FILE_URL=$(echo "$JSON" | parse_json link) || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
