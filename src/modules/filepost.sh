@@ -137,13 +137,13 @@ filepost_download() {
     FILE_PASS=
 
     CODE=$(echo "$URL" | parse '\/files\/' 'files\/\([^/]*\)') || return
-    TID="t$RANDOM"
+    TID=t$(random d 4)
 
     # Cookie is just needed for SID
     SID=$(parse_cookie 'SID' < "$COOKIEFILE") || return
     JSURL="$BASE_URL/files/get/?SID=$SID&JsHttpRequest=$(date +%s000)-xml"
 
-    log_debug "code=$CODE, sid=$SID"
+    log_debug "code=$CODE, sid=$SID, tid=$TID"
 
     JSON=$(curl --data \
         "action=set_download&code=$CODE&token=$TID" "$JSURL") || return

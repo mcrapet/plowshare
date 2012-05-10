@@ -215,7 +215,7 @@ uploaded_to_upload() {
     AUTH_DATA=$(parse_cookie 'login' < "$COOKIEFILE" | uri_decode) || return
 
     # TODO: Allow changing admin code (used for deletion)
-    ADMIN_CODE="noyiva$$"
+    ADMIN_CODE=$(random a 8)
 
     DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
         -F "Filename=$DESTFILE" \

@@ -133,13 +133,6 @@ filebox_download() {
     echo "$FILE_URL"
 }
 
-# Temporary function. Main "random()" plowshare API will come soon.
-filebox_random() {
-    local S=$((RANDOM * $$ * 65337))
-    S="${S}123456"
-    echo ${S:0:$1}
-}
-
 # Upload a file to filebox
 # $1: cookie file (unused here)
 # $2: input file (with full path)
@@ -169,7 +162,7 @@ filebox_upload() {
     # But we don't care, we just call directly server side upload script (cgi)!
     RESPONSE=$(curl_with_log \
         -F "Filename=$DESTFILE" \
-        -F "sess_id=$(filebox_random z 16)" \
+        -F "sess_id=$(random d 16)" \
         -F 'folder=/' \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
         -F "Upload=Submit Query" \

@@ -1538,6 +1538,98 @@ captcha_nack() {
     fi
 }
 
+# Generate a pseudo-random character sequence.
+# Don't use /dev/urandom or $$ but $RANDOM (internal bash builtin,
+# range 0-32767). Note: chr() is from Greg's Wiki (BashFAQ/071).
+#
+# $1: operation type (string)
+#   - "a": alpha [0-9a-z]. Param: length.
+#   - "d", "dec": positive decimal number. First digit is never 0.
+#                 Param: number of digits.
+#   - "h", "hex": hexadecimal number. First digit is never 0. No '0x' prefix.
+#                 Param: number of digits.
+#   - "H": same as "h" but in uppercases
+#   - "js": Math.random() equivalent (>=0 and <1).
+#           It's a double: ~15.9 number of decimal digits). No param.
+#   - "l": letters [a-z]. Param: length.
+#   - "L": letters [A-Z]. Param: length.
+#   - "ll", "LL": letters [A-Za-z]. Param: length.
+# $2 (optional): operation parameter
+random() {
+    local I=0
+    local LEN=${2:-8}
+    local SEED=$RANDOM
+    local RESULT N
+
+    # FIXME: Adding LC_CTYPE=C in front of printf is required?
+
+    case "$1" in
+        d|dec)
+            RESULT=$(( SEED % 9 + 1 ))
+            (( ++I ))
+            while (( I < $LEN )); do
+                N=$(printf '%04u' $((RANDOM % 10000)))
+                RESULT=$RESULT$N
+                (( I += 4))
+            done
+            ;;
+        h|hex)
+            RESULT=$(printf '%x' $(( SEED % 15 + 1 )))
+            (( ++I ))
+            while (( I < $LEN )); do
+                N=$(printf '%04x' $((RANDOM & 65535)))
+                RESULT=$RESULT$N
+                (( I += 4))
+            done
+            ;;
+        H)
+            RESULT=$(printf '%X' $(( SEED % 15 + 1 )))
+            (( ++I ))
+            while (( I < $LEN )); do
+                N=$(printf '%04X' $((RANDOM & 65535)))
+                RESULT=$RESULT$N
+                (( I += 4))
+            done
+            ;;
+        l)
+            while (( I++ < $LEN )); do
+                N=$(( RANDOM % 26 + 16#61))
+                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+            done
+            ;;
+        L)
+            while (( I++ < $LEN )); do
+                N=$(( RANDOM % 26 + 16#41))
+                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+            done
+            ;;
+        [Ll][Ll])
+            while (( I++ < $LEN )); do
+                N=$(( RANDOM % 52 + 16#41))
+                [[ $N -gt 90 ]] && (( N += 6 ))
+                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+            done
+            ;;
+        a)
+            while (( I++ < $LEN )); do
+                N=$(( RANDOM % 36 + 16#30))
+                [[ $N -gt 57 ]] && (( N += 39 ))
+                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+            done
+            ;;
+        js)
+            LEN=$((SEED % 3 + 17))
+            RESULT='0.'$((RANDOM * 69069 & 16#ffffffff))
+            RESULT=$RESULT$((RANDOM * 69069 & 16#ffffffff))
+            ;;
+        *)
+            log_error "$FUNCNAME: unknown operation '$1'"
+            return $ERR_FATAL
+            ;;
+    esac
+    echo ${RESULT:0:$LEN}
+}
+
 ## ----------------------------------------------------------------------------
 
 ##

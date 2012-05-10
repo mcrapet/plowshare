@@ -66,23 +66,6 @@ oron_login() {
     return 0
 }
 
-# Generate a random decimal number
-# $1: digits
-# stdout: random number with $1 digits
-oron_random_num() {
-    local CC NUM DIGIT
-    CC=0
-    NUM=0
-
-    while [ "$CC" -lt $1 ]; do
-        DIGIT=$(($RANDOM % 10))
-        NUM=$(($NUM * 10 + $DIGIT))
-        (( CC++ ))
-    done
-
-    echo $NUM
-}
-
 # Determine whether checkbox/radio button with "name" attribute is checked.
 # Note: "checked" attribute must be placed after "name" attribute.
 #
@@ -301,7 +284,7 @@ oron_upload() {
     SRV_ID=$(echo "$FORM" | parse_form_input_by_name 'srv_id') || return
     SESS_ID=$(echo "$FORM" | parse_form_input_by_name 'sess_id') || return
     SRV_URL=$(echo "$FORM" | parse_form_input_by_name 'srv_tmp_url') || return
-    RND=$(oron_random_num 12)
+    RND=$(random d 12)
 
     log_debug "Server ID: $SRV_ID"
     log_debug "Session ID: $SESS_ID"

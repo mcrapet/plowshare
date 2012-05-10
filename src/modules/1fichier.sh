@@ -105,14 +105,15 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
     local UPLOADURL='http://upload.1fichier.com'
     local LOGIN_DATA S_ID RESPONSE DOWNLOAD_ID REMOVE_ID DOMAIN_ID
 
-    detect_javascript || return
-
     if test "$AUTH"; then
         LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'
         post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
     fi
 
-    S_ID=$(echo "var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);" | javascript)
+    # Initial js code:
+    # var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    # for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);
+    S_ID=$(random ll 5)
 
     RESPONSE=$(curl_with_log -b "$COOKIEFILE" \
         --form-string "message=$MESSAGE" \

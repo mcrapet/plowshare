@@ -236,8 +236,11 @@ mediafire_list() {
     log_debug "quickkey: $QUICKKEY"
 
     # remark: response_format=json is also possible
-    URL="http://www.mediafire.com/api/folder/get_info.php?r=abcd$$&recursive=yes&folder_key=${QUICKKEY}&response_format=xml&version=1"
-    DATA=$(curl "$URL" | break_html_lines) || return
+    URL='http://www.mediafire.com/api/folder/get_info.php?recursive=yes&response_format=xml&version=1'
+    DATA=$(curl --get \
+        -d "r=$(random a 6)" \
+        -d "folder_key=$QUICKKEY" \
+        "$URL" | break_html_lines) || return
 
     NUM=$(echo "$DATA" | parse_tag_quiet file_count) || NUM=0
     log_debug "There is/are $NUM file(s) in the folder"
