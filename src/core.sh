@@ -729,12 +729,14 @@ parse_cookie_quiet() {
 }
 
 # Return base of URL
-# Example: http://www.host.com/a/b/c/d => http://www.host.com
-# Note: Avoid using Bash regexp or `expr` for portability purposes
+# Examples:
+# - http://www.host.com/a/b/c/d => http://www.host.com
+# - http://www.host.com?sid=123 => http://www.host.com
+# Note: Don't use `expr` (GNU coreutils) for portability purposes.
 #
 # $1: URL
 basename_url() {
-    sed -e 's/\(https\?:\/\/[^\/]*\).*/\1/' <<<"$1"
+    sed -e 's=\(https\?://[^/?#]*\).*=\1=' <<<"$1"
 }
 
 # Return basename of file path
