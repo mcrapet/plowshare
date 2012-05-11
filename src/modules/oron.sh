@@ -370,6 +370,9 @@ oron_upload() {
     elif match 'triggered our security filters' "$ST"; then
         log_error 'File is banned by security filter.'
         return $ERR_FATAL
+    elif match 'Received HTML page instead of file' "$ST"; then
+        log_error 'HTML page was received instead of a file. Does your link redirect?'
+        return $ERR_FATAL
     else
         log_error "Unknown upload state: $ST"
         return $ERR_FATAL
@@ -474,6 +477,7 @@ oron_list() {
 
     local URL=$1
     local REC=$2
+    local RET=$ERR_LINK_DEAD
     local HTML LINKS NAME URL
 
     if ! match 'oron\.com/folder/' "$1"; then
@@ -486,14 +490,13 @@ oron_list() {
 
     #  Print links (if any)
     if [ -n "$LINKS" ]; then
+        RET=0
         while read LINE; do
             NAME=$(echo "$LINE" | parse_tag '.' 'small') || return
             URL=$(echo "$LINE" | parse_attr '.' 'href') || return
             log_debug "$NAME"
             echo "$URL"
         done <<< "$LINKS"
-    elif [ -z "$REC" ]; then
-        return $ERR_LINK_DEAD
     fi
 
     # Are there any subfolders?
@@ -507,10 +510,12 @@ oron_list() {
 
             if [ -n "$REC" ]; then
                 log_debug "entering sub folder: $URL"
-                oron_list "$URL" "$REC" || return
+                oron_list "$URL" "$REC" && RET=0 # there are files in this subfolder
             else
                 log_debug "$URL"
             fi
         done <<< "$LINKS"
     fi
+
+    return $RET
 }

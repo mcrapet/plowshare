@@ -137,7 +137,7 @@ for URL in "$@"; do
     if [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error "Non existing or empty folder"
         [ -z "$RECURSE" ] && \
-            log_debug "try adding --recursive command-line option to look for sub folders"
+            log_notice "Try adding -r/--recursive option to look into sub folders"
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error "You must provide a valid password"
     fi
