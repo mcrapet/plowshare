@@ -15,7 +15,7 @@ euroshare_eu | download |        |        |      |
 filebox      | download | upload |        |      |
 filepost     | download | upload |        | list |
 freakshare   | download |        |        |      |
-hotfile      | download |        |        | list |
+hotfile      | download | upload |        | list |
 humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
 megashares   | download | upload | delete |      |

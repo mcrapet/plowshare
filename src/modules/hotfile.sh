@@ -21,9 +21,13 @@
 MODULE_HOTFILE_REGEXP_URL="http://\(www\.\)\?hotfile\.com/"
 
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a:,auth:,USER:PASSWORD,Premium account"
 MODULE_HOTFILE_DOWNLOAD_RESUME=no
 MODULE_HOTFILE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+
+MODULE_HOTFILE_UPLOAD_OPTIONS="
+AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)"
+MODULE_HOTFILE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_HOTFILE_LIST_OPTIONS=""
 
@@ -37,7 +41,7 @@ hotfile_download() {
     local COOKIEFILE=$1
     local URL="${2}&lang=en"
     local BASE_URL='http://hotfile.com'
-    local FILE_URL WAIT_HTML WAIT_HTML2 SLEEP LINK
+    local FILE_URL ROLE WAIT_HTML WAIT_HTML2 SLEEP LINK
 
     if match 'hotfile\.com/list/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -52,6 +56,12 @@ hotfile_download() {
 
         if [ "$AUTH" = "$PASSWORD" ]; then
             PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+        fi
+
+        ROLE=$(curl --get -d "username=$USER" -d "password=$PASSWORD" \
+            -d 'action=getuserinfo' 'http://api.hotfile.com/') || return
+        if match 'is_premium=0' "$ROLE"; then
+            return $ERR_LINK_NEED_PERMISSIONS
         fi
 
         FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return
@@ -80,8 +90,8 @@ hotfile_download() {
 
     # Send (post) form
     local FORM_HTML FORM_URL FORM_ACTION FORM_TM FORM_TMHASH FORM_WAIT FORM_WAITHASH FORM_UPIDHASH
-    FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f')
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f') || return
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_input_by_name 'action')
     FORM_TM=$(echo "$FORM_HTML" | parse_form_input_by_name 'tm')
     FORM_TMHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
@@ -91,13 +101,15 @@ hotfile_download() {
 
     wait $((SLEEP / 1000)) seconds || return
 
-    WAIT_HTML2=$(curl -b $COOKIEFILE --data \
-        "action=${FORM_ACTION}&tm=${FORM_TM}&tmhash=${FORM_TMHASH}&wait=${FORM_WAIT}&waithash=${FORM_WAITHASH}&upidhash=$FORM_UPIDHASH" \
+    WAIT_HTML2=$(curl -b $COOKIEFILE -d "action=$FORM_ACTION" \
+        -d "tm=$FORM_TM" -d "tmhash=$FORM_TMHASH" \
+        -d "wait=$FORM_WAIT" -d "waithash=$FORM_WAITHASH" \
+        -d "upidhash=$FORM_UPIDHASH" \
         "${BASE_URL}$FORM_URL") || return
 
     # Direct download (no captcha)
     if match 'Click here to download' "$WAIT_HTML2"; then
-        LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href')
+        LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href') || return
         FILE_URL=$(curl -b "$COOKIEFILE" --include "$LINK" | grep_http_header_location)
         echo "$FILE_URL"
         return 0
@@ -121,8 +133,8 @@ hotfile_download() {
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-        HTMLPAGE=$(curl -b "$COOKIEFILE" --data \
-            "action=${FORM2_ACTION}&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+        HTMLPAGE=$(curl -b "$COOKIEFILE" -d "action=$FORM2_ACTION" \
+            -d "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
             "${BASE_URL}$FORM2_URL") || return
 
         if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
@@ -143,6 +155,61 @@ hotfile_download() {
     fi
 
     log_error "Unknown state, give up!"
+    return $ERR_FATAL
+}
+
+# Upload a file to hotfile using official API: http://api.hotfile.com/
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download_url
+hotfile_upload() {
+    eval "$(process_options hotfile "$MODULE_HOTFILE_UPLOAD_OPTIONS" "$@")"
+
+    local FILE=$2
+    local DESTFILE=$3
+    local SERVER URL FILE_SIZE UPID DATA
+
+    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
+
+    local USER="${AUTH%%:*}"
+    local PASSWORD="${AUTH#*:}"
+
+    if [ "$AUTH" = "$PASSWORD" ]; then
+        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+    fi
+
+    # Answer: one server per line
+    SERVER=$(curl 'http://api.hotfile.com/?action=getuploadserver&count=1') || return
+    URL="http://${SERVER}/segmentupload.php"
+
+    FILE_SIZE=$(get_filesize "$FILE")
+
+    UPID=$(curl --get -d 'action=start' -d "size=$FILE_SIZE" \
+        "$URL") || return
+    log_error "upload id: $UPID"
+
+    DATA=$(curl -F 'action=upload' \
+        -F "id=$UPID" \
+        -F 'offset=0' \
+        -F "segment=@$FILE" \
+        "$URL") || return
+
+    if [ "$DATA" = 'OK' ]; then
+        DATA=$(curl -F 'action=finish' \
+            -F "id=$UPID" \
+            -F "name=$DESTFILE" \
+            -F "username=$USER" \
+            -F "password=$PASSWORD" \
+            "$URL") || return
+
+        if match_remote_url "$DATA"; then
+            echo "$DATA"
+            return 0
+        fi
+    fi
+
+    log_error "remote error: $DATA"
     return $ERR_FATAL
 }
 
