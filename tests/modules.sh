@@ -485,13 +485,10 @@ else
 
     # Perform all tests here
     else
-
         echo "Testing all modules. This will be long, you can go away take a coffee..."
-        read -p "Are you sure (y/N)? " -n 1 CONT
-        if [ "$CONT" != 'y' -a "$CONT" != 'Y' ]; then
-            exit 0
-        fi
-        echo
+        read -r -p "Are you sure (y/N)? " -n 1 CONT
+        test "$CONT" && echo
+        [[ "$CONT" = [Yy] ]] || exit 0
 
         while readx M O1 O2 O3; do
             echo -n "testing $M ..."
