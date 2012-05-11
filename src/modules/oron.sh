@@ -492,23 +492,24 @@ oron_list() {
             log_debug "$NAME"
             echo "$URL"
         done <<< "$LINKS"
+    elif [ -z "$REC" ]; then
+        return $ERR_LINK_DEAD
     fi
 
     # Are there any subfolders?
     if match 'folder2.gif' "$HTML"; then
-        log_debug 'folders:'
         LINKS=$(echo "$HTML" | parse_line_after_all 'folder2.gif' '^\(.*\)$')
 
         while read LINE; do
             NAME=$(echo "$LINE" | parse_tag '.' 'b') || return
             URL=$(echo "$LINE" | parse_attr '.' 'href') || return
-            log_debug "$NAME ($URL)"
+            log_debug "$NAME (folder)"
 
             if [ -n "$REC" ]; then
                 log_debug "entering sub folder: $URL"
                 oron_list "$URL" "$REC" || return
             else
-                echo "$URL"
+                log_debug "$URL"
             fi
         done <<< "$LINKS"
     fi
