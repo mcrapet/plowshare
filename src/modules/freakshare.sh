@@ -25,6 +25,9 @@ AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_FREAKSHARE_DOWNLOAD_RESUME=no
 MODULE_FREAKSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
+MODULE_FREAKSHARE_UPLOAD_OPTIONS=""
+MODULE_FREAKSHARE_UPLOAD_REMOTE_SUPPORT=no
+
 # Output an freakshare.com file download URL (anonymous or premium)
 # $1: cookie file
 # $2: freakshare.com url
@@ -44,7 +47,7 @@ freakshare_download() {
 
     # Set english language (server side information, identified by PHPSESSID)
     curl -o /dev/null -c "$COOKIEFILE" \
-        "http://freakshare.com/index.php?language=EN" || return
+        "$BASE_URL/index.php?language=EN" || return
 
     if [ -n "$AUTH_FREE" ]; then
         local LOGIN_DATA LOGIN_RESULT L
@@ -58,7 +61,7 @@ freakshare_download() {
         L=$(parse_cookie_quiet 'login' < "$COOKIEFILE")
         if [ -z "$L" ]; then
             # <p class="error">Wrong Username or Password!</p>
-           return $ERR_LOGIN_FAILED
+            return $ERR_LOGIN_FAILED
         fi
     fi
 
@@ -66,20 +69,20 @@ freakshare_download() {
 
     if match '404 - Not Found\|or is deleted\|This file does not exist!' "$WAIT_HTML"; then
         return $ERR_LINK_DEAD
-
     # Anonymous users only get this. We don't know how much time to wait :(
     elif match 'Your Traffic is used up for today!' "$WAIT_HTML"; then
         echo 3600
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    SLEEP=$(echo "$WAIT_HTML" | parse 'time' '=\ \([[:digit:]]\+\)\.0;') ||
-            { log_error "can't get sleep time"; return $ERR_FATAL; }
+    test "$CHECK_LINK" && return 0
+
+    SLEEP=$(echo "$WAIT_HTML" | parse 'time' '=\ \([[:digit:]]\+\)\.0;') || return
 
     # Send (post) form
     local FORM_HTML FORM_URL FORM_SECTION FORM_DID
-    FORM_HTML=$(grep_form_by_order "$WAIT_HTML" 2)
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_HTML=$(grep_form_by_order "$WAIT_HTML" 2) || return
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_SECTION=$(echo "$FORM_HTML" | parse_form_input_by_name 'section')
     FORM_DID=$(echo "$FORM_HTML" | parse_form_input_by_name 'did')
 
@@ -129,4 +132,49 @@ freakshare_download() {
 
     log_error "Unknown Status"
     return $ERR_FATAL
+}
+
+# Upload a file to freakshare
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download_url
+freakshare_upload() {
+    eval "$(process_options freakshare "$MODULE_FREAKSHARE_UPLOAD_OPTIONS" "$@")"
+
+    local COOKIE_FILE=$1
+    local FILE=$2
+    local DESTFILE=$3
+    local BASE_URL='http://freakshare.com'
+
+    local PAGE URL FORM_HTML FORM_ACTION
+    local FORM_APC_PROGRESS FORM_APC_USERGRP FORM_UPLOAD_ID
+
+    # Set english language (server side information, identified by PHPSESSID)
+    curl -o /dev/null -c "$COOKIE_FILE" \
+        "$BASE_URL/index.php?language=EN" || return
+
+    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$BASE_URL") || return
+
+    FORM_HTML=$(grep_form_by_id "$PAGE" 'uploadform') || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_APC_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name 'APC_UPLOAD_PROGRESS')
+    FORM_APC_USERGRP=$(echo "$FORM_HTML" | parse_form_input_by_name 'APC_UPLOAD_USERGROUP')
+    FORM_UPLOAD_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
+
+    # Empty file field is required (does not work without it)
+    PAGE=$(curl_with_log -i \
+        -e "$BASE_URL" \
+        -F "APC_UPLOAD_PROGRESS=$FORM_APC_PROGRESS" \
+        -F "APC_UPLOAD_USERGROUP=$FORM_APC_USERGRP" \
+        -F "UPLOAD_IDENTIFIER=$FORM_UPLOAD_ID" \
+        -F "file[]=@/dev/null;filename=" \
+        -F "file[]=@$FILE;filename=$DESTFILE" \
+        "$FORM_ACTION?X-Progress-ID=undefined$(random h 32)") || return
+
+    URL=$(echo "$PAGE" | grep_http_header_location) || return
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+
+    echo "$PAGE" | parse_attr '\/files\/' value || return
+    echo "$PAGE" | parse_attr '\/delete\/' value || return
 }
