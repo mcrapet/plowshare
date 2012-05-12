@@ -39,7 +39,7 @@ mediafire_download() {
     eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
 
     local COOKIEFILE=$1
-    local URL=$2
+    local URL=$(echo "$2" | replace '/download.php?' '?')
     local LOCATION PAGE FILE_URL FILENAME JSON
 
     LOCATION=$(curl --head "$URL" | grep_http_header_location_quiet) || return
@@ -65,6 +65,30 @@ mediafire_download() {
         return $ERR_LINK_DEAD
     fi
     test "$CHECK_LINK" && return 0
+
+    # reCaptcha
+    if match '<textarea name="recaptcha_challenge_field"' "$PAGE"; then
+
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+        PAGE=$(curl -L -b "$COOKIEFILE" --data \
+            "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
+            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+            "$URL" | break_html_lines) || return
+
+        # You entered the incorrect keyword below, please try again!
+        if match 'incorrect keyword' "$PAGE"; then
+            captcha_nack $ID
+            log_error "Wrong captcha"
+            return $ERR_CAPTCHA
+        fi
+
+        captcha_ack $ID
+        log_debug "correct captcha"
+    fi
 
     # Check for password protected link
     if match 'name="downloadp"' "$PAGE"; then
