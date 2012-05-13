@@ -16,7 +16,6 @@ filebox      | download | upload |        |      |
 filepost     | download | upload |        | list |
 freakshare   | download | upload |        |      |
 hotfile      | download | upload |        | list |
-humyo        | download |        |        |      |
 mediafire    | download | upload |        | list |
 megashares   | download | upload | delete |      |
 mirrorcreator|          | upload |        |      |
