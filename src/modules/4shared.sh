@@ -132,8 +132,6 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
 
     wait $((WAIT_TIME)) seconds || return
 
-    FILE_URL=$(curl --head "$FILE_URL" | grep_http_header_location) || return
-
     echo "$FILE_URL"
     echo "$FILE_NAME"
 }
