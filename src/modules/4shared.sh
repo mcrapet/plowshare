@@ -24,7 +24,7 @@ MODULE_4SHARED_DOWNLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 TORRENT,,torrent,,Get torrent link (instead of direct download link)"
 MODULE_4SHARED_DOWNLOAD_RESUME=yes
-MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_4SHARED_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
@@ -45,13 +45,12 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
         "$BASEURL/login") || return
 
     # {"ok":true,"rejectReason":"","loginRedirect":"http://...
-    if match '"ok"[[:space:]]\?:[[:space:]]\?true' "$JSON_RESULT"; then
+    if match_json_true 'ok' "$JSON_RESULT"; then
         echo "$JSON_RESULT"
         return 0
     fi
 
-    ERR=$(echo "$JSON_RESULT" | parse 'rejectReason' \
-        'rejectReason"[[:space:]]\?:[[:space:]]\?"\([^"]*\)')
+    ERR=$(echo "$JSON_RESULT" | parse_json 'rejectReason')
     log_debug "remote says: $ERR"
     return $ERR_LOGIN_FAILED
 }
@@ -132,6 +131,8 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
     fi
 
     wait $((WAIT_TIME)) seconds || return
+
+    FILE_URL=$(curl --head "$FILE_URL" | grep_http_header_location) || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
