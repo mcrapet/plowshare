@@ -25,8 +25,29 @@ AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_FREAKSHARE_DOWNLOAD_RESUME=no
 MODULE_FREAKSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
-MODULE_FREAKSHARE_UPLOAD_OPTIONS=""
+MODULE_FREAKSHARE_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_FREAKSHARE_UPLOAD_REMOTE_SUPPORT=no
+
+# Static function. Proceed with login (free or premium)
+freakshare_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+    local LOGIN_DATA LOGIN_RESULT L
+
+    LOGIN_DATA='user=$USER&pass=$PASSWORD&submit=Login'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/login.html" "-b $COOKIE_FILE") || return
+
+    # If login successful we get "login" entry in cookie file
+    # and HTTP redirection (Location: $BASE_URL)
+    L=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
+    if [ -z "$L" ]; then
+        # <p class="error">Wrong Username or Password!</p>
+        return $ERR_LOGIN_FAILED
+    fi
+}
 
 # Output an freakshare.com file download URL (anonymous or premium)
 # $1: cookie file
@@ -50,19 +71,7 @@ freakshare_download() {
         "$BASE_URL/index.php?language=EN" || return
 
     if [ -n "$AUTH_FREE" ]; then
-        local LOGIN_DATA LOGIN_RESULT L
-
-        LOGIN_DATA='user=$USER&pass=$PASSWORD&submit=Login'
-        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
-            "$BASE_URL/login.html" "-b $COOKIEFILE") || return
-
-        # If login successful we get "login" entry in cookie file
-        # and HTTP redirection (Location: $BASE_URL)
-        L=$(parse_cookie_quiet 'login' < "$COOKIEFILE")
-        if [ -z "$L" ]; then
-            # <p class="error">Wrong Username or Password!</p>
-            return $ERR_LOGIN_FAILED
-        fi
+        freakshare_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" || return
     fi
 
     WAIT_HTML=$(curl -b "$COOKIEFILE" "$URL") || return
@@ -154,7 +163,11 @@ freakshare_upload() {
     curl -o /dev/null -c "$COOKIE_FILE" \
         "$BASE_URL/index.php?language=EN" || return
 
-    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$BASE_URL") || return
+    if [ -n "$AUTH" ]; then
+        freakshare_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
 
     FORM_HTML=$(grep_form_by_id "$PAGE" 'uploadform') || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
