@@ -52,7 +52,7 @@ uploaded_to_login() {
     NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
     if [ -n "$NAME" ]; then
         NAME=$(echo "$NAME" | uri_decode | cut -d'&' -f2)
- 	    log_debug "Successfully logged in as ${NAME:3} member"
+        log_debug "Successfully logged in as ${NAME:3} member"
         return 0
     fi
 

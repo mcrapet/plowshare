@@ -44,7 +44,7 @@ filebox_login() {
     # Set-Cookie: login xfss
     NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
     if [ -n "$NAME" ]; then
- 	    log_debug "Successfully logged in as $NAME member"
+        log_debug "Successfully logged in as $NAME member"
         return 0
     fi
 
