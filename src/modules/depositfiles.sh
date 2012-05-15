@@ -227,10 +227,10 @@ depositfiles_upload() {
     local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_GO FORM_AGREE
     FORM_HTML=$(grep_form_by_id "$DATA" 'upload_form')
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
-    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
-    FORM_GO=$(echo "$FORM_HTML" | parse_form_input_by_name 'go')
-    FORM_AGREE=$(echo "$FORM_HTML" | parse_form_input_by_name 'agree')
+    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'MAX_FILE_SIZE')
+    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'UPLOAD_IDENTIFIER')
+    FORM_GO=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'go')
+    FORM_AGREE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'agree')
 
     DATA=$(curl_with_log -b "$COOKIEFILE" \
         -F "MAX_FILE_SIZE=$FORM_MAXFSIZE"    \

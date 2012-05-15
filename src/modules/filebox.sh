@@ -99,14 +99,14 @@ filebox_download() {
     fi
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
-    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
-    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct') || return
+    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'op') || return
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'id') || return
+    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'rand') || return
+    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'down_direct') || return
 
     # Note: this is quiet parsing
-    FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
-    FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_premium')
+    FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+    FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
     if [ "$FORM_DD" = 0 ]; then
         log_error "$FUNCNAME: indirect download is not expected"

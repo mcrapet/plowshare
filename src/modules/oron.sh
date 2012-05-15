@@ -294,9 +294,9 @@ oron_upload() {
 
     # gather relevant data from form
     FORM=$(grep_form_by_name "$HTML" 'file') || return
-    SRV_ID=$(echo "$FORM" | parse_form_input_by_name 'srv_id') || return
-    SESS_ID=$(echo "$FORM" | parse_form_input_by_name 'sess_id') || return
-    SRV_URL=$(echo "$FORM" | parse_form_input_by_name 'srv_tmp_url') || return
+    SRV_ID=$(echo "$FORM" | parse_form_input_by_name_quiet 'srv_id') || return
+    SESS_ID=$(echo "$FORM" | parse_form_input_by_name_quiet 'sess_id') || return
+    SRV_URL=$(echo "$FORM" | parse_form_input_by_name_quiet 'srv_tmp_url') || return
     RND=$(random d 12)
 
     log_debug "Server ID: $SRV_ID"
@@ -355,8 +355,8 @@ oron_upload() {
 
         # gather relevant data
         FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines_alt) || return
-        FN=$(echo "$FORM" | parse_form_input_by_name 'fn') || return
-        ST=$(echo "$FORM" | parse_form_input_by_name 'st') || return
+        FN=$(echo "$FORM" | parse_form_input_by_name_quiet 'fn') || return
+        ST=$(echo "$FORM" | parse_form_input_by_name_quiet 'st') || return
     fi
 
     log_debug "FN: $FN"
@@ -406,8 +406,8 @@ oron_upload() {
         HTML=$(curl -b "$COOKIE_FILE" \
             "$BASE_URL/?op=file_edit;file_code=$FILE_ID") || return
 
-        F_NAME=$(echo "$HTML" | parse_form_input_by_name 'file_name') || return
-        F_PASS=$(echo "$HTML" | parse_form_input_by_name 'file_password') || return
+        F_NAME=$(echo "$HTML" | parse_form_input_by_name_quiet 'file_name') || return
+        F_PASS=$(echo "$HTML" | parse_form_input_by_name_quiet 'file_password') || return
         oron_is_checked 'file_public' "$HTML" && F_PUB='1'
 
         log_debug "Current name: $F_NAME"

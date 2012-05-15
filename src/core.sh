@@ -692,7 +692,13 @@ parse_form_action() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_name() {
-    parse_quiet "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+    parse "<input\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+}
+
+# Like parse_form_input_by_name, but hide possible error
+parse_form_input_by_name_quiet() {
+    parse_form_input_by_name "$@" 2>/dev/null
+    return 0
 }
 
 # Retrieve "value" attribute from an <input> marker with "type" attribute
@@ -702,7 +708,13 @@ parse_form_input_by_name() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
-    parse_quiet "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+    parse "<input\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+}
+
+# Like parse_form_input_by_type, but hide possible error
+parse_form_input_by_type_quiet() {
+    parse_form_input_by_type "$@" 2>/dev/null
+    return 0
 }
 
 # Retrieve "value" attribute from an <input> marker with "id" attribute
@@ -712,7 +724,13 @@ parse_form_input_by_type() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_id() {
-    parse_quiet "<input\([[:space:]]*[^ ]*\)*id=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+    parse "<input\([[:space:]]*[^ ]*\)*id=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+}
+
+# Like parse_form_input_by_id, but hide possible error
+parse_form_input_by_id_quiet() {
+    parse_form_input_by_id "$@" 2>/dev/null
+    return 0
 }
 
 # Get specific entry (value) from cookie
@@ -1249,6 +1267,7 @@ captcha_process() {
 
             log_notice "Using captcha.trader bypass service ($USERNAME)"
 
+            # Plowshare API key for CaptchaTrader
             RESPONSE=$(curl -F "match=" \
                 -F "api_key=1645b45413c7e23a470475f33692cb63" \
                 -F "password=$PASSWORD" \

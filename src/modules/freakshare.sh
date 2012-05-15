@@ -92,8 +92,8 @@ freakshare_download() {
     local FORM_HTML FORM_URL FORM_SECTION FORM_DID
     FORM_HTML=$(grep_form_by_order "$WAIT_HTML" 2) || return
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_SECTION=$(echo "$FORM_HTML" | parse_form_input_by_name 'section')
-    FORM_DID=$(echo "$FORM_HTML" | parse_form_input_by_name 'did')
+    FORM_SECTION=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'section')
+    FORM_DID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'did')
 
     wait $((SLEEP)) seconds || return
 
@@ -110,8 +110,8 @@ freakshare_download() {
         local FORM2_HTML FORM2_URL FORM2_SECTION FROM2_DID HTMLPAGE
         FORM2_HTML=$(grep_form_by_order "$WAIT_HTML" 1) || return
         FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action) || return
-        FORM2_SECTION=$(echo "$FORM2_HTML" | parse_form_input_by_name 'section')
-        FORM2_DID=$(echo "$FORM2_HTML" | parse_form_input_by_name 'did')
+        FORM2_SECTION=$(echo "$FORM2_HTML" | parse_form_input_by_name_quiet 'section')
+        FORM2_DID=$(echo "$FORM2_HTML" | parse_form_input_by_name_quiet 'did')
 
         local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6Lftl70SAAAAAItWJueKIVvyG0QfLgmAgzKgTbDT'
@@ -171,9 +171,9 @@ freakshare_upload() {
 
     FORM_HTML=$(grep_form_by_id "$PAGE" 'uploadform') || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_APC_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name 'APC_UPLOAD_PROGRESS')
-    FORM_APC_USERGRP=$(echo "$FORM_HTML" | parse_form_input_by_name 'APC_UPLOAD_USERGROUP')
-    FORM_UPLOAD_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
+    FORM_APC_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'APC_UPLOAD_PROGRESS')
+    FORM_APC_USERGRP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'APC_UPLOAD_USERGROUP')
+    FORM_UPLOAD_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'UPLOAD_IDENTIFIER')
 
     # Empty file field is required (does not work without it)
     PAGE=$(curl_with_log -i \

@@ -85,13 +85,13 @@ sendspace_upload() {
     local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_DDIR FORM_JSEMA FORM_SIGN FORM_UFILES FORM_TERMS
     FORM_HTML=$(grep_form_by_order "$DATA" 3 | break_html_lines_alt)
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
-    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
-    FORM_DDIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR')
-    FORM_JSENA=$(echo "$FORM_HTML" | parse_form_input_by_name 'js_enabled')
-    FORM_SIGN=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature')
-    FORM_UFILES=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_files')
-    FORM_TERMS=$(echo "$FORM_HTML" | parse_form_input_by_name 'terms')
+    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'MAX_FILE_SIZE')
+    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'UPLOAD_IDENTIFIER')
+    FORM_DDIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'DESTINATION_DIR')
+    FORM_JSENA=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'js_enabled')
+    FORM_SIGN=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'signature')
+    FORM_UFILES=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'upload_files')
+    FORM_TERMS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'terms')
 
     DATA=$(curl_with_log \
         -F "MAX_FILE_SIZE=$FORM_MAXFSIZE" \
@@ -134,7 +134,7 @@ sendspace_delete() {
     if match 'You are about to delete the folowing file' "$PAGE"; then
         FORM_HTML=$(grep_form_by_order "$PAGE" 3)
         FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
-        FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'delete')
+        FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'delete')
 
         PAGE=$(curl -F "submit=$FORM_SUBMIT" $FORM_URL) || return
 

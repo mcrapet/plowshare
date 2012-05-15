@@ -184,12 +184,12 @@ megashares_upload() {
 
     local FORM_HTML APC_UPLOAD_PROGRESS MSUP_IDD OWNLOADPROGRESSURL
     FORM_HTML=$(grep_form_by_name "$PAGE" 'form_upload')
-    APC_UPLOAD_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name 'APC_UPLOAD_PROGRESS')
-    MSUP_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'msup_id')
-    DOWNLOADPROGRESSURL=$(echo "$FORM_HTML" | parse_form_input_by_name 'downloadProgressURL')
-    ULOC=$(echo "$FORM_HTML" | parse_form_input_by_id 'uloc')
-    TMP_SID=$(echo "$FORM_HTML" | parse_form_input_by_id 'tmp_sid')
-    UPS_SID=$(echo "$FORM_HTML" | parse_form_input_by_id 'ups_sid')
+    APC_UPLOAD_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'APC_UPLOAD_PROGRESS')
+    MSUP_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'msup_id')
+    DOWNLOADPROGRESSURL=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'downloadProgressURL')
+    ULOC=$(echo "$FORM_HTML" | parse_form_input_by_id_quiet 'uloc')
+    TMP_SID=$(echo "$FORM_HTML" | parse_form_input_by_id_quiet 'tmp_sid')
+    UPS_SID=$(echo "$FORM_HTML" | parse_form_input_by_id_quiet 'ups_sid')
 
     PAGE=$(curl_with_log -b "$COOKIEFILE" \
         -F "APC_UPLOAD_PROGRESS=$APC_UPLOAD_PROGRESS" \

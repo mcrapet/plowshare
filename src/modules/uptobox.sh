@@ -46,11 +46,11 @@ uptobox_download() {
     # Send (post) form
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DS
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-    FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
-    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
+    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'op')
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'id')
+    FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
+    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'fname')
+    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
 
     PAGE=$(curl -b 'lang=english' -F 'referer=' \
         -F "op=$FORM_OP" \
@@ -63,12 +63,12 @@ uptobox_download() {
         WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
 
         FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
-        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name 'usr_login')
-        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
-        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
-        FORM_DS=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_script')
+        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'op')
+        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'id')
+        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
+        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'rand')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+        FORM_DS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'down_script')
 
         # Funny captcha, this is text (4 digits)!
         # <span style='position:absolute;padding-left:64px;padding-top:3px;'>&#55;</span>

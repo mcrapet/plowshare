@@ -92,12 +92,12 @@ hotfile_download() {
     local FORM_HTML FORM_URL FORM_ACTION FORM_TM FORM_TMHASH FORM_WAIT FORM_WAITHASH FORM_UPIDHASH
     FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f') || return
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_input_by_name 'action')
-    FORM_TM=$(echo "$FORM_HTML" | parse_form_input_by_name 'tm')
-    FORM_TMHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
-    FORM_WAIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'wait')
-    FORM_WAITHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'waithash')
-    FORM_UPIDHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'upidhash')
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'action')
+    FORM_TM=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'tm')
+    FORM_TMHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'tmhash')
+    FORM_WAIT=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'wait')
+    FORM_WAITHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'waithash')
+    FORM_UPIDHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'upidhash')
 
     wait $((SLEEP / 1000)) seconds || return
 
@@ -126,7 +126,7 @@ hotfile_download() {
         local FORM2_HTML FORM2_URL FORM2_ACTION HTMLPAGE
         FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
         FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action)
-        FORM2_ACTION=$(echo "$FORM2_HTML" | parse_form_input_by_name 'action')
+        FORM2_ACTION=$(echo "$FORM2_HTML" | parse_form_input_by_name_quiet 'action')
 
         local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6LfRJwkAAAAAAGmA3mAiAcAsRsWvfkBijaZWEvkD'

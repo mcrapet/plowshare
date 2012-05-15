@@ -64,8 +64,8 @@ uploading_download() {
     local FORM_HTML FORM_URL FORM_FID FORM_CODE
     FORM_HTML=$(grep_form_by_id "$DATA" 'downloadform')
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_FID=$(echo "$FORM_HTML" | parse_form_input_by_name 'file_id')
-    FORM_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name 'code')
+    FORM_FID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'file_id')
+    FORM_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'code')
 
     DATA=$(curl -b "$COOKIEFILE" -b "lang=1" --data \
         "action=second_page&file_id=${FORM_FID}&code=$FORM_CODE" "$FORM_URL") || return
