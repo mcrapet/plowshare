@@ -96,6 +96,27 @@ elif [ "$1" = 'install' ]; then
     $LN_S "$DATADIR_FINAL/delete.sh" "$BINDIR/plowdel"
     $LN_S "$DATADIR_FINAL/list.sh" "$BINDIR/plowlist"
 
+    # Check sed version (don't use `uname -s` yet..)
+    SED=`sed --version | sed 1q` || true
+    case $SED in
+        # GNU sed version 4.2.1
+        GNU\ sed*)
+            ;;
+        # BSD, Busybox:
+        # sed: illegal option -- -
+        # This is not GNU sed version 4.0 root
+        *)
+            echo "Warning: sytem sed is not GNU sed"
+            for SED_PRG in gsed gnu-sed; do
+                SED_PATH=`command -v $SED_PRG 2>/dev/null` || true
+                if [ -n "$SED_PATH" ]; then
+                    echo "Patching core.sh to call $SED_PRG"
+                    sed -i -e "/^set -/ashopt -s expand_aliases; alias sed='$SED_PRG'" "$DATADIR/core.sh"
+                    break
+                fi
+            done
+            ;;
+    esac
 else
     echo "$USAGE"
     exit 1
