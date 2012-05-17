@@ -46,8 +46,8 @@ extabit_login() {
         return $ERR_LOGIN_FAILED
     fi
 
-    match 'Buy premium' "$LOGIN_RESULT" && \
-        echo 'free' || echo 'premium'
+    match 'Premium is active' "$LOGIN_RESULT" && \
+        echo 'premium' || echo 'free'
 }
 
 # Output an extabit.com file download URL
@@ -70,8 +70,23 @@ extabit_download() {
         log_debug "Account type: $TYPE"
 
         if [ "$TYPE" != 'free' ]; then
-            log_error "FIXME: not yet implemented!"
-            return $ERR_FATAL
+            MODULE_EXTABIT_DOWNLOAD_RESUME=yes
+
+            # Detect "Direct links" option
+            PAGE=$(curl -I -b "$COOKIE_FILE" "$URL") || return
+
+            FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
+            if [ -z "$FILE_URL" ]; then
+                PAGE=$(curl -b "$COOKIE_FILE" -b 'language=en' "$URL") || return
+                FILE_URL=$(echo "$PAGE" | parse_attr 'download-file-btn' href) || return
+                FILE_NAME=$(echo "$PAGE" | parse_attr 'div title' title)
+            else
+                log_debug "filename can be screwed"
+            fi
+
+            echo "$FILE_URL"
+            echo "$FILE_NAME"
+            return 0
         fi
 
         PAGE=$(curl -b "$COOKIE_FILE" -b 'language=en' "$URL") || return
