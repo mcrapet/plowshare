@@ -216,21 +216,29 @@ depositfiles_upload() {
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
+    local BASE_URL='http://depositfiles.com'
     local DATA DL_LINK DEL_LINK
 
     if [ -n "$AUTH" ]; then
-        depositfiles_login "$AUTH" "$COOKIEFILE" 'http://depositfiles.com' || return
+        depositfiles_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
     fi
 
-    DATA=$(curl -b "$COOKIEFILE" 'http://depositfiles.com') || return
+    DATA=$(curl -b "$COOKIEFILE" "$BASE_URL") || return
 
     local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_GO FORM_AGREE
-    FORM_HTML=$(grep_form_by_id "$DATA" 'upload_form')
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
-    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'MAX_FILE_SIZE')
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'UPLOAD_IDENTIFIER')
+    FORM_HTML=$(grep_form_by_id "$DATA" 'upload_form') || return
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
+    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
     FORM_GO=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'go')
     FORM_AGREE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'agree')
+
+    # File size limit check
+    local SZ=$(get_filesize "$FILE")
+    if [ "$SZ" -gt "$FORM_MAXFSIZE" ]; then
+        log_debug "file is bigger than $FORM_MAXFSIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
 
     DATA=$(curl_with_log -b "$COOKIEFILE" \
         -F "MAX_FILE_SIZE=$FORM_MAXFSIZE"    \
