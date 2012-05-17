@@ -23,11 +23,9 @@ MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-FREAKSHARE,,freakshare,,Include this additional host site
-HOTFILE,,hotfile,,Include this additional host site
-MEDIAFIRE,,mediafire,,Include this additional host site
-TURBOBIT,,turbobit,,Include this additional host site
-UPLOADEDTO,,uploadedto,,Include this additional host site"
+INCLUDE,,include:,LIST,Provide list of host site (space separated)
+COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5."
+
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 # Upload a file to mirrorcreator.com
@@ -43,7 +41,7 @@ mirrorcreator_upload() {
     local DESTFILE=$3
     local SZ=$(get_filesize "$FILE")
     local BASE_URL='http://www.mirrorcreator.com'
-    local PAGE FORM SITES_SEL SITES_ALL DATA
+    local PAGE FORM SITES_SEL SITES_ALL SITE DATA
 
     # File size limit check (warning message only)
     if [ "$SZ" -gt 419430400 ]; then
@@ -78,19 +76,39 @@ mirrorcreator_upload() {
         log_debug "Available sites:" $SITES_ALL
     fi
 
-    # Default hosting sites selection
-    SITES_SEL=$(echo "$FORM" | parse_all_attr 'checked=' 'value')
+    if [ -n "$COUNT" ]; then
+        if [[ $((COUNT)) -eq 0 ]]; then
+            log_error "Bad integer value for --count, set it to 3"
+            COUNT=3
+        fi
 
-    # Check command line additionnal hosters
-    [ -n "$HOTFILE" ]    && SITES_SEL="$SITES_SEL hotfile"
-    [ -n "$FREAKSHARE" ] && SITES_SEL="$SITES_SEL freakshare"
-    [ -n "$MEDIAFIRE" ]  && SITES_SEL="$SITES_SEL mediafire"
-    [ -n "$TURBOBIT" ]   && SITES_SEL="$SITES_SEL turbobit"
-    [ -n "$UPLOADEDTO" ] && SITES_SEL="$SITES_SEL uploadedto"
+        if [ "$COUNT" -gt 9 ]; then
+            log_error "Only a maximum of 9 mirrors are allowed"
+        fi
 
-    if [ -n "$SITES_SEL" ]; then
-        log_debug "Selected sites:" $SITES_SEL
+        for SITE in $SITES_ALL; do
+            (( COUNT-- > 0 )) || break
+            SITES_SEL="$SITES_SEL $SITE"
+        done
+    elif [ -n "$INCLUDE" ]; then
+        for SITE in $INCLUDE; do
+            if match "$SITE" "$SITES_ALL"; then
+                SITES_SEL="$SITES_SEL $SITE"
+            else
+                log_error "Host not supported: $SITE, ignoring"
+            fi
+        done
+    else
+        # Default hosting sites selection
+        SITES_SEL=$(echo "$FORM" | parse_all_attr 'checked=' 'value')
     fi
+
+    if [ -z "$SITES_SEL" ]; then
+        log_debug "Empty site selection. Nowhere to upload!"
+        return $ERR_FATAL
+    fi
+
+    log_debug "Selected sites:" $SITES_SEL
 
     # Do not seem needed..
     #PAGE=$(curl "$BASE_URL/fnvalidator.php?fn=${DESTFILE};&fid=upfile_123;")
