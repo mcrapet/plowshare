@@ -885,7 +885,7 @@ prompt_for_password() {
 # $2: Cookie filename (see create_tempfile() modules)
 # $3: Postdata string (ex: 'user=$USER&password=$PASSWORD')
 # $4: URL to post
-# $5: Additional curl arguments (optional)
+# $5, $6, ...: Additional curl arguments (optional)
 # stdout: html result (can be null string)
 # $? is zero on success
 post_login() {
@@ -893,7 +893,7 @@ post_login() {
     local COOKIE=$2
     local POSTDATA=$3
     local LOGINURL=$4
-    local CURL_ARGS=$5
+    shift 4
     local USER PASSWORD DATA RESULT
 
     if [ -z "$AUTH" ]; then
@@ -918,9 +918,7 @@ post_login() {
     log_notice "Starting login process: $USER/${PASSWORD//?/*}"
 
     DATA=$(eval echo "${POSTDATA//&/\\&}")
-
-    # Yes, no quote around $CURL_ARGS
-    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $CURL_ARGS "$LOGINURL") || return
+    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $@ "$LOGINURL") || return
 
     # "$RESULT" can be empty, this is not necessarily an error
     if [ ! -s "$COOKIE" ]; then
