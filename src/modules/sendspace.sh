@@ -71,27 +71,34 @@ sendspace_upload() {
 
     local FILE=$2
     local DESTFILE=$3
-    local SZ=$(get_filesize "$FILE")
     local DATA DL_LINK DEL_LINK
-
-    # File size limit check
-    if [ "$SZ" -gt 314572800 ]; then
-        log_debug "file is bigger than 300MB"
-        return $ERR_SIZE_LIMIT_EXCEEDED
-    fi
 
     DATA=$(curl 'http://www.sendspace.com') || return
 
     local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_DDIR FORM_JSEMA FORM_SIGN FORM_UFILES FORM_TERMS
     FORM_HTML=$(grep_form_by_order "$DATA" 3 | break_html_lines_alt)
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action)
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
+
+    # Note: depending servers: MAX_FILE_SIZE and UPLOAD_IDENTIFIER are not always present
     FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'MAX_FILE_SIZE')
+    test "$FORM_MAXFSIZE" || \
+        FORM_MAXFSIZE=$(echo "$FORM_URL" | parse . 'MAX_FILE_SIZE=\([[:digit:]]\+\)')
     FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'UPLOAD_IDENTIFIER')
+    test "$FORM_UID" || \
+        FORM_UID=$(echo "$FORM_URL" | parse . 'UPLOAD_IDENTIFIER=\([^&]\+\)')
+
     FORM_DDIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'DESTINATION_DIR')
     FORM_JSENA=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'js_enabled')
-    FORM_SIGN=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'signature')
+    FORM_SIGN=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature')
     FORM_UFILES=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'upload_files')
-    FORM_TERMS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'terms')
+    FORM_TERMS=$(echo "$FORM_HTML" | parse_form_input_by_name 'terms')
+
+    # File size limit check
+    local SZ=$(get_filesize "$FILE")
+    if [ "$SZ" -gt "$FORM_MAXFSIZE" ]; then
+        log_debug "file is bigger than $FORM_MAXFSIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
 
     DATA=$(curl_with_log \
         -F "MAX_FILE_SIZE=$FORM_MAXFSIZE" \
@@ -110,6 +117,11 @@ sendspace_upload() {
 
     if [ -z "$DATA" ]; then
         log_error "upload unsuccessful"
+        return $ERR_FATAL
+    fi
+
+    if match '403 Forbidden Request' "$DATA"; then
+        log_error "Remote error. Upload unsuccessful"
         return $ERR_FATAL
     fi
 
