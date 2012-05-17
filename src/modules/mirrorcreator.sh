@@ -25,8 +25,9 @@ AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 INCLUDE,,include:,LIST,Provide list of host site (space separated)
 COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5."
-
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
+
+MODULE_MIRRORCREATOR_LIST_OPTIONS=""
 
 # Upload a file to mirrorcreator.com
 # $1: cookie file (for account only)
@@ -79,7 +80,7 @@ mirrorcreator_upload() {
     if [ -n "$COUNT" ]; then
         if [[ $((COUNT)) -eq 0 ]]; then
             log_error "Bad integer value for --count, set it to 3"
-            COUNT=3
+            COUNT=5
         fi
 
         if [ "$COUNT" -gt 9 ]; then
@@ -139,4 +140,27 @@ mirrorcreator_upload() {
 
     echo "$PAGE" | parse_attr 'getElementById("link2")' 'href' || return
     return 0
+}
+
+# List links from a mirrorcreator link
+# $1: mirrorcreator link
+# $2: ignored here (recurse subfolders has no sense here)
+# stdout: list of links
+mirrorcreator_list() {
+    local URL=$1
+    local PAGE STATUS
+    local BASE_URL='http://www.mirrorcreator.com'
+
+    PAGE=$(curl -L "$URL") || return
+    STATUS=$(echo "$PAGE" | parse 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
+    PAGE=$(curl -L "$BASE_URL$STATUS") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_attr '\/redirect\/' href) || return
+
+    #  Print links (stdout)
+    while read REL_URL; do
+        test "$REL_URL" || continue
+        FILE_URL=$(curl "$BASE_URL$REL_URL" | parse_tag 'redirecturl' div)
+        echo "$FILE_URL"
+    done <<< "$LINKS"
 }
