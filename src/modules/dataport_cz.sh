@@ -31,6 +31,25 @@ MODULE_DATAPORT_CZ_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DATAPORT_CZ_DELETE_OPTIONS=""
 
+# Static function. Proceed with login (free or premium)
+dataport_cz_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+    local LOGIN_DATA LOGIN_RESULT
+
+    LOGIN_DATA='username=$USER&password=$PASSWORD&loginFormSubmit='
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/?do=loginForm-submit" '-L') || return
+
+    # <a href="/user/register">Registrace</a>&nbsp;
+    if match '/user/register' "$LOGIN_RESULT"; then
+        return $ERR_LOGIN_FAILED
+    fi
+
+    # If successful, cookie entry PHPSESSID is updated
+}
+
 # Output a dataport.cz file download URL
 # $1: cookie file (unused here)
 # $2: dataport.cz url
@@ -84,32 +103,25 @@ dataport_cz_download() {
 dataport_cz_upload() {
     eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://dataport.cz'
     local IURL PAGE FORM_ACTION FORM_SUBMIT DL_LINK DEL_LINK
 
     if test "$AUTH"; then
-        LOGIN_DATA='name=$USER&x=0&y=0&pass=$PASSWORD'
-        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "$BASE_URL/prihlas/" >/dev/null || return
-
-        PAGE=$(curl -b "$COOKIEFILE" --location "$BASE_URL") || return
-
-        if ! match "http://dataport.cz/odhlasit/" "$PAGE"; then
-            return $ERR_LOGIN_FAILED
-        fi
-    else
-        PAGE=$(curl -L -c "$COOKIEFILE" "$BASE_URL") || return
+        dataport_cz_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
+    PAGE=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$BASE_URL") || return
+
     IURL=$(echo "$PAGE" | parse_attr '<iframe' 'src') || return
-    PAGE=$(curl -L -b "$COOKIEFILE" "$IURL") || return
+    PAGE=$(curl -L -b "$COOKIE_FILE" "$IURL") || return
 
     FORM_ACTION=$(echo "$PAGE" | parse_form_action | replace '&amp;' '&') || return
     FORM_SUBMIT=$(echo "$PAGE" | parse_form_input_by_name 'uploadFormSubmit') || return
 
-    PAGE=$(curl_with_log -L -b "$COOKIEFILE" -e "$IURL" \
+    PAGE=$(curl_with_log -L -b "$COOKIE_FILE" -e "$IURL" \
         -F "file=@$FILE;filename=$DESTFILE" \
         -F "uploadFormSubmit=$FORM_SUBMIT" \
         -F "description=None" \
