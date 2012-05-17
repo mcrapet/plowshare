@@ -12,7 +12,7 @@ depositfiles | download | upload | delete | list |
 divshare     | download |        |        |      |
 dl_free_fr   | download | upload |        |      |
 euroshare_eu | download |        |        |      |
-extabit      | download |        |        |      |
+extabit      | download | upload |        |      |
 filebox      | download | upload |        |      |
 filepost     | download | upload |        | list |
 freakshare   | download | upload |        |      |
