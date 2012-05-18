@@ -104,7 +104,7 @@ elif [ "$1" = 'install' ]; then
             ;;
         # BSD, Busybox:
         # sed: illegal option -- -
-        # This is not GNU sed version 4.0 root
+        # This is not GNU sed version 4.0
         *)
             echo "Warning: sytem sed is not GNU sed"
             for SED_PRG in gsed gnu-sed; do
