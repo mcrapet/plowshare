@@ -465,24 +465,28 @@ match_json_true() {
 # - Location
 # - Content-Location
 # - Content-Type
-# Note: This is using parse_all, so result can be multiline
-#       (rare usage: curl -I -L ...).
+#
+# Notes:
+# - This is using parse_all, so result can be multiline
+#   (rare usage is: curl -I -L ...).
+# - Use [[:cntrl:]] intead of \r because Busybox sed
+#   (<1.18.4) does not support it.
 #
 # stdin: result of curl request (with -i/--include, -D/--dump-header
 #        or -I/--head flag)
 # stdout: result
 grep_http_header_location() {
-    parse_all '^[Ll]ocation:' 'n:[[:space:]]\+\(.*\)\r$'
+    parse_all '^[Ll]ocation:' 'n:[[:space:]]\+\(.*\)[[:cntrl:]]$'
 }
 grep_http_header_location_quiet() {
-    parse_all '^[Ll]ocation:' 'n:[[:space:]]\+\(.*\)\r$' 2>/dev/null
+    parse_all '^[Ll]ocation:' 'n:[[:space:]]\+\(.*\)[[:cntrl:]]$' 2>/dev/null
     return 0
 }
 grep_http_header_content_location() {
-    parse_all '^[Cc]ontent-[Ll]ocation:' 'n:[[:space:]]\+\(.*\)\r$'
+    parse_all '^[Cc]ontent-[Ll]ocation:' 'n:[[:space:]]\+\(.*\)[[:cntrl:]]$'
 }
 grep_http_header_content_type() {
-    parse_all '^[Cc]ontent-[Tt]ype:' 'e:[[:space:]]\+\(.*\)\r$'
+    parse_all '^[Cc]ontent-[Tt]ype:' 'e:[[:space:]]\+\(.*\)[[:cntrl:]]$'
 }
 
 # Grep "Content-Disposition" HTTP header
