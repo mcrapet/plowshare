@@ -21,56 +21,64 @@
 MODULE_BAYFILES_REGEXP_URL="https\?://\(www\.\)\?bayfiles\.com/"
 
 MODULE_BAYFILES_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_BAYFILES_DOWNLOAD_RESUME=yes
 MODULE_BAYFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BAYFILES_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_BAYFILES_DELETE_OPTIONS=""
 
-# Static function. Proceed with login (free-user or premium)
-# i didn't test with a premium account but it should work (same API)
+# Static function. Proceed with login (free or premium)
+# Uses official API: http://bayfiles.com/api
 bayfiles_login() {
-    local AUTH_FREE=$1
-    local APIURL=$2
-
-    local SESSION LOGIN_JSON_DATA
+    local AUTH=$1
+    local API_URL=$2
+    local LOGIN_JSON_DATA SESSID ERR
 
     # Must be tested with premium account
-    IFS=":" read USER PASSWORD <<< "$AUTH_FREE"
+    IFS=":" read USER PASSWORD <<< "$AUTH"
     if [ -z "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
-    LOGIN_JSON_DATA=$(curl "${APIURL}/account/login/${USER}/${PASSWORD}") || return
-    SESSION=$(echo "$LOGIN_JSON_DATA" | parse 'session' 'session":"\([^"]*\)') || return $ERR_LOGIN_FAILED
 
-    echo "$SESSION"
+    LOGIN_JSON_DATA=$(curl "${API_URL}/account/login/${USER}/${PASSWORD}") || return
+
+    # {"error":"","session":"947qfkvd0eqvohb1sif3hcl0d2"}]
+    SESSID=$(echo "$LOGIN_JSON_DATA" | parse_json_quiet 'session')
+    if [ -z "$SESSID" ]; then
+        ERR=$(echo "$LOGIN_JSON_DATA" | parse_json 'error')
+        log_debug "Remote error: $ERR"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    log_debug "sessid: $SESSID"
+    echo "$SESSID"
     return 0
 }
 
 # Output a bayiles file download URL
-# $1: cookie file (unused here)
+# $1: cookie file (for account only)
 # $2: bayfiles url
 # stdout: real file download link
 # Same for free-user and anonymous user, not tested with premium
 bayfiles_download() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_DOWNLOAD_OPTIONS" "$@")"
 
+    local COOKIE_FILE=$1
     local URL=$2
-    local APIURL='http://api.bayfiles.com/v1'
+    local API_URL='http://api.bayfiles.com/v1'
     local AJAX_URL='http://bayfiles.com/ajax_download'
     local PAGE FILE_URL FILENAME
 
-    # Try to login (if $AUTH_FREE not null)
-    if test -n "$AUTH_FREE"; then
-        bayfiles_login "$AUTH_FREE" "$APIURL" >/dev/null || return
+    if [ -n "$AUTH" ]; then
+        SESSION=$(bayfiles_login "$AUTH" "$API_URL") || return
+        PAGE=$(curl -c "$COOKIE_FILE" -b "SESSID=$SESSION" "$URL") || return
+    else
+        PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
     fi
-
-    # No way to download a file with the api
-    PAGE=$(curl "$URL") || return
 
     if match 'The link is incorrect' "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -78,42 +86,41 @@ bayfiles_download() {
 
     test "$CHECK_LINK" && return 0
 
-    # Now there are two cases, with small files, nothing changed and with
-    # big ones, now there is a countdown timer and we have to wait 5min
-    # between downloads
-    if match 'Premium Download' "$PAGE"; then
+    # <h3 class="comparison">What are the benefits for <strong>premium</strong> members?</h3>
+    if match 'comparison\|benefits' "$PAGE"; then
         # Big files case
+        local VFID DELAY TOKEN JSON_COUNT DATA_DL
 
-        local VFID DELAY TOKEN
-        local JSON_COUNT DATA_DL
-
-        # it's always print 5 min, don't need to match time
+        # Upgrade to premium or wait 5 minutes.
         if match 'Upgrade to premium or wait' "$PAGE"; then
-            echo $((5*60))
+            DELAY=$(echo "$PAGE" | parse 'premium or wait' \
+                'wait[[:space:]]\([[:digit:]]\+\)[[:space:]]*minute')
+            echo $((DELAY * 60))
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
-        VFID=$(echo "$PAGE" | parse "var vfid = " "= \([[:digit:]]\+\);") || return
+        VFID=$(echo "$PAGE" | parse 'var vfid = ' '= \([[:digit:]]\+\);') || return
 
         # If no delay were found, we try without
-        DELAY=$(echo "$PAGE" | parse_quiet "var delay = " "= \([[:digit:]]\+\);")
+        DELAY=$(echo "$PAGE" | parse_quiet 'var delay = ' '= \([[:digit:]]\+\);')
 
-        JSON_COUNT=$(curl -G --data "action=startTimer&vfid=$VFID" \
-            $AJAX_URL) || return
+        JSON_COUNT=$(curl --get -b "$COOKIE_FILE" \
+            --data "action=startTimer&vfid=$VFID" \
+            "$AJAX_URL") || return
 
         TOKEN=$(echo "$JSON_COUNT" | parse_json token) || return
 
-        wait $((DELAY)) "seconds" || return
+        wait $((DELAY)) || return
 
-        DATA_DL=$(curl --data "action=getLink&vfid=$VFID&token=$TOKEN" \
-            $AJAX_URL) || return
+        DATA_DL=$(curl -b "$COOKIE_FILE" \
+            --data "action=getLink&vfid=$VFID&token=$TOKEN" \
+            "$AJAX_URL") || return
 
-        FILE_URL=$(echo "$DATA_DL" |\
+        FILE_URL=$(echo "$DATA_DL" | \
             parse 'onclick' "\(http[^']*\)") || return
-    else
-        # Small files case, no countdown timer, no 5 min to wait between downloads
-        # Maybe that this case work with a premium account
 
+    # Premium account
+    else
         FILE_URL=$(echo "$PAGE" | parse_attr 'class="highlighted-btn' 'href') || return
     fi
 
@@ -124,44 +131,40 @@ bayfiles_download() {
     echo "$FILENAME"
 }
 
-# Upload a file to bayfiles
-# $1: cookie file
+# Upload a file to bayfiles.com
+# $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download link + delete link + admin link
 bayfiles_upload() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_UPLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
-    local APIURL='http://api.bayfiles.com/v1'
+    local API_URL='http://api.bayfiles.com/v1'
+    local SESSION_GET JSON UPLOAD_URL FILE_URL DELETE_URL ADMIN_URL
 
-    local SESSION_GET UPLOAD_JSON_DATA UPLOAD_URL UPLOADED_FILE_JSON_DATA URL DELETE_URL ADMIN_URL
-
-    # need a session argument at the end to get a link to upload into
-    # the $AUTH_FREE account or nothing for anonymous users
-    if test -n "$AUTH_FREE"; then
-        SESSION_GET="?session="$(bayfiles_login "$AUTH_FREE" "$APIURL") || return
+    # Account users (free or premium) have a session id
+    if [ -n "$AUTH" ]; then
+        SESSION_GET='?session='$(bayfiles_login "$AUTH" "$API_URL") || return
     else
-        SESSION_GET=""
+        SESSION_GET=''
     fi
 
-    UPLOAD_JSON_DATA=$(curl -b "$COOKIEFILE" "${APIURL}/file/uploadUrl${SESSION_GET}") || return
+    JSON=$(curl "${API_URL}/file/uploadUrl${SESSION_GET}") || return
 
-    UPLOAD_URL=$(echo "$UPLOAD_JSON_DATA" | parse_json 'uploadUrl') || return
+    # {"error":"","uploadUrl":"http ..","progressUrl":"http .."}
+    UPLOAD_URL=$(echo "$JSON" | parse_json 'uploadUrl') || return
 
-    UPLOADED_FILE_JSON_DATA=$(curl_with_log -b "$COOKIEFILE"\
-        -F "file=@$FILE;filename=$DESTFILE" "$UPLOAD_URL") || return
+    JSON=$(curl_with_log -F "file=@$FILE;filename=$DESTFILE" \
+        "$UPLOAD_URL") || return
 
-    URL=$(echo "$UPLOADED_FILE_JSON_DATA" | \
-        parse_json 'downloadUrl') || return
-    DELETE_URL=$(echo "$UPLOADED_FILE_JSON_DATA" | \
-        parse_json 'deleteUrl') || return
-    ADMIN_URL=$(echo "$UPLOADED_FILE_JSON_DATA" | \
-        parse_json 'linksUrl') || return
+    # {"error":"","fileId":"abK1","size":"123456","sha1":"6f ..", ..}
+    FILE_URL=$(echo "$JSON" | parse_json 'downloadUrl') || return
+    DELETE_URL=$(echo "$JSON" | parse_json 'deleteUrl') || return
+    ADMIN_URL=$(echo "$JSON" | parse_json 'linksUrl') || return
 
-    echo "$URL"
+    echo "$FILE_URL"
     echo "$DELETE_URL"
     echo "$ADMIN_URL"
 }
