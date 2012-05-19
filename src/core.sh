@@ -469,8 +469,8 @@ match_json_true() {
 # Notes:
 # - This is using parse_all, so result can be multiline
 #   (rare usage is: curl -I -L ...).
-# - Use [[:cntrl:]] intead of \r because Busybox sed
-#   (<1.18.4) does not support it.
+# - Use [:cntrl:] intead of \r because Busybox sed <1.19
+#   does not support it.
 #
 # stdin: result of curl request (with -i/--include, -D/--dump-header
 #        or -I/--head flag)
@@ -494,7 +494,7 @@ grep_http_header_content_type() {
 # stdin: HTTP response headers (see below)
 # stdout: attachement filename
 grep_http_header_content_disposition() {
-    parse_all '^[Cc]ontent-[Dd]isposition:' "filename=[\"']\?\([^\"'>\r]*\)"
+    parse_all '^[Cc]ontent-[Dd]isposition:' "filename=[\"']\?\([^\"'[:cntrl:]]*\)"
 }
 
 # Extract a specific form from a HTML content.
