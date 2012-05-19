@@ -81,7 +81,8 @@ extabit_download() {
                 FILE_URL=$(echo "$PAGE" | parse_attr 'download-file-btn' href) || return
                 FILE_NAME=$(echo "$PAGE" | parse_attr 'div title' title)
             else
-                log_debug "filename can be screwed"
+                FILE_NAME=$(curl -I "$FILE_URL" | \
+                    grep_http_header_content_disposition) || return
             fi
 
             echo "$FILE_URL"
