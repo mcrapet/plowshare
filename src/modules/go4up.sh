@@ -23,6 +23,8 @@ MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 MODULE_GO4UP_UPLOAD_OPTIONS=""
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_GO4UP_LIST_OPTIONS=""
+
 # Upload a file to go4up.com
 # $1: cookie file (for account only)
 # $2: input file (with full path)
@@ -93,4 +95,31 @@ go4up_upload() {
         "$BASE_URL$UPLOAD_URL1") || return
 
     echo "$PAGE" | parse_attr '\/dl\/' href || return
+}
+
+# List links from a go4up link
+# $1: go4up link
+# $2: recurse subfolders (ignored here)
+# stdout: list of links
+go4up_list() {
+    local URL=$1
+    local PAGE LINKS SITE_URL
+
+    test "$2" && log_debug "recursive flag specified but has no sense here, ignore it"
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_tag_quiet 'class="dl"' a) || return
+    if [ -z "$LINKS" ]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    #  Print links (stdout)
+    while read SITE_URL; do
+        test "$SITE_URL" || continue
+
+        # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
+        PAGE=$(curl "$SITE_URL") || return
+        echo "$PAGE" | parse 'http-equiv' 'url=\([^">]\+\)'
+    done <<< "$LINKS"
 }
