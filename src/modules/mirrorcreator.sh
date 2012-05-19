@@ -144,18 +144,23 @@ mirrorcreator_upload() {
 
 # List links from a mirrorcreator link
 # $1: mirrorcreator link
-# $2: ignored here (recurse subfolders has no sense here)
+# $2: recurse subfolders (ignored here)
 # stdout: list of links
 mirrorcreator_list() {
     local URL=$1
     local PAGE STATUS
     local BASE_URL='http://www.mirrorcreator.com'
 
+    test "$2" && log_debug "recursive flag specified but has no sense here, ignore it"
+
     PAGE=$(curl -L "$URL") || return
     STATUS=$(echo "$PAGE" | parse 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
     PAGE=$(curl -L "$BASE_URL$STATUS") || return
 
-    LINKS=$(echo "$PAGE" | parse_all_attr '\/redirect\/' href) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '\/redirect\/' href) || return
+    if [ -z "$LINKS" ]; then
+        return $ERR_LINK_DEAD
+    fi
 
     #  Print links (stdout)
     while read REL_URL; do
