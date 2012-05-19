@@ -361,10 +361,12 @@ parse_last() {
 #
 # $1: regexp to filter (take lines matching $1 pattern)
 # $2: regexp to match (on the lines after filter)
+# $3: how many line to skip (default is 1). <=0 will behave like parse_all().
 # stdin: text data
 # stdout: result
 parse_line_after_all() {
-    local STRING REGEXP
+    local STRING REGEXP SKIP
+    local N=${3:-1}
 
     if [ '^' = "${2:0:1}" ]; then
         if [ '$' = "${2:(-1):1}" ]; then
@@ -378,9 +380,17 @@ parse_line_after_all() {
             REGEXP="^.*$2.*$"
     fi
 
-    STRING=$(sed -n "/$1/{n;s/$REGEXP/\1/p}")
+    if [ "$((N))" -gt 0 ]; then
+        [ $N -gt 10 ] && \
+            log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
+        while (( N-- )); do
+            SKIP="${SKIP}n;"
+        done
+    fi
+
+    STRING=$(sed -n "/$1/{${SKIP}s/$REGEXP/\1/p}")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/{n;s/$REGEXP/}\""
+        log_error "$FUNCNAME failed (sed): \"/$1/{${SKIP}s/$REGEXP/}\""
         log_notice_stack
         return $ERR_FATAL
     fi
