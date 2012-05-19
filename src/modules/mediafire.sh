@@ -31,6 +31,21 @@ MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
 
+# Static function
+get_ofuscated_link() {
+    local VAR=$1
+    local I N C R
+
+    I=0
+    N=${#VAR}
+    while (( I < N )); do
+        C=$((16#${VAR:$I:2} + 0x18))
+        R="$R"$(printf \\$(($C/64*100+$C%64/8*10+$C%8)))
+        (( I += 2 ))
+    done
+    echo "$R"
+}
+
 # Output a mediafire file download URL
 # $1: cookie file
 # $2: mediafire.com url
@@ -40,7 +55,7 @@ mediafire_download() {
 
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace '/download.php?' '?')
-    local LOCATION PAGE FILE_URL FILENAME JSON
+    local LOCATION PAGE FILE_URL FILENAME JSON JS_VAR
 
     LOCATION=$(curl --head "$URL" | grep_http_header_location_quiet) || return
 
@@ -103,13 +118,13 @@ mediafire_download() {
         fi
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse 'dlget' 'url:"\([^"]*\)') || return
+    # Method 1 (decode bytecode)
+    JS_VAR=$(echo "$PAGE" |  parse_line_after 'function[[:space:]]*_' '"\([^"]\+\)";') || return
+    FILE_URL=$(get_ofuscated_link "$JS_VAR" | parse_attr href) || return
 
-    # Cookie file is mandatory
-    JSON=$(curl -b "$COOKIEFILE" \
-        "$(basename_url "$URL")$FILE_URL") || return
+    # Method 2 (directly take plain text link)
+    #FILE_URL=$(echo "$PAGE" |  parse_line_after 'function[[:space:]]*_' '"\([^"]\+\)";' 2) || return
 
-    FILE_URL=$(echo "$JSON" | parse_json dllink) || return
     FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 
     echo "$FILE_URL"
