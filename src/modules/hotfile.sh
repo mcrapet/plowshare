@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_HOTFILE_REGEXP_URL="http://\(www\.\)\?hotfile\.com/"
+MODULE_HOTFILE_REGEXP_URL="https\?://\(www\.\)\?hotfile\.com/"
 
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
 AUTH,a:,auth:,USER:PASSWORD,Premium account"
