@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # uploading.com module
-# Copyright (c) 2010-2011 Plowshare team
+# Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -34,68 +34,49 @@ uploading_download() {
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://uploading.com'
-    local DATA ERR1 ERR2 WAIT FILENAME FILE_URL
+    local PAGE WAIT CODE PASS JSON FILENAME FILE_URL
 
     # Force language to English
-    DATA=$(curl -c "$COOKIEFILE" -b "lang=1" "$URL") || return
+    PAGE=$(curl -c "$COOKIEFILE" -b "lang=1" "$URL") || return
 
-    if match "requested file is not found" "$DATA"; then
+    # <h2>OOPS! Looks like file not found.</h2>
+    if match 'file not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
 
-    ERR1="Your IP address.*file"
-    ERR2="Sorry, you have reached your daily download limit."
-    if match "$ERR1\|$ERR2" "$DATA"; then
+    # <h2>Maximum File Size Limit</h2>
+    if matchi 'File Size Limit' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
+
+    # <h2>Parallel Download</h2>
+    elif match '[Yy]our IP address is currently' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # <h2>Daily Download Limit</h2>
+    elif matchi 'daily download limit' "$PAGE"; then
         echo 600
         return $ERR_LINK_TEMP_UNAVAILABLE
-
-    elif match '<h2.*Download Limit.*</h2>' "$DATA"; then
-        log_debug "Server asked to wait"
-        WAIT=$(echo "$DATA" | parse 'download only one' 'one file per \([[:digit:]]\+\) minute')
-        test -n "$WAIT" && echo $((WAIT*60))
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match '<h2>File is still uploading</h2>' "$DATA"; then
-        log_debug "file is still uploading"
-        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    local FORM_HTML FORM_URL FORM_FID FORM_CODE
-    FORM_HTML=$(grep_form_by_id "$DATA" 'downloadform')
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_FID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'file_id')
-    FORM_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'code')
+    CODE=$(echo "$PAGE" | parse 'code:' ":[[:space:]]*[\"']\([^'\"]*\)") || return
+    PASS=false
 
-    DATA=$(curl -b "$COOKIEFILE" -b "lang=1" --data \
-        "action=second_page&file_id=${FORM_FID}&code=$FORM_CODE" "$FORM_URL") || return
+    # Get wait time
+    WAIT=$(echo "$PAGE" | parse 'start_timer([[:digit:]]' \
+        'start_timer(\([[:digit:]]\+\)') || return
+    wait $WAIT || return
 
-    WAIT=$(echo "$DATA" | parse_quiet 'start_timer([[:digit:]]\+)' \
-        'start_timer(\([[:digit:]]\+\))')
-    test -z "$WAIT" && WAIT=$(echo "$DATA" | parse 'var[[:space:]]*timer_count' \
-        'timer_count[[:space:]]*=[[:space:]]*\([[:digit:]]\+\);')
-
-    if test -z "$WAIT"; then
-        log_error "Cannot get wait time"
-        return $ERR_FATAL
-    fi
-
-    FILENAME=$(echo "$DATA" | parse_quiet '<title>' \
+    FILENAME=$(echo "$PAGE" | parse_quiet '<title>' \
         '<title>Download \(.*\) for free on uploading.com<\/title>')
 
-    # Second attempt (note: filename might be truncated in the page)
-    test -z "$FILENAME" &&
-        FILENAME=$(echo "$DATA" | grep 'File size'  | strip | parse . '^\([^ 	]*\)')
-
-    wait $WAIT seconds || return
-
-    DATA=$(curl -b "$COOKIEFILE" --data \
-        "action=get_link&file_id=${FORM_FID}&code=${FORM_CODE}&pass=" \
+    JSON=$(curl -b "$COOKIEFILE" -d 'action=get_link' \
+        -d "code=$CODE" -d "pass=$PASS" \
         "$BASE_URL/files/get/?ajax") || return
 
-    # Example of answer:
-    # { "id": "1268521606000", "js": { "answer": { "link": "http:\/\/up3.uploading.com\/get_file\/%3D%3DwARfyFZ3fKB8rJ ... " } }, "text": "" }
-    FILE_URL=$(echo "$DATA" | parse '"answer":' '"link":[[:space:]]*"\([^"]*\)"') || return
+    # {"answer":{"link":"http:\/\/fs53.uploading.com\/get_file\/... "}}
+    FILE_URL=$(echo "$JSON" | parse_json link) || return
 
     echo "$FILE_URL"
     echo "$FILENAME"
