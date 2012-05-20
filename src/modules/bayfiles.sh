@@ -71,11 +71,12 @@ bayfiles_download() {
     local URL=$2
     local API_URL='http://api.bayfiles.com/v1'
     local AJAX_URL='http://bayfiles.com/ajax_download'
-    local PAGE FILE_URL FILENAME
+    local PAGE FILE_URL FILENAME SESSION OPT_SESSION
 
     if [ -n "$AUTH" ]; then
         SESSION=$(bayfiles_login "$AUTH" "$API_URL") || return
-        PAGE=$(curl -c "$COOKIE_FILE" -b "SESSID=$SESSION" "$URL") || return
+        OPT_SESSION="-b SESSID=$SESSION"
+        PAGE=$(curl -c "$COOKIE_FILE" $OPT_SESSION "$URL") || return
     else
         PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
     fi
@@ -113,6 +114,7 @@ bayfiles_download() {
         wait $((DELAY)) || return
 
         DATA_DL=$(curl -b "$COOKIE_FILE" \
+            $OPT_SESSION \
             --data "action=getLink&vfid=$VFID&token=$TOKEN" \
             "$AJAX_URL") || return
 
