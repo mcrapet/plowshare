@@ -176,11 +176,12 @@ netload_in_download() {
     FILENAME=$(echo "$WAIT_HTML2" | \
         parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
 
-    # if filename is truncated, take the one from url
+    # If filename is truncated, take the one from url
     if [ "${#FILENAME}" -ge 57 -a '..' = "${FILENAME:(-2):2}" ]; then
         if match '\.htm$' "$URL"; then
             local FILENAME2=$(basename_file "$URL")
-            match '^datei' "$FILENAME2" || FILENAME="${FILENAME2%.*}"
+            match '^datei' "$FILENAME2" || \
+                FILENAME=$(echo "${FILENAME2%.*}" | uri_decode)
         fi
     fi
 
