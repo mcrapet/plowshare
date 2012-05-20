@@ -184,6 +184,12 @@ extabit_upload() {
 
     local FORM_HTML FORM_ACTION FORM_MAXFSIZE
     FORM_HTML=$(grep_form_by_id "$PAGE" 'upload_files_form') || return
+
+    # onclick="alert('Sorry, temporary disabled');
+    if match 'temporary disabled' "$FORM_HTML"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
 

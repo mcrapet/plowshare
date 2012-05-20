@@ -334,6 +334,8 @@ for FILE in "$@"; do
         fi
     elif [ $URETVAL -eq $ERR_LINK_NEED_PERMISSIONS ]; then
         log_error "Anonymous users cannot upload files"
+    elif [ $URETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+        log_error "Upload feature seems disabled from upstream now"
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
     elif [ $URETVAL -eq $ERR_SIZE_LIMIT_EXCEEDED ]; then
