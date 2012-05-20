@@ -4,7 +4,7 @@
 2shared      | download | upload | delete |      |
 4shared      | download | upload |        | list |
 badongo      | download |        |        |      |
-bitshare     | download |        |        |      |
+bitshare     | download | upload |        |      |
 bayfiles     | download | upload | delete |      |
 data_hu      | download |        |        |      |
 dataport_cz  | download | upload | delete |      |
