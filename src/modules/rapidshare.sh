@@ -147,12 +147,12 @@ rapidshare_upload() {
 
     local FILE=$2
     local DESTFILE=$3
-    local USER PASSWORD SERVER_NUM UPLOAD_URL INFO ERROR
+    local SERVER_NUM UPLOAD_URL INFO ERROR
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
-    USER="${AUTH%%:*}"
-    PASSWORD="${AUTH#*:}"
+    local USER=${AUTH%%:*}
+    local PASSWORD=${AUTH#*:}
     if [ "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
@@ -190,9 +190,8 @@ rapidshare_delete() {
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
-    local USER="${AUTH%%:*}"
-    local PASSWORD="${AUTH#*:}"
-
+    local USER=${AUTH%%:*}
+    local PASSWORD=${AUTH#*:}
     if [ "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi

@@ -51,8 +51,8 @@ hotfile_download() {
     # Try to get the download link using premium credentials (if $AUTH not null)
     # Some code duplicated from core.sh, post_login().
     if [ -n "$AUTH" ]; then
-        local USER="${AUTH%%:*}"
-        local PASSWORD="${AUTH#*:}"
+        local USER=${AUTH%%:*}
+        local PASSWORD=${AUTH#*:}
 
         if [ "$AUTH" = "$PASSWORD" ]; then
             PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
@@ -172,9 +172,8 @@ hotfile_upload() {
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
-    local USER="${AUTH%%:*}"
-    local PASSWORD="${AUTH#*:}"
-
+    local USER=${AUTH%%:*}
+    local PASSWORD=${AUTH#*:}
     if [ "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
