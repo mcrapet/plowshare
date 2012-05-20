@@ -42,7 +42,7 @@ depositfiles_login() {
 
     LOGIN_DATA='go=1&login=$USER&password=$PASSWORD'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/login.php" '-b lang_current=en') || return
+        "$BASE_URL/login.php" -b 'lang_current=en') || return
 
     if match 'recaptcha' "$LOGIN_RESULT"; then
         log_debug "recaptcha solving required for login"
@@ -52,12 +52,10 @@ depositfiles_login() {
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-        local USER="${AUTH%%:*}"
-        local PASSWORD="${AUTH#*:}"
-
-        LOGIN_RESULT=$(curl -c "$COOKIE_FILE" -b 'lang_current=en' --data \
-            "go=1&login=$USER&password=$PASSWORD&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-            "$BASE_URL/login.php") || return
+        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "$BASE_URL/login.php" -b 'lang_current=en' \
+            -d "recaptcha_challenge_field=$CHALLENGE" \
+            -d "recaptcha_response_field=$WORD") || return
 
         # <div class="error_message">Security code not valid.</div>
         if match 'code not valid' "$LOGIN_RESULT"; then
