@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "May 20, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "May 21, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -34,7 +34,7 @@ plowup \- Command-line uploader for file-sharing websites
 .SH DESCRIPTION
 .B plowup
 is a set of bash scripts designed for automatic uploads on file-sharing website.
-It acts like a web browser, retreiving pages and filling html forms (including captchas).
+It acts like a web browser, retrieving pages and filling html forms (including captchas).
 
 Currently supported hosting sites list is available in README file.
 
@@ -142,7 +142,10 @@ Do not use local or global config file (plowshare.conf).
 .SS Generic program information
 .TP
 .B -h, --help
-Display this help and exit.
+Display main help and exit.
+.TP
+.B -H, --longhelp
+Display complete help (with module options) and exit.
 .TP
 .B "   " --version
 Output version information and exit.
@@ -173,7 +176,7 @@ Set file description.
 <To> field for notification email.
 .P
 All switches are not implemented nor required for all modules.
-See help message for detailed modules option list.
+See long help message for detailed modules option list.
 
 .\" ****************************************************************************
 .\" * Examples                                                                 *
@@ -200,10 +203,10 @@ URL fetching is rarely implemented by modules.
 
 .nf
 # Feature dedicated to premium members
-$ plowup \-a myuser:mypassword <modulename> http://www.somewherefarbeyond.com/somefile
+$ plowup \-a myuser:mypassword oron http://www.somewherefarbeyond.com/somefile
 .sp 1
 # Change destination filename
-$ plowup \-a myuser:mypassword <modulename> http://www.somewherefarbeyond.com/somefile:anothername
+$ plowup \-a myuser:mypassword oron http://www.somewherefarbeyond.com/somefile:anothername
 .fi
 
 .\" ****************************************************************************

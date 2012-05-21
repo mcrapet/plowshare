@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "May 9, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "May 21, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -34,7 +34,7 @@ plowdown \- Command-line downloader for file-sharing websites
 .SH DESCRIPTION
 .B plowdown
 is a set of bash scripts designed for automatic downloads on file-sharing website.
-It acts like a web browser, retreiving pages and filling html forms (including captchas).
+It acts like a web browser, retrieving pages and filling html forms (including captchas).
 
 Currently supported hosting sites list is available in README file.
 
@@ -117,7 +117,7 @@ Force specific captcha solving method. Available values:
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website (Antigate or CaptchaTrader account required).
+\fBonline\fR : use captcha solving website (Antigate, CaptchaTrader or DeathByCaptcha account required).
 .RE
 .RS
 \fBprompt\fR : display image and prompt for manual entering.
@@ -193,7 +193,10 @@ If this option is used several times, the last one will be used.
 .SS Generic program information
 .TP
 .B -h, --help
-Display this help and exit.
+Display main help and exit.
+.TP
+.B -H, --longhelp
+Display complete help (with module options) and exit.
 .TP
 .B "   " --version
 Output version information and exit.
@@ -215,7 +218,7 @@ Use free account.
 Used for password-protected files.
 .P
 All switches are not implemented nor required for all modules.
-See help message for detailed modules option list.
+See long help message for detailed modules option list.
 
 .\" ****************************************************************************
 .\" * Notes                                                                    *

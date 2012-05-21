@@ -24,6 +24,7 @@
 VERSION="GIT-snapshot"
 OPTIONS="
 HELP,h,help,,Show help info
+HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowdown version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
@@ -114,7 +115,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS" '  '
-    print_module_options "$MODULES" 'DOWNLOAD'
+    test "$1" && print_module_options "$MODULES" 'DOWNLOAD'
 }
 
 # Mark status of link (inside file or to stdout). See --mark-downloaded switch.
@@ -615,6 +616,7 @@ else
     VERBOSE=2
 fi
 
+test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -lt 1 && { usage; exit $ERR_FATAL; }
@@ -723,7 +725,7 @@ for ITEM in "$@"; do
             DRETVAL=0
             download "$MODULE" "$URL" "$TYPE" "$MARK_DOWN" "$TEMP_DIR" \
                 "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES"   \
-                "$NOEXTRAWAIT" "${UNUSED_OPTIONS[@]}"  || DRETVAL=$?
+                "$NOEXTRAWAIT" "${UNUSED_OPTIONS[@]}" || DRETVAL=$?
             RETVALS=(${RETVALS[@]} $DRETVAL)
         fi
     done
