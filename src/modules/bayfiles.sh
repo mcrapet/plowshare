@@ -59,11 +59,10 @@ bayfiles_login() {
     return 0
 }
 
-# Output a bayiles file download URL
+# Output a bayfiles.com file download URL
 # $1: cookie file (for account only)
 # $2: bayfiles url
 # stdout: real file download link
-# Same for free-user and anonymous user, not tested with premium
 bayfiles_download() {
     eval "$(process_options bayfiles "$MODULE_BAYFILES_DOWNLOAD_OPTIONS" "$@")"
 
