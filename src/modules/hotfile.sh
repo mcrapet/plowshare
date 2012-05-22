@@ -177,6 +177,7 @@ hotfile_upload() {
     if [ "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
+    PASSWORD=$(md5 "$PASSWORD") || return
 
     # Answer: one server per line
     SERVER=$(curl 'http://api.hotfile.com/?action=getuploadserver&count=1') || return
@@ -186,7 +187,7 @@ hotfile_upload() {
 
     UPID=$(curl --get -d 'action=start' -d "size=$FILE_SIZE" \
         "$URL") || return
-    log_error "upload id: $UPID"
+    log_debug "upload id: $UPID"
 
     DATA=$(curl -F 'action=upload' \
         -F "id=$UPID" \
@@ -199,7 +200,7 @@ hotfile_upload() {
             -F "id=$UPID" \
             -F "name=$DESTFILE" \
             -F "username=$USER" \
-            -F "password=$PASSWORD" \
+            -F "passwordmd5=$PASSWORD" \
             "$URL") || return
 
         if match_remote_url "$DATA"; then

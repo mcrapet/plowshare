@@ -187,18 +187,7 @@ bitshare_upload() {
             local USER=${AUTH_FREE%%:*}
             local PASSWORD=${AUTH_FREE#*:}
 
-            if check_exec md5sum; then
-                # GNU/Linux uses md5sum
-                PASSWORD_HASH=$(echo -n "$PASSWORD" | md5sum)
-                PASSWORD_HASH=${PASSWORD_HASH%% *}
-            elif check_exec md5; then
-                # BSD uses md5
-                PASSWORD_HASH=$(md5 -qs "$PASSWORD")
-            else
-                log_error "cannot find md5 calculator"
-                return $ERR_SYSTEM
-            fi
-
+            PASSWORD_HASH=$(md5 "$PASSWORD") || return
             RESPONSE=$(curl --form-string "user=$USER" \
                 --form-string "password=$PASSWORD_HASH" \
                 'http://bitshare.com/api/openapi/login.php') || return

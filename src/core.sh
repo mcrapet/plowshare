@@ -1663,6 +1663,26 @@ random() {
     echo ${RESULT:0:$LEN}
 }
 
+# Calculate MD5 hash (128-bit) of a string.
+# See RFC1321.
+#
+# $1: input string
+# stdout: message-digest fingerprint (32-digit hexadecimal number)
+# $? zero for success or $ERR_SYSTEM
+md5() {
+    # GNU coreutils
+    if check_exec md5sum; then
+        echo -n "$1" | $(type -P md5sum) -b 2>/dev/null | cut -d' ' -f1
+    # BSD
+    elif check_exec md5; then
+        $(type -P md5) -qs "$1"
+    # FIXME: use javascript if requested
+    else
+        log_error "$FUNCNAME: cannot find md5 calculator"
+        return $ERR_SYSTEM
+    fi
+}
+
 ## ----------------------------------------------------------------------------
 
 ##
