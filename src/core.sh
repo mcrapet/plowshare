@@ -786,14 +786,14 @@ basename_file() {
 # stdout: data (converted)
 html_to_utf8() {
     if check_exec 'recode'; then
-        log_report "html_to_utf8: use recode"
+        log_report "$FUNCNAME: use recode"
         recode html..utf8
     elif check_exec 'perl'; then
-        log_report "html_to_utf8: use perl"
+        log_report "$FUNCNAME: use perl"
         $(type -P perl) -n -mHTML::Entities \
             -e 'BEGIN { eval { binmode(STDOUT,q[:utf8]); }; } \
                 print HTML::Entities::decode_entities($_);' 2>/dev/null || { \
-            log_debug "html_to_utf8: perl failed, ignoring (HTML::Entities missing?)";
+            log_debug "$FUNCNAME failed (perl): HTML::Entities missing ?";
             cat;
         }
     else
