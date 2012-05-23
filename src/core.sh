@@ -167,7 +167,7 @@ curl() {
         if INDEX=$(index_in_array OPTIONS[@] '-o' '--output'); then
             F=${OPTIONS[$INDEX]}
             # Test to reject "-o /dev/null" and final plowdown call
-            if [ -f "$F" -a ! -s "$F" ]; then
+            if [ -f "$F" ] && ! find_in_array OPTIONS[@] '--globoff'; then
                 log_debug "deleting temporary output file: $F"
                 rm -f "$F"
             fi
