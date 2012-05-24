@@ -34,7 +34,7 @@ uptobox_download() {
     local URL=$2
     local PAGE WAIT_TIME CAPTCHA CODE DIGIT XCOORD FILE_URL
 
-    PAGE=$(curl -b "lang=english" "$URL") || return
+    PAGE=$(curl -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
     if match 'File Not Found' "$PAGE"; then
@@ -44,12 +44,12 @@ uptobox_download() {
     test "$CHECK_LINK" && return 0
 
     # Send (post) form
-    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DS
+    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'op')
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'id')
+    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
     FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'fname')
+    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
     FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
 
     PAGE=$(curl -b 'lang=english' -F 'referer=' \
@@ -63,12 +63,11 @@ uptobox_download() {
         WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
 
         FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'op')
-        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'id')
-        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'rand')
-        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
-        FORM_DS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'down_script')
+        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
+        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
+        FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
 
         # Funny captcha, this is text (4 digits)!
         # <span style='position:absolute;padding-left:64px;padding-top:3px;'>&#55;</span>
@@ -100,7 +99,7 @@ uptobox_download() {
             -F "id=$FORM_ID" \
             -F "rand=$FORM_RAND" \
             -F "method_free=$FORM_METHOD" \
-            -F "down_script=$FORM_DS" \
+            -F "down_direct=$FORM_DD" \
             -F "code=$CODE" "$URL") || return
 
         FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'start your download' href)
@@ -128,7 +127,7 @@ uptobox_download() {
           SECS=$(echo "$PAGE" | \
               parse_quiet 'class="err">' ', \([[:digit:]]\+\) second')
 
-          echo $(( $MINS * 60 + $SECS ))
+          echo $(( MINS * 60 + SECS ))
           return $ERR_LINK_TEMP_UNAVAILABLE
       fi
     fi
