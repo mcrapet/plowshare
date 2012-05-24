@@ -45,3 +45,8 @@ megashares
 --no-plowsharerc
 --no-plowsharerc
 --no-plowsharerc
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uptobox
+--no-plowsharerc
+--no-plowsharerc
+--no-plowsharerc

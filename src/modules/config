@@ -26,7 +26,7 @@ oron         | download | upload | delete | list |
 rapidshare   | download | upload | delete |      |
 sendspace    | download | upload | delete | list |
 turbobit     | download | upload | delete |      |
-uptobox      | download |        |        |      |
+uptobox      | download | upload |        |      |
 uploadhero   | download |        |        | list |
 uploading    | download |        |        |      |
 uploaded_to  | download | upload | delete | list |

@@ -24,6 +24,9 @@ MODULE_UPTOBOX_DOWNLOAD_OPTIONS=""
 MODULE_UPTOBOX_DOWNLOAD_RESUME=yes
 MODULE_UPTOBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_UPTOBOX_UPLOAD_OPTIONS=""
+MODULE_UPTOBOX_UPLOAD_REMOTE_SUPPORT=no
+
 # Output a uptobox file download URL
 # $1: cookie file (unused here)
 # $2: uptobox url
@@ -93,7 +96,7 @@ uptobox_download() {
         wait $((WAIT_TIME)) || return
 
         # Didn't included -F 'method_premium='
-        PAGE=$(curl -b "lang=english" -F "referer=$URL" \
+        PAGE=$(curl -b 'lang=english' -F "referer=$URL" \
             -F "op=$FORM_OP" \
             -F "usr_login=$FORM_USR" \
             -F "id=$FORM_ID" \
@@ -133,5 +136,63 @@ uptobox_download() {
     fi
 
     log_error "Unexpected content, site updated?"
+    return $ERR_FATAL
+}
+
+# Upload a file to uptobox.com
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download link + delete link
+uptobox_upload() {
+    eval "$(process_options uptobox "$MODULE_UPTOBOX_UPLOAD_OPTIONS" "$@")"
+
+    local FILE=$2
+    local DESTFILE=$3
+    local BASE_URL='http://uptobox.com'
+
+    local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
+
+    PAGE=$(curl -b 'lang=english' "$BASE_URL") || return
+
+    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
+    FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
+    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
+    FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url')
+
+    UPLOAD_ID=$(random dec 10)
+    USER_TYPE=anon
+
+    # xupload.js
+    PAGE=$(curl_with_log \
+        -F "upload_type=$FORM_UTYPE" \
+        -F "sess_id=$FORM_SESS" \
+        -F "srv_tmp_url=$FORM_TMP_SRV" \
+        -F "file_0=@$FILE;filename=$DESTFILE" \
+        "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
+         break_html_lines) || return
+
+    local FORM2_ACTION FORM2_FN FORM2_ST FORM2_OP
+    FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
+    FORM2_FN=$(echo "$PAGE" | parse_tag 'fn.>' textarea)
+    FORM2_ST=$(echo "$PAGE" | parse_tag 'st.>' textarea)
+    FORM2_OP=$(echo "$PAGE" | parse_tag 'op.>' textarea)
+
+    if [ "$FORM2_ST" = 'OK' ]; then
+        PAGE=$(curl -b 'lang=english' \
+            -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
+            "$FORM2_ACTION") || return
+
+        DL_URL=$(echo "$PAGE" | parse_line_after 'Download Link' '">\([^<]*\)') || return
+        DEL_URL=$(echo "$PAGE" | parse_tag 'killcode' textarea)
+
+        echo "$DL_URL"
+        echo "$DEL_URL"
+        return 0
+    fi
+
+    log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
 }
