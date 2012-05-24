@@ -35,12 +35,19 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 # stdout: real file download link
 2shared_download() {
     local URL=$2
-    local PAGE FILE_URL FILENAME
+    local PAGE FILE_URL FILENAME WAIT_TIME
 
     PAGE=$(curl "$URL") || return
 
     if match "file link that you requested is not valid" "$PAGE"; then
         return $ERR_LINK_DEAD
+    fi
+
+    # We are sorry, but your download request can not be processed right now.
+    if match 'id="timeToWait"' "$PAGE"; then
+        WAIT_TIME=$(echo "$PAGE" | parse 'timeToWait' '>\([[:digit:]]\+\)') || return
+        echo $(( WAIT_TIME * 60 ))
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
