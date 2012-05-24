@@ -388,10 +388,6 @@ download() {
                 FILENAME_TMP=$FILENAME
             fi
 
-            if test "$TEMP_RENAME"; then
-                FILENAME_TMP="${FILENAME_TMP}.part"
-            fi
-
             # Final path
             if test "$OUTPUT_DIR"; then
                 FILENAME_OUT="$OUTPUT_DIR/$FILENAME"
@@ -426,6 +422,10 @@ download() {
                             CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
                     fi
                 fi
+            fi
+
+            if test "$TEMP_RENAME"; then
+                FILENAME_TMP="${FILENAME_TMP}.part"
             fi
 
             DRETVAL=0
