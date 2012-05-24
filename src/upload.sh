@@ -161,11 +161,16 @@ pretty_print() {
     test "${FMT#*%a}" != "$FMT" && FMT=$(replace '%a' "${A[5]}" <<< "$FMT")
     test "${FMT#*%D}" != "$FMT" && \
         FMT=$(replace '%D' "${A[4]:-${A[5]}}" <<< "$FMT")
-    test "${FMT#*%n}" != "$FMT" && FMT=$(replace '%n' $'\n' <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	'   <<< "$FMT")
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%'   <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
 
-    echo "$FMT"
+    if test "${FMT#*%n}" != "$FMT"; then
+        # Don't lose trailing newlines
+        FMT=$(replace '%n' $'\n' <<< "$FMT" ; echo -n x)
+        echo -n "${FMT%x}"
+    else
+        echo "$FMT"
+    fi
 }
 
 #
