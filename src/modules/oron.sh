@@ -46,7 +46,7 @@ oron_switch_lang() {
 }
 
 # Static function. Proceed with login (free or premium)
-# $1: authentification
+# $1: authentication
 # $2: cookie file
 # stdout: account type ("free" or "premium") on success
 oron_login() {

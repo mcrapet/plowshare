@@ -32,7 +32,7 @@ HASHKEY,,hashkey:,HASHKEY,Hashkey used in openapi (override -a/--auth)"
 MODULE_BITSHARE_UPLOAD_REMOTE_SUPPORT=yes
 
 # Login to bitshare (HTML form)
-# $1: authentification
+# $1: authentication
 # $2: cookie file
 bitshare_login() {
     local AUTH=$1
@@ -360,7 +360,7 @@ bitshare_upload_openapi() {
 }
 
 # Upload file to bitshare using html form
-# $1: authenfitication
+# $1: authentication
 # $2: cookie file
 # $3: file path
 # $4: remote filename
