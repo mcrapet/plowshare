@@ -22,6 +22,7 @@ hotfile      | download | upload |        | list |
 mediafire    | download | upload |        | list |
 megashares   | download | upload | delete |      |
 mirrorcreator|          | upload |        | list |
+multiupload  |          | upload |        | list |
 netload_in   | download | upload |        | list |
 oron         | download | upload | delete | list |
 rapidshare   | download | upload | delete |      |
