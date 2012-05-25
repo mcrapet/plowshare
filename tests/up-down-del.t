@@ -36,6 +36,11 @@ netload_in
 --no-plowsharerc
 --no-plowsharerc
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ryushare
+--no-plowsharerc
+--no-plowsharerc
+--no-plowsharerc
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sendspace
 --no-plowsharerc
 --no-plowsharerc

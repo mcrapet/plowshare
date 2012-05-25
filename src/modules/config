@@ -26,6 +26,7 @@ multiupload  |          | upload |        | list |
 netload_in   | download | upload |        | list |
 oron         | download | upload | delete | list |
 rapidshare   | download | upload | delete |      |
+ryushare     | download | upload |        |      |
 sendspace    | download | upload | delete | list |
 turbobit     | download | upload | delete |      |
 uptobox      | download | upload |        |      |
