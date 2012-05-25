@@ -21,14 +21,14 @@
 MODULE_BITSHARE_REGEXP_URL="http://\(www\.\)\?bitshare\.com/"
 
 MODULE_BITSHARE_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_BITSHARE_DOWNLOAD_RESUME=yes
 MODULE_BITSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BITSHARE_UPLOAD_OPTIONS="
 METHOD,,method:,METHOD,Upload method (openapi or form, default: openapi)
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
-HASHKEY,,hashkey:,HASHKEY,Hashkey used in openapi (override AUTH_FREE)"
+AUTH,a:,auth:,USER:PASSWORD,User account
+HASHKEY,,hashkey:,HASHKEY,Hashkey used in openapi (override -a/--auth)"
 MODULE_BITSHARE_UPLOAD_REMOTE_SUPPORT=yes
 
 # Login to bitshare (HTML form)
@@ -60,7 +60,7 @@ bitshare_download() {
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://bitshare.com'
-    local FILE_ID POST_URL HTML WAIT AJAXDL DATA RESPONSE
+    local FILE_ID POST_URL WAIT AJAXDL DATA RESPONSE
     local NEED_RECAPTCHA FILE_URL FILENAME
 
     FILE_ID=$(echo "$URL" | parse_quiet 'bitshare' 'bitshare\.com\/files\/\([^/]\+\)\/')
@@ -75,38 +75,47 @@ bitshare_download() {
     curl -c "$COOKIEFILE" -o /dev/null "$BASE_URL/?language=EN" || return
 
     # Login
-    if test "$AUTH_FREE"; then
-        bitshare_login "$AUTH_FREE" "$COOKIEFILE" || return
+    if test "$AUTH"; then
+        bitshare_login "$AUTH" "$COOKIEFILE" || return
     fi
 
     # Add cookie entries: last_file_downloaded, trafficcontrol
-    HTML=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
+    RESPONSE=$(curl -i -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
 
     # File unavailable
-    if match "<h1>Error - File not available</h1>" "$HTML"; then
+    if match "<h1>Error - File not available</h1>" "$RESPONSE"; then
         return $ERR_LINK_DEAD
 
     # Download limit
-    elif match "You reached your hourly traffic limit\." "$HTML"; then
-        WAIT=$(echo "$HTML" | parse '<span id="blocktimecounter">' \
+    elif match "You reached your hourly traffic limit\." "$RESPONSE"; then
+        WAIT=$(echo "$RESPONSE" | parse '<span id="blocktimecounter">' \
             '<span id="blocktimecounter">\([[:digit:]]\+\) seconds\?<\/span>')
         echo $((WAIT))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif match "Sorry, you cant download more then [[:digit:]]\+ files\? at time\." "$HTML"; then
+    elif match "Sorry, you cant download more then [[:digit:]]\+ files\? at time\." "$RESPONSE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # Note: filename is <h1> tag might be truncated
-    FILENAME=$(echo "$HTML" | parse 'http:\/\/bitshare\.com\/files\/' \
+    FILENAME=$(echo "$RESPONSE" | parse 'http:\/\/bitshare\.com\/files\/' \
         'value="http:\/\/bitshare\.com\/files\/'"$FILE_ID"'\/\(.*\)\.html"') || return
+
+    # Premium account direct download
+    FILE_URL=$(echo "$RESPONSE" | grep_http_header_location_quiet) || return
+    if [ "$FILE_URL" ]; then
+        log_debug "using premium direct download"
+        echo "$FILE_URL"
+        echo "$FILENAME"
+        return
+    fi
 
     # Add cookie entry: ads_download=1
     curl -b "$COOKIEFILE" -c "$COOKIEFILE" -o /dev/null \
         "$BASE_URL/getads.html" || return
 
     # Get ajaxdl id
-    AJAXDL=$(echo "$HTML" | parse 'var ajaxdl = ' \
+    AJAXDL=$(echo "$RESPONSE" | parse 'var ajaxdl = ' \
         'var ajaxdl = "\([^"]\+\)";') || return
 
     # Retrieve parameters
@@ -179,13 +188,13 @@ bitshare_upload() {
 
     if [ -z "$METHOD" -o "$METHOD" = 'openapi' ]; then
         if [ -n "$HASHKEY" ]; then
-            [ -z "$AUTH_FREE" ] || \
+            [ -z "$AUTH" ] || \
                 log_error "Both --hashkey & --auth_free are defined. Taking hashkey."
-        elif [ -n "$AUTH_FREE" ]; then
+        elif [ -n "$AUTH" ]; then
             # Login to openapi
             local PASSWORD_HASH RESPONSE HASHKEY
-            local USER=${AUTH_FREE%%:*}
-            local PASSWORD=${AUTH_FREE#*:}
+            local USER=${AUTH%%:*}
+            local PASSWORD=${AUTH#*:}
 
             PASSWORD_HASH=$(md5 "$PASSWORD") || return
             RESPONSE=$(curl --form-string "user=$USER" \
@@ -204,7 +213,7 @@ bitshare_upload() {
             log_error "Remote upload is not supported with this method. Use openapi method."
             return $ERR_FATAL
         fi
-        bitshare_upload_form "$AUTH_FREE" "$1" "$2" "$3" || return
+        bitshare_upload_form "$AUTH" "$1" "$2" "$3" || return
 
     else
         log_error "Unknow method (check --method parameter)"
