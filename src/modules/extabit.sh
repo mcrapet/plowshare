@@ -78,6 +78,10 @@ extabit_download() {
             FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
             if [ -z "$FILE_URL" ]; then
                 PAGE=$(curl -b "$COOKIE_FILE" -b 'language=en' "$URL") || return
+
+                # Duplicated from below
+                match 'page_404_header' "$PAGE" && return $ERR_LINK_DEAD
+
                 FILE_URL=$(echo "$PAGE" | parse_attr 'download-file-btn' href) || return
                 FILE_NAME=$(echo "$PAGE" | parse_attr 'div title' title)
             else
