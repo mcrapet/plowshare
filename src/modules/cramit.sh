@@ -58,7 +58,6 @@ cramit_login() {
     echo 'free'
 }
 
-
 # Output a cramit file download URL
 # $1: cookie file (account only)
 # $2: cramit url
@@ -215,7 +214,7 @@ cramit_upload() {
         -F "sess_id=$FORM_SESS" \
         -F "srv_tmp_url=$FORM_TMP_SRV" \
         -F "file_0=@$FILE;filename=$DESTFILE" \
-	    -F "link_rcpt=$TOEMAIL" \
+        -F "link_rcpt=$TOEMAIL" \
         -F "link_pass=$LINK_PASSWORD" \
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
          break_html_lines) || return
