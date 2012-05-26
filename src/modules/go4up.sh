@@ -21,7 +21,7 @@
 MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 
 MODULE_GO4UP_UPLOAD_OPTIONS=""
-MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=no
+MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_GO4UP_LIST_OPTIONS=""
 
@@ -37,64 +37,96 @@ go4up_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://go4up.com'
+    local PAGE LINK FORM_HTML HOST_LIST HOST_FORM HOST_MULTI UPLOAD_ID
 
     # Registered users can use public API:
     # http://go4up.com/wiki/index.php/API_doc
 
-    local PAGE UPLOAD_URL1 UPLOAD_URL2 FORM_HTML FORM_UID HOST_LIST UPLOAD_ID
-
-    # Site uses UberUpload
-    PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
-
-    UPLOAD_URL1=$(echo "$PAGE" | \
-        parse 'path_to_link_script' '"\([^"]\+\)"') || return
-    UPLOAD_URL2=$(echo "$PAGE" | \
-        parse 'path_to_upload_script' '"\([^"]\+\)"') || return
-
-    FORM_HTML=$(grep_form_by_name "$PAGE" 'ubr_upload_form') || return
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id_user') || return
-
     # Get (default) host list
+    if match_remote_url "$FILE"; then
+        PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL/remote.php") || return
+
+        FORM_HTML=$(grep_form_by_id "$PAGE" 'form_upload') || return
+    else
+        PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
+
+        FORM_HTML=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
+    fi
+
+    # Prepare list of hosts to mirror to
     HOST_LIST=$(echo "$FORM_HTML" | \
         parse_all_attr '[[:space:]]checked[[:space:]]' 'value') || return
 
-    local HOST_FORM_STRING1 HOST_FORM_STRING2 HOST
     while read HOST; do
         log_debug "selected site: $HOST"
-        HOST_FORM_STRING1="$HOST_FORM_STRING1 -d box%5B%5D=$HOST"
-        HOST_FORM_STRING2="$HOST_FORM_STRING2 -F box[]=$HOST"
+        HOST_FORM="$HOST_FORM -d box%5B%5D=$HOST"
+        HOST_MULTI="$HOST_MULTI -F box[]=$HOST"
     done <<< "$HOST_LIST"
 
-    PAGE=$(curl -b "$COOKIE_FILE" \
-        --referer "$BASE_URL/index.php" \
-        $HOST_FORM_STRING1 \
-        -d "id_user=$FORM_UID" \
-        -d "upload_file[]=$DESTFILE" \
-        "$BASE_URL$UPLOAD_URL1") || return
+    # Proceed with upload
+    if match_remote_url "$FILE"; then
+        if [ "$DESTFILE" != 'dummy' ]; then
+            log_error 'Remote filename ignored, not supported by site'
+        fi
 
-    # if(typeof UberUpload.startUpload == 'function')
-    # { UberUpload.startUpload("f7c3511c7eac0716dc64bba7e32ef063",0,0); }
-    UPLOAD_ID=$(echo "$PAGE" | parse 'startUpload(' '"\([^"]\+\)"') || return
-    log_debug "id: $UPLOAD_ID"
+        UPLOAD_ID=$(echo "$FORM_HTML" | \
+            parse_form_input_by_id 'progress_key') || return
 
-    # Note: No need to call ubr_set_progress.php, ubr_get_progress.php
+        PAGE=$(curl -b "$COOKIE_FILE" \
+            --referer "$BASE_URL/remote.php" \
+            -F "APC_UPLOAD_PROGRESS=$UPLOAD_ID" \
+            -F 'id_user=0' \
+            -F "url=$FILE" \
+            $HOST_MULTI \
+            "$BASE_URL/copy_remote.php") || return
 
-    PAGE=$(curl_with_log -b "$COOKIE_FILE" \
-        --referer "$BASE_URL/index.php" \
-        -F "id_user=$FORM_UID" \
-        -F "upfile_$(date +%s)000=@$FILE;filename=$DESTFILE" \
-        $HOST_FORM_STRING2 \
-        "$BASE_URL$UPLOAD_URL2?upload_id=$UPLOAD_ID") || return
+        if ! match 'Your link' "$PAGE"; then
+            log_error 'Error uploading to server'
+            return $ERR_FATAL
+        fi
+        LINK="http://www.go4up.com/dl/$UPLOAD_ID"
+    else
+        local UPLOAD_URL1 UPLOAD_URL2
 
-    # parent.UberUpload.redirectAfterUpload('../../uploaded.php?upload_id=9f07...
-    UPLOAD_URL1=$(echo "$PAGE" | \
-        parse 'redirectAfter' "'\.\.\/\.\.\([^']\+\)'") || return
+        # Site uses UberUpload for direct upload
+        UPLOAD_URL1=$(echo "$PAGE" | \
+            parse 'path_to_link_script' '"\([^"]\+\)"') || return
+        UPLOAD_URL2=$(echo "$PAGE" | \
+            parse 'path_to_upload_script' '"\([^"]\+\)"') || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" \
-        --referer "$BASE_URL/index.php" \
-        "$BASE_URL$UPLOAD_URL1") || return
+        PAGE=$(curl -b "$COOKIE_FILE" \
+            --referer "$BASE_URL/index.php" \
+            $HOST_FORM \
+            -d 'id_user=0' \
+            -d "upload_file[]=$DESTFILE" \
+            "$BASE_URL$UPLOAD_URL1") || return
 
-    echo "$PAGE" | parse_attr '\/dl\/' href || return
+        # if(typeof UberUpload.startUpload == 'function')
+        # { UberUpload.startUpload("f7c3511c7eac0716dc64bba7e32ef063",0,0); }
+        UPLOAD_ID=$(echo "$PAGE" | parse 'startUpload(' '"\([^"]\+\)"') || return
+        log_debug "id: $UPLOAD_ID"
+
+        # Note: No need to call ubr_set_progress.php, ubr_get_progress.php
+
+        PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+            --referer "$BASE_URL/index.php" \
+            -F 'id_user=0' \
+            -F "upfile_$(date +%s)000=@$FILE;filename=$DESTFILE" \
+            $HOST_MULTI \
+            "$BASE_URL$UPLOAD_URL2?upload_id=$UPLOAD_ID") || return
+
+        # parent.UberUpload.redirectAfterUpload('../../uploaded.php?upload_id=9f07...
+        UPLOAD_URL1=$(echo "$PAGE" | \
+            parse 'redirectAfter' "'\.\.\/\.\.\([^']\+\)'") || return
+
+        PAGE=$(curl -b "$COOKIE_FILE" \
+            --referer "$BASE_URL/index.php" \
+            "$BASE_URL$UPLOAD_URL1") || return
+
+        LINK=$(echo "$PAGE" | parse_attr '\/dl\/' href) || return
+    fi
+
+    echo "$LINK"
 }
 
 # List links from a go4up link
