@@ -513,11 +513,24 @@ grep_http_header_content_disposition() {
 # - HTML comments are just ignored
 #
 # $1: (X)HTML data
-# $2: (optional) Nth <form> (default is 1)
+# $2: (optional) Nth <form> Index start at 1: first form of the page.
+#     Negative index possible: -1 means last form is page and so on.
+#     Zero or empty value means 1.
 # stdout: result
 grep_form_by_order() {
-    local N=${2:-'1'}
     local DATA=$1
+    local N=${2:-'1'}
+    local DOT
+
+    # Check numbers de <form> tags
+    DOT=$(echo "$DATA" | sed -ne '/<[Ff][Oo][Rr][Mm][[:space:]]/s/.*/./p' | tr -d '\n')
+    if (( $N < 0 )); then
+        N=$(( ${#DOT} + 1 + N ))
+        if (( $N <= 0 )); then
+            log_error "$FUNCNAME failed: negative index is too big (detected ${#DOT} forms)"
+            return $ERR_FATAL
+        fi
+    fi
 
     while [ "$N" -gt "1" ]; do
         (( --N ))
