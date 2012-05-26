@@ -919,8 +919,9 @@ post_login() {
     local AUTH=$1
     local COOKIE=$2
     local POSTDATA=$3
-    local LOGINURL=$4
+    local LOGIN_URL=$4
     shift 4
+    local CURL_ARGS=("$@")
     local USER PASSWORD DATA RESULT
 
     if [ -z "$AUTH" ]; then
@@ -945,7 +946,7 @@ post_login() {
     log_notice "Starting login process: $USER/${PASSWORD//?/*}"
 
     DATA=$(eval echo "${POSTDATA//&/\\&}")
-    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" $@ "$LOGINURL") || return
+    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" "${CURL_ARGS[@]}" "$LOGIN_URL") || return
 
     # "$RESULT" can be empty, this is not necessarily an error
     if [ ! -s "$COOKIE" ]; then
@@ -957,8 +958,9 @@ post_login() {
     logcat_report "$COOKIE"
     log_report "=== COOKIE END ==="
 
-    echo "$RESULT"
-    return 0
+    if ! find_in_array CURL_ARGS[@] '-o' '--output'; then
+        echo "$RESULT"
+    fi
 }
 
 # Detect if a JavaScript interpreter is installed
