@@ -109,9 +109,16 @@ go4up_list() {
 
     PAGE=$(curl -L "$URL") || return
 
+    if match 'The file is being uploaded on mirror websites' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    elif match 'does not exist or has been removed' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
     LINKS=$(echo "$PAGE" | parse_all_tag_quiet 'class="dl"' a) || return
     if [ -z "$LINKS" ]; then
-        return $ERR_LINK_DEAD
+        log_error 'No links found. Site updated?'
+        return $ERR_FATAL
     fi
 
     #  Print links (stdout)
