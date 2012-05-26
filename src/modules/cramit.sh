@@ -23,13 +23,13 @@
 MODULE_CRAMIT_REGEXP_URL="https\?://\(www\.\)\?\(cramit\.in\|cramitin\.\(net\|us\|eu\)\)/"
 
 MODULE_CRAMIT_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
 MODULE_CRAMIT_DOWNLOAD_RESUME=yes
 MODULE_CRAMIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_CRAMIT_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+AUTH,a:,auth:,USER:PASSWORD,User account
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 MODULE_CRAMIT_UPLOAD_REMOTE_SUPPORT=no
@@ -54,8 +54,13 @@ cramit_login() {
     NAME=$(parse_cookie 'login' < "$COOKIE_FILE")
     log_debug "Successfully logged in as $NAME member"
 
-    # FIXME: distinguish account type
-    echo 'free'
+    # Export Hotlinks
+    # Remaining Hotlink Bandwidth this month
+    if match 'Hotlink' "$LOGIN_RESULT"; then
+        echo 'premium'
+    else
+        echo 'free'
+    fi
 }
 
 # Output a cramit file download URL
@@ -68,14 +73,11 @@ cramit_download() {
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://cramit.in'
-    local PAGE TYPE FILE_URL CAPTCHA_URL WAIT_TIME HEADERS
+    local PAGE TYPE FILE_URL CAPTCHA_URL WAIT_TIME HEADERS ERR
 
-    if [ -n "$AUTH_FREE" ]; then
-        TYPE=$(cramit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL") || return
-        if [ "$TYPE" = 'premium' ]; then
-            log_error "FIXME: NOT IMPLEMENTED YET!"
-            return $ERR_FATAL
-        fi
+    TYPE=anon
+    if [ -n "$AUTH" ]; then
+        TYPE=$(cramit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
     fi
 
     PAGE=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL" | \
@@ -87,21 +89,24 @@ cramit_download() {
     fi
 
     test "$CHECK_LINK" && return 0
-    # Send (post) form
-    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
-    FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-    FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
-    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
 
-    PAGE=$(curl -b "$COOKIE_FILE" -F 'referer=' \
-        -F "op=$FORM_OP" \
-        -F "usr_login=$FORM_USR" \
-        -F "id=$FORM_ID" \
-        -F "fname=$FORM_FNAME" \
-        -F "method_free=$FORM_METHOD" "$URL" | break_html_lines_alt) || return
+    if [ "$TYPE" != 'premium' ]; then
+        # Send (post) form
+        local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
+        FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
+        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
+        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
+        FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
+
+        PAGE=$(curl -b "$COOKIE_FILE" -F 'referer=' \
+            -F "op=$FORM_OP" \
+            -F "usr_login=$FORM_USR" \
+            -F "id=$FORM_ID" \
+            -F "fname=$FORM_FNAME" \
+            -F "method_free=$FORM_METHOD" "$URL" | break_html_lines_alt) || return
+    fi
 
     # Check for password protected link
     if match '"password"' "$PAGE"; then
@@ -146,17 +151,6 @@ cramit_download() {
         captcha_ack $ID
         log_debug "correct captcha"
 
-        # <p class="err">
-        if match 'Wrong password' "$PAGE"; then
-            return $ERR_LINK_PASSWORD_REQUIRED
-        fi
-
-        FILE_URL=$(echo "$PAGE" | parse_attr 'file_download' href) || return
-        HEADERS=$(curl -I "$FILE_URL") || return
-
-        echo "$HEADERS" | grep_http_header_location || return
-        echo "$HEADERS" | grep_http_header_content_disposition || echo "$FORM_FNAME"
-        return 0
 
     elif match '<p class="err">' "$PAGE"; then
         # You have to wait X minutes before your next download
@@ -170,10 +164,46 @@ cramit_download() {
             fi
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
+
+    # Premium download
+    elif [ "$TYPE" = 'premium' ]; then
+        FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
+        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
+        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_premium')
+        FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
+
+        PAGE=$(curl -b "$COOKIE_FILE" -F "referer=$URL" \
+            -F "op=$FORM_OP" \
+            -F "id=$FORM_ID" \
+            -F "rand=$FORM_RAND" \
+            -F 'method_free=' -F "method_premium=$FORM_METHOD" \
+            -F "down_direct=$FORM_DS" \
+            -F "password=$LINK_PASSWORD" \
+            "$URL" | break_html_lines_alt) || return
+
+    else
+        log_error "Unexpected content, site updated?"
+        return $ERR_FATAL
     fi
 
-    log_error "Unexpected content, site updated?"
-    return $ERR_FATAL
+    # <p class="err">
+    if match 'Wrong password' "$PAGE"; then
+        return $ERR_LINK_PASSWORD_REQUIRED
+
+    # Note: get sometimes "Skipped countdown" errors with premium. What's this?
+    elif match '<p class="err">' "$PAGE"; then
+        ERR=$(echo "$PAGE" | parse_line_after 'class="err">' '^\([^<]*\)')
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
+    fi
+
+    FILE_URL=$(echo "$PAGE" | parse_attr 'file_download' href) || return
+    HEADERS=$(curl -I "$FILE_URL") || return
+
+    echo "$HEADERS" | grep_http_header_location || return
+    echo "$HEADERS" | grep_http_header_content_disposition || echo "$FORM_FNAME"
 }
 
 # Upload a file to cramit
@@ -191,8 +221,8 @@ cramit_upload() {
 
     local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
 
-    if [ -n "$AUTH_FREE" ]; then
-        cramit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
+    if [ -n "$AUTH" ]; then
+        cramit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
     fi
 
     PAGE=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$BASE_URL" | \
