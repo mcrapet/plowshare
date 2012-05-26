@@ -20,7 +20,9 @@
 
 MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 
-MODULE_GO4UP_UPLOAD_OPTIONS=""
+MODULE_GO4UP_UPLOAD_OPTIONS="
+INCLUDE,,include:,LIST,Provide list of host site (space separated)
+COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5."
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_GO4UP_LIST_OPTIONS=""
@@ -37,31 +39,68 @@ go4up_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://go4up.com'
-    local PAGE LINK FORM_HTML HOST_LIST HOST_FORM HOST_MULTI UPLOAD_ID
+    local PAGE LINK FORM UPLOAD_ID
+    local SITES_ALL SITES_SEL SITES_FORM SITES_MULTI
 
     # Registered users can use public API:
     # http://go4up.com/wiki/index.php/API_doc
 
-    # Get (default) host list
+    # Retrieve complete hosting site list
     if match_remote_url "$FILE"; then
         PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL/remote.php") || return
 
-        FORM_HTML=$(grep_form_by_id "$PAGE" 'form_upload') || return
+        FORM=$(grep_form_by_id "$PAGE" 'form_upload') || return
     else
         PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
 
-        FORM_HTML=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
+        FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
     fi
 
-    # Prepare list of hosts to mirror to
-    HOST_LIST=$(echo "$FORM_HTML" | \
-        parse_all_attr '[[:space:]]checked[[:space:]]' 'value') || return
+    SITES_ALL=$(echo "$FORM" | parse_all_attr 'type="checkbox"' value)
 
-    while read HOST; do
+    # Code copied from mirrorcreator module
+    if [ -z "$SITES_ALL" ]; then
+        log_error "Empty list, site updated?"
+        return $ERR_FATAL
+    else
+        log_debug "Available sites:" $SITES_ALL
+    fi
+
+    if [ -n "$COUNT" ]; then
+        if [[ $((COUNT)) -eq 0 ]]; then
+            COUNT=5
+            log_error "Bad integer value for --count, set it to $COUNT"
+        fi
+
+        for SITE in $SITES_ALL; do
+            (( COUNT-- > 0 )) || break
+            SITES_SEL="$SITES_SEL $SITE"
+        done
+    elif [ -n "$INCLUDE" ]; then
+        for SITE in $INCLUDE; do
+            if match "$SITE" "$SITES_ALL"; then
+                SITES_SEL="$SITES_SEL $SITE"
+            else
+                log_error "Host not supported: $SITE, ignoring"
+            fi
+        done
+    else
+        # Default hosting sites selection
+        SITES_SEL=$(echo "$FORM" | \
+            parse_all_attr 'type="checkbox".*checked' 'value')
+    fi
+
+    if [ -z "$SITES_SEL" ]; then
+        log_debug "Empty site selection. Nowhere to upload!"
+        return $ERR_FATAL
+    fi
+
+    # Prepare lists of hosts to mirror to
+    for HOST in $SITES_SEL; do
         log_debug "selected site: $HOST"
-        HOST_FORM="$HOST_FORM -d box%5B%5D=$HOST"
-        HOST_MULTI="$HOST_MULTI -F box[]=$HOST"
-    done <<< "$HOST_LIST"
+        SITES_FORM="$SITES_FORM -d box%5B%5D=$HOST"
+        SITES_MULTI="$SITES_MULTI -F box[]=$HOST"
+    done
 
     # Proceed with upload
     if match_remote_url "$FILE"; then
@@ -69,7 +108,7 @@ go4up_upload() {
             log_error 'Remote filename ignored, not supported by site'
         fi
 
-        UPLOAD_ID=$(echo "$FORM_HTML" | \
+        UPLOAD_ID=$(echo "$FORM" | \
             parse_form_input_by_id 'progress_key') || return
 
         PAGE=$(curl -b "$COOKIE_FILE" \
@@ -77,7 +116,7 @@ go4up_upload() {
             -F "APC_UPLOAD_PROGRESS=$UPLOAD_ID" \
             -F 'id_user=0' \
             -F "url=$FILE" \
-            $HOST_MULTI \
+            $SITES_MULTI \
             "$BASE_URL/copy_remote.php") || return
 
         if ! match 'Your link' "$PAGE"; then
@@ -96,7 +135,7 @@ go4up_upload() {
 
         PAGE=$(curl -b "$COOKIE_FILE" \
             --referer "$BASE_URL/index.php" \
-            $HOST_FORM \
+            $SITES_FORM \
             -d 'id_user=0' \
             -d "upload_file[]=$DESTFILE" \
             "$BASE_URL$UPLOAD_URL1") || return
@@ -112,7 +151,7 @@ go4up_upload() {
             --referer "$BASE_URL/index.php" \
             -F 'id_user=0' \
             -F "upfile_$(date +%s)000=@$FILE;filename=$DESTFILE" \
-            $HOST_MULTI \
+            $SITES_MULTI \
             "$BASE_URL$UPLOAD_URL2?upload_id=$UPLOAD_ID") || return
 
         # parent.UberUpload.redirectAfterUpload('../../uploaded.php?upload_id=9f07...
