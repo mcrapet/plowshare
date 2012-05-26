@@ -1687,10 +1687,13 @@ random() {
 md5() {
     # GNU coreutils
     if check_exec md5sum; then
-        echo -n "$1" | $(type -P md5sum) -b 2>/dev/null | cut -d' ' -f1
+        echo -n "$1" | md5sum -b 2>/dev/null | cut -d' ' -f1
     # BSD
     elif check_exec md5; then
         $(type -P md5) -qs "$1"
+    # OpenSSL
+    elif check_exec openssl; then
+        echo -n "$1" | openssl dgst -md5 | cut -d' ' -f2
     # FIXME: use javascript if requested
     else
         log_error "$FUNCNAME: cannot find md5 calculator"
