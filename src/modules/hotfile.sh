@@ -21,12 +21,14 @@
 MODULE_HOTFILE_REGEXP_URL="https\?://\(www\.\)\?hotfile\.com/"
 
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a:,auth:,USER:PASSWORD,User account
+NOMD5,,nomd5,,Disable md5 authentication (use plain text)"
 MODULE_HOTFILE_DOWNLOAD_RESUME=no
 MODULE_HOTFILE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_HOTFILE_UPLOAD_OPTIONS="
-AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)"
+AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)
+NOMD5,,nomd5,,Disable md5 authentication (use plain text)"
 MODULE_HOTFILE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_HOTFILE_LIST_OPTIONS=""
@@ -38,10 +40,11 @@ MODULE_HOTFILE_LIST_OPTIONS=""
 hotfile_download() {
     eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local URL="${2}&lang=en"
+    local API_URL='http://api.hotfile.com'
     local BASE_URL='http://hotfile.com'
-    local FILE_URL ROLE WAIT_HTML WAIT_HTML2 SLEEP LINK
+    local FILE_URL ROLE WAIT_HTML WAIT_HTML2 WAIT_TIME PAGE LINK
 
     if match 'hotfile\.com/list/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
@@ -53,38 +56,54 @@ hotfile_download() {
     if [ -n "$AUTH" ]; then
         local USER=${AUTH%%:*}
         local PASSWORD=${AUTH#*:}
+        local PASSWD_FORM
 
         if [ "$AUTH" = "$PASSWORD" ]; then
             PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
         fi
 
-        ROLE=$(curl --get -d "username=$USER" -d "password=$PASSWORD" \
-            -d 'action=getuserinfo' 'http://api.hotfile.com/') || return
-        if match 'is_premium=0' "$ROLE"; then
-            return $ERR_LINK_NEED_PERMISSIONS
+        if [ -z "$NOMD5" ]; then
+            PASSWD_FORM="-d passwordmd5=$(md5 "$PASSWORD")"
+        else
+            PASSWD_FORM="-d password=$PASSWORD"
         fi
 
-        FILE_URL=$(curl "http://api.hotfile.com/?action=getdirectdownloadlink&username=${USER}&password=${PASSWORD}&link=${URL}") || return
+        ROLE=$(curl --get -d "username=$USER" $PASSWD_FORM \
+            -d 'action=getuserinfo' "$API_URL") || return
 
         # Hotfile API error messages starts with a dot, if no dot then the download link is available
-        if [ "${FILE_URL:0:1}" = '.' ]; then
-            log_error "login request failed (bad login/password or link invalid/removed)"
+        if [ "${ROLE:0:1}" = '.' ]; then
             return $ERR_LOGIN_FAILED
         fi
 
-        echo "$FILE_URL"
-        return 0
+        if match 'is_premium=0' "$ROLE"; then
+            # Website login
+            post_login "$AUTH" "$COOKIE_FILE" 'returnto=%2F&user=$USER&pass=$PASSWORD' \
+                "$BASE_URL/login.php" -o /dev/null || return
+
+            # Sanity check
+            ROLE=$(parse_cookie 'auth' < "$COOKIE_FILE")
+        else
+            MODULE_HOTFILE_DOWNLOAD_RESUME=yes
+
+            FILE_URL=$(curl --get "username=$USER" $PASSWD_FORM \
+                -d 'action=getdirectdownloadlink' \
+                -d "link=$URL" "$API_URL") || return
+
+            echo "$FILE_URL"
+            return 0
+        fi
     fi
 
-    WAIT_HTML=$(curl -c "$COOKIEFILE" "$URL") || return
+    WAIT_HTML=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
-    # "This file is either removed due to copyright claim or is deleted by the uploader."
+    # This file is either removed due to copyright claim or is deleted by the uploader.
     if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
         return $ERR_LINK_DEAD
     fi
 
-    SLEEP=$(echo "$WAIT_HTML" | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);') ||
-        { log_error "can't get sleep time"; return $ERR_FATAL; }
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse_line_after \
+        'function[[:space:]]*starttimer' '+\([[:digit:]]\+\);' 2) || return
 
     test "$CHECK_LINK" && return 0
 
@@ -99,9 +118,9 @@ hotfile_download() {
     FORM_WAITHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'waithash')
     FORM_UPIDHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'upidhash')
 
-    wait $((SLEEP / 1000)) seconds || return
+    wait $((WAIT_TIME / 1000)) seconds || return
 
-    WAIT_HTML2=$(curl -b $COOKIEFILE -d "action=$FORM_ACTION" \
+    WAIT_HTML2=$(curl -b $COOKIE_FILE -d "action=$FORM_ACTION" \
         -d "tm=$FORM_TM" -d "tmhash=$FORM_TMHASH" \
         -d "wait=$FORM_WAIT" -d "waithash=$FORM_WAITHASH" \
         -d "upidhash=$FORM_UPIDHASH" \
@@ -110,21 +129,23 @@ hotfile_download() {
     # Direct download (no captcha)
     if match 'Click here to download' "$WAIT_HTML2"; then
         LINK=$(echo "$WAIT_HTML2" | parse_attr 'click_download' 'href') || return
-        FILE_URL=$(curl -b "$COOKIEFILE" --include "$LINK" | grep_http_header_location)
+        FILE_URL=$(curl -b "$COOKIE_FILE" --include "$LINK" | grep_http_header_location)
         echo "$FILE_URL"
         return 0
 
     elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
-        # grep 2nd occurrence of "timerend=d.getTime()+<number>" (function starthtimer)
-        WAIT_TIME=$(echo "$WAIT_HTML2" | sed -n '/starthtimer/,$p' | parse 'timerend=d.getTime()' '+\([[:digit:]]\+\);')
+        # See function starthtimer()
+        WAIT_TIME=$(echo "$WAIT_HTML2" | parse_line_after \
+            'function[[:space:]]*starthtimer' '+\([[:digit:]]\+\);' 2)
         echo $((WAIT_TIME / 1000))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     # reCaptcha page
     elif match 'api\.recaptcha\.net' "$WAIT_HTML2"; then
 
-        local FORM2_HTML FORM2_URL FORM2_ACTION HTMLPAGE
-        FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" 2)
+        local FORM2_HTML FORM2_URL FORM2_ACTION
+        # Login form not present for account (free) user
+        FORM2_HTML=$(grep_form_by_order "$WAIT_HTML2" -1)
         FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action)
         FORM2_ACTION=$(echo "$FORM2_HTML" | parse_form_input_by_name_quiet 'action')
 
@@ -133,22 +154,22 @@ hotfile_download() {
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-        HTMLPAGE=$(curl -b "$COOKIEFILE" -d "action=$FORM2_ACTION" \
+        PAGE=$(curl -b "$COOKIE_FILE" -d "action=$FORM2_ACTION" \
             -d "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
             "${BASE_URL}$FORM2_URL") || return
 
-        if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+        if match 'Wrong Code. Please try again.' "$PAGE"; then
             captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 
-        LINK=$(echo "$HTMLPAGE" | parse_attr 'click_download' 'href')
+        LINK=$(echo "$PAGE" | parse_attr 'click_download' 'href')
         if [ -n "$LINK" ]; then
             captcha_ack $ID
             log_debug "correct captcha"
 
-            FILE_URL=$(curl -b "$COOKIEFILE" --include "$LINK" | grep_http_header_location)
+            FILE_URL=$(curl -b "$COOKIE_FILE" --include "$LINK" | grep_http_header_location)
             echo "$FILE_URL"
             return 0
         fi
@@ -168,7 +189,7 @@ hotfile_upload() {
 
     local FILE=$2
     local DESTFILE=$3
-    local SERVER URL FILE_SIZE UPID DATA
+    local SERVER URL FILE_SIZE UPID DATA PASSWD_FORM
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
@@ -177,7 +198,12 @@ hotfile_upload() {
     if [ "$AUTH" = "$PASSWORD" ]; then
         PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
     fi
-    PASSWORD=$(md5 "$PASSWORD") || return
+
+    if [ -z "$NOMD5" ]; then
+        PASSWD_FORM="-F passwordmd5=$(md5 "$PASSWORD")"
+    else
+        PASSWD_FORM="-F password=$PASSWORD"
+    fi
 
     # Answer: one server per line
     SERVER=$(curl 'http://api.hotfile.com/?action=getuploadserver&count=1') || return
@@ -200,12 +226,13 @@ hotfile_upload() {
             -F "id=$UPID" \
             -F "name=$DESTFILE" \
             -F "username=$USER" \
-            -F "passwordmd5=$PASSWORD" \
-            "$URL") || return
+            $PASSWD_FORM "$URL") || return
 
         if match_remote_url "$DATA"; then
             echo "$DATA"
             return 0
+        elif match '\.invalid username or password' "$DATA"; then
+            return $ERR_LOGIN_FAILED
         fi
     fi
 
