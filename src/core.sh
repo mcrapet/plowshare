@@ -775,6 +775,7 @@ parse_cookie_quiet() {
 
 # Return base of URL
 # Examples:
+# - http://www.host.com => http://www.host.com
 # - http://www.host.com/a/b/c/d => http://www.host.com
 # - http://www.host.com?sid=123 => http://www.host.com
 # Note: Don't use `expr` (GNU coreutils) for portability purposes.
