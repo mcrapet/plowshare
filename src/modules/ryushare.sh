@@ -100,7 +100,7 @@ ryushare_download() {
     FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
 
     WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
-    wait $((WAIT_TIME)) || return
+    wait $((WAIT_TIME + 1)) || return
 
     # Didn't included -d 'method_premium='
     PAGE=$(curl -b 'lang=english' -d "referer=$URL" \
@@ -114,6 +114,9 @@ ryushare_download() {
 
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'here to download' href)
     if match_remote_url "$FILE_URL"; then
+        # Workaround to avoid "Skipped countdown" error
+        wait 2 || return
+
         echo "$FILE_URL"
         echo "$FORM_FNAME"
         return 0
