@@ -21,8 +21,10 @@
 MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 
 MODULE_GO4UP_UPLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account
 INCLUDE,,include:,LIST,Provide list of host site (space separated)
-COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5."
+COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5.
+API,,api,,Use public API (recommended)"
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_GO4UP_DELETE_OPTIONS="
@@ -52,8 +54,8 @@ go4up_login() {
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/account.php")
 
     # The new password will be confirmed at : <b>USER_MAIL</b>
-    NAME=$(echo "$PAGE" | parse 'The new password will be confirmed at' \
-        '<b>\([^<]\+\)</b>') || return
+    NAME=$(echo "$PAGE" | parse_tag \
+        'The new password will be confirmed at' b) || return
 
     log_debug "Successfully logged in as member '$NAME'"
 }
@@ -70,30 +72,91 @@ go4up_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://go4up.com'
-    local PAGE LINK FORM UPLOAD_ID
-    local SITES_ALL SITES_SEL SITES_FORM SITES_MULTI
+    local PAGE LINK FORM UPLOAD_ID USER_ID
+    local SITE HOST SITES_ALL SITES_SEL SITES_FORM SITES_MULTI
 
-    # Registered users can use public API:
-    # http://go4up.com/wiki/index.php/API_doc
+    if [ -n "$API" ]; then
+        log_debug "using public API"
+
+        # Check if API can handle this upload
+        if [ -z "$AUTH_FREE" ]; then
+            log_error 'Public API is only available for registered users.'
+            return $ERR_FATAL
+        fi
+
+        if [ -n "$COUNT" -o -n "$INCLUDE" ]; then
+            log_error 'Public API does not support hoster selection.'
+            return $ERR_FATAL
+        fi
+
+        if match_remote_url "$FILE"; then
+            log_error 'Public API does not support remote upload.'
+            return $ERR_FATAL
+        fi
+
+        local USER=${AUTH_FREE%%:*}
+        local PASSWORD=${AUTH_FREE#*:}
+
+        if [ -z "$PASSWORD" -o "$AUTH_FREE" = "$PASSWORD" ]; then
+            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+        fi
+
+        # http://go4up.com/wiki/index.php/API_doc
+        PAGE=$(curl -F "user=$USER" -F "pass=$PASSWORD" \
+            -F "filedata=@$FILE" "$BASE_URL/api/upload.php")
+
+        if match '<link>' "$PAGE"; then
+            : # Nothing to do, just catch the "good" case
+        elif match '<error>Invalid login/password</error>' "$PAGE"; then
+            return $ERR_LOGIN_FAILED
+        # Invalid post data count
+        # Choose host to upload in your account
+        else
+            local ERR=$(echo "$PAGE" | parse_tag error)
+            log_error "Remote error: $ERR"
+            return $ERR_FATAL
+        fi
+
+        echo "$PAGE" | parse_tag 'link'
+        return 0
+    fi
+
+    # Public API not used
+
+    # Login needs to go before retrieving hosters because accounts
+    # have a individual hoster lists
+    if [ -n "$AUTH_FREE" ]; then
+        go4up_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
 
     # Retrieve complete hosting site list
+    # Note: This can be either our first contact with Go4Up (no login)
+    #       or the second (with login), so we need both -b and -c.
     if match_remote_url "$FILE"; then
-        PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL/remote.php") || return
+        PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
+            "$BASE_URL/remote.php") || return
         FORM=$(grep_form_by_id "$PAGE" 'form_upload') || return
     else
-        PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
+        PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
+            "$BASE_URL") || return
         FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
     fi
 
-    SITES_ALL=$(echo "$FORM" | parse_all_attr 'type="checkbox"' value)
+    # When logged into account all form fields are on a single line
+    if [ -n "$AUTH_FREE" ]; then
+        FORM=$(echo "$FORM" | break_html_lines)
+    fi
+
+    USER_ID=$(echo "$FORM" | parse_form_input_by_name 'id_user')
+    SITES_ALL=$(echo "$FORM" | parse_all_attr checkbox value) || return
 
     # Code copied from mirrorcreator module
     if [ -z "$SITES_ALL" ]; then
         log_error "Empty list, site updated?"
         return $ERR_FATAL
-    else
-        log_debug "Available sites:" $SITES_ALL
     fi
+
+    log_debug "Available sites:" $SITES_ALL
 
     if [ -n "$COUNT" ]; then
         if [[ $((COUNT)) -eq 0 ]]; then
@@ -115,14 +178,14 @@ go4up_upload() {
         done
     else
         # Default hosting sites selection
-        SITES_SEL=$(echo "$FORM" | \
-            parse_all_attr 'type="checkbox".*checked' 'value')
+        SITES_SEL=$(echo "$FORM" | parse_all_attr checked value) || return
     fi
 
     if [ -z "$SITES_SEL" ]; then
         log_debug "Empty site selection. Nowhere to upload!"
         return $ERR_FATAL
     fi
+    # End of code copy
 
     # Prepare lists of hosts to mirror to
     for HOST in $SITES_SEL; do
@@ -140,10 +203,10 @@ go4up_upload() {
         UPLOAD_ID=$(echo "$FORM" | \
             parse_form_input_by_id 'progress_key') || return
 
-        PAGE=$(curl -b "$COOKIE_FILE" \
+        PAGE=$(curl_with_log -b "$COOKIE_FILE" \
             --referer "$BASE_URL/remote.php" \
             -F "APC_UPLOAD_PROGRESS=$UPLOAD_ID" \
-            -F 'id_user=0' \
+            -F "id_user=$USER_ID" \
             -F "url=$FILE" \
             $SITES_MULTI \
             "$BASE_URL/copy_remote.php") || return
@@ -153,6 +216,7 @@ go4up_upload() {
             return $ERR_FATAL
         fi
         LINK="http://www.go4up.com/dl/$UPLOAD_ID"
+
     else
         local UPLOAD_URL1 UPLOAD_URL2
 
@@ -165,7 +229,7 @@ go4up_upload() {
         PAGE=$(curl -b "$COOKIE_FILE" \
             --referer "$BASE_URL/index.php" \
             $SITES_FORM \
-            -d 'id_user=0' \
+            -d "id_user=$USER_ID" \
             -d "upload_file[]=$DESTFILE" \
             "$BASE_URL$UPLOAD_URL1") || return
 
@@ -178,7 +242,7 @@ go4up_upload() {
 
         PAGE=$(curl_with_log -b "$COOKIE_FILE" \
             --referer "$BASE_URL/index.php" \
-            -F 'id_user=0' \
+            -F "id_user=$USER_ID" \
             -F "upfile_$(date +%s)000=@$FILE;filename=$DESTFILE" \
             $SITES_MULTI \
             "$BASE_URL$UPLOAD_URL2?upload_id=$UPLOAD_ID") || return
