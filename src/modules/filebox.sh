@@ -99,10 +99,10 @@ filebox_download() {
     fi
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'id') || return
-    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'rand') || return
-    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'down_direct') || return
+    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
+    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
+    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct') || return
 
     # Note: this is quiet parsing
     FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
@@ -146,7 +146,7 @@ filebox_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://www.filebox.com'
-    local PAGE SRV_CGI SIZE_LIMIT SESSID RESPONSE CODE DEL_LINK
+    local PAGE SRV_CGI SIZE_LIMIT SESSID RESPONSE FILE_ID FILE_ORIG_ID DEL_LINK
 
     if [ -n "$AUTH" ]; then
         filebox_login "$AUTH" "$COOKIE_FILE" || return
@@ -173,19 +173,22 @@ filebox_upload() {
         -F "sess_id=$SESSID" \
         -F 'folder=/' \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
-        -F "Upload=Submit Query" \
+        -F 'Upload=Submit Query' \
         "$SRV_CGI") || return
 
     # code : real : dx : fname : ftype
     # rvxv24pogkgl:rvxv24pogkgl:00068:foobar.zip:
-    CODE=${RESPONSE%%:*}
+    IFS=":" read FILE_ID FILE_ORIG_ID PAGE <<< "$RESPONSE"
+    if [ "$FILE_ID" != "$FILE_ORIG_ID" ]; then
+        log_debug "Upstream found similar upload: $BASE_URL/$FILE_ORIG_ID"
+    fi
 
     PAGE=$(curl --get --referer "$BASE_URL" \
         -d 'op=upload_result' -d 'st=OK' \
-        -d "fn=$CODE" "$BASE_URL") || return
+        -d "fn=$FILE_ID" "$BASE_URL") || return
 
     DEL_LINK=$(echo "$PAGE" | parse_tag 'killcode' textarea)
 
-    echo "$BASE_URL/$CODE"
+    echo "$BASE_URL/$FILE_ID"
     echo "$DEL_LINK"
 }
