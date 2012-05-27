@@ -140,6 +140,8 @@ for URL in "$@"; do
             log_notice "Try adding -r/--recursive option to look into sub folders"
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error "You must provide a valid password"
+    elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+        log_error "Links are temporarily unavailable. Maybe uploads are still beeing processed"
     fi
     RETVALS=(${RETVALS[@]} $LRETVAL)
 done
