@@ -79,8 +79,8 @@ mirrorcreator_upload() {
 
     if [ -n "$COUNT" ]; then
         if [[ $((COUNT)) -eq 0 ]]; then
-            log_error "Bad integer value for --count, set it to 3"
             COUNT=5
+            log_error "Bad integer value for --count, set it to $COUNT"
         fi
 
         if [ "$COUNT" -gt 9 ]; then
