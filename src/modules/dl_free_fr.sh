@@ -53,13 +53,14 @@ captcha_ayl_process() {
         WORDS=$(echo "$VARS" | parse_json_quiet 'instructions_visual' | tr -d '\302')
         TOKEN=$(echo "$VARS" | parse_json 'token') || return
         TOKEN_ID=$(echo "$VARS" | parse_json 'tid') || return
-        TYPE=$(echo "$VARS" | parse_json "medium_type" | replace '/' '_') || return
+        TYPE=$(echo "$VARS" | parse_json 'medium_type' | replace '/' '_') || return
 
         log_debug "Adyoulike challenge: $TOKEN"
 
         # Easy case, captcha answer is written plain text :)
         # UTF-8 characters: « (\uC2AB), » (\uC2BB)
         if [ -n "$WORDS" -a "$TYPE" = 'image_adyoulike' ]; then
+            # FIXME: Don't use \xHH in basic POSIX regexp
             RESPONSE=$(echo "$WORDS" | parse_quiet . '\xAB \([^ ]*\) \xBB')
             [ -n "$RESPONSE" ] && break
 
