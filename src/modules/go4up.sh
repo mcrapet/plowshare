@@ -25,7 +25,38 @@ INCLUDE,,include:,LIST,Provide list of host site (space separated)
 COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5."
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
 
+MODULE_GO4UP_DELETE_OPTIONS="
+AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account (mandatory)"
+
 MODULE_GO4UP_LIST_OPTIONS=""
+
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+go4up_login() {
+    local AUTH_FREE=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+    local LOGIN_DATA PAGE NAME
+
+    LOGIN_DATA='email=$USER&password=$PASSWORD&signin_go='
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+       "$BASE_URL/login.php" -b "$COOKIE_FILE") || return
+
+    if match 'Bad email/password.' "$PAGE" || \
+        match 'Please enter a valid email address' "$PAGE"; then
+        return $ERR_LOGIN_FAILED
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/account.php")
+
+    # The new password will be confirmed at : <b>USER_MAIL</b>
+    NAME=$(echo "$PAGE" | parse 'The new password will be confirmed at' \
+        '<b>\([^<]\+\)</b>') || return
+
+    log_debug "Successfully logged in as member '$NAME'"
+}
 
 # Upload a file to go4up.com
 # $1: cookie file (for account only)
@@ -48,11 +79,9 @@ go4up_upload() {
     # Retrieve complete hosting site list
     if match_remote_url "$FILE"; then
         PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL/remote.php") || return
-
         FORM=$(grep_form_by_id "$PAGE" 'form_upload') || return
     else
         PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
-
         FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
     fi
 
@@ -200,4 +229,44 @@ go4up_list() {
         PAGE=$(curl "$SITE_URL") || return
         echo "$PAGE" | parse 'http-equiv' 'url=\([^">]\+\)'
     done <<< "$LINKS"
+}
+
+# Delete a file on go4up.com
+# $1: cookie file
+# $2: file URL
+go4up_delete() {
+    eval "$(process_options go4up "$MODULE_GO4UP_DELETE_OPTIONS" "$@")"
+
+    local COOKIE_FILE=$1
+    local URL=$2
+    local BASE_URL='http://go4up.com'
+    local PAGE FILE_ID
+
+    test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
+
+    # Parse URL
+    # http://go4up.com/link.php?id=1Ddupi2qxbwl
+    # http://go4up.com/dl/1Ddupi2qxbwl
+    FILE_ID=$(echo "$URL" | parse . '[=/]\([[:alnum:]]\+\)$') || return
+    log_debug "File ID: $FILE_ID"
+
+    # Check link
+    PAGE=$(curl "$URL") || return
+    match 'does not exist or has been removed' "$PAGE" && \
+        return $ERR_LINK_DEAD
+
+    go4up_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    PAGE=$(curl -b "$COOKIE_FILE" -d "id=$FILE_ID" \
+        "$BASE_URL/delete.php") || return
+
+    # Note: Go4up will *always* send this reply
+    match 'Your link has been deleted from our database' "$PAGE" || \
+        return $ERR_FATAL
+
+    # Check if link is really gone
+    PAGE=$(curl "$URL") || return
+    if ! match 'does not exist or has been removed' "$PAGE"; then
+        log_error 'File NOT removed. Correct account?'
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
 }
