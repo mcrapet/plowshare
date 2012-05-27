@@ -625,8 +625,8 @@ break_html_lines_alt() {
 # - marker is case sensitive, it should not
 # - "parse_xxx tag" is a shortcut for "parse_xxx tag tag"
 #
-# $1: regexp to filter (take lines matching $1 pattern)
-# $2: tag name. Example: "span".
+# $1: (optional) regexp to filter (take lines matching $1 pattern)
+# $2: tag name. Example: "span"
 # stdin: (X)HTML data
 # stdout: result
 parse_all_tag() {
@@ -668,8 +668,8 @@ parse_tag_quiet() {
 # - attribute is case sensitive, it should not
 # - "parse_xxx attr" is a shortcut for "parse_xxx attr attr"
 #
-# $1: regexp to filter (take lines matching $1 pattern)
-# $2: attribute name. Example: "href".
+# $1: (optional) regexp to filter (take lines matching $1 pattern)
+# $2: attribute name. Example: "href"
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
@@ -1603,7 +1603,7 @@ captcha_nack() {
 #   - "l": letters [a-z]. Param: length.
 #   - "L": letters [A-Z]. Param: length.
 #   - "ll", "LL": letters [A-Za-z]. Param: length.
-# $2 (optional): operation parameter
+# $2: (optional) operation parameter
 random() {
     local I=0
     local LEN=${2:-8}
