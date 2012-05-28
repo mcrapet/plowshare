@@ -174,20 +174,18 @@ dl_free_fr_upload() {
     local FILE=$2
     local DESTFILE=$3
     local UPLOADURL='http://dl.free.fr'
-    local PAGE FORM_HTML FORM_ACTION SESSIONID HEADERS STATUS MON_PL WAITTIME DL RM
+    local PAGE FORM_HTML FORM_ACTION HEADERS MON_PL WAIT_TIME DL_URL DEL_URL
 
-    log_debug "downloading upload page: $UPLOADURL"
     PAGE=$(curl "$UPLOADURL") || return
 
     FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    SESSIONID=$(echo "$FORM_ACTION" | cut -d? -f2)
 
     # <input> markers are: ufile, mail1, mail2, mail3, mail4, message, password
     # Returns 302. Answer headers are not returned with -i switch, I must
     # use -D. This should be reported to cURL bug tracker.
     HEADERS=$(create_tempfile) || return
-    STATUS=$(curl_with_log -D "$HEADERS" \
+    PAGE=$(curl_with_log -D "$HEADERS" \
         --referer "$UPLOADURL/index_nojs.pl" \
         -F "ufile=@$FILE;filename=$DESTFILE" \
         -F "mail1=" \
@@ -203,38 +201,38 @@ dl_free_fr_upload() {
 
     log_debug "Monitoring page: $MON_PL"
 
-    WAITTIME=5
-    while [ $WAITTIME -lt 320 ] ; do
+    WAIT_TIME=5
+    while [ $WAIT_TIME -lt 320 ] ; do
         PAGE=$(curl "$MON_PL") || return
 
         if match 'En attente de traitement...' "$PAGE"; then
             log_debug "please wait"
-            ((WAITTIME += 4))
+            ((WAIT_TIME += 4))
         elif match 'Test antivirus...' "$PAGE"; then
             log_debug "antivirus test"
-            WAITTIME=3
+            WAIT_TIME=3
         elif match 'Mise en ligne du fichier...' "$PAGE"; then
             log_debug "nearly online!"
-            WAITTIME=2
+            WAIT_TIME=2
         elif match 'Erreur de traitement...' "$PAGE"; then
             log_error "process failed, you may try again"
             break
         # Fichier "foo" en ligne, procédure terminée avec succès...
         elif match 'Le fichier sera accessible' "$PAGE"; then
-            DL=$(echo "$PAGE" | parse 'en ligne' \
-                    "window\.open('\(http://dl.free.fr/[^?]*\)')" | html_to_utf8)
-            RM=$(echo "$PAGE" | parse 'en ligne' \
-                    "window\.open('\(http://dl.free.fr/rm\.pl[^']*\)" | html_to_utf8)
+            DL_URL=$(echo "$PAGE" | parse 'en ligne' \
+                "window\.open('\(http://dl.free.fr/[^?]*\)')" | html_to_utf8)
+            DEL_URL=$(echo "$PAGE" | parse 'en ligne' \
+                "window\.open('\(http://dl.free.fr/rm\.pl[^']*\)" | html_to_utf8)
 
-            echo "$DL"
-            echo "$RM"
+            echo "$DL_URL"
+            echo "$DEL_URL"
             return 0
         else
             log_error "unknown state, abort"
             break
         fi
 
-        wait $WAITTIME seconds
+        wait $WAIT_TIME seconds
     done
     return $ERR_FATAL
 }
