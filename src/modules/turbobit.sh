@@ -79,12 +79,12 @@ turbobit_download() {
     # Get id from these url formats:
     # http://turbobit.net/hsclfbvorabc/full.filename.avi.html
     # http://turbobit.net/hsclfbvorabc.html
-    ID_FILE=$(echo "$URL" | parse_quiet '.html' '.net\/\([^/.]*\)')
+    ID_FILE=$(echo "$URL" | parse_quiet '.html' '.net/\([^/.]*\)')
 
     # Get id from these url formats:
     # http://turbobit.net/download/free/hsclfbvorabc
     if [ -z "$ID_FILE" ]; then
-        ID_FILE=$(echo "$URL" | parse_quiet '\/download\/free\/' 'free\/\([^/]*\)')
+        ID_FILE=$(echo "$URL" | parse_quiet '/download/free/' 'free/\([^/]*\)')
     fi
 
     if [ -z "$ID_FILE" ]; then
@@ -105,7 +105,7 @@ turbobit_download() {
             # Check for dead link
             is_dead_turbobit "$PAGE" || return
 
-            FILE_URL=$(echo "$PAGE" | parse_attr '\/redirect\/' 'href')
+            FILE_URL=$(echo "$PAGE" | parse_attr '/redirect/' 'href')
             FILE_NAME=$(basename_file "$FILE_URL")
 
             FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
@@ -225,7 +225,7 @@ turbobit_download() {
         return $ERR_FATAL
     fi
 
-    PART_FILE_URL=$(echo "$PAGE_LINK" | parse_attr '\/download\/redirect' 'href') || return
+    PART_FILE_URL=$(echo "$PAGE_LINK" | parse_attr '/download/redirect' 'href') || return
     FILE_NAME=$(basename_file "$PART_FILE_URL")
 
     FILE_URL="http://turbobit.net$PART_FILE_URL"

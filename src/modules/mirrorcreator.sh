@@ -157,7 +157,7 @@ mirrorcreator_list() {
     STATUS=$(echo "$PAGE" | parse 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
     PAGE=$(curl -L "$BASE_URL$STATUS") || return
 
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '\/redirect\/' href) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/redirect/' href) || return
     if [ -z "$LINKS" ]; then
         return $ERR_LINK_DEAD
     fi

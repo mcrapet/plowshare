@@ -127,7 +127,7 @@ dataport_cz_upload() {
         -F "description=None" \
         "$(basename_url "$IURL")$FORM_ACTION") || return
 
-    DL_LINK=$(echo "$PAGE" | parse_attr '\/file\/' value) || return
+    DL_LINK=$(echo "$PAGE" | parse_attr '/file/' value) || return
     DEL_LINK=$(echo "$PAGE" | parse_attr delete value)
 
     echo "$DL_LINK"

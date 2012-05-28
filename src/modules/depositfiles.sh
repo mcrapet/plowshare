@@ -298,7 +298,7 @@ depositfiles_list() {
 
     PAGE=$(curl -L "$URL") || return
     LINKS=$(echo "$PAGE" | parse_all 'target="_blank"' \
-        '\(<a href="http[^<]*<\/a>\)') || return $ERR_LINK_DEAD
+        '\(<a href="http[^<]*</a>\)') || return $ERR_LINK_DEAD
 
     # First pass : print debug message
     while read LINE; do

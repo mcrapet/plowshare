@@ -87,7 +87,7 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
         return $ERR_LINK_DEAD
     fi
 
-    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com\/get\/' 'href') || return
+    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com/get/' 'href') || return
 
     test "$CHECK_LINK" && return 0
 

@@ -311,23 +311,29 @@ match_remote_url() {
 # stdin: text data
 # stdout: result
 parse_all() {
+    local F=${1//\//\\/}
+    local M=${2//\//\\/}
     local STRING REGEXP
 
-    if [ '^' = "${2:0:1}" ]; then
-        if [ '$' = "${2:(-1):1}" ]; then
-            REGEXP="$2"
+    # Important note: Even if '/' characters (sed separator) have been escaped,
+    # this won't work if '/' is given already escaped ('\/'). There is no easy
+    # way to fix this (for example '/' is not escaped here: '\\/').
+
+    if [ '^' = "${M:0:1}" ]; then
+        if [ '$' = "${M:(-1):1}" ]; then
+            REGEXP="$M"
         else
-            REGEXP="$2.*$"
+            REGEXP="$M.*$"
         fi
-    elif [ '$' = "${2:(-1):1}" ]; then
-            REGEXP="^.*$2"
+    elif [ '$' = "${M:(-1):1}" ]; then
+        REGEXP="^.*$M"
     else
-            REGEXP="^.*$2.*$"
+        REGEXP="^.*$M.*$"
     fi
 
-    STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
+    STRING=$(sed -n "/$F/s/$REGEXP/\1/p")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP/\""
+        log_error "$FUNCNAME failed (sed): \"/$F/s/$REGEXP/\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -365,19 +371,21 @@ parse_last() {
 # stdin: text data
 # stdout: result
 parse_line_after_all() {
-    local STRING REGEXP SKIP
+    local F=${1//\//\\/}
+    local M=${2//\//\\/}
     local N=${3:-1}
+    local STRING REGEXP SKIP
 
-    if [ '^' = "${2:0:1}" ]; then
-        if [ '$' = "${2:(-1):1}" ]; then
-            REGEXP="$2"
+    if [ '^' = "${M:0:1}" ]; then
+        if [ '$' = "${M:(-1):1}" ]; then
+            REGEXP="$M"
         else
-            REGEXP="$2.*$"
+            REGEXP="$M.*$"
         fi
-    elif [ '$' = "${2:(-1):1}" ]; then
-            REGEXP="^.*$2"
+    elif [ '$' = "${M:(-1):1}" ]; then
+        REGEXP="^.*$M"
     else
-            REGEXP="^.*$2.*$"
+        REGEXP="^.*$M.*$"
     fi
 
     if [ "$((N))" -gt 0 ]; then
@@ -388,9 +396,9 @@ parse_line_after_all() {
         done
     fi
 
-    STRING=$(sed -n "/$1/{${SKIP}s/$REGEXP/\1/p}")
+    STRING=$(sed -n "/$F/{${SKIP}s/$REGEXP/\1/p}")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/{${SKIP}s/$REGEXP/}\""
+        log_error "$FUNCNAME failed (sed): \"/$F/{${SKIP}s/$REGEXP/}\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -630,12 +638,13 @@ break_html_lines_alt() {
 # stdin: (X)HTML data
 # stdout: result
 parse_all_tag() {
+    local F=${1//\//\\/}
     local T=${2:-"$1"}
-    local STRING=$(sed -ne "/$1/s/<\/$T>.*$//p" | \
+    local STRING=$(sed -ne "/$F/s/<\/$T>.*$//p" | \
                    sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
 
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
+        log_error "$FUNCNAME failed (sed): \"/$F/ <$T>\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -673,13 +682,14 @@ parse_tag_quiet() {
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
+    local F=${1//\//\\/}
     local A=${2:-"$1"}
     local STRING=$(sed \
-        -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*/\1/p" \
-        -ne "/$1/s/.*$A[[:space:]]*=[[:space:]]*\([^\"'<=> 	]\+\).*/\1/p")
+        -ne "/$F/s/.*$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*/\1/p" \
+        -ne "/$F/s/.*$A[[:space:]]*=[[:space:]]*\([^\"'<=> 	]\+\).*/\1/p")
 
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
+        log_error "$FUNCNAME failed (sed): \"/$F/ $A=\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -1358,7 +1368,7 @@ captcha_process() {
             fi
 
             HTTP_CODE=$(echo "$RESPONSE" | first_line | \
-                parse . 'HTTP\/1\.. \([[:digit:]]\+\) ')
+                parse . 'HTTP/1\.. \([[:digit:]]\+\) ')
 
             if [ "$HTTP_CODE" = 303 ]; then
                 POLL_URL=$(echo "$RESPONSE" | grep_http_header_location) || return

@@ -110,7 +110,7 @@ filepost_download() {
 
         ROLE=$(echo "$PAGE" | parse_tag 'Account type' span) || return
         if [ "$ROLE" != 'Free' ]; then
-            FILE_URL=$(echo "$PAGE" | parse '\/get_file\/' "('\(http[^']*\)") || return
+            FILE_URL=$(echo "$PAGE" | parse '/get_file/' "('\(http[^']*\)") || return
             FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
 
             echo "$FILE_URL"
@@ -142,7 +142,7 @@ filepost_download() {
     FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
     FILE_PASS=
 
-    CODE=$(echo "$URL" | parse '\/files\/' 'files\/\([^/]*\)') || return
+    CODE=$(echo "$URL" | parse '/files/' 'files/\([^/]*\)') || return
     TID=t$(random d 4)
 
     # Cookie is just needed for SID

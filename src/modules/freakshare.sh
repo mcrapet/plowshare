@@ -61,7 +61,7 @@ freakshare_download() {
     local BASE_URL='http://freakshare.com'
     local WAIT_HTML SLEEP
 
-    if match 'freakshare\.com\/list\/' "$URL"; then
+    if match 'freakshare\.com/list/' "$URL"; then
         log_error "This is a directory list, use plowlist!"
         return $ERR_FATAL
     fi
@@ -188,6 +188,6 @@ freakshare_upload() {
     URL=$(echo "$PAGE" | grep_http_header_location) || return
     PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
 
-    echo "$PAGE" | parse_attr '\/files\/' value || return
-    echo "$PAGE" | parse_attr '\/delete\/' value || return
+    echo "$PAGE" | parse_attr '/files/' value || return
+    echo "$PAGE" | parse_attr '/delete/' value || return
 }

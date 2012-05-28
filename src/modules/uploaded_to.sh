@@ -127,7 +127,7 @@ uploaded_to_download() {
     fi
 
     # extract the raw file id
-    FILE_ID=$(echo "$URL" | parse 'uploaded' '\/file\/\([^\/]*\)')
+    FILE_ID=$(echo "$URL" | parse 'uploaded' '/file/\([^/]*\)')
     log_debug "file id=$FILE_ID"
 
     # check for files that need a password (file owner never needs password,
@@ -152,7 +152,7 @@ uploaded_to_download() {
 
     # retrieve the waiting time
     SLEEP=$(echo "$HTML" | parse '<span>Current waiting period' \
-        'period: <span>\([[:digit:]]\+\)<\/span>')
+        'period: <span>\([[:digit:]]\+\)</span>')
     test -z "$SLEEP" && log_error "can't get sleep time" && \
         log_debug "sleep time: $SLEEP" && return $ERR_FATAL
 
@@ -207,7 +207,7 @@ uploaded_to_upload() {
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
     JS=$(curl "$BASE_URL/js/script.js") || return
-    SERVER=$(echo "$JS" | parse '\/\/stor' "[[:space:]]'\([^']*\)") || return
+    SERVER=$(echo "$JS" | parse '//stor' "[[:space:]]'\([^']*\)") || return
 
     log_debug "uploadServer: $SERVER"
 
@@ -261,7 +261,7 @@ uploaded_to_delete() {
         return $ERR_LINK_DEAD
     fi
 
-    FILE_ID=$(echo "$PAGE" | parse 'file\/' 'file\/\([^/"]\+\)') || return
+    FILE_ID=$(echo "$PAGE" | parse 'file/' 'file/\([^/"]\+\)') || return
     log_debug "file id=$FILE_ID"
 
     uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
@@ -303,7 +303,7 @@ uploaded_to_list() {
         # This gives links: "file/$FILE_ID/from/folderid"
         #FILE_ID=$(echo "$LINE" | parse_attr '<a' 'href')
 
-        FILE_ID=file/$(echo "$LINE" | parse '.' 'file\/\([^/]\+\)')
+        FILE_ID=file/$(echo "$LINE" | parse '.' 'file/\([^/]\+\)')
         echo "http://uploaded.to/$FILE_ID"
     done <<< "$LINKS"
 }

@@ -156,13 +156,13 @@ go4up_upload() {
 
         # parent.UberUpload.redirectAfterUpload('../../uploaded.php?upload_id=9f07...
         UPLOAD_URL1=$(echo "$PAGE" | \
-            parse 'redirectAfter' "'\.\.\/\.\.\([^']\+\)'") || return
+            parse 'redirectAfter' "'\.\./\.\.\([^']\+\)'") || return
 
         PAGE=$(curl -b "$COOKIE_FILE" \
             --referer "$BASE_URL/index.php" \
             "$BASE_URL$UPLOAD_URL1") || return
 
-        LINK=$(echo "$PAGE" | parse_attr '\/dl\/' href) || return
+        LINK=$(echo "$PAGE" | parse_attr '/dl/' href) || return
     fi
 
     echo "$LINK"

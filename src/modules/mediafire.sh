@@ -253,7 +253,7 @@ mediafire_list() {
         URL="http://www.mediafire.com$LOCATION"
     fi
 
-    QUICKKEY=$(echo "$URL" | parse 'mediafire\.com\/?' '?\([^&"]*\)')
+    QUICKKEY=$(echo "$URL" | parse 'mediafire\.com/?' '?\([^&"]*\)')
     log_debug "quickkey: $QUICKKEY"
 
     # remark: response_format=json is also possible

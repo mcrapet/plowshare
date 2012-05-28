@@ -63,9 +63,9 @@ bitshare_download() {
     local FILE_ID POST_URL WAIT AJAXDL DATA RESPONSE
     local NEED_RECAPTCHA FILE_URL FILENAME
 
-    FILE_ID=$(echo "$URL" | parse_quiet 'bitshare' 'bitshare\.com\/files\/\([^/]\+\)\/')
+    FILE_ID=$(echo "$URL" | parse_quiet 'bitshare' 'bitshare\.com/files/\([^/]\+\)/')
     if test -z "$FILE_ID"; then
-        FILE_ID=$(echo "$URL" | parse 'bitshare' 'bitshare\.com\/?f=\(.\+\)$') || return
+        FILE_ID=$(echo "$URL" | parse 'bitshare' 'bitshare\.com/?f=\(.\+\)$') || return
     fi
 
     log_debug "file id=$FILE_ID"
@@ -89,7 +89,7 @@ bitshare_download() {
     # Download limit
     elif match "You reached your hourly traffic limit\." "$RESPONSE"; then
         WAIT=$(echo "$RESPONSE" | parse '<span id="blocktimecounter">' \
-            '<span id="blocktimecounter">\([[:digit:]]\+\) seconds\?<\/span>')
+            '<span id="blocktimecounter">\([[:digit:]]\+\) seconds\?</span>')
         echo $((WAIT))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
@@ -98,8 +98,8 @@ bitshare_download() {
     fi
 
     # Note: filename is <h1> tag might be truncated
-    FILENAME=$(echo "$RESPONSE" | parse 'http:\/\/bitshare\.com\/files\/' \
-        'value="http:\/\/bitshare\.com\/files\/'"$FILE_ID"'\/\(.*\)\.html"') || return
+    FILENAME=$(echo "$RESPONSE" | parse 'http://bitshare\.com/files/' \
+        'value="http://bitshare\.com/files/'"$FILE_ID"'/\(.*\)\.html"') || return
 
     # Premium account direct download
     FILE_URL=$(echo "$RESPONSE" | grep_http_header_location_quiet) || return
@@ -280,7 +280,7 @@ bitshare_upload_openapi() {
                         -F "hashkey=$HASHKEY" \
                         "$UPLOAD_URL") || return
 
-                    FILEID_URL=$(echo "$FILE_URL" | parse . '\/files\/\([^\/]\+\)')
+                    FILEID_URL=$(echo "$FILE_URL" | parse . '/files/\([^/]\+\)')
                     FILEID_INT=$(echo "$RESPONSE2" | parse_quiet "$FILEID_URL" '^\([^#]\+\)')
                     if [ -n "$FILEID_INT" ]; then
                         RESPONSE2=$(curl --form-string 'action=renamefile' \
@@ -412,9 +412,9 @@ bitshare_upload_form() {
         "${ACTION}?X-Progress-ID=undefined$(random h 32)") || return
 
     DOWNLOAD_URL=$(echo "$RESPONSE" | \
-        parse_line_after '<td style="text-align:right">Download:<\/td>' 'value="\([^"]\+\)"') || return
+        parse_line_after '<td style="text-align:right">Download:</td>' 'value="\([^"]\+\)"') || return
     DELETE_URL=$(echo "$RESPONSE" | \
-        parse_line_after '<td style="text-align:right">Delete link:<\/td>' 'value="\([^"]\+\)"') || return
+        parse_line_after '<td style="text-align:right">Delete link:</td>' 'value="\([^"]\+\)"') || return
     echo "$DOWNLOAD_URL"
     echo "$DELETE_URL"
 }

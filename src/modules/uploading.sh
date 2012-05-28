@@ -69,7 +69,7 @@ uploading_download() {
     wait $WAIT || return
 
     FILENAME=$(echo "$PAGE" | parse_quiet '<title>' \
-        '<title>Download \(.*\) for free on uploading.com<\/title>')
+        '<title>Download \(.*\) for free on uploading.com</title>')
 
     JSON=$(curl -b "$COOKIEFILE" -d 'action=get_link' \
         -d "code=$CODE" -d "pass=$PASS" \

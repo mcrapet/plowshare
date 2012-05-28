@@ -106,7 +106,7 @@ netload_in_download() {
 
     WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
     WAIT_HTML=$(curl -b "$COOKIEFILE" --location --referer "$URL" "$WAIT_URL") || return
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text\/javascript">countdown' \
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
 
     wait $((WAIT_TIME / 100)) seconds || return
@@ -159,7 +159,7 @@ netload_in_download() {
     captcha_ack $ID
     log_debug "correct captcha"
 
-    WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text\/javascript">countdown' \
+    WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
 
     # <!--./share/templates/download_limit.tpl-->

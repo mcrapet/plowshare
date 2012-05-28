@@ -125,7 +125,7 @@ cramit_download() {
         FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
 
         # 4 digit captcha
-        CAPTCHA_URL=$(echo "$PAGE" | parse_attr '\/captchas\/' 'src') || return
+        CAPTCHA_URL=$(echo "$PAGE" | parse_attr '/captchas/' 'src') || return
 
         local WI WORD ID
         WI=$(captcha_process "$CAPTCHA_URL") || return

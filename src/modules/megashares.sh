@@ -65,7 +65,7 @@ megashares_download() {
     # Two kind of URL:
     # http://d01.megashares.com/?d01=8Ptv172
     # http://d01.megashares.com/dl/2eb56b0/Filename.rar
-    FID=$(echo "$2" | parse_quiet '\/dl\/' 'dl\/\([^/]*\)')
+    FID=$(echo "$2" | parse_quiet '/dl/' 'dl/\([^/]*\)')
     if [ -n "$FID" ]; then
         URL="http://d01.megashares.com/index.php?d01=$FID"
     fi
@@ -83,7 +83,7 @@ megashares_download() {
     # You have reached your maximum download limit
     elif matchi 'maximum download limit' "$PAGE"; then
         log_debug 'You have reached your maximum download limit.'
-        #declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)<\/strong>:')
+        #declare -i MIN=10#$(echo "$PAGE" | parse 'in 00:' 'g>\([[:digit:]]*\)</strong>:')
         #echo $((60 * MIN)) minutes
         echo 600
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -218,7 +218,7 @@ megashares_upload() {
     PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
 
     # <dt>Download Link to share:</dt>
-    DL_LINK=$(echo "$PAGE" | parse_tag '\/dl\/' a)
+    DL_LINK=$(echo "$PAGE" | parse_tag '/dl/' a)
 
     # Needs "uloader" entry in cookie file to get delete link
     # <dt>Delete Link (keep this in a safe place):</dt>

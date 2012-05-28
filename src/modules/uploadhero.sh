@@ -68,7 +68,7 @@ uploadhero_download() {
     fi
 
     # Extract the raw file id
-    FILE_ID=$(echo "$URL" | parse 'uploadhero' '\/dl\/\([^\/]*\)')
+    FILE_ID=$(echo "$URL" | parse 'uploadhero' '/dl/\([^/]*\)')
     log_debug "File id=$FILE_ID"
 
     # Extract filename (first <div> marker)

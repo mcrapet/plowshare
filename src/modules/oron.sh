@@ -89,7 +89,7 @@ oron_is_checked() {
 # stdout: file id
 oron_extract_file_id() {
     local FILE_ID
-    FILE_ID=$(echo "$1" | parse '.' 'oron\.com\/\([[:alnum:]]\{12\}\)') || return
+    FILE_ID=$(echo "$1" | parse '.' 'oron\.com/\([[:alnum:]]\{12\}\)') || return
     log_debug "File ID=$FILE_ID"
     echo "$FILE_ID"
 }
@@ -445,12 +445,11 @@ oron_delete() {
     local COOKIEFILE=$1
     local URL=$2
     local HTML FILE_ID KILLCODE
-    local BASE_URL='http:\/\/oron\.com'
 
     # check + parse URL
     FILE_ID=$(oron_extract_file_id "$URL") || return
     KILLCODE=$(echo "$URL" | parse . \
-        "^$BASE_URL\/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
+        "^http://oron\.com/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
     log_debug "Killcode: $KILLCODE"
 
     oron_switch_lang "$COOKIEFILE" || return

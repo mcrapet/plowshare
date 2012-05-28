@@ -222,9 +222,9 @@ dl_free_fr_upload() {
         # Fichier "foo" en ligne, procédure terminée avec succès...
         elif match 'Le fichier sera accessible' "$PAGE"; then
             DL=$(echo "$PAGE" | parse 'en ligne' \
-                    "window\.open('\(http:\/\/dl.free.fr\/[^?]*\)')" | html_to_utf8)
+                    "window\.open('\(http://dl.free.fr/[^?]*\)')" | html_to_utf8)
             RM=$(echo "$PAGE" | parse 'en ligne' \
-                    "window\.open('\(http:\/\/dl.free.fr\/rm\.pl[^']*\)" | html_to_utf8)
+                    "window\.open('\(http://dl.free.fr/rm\.pl[^']*\)" | html_to_utf8)
 
             echo "$DL"
             echo "$RM"

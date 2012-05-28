@@ -126,7 +126,7 @@ sendspace_upload() {
     fi
 
     DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href') || return
-    DEL_LINK=$(echo "$DATA" | parse_attr '\/delete\/' 'href') || return
+    DEL_LINK=$(echo "$DATA" | parse_attr '/delete/' 'href') || return
 
     echo "$DL_LINK"
     echo "$DEL_LINK"
@@ -180,9 +180,9 @@ sendspace_list() {
 
     PAGE=$(curl "$URL") || return
     LINKS=$(echo "$PAGE" | parse_all_quiet \
-        '<td class="dl" align="center"' '\(<a href="http[^<]*<\/a>\)')
+        '<td class="dl" align="center"' '\(<a href="http[^<]*</a>\)')
     SUBDIRS=$(echo "$PAGE" | parse_all_quiet \
-        '\/folder\/' '\(<a href="http[^<]*<\/a>\)')
+        '/folder/' '\(<a href="http[^<]*</a>\)')
 
     if [ -z "$LINKS" -a -z "$SUBDIRS" ]; then
         return $ERR_LINK_DEAD
