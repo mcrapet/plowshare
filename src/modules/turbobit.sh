@@ -261,12 +261,12 @@ turbobit_upload() {
         PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$URL") || return
     fi
 
-    UPLOAD_URL=$(echo "$PAGE" | parse "flashvars=" "urlSite=\([^&]*\)") || return
-    APPTYPE=$(echo "$PAGE" | parse "flashvars=" 'apptype=\([^"]*\)') || return
+    UPLOAD_URL=$(echo "$PAGE" | parse 'flashvars=' "urlSite=\([^&]*\)") || return
+    APPTYPE=$(echo "$PAGE" | parse 'flashvars=' 'apptype=\([^"]*\)') || return
 
     if test -n "$AUTH"; then
         local USER_ID=$(echo "$PAGE" | \
-            parse_quiet "flashvars=" 'userId=\([^&]*\)')
+            parse_quiet 'flashvars=' 'userId=\([^&]*\)')
         FORM_UID="-F user_id=$USER_ID"
     fi
 
@@ -282,7 +282,9 @@ turbobit_upload() {
 
     if match_json_true result "$JSON"; then
         FILE_ID=$(echo "$JSON" | parse_json id) || return
-        PAGE=$(curl -b "$COOKIEFILE" "$URL/newfile/gridFile/${FILE_ID}?_search=false&nd=$(date +%s000)&rows=20&page=1&sidx=id&sord=asc") || return
+        PAGE=$(curl --get -b "$COOKIEFILE" -d "nd=$(date +%s000)" \
+            -d '_search=false&rows=20&page=1&sidx=id&sord=asc' \
+            "$URL/newfile/gridFile/${FILE_ID}") || return
         DELETE_ID=$(echo "$PAGE" | parse 'null,null,' 'null,null,"\([^"]*\)')
 
         echo "$URL/$FILE_ID.html"
