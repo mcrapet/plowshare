@@ -25,13 +25,13 @@ SRCDIR="$ROOTDIR/src"
 
 # Test data
 TEST_FILES=( 'up-down-del.t'
-  'up-down-del+recaptcha.t'
+  'up-down-del+captcha.t'
   'single_link_download.t'
   'check_wrong_link.t')
 TEST_LETTER=('T' 'R' 'S' 'C')
 TEST_INDEX=(10 220 330 440)
 TEST_TITLE=('*** Anonymous upload, download and delete'
-  '*** Anonymous upload, download (using reCaptcha) and delete'
+  '*** Anonymous upload, download (with captcha) and delete'
   '*** Single URL anonymous download'
   '*** Check wrong link suite')
 
