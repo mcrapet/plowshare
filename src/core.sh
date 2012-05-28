@@ -311,29 +311,26 @@ match_remote_url() {
 # stdin: text data
 # stdout: result
 parse_all() {
-    local F=${1//\//\\/}
-    local M=${2//\//\\/}
+    local D=$'\001'
     local STRING REGEXP
 
-    # Important note: Even if '/' characters (sed separator) have been escaped,
-    # this won't work if '/' is given already escaped ('\/'). There is no easy
-    # way to fix this (for example '/' is not escaped here: '\\/').
-
-    if [ '^' = "${M:0:1}" ]; then
-        if [ '$' = "${M:(-1):1}" ]; then
-            REGEXP="$M"
+    if [ '^' = "${2:0:1}" ]; then
+        if [ '$' = "${2:(-1):1}" ]; then
+            REGEXP=$2
         else
-            REGEXP="$M.*$"
+            REGEXP="$2.*$"
         fi
-    elif [ '$' = "${M:(-1):1}" ]; then
-        REGEXP="^.*$M"
+    elif [ '$' = "${2:(-1):1}" ]; then
+        REGEXP="^.*$2"
     else
-        REGEXP="^.*$M.*$"
+        REGEXP="^.*$2.*$"
     fi
 
-    STRING=$(sed -n "/$F/s/$REGEXP/\1/p")
+    # Change sed separator to accept '/' characters
+    # STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
+    STRING=$(sed -n "\\${D}$1${D}s${D}$REGEXP${D}\1${D}p")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$F/s/$REGEXP/\""
+        log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP/\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -371,21 +368,20 @@ parse_last() {
 # stdin: text data
 # stdout: result
 parse_line_after_all() {
-    local F=${1//\//\\/}
-    local M=${2//\//\\/}
     local N=${3:-1}
+    local D=$'\001'
     local STRING REGEXP SKIP
 
-    if [ '^' = "${M:0:1}" ]; then
-        if [ '$' = "${M:(-1):1}" ]; then
-            REGEXP="$M"
+    if [ '^' = "${2:0:1}" ]; then
+        if [ '$' = "${2:(-1):1}" ]; then
+            REGEXP=$2
         else
-            REGEXP="$M.*$"
+            REGEXP="$2.*$"
         fi
-    elif [ '$' = "${M:(-1):1}" ]; then
-        REGEXP="^.*$M"
+    elif [ '$' = "${2:(-1):1}" ]; then
+        REGEXP="^.*$2"
     else
-        REGEXP="^.*$M.*$"
+        REGEXP="^.*$2.*$"
     fi
 
     if [ "$((N))" -gt 0 ]; then
@@ -396,9 +392,11 @@ parse_line_after_all() {
         done
     fi
 
-    STRING=$(sed -n "/$F/{${SKIP}s/$REGEXP/\1/p}")
+    # Change sed separator to accept '/' characters
+    # STRING=$(sed -n "/$1/{${SKIP}s/$REGEXP/\1/p}")
+    STRING=$(sed -n "\\${D}$1${D}{${SKIP}s${D}$REGEXP${D}\1${D}p}")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$F/{${SKIP}s/$REGEXP/}\""
+        log_error "$FUNCNAME failed (sed): \"/$1/{${SKIP}s/$REGEXP/}\""
         log_notice_stack
         return $ERR_FATAL
     fi
