@@ -2096,7 +2096,7 @@ quote() {
 # stdin: input (multiline) string
 # stdout: result string
 drop_empty_lines() {
-    sed '/^[ 	]*$/d'
+    sed -e '/^[[:space:]]*$/d'
 }
 
 # Look for a configuration module variable
