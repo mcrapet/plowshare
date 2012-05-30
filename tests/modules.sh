@@ -18,10 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-
-# Note: 'readlink -f' does not exist on BSD
-ROOTDIR=$(dirname $(dirname "$(readlink -f "$0")"))
-SRCDIR="$ROOTDIR/src"
+# Path to plow{down,up,del,list} scripts
+SRCDIR=../src
 
 # Test data
 TEST_FILES=( 'up-down-del.t'
@@ -42,7 +40,7 @@ download() {
 
 # plowup
 upload() {
-    $SRCDIR/upload.sh --max-retries=2 --printf='%u	%D' "$@"
+    $SRCDIR/upload.sh --max-retries=2 --printf='%u%t%D' "$@"
 }
 
 # plowdel
@@ -184,7 +182,7 @@ test_case_up_down_del() {
         rm -f "$LOG_FILE"
     fi
 
-    # Should return "download_link (delete_link)
+    # Should return "download_link \t delete_link
     DL_LINK=$(echo "$LINKS" | cut -d'	' -f1)
     DEL_LINK=$(echo "$LINKS" | cut -d'	' -f2)
 
