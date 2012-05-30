@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
+# Make pipes fail on the first failed command (requires Bash 3+)
 set -o pipefail
 
 # Global error codes
