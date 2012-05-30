@@ -637,13 +637,13 @@ break_html_lines_alt() {
 # stdin: (X)HTML data
 # stdout: result
 parse_all_tag() {
-    local F=${1//\//\\/}
     local T=${2:-"$1"}
-    local STRING=$(sed -ne "/$F/s/<\/$T>.*$//p" | \
+    local D=$'\001'
+    local STRING=$(sed -ne "\\${D}$1${D}s${D}</$T>.*${D}${D}p" | \
                    sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
 
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$F/ <$T>\""
+        log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
         log_notice_stack
         return $ERR_FATAL
     fi
@@ -681,14 +681,13 @@ parse_tag_quiet() {
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
-    local F=${1//\//\\/}
     local A=${2:-"$1"}
+    local D=$'\001'
     local STRING=$(sed \
-        -ne "/$F/s/.*$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*/\1/p" \
-        -ne "/$F/s/.*$A[[:space:]]*=[[:space:]]*\([^\"'<=> 	]\+\).*/\1/p")
-
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\1${D}p" \
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]$A[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\1${D}p")
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$F/ $A=\""
+        log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
         log_notice_stack
         return $ERR_FATAL
     fi
