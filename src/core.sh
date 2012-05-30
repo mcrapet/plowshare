@@ -996,7 +996,7 @@ javascript() {
     JS_PRG=$(detect_javascript 1) || return
     TEMPSCRIPT=$(create_tempfile '.js') || return
 
-    cat > $TEMPSCRIPT
+    cat > "$TEMPSCRIPT"
 
     log_report "interpreter:$JS_PRG"
     log_report "=== JAVASCRIPT BEGIN ==="
