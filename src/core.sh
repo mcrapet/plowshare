@@ -911,8 +911,8 @@ prompt_for_password() {
     # Add missing trailing newline (see read -p)
     stderr
 
+    test -z "$PASSWORD" && return $ERR_LINK_PASSWORD_REQUIRED
     echo "$PASSWORD"
-    test -n "$PASSWORD" || return $ERR_LINK_PASSWORD_REQUIRED
 }
 
 # Login and return cookie.
