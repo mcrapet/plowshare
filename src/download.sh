@@ -398,7 +398,7 @@ download() {
             CURL_ARGS=()
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
 
-            module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" "-b $DCOOKIE")
+            module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" -b "$DCOOKIE")
 
             if [ -f "$FILENAME_OUT" ]; then
                 if [ -n "$NOOVERWRITE" ]; then
@@ -419,7 +419,7 @@ download() {
 
                     if [ -s "$FILENAME_OUT" ]; then
                         module_config_resume "$MODULE" && \
-                            CURL_ARGS=("${CURL_ARGS[@]}" "-C -")
+                            CURL_ARGS=("${CURL_ARGS[@]}" -C -)
                     fi
                 fi
             fi
@@ -429,7 +429,7 @@ download() {
             fi
 
             DRETVAL=0
-            CODE=$(curl_with_log ${CURL_ARGS[@]} -w '%{http_code}' --fail --globoff \
+            CODE=$(curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
                     -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
 
             rm -f "$DCOOKIE"
