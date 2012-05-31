@@ -201,6 +201,7 @@ download() {
     local NOEXTRAWAIT=${10}
     shift 10
 
+    local AWAIT CODE FILENAME FILE_URL
     local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
 
     FUNCTION=${MODULE}_download
@@ -398,8 +399,6 @@ download() {
             CURL_ARGS=()
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
 
-            module_config_need_cookie "$MODULE" && CURL_ARGS=("${CURL_ARGS[@]}" -b "$DCOOKIE")
-
             if [ -f "$FILENAME_OUT" ]; then
                 if [ -n "$NOOVERWRITE" ]; then
                     if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
@@ -428,11 +427,18 @@ download() {
                 FILENAME_TMP="${FILENAME_TMP}.part"
             fi
 
-            DRETVAL=0
-            CODE=$(curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
-                    -o "$FILENAME_TMP" "$FILE_URL") || DRETVAL=$?
+            module_config_need_cookie "$MODULE" && \
+                CURL_ARGS=("${CURL_ARGS[@]}" -b "$DCOOKIE")
 
-            rm -f "$DCOOKIE"
+            # Reuse previously created temporary file
+            :> "$DRESULT"
+
+            DRETVAL=0
+            curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
+                -o "$FILENAME_TMP" "$FILE_URL" >"$DRESULT" || DRETVAL=$?
+
+            read CODE <"$DRESULT"
+            rm -f "$DCOOKIE" "$DRESULT"
 
             if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                 # Obtained HTTP return status are 200 and 206
