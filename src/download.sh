@@ -630,7 +630,7 @@ fi
 test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -lt 1 && { usage; exit $ERR_FATAL; }
+test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
 
 log_report_info
 log_report "plowdown version $VERSION"

@@ -81,17 +81,17 @@ go4up_upload() {
         # Check if API can handle this upload
         if [ -z "$AUTH_FREE" ]; then
             log_error 'Public API is only available for registered users.'
-            return $ERR_FATAL
+            return $ERR_BAD_COMMAND_LINE
         fi
 
         if [ -n "$COUNT" -o -n "$INCLUDE" ]; then
             log_error 'Public API does not support hoster selection.'
-            return $ERR_FATAL
+            return $ERR_BAD_COMMAND_LINE
         fi
 
         if match_remote_url "$FILE"; then
             log_error 'Public API does not support remote upload.'
-            return $ERR_FATAL
+            return $ERR_BAD_COMMAND_LINE
         fi
 
         local USER=${AUTH_FREE%%:*}
@@ -107,7 +107,7 @@ go4up_upload() {
 
         if match '<link>' "$PAGE"; then
             : # Nothing to do, just catch the "good" case
-        elif match '<error>Invalid login/password</error>' "$PAGE"; then
+        elif match '>Invalid login/password<' "$PAGE"; then
             return $ERR_LOGIN_FAILED
         # Invalid post data count
         # Choose host to upload in your account
@@ -269,7 +269,10 @@ go4up_list() {
     local URL=$1
     local PAGE LINKS SITE_URL
 
-    test "$2" && log_debug "recursive flag specified but has no sense here, ignore it"
+    if test "$2"; then
+        log_error "Recursive flag has no sense here, abort"
+        return $ERR_BAD_COMMAND_LINE
+    fi
 
     PAGE=$(curl -L "$URL") || return
 

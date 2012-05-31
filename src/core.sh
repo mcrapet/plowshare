@@ -25,21 +25,23 @@ set -o pipefail
 # 0 means success or link alive
 ERR_FATAL=1                      # Unexpected result (upstream site updated, etc)
 ERR_NOMODULE=2                   # No module found for processing request
-ERR_NETWORK=3                    # Generic network error (socket reset, curl, etc)
+ERR_NETWORK=3                    # Generic network error (socket failure, curl, firewall, etc)
 ERR_LOGIN_FAILED=4               # Correct login/password argument is required
 ERR_MAX_WAIT_REACHED=5           # Wait timeout (see -t/--timeout command line option)
 ERR_MAX_TRIES_REACHED=6          # Max tries reached (see -r/--max-retries command line option)
 ERR_CAPTCHA=7                    # Captcha solving failure
 ERR_SYSTEM=8                     # System failure (missing executable, local filesystem, wrong behavior, etc)
-ERR_LINK_TEMP_UNAVAILABLE=10     # Link alive but temporarily unavailable
-                                 # (also refer to plowdown --no-extra-wait command line option)
+ERR_LINK_TEMP_UNAVAILABLE=10     # plowdown: Link alive but temporarily unavailable
+                                 # plowup: Feature (upload service) seems temporarily unavailable from upstream
+                                 # plowlist: Links are temporarily unavailable. Upload still pending?
 ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
-ERR_LINK_NEED_PERMISSIONS=12     # Link alive but requires some authentication (private or premium link)
-                                 # plowdel/plowup: operation not allowed for anonymous users
-ERR_LINK_DEAD=13                 # plowdel: file not found or previously deleted
-                                 # plowlist: remote folder does not exist or is empty
-ERR_SIZE_LIMIT_EXCEEDED=14       # plowdown: can't download link because file is too big (need permissions)
-                                 # plowup: can't upload too big file (need permissions)
+ERR_LINK_NEED_PERMISSIONS=12     # plowdown: Link alive but requires some authentication (private or premium link)
+                                 # plowup, plowdel: Operation not allowed for anonymous users
+ERR_LINK_DEAD=13                 # plowdel: File not found or previously deleted
+                                 # plowlist: Remote folder does not exist or is empty
+ERR_SIZE_LIMIT_EXCEEDED=14       # plowdown: Can't download link because file is too big (need permissions)
+                                 # plowup: Can't upload too big file (need permissions)
+ERR_BAD_COMMAND_LINE=15          # Unknown command line parameter or incompatible options
 ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in other .sh)

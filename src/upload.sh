@@ -205,10 +205,10 @@ fi
 test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -lt 1 && { usage; exit $ERR_FATAL; }
+test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
 
 if [ $# -eq 1 -a -f "$1" ]; then
-    log_error "you must specify a module name"
+    log_error "You must specify a module name"
     exit $ERR_NOMODULE
 fi
 
@@ -216,7 +216,7 @@ fi
 MODULE=$(module_exist "$MODULES" "$1") || {
     # Give a second try
     MODULE=$(module_exist "$MODULES" "${1//./_}") || {
-        log_error "unsupported module ($1)"
+        log_error "Unsupported module ($1)"
         exit $ERR_NOMODULE
     }
 }
@@ -265,6 +265,7 @@ for FILE in "$@"; do
 
         if ! module_config_remote_upload "$MODULE"; then
             log_notice "Skipping ($LOCALFILE): remote upload is not supported"
+            RETVALS=(${RETVALS[@]} $ERR_BAD_COMMAND_LINE)
             continue
         fi
 

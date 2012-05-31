@@ -99,7 +99,7 @@ fi
 
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -lt 1 && { usage; exit $ERR_FATAL; }
+test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
 
 set_exit_trap
 

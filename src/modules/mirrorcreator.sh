@@ -151,7 +151,10 @@ mirrorcreator_list() {
     local PAGE STATUS
     local BASE_URL='http://www.mirrorcreator.com'
 
-    test "$2" && log_debug "recursive flag specified but has no sense here, ignore it"
+    if test "$2"; then
+        log_error "Recursive flag has no sense here, abort"
+        return $ERR_BAD_COMMAND_LINE
+    fi
 
     PAGE=$(curl -L "$URL") || return
     STATUS=$(echo "$PAGE" | parse 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
