@@ -2043,12 +2043,12 @@ log_report_info() {
 captcha_method_translate() {
     case "$1" in
         none)
-            [[ "$2" ]] && unset "$2" && eval $2=\"\$1\"
-            [[ "$3" ]] && unset "$3" && eval $3=\"none\"
+            [[ "$2" ]] && unset "$2" && eval $2=$1
+            [[ "$3" ]] && unset "$3" && eval $3=none
             ;;
         prompt)
-            [[ "$2" ]] && unset "$2" && eval $2=\"\$1\"
-            [[ "$3" ]] && unset "$3" && eval $3=\"\"
+            [[ "$2" ]] && unset "$2" && eval $2=$1
+            [[ "$3" ]] && unset "$3" && eval $3=""
             ;;
         online)
             local SITE
@@ -2060,8 +2060,8 @@ captcha_method_translate() {
                 log_error "Error: no captcha solver account provided"
                 return $ERR_FATAL
             fi
-            [[ "$2" ]] && unset "$2" && eval $2=\"\$SITE\"
-            [[ "$3" ]] && unset "$3" && eval $3=\"none\"
+            [[ "$2" ]] && unset "$2" && eval $2=$SITE
+            [[ "$3" ]] && unset "$3" && eval $3=none
             ;;
         *)
             log_error "Error: unknown captcha method: $1"
