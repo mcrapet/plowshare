@@ -936,12 +936,12 @@ post_login() {
     local USER PASSWORD DATA RESULT
 
     if [ -z "$AUTH" ]; then
-        log_error "Authentication string is empty"
+        log_error "$FUNCNAME: authentication string is empty"
         return $ERR_LOGIN_FAILED
     fi
 
     if [ -z "$COOKIE" ]; then
-        log_error "Cookie file expected"
+        log_error "$FUNCNAME: cookie file expected"
         return $ERR_LOGIN_FAILED
     fi
 
@@ -950,7 +950,7 @@ post_login() {
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
     PASSWORD=$(echo "${AUTH#*:}" | uri_encode_strict)
 
-    if [ -z "$PASSWORD" -o "$AUTH" = "$PASSWORD" ]; then
+    if [ -z "$PASSWORD" -o "$AUTH" = "${AUTH#*:}" ]; then
         PASSWORD=$(prompt_for_password) || true
     fi
 
