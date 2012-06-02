@@ -48,6 +48,38 @@ parse_kilobytes() {
     fi
 }
 
+# Convert a decimal number into its base32hex representation
+# Note: conversion to ASCII is from core.sh (random)
+#
+# $1: decimal number
+# stdout: $1 converted into base32hex
+dec_to_base32hex() {
+    local NUM=$1
+    local BASE=32
+    local CONV REM QUOT
+
+    # catch special case NUM == 0
+    if (( NUM == 0 )); then
+        echo 0
+        return
+    fi
+
+    while (( NUM > 0 )); do
+        (( REM = NUM % BASE ))
+        (( QUOT = NUM / BASE ))
+
+        if (( REM >= 10 )); then
+            # convert to (lower case) ASCII
+            (( REM += 16#61 - 10 )) # 10 => a, 11 => b, 12 => c, ...
+            REM=$(printf \\$(($REM/64*100+$REM%64/8*10+$REM%8)))
+        fi
+
+        CONV=$REM$CONV # prepend the new digit (no math mode!)
+        NUM=$QUOT
+    done
+    echo $CONV
+}
+
 # Output megashares.com file download URL
 # $1: cookie file (unused here)
 # $2: megashares.com url
@@ -160,7 +192,7 @@ megashares_download() {
 }
 
 # Upload a file to megashares.com
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: megashares download + delete link
@@ -171,56 +203,97 @@ megashares_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASEURL='http://www.megashares.com'
+    local MAX_SIZE=$((10000*1024*1024)) # up to 10000MB
 
     local PAGE CATEGORY DL_LINK DEL_LINK
+    local UPLOAD_URL FILE_SIZE UPLOAD_ID FILE_ID I RND DATE
 
+    # check file size
+    FILE_SIZE=$(get_filesize "$FILE")
+    if [ $FILE_SIZE -gt $MAX_SIZE ]; then
+        log_debug "file is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    # Note: Megashares uses Plupload -- http://www.plupload.com/
     PAGE=$(curl -c "$COOKIEFILE" "$BASEURL") || return
 
+    # retrieve unique upload URL
+    UPLOAD_URL=$(echo "$PAGE" | parse '^[[:space:]]\+url :' \
+        "url : '\(.\+\)' ,$") || return
+    log_debug "upload URL: $UPLOAD_URL"
+
+    # File ID is created this way (from plugload.js):
+    #
+    #     guid:function(){
+    #       var n=new Date().getTime().toString(32),o;
+    #       for(o=0;o<5;o++){
+    #        n+=Math.floor(Math.random()*65535).toString(32)
+    #       }
+    #       return(g.guidPrefix||"p")+n+(f++).toString(32)
+    #     }
+    #
+    # with
+    # g.guidPrefix == NULL
+    # f==4 (for the first file)
+    #
+    # Example: p16un8pgstjbi1vt71utd1iak1smh4
+    DATE="$(date +%s)000"
+    UPLOAD_ID=$(dec_to_base32hex $DATE)
+
+    for I in 1 2 3 4 5; do
+        RND=$(random u16)
+        RND=$(dec_to_base32hex $RND)
+        UPLOAD_ID=$UPLOAD_ID$RND
+    done
+
+    UPLOAD_ID="p${UPLOAD_ID}4"
+    log_debug "upload ID: $UPLOAD_ID"
+
     # Upload Category: video doc application music image
-    CATEGORY='video'
+    CATEGORY='doc'
 
-    # Note: To make link non searchable/public, delete "searchable=on" line.
-    # Putting "off" or any other value means "enabled".
+    # pre upload file check + register upload ID at server
+    PAGE=$(curl -b "$COOKIEFILE" \
+        -d "uploading_files[0][id]=$UPLOAD_ID" \
+        -d "uploading_files[0][name]=$DESTFILE" \
+        -d "uploading_files[0][size]=$FILE_SIZE" \
+        -d 'uploading_files[0][loaded]=0' \
+        -d 'uploading_files[0][percent]=0' \
+        -d 'uploading_files[0][status]=1' \
+        "$BASEURL/pre_upload.php") || return
 
-    local FORM_HTML APC_UPLOAD_PROGRESS MSUP_IDD OWNLOADPROGRESSURL
-    FORM_HTML=$(grep_form_by_name "$PAGE" 'form_upload')
-    APC_UPLOAD_PROGRESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'APC_UPLOAD_PROGRESS')
-    MSUP_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'msup_id')
-    DOWNLOADPROGRESSURL=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'downloadProgressURL')
-    ULOC=$(echo "$FORM_HTML" | parse_form_input_by_id_quiet 'uloc')
-    TMP_SID=$(echo "$FORM_HTML" | parse_form_input_by_id_quiet 'tmp_sid')
-    UPS_SID=$(echo "$FORM_HTML" | parse_form_input_by_id_quiet 'ups_sid')
-
-    PAGE=$(curl_with_log -b "$COOKIEFILE" \
-        -F "APC_UPLOAD_PROGRESS=$APC_UPLOAD_PROGRESS" \
-        -F "msup_id=$MSUP_ID" \
-        -F "downloadProgressURL=$DOWNLOADPROGRESSURL" \
-        -F "uploadFileCategory=$CATEGORY" \
-        --form-string "uploadFileDescription=$DESCRIPTION" \
-        --form-string "passProtectUpload=$LINK_PASSWORD" \
-        --form-string "emailAddress=$TOEMAIL" \
-        -F "searchable=on" \
-        -F "upfile_0=@$FILE;filename=$DESTFILE" \
-        -F "checkTOS=1" \
-        -F "uploadFileURL=" \
-        "$BASEURL/9999.php?tmp_sid=$TMP_SID&ups_sid=$UPS_SID&uld=$ULOC&uloc=$ULOC") || return
-
-    # <body><div id='uplMsg'>error</div><div id='err-message'>Error on upload</div></body>
-    if match 'err-message' "$PAGE"; then
-        local ERR=$(echo "$PAGE" | parse_quiet 'err-message' "message'>\([^<]*\)")
-        log_error "upload failure ($ERR)"
+    if [ "$PAGE" != "success" ]; then
+        log_error "Remote error during pre upload check: $PAGE"
         return $ERR_FATAL
     fi
 
-    # <script type="text/javascript">eval('parent.location = "http://www.megashares.com/upostproc.php?fid=25936274"');</script>
-    local URL
-    URL=$(echo "$PAGE" | parse 'location' '= "\(http[^"]*\)')
-    PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+    # upload file
+    #
+    # Notes:
+    # - "name" consists of upload ID + real file extension
+    # - to make link non searchable/public, use "searchable=off"
+    PAGE=$(curl_with_log -b "$COOKIEFILE" \
+        -F "name=$UPLOAD_ID.${DESTFILE##*.}" \
+        --form-string "uploadFileDescription=$DESCRIPTION" \
+        --form-string "passProtectUpload=$LINK_PASSWORD" \
+        -F "uploadFileCategory=$CATEGORY" \
+        -F 'searchable=on' \
+        --form-string "emailAddress=$TOEMAIL" \
+        -F "file=@$FILE;filename=$DESTFILE" \
+        "$UPLOAD_URL") || return
+
+    # server returns some file ID only
+    FILE_ID=$(echo "$PAGE" | parse . '^\([[:digit:]]\+\)$') || return
+    log_debug "file ID: $FILE_ID"
+
+    # retrieve actual links
+    PAGE=$(curl -b "$COOKIEFILE" \
+        "$BASEURL/upostfile.php?fid=$FILE_ID") || return
 
     # <dt>Download Link to share:</dt>
     DL_LINK=$(echo "$PAGE" | parse_tag '/dl/' a)
 
-    # Needs "uloader" entry in cookie file to get delete link
     # <dt>Delete Link (keep this in a safe place):</dt>
     DEL_LINK=$(echo "$PAGE" | parse_tag '?dl=' a)
 

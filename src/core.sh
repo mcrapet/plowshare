@@ -1613,6 +1613,7 @@ captcha_nack() {
 #   - "l": letters [a-z]. Param: length.
 #   - "L": letters [A-Z]. Param: length.
 #   - "ll", "LL": letters [A-Za-z]. Param: length.
+#   - "u16": unsigned short (decimal) number <=65535. Example: "352".
 # $2: (optional) operation parameter
 random() {
     local I=0
@@ -1680,6 +1681,10 @@ random() {
             LEN=$((SEED % 3 + 17))
             RESULT='0.'$((RANDOM * 69069 & 16#ffffffff))
             RESULT=$RESULT$((RANDOM * 69069 & 16#ffffffff))
+            ;;
+        u16)
+            RESULT=$(( 256 * (SEED & 255) + (RANDOM & 255) ))
+            LEN=${#RESULT}
             ;;
         *)
             log_error "$FUNCNAME: unknown operation '$1'"
