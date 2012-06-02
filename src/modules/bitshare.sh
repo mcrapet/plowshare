@@ -192,9 +192,8 @@ bitshare_upload() {
                 log_error "Both --hashkey & --auth_free are defined. Taking hashkey."
         elif [ -n "$AUTH" ]; then
             # Login to openapi
-            local PASSWORD_HASH RESPONSE HASHKEY
-            local USER=${AUTH%%:*}
-            local PASSWORD=${AUTH#*:}
+            local USER PASSWORD PASSWORD_HASH RESPONSE HASHKEY
+            split_auth "$AUTH" USER PASSWORD || return
 
             PASSWORD_HASH=$(md5 "$PASSWORD") || return
             RESPONSE=$(curl --form-string "user=$USER" \
@@ -204,7 +203,7 @@ bitshare_upload() {
                 return $ERR_LOGIN_FAILED
             fi
             HASHKEY="${RESPONSE:8}"
-            log_debug "successful login to openapi, hashkey: $HASHKEY"
+            log_debug "successful login to openapi as $USER member, hashkey: $HASHKEY"
         fi
         bitshare_upload_openapi "$HASHKEY" "$2" "$3" || return
 

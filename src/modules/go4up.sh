@@ -94,12 +94,8 @@ go4up_upload() {
             return $ERR_BAD_COMMAND_LINE
         fi
 
-        local USER=${AUTH_FREE%%:*}
-        local PASSWORD=${AUTH_FREE#*:}
-
-        if [ -z "$PASSWORD" -o "$AUTH_FREE" = "$PASSWORD" ]; then
-            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-        fi
+        local USER PASSWORD
+        split_auth "$AUTH_FREE" USER PASSWORD || return
 
         # http://go4up.com/wiki/index.php/API_doc
         PAGE=$(curl -F "user=$USER" -F "pass=$PASSWORD" \

@@ -54,13 +54,8 @@ hotfile_download() {
     # Try to get the download link using premium credentials (if $AUTH not null)
     # Some code duplicated from core.sh, post_login().
     if [ -n "$AUTH" ]; then
-        local USER=${AUTH%%:*}
-        local PASSWORD=${AUTH#*:}
-        local PASSWD_FORM
-
-        if [ "$AUTH" = "$PASSWORD" ]; then
-            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-        fi
+        local USER PASSWORD PASSWD_FORM
+        split_auth "$AUTH" USER PASSWORD || return
 
         if [ -z "$NOMD5" ]; then
             PASSWD_FORM="-d passwordmd5=$(md5 "$PASSWORD")"
@@ -189,15 +184,11 @@ hotfile_upload() {
 
     local FILE=$2
     local DESTFILE=$3
-    local SERVER URL FILE_SIZE UPID DATA PASSWD_FORM
+    local SERVER URL FILE_SIZE UPID DATA USER PASSWORD PASSWD_FORM
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
-    local USER=${AUTH%%:*}
-    local PASSWORD=${AUTH#*:}
-    if [ "$AUTH" = "$PASSWORD" ]; then
-        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-    fi
+    split_auth "$AUTH" USER PASSWORD || return
 
     if [ -z "$NOMD5" ]; then
         PASSWD_FORM="-F passwordmd5=$(md5 "$PASSWORD")"

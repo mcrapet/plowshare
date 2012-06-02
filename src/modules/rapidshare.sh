@@ -62,16 +62,10 @@ rapidshare_download() {
     BASE_URL="https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=${FILEID}&filename=${FILENAME}"
 
     if test "$AUTH"; then
-        IFS=":" read USER PASSWORD <<< "$AUTH"
-        if [ -z "$PASSWORD" ]; then
-            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-        fi
+        split_auth "$AUTH" USER PASSWORD || return
         PARAMS="&login=$USER&password=$PASSWORD"
     elif test "$AUTH_FREE"; then
-        IFS=":" read USER PASSWORD <<< "$AUTH_FREE"
-        if [ -z "$PASSWORD" ]; then
-            PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-        fi
+        split_auth "$AUTH_FREE" USER PASSWORD || return
         PARAMS="&login=$USER&password=$PASSWORD"
     else
         PARAMS=""
@@ -147,15 +141,11 @@ rapidshare_upload() {
 
     local FILE=$2
     local DESTFILE=$3
-    local SERVER_NUM UPLOAD_URL INFO ERROR
+    local USER PASSWORD SERVER_NUM UPLOAD_URL INFO ERROR
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
-    local USER=${AUTH%%:*}
-    local PASSWORD=${AUTH#*:}
-    if [ "$AUTH" = "$PASSWORD" ]; then
-        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-    fi
+    split_auth "$AUTH" USER PASSWORD || return
 
     SERVER_NUM=$(curl 'http://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=nextuploadserver') || return
     log_debug "upload server is rs$SERVER_NUM"
@@ -190,11 +180,7 @@ rapidshare_delete() {
 
     test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
 
-    local USER=${AUTH%%:*}
-    local PASSWORD=${AUTH#*:}
-    if [ "$AUTH" = "$PASSWORD" ]; then
-        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-    fi
+    split_auth "$AUTH" USER PASSWORD || return
 
     # Two possible URL format
     if match '.*/#!download|' "$URL"; then

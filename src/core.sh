@@ -1712,6 +1712,42 @@ md5() {
     fi
 }
 
+# Split credentials
+# $1: auth string (user:password)
+# $2: variable name (user)
+# $3 (optional): variable name (password)
+# Note: $2 or $3 can't be named '__AUTH__' or '__STR__'
+split_auth() {
+    local __AUTH__=$1
+    local __STR__
+
+    if [ -z "$__AUTH__" ]; then
+        log_error "$FUNCNAME: authentication string is empty"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    __STR__=${__AUTH__%%:*}
+    if [ -z "$__STR__" ]; then
+        log_error "$FUNCNAME: empty string (user)"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    [[ "$2" ]] && unset "$2" && eval $2=\$__STR__
+
+    if [[ "$3" ]]; then
+        # Sanity check
+        if [ "$2" = "$3" ]; then
+            log_error "$FUNCNAME: user and password varname must not be the same"
+        else
+            __STR__=${__AUTH__#*:}
+            if [ -z "$__STR__" -o "$__AUTH__" = "$__STR__" ]; then
+                __STR__=$(prompt_for_password) || return $ERR_LOGIN_FAILED
+            fi
+            unset "$3" && eval $3=\$__STR__
+        fi
+    fi
+}
+
 ## ----------------------------------------------------------------------------
 
 ##

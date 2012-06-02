@@ -37,7 +37,7 @@ turbobit_login() {
     local COOKIE_FILE=$2
     local BASEURL=$3
 
-    local LOGIN_DATA LOGIN_RESULT EXTRA_ARGS USER_ISLOGGEDIN
+    local LOGIN_DATA LOGIN_RESULT EXTRA_ARGS USER_ISLOGGEDIN USER
 
     # Force page in English
     EXTRA_ARGS='-b user_lang=en'
@@ -47,8 +47,8 @@ turbobit_login() {
 
     USER_ISLOGGEDIN=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
     if [ "$USER_ISLOGGEDIN" = '1' ]; then
-        IFS=":" read USER PASSWORD <<< "$AUTH"
-        log_debug "Successfully logged in as ${USER} member"
+        split_auth "$AUTH" USER || return
+        log_debug "Successfully logged in as $USER member"
         return 0
     fi
 

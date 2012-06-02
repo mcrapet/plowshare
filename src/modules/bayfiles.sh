@@ -36,13 +36,9 @@ MODULE_BAYFILES_DELETE_OPTIONS=""
 bayfiles_login() {
     local AUTH=$1
     local API_URL=$2
-    local LOGIN_JSON_DATA SESSID ERR
+    local USER PASSWORD LOGIN_JSON_DATA SESSID ERR
 
-    # Must be tested with premium account
-    IFS=":" read USER PASSWORD <<< "$AUTH"
-    if [ -z "$PASSWORD" ]; then
-        PASSWORD=$(prompt_for_password) || return $ERR_LOGIN_FAILED
-    fi
+    split_auth "$AUTH" USER PASSWORD || return
 
     LOGIN_JSON_DATA=$(curl "${API_URL}/account/login/${USER}/${PASSWORD}") || return
 

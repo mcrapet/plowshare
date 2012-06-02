@@ -218,8 +218,8 @@ netload_in_upload() {
             parse 'Your Auth Code' ';">\([^<]*\)') || return
         log_debug "auth=$AUTH_CODE"
 
-        local USER=${AUTH%%:*}
-        local PASSWORD=${AUTH#*:}
+        local USER PASSWORD
+        split_auth "$AUTH" USER PASSWORD || return
 
         EXTRA_PARAMS="-F user_id=$USER -F user_password=$PASSWORD"
     else
