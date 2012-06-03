@@ -27,6 +27,7 @@ MODULE_MEGASHARES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_MEGASHARES_UPLOAD_OPTIONS="
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
+PRIVATE_FILE,,private,,Do not make file searchable/public
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 MODULE_MEGASHARES_UPLOAD_REMOTE_SUPPORT=no
 
@@ -58,7 +59,7 @@ dec_to_base32hex() {
     local BASE=32
     local CONV REM QUOT
 
-    # catch special case NUM == 0
+    # Catch special case NUM == 0
     if (( NUM == 0 )); then
         echo 0
         return
@@ -205,10 +206,10 @@ megashares_upload() {
     local BASEURL='http://www.megashares.com'
     local MAX_SIZE=$((10000*1024*1024)) # up to 10000MB
 
-    local PAGE CATEGORY DL_LINK DEL_LINK
+    local PAGE CATEGORY DL_LINK DEL_LINK OPT_PUB
     local UPLOAD_URL FILE_SIZE UPLOAD_ID FILE_ID I RND DATE
 
-    # check file size
+    # Check file size
     FILE_SIZE=$(get_filesize "$FILE")
     if [ $FILE_SIZE -gt $MAX_SIZE ]; then
         log_debug "file is bigger than $MAX_SIZE"
@@ -218,7 +219,7 @@ megashares_upload() {
     # Note: Megashares uses Plupload -- http://www.plupload.com/
     PAGE=$(curl -c "$COOKIEFILE" "$BASEURL") || return
 
-    # retrieve unique upload URL
+    # Retrieve unique upload URL
     UPLOAD_URL=$(echo "$PAGE" | parse '^[[:space:]]\+url :' \
         "url : '\(.\+\)' ,$") || return
     log_debug "upload URL: $UPLOAD_URL"
@@ -253,7 +254,7 @@ megashares_upload() {
     # Upload Category: video doc application music image
     CATEGORY='doc'
 
-    # pre upload file check + register upload ID at server
+    # Pre-upload file check + register upload ID at server
     PAGE=$(curl -b "$COOKIEFILE" \
         -d "uploading_files[0][id]=$UPLOAD_ID" \
         -d "uploading_files[0][name]=$DESTFILE" \
@@ -268,8 +269,13 @@ megashares_upload() {
         return $ERR_FATAL
     fi
 
-    # upload file
-    #
+    # Publish file?
+    if [ -n "$PRIVATE_FILE" ]; then
+        OPT_PUB="off"
+    else
+        OPT_PUB="on"
+    fi
+
     # Notes:
     # - "name" consists of upload ID + real file extension
     # - to make link non searchable/public, use "searchable=off"
@@ -278,16 +284,16 @@ megashares_upload() {
         --form-string "uploadFileDescription=$DESCRIPTION" \
         --form-string "passProtectUpload=$LINK_PASSWORD" \
         -F "uploadFileCategory=$CATEGORY" \
-        -F 'searchable=on' \
+        -F "searchable=$OPT_PUB" \
         --form-string "emailAddress=$TOEMAIL" \
         -F "file=@$FILE;filename=$DESTFILE" \
         "$UPLOAD_URL") || return
 
-    # server returns some file ID only
+    # Server returns some file ID only
     FILE_ID=$(echo "$PAGE" | parse . '^\([[:digit:]]\+\)$') || return
     log_debug "file ID: $FILE_ID"
 
-    # retrieve actual links
+    # Retrieve actual links
     PAGE=$(curl -b "$COOKIEFILE" \
         "$BASEURL/upostfile.php?fid=$FILE_ID") || return
 
