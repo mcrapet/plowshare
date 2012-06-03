@@ -20,24 +20,62 @@
 
 MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\|video\|audio\)/"
 
-MODULE_2SHARED_DOWNLOAD_OPTIONS=""
+MODULE_2SHARED_DOWNLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
 MODULE_2SHARED_DOWNLOAD_RESUME=yes
 MODULE_2SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
-MODULE_2SHARED_UPLOAD_OPTIONS=""
+MODULE_2SHARED_UPLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account (mandatory)"
 MODULE_2SHARED_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_2SHARED_DELETE_OPTIONS=""
+MODULE_2SHARED_DELETE_OPTIONS="
+AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
+
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+2shared_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+    local LOGIN_DATA JSON_RESULT ERR
+
+    LOGIN_DATA='login=$USER&password=$PASSWORD&callback=jsonp'
+    JSON_RESULT=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+       "$BASE_URL/login") || return
+
+    # {"ok":true,"rejectReason":"","loginRedirect":"http://...
+    # Set-Cookie: Login Password
+    if match_json_true 'ok' "$JSON_RESULT"; then
+        return 0
+    fi
+
+    ERR=$(echo "$JSON_RESULT" | parse_json 'rejectReason')
+    log_debug "Remote error: $ERR"
+    return $ERR_LOGIN_FAILED
+}
 
 # Output a 2shared file download URL
 # $1: cookie file (unused here)
 # $2: 2shared url
 # stdout: real file download link
 2shared_download() {
-    local URL=$2
-    local PAGE FILE_URL FILENAME WAIT_TIME
+    eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
 
-    PAGE=$(curl "$URL") || return
+    local COOKIE_FILE=$1
+    local URL=$2
+    local PAGE FILE_URL FILENAME WAIT_LINE WAIT_TIME
+
+    # .htm are redirected to .html
+    if [ -n "$AUTH_FREE" ]; then
+        local BASE_URL='http://www.2shared.com'
+        2shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+        PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
+    else
+        PAGE=$(curl -L "$URL") || return
+    fi
 
     if match "file link that you requested is not valid" "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -45,8 +83,13 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 
     # We are sorry, but your download request can not be processed right now.
     if match 'id="timeToWait"' "$PAGE"; then
-        WAIT_TIME=$(echo "$PAGE" | parse 'timeToWait' '>\([[:digit:]]\+\)') || return
-        echo $(( WAIT_TIME * 60 ))
+        WAIT_LINE=$(echo "$PAGE" | parse_tag 'timeToWait' span)
+        WAIT_TIME=${WAIT_LINE%% *}
+        if match 'minute' "$WAIT_LINE"; then
+            echo $(( WAIT_TIME * 60 ))
+        else
+            echo $((WAIT_TIME))
+        fi
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
@@ -60,72 +103,82 @@ MODULE_2SHARED_DELETE_OPTIONS=""
 }
 
 # Upload a file to 2shared.com
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: 2shared.com download + admin link
 2shared_upload() {
     eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
 
+    local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
-    local UPLOAD_URL='http://www.2shared.com'
-    local DATA ACTION COMPLETE STATUS FILE_URL FILE_ADMIN
+    local BASE_URL='http://www.2shared.com'
 
-    log_debug "downloading upload page: $UPLOAD_URL"
-    DATA=$(curl "$UPLOAD_URL") || return
-    ACTION=$(grep_form_by_name "$DATA" "uploadForm" | parse_form_action) ||
-        { log_debug "cannot get upload form URL"; return $ERR_FATAL; }
-    COMPLETE=$(echo "$DATA" | parse "uploadComplete" 'location="\([^"]*\)"')
+    local PAGE FORM_HTML FORM_ACTION FORM_DC COMPLETE DL_URL AD_URL
 
-    log_debug "starting file upload: $FILE"
-    STATUS=$(curl_with_log \
-        -F "mainDC=1" \
+    test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
+
+    2shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
+    COMPLETE=$(echo "$PAGE" | parse 'uploadComplete' 'location="\([^"]*\)"')
+
+    FORM_HTML=$(grep_form_by_name "$PAGE" 'uploadForm') || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_DC=$(echo "$FORM_HTML" | parse_form_input_by_name 'mainDC') || return
+
+    PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+        -F "mainDC=$FORM_DC" -F 'x=0' -F 'y=0' \
         -F "fff=@$FILE;filename=$DESTFILE" \
-        "$ACTION") || return
+        "$FORM_ACTION") || return
 
-    if ! match "upload has successfully completed" "$STATUS"; then
+    # Your upload has successfully completed!
+    if ! match "upload has successfully completed" "$PAGE"; then
         log_error "upload failure"
         return $ERR_FATAL
     fi
 
-    DATA=$(curl "$UPLOAD_URL$COMPLETE") || return
-    FILE_URL=$(echo "$DATA" | parse 'name="downloadLink"' "\(http:[^<]*\)") || return
-    FILE_ADMIN=$(echo "$DATA" | parse 'name="adminLink"' "\(http:[^<]*\)")
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL$COMPLETE") || return
+    DL_URL=$(echo "$PAGE" | parse_attr '/file/' action) || return
+    AD_URL=$(echo "$PAGE" | parse_attr '/fadmin/' action)
 
-    echo "$FILE_URL"
+    echo "$DL_URL"
     echo
-    echo "$FILE_ADMIN"
+    echo "$AD_URL"
 }
 
-# Delete a file uploaded to 2shared
+# Delete a file uploaded on 2shared
 # $1: cookie file
-# $2: ADMIN_URL
+# $2: admin url
 2shared_delete() {
     eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://www.2shared.com'
     local ADMIN_PAGE FORM DL_LINK AD_LINK
 
-    # Without cookie, it does not work
-    ADMIN_PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    if [ -n "$AUTH_FREE" ]; then
+        2shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    # 2Shared bug (2012-06): deleted files stays in the list of "My files"
+
+    ADMIN_PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
     if ! match 'Delete File' "$ADMIN_PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || {
-        log_error "can't get delete form, website updated?";
-        return $ERR_FATAL;
-    }
-
+    FORM=$(grep_form_by_name "$ADMIN_PAGE" 'theForm') || return
     DL_LINK=$(echo "$FORM" | parse_form_input_by_name 'downloadLink' | uri_encode_strict)
     AD_LINK=$(echo "$FORM" | parse_form_input_by_name 'adminLink' | uri_encode_strict)
 
-    curl -b "$COOKIEFILE" --referer "$URL" -o /dev/null \
-        --data "resultMode=2&password=&description=&publisher=&downloadLink=${DL_LINK}&adminLink=${AD_LINK}" \
+    curl -b "$COOKIE_FILE" --referer "$URL" -o /dev/null \
+        -d "adminLink=$AD_LINK" \
+        -d "downloadLink=$DL_LINK" \
+        -d 'resultMode=2&password=&description=&publisher=' \
         "$URL" || return
     # Can't parse for success, we get redirected to main page
 }
