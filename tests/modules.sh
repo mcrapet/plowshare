@@ -170,6 +170,9 @@ test_case_up_down_del() {
         # ERR_SYSTEM
         elif [ "$RET" -eq 8 ]; then
             echo -n "skip up (system failure)"
+        # ERR_MAX_TRIES_REACHED
+        elif [ "$RET" -eq 6 ]; then
+            echo -n "up KO (max retries)"
         else
             echo -n "up KO"
         fi
