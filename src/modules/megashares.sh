@@ -25,6 +25,7 @@ MODULE_MEGASHARES_DOWNLOAD_RESUME=yes
 MODULE_MEGASHARES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEGASHARES_UPLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 PRIVATE_FILE,,private,,Do not make file searchable/public
@@ -32,6 +33,41 @@ TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 MODULE_MEGASHARES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEGASHARES_DELETE_OPTIONS=""
+
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+megashares_login() {
+    local AUTH_FREE=$1
+    local COOKIEFILE=$2
+    local LOGIN_DATA PAGE NAME REDIR
+
+    LOGIN_DATA='httpref=&mymslogin_name=$USER&mymspassword=$PASSWORD&myms_login=Login'
+
+    # include header in output to check for redirect
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
+       'http://d01.megashares.com/myms_login.php' --include) || return
+
+    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+
+    if [ "$REDIR" = 'http://d01.megashares.com/myms.php' ]; then
+        : # everything ok
+    elif match 'Login failed for user' "$PAGE"; then
+        return $ERR_LOGIN_FAILED
+    # You have not verified your account yet.
+    elif matchi 'activation link' "$PAGE"; then
+        return $ERR_LOGIN_FAILED
+    else
+        log_error 'Problem during login, site updated?'
+        return $ERR_FATAL
+    fi
+
+    # Note: success full login also creates cookie 'myms' which
+    # starts with 'NAME%...'
+    NAME=$(parse_cookie 'myms' < "$COOKIEFILE") || return
+
+    log_debug "Successfully logged in as member '${NAME%%%*}'"
+}
 
 # $1: floating point number (example: "513.58")
 # $2: unit (KB | MB | GB)
@@ -216,12 +252,18 @@ megashares_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
+    # Login comes first (will invalidate upload url otherwise)
+    if [ -n "$AUTH_FREE" ]; then
+        megashares_login "$AUTH_FREE" "$COOKIEFILE" || return
+    fi
+
     # Note: Megashares uses Plupload -- http://www.plupload.com/
-    PAGE=$(curl -c "$COOKIEFILE" "$BASEURL") || return
+    PAGE=$(curl -c "$COOKIEFILE" -b "$COOKIEFILE" "$BASEURL") || return
 
     # Retrieve unique upload URL
     UPLOAD_URL=$(echo "$PAGE" | parse '^[[:space:]]\+url :' \
         "url : '\(.\+\)' ,$") || return
+
     log_debug "upload URL: $UPLOAD_URL"
 
     # File ID is created this way (from plugload.js):
@@ -264,16 +306,16 @@ megashares_upload() {
         -d 'uploading_files[0][status]=1' \
         "$BASEURL/pre_upload.php") || return
 
-    if [ "$PAGE" != "success" ]; then
+    if [ "$PAGE" != 'success' ]; then
         log_error "Remote error during pre upload check: $PAGE"
         return $ERR_FATAL
     fi
 
     # Publish file?
     if [ -n "$PRIVATE_FILE" ]; then
-        OPT_PUB="off"
+        OPT_PUB='off'
     else
-        OPT_PUB="on"
+        OPT_PUB='on'
     fi
 
     # Notes:
