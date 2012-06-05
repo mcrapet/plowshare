@@ -54,8 +54,8 @@ mirrorcreator_upload() {
 
         LOGIN_DATA='username=$USER&password=$PASSWORD'
         LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
-            "-H 'X-Requested-With: XMLHttpRequest'" \
-            "$BASE_URL/members/login_.php") || return
+            "$BASE_URL/members/login_.php" \
+            -H 'X-Requested-With: XMLHttpRequest') || return
 
         if [ "$LOGIN_RESULT" -eq 0 ]; then
             return $ERR_LOGIN_FAILED

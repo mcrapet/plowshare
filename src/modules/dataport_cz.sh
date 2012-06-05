@@ -40,7 +40,7 @@ dataport_cz_login() {
 
     LOGIN_DATA='username=$USER&password=$PASSWORD&loginFormSubmit='
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/?do=loginForm-submit" '-L') || return
+        "$BASE_URL/?do=loginForm-submit" -L) || return
 
     # <a href="/user/register">Registrace</a>&nbsp;
     if match '/user/register' "$LOGIN_RESULT"; then

@@ -40,7 +40,7 @@ netload_in_premium_login() {
     # Even if login/passwd are wrong cookie content is returned
     local LOGIN_DATA LOGIN_RESULT
     LOGIN_DATA='txtuser=$USER&txtpass=$PASSWORD&txtcheck=login&txtlogin='
-    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" '-L') || return
+    LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" -L) || return
 
     if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
         log_debug "bad login and/or password"

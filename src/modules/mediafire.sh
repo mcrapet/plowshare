@@ -153,7 +153,7 @@ mediafire_upload() {
         # HTTPS login (login_remember=on not required)
         LOGIN_DATA='login_email=$USER&login_pass=$PASSWORD&submit_login=Login+to+MediaFire'
         LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
-            'http://www.mediafire.com/dynamic/login.php?popup=1' "-b $COOKIEFILE") || return
+            'http://www.mediafire.com/dynamic/login.php?popup=1' -b "$COOKIEFILE") || return
 
         # If successful, two entries are added into cookie file: user and session
         SESSION=$(parse_cookie_quiet 'session' < "$COOKIEFILE")

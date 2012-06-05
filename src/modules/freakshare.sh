@@ -38,7 +38,7 @@ freakshare_login() {
 
     LOGIN_DATA='user=$USER&pass=$PASSWORD&submit=Login'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/login.html" "-b $COOKIE_FILE") || return
+        "$BASE_URL/login.html" -b "$COOKIE_FILE") || return
 
     # If login successful we get "login" entry in cookie file
     # and HTTP redirection (Location: $BASE_URL)

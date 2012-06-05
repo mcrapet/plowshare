@@ -37,13 +37,12 @@ turbobit_login() {
     local COOKIE_FILE=$2
     local BASEURL=$3
 
-    local LOGIN_DATA LOGIN_RESULT EXTRA_ARGS USER_ISLOGGEDIN USER
+    local LOGIN_DATA LOGIN_RESULT USER_ISLOGGEDIN USER
 
     # Force page in English
-    EXTRA_ARGS='-b user_lang=en'
     LOGIN_DATA='user[login]=$USER&user[pass]=$PASSWORD&user[submit]=Login'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASEURL/user/login" "$EXTRA_ARGS") || return
+        "$BASEURL/user/login" -b 'user_lang=en') || return
 
     USER_ISLOGGEDIN=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
     if [ "$USER_ISLOGGEDIN" = '1' ]; then

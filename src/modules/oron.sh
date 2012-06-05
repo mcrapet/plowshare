@@ -56,7 +56,7 @@ oron_login() {
 
     LOGIN_DATA='login=$USER&password=$PASSWORD&op=login&redirect=&rand='
     HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-       'http://oron.com/login' "-L -b $COOKIE_FILE") || return
+       'http://oron.com/login' -L -b "$COOKIE_FILE") || return
 
     NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
     [ -n "$NAME" ] || return $ERR_LOGIN_FAILED
