@@ -106,11 +106,12 @@ sendspace_upload() {
         -F "DESTINATION_DIR=$FORM_DDIR"   \
         -F "js_enabled=$FORM_JSENA"       \
         -F "signature=$FORM_SIGN"         \
-        -F "upload_files=$FORM_UFILES"    \
+        -F "upload_files[]=$FORM_UFILES"  \
         -F "terms=$FORM_TERMS"            \
         -F "file[]="                      \
         -F "ownemail="                    \
         -F "recpemail="                   \
+        -F 'recpemail_fcbkinput=recipient@email.com' \
         -F "upload_file[]=@$FILE;filename=$DESTFILE" \
         --form-string "description[]=$DESCRIPTION"   \
         "$FORM_URL") || return
@@ -121,7 +122,7 @@ sendspace_upload() {
     fi
 
     if match '403 Forbidden Request' "$DATA"; then
-        log_error "Remote error. Upload unsuccessful"
+        log_error "Upload unsuccessful or site updated?"
         return $ERR_FATAL
     fi
 
