@@ -72,8 +72,9 @@ turbobit_download() {
     local URL=$2
     local BASE_URL='http://turbobit.net'
 
-    local ID_FILE FREE_URL PAGE PAGE_LINK PART_FILE_URL FILE_URL
+    local ID_FILE FREE_URL PAGE PART_FILE_URL FILE_URL PAGE_LINK0 PAGE_LINK
     local FILENAME WAIT_TIME WAIT_TIME2 CAPTCHA_IMG
+    local JS_URL JS_CODE JS_CODE2 LINK_RAND LINK_HASH
 
     # Get id from these url formats:
     # http://turbobit.net/hsclfbvorabc/full.filename.avi.html
@@ -126,6 +127,8 @@ turbobit_download() {
 
     test "$CHECK_LINK" && return 0
 
+    detect_javascript || return
+
     # reCaptcha page
     if match 'api\.recaptcha\.net' "$PAGE"; then
 
@@ -157,9 +160,8 @@ turbobit_download() {
         CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value)
         CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
 
-        CAPTCHA_IMG=$(create_tempfile '.png') || return
-
         # Get new image captcha (cookie is mandatory)
+        CAPTCHA_IMG=$(create_tempfile '.png') || return
         curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
 
         local WI WORD ID
@@ -188,8 +190,8 @@ turbobit_download() {
     # This code must stay below captcha
     # case: You have reached the limit of connections
     # case: From your IP range the limit of connections is reached
-    local ERR1="You have reached the limit of connections"
-    local ERR2="From your IP range the limit of connections is reached"
+    local ERR1='You have reached the limit of connections'
+    local ERR2='From your IP range the limit of connections is reached'
     if match "$ERR1\|$ERR2" "$PAGE"; then
         WAIT_TIME=$(echo "$PAGE" | parse 'limit: ' 'limit: \([^,]*\)') || \
             { log_error "can't get sleep time"; return $ERR_FATAL; }
@@ -200,23 +202,41 @@ turbobit_download() {
     # This code must stay below captcha
     # case: Unable to Complete Request
     # case: The site is temporarily unavailable during upgrade process
-    ERR1="Unable to Complete Request"
-    ERR2="The site is temporarily unavailable during upgrade process"
+    ERR1='Unable to Complete Request'
+    ERR2='The site is temporarily unavailable during upgrade process'
     if match "$ERR1\|$ERR2" "$PAGE"; then
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Wait time after correct captcha
-    WAIT_TIME2=$(echo "$PAGE" | parse 'minLimit[[:space:]]*:' 'minLimit[[:space:]]*: \([^,]*\)') || \
-        { log_error "can't get sleep time"; return $ERR_FATAL; }
+    JS_URL=$(echo "$PAGE" | parse_attr '/timeout\.js' src) || return
 
+    # Wait time after correct captcha
+    WAIT_TIME2=$(echo "$PAGE" | parse 'Waiting\.init' "({\([^}]\+\)" | \
+        parse_json minLimit) || return
     wait $((WAIT_TIME2)) seconds || return
+
+    # De-obfuscation: timeout.js generates code to be evaled.
+    JS_CODE=$(curl -b "$COOKIEFILE" "$JS_URL") || return
+    JS_CODE2=$(echo "eval = function(x) { print(x); }; $JS_CODE" | js) || return
+    PAGE_LINK0=$(echo "
+      $JS_CODE2
+      clearTimeout = function() { };
+      $ = function(x) { 
+        return {
+          trigger: function() { },
+          load: function(u) { print('$BASE_URL' + u); }
+        }; 
+      };
+
+      Waiting.minLimit = 0;
+      Waiting.fileId = '$ID_FILE';
+      Waiting.updateTime();
+    " | js) || return
 
     # Get the page containing the file url
     PAGE_LINK=$(curl -b "$COOKIEFILE" --referer "$FREE_URL" \
-        -H 'X-Requested-With: XMLHttpRequest' \
-        "http://turbobit.net/download/getLinkTimeout/$ID_FILE") || return
+        -H 'X-Requested-With: XMLHttpRequest' "$PAGE_LINK0") || return
 
     # Sanity check
     if match 'code-404\|text-404' "$PAGE_LINK"; then
@@ -313,7 +333,7 @@ turbobit_delete() {
         return $ERR_FATAL
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
-    elif match 'File\(was\)\? not found' "$PAGE"; then
+    elif match 'File\( was\)\? not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
