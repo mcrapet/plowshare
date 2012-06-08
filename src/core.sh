@@ -1295,8 +1295,8 @@ captcha_process() {
             echo "a$TID"
             ;;
         captchatrader)
-            local USERNAME="${CAPTCHA_TRADER%%:*}"
-            local PASSWORD="${CAPTCHA_TRADER#*:}"
+            local USERNAME=${CAPTCHA_TRADER%%:*}
+            local PASSWORD=${CAPTCHA_TRADER#*:}
 
             if ! service_captchatrader_ready "$USERNAME" "$PASSWORD"; then
                 rm -f "$FILENAME"
@@ -1343,8 +1343,8 @@ captcha_process() {
             ;;
         deathbycaptcha)
             local HTTP_CODE POLL_URL
-            local USERNAME="${CAPTCHA_DEATHBY%%:*}"
-            local PASSWORD="${CAPTCHA_DEATHBY#*:}"
+            local USERNAME=${CAPTCHA_DEATHBY%%:*}
+            local PASSWORD=${CAPTCHA_DEATHBY#*:}
 
             if ! service_captchadeathby_ready "$USERNAME" "$PASSWORD"; then
                 rm -f "$FILENAME"
@@ -1510,8 +1510,8 @@ captcha_ack() {
         :
     elif [ c = "$M" ]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
-            local USERNAME="${CAPTCHA_TRADER%%:*}"
-            local PASSWORD="${CAPTCHA_TRADER#*:}"
+            local USERNAME=${CAPTCHA_TRADER%%:*}
+            local PASSWORD=${CAPTCHA_TRADER#*:}
 
             log_debug "captcha.trader report ack ($USERNAME)"
 
@@ -1557,8 +1557,8 @@ captcha_nack() {
 
     elif [ c = "$M" ]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
-            local USERNAME="${CAPTCHA_TRADER%%:*}"
-            local PASSWORD="${CAPTCHA_TRADER#*:}"
+            local USERNAME=${CAPTCHA_TRADER%%:*}
+            local PASSWORD=${CAPTCHA_TRADER#*:}
 
             log_debug "captcha.trader report nack ($USERNAME)"
 
@@ -1577,8 +1577,8 @@ captcha_nack() {
 
     elif [ d = "$M" ]; then
         if [ -n "$CAPTCHA_DEATHBY" ]; then
-            local USERNAME="${CAPTCHA_DEATHBY%%:*}"
-            local PASSWORD="${CAPTCHA_DEATHBY#*:}"
+            local USERNAME=${CAPTCHA_DEATHBY%%:*}
+            local PASSWORD=${CAPTCHA_DEATHBY#*:}
 
             log_debug "DeathByCaptcha report nack ($USERNAME)"
 
@@ -1983,14 +1983,14 @@ process_configfile_options() {
 
             # Look for optional double quote (protect leading/trailing spaces)
             if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
-                VALUE="${VALUE%?}"
-                VALUE="${VALUE:1}"
+                VALUE=${VALUE%?}
+                VALUE=${VALUE:1}
             fi
 
             # Look for 'long_name' in options list
             OPTION=$(echo "$OPTIONS" | grep ",${NAME}:\?," | sed '1q') || true
             if [ -n "$OPTION" ]; then
-                local VAR="${OPTION%%,*}"
+                local VAR=${OPTION%%,*}
                 eval "$VAR=$(quote "$VALUE")"
             fi
         done <<< "$SECTION"
@@ -2044,8 +2044,8 @@ process_configfile_module_options() {
 
                 # Look for optional double quote (protect leading/trailing spaces)
                 if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
-                    VALUE="${VALUE%?}"
-                    VALUE="${VALUE:1}"
+                    VALUE=${VALUE%?}
+                    VALUE=${VALUE:1}
                 fi
 
                 eval "$VAR=$(quote "$VALUE")"
