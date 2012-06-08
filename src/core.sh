@@ -2034,8 +2034,8 @@ process_configfile_module_options() {
         # AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
         while read OPTION; do
             IFS="," read VAR SHORT LONG VALUE_HELP <<< "$OPTION"
-            SHORT=$(sed -e 's/:$//' <<< "$SHORT")
-            LONG=$(sed -e 's/:$//' <<< "$LONG")
+            SHORT=${SHORT%:}
+            LONG=${LONG%:}
 
             # Look for 'module/option_name' (short or long) in section list
             LINE=$(echo "$SECTION" | grep "^$M/\($SHORT\|$LONG\)[[:space:]]*=" | sed -n '$p') || true
