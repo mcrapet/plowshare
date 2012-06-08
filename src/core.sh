@@ -1991,7 +1991,7 @@ process_configfile_options() {
             OPTION=$(echo "$OPTIONS" | grep ",${NAME}:\?," | sed '1q') || true
             if [ -n "$OPTION" ]; then
                 local VAR=${OPTION%%,*}
-                eval "$VAR=$(quote "$VALUE")"
+                eval "$VAR=\$VALUE"
             fi
         done <<< "$SECTION"
     fi
@@ -2048,7 +2048,7 @@ process_configfile_module_options() {
                     VALUE=${VALUE:1}
                 fi
 
-                eval "$VAR=$(quote "$VALUE")"
+                eval "$VAR=\$VALUE"
                 log_notice "$M: take --$LONG option from configuration file"
             else
                 unset "$VAR"
