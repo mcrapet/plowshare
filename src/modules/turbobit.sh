@@ -218,21 +218,21 @@ turbobit_download() {
 
     # De-obfuscation: timeout.js generates code to be evaled.
     JS_CODE=$(curl -b "$COOKIEFILE" "$JS_URL") || return
-    JS_CODE2=$(echo "eval = function(x) { print(x); }; $JS_CODE" | js) || return
+    JS_CODE2=$(echo "eval = function(x) { print(x); }; $JS_CODE" | javascript) || return
     PAGE_LINK0=$(echo "
       $JS_CODE2
       clearTimeout = function() { };
-      $ = function(x) { 
+      $ = function(x) {
         return {
           trigger: function() { },
           load: function(u) { print('$BASE_URL' + u); }
-        }; 
+        };
       };
 
       Waiting.minLimit = 0;
       Waiting.fileId = '$ID_FILE';
       Waiting.updateTime();
-    " | js) || return
+    " | javascript) || return
 
     # Get the page containing the file url
     PAGE_LINK=$(curl -b "$COOKIEFILE" --referer "$FREE_URL" \
