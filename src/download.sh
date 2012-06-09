@@ -321,7 +321,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_MAX_TRIES_REACHED)
-                log_notice "Retry limit reached (${FUNCTION})"
+                log_notice "Retry limit reached (max=$MAXRETRIES)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
@@ -332,6 +332,11 @@ download() {
                 ;;
             $ERR_SYSTEM)
                 log_notice "System failure (${FUNCTION})"
+                rm -f "$DCOOKIE"
+                return $DRETVAL
+                ;;
+            $ERR_BAD_COMMAND_LINE)
+                log_notice "Wrong module option, check your command line"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;

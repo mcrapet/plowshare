@@ -349,6 +349,10 @@ for FILE in "$@"; do
         log_error "Login process failed. Bad username/password or unexpected content"
     elif [ $URETVAL -eq $ERR_SIZE_LIMIT_EXCEEDED ]; then
         log_error "Insufficient permissions (file size limit exceeded)"
+    elif [ $URETVAL -eq $ERR_MAX_TRIES_REACHED ]; then
+        log_error "Retry limit reached (max=$MAXRETRIES)"
+    elif [ $URETVAL -eq $ERR_BAD_COMMAND_LINE ]; then
+        log_error "Wrong module option, check your command line"
     else
         log_error "failed inside ${FUNCTION}() [$URETVAL]"
     fi
