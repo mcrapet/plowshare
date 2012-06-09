@@ -26,6 +26,7 @@ MODULE_MEGASHARES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEGASHARES_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+CATEGORY,,category:,CATEGORY,Upload category
 DESCRIPTION,d:,description:,DESCRIPTION,Set file description
 LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 PRIVATE_FILE,,private,,Do not make file searchable/public
@@ -242,7 +243,7 @@ megashares_upload() {
     local BASEURL='http://www.megashares.com'
     local MAX_SIZE=$((10000*1024*1024)) # up to 10000MB
 
-    local PAGE CATEGORY DL_LINK DEL_LINK OPT_PUB
+    local PAGE DL_LINK DEL_LINK OPT_PUB OPT_CAT
     local UPLOAD_URL FILE_SIZE UPLOAD_ID FILE_ID I RND DATE
 
     # Check file size
@@ -252,7 +253,7 @@ megashares_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    # Login comes first (will invalidate upload url otherwise)
+    # Login comes first (will invalidate upload URL otherwise)
     if [ -n "$AUTH_FREE" ]; then
         megashares_login "$AUTH_FREE" "$COOKIEFILE" || return
     fi
@@ -260,14 +261,44 @@ megashares_upload() {
     # Note: Megashares uses Plupload -- http://www.plupload.com/
     PAGE=$(curl -c "$COOKIEFILE" -b "$COOKIEFILE" "$BASEURL") || return
 
+    # If user chose a category, check it now
+    if [ -n "$CATEGORY" ]; then
+        local CAT_ALL
+
+        # strUploadCategoryHTML += '<option selected="" value="doc">Document</option>';
+        CAT_ALL=$(echo "$PAGE" | parse_all_attr option value) || return
+
+        if [ -z "$CAT_ALL" ]; then
+            log_error "No categories found, site updated?"
+            return $ERR_FATAL
+        fi
+
+        log_debug "available categories:" $CAT_ALL
+
+        for CAT in $CAT_ALL; do
+            if [ "$CAT" == "$CATEGORY" ]; then
+                OPT_CAT=$CAT
+                break
+            fi
+        done
+
+        if [ -z "$OPT_CAT" ]; then
+            log_error "Category '$CATEGORY' invalid; choose from:" $CAT_ALL
+            return $ERR_BAD_COMMAND_LINE
+        fi
+    else
+        OPT_CAT='doc' # Use site's default if user didn't choose
+        log_debug "using default upload category ($OPT_CAT)"
+    fi
+
     # Retrieve unique upload URL
     UPLOAD_URL=$(echo "$PAGE" | parse '^[[:space:]]\+url :' \
         "url : '\(.\+\)' ,$") || return
 
+    log_debug "category: $OPT_CAT"
     log_debug "upload URL: $UPLOAD_URL"
 
     # File ID is created this way (from plugload.js):
-    #
     #     guid:function(){
     #       var n=new Date().getTime().toString(32),o;
     #       for(o=0;o<5;o++){
@@ -275,13 +306,12 @@ megashares_upload() {
     #       }
     #       return(g.guidPrefix||"p")+n+(f++).toString(32)
     #     }
-    #
-    # with
-    # g.guidPrefix == NULL
-    # f==4 (for the first file)
+    # with:
+    #     g.guidPrefix == NULL
+    #     f==4 (for the first file)
     #
     # Example: p16un8pgstjbi1vt71utd1iak1smh4
-    DATE="$(date +%s)000"
+    DATE=$(date +%s000)
     UPLOAD_ID=$(dec_to_base32hex $DATE)
 
     for I in 1 2 3 4 5; do
@@ -292,9 +322,6 @@ megashares_upload() {
 
     UPLOAD_ID="p${UPLOAD_ID}4"
     log_debug "upload ID: $UPLOAD_ID"
-
-    # Upload Category: video doc application music image
-    CATEGORY='doc'
 
     # Pre-upload file check + register upload ID at server
     PAGE=$(curl -b "$COOKIEFILE" \
@@ -325,7 +352,7 @@ megashares_upload() {
         -F "name=$UPLOAD_ID.${DESTFILE##*.}" \
         --form-string "uploadFileDescription=$DESCRIPTION" \
         --form-string "passProtectUpload=$LINK_PASSWORD" \
-        -F "uploadFileCategory=$CATEGORY" \
+        -F "uploadFileCategory=$OPT_CAT" \
         -F "searchable=$OPT_PUB" \
         --form-string "emailAddress=$TOEMAIL" \
         -F "file=@$FILE;filename=$DESTFILE" \
