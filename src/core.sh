@@ -932,7 +932,7 @@ post_login() {
     local POSTDATA=$3
     local LOGIN_URL=$4
     shift 4
-    local CURL_ARGS=("$@")
+    local -a CURL_ARGS=("$@")
     local USER PASSWORD DATA RESULT
 
     if [ -z "$AUTH" ]; then
