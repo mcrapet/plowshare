@@ -22,6 +22,7 @@ MODULE_4SHARED_REGEXP_URL="https\?://\(www\.\)\?4shared\.com/"
 
 MODULE_4SHARED_DOWNLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
 TORRENT,,torrent,,Get torrent link (instead of direct download link)"
 MODULE_4SHARED_DOWNLOAD_RESUME=yes
 MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
@@ -85,6 +86,29 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
         return $ERR_FATAL
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
         return $ERR_LINK_DEAD
+    fi
+
+    # You must enter a password to access this file.
+    if match 'enter a password to access' "$PAGE"; then
+        log_debug "File is password protected"
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD="$(prompt_for_password)" || return
+        fi
+
+        local FORM_HTML FORM_ACTION FORM_DSID
+        FORM_HTML=$(grep_form_by_name "$PAGE" 'theForm') || return
+        FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+        FORM_DSID=$(echo "$FORM_HTML" | parse_form_input_by_name 'dsid')
+
+        PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" -b '4langcookie=en' \
+            -d "userPass2=$LINK_PASSWORD" \
+            -d "dsid=$FORM_DSID" \
+            "$FORM_ACTION") || return
+
+        # The password you have entered is not valid
+        if match 'enter a password to access' "$PAGE"; then
+            return $ERR_LINK_PASSWORD_REQUIRED
+        fi
     fi
 
     WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com/get/' 'href') || return
