@@ -32,7 +32,8 @@ AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_4SHARED_LIST_OPTIONS="
-DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
+DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones
+LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
 
 # Static function. Proceed with login (tested on free-membership)
 4shared_login() {
@@ -241,7 +242,7 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
     eval "$(process_options 4shared "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
 
     local URL=$(echo "$1" | replace '/folder/' '/dir/')
-    local PAGE
+    local COOKIE_FILE RET=0
 
     # There are two views:
     # - Simple view link (URL with /folder/)
@@ -251,19 +252,84 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones"
         return $ERR_FATAL
     fi
 
-    test "$2" && log_debug "recursive flag is not supported"
+    COOKIE_FILE=$(create_tempfile) || return
+    4shared_list_rec "$2" "$URL" "$COOKIE_FILE" || RET=$?
 
-    PAGE=$(curl "$URL") || return
+    rm -f "$COOKIE_FILE"
+    return $RET
+}
 
-    match 'src="/images/spacer.gif" class="warn"' "$PAGE" &&
-        { log_error "Site updated?"; return $ERR_FATAL; }
+# static recursive function
+# $1: recursive flag
+# $2: web folder URL
+# $3: cookie file
+4shared_list_rec() {
+    local REC=$1
+    local URL=$2
+    local COOKIE_FILE=$3
+
+    local PAGE LINKS FOLDERS FILE_URL RET LINE SID
+
+    RET=$ERR_LINK_DEAD
+    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b '4langcookie=en' \
+        "$URL") || return
+
+    # Please enter a password to access this folder
+    if match 'enter a password to access' "$PAGE"; then
+        log_debug "Folder is password protected"
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD="$(prompt_for_password)" || return
+        fi
+
+        local FORM_HTML FORM_ACTION FORM_DSID
+        FORM_HTML=$(grep_form_by_name "$PAGE" 'theForm') || return
+        FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+        FORM_DSID=$(echo "$FORM_HTML" | parse_form_input_by_name 'dsid')
+
+        PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b '4langcookie=en' \
+            -d "userPass2=$LINK_PASSWORD" \
+            -d "dsid=$FORM_DSID" \
+            "$FORM_ACTION") || return
+
+        # The password you have entered is not valid
+        if match 'enter a password to access' "$PAGE"; then
+            return $ERR_LINK_PASSWORD_REQUIRED
+        fi
+    fi
+
+    # Sanity chech
+    if match 'src="/images/spacer.gif" class="warn"' "$PAGE"; then
+        log_error "Site updated ?"
+        return $ERR_FATAL
+    fi
 
     if test "$DIRECT_LINKS"; then
         log_debug "Note: provided links are temporary! Use 'curl -J -O' on it."
-        echo "$PAGE" | parse_all_attr_quiet \
-            'class="icon16 download"' href || return $ERR_LINK_DEAD
+        LINKS=$(echo "$PAGE" | \
+            parse_all_attr_quiet 'class="icon16 download"' href)
     else
-        echo "$PAGE" | parse_all "openNewWindow('" \
-            "('\([^']*\)" || return $ERR_LINK_DEAD
+        LINKS=$(echo "$PAGE" | parse_all_quiet "openNewWindow('" "('\([^']*\)")
     fi
+
+    #  Print links (if any)
+    if [ -n "$LINKS" ]; then
+        RET=0
+        while read FILE_URL; do
+            echo "$FILE_URL"
+        done <<< "$LINKS"
+    fi
+
+    # Are there any subfolders?
+    if test "$REC"; then
+        FOLDERS=$(echo "$PAGE" | parse_all_quiet ':changeDir(' '(\([[:digit:]]\+\)')
+        SID=$(echo "$PAGE" | parse_form_input_by_name 'sId') || return
+        while read LINE; do
+            test "$LINE" || continue
+            FILE_URL="http://www.4shared.com/account/changedir.jsp?sId=$SID&ajax=true&changedir=$LINE&random=0"
+            log_debug "entering sub folder: $FILE_URL"
+            4shared_list_rec "$REC" "$FILE_URL" "$COOKIE_FILE" && RET=0
+        done <<< "$FOLDERS"
+    fi
+
+    return $RET
 }
