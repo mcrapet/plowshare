@@ -112,7 +112,14 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
         fi
     fi
 
-    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com/get/' 'href') || return
+    # Special case for /photo/ URLs
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet '?forceAttachmentDownload=' href)
+    if [ -n "$FILE_URL" ]; then
+        echo "$FILE_URL"
+        return 0
+    fi
+
+    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com/get/' href) || return
 
     test "$CHECK_LINK" && return 0
 
