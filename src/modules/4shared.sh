@@ -218,11 +218,12 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
         "$UP_URL&resumableFileId=$FILE_ID&resumableFirstByte=0") || return
 
     # I should get { "status": "OK", "uploadedFileId": -1 }
-    if match '"status"[[:space:]]\?:[[:space:]]\?"error"' "$JSON"; then
-        local ERR
-        ERR=$(echo "$JSON" | parse 'Message"' \
-            "Message\"[[:space:]]\?:[[:space:]]\?'\([^']*\)") || return
-        log_error "site: $ERR"
+    local STATUS ERR
+    STATUS=$(echo "$JSON" | parse_json_quiet status)
+    if [ "$STATUS" != 'OK' ]; then
+        ERR=$(echo "$JSON" | parse_json Message)
+        log_debug "Bad status: $STATUS"
+        test "$ERR" && log_error "Remote error: $ERR"
         return $ERR_FATAL
     fi
 
@@ -233,7 +234,7 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
         "$BASE_URL/rest/sharedFileUpload/finish?fileId=$FILE_ID") || return
 
     # {"status":true}
-    if ! match '"status"[[:space:]]\?:[[:space:]]\?true' "$JSON"; then
+    if ! match_json_true 'status' "$JSON"; then
         log_error "bad answer, file moved to Incompleted folder"
         return $ERR_FATAL
     fi
