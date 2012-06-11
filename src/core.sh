@@ -818,7 +818,7 @@ html_to_utf8() {
         recode html..utf8
     elif check_exec 'perl'; then
         log_report "$FUNCNAME: use perl"
-        $(type -P perl) -n -mHTML::Entities \
+        "$(type -P perl)" -n -mHTML::Entities \
             -e 'BEGIN { eval { binmode(STDOUT,q[:utf8]); }; } \
                 print HTML::Entities::decode_entities($_);' 2>/dev/null || { \
             log_debug "$FUNCNAME failed (perl): HTML::Entities missing ?";
@@ -1710,7 +1710,7 @@ md5() {
         echo -n "$1" | md5sum -b 2>/dev/null | cut -d' ' -f1
     # BSD
     elif check_exec md5; then
-        $(type -P md5) -qs "$1"
+        "$(type -P md5)" -qs "$1"
     # OpenSSL
     elif check_exec openssl; then
         echo -n "$1" | openssl dgst -md5 | cut -d' ' -f2
@@ -2070,12 +2070,12 @@ log_report_info() {
         log_report "[mach] $(uname -a)"
         log_report "[bash] $BASH_VERSION"
         if check_exec 'curl'; then
-            log_report "[curl] $($(type -P curl) --version | sed 1q)"
+            log_report "[curl] $("$(type -P curl)" --version | first_line)"
         else
             log_report '[curl] not found!'
         fi
         check_exec 'gsed' && G=g
-        log_report "[sed ] $($(type -P ${G}sed) --version | sed -ne '/version/p')"
+        log_report "[sed ] $("$(type -P ${G}sed)" --version | sed -ne '/version/p')"
         log_report '=== SYSTEM INFO END ==='
     fi
 }
