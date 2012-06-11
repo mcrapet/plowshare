@@ -1443,7 +1443,7 @@ captcha_process() {
     fi
 }
 
-RECAPTCHA_SERVER="http://www.google.com/recaptcha/api/"
+RECAPTCHA_SERVER='http://www.google.com/recaptcha/api/'
 # reCAPTCHA decoding function
 # Main engine: http://api.recaptcha.net/js/recaptcha.js
 #
@@ -1519,7 +1519,7 @@ captcha_ack() {
 
             log_debug "captcha.trader report ack ($USERNAME)"
 
-            RESPONSE=$(curl -F "match=" \
+            RESPONSE=$(curl -F 'match=' \
                 -F "is_correct=1"       \
                 -F "ticket=$TID"        \
                 -F "password=$PASSWORD" \
