@@ -111,6 +111,7 @@ log_error() {
 # Important note: -D/--dump-header or -o/--output temporary files are deleted in case of error
 curl() {
     local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 240 "$@")
+    local CURL_PRG=$(type -P curl)
     local DRETVAL=0
 
     # Check if caller has specified a User-Agent, if so, don't put one
@@ -125,29 +126,32 @@ curl() {
         OPTIONS[${#OPTIONS[@]}]=5
     fi
 
-    # no verbose unless debug level; don't show progress meter for report level too
+    # No verbose unless debug level; don't show progress meter for report level too
     test $(verbose_level) -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
 
     test -n "$NO_CURLRC" && OPTIONS=('-q' "${OPTIONS[@]}")
-    test -n "$INTERFACE" && OPTIONS=("${OPTIONS[@]}" '--interface' "$INTERFACE")
 
+    if test -n "$INTERFACE"; then
+        OPTIONS[${#OPTIONS[@]}]='--interface'
+        OPTIONS[${#OPTIONS[@]}]=$INTERFACE
+    fi
     if test -n "$MAX_LIMIT_RATE"; then
         OPTIONS[${#OPTIONS[@]}]='--limit-rate'
-        OPTIONS[${#OPTIONS[@]}]="$MAX_LIMIT_RATE"
+        OPTIONS[${#OPTIONS[@]}]=$MAX_LIMIT_RATE
     fi
     if test -n "$MIN_LIMIT_RATE"; then
         OPTIONS[${#OPTIONS[@]}]='--speed-time'
         OPTIONS[${#OPTIONS[@]}]=30
         OPTIONS[${#OPTIONS[@]}]='--speed-limit'
-        OPTIONS[${#OPTIONS[@]}]="$MIN_LIMIT_RATE"
+        OPTIONS[${#OPTIONS[@]}]=$MIN_LIMIT_RATE
     fi
 
     if test $(verbose_level) -lt 4; then
-        $(type -P curl) "${OPTIONS[@]}" || DRETVAL=$?
+        "$CURL_PRG" "${OPTIONS[@]}" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}"
-        $(type -P curl) --show-error "${OPTIONS[@]}" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
+        "$CURL_PRG" --show-error "${OPTIONS[@]}" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes"
         log_report "=== CURL BEGIN ==="
