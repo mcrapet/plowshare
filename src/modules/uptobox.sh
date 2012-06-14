@@ -24,8 +24,33 @@ MODULE_UPTOBOX_DOWNLOAD_OPTIONS=""
 MODULE_UPTOBOX_DOWNLOAD_RESUME=yes
 MODULE_UPTOBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
-MODULE_UPTOBOX_UPLOAD_OPTIONS=""
+MODULE_UPTOBOX_UPLOAD_OPTIONS="
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_UPTOBOX_UPLOAD_REMOTE_SUPPORT=no
+
+# Static function. Proceed with login
+# $1: credentials string
+# $2: cookie file
+# $3: base url
+uptobox_login() {
+    local AUTH=$1
+    local COOKIE_FILE=$2
+    local BASE_URL=$3
+
+    local LOGIN_DATA LOGIN_RESULT NAME
+
+    LOGIN_DATA='op=login&login=$USER&password=$PASSWORD&x=10&y=10&redirect='
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA$BASE_URL" "$BASE_URL") || return
+
+    # Set-Cookie: login xfss
+    NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
+    if [ -n "$NAME" ]; then
+        log_debug "Successfully logged in as $NAME member"
+        return 0
+    fi
+
+    return $ERR_LOGIN_FAILED
+}
 
 # Output a uptobox file download URL
 # $1: cookie file (unused here)
@@ -140,20 +165,28 @@ uptobox_download() {
 }
 
 # Upload a file to uptobox.com
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download link + delete link
 uptobox_upload() {
     eval "$(process_options uptobox "$MODULE_UPTOBOX_UPLOAD_OPTIONS" "$@")"
 
+    local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://uptobox.com'
 
     local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
 
-    PAGE=$(curl -b 'lang=english' "$BASE_URL") || return
+    if [ -n "$AUTH" ]; then
+        uptobox_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+        USER_TYPE=reg
+    else
+        USER_TYPE=anon
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
 
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
@@ -163,7 +196,6 @@ uptobox_upload() {
     FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url')
 
     UPLOAD_ID=$(random dec 10)
-    USER_TYPE=anon
 
     # xupload.js
     PAGE=$(curl_with_log \
