@@ -109,22 +109,23 @@ oron_download() {
 
     oron_switch_lang "$COOKIE_FILE" || return
 
-    # login first so we get the direct download page for premium account
+    # Login first so we get the direct download page for premium account
     if [ -n "$AUTH" ]; then
         ACCOUNT=$(oron_login "$AUTH" "$COOKIE_FILE") || return
     fi
     HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
 
-    # check the file for availability
+    # Check the file for availability
     match '<h2>File Not Found</h2>' "$HTML" && return $ERR_LINK_DEAD
     test "$CHECK_LINK" && return 0
 
     FILE_ID=$(oron_extract_file_id "$URL") || return
     FILE_NAME=$(echo "$HTML" | parse_form_input_by_name 'fname') || return
 
-    # request free download (anon, free)
+    # Request free download (anonymous, free)
+    # Note: usr_login is empty even if logged in
     if [ "$ACCOUNT" != 'premium' ]; then
-        # send download request form
+        # Send download request form
         HTML=$(curl -b "$COOKIE_FILE" \
             -F 'op=download1' \
             -F 'usr_login=' \
@@ -134,15 +135,15 @@ oron_download() {
             -F 'method_free= Regular Download ' \
             "$URL") || return
 
-        # check for availability (yet again)
+        # Check for availability (yet again)
         match 'File could not be found' "$HTML" && return $ERR_LINK_DEAD
 
-        # check, if file is too large
+        # Check if file is too large
         match 'Free Users can only download files sized up to' "$HTML" && \
             return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    # check for file password protection (anon, free, premium)
+    # Check for file password protection (anonymous, free, premium)
     if match 'Password:[[:space:]]*<input' "$HTML"; then
         log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
@@ -152,10 +153,10 @@ oron_download() {
     fi
 
     if [ "$ACCOUNT" != 'premium' ]; then
-        # prepare free download (anon, free)
+        # Prepare free download (anonymous, free)
         local SLEEP DAYS HOURS MINS SECS PUBKEY WCI CHALLENGE WORD ID
 
-        # retrieve wait time
+        # Retrieve wait time
         # You have to wait xx hours, xx minutes, xx seconds until the next download becomes available.
         DAYS=$(echo "$HTML" | parse_quiet '<p class="err">You have to wait' \
             ' \([[:digit:]]\+\) days\?')
@@ -175,12 +176,12 @@ oron_download() {
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
-        # retrieve sleep time
+        # Retrieve sleep time
         # Please wait <span id="countdown">60</span> seconds
         SLEEP=$(echo "$HTML" | parse_tag 'Please wait' 'span') || return
         wait $((SLEEP + 1)) seconds || return
 
-        # solve ReCaptcha
+        # Solve ReCaptcha
         PUBKEY='6LdzWwYAAAAAAAzlssDhsnar3eAdtMBuV21rqH2N'
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
@@ -190,17 +191,17 @@ oron_download() {
         METHOD_F=' Regular Download '
         METHOD_P=''
     else
-        # premium
+        # Premium
         METHOD_F=''
         METHOD_P='1'
         MODULE_ORON_DOWNLOAD_RESUME=yes
     fi
 
-    # retrieve nonce (anon, free, premium)
+    # Retrieve nonce (anonymous, free, premium)
     RND=$(echo "$HTML" | parse_form_input_by_name 'rand') || return
     log_debug "Random value: $RND"
 
-    # request download (no double quote around $OPT_PASSWD, $CHALLENGE, $WORD)
+    # Request download (no double quote around $OPT_PASSWD, $CHALLENGE, $WORD)
     HTML=$(curl -b "$COOKIE_FILE" \
         -F 'op=download2' \
         -F "id=$FILE_ID" \
@@ -214,7 +215,7 @@ oron_download() {
         -F 'down_direct=1' \
         "$URL") || return
 
-    # check for possible errors
+    # Check for possible errors
     if match 'Wrong captcha' "$HTML"; then
         log_error 'Wrong captcha'
         captcha_nack $ID
@@ -258,7 +259,7 @@ oron_upload() {
 
     oron_switch_lang "$COOKIE_FILE" || return
 
-    # login and set max file size (depends on account type)
+    # Login and set max file size (depends on account type)
     if [ -n "$AUTH" ]; then
         ACCOUNT=$(oron_login "$AUTH" "$COOKIE_FILE") || return
 
@@ -268,7 +269,7 @@ oron_upload() {
             MAX_SIZE=$((2048*1024*1024)) # premium up to 2GB
         fi
     else
-        MAX_SIZE=$((400*1024*1024)) # anon up to 400MB
+        MAX_SIZE=$((400*1024*1024)) # anonymous up to 400MB
 
         [ -z "$PRIVATE_FILE" ] || \
             log_error 'option "--private" ignored, account only'
@@ -292,7 +293,7 @@ oron_upload() {
 
     HTML=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
 
-    # gather relevant data from form
+    # Gather relevant data from form
     FORM=$(grep_form_by_name "$HTML" 'file') || return
     SRV_ID=$(echo "$FORM" | parse_form_input_by_name_quiet 'srv_id') || return
     SESS_ID=$(echo "$FORM" | parse_form_input_by_name_quiet 'sess_id') || return
@@ -303,7 +304,7 @@ oron_upload() {
     log_debug "Session ID: $SESS_ID"
     log_debug "Server URL: $SRV_URL"
 
-    # prepare upload
+    # Prepare upload
     if match_remote_url "$FILE"; then
         HTML=$(curl -b "$COOKIE_FILE" \
             "$SRV_URL/status.html?url=$RND=$DEST_FILE") || return
@@ -317,7 +318,7 @@ oron_upload() {
         return $ERR_FATAL
     fi
 
-    # upload file
+    # Upload file
     if match_remote_url "$FILE"; then
         HTML=$(curl -b "$COOKIE_FILE" \
             -F "srv_id=$SRV_ID" \
@@ -333,7 +334,7 @@ oron_upload() {
             -F 'submit_btn= Upload! ' \
             "$SRV_URL/cgi-bin/upload_url.cgi/?X-Progress-ID=$RND") || return
 
-        # gather relevant data
+        # Gather relevant data
         FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines) || return
         FN=$(echo "$FORM" | parse_tag 'fn' 'textarea') || return
         ST=$(echo "$FORM" | parse_tag 'st' 'textarea') || return
@@ -353,7 +354,7 @@ oron_upload() {
             -F 'submit_btn= Upload! ' \
             "$SRV_URL/upload/$SRV_ID/?X-Progress-ID=$RND") || return
 
-        # gather relevant data
+        # Gather relevant data
         FORM=$(grep_form_by_name "$HTML" 'F1' | break_html_lines_alt) || return
         FN=$(echo "$FORM" | parse_form_input_by_name_quiet 'fn') || return
         ST=$(echo "$FORM" | parse_form_input_by_name_quiet 'st') || return
@@ -380,7 +381,7 @@ oron_upload() {
 
     [ -n "$TOEMAIL" ] && OPT_EMAIL="-F link_rcpt=$TOEMAIL"
 
-    # get download url (no double quote around $OPT_EMAIL)
+    # Get download url (no double quote around $OPT_EMAIL)
     HTML=$(curl -b "$COOKIE_FILE" \
         -F 'op=upload_result' \
         $OPT_EMAIL \
@@ -394,7 +395,7 @@ oron_upload() {
     DEL_LINK=$(echo "$HTML" | parse_line_after 'Delete Link:' \
         'value="\([^"]*\)">') || return
 
-    # do we need to edit the file? (change name/visibility)
+    # Do we need to edit the file? (change name/visibility)
     if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] || \
         ( match_remote_url "$FILE" && [ "$DEST_FILE" != 'dummy' ] ); then
         log_debug 'Editing file...'
@@ -402,7 +403,7 @@ oron_upload() {
         local FILE_ID F_NAME F_PASS F_PUB
         FILE_ID=$(oron_extract_file_id "$LINK") || return
 
-        # retrieve current values
+        # Retrieve current values
         HTML=$(curl -b "$COOKIE_FILE" \
             "$BASE_URL/?op=file_edit;file_code=$FILE_ID") || return
 
@@ -418,7 +419,7 @@ oron_upload() {
         [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] && F_PUB='1'
         [ -n "$LINK_PASSWORD" ] && F_PASS="$LINK_PASSWORD"
 
-        # post changes (include HTTP headers to check for proper redirection)
+        # Post changes (include HTTP headers to check for proper redirection)
         HTML=$(curl -i -b "$COOKIE_FILE" \
             -F "file_name=$F_NAME" \
             -F "file_password=$F_PASS" \
@@ -446,7 +447,7 @@ oron_delete() {
     local URL=$2
     local HTML FILE_ID KILLCODE
 
-    # check + parse URL
+    # Check + parse URL
     FILE_ID=$(oron_extract_file_id "$URL") || return
     KILLCODE=$(echo "$URL" | parse . \
         "^http://oron\.com/[[:alnum:]]\{12\}?killcode=\([[:alnum:]]\{10\}\)") || return
@@ -487,7 +488,7 @@ oron_list() {
     HTML=$(curl "$URL") || return
     LINKS=$(echo "$HTML" | parse_all_quiet '<td id=' '^\(.*\)$')
 
-    #  Print links (if any)
+    # Print links (if any)
     if [ -n "$LINKS" ]; then
         RET=0
         while read LINE; do
