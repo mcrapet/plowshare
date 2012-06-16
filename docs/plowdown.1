@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "May 31, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "June 16, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -114,13 +114,19 @@ Use Death by Captcha service to solve captcha.
 .BI "   " " " --captchamethod "=METHOD"
 Force specific captcha solving method. Available values:
 .RS
+\fBimgur\fR : upload image to Imgur.com service, print image url in console. Useful for NAS and embedded devices.
+.RE
+.RS
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
 \fBonline\fR : use captcha solving website (Antigate, CaptchaTrader or DeathByCaptcha account required).
 .RE
 .RS
-\fBprompt\fR : display image and prompt for manual entering.
+\fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
+.RE
+.RS
+\fBprompt\fR : display image (X11 or text) and prompt for manual entering. Looks for viewers: display, sxiv, qiv, img2txt, aview, tiv.
 .RE
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"

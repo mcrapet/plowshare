@@ -1146,15 +1146,18 @@ captcha_process() {
         if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
             METHOD_VIEW=none
         # X11 server installed ?
-        elif [ -n "$DISPLAY" ]; then
+        elif [ "$METHOD_SOLVE" != 'prompt-nox' -a -n "$DISPLAY" ]; then
             if check_exec 'display'; then
-                METHOD_VIEW=Xdisplay
+                METHOD_VIEW=X-display
+            elif check_exec 'sxiv'; then
+                METHOD_VIEW=X-sxiv
+            elif check_exec 'qiv'; then
+                METHOD_VIEW=X-qiv
             else
-                log_notice "no X11 image viewer found, to display captcha image"
+                log_notice "No X11 image viewer found, to display captcha image"
             fi
         fi
         if [ -z "$METHOD_VIEW" ]; then
-            log_notice "no X server available, try ascii display"
             # libcaca
             if check_exec img2txt; then
                 METHOD_VIEW=img2txt
@@ -1165,7 +1168,7 @@ captcha_process() {
             elif check_exec aview; then
                 METHOD_VIEW=aview
             else
-                log_notice "no ascii viewer found to display captcha image"
+                log_notice "No ascii viewer found to display captcha image"
                 METHOD_VIEW=none
             fi
         fi
@@ -1190,12 +1193,12 @@ captcha_process() {
         fi
     fi
 
-    local PRGPID=
+    local IMG_HASH PRG_PID
 
     # How to display image
     case "$METHOD_VIEW" in
         none)
-            log_notice "image: $FILENAME"
+            log_notice "Local image: $FILENAME"
             ;;
         aview)
             # aview can only display files in PNM file format
@@ -1212,9 +1215,21 @@ captcha_process() {
         img2txt)
             img2txt -W $MAX_OUTPUT_WIDTH -H $MAX_OUTPUT_HEIGHT "$FILENAME" 1>&2
             ;;
-        Xdisplay)
+        X-display)
             display "$FILENAME" &
-            PRGPID=$!
+            PRG_PID=$!
+            ;;
+        X-qiv)
+            qiv "$FILENAME" &
+            PRG_PID=$!
+            ;;
+        X-sxiv)
+            # open a 640x480 window
+            sxiv -q -s "$FILENAME" &
+            [ $? -eq 0 ] && PRG_PID=$!
+            ;;
+        imgur)
+            IMG_HASH=$(image_upload_imgur "$FILENAME") || true
             ;;
         *)
             log_error "unknown view method: $METHOD_VIEW"
@@ -1231,7 +1246,6 @@ captcha_process() {
     # How to solve captcha
     case "$METHOD_SOLVE" in
         none)
-            [ -n "$PRGPID" ] && log_debug "PID $PRGPID should be killed"
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
@@ -1423,10 +1437,11 @@ captcha_process() {
             echo "$RESPONSE"
             echo $TID
             ;;
-        prompt)
-            log_notice $TEXT1
+        prompt*)
+            # Only reCaptcha can request another captcha
+            [[ $FILENAME = '*.recaptcha.*' ]] && log_notice $TEXT1
+
             read -p "$TEXT2" RESPONSE
-            [ -n "$PRGPID" ] && disown $(kill -9 $PRGPID) 2>&1 1>/dev/null
             echo "$RESPONSE"
             echo $TID
             ;;
@@ -1434,6 +1449,16 @@ captcha_process() {
             log_error "unknown solve method: $METHOD_SOLVE"
             rm -f "$FILENAME"
             return $ERR_FATAL
+            ;;
+    esac
+
+    # Second pass for cleaning up
+    case "$METHOD_VIEW" in
+        X-*)
+            [[ $PRG_PID ]] && kill -HUP $PRG_PID 2>&1 >/dev/null
+            ;;
+        imgur)
+            image_delete_imgur "$IMG_HASH" || true
             ;;
     esac
 
@@ -2088,12 +2113,20 @@ log_report_info() {
 captcha_method_translate() {
     case "$1" in
         none)
-            [[ "$2" ]] && unset "$2" && eval $2=$1
-            [[ "$3" ]] && unset "$3" && eval $3=none
+            [[ $2 ]] && unset "$2" && eval $2=none
+            [[ $3 ]] && unset "$3" && eval $3=none
+            ;;
+        imgur)
+            [[ $2 ]] && unset "$2" && eval $2=prompt
+            [[ $3 ]] && unset "$3" && eval $3=imgur
             ;;
         prompt)
-            [[ "$2" ]] && unset "$2" && eval $2=$1
-            [[ "$3" ]] && unset "$3" && eval $3=""
+            [[ $2 ]] && unset "$2" && eval $2=$1
+            [[ $3 ]] && unset "$3" && eval $3=""
+            ;;
+        nox)
+            [[ $2 ]] && unset "$2" && eval $2=prompt-nox
+            [[ $3 ]] && unset "$3" && eval $3=""
             ;;
         online)
             local SITE
@@ -2105,8 +2138,8 @@ captcha_method_translate() {
                 log_error "Error: no captcha solver account provided"
                 return $ERR_FATAL
             fi
-            [[ "$2" ]] && unset "$2" && eval $2=$SITE
-            [[ "$3" ]] && unset "$3" && eval $3=none
+            [[ $2 ]] && unset "$2" && eval $2=$SITE
+            [[ $3 ]] && unset "$3" && eval $3=none
             ;;
         *)
             log_error "Error: unknown captcha method: $1"
@@ -2352,6 +2385,61 @@ service_captchadeathby_ready() {
     fi
 
     log_debug "DeathByCaptcha credits: $AMOUNT"
+}
+
+# Upload (captcha) image to Imgur (picture hosting service)
+# Using official API: http://api.imgur.com/
+# $1: image filename (with full path)
+# stdout: delete url
+# $?: 0 for success
+image_upload_imgur() {
+    local IMG=$1
+    local BASE_API='http://api.imgur.com/2'
+    local RESPONSE DIRECT_URL SITE_URL DEL_HASH
+
+    log_debug "uploading image to Imgur.com"
+
+    # Plowshare API key for Imgur
+    RESPONSE=$(curl -F "image=@$IMG" -H 'Expect: ' \
+        --form-string 'key=23d202e580c2f8f378bd2852916d8f30' \
+        --form-string 'type=file' \
+        --form-string 'title=Plowshare uploaded image' \
+        "$BASE_API/upload.json") || return
+
+    DIRECT_URL=$(echo "$RESPONSE" | parse_json_quiet original)
+    SITE_URL=$(echo "$RESPONSE" | parse_json_quiet imgur_page)
+    DEL_HASH=$(echo "$RESPONSE" | parse_json_quiet deletehash)
+
+    if [ -z "$DIRECT_URL" -o -z "$SITE_URL" ]; then
+        if match '504 Gateway Time-out' "$RESPONSE"; then
+            log_error "$FUNCNAME: upload error (Gateway Time-out)"
+        # <h1>Imgur is over capacity!</h1>
+        elif match 'Imgur is over capacity' "$RESPONSE"; then
+            log_error "$FUNCNAME: upload error (Service Unavailable)"
+        else
+            log_error "$FUNCNAME: upload error"
+        fi
+        return $ERR_FATAL
+    fi
+
+    log_error "Image: $DIRECT_URL"
+    log_error "Image: $SITE_URL"
+    echo "$DEL_HASH"
+}
+
+# Delete (captcha) image from Imgur (picture hosting service)
+# $1: delete hash
+image_delete_imgur() {
+    local HID=$1
+    local BASE_API='http://api.imgur.com/2'
+    local RESPONSE MSG
+
+    log_debug "deleting image from Imgur.com"
+    RESPONSE=$(curl "$BASE_API/delete/$HID.json") || return
+    MSG=$(echo "$RESPONSE" | parse_json_quiet message)
+    if [ "$MSG" != 'Success' ]; then
+        log_notice "$FUNCNAME: remote error, $MSG"
+    fi
 }
 
 # Some debug information

@@ -36,10 +36,12 @@ To run plowshare you will require:
 
 > Some websites are using reCaptcha. You'll need a (X11 or ascii) picture viewer 
   for manual console entry or an account to an automatic solving service:
-    - display (imagemagick) or
+    - display (imagemagick, X11) or
+    - sxiv (imlib2, X11, very fast) or
+    - qiv (imlib2, X11) or
     - aview (libaa) or
     - img2txt (libcaca) or
-    - tiv (perl script using Image::Magick) or
+    - tiv (perl script using Image::Magick, color output) or
     - Antigate.com account or
     - CapthaTrader account or
     - DeathByCaptcha account
