@@ -179,7 +179,7 @@ turbobit_download() {
 
         if match 'Incorrect, try again!' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha ($CAPTCHA_SUBTYPE)"
+            log_error "Wrong captcha"
             return $ERR_CAPTCHA
         fi
 
