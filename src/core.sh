@@ -1439,7 +1439,7 @@ captcha_process() {
             ;;
         prompt*)
             # Only reCaptcha can request another captcha
-            [[ $FILENAME = '*.recaptcha.*' ]] && log_notice $TEXT1
+            [[ $FILENAME = *\.recaptcha\.* ]] && log_notice "$TEXT1"
 
             read -p "$TEXT2" RESPONSE
             echo "$RESPONSE"
