@@ -90,14 +90,14 @@ process_item() {
         echo "$ITEM" | strip
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
-          zip|rar|tar|gz|7z|bz2|mp3|avi)
-              log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
-              ;;
-          *)
-              # Discard empty lines and comments
-              echo 'file'
-              sed -ne "s,^[[:space:]]*\([^#].*\)$,\1,p" "$ITEM" | strip
-              ;;
+            zip|rar|tar|[7gx]z|bz2|mp[234]|avi|mkv)
+                log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
+                ;;
+            *)
+                # Discard empty lines and comments
+                echo 'file'
+                sed -ne "s,^[[:space:]]*\([^#].*\)$,\1,p" "$ITEM" | strip
+                ;;
         esac
     else
         log_error "Skip: cannot stat '$ITEM': No such file or directory"
