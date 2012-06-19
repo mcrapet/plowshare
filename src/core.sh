@@ -2094,6 +2094,7 @@ log_report_info() {
         log_report '=== SYSTEM INFO BEGIN ==='
         log_report "[mach] $(uname -a)"
         log_report "[bash] $BASH_VERSION"
+        test "$http_proxy" && log_report "[env ] http_proxy=$http_proxy"
         if check_exec 'curl'; then
             log_report "[curl] $("$(type -P curl)" --version | first_line)"
         else
