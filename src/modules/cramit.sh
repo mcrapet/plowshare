@@ -34,6 +34,8 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
 TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
 MODULE_CRAMIT_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_CRAMIT_LIST_OPTIONS=""
+
 # Static function. Proceed with login (free or premium)
 cramit_login() {
     local AUTH=$1
@@ -271,4 +273,69 @@ cramit_upload() {
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# List a cramit folder
+# $1: cramit user link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+cramit_list() {
+    eval "$(process_options cramit "$MODULE_CRAMIT_LIST_OPTIONS" "$@")"
+
+    local URL=$1
+    local RET=0
+
+    if ! match '/user/' "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    cramit_list_rec "$2" "$URL" || RET=$?
+    return $RET
+}
+
+# static recursive function
+# $1: recursive flag
+# $2: web folder URL
+cramit_list_rec() {
+    local REC=$1
+    local URL=$2
+    local PAGE LINKS FOLDERS FILE_URL FILE_NAME RET
+
+    RET=$ERR_LINK_DEAD
+    PAGE=$(curl -L "$URL" | break_html_lines) || return
+
+    # Little trick, because parse_line_after_quiet_all does not exist!
+    if match '"tbl_pub"' "$PAGE"; then
+        LINKS=$(echo "$PAGE" | parse_line_after_all '"tbl_pub"' '^\(.*\)$')
+    fi
+
+    #  Print links (stdout)
+    while read LINE; do
+        test "$LINE" || continue
+        FILE_NAME=$(echo "$LINE" | parse_tag a)
+        FILE_URL=$(echo "$LINE" | parse_attr href)
+        log_debug "$FILE_NAME"
+        echo "$FILE_URL"
+    done <<< "$LINKS"
+
+    test "$LINKS" && RET=0
+
+    if test "$REC"; then
+        if match 'folder2\.gif' "$PAGE"; then
+            FOLDERS=$(echo "$PAGE" | parse_line_after_all 'folder2\.gif' '^\(.*\)$')
+        fi
+
+        # Drop ".." directory
+        FOLDERS=$(echo "$FOLDERS" | delete_first_line)
+
+        while read LINE; do
+            test "$LINE" || continue
+            FILE_URL=$(echo "$LINE" | parse_attr href)
+            log_debug "entering sub folder: $FILE_URL"
+            cramit_list_rec "$REC" "$FILE_URL" && RET=0
+        done <<< "$FOLDERS"
+    fi
+
+    return $RET
 }

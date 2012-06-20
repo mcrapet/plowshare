@@ -282,6 +282,13 @@ nth_line() {
    sed -ne "${1}p"
 }
 
+# Delete fist line of a text
+# stdin: input string (multiline)
+delete_first_line() {
+    # equivalent to `tail -n +2`
+    sed -ne '2,$p'
+}
+
 # Delete last line of a text
 # stdin: input string (multiline)
 delete_last_line() {
