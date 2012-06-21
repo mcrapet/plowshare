@@ -2142,6 +2142,8 @@ captcha_method_translate() {
                 SITE=antigate
             elif [ -n "$CAPTCHA_TRADER" ]; then
                 SITE=captchatrader
+            elif [ -n "$CAPTCHA_DEATHBY" ]; then
+                SITE=deathbycaptcha
             else
                 log_error "Error: no captcha solver account provided"
                 return $ERR_FATAL
