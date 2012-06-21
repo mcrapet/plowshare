@@ -22,7 +22,9 @@ MODULE_RAPIDGATOR_REGEXP_URL="http://\(www\.\)\?rapidgator\.net/"
 
 MODULE_RAPIDGATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account
-FOLDER,,folder:,FOLDER,Folder to upload files into (account only)"
+FOLDER,,folder:,FOLDER,Folder to upload files into (account only)
+ASYNC,,async,,Asynchronous remote upload (only start upload, don't wait for link)
+CLEAR,,clear,,Clear list of remote uploads"
 MODULE_RAPIDGATOR_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_RAPIDGATOR_DELETE_OPTIONS=""
@@ -145,12 +147,24 @@ rapidgator_upload() {
         log_error 'Folders only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 
+   elif [ -z "$AUTH_FREE" -a  -n "$CLEAR" ]; then
+        log_error 'Remote upload list only available for accounts.'
+        return $ERR_BAD_COMMAND_LINE
+
     elif [ -z "$AUTH_FREE" ] && match_remote_url "$FILE"; then
         log_error 'Remote upload only available for accounts.'
         return $ERR_LINK_NEED_PERMISSIONS
 
     elif [ -n "$FOLDER" ] && match_remote_url "$FILE"; then
         log_error 'Folder selection only available for local uploads.'
+        return $ERR_BAD_COMMAND_LINE
+
+    elif [ -n "$ASYNC" ] && ! match_remote_url "$FILE"; then
+        log_error 'Cannot upload local files asynchronously.'
+        return $ERR_BAD_COMMAND_LINE
+
+    elif [ -n "$ASYNC" -a "$DEST_FILE" != 'dummy' ]; then
+        log_error 'Cannot rename a file uploaded asynchronously.'
         return $ERR_BAD_COMMAND_LINE
     fi
 
@@ -160,6 +174,15 @@ rapidgator_upload() {
     if [ -n "$AUTH_FREE" ]; then
         rapidgator_login "$AUTH_FREE" "$COOKIE_FILE" \
             "$BASE_URL" > /dev/null || return
+    fi
+
+    # Clear link list?
+    if [ -n "$CLEAR" ]; then
+        log_debug 'Clearing remote upload link list.'
+
+        HTML=$(curl -b "$COOKIE_FILE" \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            "$BASE_URL/remotedl/delCompleteDownload")
     fi
 
     # Prepare upload
@@ -181,12 +204,14 @@ rapidgator_upload() {
     if match_remote_url "$FILE"; then
         local ACC_ID QUEUE TYPE TRY NUM REM_LINKS RL FILE_ID
 
-        # Make sure no other remote transfer runs
-        # Note: This will ease parsing considerably later on.
-        NUM=$(rapidgator_num_remote "$COOKIE_FILE" "$BASE_URL") || return
-        if [ $NUM -gt 0 ]; then
-            log_error 'You have active remote downloads.'
-            return $ERR_LINK_TEMP_UNAVAILABLE
+        # During synchronous remote uploads no other remote transfer
+        # must run (Note: This will ease parsing considerably later on.)
+        if [ -z "$ASYNC" ]; then
+            NUM=$(rapidgator_num_remote "$COOKIE_FILE" "$BASE_URL") || return
+            if [ $NUM -gt 0 ]; then
+                log_error 'You have active remote downloads.'
+                return $ERR_LINK_TEMP_UNAVAILABLE
+            fi
         fi
 
         # Scrape account details from site
@@ -227,6 +252,14 @@ rapidgator_upload() {
         if ! match 'Файл добавлен в базу данных' "$HTML"; then
             log_error 'Unexpected content. Site updated?'
             return $ERR_FATAL
+        fi
+
+        # If this is an async upload, we are done
+        # FIXME: fake output, maybe introduce a new exit code?
+        if [ -n "$ASYNC" ]; then
+            log_error 'Async remote upload, check your account for link.'
+            echo '#'
+            return 0
         fi
 
         # Keep checking progress
