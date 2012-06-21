@@ -1789,6 +1789,38 @@ split_auth() {
     fi
 }
 
+# Report list results. Only used by list module functions.
+#
+# $1: links list (one url per line).
+# $2: (optional) name list (one filename per line)
+# $?: 0 for success or $ERR_LINK_DEAD
+list_submit() {
+    local LINE I
+
+    test "$1" || return $ERR_LINK_DEAD
+
+    if test "$2"; then
+        local -a LINKS NAMES
+
+        # Note: Bash 4 has 'mapfile' builtin
+        I=0
+        while IFS= read -r LINE; do LINKS[I++]=$LINE; done <<< "$1"
+        I=0
+        while IFS= read -r LINE; do NAMES[I++]=$LINE; done <<< "$2"
+
+        for I in "${!LINKS[@]}"; do
+            echo "${LINKS[$I]}"
+            echo "${NAMES[$I]}"
+        done
+    else
+        while IFS= read -r LINE; do
+            test "$LINE" || continue
+            echo "$LINE"
+            echo
+        done <<< "$1"
+    fi
+}
+
 ## ----------------------------------------------------------------------------
 
 ##

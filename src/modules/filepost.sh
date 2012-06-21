@@ -276,29 +276,24 @@ filepost_list() {
 filepost_list_rec() {
     local REC=$1
     local URL=$2
-    local PAGE LINKS FOLDERS FILE_URL RET
+    local PAGE LINKS NAMES RET LINE
 
     RET=$ERR_LINK_DEAD
     PAGE=$(curl -L "$URL") || return
-    LINKS=$(echo "$PAGE" | grep 'class="dl"')
 
-    #  Print links (stdout)
-    while read LINE; do
-        test "$LINE" || continue
-        FILE_URL=$(echo "$LINE" | parse_attr '.' 'href')
-        echo "$FILE_URL"
-    done <<< "$LINKS"
-
-    test "$LINKS" && RET=0
+    if match 'class="dl"' "$PAGE"; then
+        LINKS=$(echo "$PAGE" | parse_all_attr 'class="dl"' href)
+        NAMES=$(echo "$PAGE" | parse_all_tag 'class="file \(video\|image\|disk\|archive\)"' a)
+        list_submit "$LINKS" "$NAMES" && RET=0
+    fi
 
     if test "$REC"; then
-        FOLDERS=$(echo "$PAGE" | grep 'class="dl"')
+        LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="file folder"' href)
         while read LINE; do
             test "$LINE" || continue
-            FILE_URL=$(echo "$LINE" | parse_attr '.' 'href')
-            log_debug "entering sub folder: $FILE_URL"
-            filepost_list_rec "$REC" "$FILE_URL" && RET=0
-        done <<< "$FOLDERS"
+            log_debug "entering sub folder: $LINE"
+            filepost_list_rec "$REC" "$LINE" && RET=0
+        done <<< "$LINKS"
     fi
 
     return $RET

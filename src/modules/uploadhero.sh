@@ -123,7 +123,7 @@ uploadhero_list() {
     eval "$(process_options uploadhero "$MODULE_UPLOADHERO_LIST_OPTIONS" "$@")"
 
     local URL=$1
-    local PAGE NAMES LINKS FILE_NAME FILE_URL
+    local PAGE NAMES LINKS
 
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADHERO_REGEXP_URL}f/" "$URL"; then
@@ -131,20 +131,12 @@ uploadhero_list() {
         return $ERR_FATAL
     fi
 
+    test "$2" && log_error "Recursive flag not implemented, ignoring"
+
     PAGE=$(curl -L "$URL") || return
-    NAMES=$(echo "$PAGE" | grep '<td class="td2">')
-    LINKS=$(echo "$PAGE" | grep '<td class="td4">')
-    test "$LINKS" || return $ERR_LINK_DEAD
 
-    # First pass: print file names (debug)
-    while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_tag_quiet td)
-        log_debug "$FILE_NAME"
-    done <<< "$NAMES"
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '<td class="td4">' href)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet '<td class="td2">' td | html_to_utf8)
 
-    # Second pass : print links (stdout)
-    while read LINE; do
-        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$FILE_URL"
-    done <<< "$LINKS"
+    list_submit "$LINKS" "$NAMES" || return
 }

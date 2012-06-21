@@ -268,7 +268,7 @@ netload_in_list() {
     eval "$(process_options netload_in "$MODULE_NETLOAD_IN_LIST_OPTIONS" "$@")"
 
     local URL=$1
-    local PAGE LINKS
+    local PAGE LINKS NAMES
 
     if ! match '/folder' "$URL"; then
         log_error "This is not a directory list"
@@ -291,9 +291,10 @@ netload_in_list() {
             return $ERR_LINK_PASSWORD_REQUIRED
     fi
 
-    LINKS=$(echo "$PAGE" | parse_all_attr 'Link_[[:digit:]]' 'href')
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'Link_[[:digit:]]' 'href')
     test "$LINKS" || return $ERR_LINK_DEAD
 
-    echo "$LINKS"
-    return 0
+    NAMES=$(echo "$PAGE" | parse_line_after_all 'Link_[[:digit:]]' '^\([^<]*\)' 2)
+
+    list_submit "$LINKS" "$NAMES" || return
 }

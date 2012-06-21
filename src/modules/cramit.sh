@@ -300,41 +300,30 @@ cramit_list() {
 cramit_list_rec() {
     local REC=$1
     local URL=$2
-    local PAGE LINKS FOLDERS FILE_URL FILE_NAME RET
+    local PAGE PAGE2 LINKS NAMES RET LINE
 
     RET=$ERR_LINK_DEAD
     PAGE=$(curl -L "$URL" | break_html_lines) || return
 
-    # Little trick, because parse_line_after_quiet_all does not exist!
     if match '"tbl_pub"' "$PAGE"; then
-        LINKS=$(echo "$PAGE" | parse_line_after_all '"tbl_pub"' '^\(.*\)$')
+        PAGE2=$(echo "$PAGE" | parse_line_after_all '"tbl_pub"' '^\(.*\)$')
+        NAMES=$(echo "$PAGE2" | parse_all_tag a)
+        LINKS=$(echo "$PAGE2" | parse_all_attr href)
+        list_submit "$LINKS" "$NAMES" && RET=0
     fi
 
-    #  Print links (stdout)
-    while read LINE; do
-        test "$LINE" || continue
-        FILE_NAME=$(echo "$LINE" | parse_tag a)
-        FILE_URL=$(echo "$LINE" | parse_attr href)
-        log_debug "$FILE_NAME"
-        echo "$FILE_URL"
-    done <<< "$LINKS"
-
-    test "$LINKS" && RET=0
-
-    if test "$REC"; then
-        if match 'folder2\.gif' "$PAGE"; then
-            FOLDERS=$(echo "$PAGE" | parse_line_after_all 'folder2\.gif' '^\(.*\)$')
-        fi
+    if test "$REC" && match 'folder2\.gif' "$PAGE"; then
+        LINKS=$(echo "$PAGE" | parse_line_after_all 'folder2\.gif' '^\(.*\)$')
 
         # Drop ".." directory
-        FOLDERS=$(echo "$FOLDERS" | delete_first_line)
+        LINKS=$(echo "$LINKS" | delete_first_line)
 
         while read LINE; do
             test "$LINE" || continue
-            FILE_URL=$(echo "$LINE" | parse_attr href)
-            log_debug "entering sub folder: $FILE_URL"
-            cramit_list_rec "$REC" "$FILE_URL" && RET=0
-        done <<< "$FOLDERS"
+            URL=$(echo "$LINE" | parse_attr href)
+            log_debug "entering sub folder: $URL"
+            cramit_list_rec "$REC" "$URL" && RET=0
+        done <<< "$LINKS"
     fi
 
     return $RET

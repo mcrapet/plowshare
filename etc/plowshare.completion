@@ -125,7 +125,7 @@ _plowdel()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i --interface  --no-plowsharerc' -- $cur ) )
+            -v -q -i --interface --no-plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
@@ -147,7 +147,7 @@ _plowlist()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -p)
+        -p|--printf)
             # argument required but no completion available
             return 0
             ;;
@@ -159,7 +159,7 @@ _plowlist()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i -r --interface  --recursive' -- $cur ) )
+            -v -q -i -R --interface --printf --recursive --no-plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir

@@ -289,28 +289,23 @@ depositfiles_delete() {
 # stdout: list of links
 depositfiles_list() {
     local URL=$1
-    local PAGE LINKS FILE_NAME FILE_URL
+    local PAGE LINKS NAMES
 
     if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
+    test "$2" && log_debug "recursive folder does not exist in depositfiles"
+
     PAGE=$(curl -L "$URL") || return
-    LINKS=$(echo "$PAGE" | parse_all 'target="_blank"' \
+    PAGE=$(echo "$PAGE" | parse_all 'target="_blank"' \
         '\(<a href="http[^<]*</a>\)') || return $ERR_LINK_DEAD
 
-    # First pass : print debug message
-    while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_attr '<a' 'title')
-        log_debug "$FILE_NAME"
-    done <<< "$LINKS"
+    NAMES=$(echo "$PAGE" | parse_all_attr '<a' title)
+    LINKS=$(echo "$PAGE" | parse_all_attr '<a' href)
 
-    # Second pass : print links (stdout)
-    while read LINE; do
-        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$FILE_URL"
-    done <<< "$LINKS"
+    list_submit "$LINKS" "$NAMES" || return
 }
 
 # http://img3.depositfiles.com/js/upload_utils.js

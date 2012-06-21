@@ -242,7 +242,8 @@ mediafire_upload() {
 # stdout: list of links
 mediafire_list() {
     local URL=$1
-    local LOCATION DATA QUICKKEY NUM ITEMS FILE_NAME
+    local REC=${2:-no}
+    local LOCATION DATA QUICKKEY NUM LINKS NAMES
 
     if match '/?sharekey=' "$URL"; then
         LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
@@ -257,7 +258,7 @@ mediafire_list() {
     log_debug "quickkey: $QUICKKEY"
 
     # remark: response_format=json is also possible
-    URL='http://www.mediafire.com/api/folder/get_info.php?recursive=yes&response_format=xml&version=1'
+    URL="http://www.mediafire.com/api/folder/get_info.php?recursive=$REC&response_format=xml&version=1"
     DATA=$(curl --get \
         -d "r=$(random a 6)" \
         -d "folder_key=$QUICKKEY" \
@@ -268,19 +269,11 @@ mediafire_list() {
 
     test "$NUM" -eq '0' && return $ERR_LINK_DEAD
 
-    ITEMS=$(echo "$DATA" | grep '</filename>')
+    NAMES=$(echo "$DATA" | parse_all_tag filename)
+    LINKS=$(echo "$DATA" | parse_all_tag quickkey)
 
-    # First pass: print file names (debug)
-    while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_tag_quiet filename)
-        log_debug "$FILE_NAME"
-    done <<< "$ITEMS"
+    # Add prefix to each line (FIXME: should find a better solution)
+    LINKS=$(sed -e 's=^=http://www.mediafire.com/\?=' <<< "$LINKS")
 
-    ITEMS=$(echo "$DATA" | grep '</quickkey>')
-
-    # Second pass: print links (stdout)
-    while read LINE; do
-        QUICKKEY=$(echo "$LINE" | parse_tag_quiet quickkey)
-        echo "http://www.mediafire.com/?$QUICKKEY"
-    done <<< "$ITEMS"
+    list_submit "$LINKS" "$NAMES" || return
 }

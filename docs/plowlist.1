@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "May 31, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowlist" "1" "June 22, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowlist \- Command-line link-lister for file-sharing web-folders
@@ -47,11 +47,36 @@ Currently supported hosting sites list is available in README file.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
-.B -r, --recursive
+.B -R, --recursive
 Recurse into sub folders.
 .TP
 .B "   " --no-plowsharerc
 Do not use local or global config file (plowshare.conf).
+.TP
+.BI "   " " " --printf "=FORMAT"
+Print results in a given format (for each link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
+.RS
+.TP
+\fI%%\fR
+raw % character
+.TP
+\fI%f\fR
+filename (can be empty string if module list function does not report any name)
+.TP
+\fI%F\fR
+empty if %f is empty, or alias to \fB"# %f%n"\fR.
+.TP
+\fI%m\fR
+module name
+.TP
+\fI%n\fR
+newline
+.TP
+\fI%t\fR
+tabulation character
+.TP
+\fI%u\fR
+download url
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
@@ -106,6 +131,14 @@ $ plowlist http://hotfile.com/list/347664/d328dba
 .sp 1
 # First URL is processed, then the second one (this is not parallel)
 $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
+.fi
+.SS 2) Custom results format
+.nf
+# List to give to plowdown (only links, no filenames)
+$ plowlist --printf %u http://www.sendspace.com/folder/5njdw7 >mylist.txt
+.sp 1
+# vBulletin "BB" syntax
+$ plowlist --printf '[url=%u]%f[/url]' http://www.sendspace.com/folder/5njdw7 >mylist.txt
 .fi
 
 .\" ****************************************************************************

@@ -476,44 +476,43 @@ oron_list() {
     eval "$(process_options oron "$MODULE_ORON_LIST_OPTIONS" "$@")"
 
     local URL=$1
-    local REC=$2
-    local RET=$ERR_LINK_DEAD
-    local HTML LINKS NAME URL
+    local RET=0
 
     if ! match 'oron\.com/folder/' "$1"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    HTML=$(curl "$URL") || return
-    LINKS=$(echo "$HTML" | parse_all_quiet '<td id=' '^\(.*\)$')
+    oron_list_rec "$2" "$URL" || RET=$?
+    return $RET
+}
 
-    # Print links (if any)
+# static recursive function
+# $1: recursive flag
+# $2: web folder URL
+oron_list_rec() {
+    local REC=$1
+    local URL=$2
+    local PAGE LINKS NAMES LINE
+
+    RET=$ERR_LINK_DEAD
+    PAGE=$(curl "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '<td id=' href)
+
     if [ -n "$LINKS" ]; then
-        RET=0
-        while read LINE; do
-            NAME=$(echo "$LINE" | parse_tag '.' 'small') || return
-            URL=$(echo "$LINE" | parse_attr '.' 'href') || return
-            log_debug "$NAME"
-            echo "$URL"
-        done <<< "$LINKS"
+        NAMES=$(echo "$PAGE" | parse_all_tag '<td id=' small)
+        list_submit "$LINKS" "$NAMES" && RET=0
     fi
 
     # Are there any subfolders?
-    if match 'folder2.gif' "$HTML"; then
-        LINKS=$(echo "$HTML" | parse_line_after_all 'folder2.gif' '^\(.*\)$')
+    if test "$REC" && match 'folder2\.gif' "$PAGE"; then
+        LINKS=$(echo "$PAGE" | \
+            parse_line_after_all 'folder2\.gif' 'href="\([^"]*\)')
 
         while read LINE; do
-            NAME=$(echo "$LINE" | parse_tag '.' 'b') || return
-            URL=$(echo "$LINE" | parse_attr '.' 'href') || return
-            log_debug "$NAME (folder)"
-
-            if [ -n "$REC" ]; then
-                log_debug "entering sub folder: $URL"
-                oron_list "$URL" "$REC" && RET=0 # there are files in this subfolder
-            else
-                log_debug "$URL"
-            fi
+            log_debug "entering sub folder: $LINE"
+            oron_list_rec "$REC" "$LINE" && RET=0
         done <<< "$LINKS"
     fi
 

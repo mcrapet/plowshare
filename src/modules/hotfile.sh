@@ -237,29 +237,24 @@ hotfile_upload() {
 # stdout: list of links
 hotfile_list() {
     local URL=$1
-    local PAGE NUM LINKS FILE_NAME FILE_URL
+    local PAGE NUM LINKS NAMES
 
     if ! match 'hotfile\.com/list/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
+    test "$2" && log_debug "recursive folder does not exist in hotfile"
+
     PAGE=$(curl "$URL") || return
     NUM=$(echo "$PAGE" | parse ' files)' '(\([[:digit:]]*\) files')
     log_debug "There is/are $NUM file(s) in the folder"
 
-    LINKS=$(echo "$PAGE" | grep 'hotfile.com/dl/')
-    test "$LINKS" || return $ERR_LINK_DEAD
+    PAGE=$(echo "$PAGE" | grep 'hotfile.com/dl/')
+    test "$PAGE" || return $ERR_LINK_DEAD
 
-    # First pass : print debug message
-    while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_tag_quiet a)
-        log_debug "$FILE_NAME"
-    done <<< "$LINKS"
+    LINKS=$(echo "$PAGE" | parse_all_attr '<a' href)
+    NAMES=$(echo "$PAGE" | parse_all_tag a)
 
-    # Second pass : print links (stdout)
-    while read LINE; do
-        FILE_URL=$(echo "$LINE" | parse_attr '<a' 'href')
-        echo "$FILE_URL"
-    done <<< "$LINKS"
+    list_submit "$LINKS" "$NAMES" || return
 }

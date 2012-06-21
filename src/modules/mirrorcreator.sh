@@ -148,7 +148,7 @@ mirrorcreator_upload() {
 # stdout: list of links
 mirrorcreator_list() {
     local URL=$1
-    local PAGE STATUS
+    local PAGE STATUS LINKS NAMES REL_URL
     local BASE_URL='http://www.mirrorcreator.com'
 
     if test "$2"; then
@@ -165,10 +165,16 @@ mirrorcreator_list() {
         return $ERR_LINK_DEAD
     fi
 
-    #  Print links (stdout)
+    NAMES=( $(echo "$PAGE" | parse_all '/redirect/' '\.gif"[[:space:]]alt="\([^"]*\)') )
+
     while read REL_URL; do
         test "$REL_URL" || continue
-        FILE_URL=$(curl "$BASE_URL$REL_URL" | parse_tag 'redirecturl' div)
-        echo "$FILE_URL"
+        URL=$(curl "$BASE_URL$REL_URL" | parse_tag 'redirecturl' div) || return
+
+        echo "$URL"
+        echo "${NAMES[0]}"
+
+        # Drop first element
+        NAMES=("${NAMES[@]:1}")
     done <<< "$LINKS"
 }

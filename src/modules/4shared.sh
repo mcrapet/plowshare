@@ -276,7 +276,7 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
     local URL=$2
     local COOKIE_FILE=$3
 
-    local PAGE LINKS FOLDERS FILE_URL RET LINE SID
+    local PAGE LINKS NAMES RET LINE SID
 
     RET=$ERR_LINK_DEAD
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b '4langcookie=en' \
@@ -315,28 +315,23 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
         log_debug "Note: provided links are temporary! Use 'curl -J -O' on it."
         LINKS=$(echo "$PAGE" | \
             parse_all_attr_quiet 'class="icon16 download"' href)
+        list_submit "$LINKS" && RET=0
     else
         LINKS=$(echo "$PAGE" | parse_all_quiet "openNewWindow('" "('\([^']*\)")
-    fi
-
-    #  Print links (if any)
-    if [ -n "$LINKS" ]; then
-        RET=0
-        while read FILE_URL; do
-            echo "$FILE_URL"
-        done <<< "$LINKS"
+        NAMES=$(echo "$PAGE" | parse_all_attr_quiet 'data-name')
+        list_submit "$LINKS" "$NAMES" && RET=0
     fi
 
     # Are there any subfolders?
     if test "$REC"; then
-        FOLDERS=$(echo "$PAGE" | parse_all_quiet ':changeDir(' '(\([[:digit:]]\+\)')
+        LINKS=$(echo "$PAGE" | parse_all_quiet ':changeDir(' '(\([[:digit:]]\+\)')
         SID=$(echo "$PAGE" | parse_form_input_by_name 'sId') || return
         while read LINE; do
             test "$LINE" || continue
-            FILE_URL="http://www.4shared.com/account/changedir.jsp?sId=$SID&ajax=true&changedir=$LINE&random=0"
-            log_debug "entering sub folder: $FILE_URL"
-            4shared_list_rec "$REC" "$FILE_URL" "$COOKIE_FILE" && RET=0
-        done <<< "$FOLDERS"
+            URL="http://www.4shared.com/account/changedir.jsp?sId=$SID&ajax=false&changedir=$LINE&random=0"
+            log_debug "entering sub folder: $URL"
+            4shared_list_rec "$REC" "$URL" "$COOKIE_FILE" && RET=0
+        done <<< "$LINKS"
     fi
 
     return $RET

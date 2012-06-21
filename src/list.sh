@@ -28,7 +28,8 @@ GETVERSION,,version,,Return plowlist version
 VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
-RECURSE,r,recursive,,Recurse into sub folders
+RECURSE,R,recursive,,Recurse into sub folders
+PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\".
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
@@ -71,6 +72,78 @@ usage() {
     print_module_options "$MODULES" 'LIST'
 }
 
+# Plowlist printf format
+# ---
+# Interpreted sequences are:
+# %f: filename (can be an empty string)
+# %F: alias for "# %f%n" or empty string if %f is empty
+# %u: download url
+# %m: module name
+# and also:
+# %n: newline
+# %t: tabulation
+# %%: raw %
+# ---
+#
+# Check user given format
+# $1: format string
+pretty_check() {
+    # This must be non greedy!
+    local S TOKEN
+    S=${1//%[fFumnt%]}
+    TOKEN=$(parse_quiet . '\(%.\)' <<<"$S")
+    if [ -n "$TOKEN" ]; then
+        log_error "Bad format string: unknown sequence << $TOKEN >>"
+        return $ERR_FATAL
+    fi
+}
+
+# Note: don't use printf (coreutils).
+# $1: format string
+# $2: module name
+pretty_print() {
+    local FMT=$1
+    local CR=$'\n'
+    local URL NAME S
+
+    test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "$2" <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
+
+    # Pair every two lines
+    while IFS= read -r URL; do
+        IFS= read -r NAME
+
+        if test "${FMT#*%F}" != "$FMT"; then
+            if test "$NAME"; then
+                S=$(replace '%F' "# %f%n" <<< "$FMT")
+            else
+                S=${FMT//%F/}
+                [ -z "$S" ] && continue
+            fi
+        else
+            S=$FMT
+        fi
+
+        # Don't lose trailing newlines
+        if test "${FMT#*%[nF]}" != "$FMT"; then
+            S=$(replace '%n' "$CR" <<< "$S" ; echo -n x)
+        else
+            S="${S}${CR}x"
+        fi
+
+        # Special case: $NAME contains '%u'
+        if [[ "$NAME" = *%u* ]]; then
+            log_notice "$FUNCNAME: replacement error (%u not expected in name)"
+            NAME=${NAME//%u/%(u)}
+        fi
+        test "${FMT#*%[fF]}" != "$FMT" && S=$(replace '%f' "$NAME" <<< "$S")
+        test "${FMT#*%u}" != "$FMT" && S=$(replace '%u' "$URL" <<< "$S")
+
+        echo -n "${S%x}"
+    done
+}
+
 #
 # Main
 #
@@ -104,6 +177,10 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
 
+if [ -n "$PRINTF_FORMAT" ]; then
+    pretty_check "$PRINTF_FORMAT" || exit
+fi
+
 # Print chosen options
 [ -n "$RECURSE" ] && log_debug "plowlist: --recursive selected"
 
@@ -132,12 +209,13 @@ for URL in "$@"; do
     log_notice "Retrieving list ($MODULE): $URL"
 
     LRETVAL=0
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" || LRETVAL=$?
+    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
+        pretty_print "${PRINTF_FORMAT:-%F%u}" "$MODULE" || LRETVAL=$?
 
     if [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error "Non existing or empty folder"
         [ -z "$RECURSE" ] && \
-            log_notice "Try adding -r/--recursive option to look into sub folders"
+            log_notice "Try adding -R/--recursive option to look into sub folders"
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error "You must provide a valid password"
     elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then

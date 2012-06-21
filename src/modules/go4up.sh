@@ -263,7 +263,7 @@ go4up_upload() {
 # stdout: list of links
 go4up_list() {
     local URL=$1
-    local PAGE LINKS SITE_URL
+    local PAGE LINKS NAME SITE_URL
 
     if test "$2"; then
         log_error "Recursive flag has no sense here, abort"
@@ -284,13 +284,19 @@ go4up_list() {
         return $ERR_FATAL
     fi
 
-    #  Print links (stdout)
     while read SITE_URL; do
-        test "$SITE_URL" || continue
-
         # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
         PAGE=$(curl "$SITE_URL") || return
-        echo "$PAGE" | parse 'http-equiv' 'url=\([^">]\+\)'
+        NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
+
+        URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+        if [ -z "$URL" ]; then
+            log_error 'Remote error. Site maintenance?'
+            return $ERR_FATAL
+        fi
+
+        echo "$URL"
+        echo "$NAME"
     done <<< "$LINKS"
 }
 

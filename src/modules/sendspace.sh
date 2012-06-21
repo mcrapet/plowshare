@@ -172,38 +172,19 @@ sendspace_list() {
     eval "$(process_options sendspace "$MODULE_SENDSPACE_LIST_OPTIONS" "$@")"
 
     local URL=$1
-    local PAGE LINKS SUBDIRS FILE_NAME FILE_URL
+    local PAGE LINKS NAMES
 
     if ! match 'sendspace\.com/folder/' "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
+    test "$2" && log_error "Recursive flag not implemented, ignoring"
+
     PAGE=$(curl "$URL") || return
-    LINKS=$(echo "$PAGE" | parse_all_quiet \
-        '<td class="dl" align="center"' '\(<a href="http[^<]*</a>\)')
-    SUBDIRS=$(echo "$PAGE" | parse_all_quiet \
-        '/folder/' '\(<a href="http[^<]*</a>\)')
 
-    if [ -z "$LINKS" -a -z "$SUBDIRS" ]; then
-        return $ERR_LINK_DEAD
-    fi
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl" align="center' href)
+    NAMES=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl" align="center' title)
 
-    # Stay at depth=1 (we do not recurse into directories)
-    if test "$2"; then
-        log_debug "recursive flag is not fully supported"
-        LINKS=$(echo "$LINKS" "$SUBDIRS")
-    fi
-
-    # First pass : print debug message
-    while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_attr 'a' 'title')
-        log_debug "$FILE_NAME"
-    done <<< "$LINKS"
-
-    # Second pass : print links (stdout)
-    while read LINE; do
-        FILE_URL=$(echo "$LINE" | parse_attr 'a' 'href')
-        echo "$FILE_URL"
-    done <<< "$LINKS"
+    list_submit "$LINKS" "$NAMES" || return
 }

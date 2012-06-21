@@ -111,20 +111,24 @@ multiupload_list() {
     local URL=$1
     local PAGE LINKS FILE_NAME SITE_URL
 
-    test "$2" && log_debug "recursive flag specified but has no sense here, ignore it"
+    if test "$2"; then
+        log_error "Recursive flag has no sense here, abort"
+        return $ERR_BAD_COMMAND_LINE
+    fi
 
     PAGE=$(curl -L "$URL" | break_html_lines_alt) || return
+
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet '"urlhref' href)
     if [ -z "$LINKS" ]; then
         return $ERR_LINK_DEAD
     fi
 
     FILE_NAME=$(echo "$PAGE" | parse '#666666;' '^\(.*\)[[:space:]]<font')
-    log_debug "Filename: $FILE_NAME"
 
     #  Print links (stdout)
     while read SITE_URL; do
         test "$SITE_URL" || continue
         curl -I "$SITE_URL" | grep_http_header_location
+        echo "$FILE_NAME"
     done <<< "$LINKS"
 }

@@ -280,7 +280,7 @@ uploaded_to_list() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_LIST_OPTIONS" "$@")"
 
     local URL=$1
-    local PAGE LINKS FILE_NAME FILE_ID
+    local PAGE LINKS NAMES
 
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder/" "$URL"; then
@@ -288,22 +288,17 @@ uploaded_to_list() {
         return $ERR_FATAL
     fi
 
+    test "$2" && log_debug "recursive folder does not exist in depositfiles"
+
     PAGE=$(curl -L "$URL") || return
-    LINKS=$(echo "$PAGE" | grep 'onclick="visit($(this))')
+
+    LINKS=$(echo "$PAGE" | parse_all_attr 'tr id="' id)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'onclick="visit($(this))' a)
+
     test "$LINKS" || return $ERR_LINK_DEAD
 
-    # First pass: print file names (debug)
-    while read LINE; do
-        FILE_NAME=$(echo "$LINE" | parse_tag_quiet a)
-        log_debug "$FILE_NAME"
-    done <<< "$LINKS"
+    # Add prefix to each line (FIXME: should find a better solution)
+    LINKS=$(sed -e 's=^=http://uploaded.to/file/=' <<< "$LINKS")
 
-    # Second pass: print links (stdout)
-    while read LINE; do
-        # This gives links: "file/$FILE_ID/from/folderid"
-        #FILE_ID=$(echo "$LINE" | parse_attr '<a' 'href')
-
-        FILE_ID=file/$(echo "$LINE" | parse '.' 'file/\([^/]\+\)')
-        echo "http://uploaded.to/$FILE_ID"
-    done <<< "$LINKS"
+    list_submit "$LINKS" "$NAMES" || return
 }
