@@ -20,6 +20,11 @@
 
 MODULE_RAPIDGATOR_REGEXP_URL="http://\(www\.\)\?rapidgator\.net/"
 
+MODULE_RAPIDGATOR_DOWNLOAD_OPTIONS="
+AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
+MODULE_RAPIDGATOR_DOWNLOAD_RESUME=yes
+MODULE_RAPIDGATOR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+
 MODULE_RAPIDGATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account
 FOLDER,,folder:,FOLDER,Folder to upload files into (account only)
@@ -127,6 +132,267 @@ rapidgator_num_remote() {
     return $ERR_FATAL
 }
 
+# Extract file id from download link
+# $1: rapidgator.net url
+# stdout: file id
+rapidgator_extract_file_id() {
+    local FILE_ID
+
+    FILE_ID=$(echo "$1" | \
+        parse '.' 'rapidgator\.net/file/\([[:digit:]]\+\)') || return
+    log_debug "File ID: $FILE_ID"
+    echo "$FILE_ID"
+}
+
+# Process captcha from "Solve Media" (http://www.solvemedia.com/)
+# $1: Solvemedia site public key
+# stdout: verified challenge
+#         transaction_id
+captcha_sm_process() {
+    local -r PUB_KEY=$1
+    local -r BASE_URL='http://api.solvemedia.com/papi'
+    local HTML CODE MAGIC CHALL IMG_FILE WI WORD TID
+
+    # Get + scrape captcha iframe
+    HTML=$(curl "$BASE_URL/challenge.noscript?k=$PUB_KEY") || return
+    CODE=$(echo "$HTML" | parse_form_input_by_name 'k') || return
+    MAGIC=$(echo "$HTML" | parse_form_input_by_name 'magic') || return
+    CHALL=$(echo "$HTML" | parse_form_input_by_name \
+        'adcopy_challenge') || return
+
+    # Get actual captcha image
+    IMG_FILE=$(create_tempfile '.jpg') || return
+    curl -o "$IMG_FILE" "$BASE_URL/media?c=$CHALL" || return
+
+    # Solve captcha
+    # Note: Image is a 300x150 gif file containing text strings
+    WI=$(captcha_process "$IMG_FILE") || return
+    { read WORD; read TID; } <<< "$WI"
+    rm -f "$IMG_FILE"
+
+    # Verify solution
+    HTML=$(curl --referer "$BASE_URL/media?c=$CHALL" \
+        -d "adcopy_response=$WORD" \
+        -d "k=$CODE" \
+        -d 'l=en' \
+        -d 't=img' \
+        -d 's=standard' \
+        -d "magic=$MAGIC" \
+        -d "adcopy_challenge=$CHALL" \
+        "$BASE_URL/verify.noscript") || return
+
+    if ! match 'Redirecting\.\.\.' "$HTML" ||
+        match '&error=1&' "$HTML"; then
+        captcha_nack "$TID"
+        return $ERR_CAPTCHA
+    fi
+
+    # Response contains new URL, but we can just build it ourselves
+    HTML=$(curl "$BASE_URL/verify.pass.noscript?c=$CHALL") || return
+
+    if ! match 'Please copy this gibberish:' "$HTML" || \
+        ! match "$CHALL" "$HTML"; then
+        log_debug 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    echo "$CHALL"
+    echo "$TID"
+}
+
+
+# Output a file URL to download from Rapidgator
+# $1: cookie file
+# $2: rapidgator url
+# stdout: real file download link
+#         file name
+rapidgator_download() {
+    eval "$(process_options rapidgator "$MODULE_RAPIDGATOR_DOWNLOAD_OPTIONS" "$@")"
+
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://rapidgator.net'
+    local -r CAPTCHA_URL='/download/captcha'
+
+    local HTML FILE_ID FILE_URL FILE_NAME SESSION_ID JSON STATE
+    local WAIT_TIME FORM RESP CHALL CAPTCHA_DATA ID
+
+    rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    FILE_ID=$(rapidgator_extract_file_id "$URL") || return
+
+    # Login (don't care for account type)
+    if [ -n "$AUTH_FREE" ]; then
+        rapidgator_login "$AUTH_FREE" "$COOKIE_FILE" \
+            "$BASE_URL" > /dev/null || return
+    fi
+
+    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
+        -H 'Accept: text/html,application/xhtml+xml;q=0.9,*/*;q=0.8' \
+        "$URL") || return
+
+    # Various (temporary) errors
+    if [ -z "$HTML" ] || match '502 Bad Gateway' "$HTML" || \
+        match 'Error 500' "$HTML"; then
+        log_error 'Remote server error, maybe due to overload.'
+        echo 120 # arbitrary time
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # Various "File not found" responses
+    elif match 'Error 404' "$HTML" || \
+        match 'File not found' "$HTML"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    [ -n "$CHECK_LINK" ] && return 0
+
+    # You have reached your daily downloads limit. Please try again later.
+    if match 'reached your daily downloads limit' "$HTML"; then
+        # We'll take it literally and wait till the next day
+        # Note: Consider the time zone of their server (+4:00)
+        local HOUR MIN TIME
+
+        # Get current UTC time, prevent leading zeros
+        TIME=$(date --utc +'%-H:%-M') || return
+        HOUR=${TIME%:*}
+        MIN=${TIME#*:}
+
+        log_error 'Daily limit reached.'
+        echo $(( ((23 - ((HOUR + 4) % 24) ) * 60 + (61 - MIN)) * 60 ))
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # You can`t download not more than 1 file at a time in free mode.
+    elif match 'download not more than .\+ in free mode' "$HTML"; then
+        log_error 'No parallel download allowed.'
+        echo 120 # wait some arbitrary time
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # You can download files up to 500 MB in free mode.
+    elif match 'download files up to .\+ in free mode'  "$HTML"; then
+        return $ERR_LINK_NEED_PERMISSIONS
+
+    # Delay between downloads must be not less than 15 min.
+    # Note: We cannot just look for the text by itself because it is
+    #       always present as parts of the page's javascript code.
+    elif match '^[[:space:]]\+Delay between downloads' "$HTML"; then
+        WAIT_TIME=$(echo "$HTML" | parse 'Delay between downloads' \
+            'not less than \([[:digit:]]\+\) min') || return
+
+        log_error 'Forced delay between downloads.'
+        echo $(( WAIT_TIME * 60 ))
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    # Parse wait time + file name from page
+    WAIT_TIME=$(echo "$HTML" | \
+        parse 'var secs' '=[[:space:]]\+\([[:digit:]]\+\)') || return
+    FILE_NAME=$(echo "$HTML" | parse 'Downloading:' \
+        '^[[:space:]]\+\([[:graph:]]\+\)[[:space:]]\+</a>$' 3) || return
+
+    log_debug "File name: $FILE_NAME"
+    log_debug "Wait time: $WAIT_TIME"
+
+    # Request download session
+    JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
+        -H 'X-Requested-With: XMLHttpRequest' \
+        -H 'Accept: application/json, text/javascript, */*; q=0.01' \
+        "$BASE_URL/download/AjaxStartTimer?fid=$FILE_ID") || return
+
+    # Check status
+    # Note: from '$(".btn-free").click(function(){...'
+    STATE=$(echo "$JSON" | parse_json 'state') || return
+
+    if [ "$STATE" = 'started' ]; then
+        SESSION_ID=$(echo "$JSON" | parse_json 'sid') || return
+    elif [ "$STATE" = 'error' ]; then
+        log_error "Remote error: $(echo "$JSON" | parse_json 'code')"
+        return $ERR_FATAL
+    else
+        log_error 'Unexpected state. Site updated?'
+    fi
+
+    log_debug "Session ID: '$SESSION_ID'"
+    wait $WAIT_TIME seconds || return
+
+    # Request download
+    # Note: We *must* keep the new cookie.
+    JSON=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" --referer "$URL" \
+        -H 'X-Requested-With: XMLHttpRequest' \
+        -H 'Accept: application/json, text/javascript, */*; q=0.01' \
+        "$BASE_URL/download/AjaxGetDownloadLink?sid=$SESSION_ID") || return
+
+    # Check status
+    # Note: from 'function getDownloadLink() {...'
+    STATE=$(echo "$JSON" | parse_json 'state') || return
+
+    if [ "$STATE" = 'error' ]; then
+        log_error "Remote error: $(echo "$JSON" | parse_json 'code')"
+        return $ERR_FATAL
+    elif [ "$STATE" != 'done' ]; then
+        log_error "Unexpected state. Site updated?"
+        return $ERR_FATAL
+    fi
+
+    # Get main captcha page
+    # Note: site uses multiple captcha services :-(
+    HTML=$(curl -i -b "$COOKIE_FILE" --referer "$URL" \
+        "$BASE_URL$CAPTCHA_URL") || return
+
+    # Check HTTP response codes
+    if match '^HTTP.*\(302\|500\)' "$HTML"; then
+        log_error 'Captcha server overloaded.'
+        echo 15 # wait some arbitrary time
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    FORM=$(grep_form_by_id "$HTML" 'captchaform') || return
+
+    # Solve each type of captcha separately
+    if match 'api\.adscaptcha' "$FORM"; then
+        log_error 'AdsCaptcha not supported yet.'
+        log_error 'If you want to help, please send the following information to us:'
+        log_error "$FORM"
+        return $ERR_FATAL
+
+    elif match 'api\.solvemedia' "$FORM"; then
+        log_debug 'Solve Media CAPTCHA found'
+
+        RESP=$(captcha_sm_process 'oy3wKTaFP368dkJiGUqOVjBR2rOOR7GR') || return
+        { read CHALL; read ID; } <<< "$RESP"
+
+        CAPTCHA_DATA="-d adcopy_challenge=$(echo "$CHALL" | uri_encode_strict) -d adcopy_response=manual_challenge"
+
+    else
+        log_error 'Unexpected content/captcha type. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    log_debug "Captcha data: $CAPTCHA_DATA"
+
+    # Get download link (Note: No quotes around $CAPTCHA_DATA!)
+    HTML=$(curl -i -b "$COOKIE_FILE" --referer "$BASE_URL$CAPTCHA_URL" \
+        -d 'DownloadCaptchaForm%5Bcaptcha%5D=' \
+        $CAPTCHA_DATA \
+        "$BASE_URL$CAPTCHA_URL") || return
+
+    if match 'Click here to download' "$HTML"; then
+        captcha_ack $ID
+        log_debug "correct captcha"
+    elif match 'verification code is incorrect' "$HTML" ||
+        [ "$(echo "$HTML" | parse_cookie_quiet 'failed_on_captcha')" = '1' ]; then
+        captcha_nack $ID
+        return $ERR_CAPTCHA
+    else
+        log_error 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    # Extract link
+    FILE_URL=$(echo "$HTML" | parse 'location.href' "'\(.\+\)'") || return
+
+    echo "$FILE_URL"
+    echo "$FILE_NAME"
+}
+
 # Upload a file to Rapidgator
 # $1: cookie file
 # $2: input file (with full path)
@@ -147,7 +413,7 @@ rapidgator_upload() {
         log_error 'Folders only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 
-   elif [ -z "$AUTH_FREE" -a  -n "$CLEAR" ]; then
+    elif [ -z "$AUTH_FREE" -a  -n "$CLEAR" ]; then
         log_error 'Remote upload list only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 
