@@ -25,6 +25,7 @@ AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account
 FOLDER,,folder:,FOLDER,Folder to upload files into (account only)"
 MODULE_RAPIDGATOR_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_RAPIDGATOR_DELETE_OPTIONS=""
 
 # Static function. Proceed with login (free)
 # $1: authentication
@@ -187,4 +188,40 @@ rapidgator_upload() {
 
     echo "$JSON" | parse_json 'download_url' || return
     echo "$JSON" | parse_json 'remove_url'
+}
+
+# Delete a file from Rapidgator
+# $1: cookie file
+# $2: rapidgator (delete) link
+rapidgator_delete() {
+    eval "$(process_options rapidgator "$MODULE_RAPIDGATOR_DELETE_OPTIONS" "$@")"
+
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://rapidgator.net'
+    local HTML ID UP_ID
+
+    ID=$(echo "$URL" | parse . '/id/\([^/]\+\)/up_id/') || return
+    UP_ID=$(echo "$URL" | parse . '/up_id/\(.\+\)$') || return
+
+    log_debug "ID: '$ID'"
+    log_debug "Up_ID: '$UP_ID'"
+
+    rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
+
+    if match 'Do you really want to remove' "$HTML"; then
+        HTML=$(curl -b "$COOKIE_FILE" -d "id=$ID" -d "up_id=$UP_ID" \
+            "$BASE_URL/remove/remove") || return
+
+        if match 'File successfully deleted' "$HTML"; then
+            return 0
+        fi
+    elif match 'File not found' "$HTML"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }

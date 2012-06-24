@@ -26,7 +26,7 @@ mirrorcreator|          | upload |        | list |
 multiupload  |          | upload |        | list |
 netload_in   | download | upload |        | list |
 oron         | download | upload | delete | list |
-rapidgator   |          | upload |        |      |
+rapidgator   |          | upload | delete |      |
 rapidshare   | download | upload | delete |      |
 ryushare     | download | upload |        |      |
 sendspace    | download | upload | delete | list |
