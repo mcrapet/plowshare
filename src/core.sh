@@ -1289,7 +1289,7 @@ captcha_process() {
                 return $ERR_FATAL
             fi
 
-            TID=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
+            TID=$(echo "$RESPONSE" | parse_quiet . 'OK|\(.*\)')
 
             for I in 8 5 5 6 6 7 7 8; do
                 wait $I seconds
@@ -1300,7 +1300,7 @@ captcha_process() {
                 if [ 'CAPCHA_NOT_READY' = "$RESPONSE" ]; then
                     continue
                 elif match '^OK|' "$RESPONSE"; then
-                    WORD=$(echo "$RESPONSE" | parse_quiet '.' 'OK|\(.*\)')
+                    WORD=$(echo "$RESPONSE" | parse_quiet . 'OK|\(.*\)')
                     break
                 else
                     log_error "antigate error: $RESPONSE"
@@ -1350,8 +1350,8 @@ captcha_process() {
                 return $ERR_CAPTCHA
             fi
 
-            TID=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
-            WORD=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+            TID=$(echo "$RESPONSE" | parse_quiet . '\[\([^,]*\)')
+            WORD=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
 
             if [ "$TID" -eq '-1' ]; then
                 log_error "captcha.trader error: $WORD"
@@ -1558,7 +1558,7 @@ captcha_ack() {
                 -F "username=$USERNAME" \
                 'http://api.captchatrader.com/respond') || return
 
-            STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+            STR=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
             [ -n "$STR" ] && log_error "captcha.trader error: $STR"
         else
             log_error "$FUNCNAME failed: captcha.trader missing account data"
@@ -1605,7 +1605,7 @@ captcha_nack() {
                 -F "username=$USERNAME" \
                 'http://api.captchatrader.com/respond') || return
 
-            STR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+            STR=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
             [ -n "$STR" ] && log_error "captcha.trader error: $STR"
         else
             log_error "$FUNCNAME failed: captcha.trader missing account data"
@@ -2329,7 +2329,7 @@ service_captchatrader_ready() {
         return $ERR_NETWORK
     }
 
-    STATUS=$(echo "$RESPONSE" | parse_quiet '.' '\[\([^,]*\)')
+    STATUS=$(echo "$RESPONSE" | parse_quiet . '\[\([^,]*\)')
     if [ "$STATUS" = '0' ]; then
         AMOUNT=$(echo "$RESPONSE" | parse_quiet . ',[[:space:]]*\([[:digit:]]\+\)')
         if [[ $AMOUNT -lt 10 ]]; then
@@ -2337,7 +2337,7 @@ service_captchatrader_ready() {
             return $ERR_FATAL
         fi
     else
-        ERROR=$(echo "$RESPONSE" | parse_quiet '.' ',"\([^"]*\)')
+        ERROR=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
         log_error "captcha.trader error: $ERROR"
         return $ERR_FATAL
     fi
