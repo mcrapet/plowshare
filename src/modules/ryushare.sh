@@ -40,7 +40,7 @@ ryushare_download() {
     eval "$(process_options ryushare "$MODULE_RYUSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     local URL=$2
-    local PAGE WAIT_TIME FILE_URL ERR
+    local PAGE WAIT_TIME FILE_URL ERR CODE
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
 
     PAGE=$(curl -b 'lang=english' "$URL") || return
@@ -99,6 +99,31 @@ ryushare_download() {
     FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
     FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
 
+    # Funny captcha, this is text (4 digits)!
+    # Copy/Paste from uptobox
+    if match 'Enter code below:' "$PAGE"; then
+        local CAPTCHA DIGIT XCOORD LINE
+
+        CAPTCHA=$(echo "$FORM_HTML" | parse_tag 'direction:ltr' div | \
+            sed -e 's/span>/span>\n/g') || return
+        CODE=0
+        while read LINE; do
+            DIGIT=$(echo "$LINE" | parse 'padding-' '>&#\([[:digit:]]\+\);<') || return
+            XCOORD=$(echo "$LINE" | parse 'padding-' '-left:\([[:digit:]]\+\)p') || return
+
+            # Depending x, guess digit rank
+            if (( XCOORD < 15 )); then
+                (( CODE = CODE + 1000 * (DIGIT-48) ))
+            elif (( XCOORD < 30 )); then
+                (( CODE = CODE + 100 * (DIGIT-48) ))
+            elif (( XCOORD < 50 )); then
+                (( CODE = CODE + 10 * (DIGIT-48) ))
+            else
+                (( CODE = CODE + (DIGIT-48) ))
+            fi
+        done <<< "$CAPTCHA"
+    fi
+
     WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
     wait $((WAIT_TIME + 1)) || return
 
@@ -110,6 +135,7 @@ ryushare_download() {
         -d "method_free=$FORM_METHOD" \
         -d "down_direct=$FORM_DD" \
         -d "password=$LINK_PASSWORD" \
+        -d "code=$CODE" \
         "$URL") || return
 
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'here to download' href)
@@ -126,6 +152,8 @@ ryushare_download() {
         ERR=$(echo "$PAGE" | parse_tag  'class="err">' div)
         if match 'Wrong password' "$ERR"; then
             return $ERR_LINK_PASSWORD_REQUIRED
+        elif match 'Wrong captcha' "$ERR"; then
+            return $ERR_CAPTCHA
         fi
         log_error "Remote error: $ERR"
     else
