@@ -67,7 +67,7 @@ filemates_download() {
 
         # Distinguish acount type (free or premium)
         PAGE=$(curl -b "$COOKIE_FILE" 'http://www.filemates.com/?op=my_account') || return
-        ACCOUNT=$(echo "$PAGE" | parse_line_after 'User level' '^[[:space:]]*\([^<]*\)' 3)
+        ACCOUNT=$(echo "$PAGE" | parse 'User level' '^[[:space:]]*\([^<]*\)' 3)
         if [ "$ACCOUNT" != 'Free' ]; then
             log_error "Premium users not handled. Sorry"
         fi

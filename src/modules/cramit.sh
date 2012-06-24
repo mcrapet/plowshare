@@ -157,8 +157,8 @@ cramit_download() {
     elif match '<p class="err">' "$PAGE"; then
         # You have to wait X minutes before your next download
         if matchi 'You have to wait' "$PAGE"; then
-            WAIT_TIME=$(echo "$PAGE" | parse_line_after 'u have to wait' \
-                '^\([[:digit:]]\+\) \(minute\|second\)') || return
+            WAIT_TIME=$(echo "$PAGE" | parse 'u have to wait' \
+                '^\([[:digit:]]\+\) \(minute\|second\)' 1) || return
             if match 'minute' "$PAGE"; then
                 echo $(( WAIT_TIME * 60 + 30 ))
             else
@@ -196,7 +196,7 @@ cramit_download() {
 
     # Note: get sometimes "Skipped countdown" errors with premium. What's this?
     elif match '<p class="err">' "$PAGE"; then
-        ERR=$(echo "$PAGE" | parse_line_after 'class="err">' '^\([^<]*\)')
+        ERR=$(echo "$PAGE" | parse 'class="err">' '^\([^<]*\)' 1)
         log_error "Remote error: $ERR"
         return $ERR_FATAL
     fi
@@ -261,7 +261,7 @@ cramit_upload() {
         PAGE=$(curl -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
             "$FORM2_ACTION" | break_html_lines) || return
 
-        DL_URL=$(echo "$PAGE" | parse_line_after '\.in Link' \
+        DL_URL=$(echo "$PAGE" | parse '\.in Link' \
             'value="\([^"]*\)">' 2) || return
         DEL_URL=$(echo "$PAGE" | parse_attr 'killcode' value)
 
@@ -306,14 +306,14 @@ cramit_list_rec() {
     PAGE=$(curl -L "$URL" | break_html_lines) || return
 
     if match '"tbl_pub"' "$PAGE"; then
-        PAGE2=$(echo "$PAGE" | parse_line_after_all '"tbl_pub"' '^\(.*\)$')
+        PAGE2=$(echo "$PAGE" | parse_all '"tbl_pub"' '^\(.*\)$' 1)
         NAMES=$(echo "$PAGE2" | parse_all_tag a)
         LINKS=$(echo "$PAGE2" | parse_all_attr href)
         list_submit "$LINKS" "$NAMES" && RET=0
     fi
 
     if test "$REC" && match 'folder2\.gif' "$PAGE"; then
-        LINKS=$(echo "$PAGE" | parse_line_after_all 'folder2\.gif' '^\(.*\)$')
+        LINKS=$(echo "$PAGE" | parse_all 'folder2\.gif' '^\(.*\)$' 1)
 
         # Drop ".." directory
         LINKS=$(echo "$LINKS" | delete_first_line)

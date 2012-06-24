@@ -118,12 +118,8 @@ mediafire_download() {
         fi
     fi
 
-    # Method 1 (decode bytecode)
-    JS_VAR=$(echo "$PAGE" |  parse_line_after 'function[[:space:]]*_' '"\([^"]\+\)";') || return
+    JS_VAR=$(echo "$PAGE" |  parse 'function[[:space:]]*_' '"\([^"]\+\)";' 1) || return
     FILE_URL=$(get_ofuscated_link "$JS_VAR" | parse_attr href) || return
-
-    # Method 2 (directly take plain text link)
-    #FILE_URL=$(echo "$PAGE" |  parse_line_after 'function[[:space:]]*_' '"\([^"]\+\)";' 2) || return
 
     FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
 

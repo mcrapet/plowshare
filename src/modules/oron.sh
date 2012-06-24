@@ -390,10 +390,8 @@ oron_upload() {
         "$BASE_URL") || return
 
     local LINK DEL_LINK
-    LINK=$(echo "$HTML" | parse_line_after 'Direct Link:' \
-        'value="\([^"]*\)">') || return
-    DEL_LINK=$(echo "$HTML" | parse_line_after 'Delete Link:' \
-        'value="\([^"]*\)">') || return
+    LINK=$(echo "$HTML" | parse 'Direct Link:' 'value="\([^"]*\)">' 1) || return
+    DEL_LINK=$(echo "$HTML" | parse 'Delete Link:' 'value="\([^"]*\)">' 1) || return
 
     # Do we need to edit the file? (change name/visibility)
     if [ -n "$ACCOUNT" -a -z "$PRIVATE_FILE" ] || \
@@ -507,8 +505,7 @@ oron_list_rec() {
 
     # Are there any subfolders?
     if test "$REC" && match 'folder2\.gif' "$PAGE"; then
-        LINKS=$(echo "$PAGE" | \
-            parse_line_after_all 'folder2\.gif' 'href="\([^"]*\)')
+        LINKS=$(echo "$PAGE" | parse_all 'folder2\.gif' 'href="\([^"]*\)' 1)
 
         while read LINE; do
             log_debug "entering sub folder: $LINE"

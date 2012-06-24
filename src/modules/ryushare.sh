@@ -222,7 +222,7 @@ ryushare_upload() {
             -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
             "$FORM2_ACTION") || return
 
-        DL_URL=$(echo "$PAGE" | parse_line_after 'Download Link' '">\([^<]*\)') || return
+        DL_URL=$(echo "$PAGE" | parse 'Download Link' '">\([^<]*\)' 1) || return
         DEL_URL=$(echo "$PAGE" | parse_tag 'killcode' textarea)
 
         echo "$DL_URL"

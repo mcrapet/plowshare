@@ -410,10 +410,11 @@ bitshare_upload_form() {
         -F file[]="@$FILE;filename=$REMOTE_FILENAME" \
         "${ACTION}?X-Progress-ID=undefined$(random h 32)") || return
 
-    DOWNLOAD_URL=$(echo "$RESPONSE" | \
-        parse_line_after '<td style="text-align:right">Download:</td>' 'value="\([^"]\+\)"') || return
-    DELETE_URL=$(echo "$RESPONSE" | \
-        parse_line_after '<td style="text-align:right">Delete link:</td>' 'value="\([^"]\+\)"') || return
+    DOWNLOAD_URL=$(echo "$RESPONSE" | parse \
+        '<td style="text-align:right">Download:</td>' 'value="\([^"]\+\)"' 1) || return
+    DELETE_URL=$(echo "$RESPONSE" | parse \
+        '<td style="text-align:right">Delete link:</td>' 'value="\([^"]\+\)"' 1) || return
+
     echo "$DOWNLOAD_URL"
     echo "$DELETE_URL"
 }

@@ -97,8 +97,8 @@ hotfile_download() {
         return $ERR_LINK_DEAD
     fi
 
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse_line_after \
-        'function[[:space:]]*starttimer' '+\([[:digit:]]\+\);' 2) || return
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse 'function[[:space:]]*starttimer' \
+        '+\([[:digit:]]\+\);' 2) || return
 
     test "$CHECK_LINK" && return 0
 
@@ -130,7 +130,7 @@ hotfile_download() {
 
     elif match 'You reached your hourly traffic limit' "$WAIT_HTML2"; then
         # See function starthtimer()
-        WAIT_TIME=$(echo "$WAIT_HTML2" | parse_line_after \
+        WAIT_TIME=$(echo "$WAIT_HTML2" | parse \
             'function[[:space:]]*starthtimer' '+\([[:digit:]]\+\);' 2)
         echo $((WAIT_TIME / 1000))
         return $ERR_LINK_TEMP_UNAVAILABLE

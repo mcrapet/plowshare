@@ -108,8 +108,8 @@ extabit_download() {
 
     # Next free download from your ip will be available in
     if match 'free download from your ip' "$PAGE"; then
-        WAIT_TIME=$(echo "$PAGE" | \
-            parse_line_after 'download-link' '<b>\([[:digit:]]\+\) minute')
+        WAIT_TIME=$(echo "$PAGE" | parse 'download-link' \
+            '<b>\([[:digit:]]\+\) minute' 1)
         echo $((WAIT_TIME * 60))
         return $ERR_LINK_TEMP_UNAVAILABLE
 

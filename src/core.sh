@@ -322,11 +322,16 @@ match_remote_url() {
 #
 # $1: regexp to filter (take lines matching $1 pattern)
 # $2: regexp to match (must contain parentheses). Example: "url:'\(http.*\)'"
+# $3: (optional) how many lines to skip (default is 0, filter and match regexp on same line).
+#     Example ($3=1): get lines that first filter regexp, then apply match regexp on the line after.
 # stdin: text data
 # stdout: result
 parse_all() {
+    local N=${3:-0}
+    local STRING REGEXP SKIP
+
+    # Change sed separator to accept '/' characters
     local D=$'\001'
-    local STRING REGEXP
 
     if [ '^' = "${2:0:1}" ]; then
         if [ '$' = "${2:(-1):1}" ]; then
@@ -340,9 +345,22 @@ parse_all() {
         REGEXP="^.*$2.*$"
     fi
 
-    # Change sed separator to accept '/' characters
-    # STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
-    STRING=$(sed -n "\\${D}$1${D}s${D}$REGEXP${D}\1${D}p")
+    if (( N > 0 )); then
+        [ "$N" -gt 10 ] && \
+            log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
+        while (( N-- )); do
+            SKIP="${SKIP}n;"
+        done
+        # STRING=$(sed -n "/$1/{n;s/$REGEXP/\1/p}")
+        STRING=$(sed -n "\\${D}$1${D}{${SKIP}s${D}$REGEXP${D}\1${D}p}")
+    elif [ "$2" = '.' ]; then
+        # STRING=$(sed -n "s/$REGEXP/\1/p")
+        STRING=$(sed -n "s${D}$REGEXP${D}\1${D}p")
+    else
+        # STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
+        STRING=$(sed -n "\\${D}$1${D}s${D}$REGEXP${D}\1${D}p")
+    fi
+
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP/\""
         log_notice_stack
@@ -372,55 +390,6 @@ parse_quiet() {
 # Like parse_all, but get only last match
 parse_last() {
     parse_all "$@" | tail -n1
-}
-
-# Get lines that first filter regex, then apply match regex on the line after.
-#
-# $1: regexp to filter (take lines matching $1 pattern)
-# $2: regexp to match (on the lines after filter)
-# $3: how many line to skip (default is 1). <=0 will behave like parse_all().
-# stdin: text data
-# stdout: result
-parse_line_after_all() {
-    local N=${3:-1}
-    local D=$'\001'
-    local STRING REGEXP SKIP
-
-    if [ '^' = "${2:0:1}" ]; then
-        if [ '$' = "${2:(-1):1}" ]; then
-            REGEXP=$2
-        else
-            REGEXP="$2.*$"
-        fi
-    elif [ '$' = "${2:(-1):1}" ]; then
-        REGEXP="^.*$2"
-    else
-        REGEXP="^.*$2.*$"
-    fi
-
-    if [ "$((N))" -gt 0 ]; then
-        [ $N -gt 10 ] && \
-            log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
-        while (( N-- )); do
-            SKIP="${SKIP}n;"
-        done
-    fi
-
-    # Change sed separator to accept '/' characters
-    # STRING=$(sed -n "/$1/{${SKIP}s/$REGEXP/\1/p}")
-    STRING=$(sed -n "\\${D}$1${D}{${SKIP}s${D}$REGEXP${D}\1${D}p}")
-    if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/{${SKIP}s/$REGEXP/}\""
-        log_notice_stack
-        return $ERR_FATAL
-    fi
-
-    echo "$STRING"
-}
-
-# Like parse_line_after_all, but get only first match
-parse_line_after() {
-    parse_line_after_all "$@" | head -n1
 }
 
 # Simple and limited JSON parsing

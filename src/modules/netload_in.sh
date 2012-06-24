@@ -81,7 +81,7 @@ netload_in_download() {
             PAGE=$(curl -L "$URL") || return
 
             echo "$FILE_URL"
-            echo "$PAGE" | parse_line_after 'dl_first_filename' '			\([^<]*\)'
+            echo "$PAGE" | parse 'dl_first_filename' '			\([^<]*\)' 1
             return 0
         fi
 
@@ -294,7 +294,7 @@ netload_in_list() {
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'Link_[[:digit:]]' 'href')
     test "$LINKS" || return $ERR_LINK_DEAD
 
-    NAMES=$(echo "$PAGE" | parse_line_after_all 'Link_[[:digit:]]' '^\([^<]*\)' 2)
+    NAMES=$(echo "$PAGE" | parse_all 'Link_[[:digit:]]' '^\([^<]*\)' 2)
 
     list_submit "$LINKS" "$NAMES" || return
 }
