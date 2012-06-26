@@ -21,8 +21,7 @@
 MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\|rs[[:digit:]][0-9a-z]*\.\)\?rapidshare\.com/"
 
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH,a:,auth:,USER:PASSWORD,User account"
 MODULE_RAPIDSHARE_DOWNLOAD_RESUME=no
 MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
@@ -41,7 +40,9 @@ rapidshare_download() {
     eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
 
     local URL=$2
-    local FILEID FILENAME BASE_URL PARAMS PAGE ERROR WAIT
+    local BASE_URL='https://api.rapidshare.com/cgi-bin/rsapi.cgi'
+    local FILEID FILENAME USER PASSWORD COOKIE PAGE ERROR WAIT
+    local IS_PREMIUM=0
 
     # Two possible URL format
     # http://rapidshare.com/files/429795114/arc02f.rar
@@ -59,20 +60,37 @@ rapidshare_download() {
         return $ERR_FATAL
     fi
 
-    BASE_URL="https://api.rapidshare.com/cgi-bin/rsapi.cgi?sub=download&fileid=${FILEID}&filename=${FILENAME}"
-
     if test "$AUTH"; then
+        local DETAILS CUR_DATE END_DATE
+
         split_auth "$AUTH" USER PASSWORD || return
-        PARAMS="&login=$USER&password=$PASSWORD"
-    elif test "$AUTH_FREE"; then
-        split_auth "$AUTH_FREE" USER PASSWORD || return
-        PARAMS="&login=$USER&password=$PASSWORD"
+
+        DETAILS=$(curl -d 'sub=getaccountdetails' \
+            -d "login=$USER" -d "password=$PASSWORD" \
+            -d 'withcookie=1' -d 'withpublicid=0' \
+            "$BASE_URL") || return
+
+        # "cookie" parameter overrides "login" & "password"
+        COOKIE=$(echo "$DETAILS" | parse '^cookie=' '=\([[:alnum:]]\+\)') || return
+
+        # Unix/POSIX time
+        CUR_DATE=$(echo "$DETAILS" | parse '^servertime=' '=\([[:digit:]]\+\)') || return
+        END_DATE=$(echo "$DETAILS" | parse '^billeduntil' '=\([[:digit:]]\+\)') || return
+        if (( END_DATE > CUR_DATE )); then
+            log_debug "premium account detected"
+            IS_PREMIUM=1
+        fi
+
+        PAGE=$(curl -d 'sub=download' -d "cookie=$COOKIE" \
+            -d "fileid=$FILEID" -d "filename=$FILENAME" \
+            "$BASE_URL") || return
     else
-        PARAMS=""
+        PAGE=$(curl -d 'sub=download' \
+            -d "fileid=$FILEID" -d "filename=$FILENAME" \
+            "$BASE_URL") || return
     fi
 
-    PAGE=$(curl "${BASE_URL}$PARAMS") || return
-    ERROR=$(echo "$PAGE" | parse_quiet "ERROR:" 'ERROR:[[:space:]]*\(.*\)')
+    ERROR=$(echo "$PAGE" | parse_quiet 'ERROR:' 'ERROR:[[:space:]]*\(.*\)')
 
     if match 'need to wait' "$ERROR"; then
         WAIT=$(echo "$ERROR" | parse '.' 'wait \([[:digit:]]\+\) seconds') || return
@@ -116,17 +134,17 @@ rapidshare_download() {
 
     wait $((WTIME)) seconds || return
 
-    # https is only available for RapidPro customers
-    BASE_URL="://$RSHOST/cgi-bin/rsapi.cgi?sub=download"
-
-    # SSL downloads are only available for RapidPro customers
+    BASE_URL="//$RSHOST/cgi-bin/rsapi.cgi?sub=download&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
     if test "$AUTH"; then
-        MODULE_RAPIDSHARE_DOWNLOAD_RESUME=yes
-        echo "https$BASE_URL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
-    elif test "$AUTH_FREE"; then
-        echo "http$BASE_URL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH&login=$USER&password=$PASSWORD"
+        # SSL downloads (https) are only available for RapidPro customers
+        if [ $IS_PREMIUM -ne 0 ]; then
+            MODULE_RAPIDSHARE_DOWNLOAD_RESUME=yes
+            echo "https:$BASE_URL&cookie=$COOKIE"
+        else
+            echo "http:$BASE_URL&cookie=$COOKIE"
+        fi
     else
-        echo "http$BASE_URL&fileid=$FILEID&filename=$FILENAME&dlauth=$DLAUTH"
+        echo "http:$BASE_URL"
     fi
     echo "$FILENAME"
 }
