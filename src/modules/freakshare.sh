@@ -131,6 +131,13 @@ freakshare_download() {
         captcha_ack $ID
         log_debug "correct captcha"
 
+        # Sorry, you cant download more then 1 files at time.
+        if match 'download more then.*files at time.' "$HTMLPAGE"; then
+            log_error "No parallel download allowed"
+            echo 120
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
         FILE_URL=$(echo "$HTMLPAGE" | grep_http_header_location) || return
         FILE_NAME=$(basename_file "$FORM2_URL")
 
