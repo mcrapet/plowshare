@@ -99,7 +99,12 @@ fi
 
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
+
+if [ $# -lt 1 ]; then
+    log_error "plowdel: no URL specified!"
+    log_error "plowdel: try \`plowdel --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
 
 set_exit_trap
 

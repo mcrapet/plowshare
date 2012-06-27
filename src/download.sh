@@ -115,7 +115,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS" '  '
-    test "$1" && print_module_options "$MODULES" 'DOWNLOAD'
+    test -z "$1" || print_module_options "$MODULES" 'DOWNLOAD'
 }
 
 # Mark status of link (inside file or to stdout). See --mark-downloaded switch.
@@ -635,7 +635,12 @@ fi
 test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
+
+if [ $# -lt 1 ]; then
+    log_error "plowdown: no URL specified!"
+    log_error "plowdown: try \`plowdown --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
 
 log_report_info
 log_report "plowdown version $VERSION"

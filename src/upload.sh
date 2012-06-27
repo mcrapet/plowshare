@@ -89,7 +89,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS" '  '
-    test "$1" && print_module_options "$MODULES" 'UPLOAD'
+    test -z "$1" || print_module_options "$MODULES" 'UPLOAD'
 }
 
 # Check if module name is contained in list
@@ -99,10 +99,13 @@ usage() {
 # $?: zero for found, non zero otherwie
 # stdout: lowercase module name (if found)
 module_exist() {
-    local N=$(lowercase "$2")
+    local N1=$(lowercase "$2")
+    local N2=${N1//./_}
+    local MODULE
+
     while read MODULE; do
-        if test "$N" = "$MODULE"; then
-            echo "$N"
+        if [[ $N1 = $MODULE || $N2 = $MODULE ]]; then
+            echo "$MODULE"
             return 0
         fi
     done <<< "$1"
@@ -205,21 +208,30 @@ fi
 test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-test $# -lt 1 && { usage; exit $ERR_BAD_COMMAND_LINE; }
+
+if [ $# -lt 1 ]; then
+    log_error "plowup: no module specified!"
+    log_error "plowup: try \`plowup --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
 
 if [ $# -eq 1 -a -f "$1" ]; then
-    log_error "You must specify a module name"
-    exit $ERR_NOMODULE
+    log_error "plowup: you must specify module name before filename."
+    log_error "plowup: try \`plowup --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
 fi
 
 # Check requested module
 MODULE=$(module_exist "$MODULES" "$1") || {
-    # Give a second try
-    MODULE=$(module_exist "$MODULES" "${1//./_}") || {
-        log_error "Unsupported module ($1)"
-        exit $ERR_NOMODULE
-    }
+    log_error "plowup: unsupported module ($1)";
+    exit $ERR_NOMODULE;
 }
+
+if [ $# -eq 1 ]; then
+    log_error "plowup: you must specify a filename."
+    log_error "plowup: try \`plowup --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
 
 log_report_info
 log_report "plowup version $VERSION"
@@ -274,7 +286,7 @@ for FILE in "$@"; do
             log_notice "Skipping ($LOCALFILE)";
             continue;
         }
-        if [ "${CODE:0:1}" = 4 -o "${CODE:0:1}" = 5 ]; then
+        if [[ $CODE = [45]* ]]; then
             log_notice "Skipping ($LOCALFILE): cannot access link (HTTP status $CODE)"
             continue
         fi
