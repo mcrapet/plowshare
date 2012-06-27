@@ -384,6 +384,7 @@ download() {
         # First (usual) way: invoke curl
         if [ -z "$PRINTF_FORMAT" -a -z "$EXEC_COMMAND" ]; then
             local FILENAME_TMP FILENAME_OUT
+            local -a CURL_ARGS
 
             # Temporary download path
             if test "$TEMP_DIR"; then
@@ -401,7 +402,6 @@ download() {
                 FILENAME_OUT=$FILENAME
             fi
 
-            CURL_ARGS=()
             FILE_URL=$(echo "$FILE_URL" | uri_encode)
 
             if [ -f "$FILENAME_OUT" ]; then
