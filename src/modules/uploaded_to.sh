@@ -246,7 +246,7 @@ uploaded_to_upload() {
 uploaded_to_delete() {
     eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://uploaded.to'
     local PAGE FILE_ID
@@ -264,11 +264,12 @@ uploaded_to_delete() {
     FILE_ID=$(echo "$PAGE" | parse 'file/' 'file/\([^/"]\+\)') || return
     log_debug "file id=$FILE_ID"
 
-    uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+    uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
-    PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/file/$FILE_ID/delete") || return
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/file/$FILE_ID/delete") || return
 
     # {succ:true}
+    # Note: This is not JSON because succ is not quoted (")
     match 'true' "$PAGE" || return $ERR_FATAL
 }
 
