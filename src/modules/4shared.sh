@@ -47,14 +47,11 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
         "$BASEURL/login") || return
 
     # {"ok":true,"rejectReason":"","loginRedirect":"http://...
-    if match_json_true 'ok' "$JSON_RESULT"; then
-        echo "$JSON_RESULT"
-        return 0
+    if ! match_json_true 'ok' "$JSON_RESULT"; then
+        ERR=$(echo "$JSON_RESULT" | parse_json 'rejectReason')
+        log_debug "remote says: $ERR"
+        return $ERR_LOGIN_FAILED
     fi
-
-    ERR=$(echo "$JSON_RESULT" | parse_json 'rejectReason')
-    log_debug "remote says: $ERR"
-    return $ERR_LOGIN_FAILED
 }
 
 # Output a 4shared file download URL
@@ -75,7 +72,7 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
     fi
 
     if [ -n "$AUTH_FREE" ]; then
-        4shared_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" >/dev/null || return
+        4shared_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" || return
         # add new entries in $COOKIEFILE
         PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" -b '4langcookie=en' "$URL") || return
     else
@@ -177,19 +174,26 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://www.4shared.com'
-    local PAGE JSON DESTFILE_ENC SZ UP_URL DL_URL FILE_ID DIR_ID LOGIN_ID PASS_HASH
+    local PAGE JSON DESTFILE_ENC UP_URL DL_URL FILE_ID DIR_ID LOGIN_ID PASS_HASH
+    local SZ SIZE_LIMIT
 
     test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
 
-    4shared_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" >/dev/null || return
+    4shared_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" || return
 
     PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/account/home.jsp") || return
     DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' '=[[:space:]]*\([[:digit:]]\+\)')
 
     # Not required. Example: {"freeSpace":16102203291}
-    #JSON=$(curl -b "$COOKIEFILE" "$BASE_URL/rest/account/freeSpace?dirId=$DIR_ID") || return
-
+    JSON=$(curl -b "$COOKIEFILE" "$BASE_URL/rest/account/freeSpace?dirId=$DIR_ID") || return
     SZ=$(get_filesize "$FILE")
+    SIZE_LIMIT=$(echo "$JSON" | parse_json freeSpace) || return
+
+    if [ "$SZ" -gt "$SIZE_LIMIT" ]; then
+        log_debug "file is bigger than $SIZE_LIMIT"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
     DESTFILE_ENC=$(echo "$DESTFILE" | uri_encode_strict)
 
     # Note: x-cookie missing
@@ -197,14 +201,14 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
         "$BASE_URL/rest/sharedFileUpload/create?dirId=$DIR_ID&name=$DESTFILE_ENC&size=$SZ") || return
 
     # {"status":true,"url":"","http://...
-    if ! match '"status"[[:space:]]\?:[[:space:]]\?true' "$JSON"; then
+    if ! match_json_true 'status' "$JSON"; then
         return $ERR_FATAL
     fi
 
-    UP_URL=$(echo "$JSON" | parse 'url' 'url"[[:space:]]\?:[[:space:]]\?"\([^"]*\)') || return
-    DL_URL=$(echo "$JSON" | parse 'd1link' 'd1link"[[:space:]]\?:[[:space:]]\?"\([^"]*\)') || return
-    FILE_ID=$(echo "$JSON" | parse 'fileId' 'fileId"[[:space:]]\?:[[:space:]]\?\([^,]*\)')
-    DIR_ID=$(echo "$JSON" | parse 'uploadDir' 'uploadDir"[[:space:]]\?:[[:space:]]\?\([^,]*\)')
+    UP_URL=$(echo "$JSON" | parse_json url) || return
+    DL_URL=$(echo "$JSON" | parse_json d1link) || return
+    FILE_ID=$(echo "$JSON" | parse_json fileId)
+    DIR_ID=$(echo "$JSON" | parse_json uploadDir)
 
     LOGIN_ID=$(parse_cookie 'Login' < "$COOKIEFILE") || return
     PASS_HASH=$(parse_cookie 'Password' < "$COOKIEFILE") || return
