@@ -32,6 +32,7 @@ AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
 MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_4SHARED_LIST_OPTIONS="
+AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
 DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones
 LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
 
@@ -254,6 +255,7 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
     eval "$(process_options 4shared "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
 
     local URL=$(echo "$1" | replace '/folder/' '/dir/')
+    local BASE_URL='https://www.4shared.com'
     local COOKIE_FILE RET=0
 
     # There are two views:
@@ -265,7 +267,11 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
     fi
 
     COOKIE_FILE=$(create_tempfile) || return
-    4shared_list_rec "$2" "$URL" "$COOKIE_FILE" || RET=$?
+    4shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || RET=$?
+
+    if [ $RET -eq 0 ]; then
+        4shared_list_rec "$2" "$URL" "$COOKIE_FILE" || RET=$?
+    fi
 
     rm -f "$COOKIE_FILE"
     return $RET
