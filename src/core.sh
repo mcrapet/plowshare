@@ -55,6 +55,7 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
 #   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
 #   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
+#   - MODULE           Module name (don't include .sh)
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
@@ -1075,19 +1076,32 @@ wait() {
 captcha_process() {
     local METHOD_SOLVE=$2
     local METHOD_VIEW=$3
-    local FILENAME
+    local FILENAME RESPONSE WORD I
+    local TID=0
 
     if [ -f "$1" ]; then
         FILENAME=$1
     elif match_remote_url "$1"; then
         FILENAME=$(create_tempfile '.captcha') || return
-        curl -o "$FILENAME" "$1" || { \
-            rm -f "$FILENAME";
-            return $ERR_NETWORK;
-        }
+        curl -o "$FILENAME" "$1" || return
     else
         log_error "image file not found"
         return $ERR_FATAL
+    fi
+
+    # plowdown --captchaprogram
+    if [ -n "$CAPTCHA_PROGRAM" ]; then
+        local RET=0
+
+        WORD=$(exec "$CAPTCHA_PROGRAM" "$MODULE" "$FILENAME") || RET=$?
+        if [ $RET -eq 0 ]; then
+            echo "$WORD"
+            echo $TID
+            return 0
+        elif [ $RET -ne $ERR_NOMODULE ]; then
+            log_error "captchaprogram exit with status $RET"
+            return $RET
+        fi
     fi
 
     # plowdown --captchamethod
@@ -1214,8 +1228,6 @@ captcha_process() {
             ;;
     esac
 
-    local RESPONSE WORD I
-    local TID=0
     local TEXT1='Leave this field blank and hit enter to get another captcha image'
     local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
 

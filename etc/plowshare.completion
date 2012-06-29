@@ -84,6 +84,10 @@ _plowdown()
             COMPREPLY=( $( compgen -W 'imgur none nox online prompt' -- $cur ) )
             return 0
             ;;
+        --captchaprogram)
+            # empty for now
+            return 0
+            ;;
     esac
 
     if [[ "$cur" == -* ]]; then
@@ -92,7 +96,7 @@ _plowdown()
             --max-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --no-extra-wait --fallback --antigate --captchatrader --deathbycaptcha \
-            --captchamethod --printf --exec --no-curlrc --no-plowsharerc' -- $cur ) )
+            --captchamethod --captchaprogram --printf --exec --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         _filedir
     fi

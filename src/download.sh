@@ -39,6 +39,7 @@ INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
 CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
+CAPTCHA_PROGRAM,,captchaprogram:,SCRIPT, Call external script for captcha solving.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
 CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWORD,DeathByCaptcha account
@@ -683,6 +684,14 @@ fi
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
 [ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
+
+if [ -n "$CAPTCHA_PROGRAM" ]; then
+    log_debug "plowdown: --captchaprogram selected"
+    if [ ! -x "$CAPTCHA_PROGRAM" ]; then
+        log_error "error: executable permissions expected"
+        exit $ERR_SYSTEM
+    fi
+fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then
     captcha_method_translate "$CAPTCHA_METHOD" || exit

@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "June 16, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "June 29, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -127,6 +127,37 @@ Force specific captcha solving method. Available values:
 .RE
 .RS
 \fBprompt\fR : display image (X11 or text) and prompt for manual entering. Looks for viewers: display, sxiv, qiv, img2txt, aview, tiv.
+.RE
+.TP
+.BI "   " " " --captchaprogram "=SCRIPT"
+Call external program (or script) for solving captcha.
+
+Three arguments are given:
+.RS
+\fB$1\fR
+module name (lowercase). For example: \fImediafire\fR.
+.RE
+.RS
+\fB$2\fR
+image filename (with full path).
+.RE
+.RS
+\fB$3\fR
+hint or captcha type (string)
+
+Return value and exit status:
+.RE
+.RS
+\fB0\fR : solving success. Result must be printed on stdout.
+.RE
+.RS
+\fB2\fR : external solver is not able to solve requested captcha. Let plowdown continue solving it normally (will consider \fI--captchamethod\fP if specified).
+.RE
+.RS
+\fB7\fR : external solver failed.
+Note: this exit code is eligible with retry policy (\fI-r/--max-retries\fP).
+
+Note: plowdown legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
 .RE
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"
