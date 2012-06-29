@@ -38,7 +38,7 @@ MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
-CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: imgur, prompt, none, nox, online.
+CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
 CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWORD,DeathByCaptcha account
