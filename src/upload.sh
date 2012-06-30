@@ -31,6 +31,7 @@ QUIET,q,quiet,,Alias for -v0
 MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
 MIN_LIMIT_RATE,,min-rate:,SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
+TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
@@ -323,6 +324,8 @@ for FILE in "$@"; do
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     log_notice "Destination file: $DESTFILE"
 
+    timeout_init $TIMEOUT
+
     TRY=0
     while :; do
         :> "$UCOOKIE"
@@ -330,17 +333,24 @@ for FILE in "$@"; do
         $FUNCTION "${UNUSED_OPTIONS[@]}" "$UCOOKIE" "$LOCALFILE" \
             "$DESTFILE" >"$URESULT" || URETVAL=$?
 
-        (( ++TRY ))
-        if [[ $MAXRETRIES -eq 0 ]]; then
+        if [ $URETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+            read AWAIT <"$URESULT" || true
+            if [ -z "$AWAIT" ]; then
+                log_debug "arbitrary wait"
+            else
+                log_debug "arbitrary wait (from module)"
+            fi
+            wait ${AWAIT:-60} || { URETVAL=$?; break; }
+        elif [[ $MAXRETRIES -eq 0 ]]; then
             break
         elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK ]; then
             break
-        elif [ "$MAXRETRIES" -lt "$TRY" ]; then
+        elif (( MAXRETRIES < ++TRY )); then
             URETVAL=$ERR_MAX_TRIES_REACHED
             break
         fi
 
-        log_notice "Starting upload ($MODULE): retry ${TRY}/$MAXRETRIES"
+        log_notice "Starting upload ($MODULE): retry $TRY/$MAXRETRIES"
     done
 
     if [ $URETVAL -eq 0 ]; then

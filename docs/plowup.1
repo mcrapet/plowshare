@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "May 31, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "June 30, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -67,8 +67,14 @@ Limit upload maximum speed in bytes per seconds. Suffixes are:
 Limit upload minimum speed in bytes per seconds (for a delay of 30 seconds).
 \fBK\fR (kibibyte) or \fBk\fR (kilobyte) suffixes can be specified.
 .TP
+.BI -t, " " --timeout "=SECS"
+Discard upload download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
+This error mainly occurs on remote upload operations.
+Default option value is disabled (no timeout, infinite) and applies for one single upload.
+.TP
 .BI -r, " " --max-retries "=N"
-Set maximum retries for upload failures (fatal or network errors). Default is 0 (no retry).
+Set maximum retries for upload failures. Apply on module exit value: \fB1\fR (fatal error), \fB3\fR (network error).
+Default option value is 0 (no retry) and applies for one single upload.
 .TP
 .BI "   " " " --name-prefix "=STRING"
 Prepend argument to each destination filename.
@@ -239,6 +245,8 @@ No available module (provided module name does not exist).
 Network error. Mostly curl related.
 .IP 4
 Authentication failed (bad login/password).
+.IP 5
+Timeout reached (refer to \fI-t/--timeout\fP command-line option).
 .IP 6
 Maximumn tries reached (refer to \fI-r/--max-retries\fP command-line option).
 .IP 8

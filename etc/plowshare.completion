@@ -22,7 +22,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-b|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|--printf)
+        -a|-b|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf)
             # argument required but no completion available
             return 0
             ;;
@@ -30,8 +30,8 @@ _plowup()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i -r \
-            --min-rate --max-rate --interface --max-retries --name-prefix --name-suffix \
+            -v -q -i -r -t \
+            --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
             --printf --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         local m list

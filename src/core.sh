@@ -1026,7 +1026,7 @@ perl() {
 }
 
 # Wait some time
-# Related to --timeout plowdown command line option
+# Related to -t/--timeout command line option
 #
 # $1: Sleep duration
 # $2: Unit (seconds | minutes)
@@ -1829,7 +1829,7 @@ check_exec() {
     type -P $1 >/dev/null || return 1 && return 0
 }
 
-# Related to --timeout plowdown command line option
+# Related to -t/--timeout command line option
 timeout_init() {
     PS_TIMEOUT=$1
 }
