@@ -43,7 +43,6 @@ CAPTCHA_PROGRAM,,captchaprogram:,SCRIPT, Call external script for captcha solvin
 CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
 CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWORD,DeathByCaptcha account
-NOEXTRAWAIT,,no-extra-wait,,Do not wait on uncommon events (unavailable file, unallowed parallel downloads, ...)
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
 PRINTF_FORMAT,,printf:,FORMAT,Don't process final link, print results in a given format (for each link)
@@ -199,8 +198,7 @@ download() {
     local CHECK_LINK=$7
     local TIMEOUT=$8
     local MAXRETRIES=$9
-    local NOEXTRAWAIT=${10}
-    shift 10
+    shift 9
 
     local AWAIT CODE FILENAME FILE_URL
     local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
@@ -227,9 +225,6 @@ download() {
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <"$DRESULT"
-
-                    # --no-extra-wait option specified
-                    test -n "$NOEXTRAWAIT" && break
 
                     if [ -z "$AWAIT" ]; then
                         log_debug "arbitrary wait"
@@ -683,7 +678,6 @@ fi
 
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
-[ -n "$NOEXTRAWAIT" ] && log_debug "plowdown: --no-extra-wait selected"
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
     log_debug "plowdown: --captchaprogram selected"
@@ -755,7 +749,7 @@ for ITEM in "$@"; do
             DRETVAL=0
             download "$MODULE" "$URL" "$TYPE" "$MARK_DOWN" "$TEMP_DIR" \
                 "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES"   \
-                "$NOEXTRAWAIT" "${UNUSED_OPTIONS[@]}" || DRETVAL=$?
+                "${UNUSED_OPTIONS[@]}" || DRETVAL=$?
             RETVALS=(${RETVALS[@]} $DRETVAL)
         fi
     done
