@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "June 30, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "July 1, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -97,10 +97,13 @@ Limit download speed in bytes per seconds. Suffixes are:
 .RE
 .TP
 .BI -t, " " --timeout "=SECS"
-Cancel download after \fISECS\fR seconds of waits. This value applies for one download. Default is disabled (no timeout).
+Cancel download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
+This error can be returned in various cases: unallowed parallel download, download quota reached, remote hoster busy.
+Default option value is disabled (no timeout, infinite) and applies for one single URL download.
 .TP
 .BI -r, " " --max-retries "=N"
-Set maximum retries for download failures (only captcha errors for now). Default is infinite retries. \fB-r 0\fP means no retry, so one single download try is made.
+Set maximum retries for download failures. Apply on module exit value: \fB3\fR (network error), \fB7\fR (captcha error).
+Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
 .TP
 .BI "   " " " --antigate "=KEY"
 Use Antigate.com service to solve captcha.

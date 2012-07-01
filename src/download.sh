@@ -202,8 +202,8 @@ download() {
 
     local AWAIT CODE FILENAME FILE_URL
     local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
+    local FUNCTION=${MODULE}_download
 
-    FUNCTION=${MODULE}_download
     log_notice "Starting download ($MODULE): $URL_ENCODED"
     timeout_init $TIMEOUT
 
@@ -225,42 +225,35 @@ download() {
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <"$DRESULT"
-
                     if [ -z "$AWAIT" ]; then
                         log_debug "arbitrary wait"
                     else
                         log_debug "arbitrary wait (from module)"
                     fi
-                    wait ${AWAIT:-60} seconds || {
-                        DRETVAL=$?;
-                        break;
-                    }
-
-                elif [ $DRETVAL -ne $ERR_CAPTCHA ]; then
+                    wait ${AWAIT:-60} || { DRETVAL=$?; break; }
+                    continue
+                elif [[ $MAXRETRIES -eq 0 ]]; then
                     break
-                # [ $DRETVAL -eq $ERR_CAPTCHA ]
-                elif [ "$CAPTCHA_METHOD" = 'none' ]; then
+                elif [ $DRETVAL -ne $ERR_NETWORK -a \
+                       $DRETVAL -ne $ERR_CAPTCHA ]; then
+                    break
+                # Special case
+                elif [ $DRETVAL -eq $ERR_CAPTCHA -a \
+                        "$CAPTCHA_METHOD" = 'none' ]; then
                     log_debug "captcha method set to none, abort"
                     break
+                elif (( MAXRETRIES < ++TRY )); then
+                    DRETVAL=$ERR_MAX_TRIES_REACHED
+                    break
                 fi
 
-                (( ++TRY ))
-                if [ -n "$MAXRETRIES" ]; then
-                    if [[ $MAXRETRIES -eq 0 ]]; then
-                        log_debug "no retry explicitly requested"
-                        break
-                    elif [ "$MAXRETRIES" -lt "$TRY" ]; then
-                        DRETVAL=$ERR_MAX_TRIES_REACHED
-                        break
-                    fi
-                    log_notice "Starting download ($MODULE): retry ${TRY}/$MAXRETRIES"
-                else
-                    log_notice "Starting download ($MODULE): retry $TRY"
-                fi
+                log_notice "Starting download ($MODULE): retry $TRY/$MAXRETRIES"
                 DRETVAL=0
             done
 
-            { read FILE_URL; read FILENAME; } <"$DRESULT" || true
+            if [ $DRETVAL -eq 0 ]; then
+                { read FILE_URL; read FILENAME; } <"$DRESULT" || true
+            fi
             rm -f "$DRESULT"
         else
             $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
@@ -350,14 +343,21 @@ download() {
             return $ERR_FATAL
         fi
 
-        # Sanity check 2
+        # Sanity check 2 (no relative url)
+        if [[ $FILE_URL = /* ]]; then
+            log_error "Output URL is not valid"
+            rm -f "$DCOOKIE"
+            return $ERR_FATAL
+        fi
+
+        # Sanity check 3
         if [ "$FILE_URL" = "$FILENAME" ]; then
             log_error "Output filename is wrong, check module download function"
             FILENAME=""
         fi
 
         if test -z "$FILENAME"; then
-            if [ '/' = "${FILE_URL:(-1):1}" ]; then
+            if [[ $FILE_URL = */ ]]; then
                 log_error "Output filename not specified, module download function must be wrong"
                 FILENAME="dummy-$$"
             else
@@ -748,7 +748,7 @@ for ITEM in "$@"; do
 
             DRETVAL=0
             download "$MODULE" "$URL" "$TYPE" "$MARK_DOWN" "$TEMP_DIR" \
-                "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "$MAXRETRIES"   \
+                "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "${MAXRETRIES:-2}" \
                 "${UNUSED_OPTIONS[@]}" || DRETVAL=$?
             RETVALS=(${RETVALS[@]} $DRETVAL)
         fi
