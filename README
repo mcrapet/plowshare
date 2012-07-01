@@ -83,6 +83,8 @@ Plowdown
 
 1. Download a file from Rapidshare
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+  Like firefox (append .part suffix to filename while file is being downloaded)
+$ plowdown --temp-rename http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
 2. Download a file from Rapidshare with a proxy (curl supports "http_proxy" and 
    "https_proxy" environment variables, notice that 3128 is the default port)
@@ -100,10 +102,10 @@ $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_
 
 6. Download a file from HotFile using an account (free or premium)
    (note ':' is used to separate user from password)
-$ plowdown -a myuser:mypassword http://hotfile.com/dl/68261330/2f2926f/
+$ plowdown -a 'myuser:mypassword' http://hotfile.com/dl/68261330/2f2926f/
 
 7. Download a password-protected file from Mediafire:
-$ plowdown -p somepassword http://www.mediafire.com/?mt0egmhietj60iy
+$ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 
 8. Filter alive links in a text file
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
@@ -113,12 +115,12 @@ $ plowdown -c file_with_links.txt > file_with_active_links.txt
 $ plowdown --exec 'wget -O "%f" %d' http://www.mediafire.com/?k10t0egmhi23f
 $ plowdown --exec 'wget --load-cookies %c -O "%f" %d' http://uploading.com/files/39267me4/foo.zip/
   For premium users, use 2 connections:
-$ plowdown -a user:password --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
-$ plowdown -a user:password --printf "Module  : %m" --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
+$ plowdown -a 'myuser:mypassword' --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
+$ plowdown -a 'myuser:mypassword' --printf "Module  : %m" --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
 
-10. Avoid never-ending downloads: limited the number of tries 
-    (mainly for captchas) and wait delays for each link
-$ plowdown --max-retries=20 --timeout=3600 http://depositfiles.com/files/fv2u9xqya
+10. Avoid never-ending downloads: limit the wait delays & number of retries
+    This is valid for each link.
+$ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 
 Plowup
 ------
@@ -137,7 +139,7 @@ $ plowup mirrorcreator /path/myfile.txt:anothername.txt
 $ plowup -d "Important document" megashares /path/myfile.tex
 
 5. Upload a file to RapidShare with an account (premium or free)
-$ plowup -a myuser:mypassword rapidshare /path/xxx
+$ plowup -a 'myuser:mypassword' rapidshare /path/xxx
 
 6. Upload a file to Oron anonymously with a proxy.
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80

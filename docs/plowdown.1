@@ -98,7 +98,7 @@ Limit download speed in bytes per seconds. Suffixes are:
 .TP
 .BI -t, " " --timeout "=SECS"
 Cancel download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
-This error can be returned in various cases: unallowed parallel download, download quota reached, remote hoster busy.
+This error can be returned in various cases: unallowed parallel download, daily downloads limit reached, remote hoster overloaded.
 Default option value is disabled (no timeout, infinite) and applies for one single URL download.
 .TP
 .BI -r, " " --max-retries "=N"
