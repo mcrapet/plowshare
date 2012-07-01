@@ -107,7 +107,7 @@ freakshare_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     elif match 'api\.recaptcha\.net' "$WAIT_HTML"; then
-        local FORM2_HTML FORM2_URL FORM2_SECTION FROM2_DID HTMLPAGE
+        local FORM2_HTML FORM2_URL FORM2_SECTION FROM2_DID PAGE
         FORM2_HTML=$(grep_form_by_order "$WAIT_HTML" 1) || return
         FORM2_URL=$(echo "$FORM2_HTML" | parse_form_action) || return
         FORM2_SECTION=$(echo "$FORM2_HTML" | parse_form_input_by_name_quiet 'section')
@@ -118,11 +118,14 @@ freakshare_download() {
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-        HTMLPAGE=$(curl -i -b "$COOKIEFILE" --data \
-            "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&section=$FORM2_SECTION&did=$FORM2_DID" \
+        PAGE=$(curl -i -b "$COOKIEFILE" \
+            -d "recaptcha_challenge_field=$CHALLENGE" \
+            -d "recaptcha_response_field=$WORD" \
+            -d "section=$FORM2_SECTION" \
+            -d "did=$FORM2_DID" \
             "$FORM2_URL") || return
 
-        if match 'Wrong Code. Please try again.' "$HTMLPAGE"; then
+        if match 'Wrong Captcha!' "$PAGE"; then
             captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
@@ -132,13 +135,13 @@ freakshare_download() {
         log_debug "correct captcha"
 
         # Sorry, you cant download more then 1 files at time.
-        if match 'download more then.*files at time.' "$HTMLPAGE"; then
+        if match 'download more then.*files at time.' "$PAGE"; then
             log_error "No parallel download allowed"
             echo 120
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
-        FILE_URL=$(echo "$HTMLPAGE" | grep_http_header_location) || return
+        FILE_URL=$(echo "$PAGE" | grep_http_header_location) || return
         FILE_NAME=$(basename_file "$FORM2_URL")
 
         echo "$FILE_URL"
