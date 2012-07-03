@@ -21,12 +21,12 @@
 MODULE_RAPIDGATOR_REGEXP_URL="http://\(www\.\)\?rapidgator\.net/"
 
 MODULE_RAPIDGATOR_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
+AUTH,a:,auth:,EMAIL:PASSWORD,User account"
 MODULE_RAPIDGATOR_DOWNLOAD_RESUME=yes
 MODULE_RAPIDGATOR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_RAPIDGATOR_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account
+AUTH,a:,auth:,EMAIL:PASSWORD,User account
 FOLDER,,folder:,FOLDER,Folder to upload files into (account only)
 ASYNC,,async,,Asynchronous remote upload (only start upload, don't wait for link)
 CLEAR,,clear,,Clear list of remote uploads"
@@ -40,29 +40,28 @@ MODULE_RAPIDGATOR_DELETE_OPTIONS=""
 # $3: base url
 # stdout: account type ("free" or "premium") on success
 rapidgator_login() {
-    local -r AUTH_FREE=$1
+    local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
     local LOGIN_DATA HTML EMAIL TYPE STATUS
 
     LOGIN_DATA='LoginForm[email]=$USER&LoginForm[password]=$PASSWORD&LoginForm[rememberMe]=1'
-    HTML=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+    HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASE_URL/auth/login" -L -b "$COOKIE_FILE") || return
 
     STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
     [ -n "$STATUS" ] || return $ERR_LOGIN_FAILED
 
-    if match 'Account:.*Free' "$HTML"; then
+    if match '^[[:space:]]*Account:.*Free' "$HTML"; then
         TYPE='free'
-    # XXX - just educated guessing for now!
-    elif match 'Account:.*Premium' "$HTML"; then
+    elif match '^[[:space:]]*Premium till' "$HTML"; then
         TYPE='premium'
     else
         log_error 'Could not determine account type. Site updated?'
         return $ERR_FATAL
     fi
 
-    split_auth "$AUTH_FREE" EMAIL || return
+    split_auth "$AUTH" EMAIL || return
     log_debug "Successfully logged in as $TYPE member '$EMAIL'"
 
     echo "$TYPE"
@@ -130,18 +129,6 @@ rapidgator_num_remote() {
     done
 
     return $ERR_FATAL
-}
-
-# Extract file id from download link
-# $1: rapidgator.net url
-# stdout: file id
-rapidgator_extract_file_id() {
-    local FILE_ID
-
-    FILE_ID=$(echo "$1" | \
-        parse '.' 'rapidgator\.net/file/\([[:digit:]]\+\)') || return
-    log_debug "File ID: $FILE_ID"
-    echo "$FILE_ID"
 }
 
 # Process captcha from "Solve Media" (http://www.solvemedia.com/)
@@ -214,21 +201,17 @@ rapidgator_download() {
     local -r BASE_URL='http://rapidgator.net'
     local -r CAPTCHA_URL='/download/captcha'
 
-    local HTML FILE_ID FILE_URL FILE_NAME SESSION_ID JSON STATE
+    local ACCOUNT HTML FILE_ID FILE_NAME SESSION_ID JSON STATE
     local WAIT_TIME FORM RESP CHALL CAPTCHA_DATA ID
 
     rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
-    FILE_ID=$(rapidgator_extract_file_id "$URL") || return
 
-    # Login (don't care for account type)
-    if [ -n "$AUTH_FREE" ]; then
-        rapidgator_login "$AUTH_FREE" "$COOKIE_FILE" \
-            "$BASE_URL" > /dev/null || return
+    if [ -n "$AUTH" ]; then
+        ACCOUNT=$(rapidgator_login "$AUTH" "$COOKIE_FILE" \
+            "$BASE_URL") || return
     fi
 
-    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
-        -H 'Accept: text/html,application/xhtml+xml;q=0.9,*/*;q=0.8' \
-        "$URL") || return
+    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
     # Various (temporary) errors
     if [ -z "$HTML" ] || match '502 Bad Gateway' "$HTML" || \
@@ -245,6 +228,24 @@ rapidgator_download() {
 
     [ -n "$CHECK_LINK" ] && return 0
 
+    # Parse file name from page
+    FILE_NAME=$(echo "$HTML" | parse 'Downloading:' \
+        '^[[:space:]]\+\([[:graph:]]\+\)[[:space:]]\+</a>$' 3) || return
+
+    # If this is a premium download, we already have the download link
+    if [ "$ACCOUNT" = 'premium' ]; then
+        if ! match 'Click here to download' "$HTML"; then
+            log_error 'Unexpected content. Site updated?'
+            return $ERR_FATAL
+        fi
+
+        # Extract + output download link
+        echo "$HTML" | parse 'premium_download_link' "'\(.\+\)'" || return
+        echo "$FILE_NAME"
+        return 0
+    fi
+
+    # Consider errors (enforced limits) which only occur for free users
     # You have reached your daily downloads limit. Please try again later.
     if match 'reached your daily downloads limit' "$HTML"; then
         # We'll take it literally and wait till the next day
@@ -282,14 +283,14 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Parse wait time + file name from page
+    # Extract file ID from URL
+    FILE_ID=$(echo "$URL" | parse . \
+        'rapidgator\.net/file/\([[:digit:]]\+\)') || return
+    log_debug "File ID: $FILE_ID"
+
+    # Parse wait time from page
     WAIT_TIME=$(echo "$HTML" | \
         parse 'var secs' '=[[:space:]]\+\([[:digit:]]\+\)') || return
-    FILE_NAME=$(echo "$HTML" | parse 'Downloading:' \
-        '^[[:space:]]\+\([[:graph:]]\+\)[[:space:]]\+</a>$' 3) || return
-
-    log_debug "File name: $FILE_NAME"
-    log_debug "Wait time: $WAIT_TIME"
 
     # Request download session
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
@@ -386,10 +387,8 @@ rapidgator_download() {
         return $ERR_FATAL
     fi
 
-    # Extract link
-    FILE_URL=$(echo "$HTML" | parse 'location.href' "'\(.\+\)'") || return
-
-    echo "$FILE_URL"
+    # Extract + output download link
+    echo "$HTML" | parse 'location.href' "'\(.\+\)'" || return
     echo "$FILE_NAME"
 }
 
@@ -409,15 +408,15 @@ rapidgator_upload() {
     local HTML URL LINK DEL_LINK
 
     # Sanity checks
-    if [ -z "$AUTH_FREE" -a -n "$FOLDER" ]; then
+    if [ -z "$AUTH" -a -n "$FOLDER" ]; then
         log_error 'Folders only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 
-    elif [ -z "$AUTH_FREE" -a  -n "$CLEAR" ]; then
+    elif [ -z "$AUTH" -a  -n "$CLEAR" ]; then
         log_error 'Remote upload list only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 
-    elif [ -z "$AUTH_FREE" ] && match_remote_url "$FILE"; then
+    elif [ -z "$AUTH" ] && match_remote_url "$FILE"; then
         log_error 'Remote upload only available for accounts.'
         return $ERR_LINK_NEED_PERMISSIONS
 
@@ -437,8 +436,8 @@ rapidgator_upload() {
     rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     # Login (don't care for account type)
-    if [ -n "$AUTH_FREE" ]; then
-        rapidgator_login "$AUTH_FREE" "$COOKIE_FILE" \
+    if [ -n "$AUTH" ]; then
+        rapidgator_login "$AUTH" "$COOKIE_FILE" \
             "$BASE_URL" > /dev/null || return
     fi
 
