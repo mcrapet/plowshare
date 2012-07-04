@@ -131,63 +131,6 @@ rapidgator_num_remote() {
     return $ERR_FATAL
 }
 
-# Process captcha from "Solve Media" (http://www.solvemedia.com/)
-# $1: Solvemedia site public key
-# stdout: verified challenge
-#         transaction_id
-captcha_sm_process() {
-    local -r PUB_KEY=$1
-    local -r BASE_URL='http://api.solvemedia.com/papi'
-    local HTML CODE MAGIC CHALL IMG_FILE WI WORD TID
-
-    # Get + scrape captcha iframe
-    HTML=$(curl "$BASE_URL/challenge.noscript?k=$PUB_KEY") || return
-    CODE=$(echo "$HTML" | parse_form_input_by_name 'k') || return
-    MAGIC=$(echo "$HTML" | parse_form_input_by_name 'magic') || return
-    CHALL=$(echo "$HTML" | parse_form_input_by_name \
-        'adcopy_challenge') || return
-
-    # Get actual captcha image
-    IMG_FILE=$(create_tempfile '.jpg') || return
-    curl -o "$IMG_FILE" "$BASE_URL/media?c=$CHALL" || return
-
-    # Solve captcha
-    # Note: Image is a 300x150 gif file containing text strings
-    WI=$(captcha_process "$IMG_FILE") || return
-    { read WORD; read TID; } <<< "$WI"
-    rm -f "$IMG_FILE"
-
-    # Verify solution
-    HTML=$(curl --referer "$BASE_URL/media?c=$CHALL" \
-        -d "adcopy_response=$WORD" \
-        -d "k=$CODE" \
-        -d 'l=en' \
-        -d 't=img' \
-        -d 's=standard' \
-        -d "magic=$MAGIC" \
-        -d "adcopy_challenge=$CHALL" \
-        "$BASE_URL/verify.noscript") || return
-
-    if ! match 'Redirecting\.\.\.' "$HTML" ||
-        match '&error=1&' "$HTML"; then
-        captcha_nack "$TID"
-        return $ERR_CAPTCHA
-    fi
-
-    # Response contains new URL, but we can just build it ourselves
-    HTML=$(curl "$BASE_URL/verify.pass.noscript?c=$CHALL") || return
-
-    if ! match 'Please copy this gibberish:' "$HTML" || \
-        ! match "$CHALL" "$HTML"; then
-        log_debug 'Unexpected content. Site updated?'
-        return $ERR_FATAL
-    fi
-
-    echo "$CHALL"
-    echo "$TID"
-}
-
-
 # Output a file URL to download from Rapidgator
 # $1: cookie file
 # $2: rapidgator url
@@ -357,7 +300,7 @@ rapidgator_download() {
     elif match 'api\.solvemedia' "$FORM"; then
         log_debug 'Solve Media CAPTCHA found'
 
-        RESP=$(captcha_sm_process 'oy3wKTaFP368dkJiGUqOVjBR2rOOR7GR') || return
+        RESP=$(solvemedia_captcha_process 'oy3wKTaFP368dkJiGUqOVjBR2rOOR7GR') || return
         { read CHALL; read ID; } <<< "$RESP"
 
         CAPTCHA_DATA="-d adcopy_challenge=$(echo "$CHALL" | uri_encode_strict) -d adcopy_response=manual_challenge"

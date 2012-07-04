@@ -1370,7 +1370,8 @@ captcha_process() {
             ;;
         prompt*)
             # Reload mecanism is not available for all types
-            if [ "$CAPTCHA_TYPE" = 'recaptcha' ]; then
+            if [ "$CAPTCHA_TYPE" = 'recaptcha' -o \
+                 "$CAPTCHA_TYPE" = 'solvemedia' ]; then
                 log_notice "$TEXT1"
             fi
 
@@ -1385,7 +1386,7 @@ captcha_process() {
             ;;
     esac
 
-    # Second pass for cleaning up
+    # Second pass for cleaning up
     case "$METHOD_VIEW" in
         X-*)
             [[ $PRG_PID ]] && kill -HUP $PRG_PID 2>&1 >/dev/null
@@ -1457,6 +1458,81 @@ recaptcha_process() {
     echo "$WORDS"
     echo "$CHALLENGE"
     echo $TID
+}
+
+# Process captcha from "Solve Media" (http://www.solvemedia.com/)
+# $1: Solvemedia site public key
+# stdout: On 2 lines: <verified_challenge> \n <transaction_id>
+# stdout: verified challenge
+#         transaction_id
+solvemedia_captcha_process() {
+    local -r PUB_KEY=$1
+    local -r BASE_URL='http://api.solvemedia.com/papi'
+    local URL="$BASE_URL/challenge.noscript?k=$PUB_KEY"
+    local HTML MAGIC CHALL IMG_FILE XY WI WORDS TID TRY
+
+    IMG_FILE=$(create_tempfile '.solvemedia.jpg') || return
+
+    TRY=0
+    # Arbitrary 100 limit is safer
+    while (( TRY++ < 100 )) || return $ERR_MAX_TRIES_REACHED; do
+        log_debug "SolveMedia loop $TRY"
+        XY=''
+
+        # Get + scrape captcha iframe
+        HTML=$(curl "$URL") || return
+        MAGIC=$(echo "$HTML" | parse_form_input_by_name 'magic') || return
+        CHALL=$(echo "$HTML" | parse_form_input_by_name \
+            'adcopy_challenge') || return
+
+        # Get actual captcha image
+        curl -o "$IMG_FILE" "$BASE_URL/media?c=$CHALL" || return
+
+        # Solve captcha
+        # Note: Image is a 300x150 gif file containing text strings
+        WI=$(captcha_process "$IMG_FILE" solvemedia) || return
+        { read WORDS; read TID; } <<< "$WI"
+        rm -f "$IMG_FILE"
+
+        # Reload image?
+        if [ -z "$WORDS" ]; then
+            log_debug "empty, request another image"
+            XY="-d t_img.x=23 -d t_img.y=7"
+        fi
+
+        # Verify solution/request new challenge
+        HTML=$(curl --referer "$URL" \
+            -d "adcopy_response=$WORDS" \
+            -d "k=$PUB_KEY" \
+            -d 'l=en' \
+            -d 't=img' \
+            -d 's=standard' \
+            -d "magic=$MAGIC" \
+            -d "adcopy_challenge=$CHALL" \
+            $XY \
+            "$BASE_URL/verify.noscript") || return
+
+        if ! match 'Redirecting\.\.\.' "$HTML" ||
+            match '&error=1&' "$HTML"; then
+            captcha_nack "$TID"
+            return $ERR_CAPTCHA
+        fi
+
+        URL=$(echo "$HTML" | parse 'META' 'URL=\(.\+\)">') || return
+
+        [ -n "$WORDS" ] && break
+    done
+
+    HTML=$(curl "$URL") || return
+
+    if ! match 'Please copy this gibberish:' "$HTML" || \
+            ! match "$CHALL" "$HTML"; then
+        log_debug 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    echo "$CHALL"
+    echo "$TID"
 }
 
 # Positive acknowledge of captcha answer
