@@ -503,8 +503,8 @@ grep_http_header_content_disposition() {
 # - HTML comments are just ignored
 #
 # $1: (X)HTML data
-# $2: (optional) Nth <form> Index start at 1: first form of the page.
-#     Negative index possible: -1 means last form is page and so on.
+# $2: (optional) Nth <form> Index start at 1: first form of page.
+#     Negative index possible: -1 means last form of page and so on.
 #     Zero or empty value means 1.
 # stdout: result
 grep_form_by_order() {
@@ -1040,7 +1040,7 @@ wait() {
 #
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
-    local -r CAPTCHA_TYPE=$1
+    local -r CAPTCHA_TYPE=$2
     local METHOD_SOLVE METHOD_VIEW FILENAME RESPONSE WORD I
     local TID=0
 
