@@ -243,7 +243,7 @@ test_case_up_down_del() {
         return
     else
         # Compare files
-        diff -q "$FILE" "$OFILE" >/dev/null || stderr "ERR: uploaded and downloaded are binary different"
+        diff -q "$FILE" "$OFILE" 2>&1 >/dev/null || stderr "ERR: uploaded and downloaded are binary different"
         rm -f "$OFILE" "$LOG_FILE"
     fi
 
