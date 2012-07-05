@@ -11,12 +11,11 @@ RM      = rm -f
 # Files
 
 SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
-       src/core.sh src/strip_single_color.pl src/strip_threshold.pl
+       src/core.sh
 
 SETUP_FILES     = Makefile setup.sh
 TEST_FILES      = tests/modules.sh $(wildcard tests/*.t)
 MODULE_FILES    = $(wildcard src/modules/*.sh) src/modules/config
-TESSERACT_FILES = $(addprefix src/tesseract/, alnum digit digit_ops plowshare_nobatch upper)
 
 MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1
 MANPAGES5 = plowshare.conf.5
@@ -46,12 +45,10 @@ install:
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)/modules
-	$(INSTALL) -d $(DESTDIR)$(DATADIR)/tesseract
 	$(INSTALL) -d $(DESTDIR)$(DOCDIR)
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)5
 	$(INSTALL) -m 644 $(MODULE_FILES) $(DESTDIR)$(DATADIR)/modules
-	$(INSTALL) -m 644 $(TESSERACT_FILES) $(DESTDIR)$(DATADIR)/tesseract
 	$(INSTALL) -m 755 $(SRCS) $(DESTDIR)$(DATADIR)
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES1)) $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES5)) $(DESTDIR)$(MANDIR)5
@@ -84,9 +81,9 @@ dist: distdir
 distdir:
 	@test -d $(DISTDIR) || mkdir $(DISTDIR)
 	@mkdir -p $(DISTDIR)/etc $(DISTDIR)/tests $(DISTDIR)/docs $(DISTDIR)/contrib
-	@mkdir -p $(DISTDIR)/src/modules $(DISTDIR)/src/tesseract
-	@for file in $(SRCS) $(SETUP_FILES) $(MODULE_FILES) $(TESSERACT_FILES) \
-			$(TEST_FILES) $(MANPAGES) $(DOCS) $(ETC_FILES) $(CONTRIB_FILES); do \
+	@mkdir -p $(DISTDIR)/src/modules
+	@for file in $(SRCS) $(SETUP_FILES) $(MODULE_FILES) $(TEST_FILES) \
+			$(MANPAGES) $(DOCS) $(ETC_FILES) $(CONTRIB_FILES); do \
 		cp -pf $$file $(DISTDIR)/$$file; \
 	done
 	@for file in $(SRCS); do \

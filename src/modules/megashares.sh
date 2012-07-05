@@ -128,8 +128,6 @@ megashares_download() {
     local URL=$2
     local FID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL FILE_NAME
 
-    detect_perl || return
-
     BASEURL=$(basename_url "$URL")
 
     # Two kind of URL:
@@ -163,23 +161,14 @@ megashares_download() {
 
     # Captcha must be validated
     if match 'Security Code' "$PAGE"; then
-        local MTIME CAPTCHA_URL CAPTCHA_IMG
+        local MTIME CAPTCHA_URL
 
+        # 68x18 png file. Cookie file is not required (for curl)
         CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
 
-        # Create new formatted image
-        CAPTCHA_IMG=$(create_tempfile '.png') || return
-        curl "$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
-                convert - -quantize gray -colors 32 -blur 10% -contrast-stretch 6% \
-                -compress none -level 45%,45% tif:"$CAPTCHA_IMG" || { \
-            rm -f "$CAPTCHA_IMG";
-            return $ERR_CAPTCHA;
-        }
-
         local WI WORD ID
-        WI=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+        WI=$(captcha_process "$CAPTCHA_URL" digits 4) || return
         { read WORD; read ID; } <<<"$WI"
-        rm -f "$CAPTCHA_IMG"
 
         if [ "${#WORD}" -lt 4 ]; then
             captcha_nack $ID

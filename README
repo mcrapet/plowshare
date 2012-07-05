@@ -34,7 +34,7 @@ To run plowshare you will require:
     - recode or
     - perl + HTML::Entities
 
-> Some websites are using reCaptcha. You'll need a (X11 or ascii) picture viewer 
+> Some websites are using captchas. You'll need a (X11 or ascii) picture viewer
   for manual console entry or an account to an automatic solving service:
     - display (imagemagick, X11) or
     - sxiv (imlib2, X11, very fast) or
@@ -50,15 +50,8 @@ To run plowshare you will require:
     - spidermonkey or
     - rhino
 
-> Some websites are using captchas [2]. You'll need:
-    - imagemagick (with GIF and TIFF support) and
-    - tesseract-ocr (with TIFF support; version >=2.04) and
-    - perl + Image::Magick (aka PerlMagick)
-
-
 ---
-[1] Used by 1fichier (upload), badongo, dataport.cz and mediafire modules
-[2] Used by badongo, megashares and netload.in modules
+[1] Used by badongo and turbobit
 
 
 Install

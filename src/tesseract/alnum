@@ -1,4 +1,0 @@
-# Tesseract "varfile" configuration file
-# Recognize [:alnum:] class
-
-tessedit_char_whitelist ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789

@@ -64,7 +64,7 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 # Logs are sent to stderr stream.
 # Policies:
 # - error: modules errors (when return 1), lastest plowdown curl call
-# - notice: core messages (ocr, wait, timeout, retries), lastest plowdown curl call
+# - notice: core messages (wait, timeout, retries), lastest plowdown curl call
 # - debug: modules messages, curl (intermediate) calls
 # - report: debug plus curl content (html pages, cookies)
 
@@ -795,7 +795,7 @@ html_to_utf8() {
         recode html..utf8
     elif check_exec 'perl'; then
         log_report "$FUNCNAME: use perl"
-        "$(type -P perl)" -n -mHTML::Entities \
+        perl -n -mHTML::Entities \
             -e 'BEGIN { eval { binmode(STDOUT,q[:utf8]); }; } \
                 print HTML::Entities::decode_entities($_);' 2>/dev/null || { \
             log_debug "$FUNCNAME failed (perl): HTML::Entities missing ?";
@@ -990,41 +990,6 @@ javascript() {
     return 0
 }
 
-# Detect if a Perl interpreter is installed
-#
-# $1: (optional) Print flag
-# stdout: path of executable (if $1 is a non empty string)
-detect_perl() {
-    if ! check_exec 'perl'; then
-        log_notice "Perl interpreter not found"
-        return $ERR_SYSTEM
-    fi
-    test -n "$1" && type -P 'perl'
-    return 0
-}
-
-# Launch perl script
-#
-# $1: perl script filename
-# $2..$n: optional script arguments
-# stdout: script result
-perl() {
-    local PERL_PRG FILE
-
-    PERL_PRG=$(detect_perl 1) || return
-    FILE="$LIBDIR/$1"
-
-    log_report "interpreter:$PERL_PRG"
-
-    if [ ! -f "$FILE" ]; then
-        log_error "Can't find perl script: $FILE"
-        return $ERR_SYSTEM
-    fi
-
-    shift 1
-    $PERL_PRG "$FILE" "$@"
-}
-
 # Wait some time
 # Related to -t/--timeout command line option
 #
@@ -1067,16 +1032,16 @@ wait() {
 }
 
 # $1: local image filename (with full path). No specific image format expected.
-# $2 (optional): solve method
-# $3 (optional): view method (null string means autodetect)
+# $2: captcha type or hint
+# $3 (optional): minimal captcha length
+# $4 (optional): maximal captcha length (unused)
 # stdout: On 2 lines: <word> \n <transaction_id>
 #         nothing is echoed in case of error
 #
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
-    local METHOD_SOLVE=$2
-    local METHOD_VIEW=$3
-    local FILENAME RESPONSE WORD I
+    local -r CAPTCHA_TYPE=$1
+    local METHOD_SOLVE METHOD_VIEW FILENAME RESPONSE WORD I
     local TID=0
 
     if [ -f "$1" ]; then
@@ -1093,7 +1058,7 @@ captcha_process() {
     if [ -n "$CAPTCHA_PROGRAM" ]; then
         local RET=0
 
-        WORD=$(exec "$CAPTCHA_PROGRAM" "$MODULE" "$FILENAME") || RET=$?
+        WORD=$(exec "$CAPTCHA_PROGRAM" "$MODULE" "$FILENAME" "${CAPTCHA_TYPE}-$3") || RET=$?
         if [ $RET -eq 0 ]; then
             echo "$WORD"
             echo $TID
@@ -1107,13 +1072,6 @@ captcha_process() {
     # plowdown --captchamethod
     if [ -n "$CAPTCHA_METHOD" ]; then
         captcha_method_translate "$CAPTCHA_METHOD" METHOD_SOLVE METHOD_VIEW
-    fi
-
-    if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
-        if ! check_exec 'tesseract'; then
-            log_notice "tesseract was not found, look for alternative solving method"
-            METHOD_SOLVE=
-        fi
     fi
 
     # Auto (guess) mode
@@ -1133,10 +1091,8 @@ captcha_process() {
     fi
 
     if [ -z "$METHOD_VIEW" ]; then
-        if [ "${METHOD_SOLVE:0:3}" = 'ocr' ]; then
-            METHOD_VIEW=none
         # X11 server installed ?
-        elif [ "$METHOD_SOLVE" != 'prompt-nox' -a -n "$DISPLAY" ]; then
+        if [ "$METHOD_SOLVE" != 'prompt-nox' -a -n "$DISPLAY" ]; then
             if check_exec 'display'; then
                 METHOD_VIEW=X-display
             elif check_exec 'sxiv'; then
@@ -1155,7 +1111,7 @@ captcha_process() {
             elif check_exec tiv; then
                 METHOD_VIEW=tiv
             # libaa
-            elif check_exec aview; then
+            elif check_exec aview && check_exec convert; then
                 METHOD_VIEW=aview
             else
                 log_notice "No ascii viewer found to display captcha image"
@@ -1183,7 +1139,7 @@ captcha_process() {
         fi
     fi
 
-    local IMG_HASH PRG_PID
+    local IMG_HASH PRG_PID IMG_PNM
 
     # How to display image
     case "$METHOD_VIEW" in
@@ -1191,12 +1147,13 @@ captcha_process() {
             log_notice "Local image: $FILENAME"
             ;;
         aview)
+            local -r FF=$'\f'
             # aview can only display files in PNM file format
-            local IMG_PNM=$(create_tempfile '.pnm')
-            convert "$FILENAME" -negate -depth 8 pnm:$IMG_PNM
-            aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
-                -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<<'q' | \
-                sed  -e '1d;/\f/,/\f/d' | sed -e '/^[[:space:]]*$/d' 1>&2
+            IMG_PNM=$(create_tempfile '.pnm') || return
+            convert "$FILENAME" -negate -depth 8 pnm:$IMG_PNM && \
+                aview -width $MAX_OUTPUT_WIDTH -height $MAX_OUTPUT_HEIGHT \
+                    -kbddriver stdin -driver stdout "$IMG_PNM" 2>/dev/null <<<'q' | \
+                        sed -e "1d;/$FF/,/$FF/d;/^[[:space:]]*$/d" 1>&2
             rm -f "$IMG_PNM"
             ;;
         tiv)
@@ -1224,7 +1181,7 @@ captcha_process() {
         *)
             log_error "unknown view method: $METHOD_VIEW"
             rm -f "$FILENAME"
-            return $ERR_CAPTCHA
+            return $ERR_FATAL
             ;;
     esac
 
@@ -1264,6 +1221,10 @@ captcha_process() {
                 log_error "antigate error: no credits"
                 rm -f "$FILENAME"
                 return $ERR_FATAL
+            elif [ 'ERROR_NO_SLOT_AVAILABLE' = "$RESPONSE" ]; then
+                log_error "antigate error: no slot available"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
             elif match 'ERROR_' "$RESPONSE"; then
                 log_error "antigate error: $RESPONSE"
                 rm -f "$FILENAME"
@@ -1407,27 +1368,11 @@ captcha_process() {
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
-        ocr_digit)
-            RESPONSE=$(ocr "$FILENAME" digit | sed -e 's/[^0-9]//g') || {
-                log_error "error running OCR";
-                rm -f "$FILENAME";
-                return $ERR_CAPTCHA;
-            }
-            echo "$RESPONSE"
-            echo $TID
-            ;;
-        ocr_upper)
-            RESPONSE=$(ocr "$FILENAME" upper | sed -e 's/[^a-zA-Z]//g') || {
-                log_error "error running OCR";
-                rm -f "$FILENAME";
-                return $ERR_CAPTCHA;
-            }
-            echo "$RESPONSE"
-            echo $TID
-            ;;
         prompt*)
-            # Only reCaptcha can request another captcha
-            [[ $FILENAME = *\.recaptcha\.* ]] && log_notice "$TEXT1"
+            # Reload mecanism is not available for all types
+            if [ "$CAPTCHA_TYPE" = 'recaptcha' ]; then
+                log_notice "$TEXT1"
+            fi
 
             read -p "$TEXT2" RESPONSE
             echo "$RESPONSE"
@@ -1456,7 +1401,7 @@ captcha_process() {
     fi
 }
 
-RECAPTCHA_SERVER='http://www.google.com/recaptcha/api/'
+declare -r RECAPTCHA_SERVER='http://www.google.com/recaptcha/api/'
 # reCAPTCHA decoding function
 # Main engine: http://api.recaptcha.net/js/recaptcha.js
 #
@@ -1492,7 +1437,7 @@ recaptcha_process() {
         log_debug "reCaptcha image URL: $URL"
         curl "$URL" -o "$FILENAME" || return
 
-        WORDS=$(captcha_process "$FILENAME") || return
+        WORDS=$(captcha_process "$FILENAME" recaptcha) || return
         rm -f "$FILENAME"
 
         { read WORDS; read TID; } <<<"$WORDS"
@@ -1783,7 +1728,7 @@ list_submit() {
     if test "$2"; then
         local -a LINKS NAMES
 
-        #Â Note: Bash 4 has 'mapfile' builtin
+        # Note: Bash 4 has 'mapfile' builtin
         I=0
         while IFS= read -r LINE; do LINKS[I++]=$LINE; done <<< "$1"
         I=0
@@ -2233,32 +2178,6 @@ timeout_update() {
         return $ERR_MAX_WAIT_REACHED
     fi
     (( PS_TIMEOUT -= WAIT ))
-}
-
-# OCR of an image (using Tesseract engine)
-#
-# $1: image file (any format)
-# $2: optional varfile
-# stdout: result OCRed text
-ocr() {
-    local OPT_CONFIGFILE="$LIBDIR/tesseract/plowshare_nobatch"
-    local OPT_VARFILE="$LIBDIR/tesseract/$2"
-    test -f "$OPT_VARFILE" || OPT_VARFILE=''
-
-    # We must create temporary files here, because
-    # Tesseract does not deal with stdin/pipe argument
-    TIFF=$(create_tempfile '.tif') || return
-    TEXT=$(create_tempfile '.txt') || return
-
-    convert -quiet "$1" tif:"$TIFF"
-    LOG=$(tesseract "$TIFF" ${TEXT/%.txt} $OPT_CONFIGFILE $OPT_VARFILE 2>&1) || {
-        rm -f "$TIFF" "$TEXT";
-        log_error "$LOG";
-        return $ERR_SYSTEM;
-    }
-
-    cat "$TEXT"
-    rm -f "$TIFF" "$TEXT"
 }
 
 # Look for one element in a array

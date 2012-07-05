@@ -1,4 +1,0 @@
-# Tesseract "varfile" configuration file
-# Recognize [:digit:] class and [+=]
-
-tessedit_char_whitelist 0123456789+=

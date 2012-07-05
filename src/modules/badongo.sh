@@ -36,7 +36,7 @@ badongo_download() {
     local BASEURL='http://www.badongo.com'
     local APIURL="${BASEURL}/ajax/prototype/ajax_api_filetemplate.php"
 
-    local PAGE JSCODE ACTION MTIME CAPTCHA_URL CAPTCHA_IMG
+    local PAGE JSCODE ACTION MTIME CAPTCHA_URL
     local CAP_ID CAP_SECRET WAIT_PAGE LINK_PART2 LINK_PART1 LAST_PAGE LINK_FINAL FILE_URL
 
     PAGE=$(curl "$URL") || return
@@ -51,7 +51,6 @@ badongo_download() {
     fi
 
     detect_javascript || return
-    detect_perl || return
 
     JSCODE=$(curl \
         -F "rs=refreshImage" \
@@ -66,21 +65,12 @@ badongo_download() {
     # Javascript: "now = new Date(); print(now.getTime());"
     MTIME="$(date +%s)000"
 
-    # 200x60 jpeg file
+    # 200x60 jpeg file. Cookie file is not required (for curl)
     CAPTCHA_URL=$(echo "$JSCODE" | parse '<img' 'src=\\"\([^\\]*\)\\"')
 
-    # Create new formatted image
-    CAPTCHA_IMG=$(create_tempfile '.jpg') || return
-    curl "$BASEURL$CAPTCHA_URL" | perl 'strip_threshold.pl' 125 | \
-            convert - +matte -colorspace gray -level 45%,45% gif:"$CAPTCHA_IMG" || { \
-        rm -f "$CAPTCHA_IMG";
-        return $ERR_CAPTCHA;
-    }
-
     local WI WORD ID
-    WI=$(captcha_process "$CAPTCHA_IMG" ocr_upper) || return
+    WI=$(captcha_process "$BASEURL$CAPTCHA_URL" letters 4) || return
     { read WORD; read ID; } <<<"$WI"
-    rm -f "$CAPTCHA_IMG"
 
     if [ "${#WORD}" -lt 4 ]; then
         captcha_nack $ID

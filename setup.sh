@@ -38,7 +38,6 @@ MANDIR5="${DESTDIR}${PREFIX}/share/man/man5"
 
 DATADIR_FINAL="${PREFIX}/share/$NAME"
 MODULESDIR="$DATADIR/modules"
-TESSERACTDIR="$DATADIR/tesseract"
 USAGE='Usage: setup.sh install|uninstall'
 
 CP='cp -v'
@@ -78,16 +77,11 @@ elif [ "$1" = 'install' ]; then
         src/upload.sh      \
         src/delete.sh      \
         src/list.sh        \
-        src/strip_single_color.pl \
-        src/strip_threshold.pl "$DATADIR"
+        "$DATADIR"
 
     # Modules
     mkdir -p "$MODULESDIR"
     $CP src/modules/*.sh src/modules/config "$MODULESDIR"
-
-    # Tesseract
-    mkdir -p "$TESSERACTDIR"
-    $CP src/tesseract/* "$TESSERACTDIR"
 
     # Binary files
     mkdir -p "$BINDIR"

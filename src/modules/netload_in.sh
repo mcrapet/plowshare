@@ -90,8 +90,6 @@ netload_in_download() {
         return 0
     fi
 
-    detect_perl || return
-
     PAGE=$(curl --location -c "$COOKIEFILE" "$URL") || return
 
     # This file can be only downloaded by Premium users in fact of its file size
@@ -113,18 +111,13 @@ netload_in_download() {
 
     # 74x29 jpeg file
     CAPTCHA_URL=$(echo "$WAIT_HTML" | parse_attr '<img style="vertical-align' 'src') || return
-
-    # Create new formatted image
     CAPTCHA_IMG=$(create_tempfile '.jpg') || return
-    curl -b "$COOKIEFILE" "$BASE_URL/$CAPTCHA_URL" | perl 'strip_single_color.pl' | \
-            convert - -quantize gray -colors 32 -blur 40% -contrast-stretch 6% \
-            -compress none -depth 8 gif:"$CAPTCHA_IMG" || { \
-        rm -f "$CAPTCHA_IMG";
-        return $ERR_CAPTCHA;
-    }
+
+    # Get new image captcha (cookie is mandatory)
+    curl -b "$COOKIEFILE" "$BASE_URL/$CAPTCHA_URL" -o "$CAPTCHA_IMG" || return
 
     local WI WORD ID
-    WI=$(captcha_process "$CAPTCHA_IMG" ocr_digit) || return
+    WI=$(captcha_process "$CAPTCHA_IMG" digits 4) || return
     { read WORD; read ID; } <<<"$WI"
     rm -f "$CAPTCHA_IMG"
 
