@@ -412,7 +412,7 @@ parse_last() {
 # stdout: result
 parse_json() {
     local STRING PRE
-    local END='\([, 	}].*\)\?$'
+    local -r END='\([,}[:space:]].*\)\?$'
 
     if [ "$2" = 'join' ]; then
         PRE="tr -d '\n\r'"
