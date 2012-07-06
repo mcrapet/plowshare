@@ -200,7 +200,7 @@ download() {
     local MAXRETRIES=$9
     shift 9
 
-    local AWAIT CODE FILENAME FILE_URL
+    local DRETVAL AWAIT CODE FILENAME FILE_URL
     local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
     local FUNCTION=${MODULE}_download
 
@@ -208,7 +208,6 @@ download() {
     timeout_init $TIMEOUT
 
     while :; do
-        local DRETVAL=0
         local DCOOKIE=$(create_tempfile)
 
         # Use provided cookie
@@ -221,6 +220,7 @@ download() {
             local TRY=0
 
             while :; do
+                DRETVAL=0
                 $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
@@ -248,7 +248,6 @@ download() {
                 fi
 
                 log_notice "Starting download ($MODULE): retry $TRY/$MAXRETRIES"
-                DRETVAL=0
             done
 
             if [ $DRETVAL -eq 0 ]; then
@@ -256,6 +255,7 @@ download() {
             fi
             rm -f "$DRESULT"
         else
+            DRETVAL=0
             $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
 
             if [ $DRETVAL -eq 0 -o \
