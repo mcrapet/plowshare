@@ -217,7 +217,7 @@ test_case_up_down_del() {
 
     LOG_FILE="$TEMP_DIR/${MODULE}.d.log"
     OFILE=$(download -v4 --temp-directory=$TEMP_DIR $OPTS_DN "$DL_LINK" 2>"$LOG_FILE") || RET=$?
-    if [ "$RET" -ne 0 ]; then
+    if [ "$RET" -ne 0 -o -z "$OFILE" ]; then
         # ERR_LINK_TEMP_UNAVAILABLE
         if [ "$RET" -eq 10 ]; then
             echo -n "down KO (link not available)"
