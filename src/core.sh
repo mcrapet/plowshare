@@ -23,26 +23,26 @@ set -o pipefail
 
 # Global error codes
 # 0 means success or link alive
-ERR_FATAL=1                      # Unexpected result (upstream site updated, etc)
-ERR_NOMODULE=2                   # No module found for processing request
-ERR_NETWORK=3                    # Generic network error (socket failure, curl, firewall, etc)
-ERR_LOGIN_FAILED=4               # Correct login/password argument is required
-ERR_MAX_WAIT_REACHED=5           # Wait timeout (see -t/--timeout command line option)
-ERR_MAX_TRIES_REACHED=6          # Max tries reached (see -r/--max-retries command line option)
-ERR_CAPTCHA=7                    # Captcha solving failure
-ERR_SYSTEM=8                     # System failure (missing executable, local filesystem, wrong behavior, etc)
-ERR_LINK_TEMP_UNAVAILABLE=10     # plowdown: Link alive but temporarily unavailable
-                                 # plowup: Feature (upload service) seems temporarily unavailable from upstream
-                                 # plowlist: Links are temporarily unavailable. Upload still pending?
-ERR_LINK_PASSWORD_REQUIRED=11    # Link alive but requires a password
-ERR_LINK_NEED_PERMISSIONS=12     # plowdown: Link alive but requires some authentication (private or premium link)
-                                 # plowup, plowdel: Operation not allowed for anonymous users
-ERR_LINK_DEAD=13                 # plowdel: File not found or previously deleted
-                                 # plowlist: Remote folder does not exist or is empty
-ERR_SIZE_LIMIT_EXCEEDED=14       # plowdown: Can't download link because file is too big (need permissions)
-                                 # plowup: Can't upload too big file (need permissions)
-ERR_BAD_COMMAND_LINE=15          # Unknown command line parameter or incompatible options
-ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when multiple arguments)
+declare -r ERR_FATAL=1                    # Unexpected result (upstream site updated, etc)
+declare -r ERR_NOMODULE=2                 # No module found for processing request
+declare -r ERR_NETWORK=3                  # Generic network error (socket failure, curl, firewall, etc)
+declare -r ERR_LOGIN_FAILED=4             # Correct login/password argument is required
+declare -r ERR_MAX_WAIT_REACHED=5         # Wait timeout (see -t/--timeout command line option)
+declare -r ERR_MAX_TRIES_REACHED=6        # Max tries reached (see -r/--max-retries command line option)
+declare -r ERR_CAPTCHA=7                  # Captcha solving failure
+declare -r ERR_SYSTEM=8                   # System failure (missing executable, local filesystem, wrong behavior, etc)
+declare -r ERR_LINK_TEMP_UNAVAILABLE=10   # plowdown: Link alive but temporarily unavailable
+                                          # plowup: Feature (upload service) seems temporarily unavailable from upstream
+                                          # plowlist: Links are temporarily unavailable. Upload still pending?
+declare -r ERR_LINK_PASSWORD_REQUIRED=11  # Link alive but requires a password
+declare -r ERR_LINK_NEED_PERMISSIONS=12   # plowdown: Link alive but requires some authentication (private or premium link)
+                                          # plowup, plowdel: Operation not allowed for anonymous users
+declare -r ERR_LINK_DEAD=13               # plowdel: File not found or previously deleted
+                                          # plowlist: Remote folder does not exist or is empty
+declare -r ERR_SIZE_LIMIT_EXCEEDED=14     # plowdown: Can't download link because file is too big (need permissions)
+                                          # plowup: Can't upload too big file (need permissions)
+declare -r ERR_BAD_COMMAND_LINE=15        # Unknown command line parameter or incompatible options
+declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in other .sh)
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
@@ -59,7 +59,6 @@ ERR_FATAL_MULTIPLE=100           # 100 + (n) with n = first error code (when mul
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       Timeout (in seconds) for one URL download
-#   - RECAPTCHA_SERVER Server URL (defined below)
 #
 # Logs are sent to stderr stream.
 # Policies:
@@ -112,7 +111,7 @@ log_error() {
 # Important note: -D/--dump-header or -o/--output temporary files are deleted in case of error
 curl() {
     local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 240 "$@")
-    local CURL_PRG=$(type -P curl)
+    local -r CURL_PRG=$(type -P curl)
     local DRETVAL=0
 
     # Check if caller has specified a User-Agent, if so, don't put one
@@ -332,7 +331,7 @@ parse_all() {
     local STRING REGEXP SKIP
 
     # Change sed separator to accept '/' characters
-    local D=$'\001'
+    local -r D=$'\001'
 
     if [ '^' = "${2:0:1}" ]; then
         if [ '$' = "${2:(-1):1}" ]; then
@@ -553,7 +552,7 @@ grep_form_by_order() {
 #     If not specified: take forms having any "name" attribute (empty or not)
 # stdout: result
 grep_form_by_name() {
-    local A=${2:-'.*'}
+    local -r A=${2:-'.*'}
     local STRING=$(sed -ne \
         "/<[Ff][Oo][Rr][Mm][[:space:]].*name[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
@@ -620,8 +619,8 @@ break_html_lines_alt() {
 # stdin: (X)HTML data
 # stdout: result
 parse_all_tag() {
-    local T=${2:-"$1"}
-    local D=$'\001'
+    local -r T=${2:-"$1"}
+    local -r D=$'\001'
     local STRING=$(sed -ne "\\${D}$1${D}s${D}</$T>.*${D}${D}p" | \
                    sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
 
@@ -664,8 +663,8 @@ parse_tag_quiet() {
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
-    local A=${2:-"$1"}
-    local D=$'\001'
+    local -r A=${2:-"$1"}
+    local -r D=$'\001'
     local STRING=$(sed \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\1${D}p" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]$A[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\1${D}p")
@@ -1402,13 +1401,13 @@ captcha_process() {
     fi
 }
 
-declare -r RECAPTCHA_SERVER='http://www.google.com/recaptcha/api/'
 # reCAPTCHA decoding function
 # Main engine: http://api.recaptcha.net/js/recaptcha.js
 #
 # $1: reCAPTCHA site public key
 # stdout: On 3 lines: <word> \n <challenge> \n <transaction_id>
 recaptcha_process() {
+    local -r RECAPTCHA_SERVER='http://www.google.com/recaptcha/api/'
     local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
     local VARS SERVER TRY CHALLENGE FILENAME WORDS TID
 
