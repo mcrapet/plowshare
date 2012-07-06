@@ -164,10 +164,10 @@ megashares_download() {
         local MTIME CAPTCHA_URL
 
         # 68x18 png file. Cookie file is not required (for curl)
-        CAPTCHA_URL=$BASEURL/$(echo "$PAGE" | parse_attr 'Security Code' 'src')
+        CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'Security Code' src) || return
 
         local WI WORD ID
-        WI=$(captcha_process "$CAPTCHA_URL" digits 4) || return
+        WI=$(captcha_process "$BASEURL/$CAPTCHA_URL" digits 4) || return
         { read WORD; read ID; } <<<"$WI"
 
         if [ "${#WORD}" -lt 4 ]; then
