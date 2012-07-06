@@ -1048,6 +1048,11 @@ captcha_process() {
     elif match_remote_url "$1"; then
         FILENAME=$(create_tempfile '.captcha') || return
         curl -o "$FILENAME" "$1" || return
+
+        if [ ! -s "$FILENAME" ]; then
+            log_error "empty file"
+            return $ERR_FATAL
+        fi
     else
         log_error "image file not found"
         return $ERR_FATAL
