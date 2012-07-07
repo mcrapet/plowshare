@@ -31,13 +31,13 @@ MODULE_UPLOADING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 uploading_download() {
     eval "$(process_options uploading "$MODULE_UPLOADING_DOWNLOAD_OPTIONS" "$@")"
 
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://uploading.com'
     local PAGE WAIT CODE PASS JSON FILENAME FILE_URL
 
     # Force language to English
-    PAGE=$(curl -c "$COOKIEFILE" -b "lang=1" "$URL") || return
+    PAGE=$(curl -c "$COOKIE_FILE" -b "lang=1" "$URL") || return
 
     # <h2>OOPS! Looks like file not found.</h2>
     if match 'file not found' "$PAGE"; then
@@ -62,16 +62,23 @@ uploading_download() {
 
     CODE=$(echo "$PAGE" | parse 'code:' ":[[:space:]]*[\"']\([^'\"]*\)") || return
     PASS=false
+    log_debug "code: $CODE"
 
-    # Get wait time
-    WAIT=$(echo "$PAGE" | parse 'start_timer([[:digit:]]' \
-        'start_timer(\([[:digit:]]\+\)') || return
-    wait $WAIT || return
-
-    FILENAME=$(echo "$PAGE" | parse_quiet '<title>' \
+    FILENAME=$(echo "$PAGE" | parse '<title>' \
         '<title>Download \(.*\) for free on uploading.com</title>')
 
-    JSON=$(curl -b "$COOKIEFILE" -d 'action=get_link' \
+    # Get wait time
+    WAIT=$(echo "$PAGE" | parse_tag '"timer_count"' span) || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" \
+        -H 'X-Requested-With: XMLHttpRequest' \
+        -d 'action=second_page' -d "code=$CODE" \
+        "$BASE_URL/files/get/?ajax") || return
+
+    wait $WAIT || return
+
+    JSON=$(curl -b "$COOKIE_FILE" -d 'action=get_link' \
+        -H 'X-Requested-With: XMLHttpRequest' \
         -d "code=$CODE" -d "pass=$PASS" \
         "$BASE_URL/files/get/?ajax") || return
 
