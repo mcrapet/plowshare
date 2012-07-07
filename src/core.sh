@@ -110,7 +110,7 @@ log_error() {
 # $1..$n are curl arguments
 # Important note: -D/--dump-header or -o/--output temporary files are deleted in case of error
 curl() {
-    local -a OPTIONS=(--insecure --speed-time 600 --connect-timeout 240 "$@")
+    local -a OPTIONS=(--insecure --compressed --speed-time 600 --connect-timeout 240 "$@")
     local -r CURL_PRG=$(type -P curl)
     local DRETVAL=0
 
