@@ -192,7 +192,7 @@ ryushare_upload() {
     # xupload.js
     # Note: HTTP header "Expect: 100-continue" seems to confuse server (lighttpd)
     #       Alternate solution: force HTTP/1.0 request (curl -0)
-    PAGE=$(curl_with_log -b 'lang=english' --referer "$BASE_URL" -F "tos=1" \
+    PAGE=$(curl_with_log -b 'lang=english' --referer "$BASE_URL" -F 'tos=1' \
         -H 'Expect: ' \
         -F "upload_type=$FORM_UTYPE" \
         -F "sess_id=$FORM_SESS" \
