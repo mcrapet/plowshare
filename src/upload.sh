@@ -32,7 +32,7 @@ MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB
 MIN_LIMIT_RATE,,min-rate:,SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures. 0 means no retry (default).
+MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
 NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
 PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format (for each upload). Default string is: \"%u (%D)\".
@@ -89,7 +89,7 @@ usage() {
     echo
     echo 'Global options:'
     echo
-    print_options "$OPTIONS" '  '
+    print_options "$OPTIONS"
     test -z "$1" || print_module_options "$MODULES" 'UPLOAD'
 }
 

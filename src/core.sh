@@ -1864,27 +1864,28 @@ timeout_init() {
 # $1: options
 # $2: indent string
 print_options() {
-    local STRING
+    local STR VAR SHORT LONG VALUE HELP
+    local INDENT=${2:-'  '}
     while read OPTION; do
         test "$OPTION" || continue
         IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
         if [ -n "$SHORT" ]; then
             if test "$VALUE"; then
-                STRING="${2}-${SHORT%:} $VALUE"
-                test -n "$LONG" && STRING="$STRING, --${LONG%:}=$VALUE"
+                STR="-${SHORT%:} $VALUE"
+                test -n "$LONG" && STR="-${SHORT%:}, --${LONG%:}=$VALUE"
             else
-                STRING="${2}-${SHORT%:}"
-                test -n "$LONG" && STRING="$STRING, --${LONG%:}"
+                STR="-${SHORT%:}"
+                test -n "$LONG" && STR="$STR, --${LONG%:}"
             fi
         # long option only
         else
             if test "$VALUE"; then
-                STRING="${2}--${LONG%:}=$VALUE"
+                STR="    --${LONG%:}=$VALUE"
             else
-                STRING="${2}--${LONG%:}"
+                STR="    --${LONG%:}"
             fi
         fi
-        echo "$STRING: $HELP"
+        printf '%-35s%s\n' "$INDENT$STR" "$HELP"
     done <<< "$1"
 }
 
@@ -1899,7 +1900,7 @@ print_module_options() {
             echo
             echo "Options for module <$MODULE>:"
             echo
-            print_options "$OPTIONS" '  '
+            print_options "$OPTIONS"
         fi
     done <<< "$1"
 }

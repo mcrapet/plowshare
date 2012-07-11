@@ -68,7 +68,7 @@ usage() {
     echo
     echo 'Global options:'
     echo
-    print_options "$OPTIONS" '  '
+    print_options "$OPTIONS"
     print_module_options "$MODULES" 'LIST'
 }
 

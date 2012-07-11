@@ -31,18 +31,18 @@ QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
-OUTPUT_DIR,o:,output-directory:,DIRECTORY,Directory where files will be saved
-TEMP_DIR,,temp-directory:,DIRECTORY,Directory where files are temporarily downloaded
+OUTPUT_DIR,o:,output-directory:,DIR,Directory where files will be saved
+TEMP_DIR,,temp-directory:,DIR,Directory where files are temporarily downloaded
 TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
 MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
 INTERFACE,i:,interface:,IFACE,Force IFACE network interface
 TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,r:,max-retries:,N,Set maximum retries for captcha solving. 0 means no retry. Default is infinite.
-CAPTCHA_METHOD,,captchamethod:,METHOD, Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
-CAPTCHA_PROGRAM,,captchaprogram:,SCRIPT, Call external script for captcha solving.
-CAPTCHA_TRADER,,captchatrader:,USER:PASSWORD,CaptchaTrader account
+MAXRETRIES,r:,max-retries:,N,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
+CAPTCHA_METHOD,,captchamethod:,METHOD,Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
+CAPTCHA_PROGRAM,,captchaprogram:,SCRIPT,Call external script for captcha solving
+CAPTCHA_TRADER,,captchatrader:,USER:PASSWD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
-CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWORD,DeathByCaptcha account
+CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
 PRINTF_FORMAT,,printf:,FORMAT,Don't process final link, print results in a given format (for each link)
@@ -114,7 +114,7 @@ usage() {
     echo
     echo 'Global options:'
     echo
-    print_options "$OPTIONS" '  '
+    print_options "$OPTIONS"
     test -z "$1" || print_module_options "$MODULES" 'DOWNLOAD'
 }
 
