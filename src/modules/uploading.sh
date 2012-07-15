@@ -60,7 +60,7 @@ uploading_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    CODE=$(echo "$PAGE" | parse 'code:' ":[[:space:]]*[\"']\([^'\"]*\)") || return
+    CODE=$(echo "$PAGE" | parse '[[:space:]]code:' ":[[:space:]]*[\"']\([^'\"]*\)") || return
     PASS=false
     log_debug "code: $CODE"
 
