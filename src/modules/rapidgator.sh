@@ -202,6 +202,12 @@ rapidgator_download() {
         echo $(( ((23 - ((HOUR + 4) % 24) ) * 60 + (61 - MIN)) * 60 ))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
+    # You have reached your hourly downloads limit. Please, try again later.
+    elif match 'reached your hourly downloads limit' "$HTML"; then
+        log_error 'Hourly limit reached.'
+        echo 3600
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
     # You can`t download not more than 1 file at a time in free mode.
     elif match 'download not more than .\+ in free mode' "$HTML"; then
         log_error 'No parallel download allowed.'
@@ -209,7 +215,9 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     # You can download files up to 500 MB in free mode.
-    elif match 'download files up to .\+ in free mode'  "$HTML"; then
+    # This file can be downloaded by premium only
+    elif match 'download files up to .\+ in free mode' "$HTML" || \
+        match 'can be downloaded by premium only' "$HTML"; then
         return $ERR_LINK_NEED_PERMISSIONS
 
     # Delay between downloads must be not less than 15 min.
