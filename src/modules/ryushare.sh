@@ -23,13 +23,13 @@
 MODULE_RYUSHARE_REGEXP_URL="https\?://\(www\.\)\?ryushare\.com/"
 
 MODULE_RYUSHARE_DOWNLOAD_OPTIONS="
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_RYUSHARE_DOWNLOAD_RESUME=yes
 MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_RYUSHARE_UPLOAD_OPTIONS="
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_RYUSHARE_UPLOAD_REMOTE_SUPPORT=no
 
 # Output a ryushare file download URL
@@ -37,8 +37,6 @@ MODULE_RYUSHARE_UPLOAD_REMOTE_SUPPORT=no
 # $2: ryushare url
 # stdout: real file download link
 ryushare_download() {
-    eval "$(process_options ryushare "$MODULE_RYUSHARE_DOWNLOAD_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE WAIT_TIME FILE_URL ERR CODE
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
@@ -169,8 +167,6 @@ ryushare_download() {
 # $3: remote filename
 # stdout: download link + delete link
 ryushare_upload() {
-    eval "$(process_options ryushare "$MODULE_RYUSHARE_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://ryushare.com'

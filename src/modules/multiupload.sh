@@ -21,9 +21,9 @@
 MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.\(com\|nl\)/"
 
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description
-FROMEMAIL,,email-from:,EMAIL,<From> field for notification email
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+FROMEMAIL,,email-from,e=EMAIL,<From> field for notification email
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_MULTIUPLOAD_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MULTIUPLOAD_LIST_OPTIONS=""
@@ -34,8 +34,6 @@ MODULE_MULTIUPLOAD_LIST_OPTIONS=""
 # $3: remote filename
 # stdout: multiupload.nl download link
 multiupload_upload() {
-    eval "$(process_options multiupload "$MODULE_MULTIUPLOAD_UPLOAD_OPTIONS" "$@")"
-
     #local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3

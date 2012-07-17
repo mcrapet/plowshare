@@ -21,10 +21,10 @@
 MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/"
 
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-INCLUDE,,include:,LIST,Provide list of host site (space separated)
-COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5."
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+INCLUDE,,include,l=LIST,Provide list of host site (space separated)
+COUNT,,count,n=COUNT,Take COUNT hosters from the available list. Default is 5."
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MIRRORCREATOR_LIST_OPTIONS=""
@@ -35,8 +35,6 @@ MODULE_MIRRORCREATOR_LIST_OPTIONS=""
 # $3: remote filename
 # stdout: mirrorcreator.com download link
 mirrorcreator_upload() {
-    eval "$(process_options mirrorcreator "$MODULE_MIRRORCREATOR_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3

@@ -21,12 +21,12 @@
 MODULE_MEDIAFIRE_REGEXP_URL="http://\(www\.\)\?mediafire\.com/"
 
 MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_MEDIAFIRE_DOWNLOAD_RESUME=yes
 MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
@@ -51,8 +51,6 @@ get_ofuscated_link() {
 # $2: mediafire.com url
 # stdout: real file download link
 mediafire_download() {
-    eval "$(process_options mediafire "$MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace '/download.php?' '?')
     local LOCATION PAGE FILE_URL FILENAME JSON JS_VAR
@@ -133,8 +131,6 @@ mediafire_download() {
 # $3: remote filename
 # stdout: mediafire.com download link
 mediafire_upload() {
-    eval "$(process_options mediafire "$MODULE_MEDIAFIRE_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3

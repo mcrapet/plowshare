@@ -21,24 +21,22 @@
 MODULE_RAPIDSHARE_REGEXP_URL="https\?://\(www\.\|rs[[:digit:]][0-9a-z]*\.\)\?rapidshare\.com/"
 
 MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_RAPIDSHARE_DOWNLOAD_RESUME=no
 MODULE_RAPIDSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_RAPIDSHARE_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 MODULE_RAPIDSHARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_RAPIDSHARE_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 
 # Output a rapidshare file download URL
 # $1: cookie file (unused here)
 # $2: rapidshare.com url
 # stdout: real file download link
 rapidshare_download() {
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DOWNLOAD_OPTIONS" "$@")"
-
     local URL=$2
     local BASE_URL='https://api.rapidshare.com/cgi-bin/rsapi.cgi'
     local FILEID FILENAME USER PASSWORD COOKIE PAGE ERROR WAIT
@@ -155,8 +153,6 @@ rapidshare_download() {
 # $3: remote filename
 # stdout: download_url
 rapidshare_upload() {
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local USER PASSWORD SERVER_NUM UPLOAD_URL INFO ERROR
@@ -191,8 +187,6 @@ rapidshare_upload() {
 # $1: cookie file (unused here)
 # $2: rapidshare (download) link
 rapidshare_delete() {
-    eval "$(process_options rapidshare "$MODULE_RAPIDSHARE_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local USER PASSWORD FILEID RESPONSE
 

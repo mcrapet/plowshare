@@ -21,12 +21,12 @@
 MODULE_FILEBOX_REGEXP_URL="https\?://\(www\.\)\?filebox\.com"
 
 MODULE_FILEBOX_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_FILEBOX_DOWNLOAD_RESUME=yes
 MODULE_FILEBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_FILEBOX_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_FILEBOX_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login
@@ -56,8 +56,6 @@ filebox_login() {
 # $2: filebox url
 # stdout: real file download link
 filebox_download() {
-    eval "$(process_options filebox "$MODULE_FILEBOX_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
 
@@ -140,8 +138,6 @@ filebox_download() {
 # $3: remote filename
 # stdout: download_url
 filebox_upload() {
-    eval "$(process_options filebox "$MODULE_FILEBOX_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3

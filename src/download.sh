@@ -26,27 +26,27 @@ OPTIONS="
 HELP,h,help,,Show help info
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowdown version
-VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,Check if a link exists and return
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
-OUTPUT_DIR,o:,output-directory:,DIR,Directory where files will be saved
-TEMP_DIR,,temp-directory:,DIR,Directory where files are temporarily downloaded
+OUTPUT_DIR,o,output-directory,s=DIR,Directory where files will be saved
+TEMP_DIR,,temp-directory,s=DIR,Directory where files are temporarily downloaded
 TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
-MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
-INTERFACE,i:,interface:,IFACE,Force IFACE network interface
-TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,r:,max-retries:,N,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
-CAPTCHA_METHOD,,captchamethod:,METHOD,Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
-CAPTCHA_PROGRAM,,captchaprogram:,SCRIPT,Call external script for captcha solving
-CAPTCHA_TRADER,,captchatrader:,USER:PASSWD,CaptchaTrader account
-CAPTCHA_ANTIGATE,,antigate:,KEY,Antigate.com captcha key
-CAPTCHA_DEATHBY,,deathbycaptcha:,USER:PASSWD,DeathByCaptcha account
-GLOBAL_COOKIES,,cookies:,FILE,Force using specified cookies file
+MAX_LIMIT_RATE,,max-rate,n=SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
+INTERFACE,i,interface,s=IFACE,Force IFACE network interface
+TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
+MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
+CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
+CAPTCHA_PROGRAM,,captchaprogram,s=SCRIPT,Call external script for captcha solving.
+CAPTCHA_TRADER,,captchatrader,a=USER:PASSWD,CaptchaTrader account
+CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
+CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
+GLOBAL_COOKIES,,cookies,s=FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
-PRINTF_FORMAT,,printf:,FORMAT,Don't process final link, print results in a given format (for each link)
-EXEC_COMMAND,,exec:,COMMAND,Don't process final link, execute command (for each link)
+PRINTF_FORMAT,,printf,s=FORMAT,Don't process final link, print results in a given format (for each link)
+EXEC_COMMAND,,exec,s=COMMAND,Don't process final link, execute command (for each link)
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
@@ -115,7 +115,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS"
-    test -z "$1" || print_module_options "$MODULES" 'DOWNLOAD'
+    test -z "$1" || print_module_options "$MODULES" DOWNLOAD
 }
 
 # Mark status of link (inside file or to stdout). See --mark-downloaded switch.
@@ -186,19 +186,17 @@ module_null_download() {
     echo "$2"
 }
 
-# Note: $ITEM, $NOOVERWRITE, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
-#       $EXEC_COMMAND, $TEMP_RENAME should not be used directly.
+# Note: Global options $CHECK_LINK, $MARK_DOWN, $NOOVERWRITE,
+# $TIMEOUT, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
+# $EXEC_COMMAND, $TEMP_RENAME are accessed directly.
 download() {
     local MODULE=$1
     local URL_RAW=$2
     local TYPE=$3
-    local MARK_DOWN=$4
-    local TEMP_DIR=$5
-    local OUTPUT_DIR=$6
-    local CHECK_LINK=$7
-    local TIMEOUT=$8
-    local MAXRETRIES=$9
-    shift 9
+    local ITEM=$4
+    local OUT_DIR=$5
+    local TMP_DIR=$6
+    local MAX_RETRIES=$7
 
     local DRETVAL AWAIT CODE FILENAME FILE_URL
     local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
@@ -221,7 +219,7 @@ download() {
 
             while :; do
                 DRETVAL=0
-                $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
+                $FUNCTION "$DCOOKIE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <"$DRESULT"
@@ -232,7 +230,7 @@ download() {
                     fi
                     wait ${AWAIT:-60} || { DRETVAL=$?; break; }
                     continue
-                elif [[ $MAXRETRIES -eq 0 ]]; then
+                elif [[ $MAX_RETRIES -eq 0 ]]; then
                     break
                 elif [ $DRETVAL -ne $ERR_NETWORK -a \
                        $DRETVAL -ne $ERR_CAPTCHA ]; then
@@ -242,12 +240,12 @@ download() {
                         "$CAPTCHA_METHOD" = 'none' ]; then
                     log_debug "captcha method set to none, abort"
                     break
-                elif (( MAXRETRIES < ++TRY )); then
+                elif (( MAX_RETRIES < ++TRY )); then
                     DRETVAL=$ERR_MAX_TRIES_REACHED
                     break
                 fi
 
-                log_notice "Starting download ($MODULE): retry $TRY/$MAXRETRIES"
+                log_notice "Starting download ($MODULE): retry $TRY/$MAX_RETRIES"
             done
 
             if [ $DRETVAL -eq 0 ]; then
@@ -310,7 +308,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_MAX_TRIES_REACHED)
-                log_notice "Retry limit reached (max=$MAXRETRIES)"
+                log_notice "Retry limit reached (max=$MAX_RETRIES)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
@@ -330,7 +328,7 @@ download() {
                 return $DRETVAL
                 ;;
             *)
-                log_error "failed inside ${FUNCTION}() [$DRETVAL]"
+                log_error "Failed inside ${FUNCTION}() [$DRETVAL]"
                 rm -f "$DCOOKIE"
                 return $ERR_FATAL
                 ;;
@@ -383,17 +381,17 @@ download() {
             local -a CURL_ARGS
 
             # Temporary download path
-            if test "$TEMP_DIR"; then
-                FILENAME_TMP="$TEMP_DIR/$FILENAME"
-            elif test "$OUTPUT_DIR"; then
-                FILENAME_TMP="$OUTPUT_DIR/$FILENAME"
+            if test "$TMP_DIR"; then
+                FILENAME_TMP="$TMP_DIR/$FILENAME"
+            elif test "$OUT_DIR"; then
+                FILENAME_TMP="$OUT_DIR/$FILENAME"
             else
                 FILENAME_TMP=$FILENAME
             fi
 
             # Final path
-            if test "$OUTPUT_DIR"; then
-                FILENAME_OUT="$OUTPUT_DIR/$FILENAME"
+            if test "$OUT_DIR"; then
+                FILENAME_OUT="$OUT_DIR/$FILENAME"
             else
                 FILENAME_OUT=$FILENAME
             fi
@@ -480,7 +478,7 @@ download() {
 
             if test "$FILENAME_TMP" != "$FILENAME_OUT"; then
                 test "$TEMP_RENAME" || \
-                    log_notice "Moving file to output directory: ${OUTPUT_DIR:-.}"
+                    log_notice "Moving file to output directory: ${OUT_DIR:-.}"
                 mv -f "$FILENAME_TMP" "$FILENAME_OUT"
             fi
 
@@ -490,7 +488,7 @@ download() {
         # Second (custom) way: pretty print and/or external command
         else
             log_debug "don't use regular curl command to download final link"
-            local DATA=("$MODULE" "$FILENAME" "$OUTPUT_DIR" "$DCOOKIE" \
+            local DATA=("$MODULE" "$FILENAME" "$OUT_DIR" "$DCOOKIE" \
                         "$URL_ENCODED" "$FILE_URL")
 
             # Pretty print requested
@@ -616,16 +614,15 @@ done
 match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowdown' "$OPTIONS"
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
-eval "$(process_options 'plowdown' "$OPTIONS$MODULE_OPTIONS" "$@")"
+# Process plowdown options
+eval "$(process_core_options1 'plowdown' "$OPTIONS" \
+    "$@")" || exit $ERR_BAD_COMMAND_LINE
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
-    VERBOSE=0
-elif [ -n "$VERBOSE" ]; then
-    [ "$VERBOSE" -gt "4" ] && VERBOSE=4
-else
-    VERBOSE=2
+    declare -r VERBOSE=0
+elif [ -z "$VERBOSE" ]; then
+    declare -r VERBOSE=2
 fi
 
 test "$HELPFULL" && { usage 1; exit 0; }
@@ -642,8 +639,7 @@ log_report_info
 log_report "plowdown version $VERSION"
 
 if [ -n "$TEMP_DIR" ]; then
-    TEMP_DIR=${TEMP_DIR%/}
-    log_notice "Temporary directory: $TEMP_DIR"
+    log_notice "Temporary directory: ${TEMP_DIR%/}"
     mkdir -p "$TEMP_DIR"
     if [ ! -w "$TEMP_DIR" ]; then
         log_error "error: no write permission"
@@ -652,8 +648,7 @@ if [ -n "$TEMP_DIR" ]; then
 fi
 
 if [ -n "$OUTPUT_DIR" ]; then
-    OUTPUT_DIR=${OUTPUT_DIR%/}
-    log_notice "Output directory: $OUTPUT_DIR"
+    log_notice "Output directory: ${OUTPUT_DIR%/}"
     mkdir -p "$OUTPUT_DIR"
     if [ ! -w "$OUTPUT_DIR" ]; then
         log_error "error: no write permission"
@@ -700,10 +695,27 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug "using local ~/.curlrc"
 fi
 
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process module options
+eval "$(process_core_options2 'plowdown' "$MODULE_OPTIONS" \
+    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+
+COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
+COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
+
+if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
+    log_error "plowdown: no URL specified!"
+    log_error "plowdown: try \`plowdown --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
+
 set_exit_trap
 
-RETVALS=()
-for ITEM in "$@"; do
+for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
     OLD_IFS=$IFS
     IFS=$'\n'
     ELEMENTS=( $(process_item "$ITEM") )
@@ -744,12 +756,18 @@ for ITEM in "$@"; do
         else
             # Get configuration file module options
             test -z "$NO_PLOWSHARERC" && \
-                process_configfile_module_options 'Plowdown' "$MODULE" 'DOWNLOAD'
+                process_configfile_module_options 'Plowdown' "$MODULE" DOWNLOAD
+
+            eval "$(process_module_options "$MODULE" DOWNLOAD \
+                "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
             DRETVAL=0
-            download "$MODULE" "$URL" "$TYPE" "$MARK_DOWN" "$TEMP_DIR" \
-                "$OUTPUT_DIR" "$CHECK_LINK" "$TIMEOUT" "${MAXRETRIES:-2}" \
-                "${UNUSED_OPTIONS[@]}" || DRETVAL=$?
+
+            "${MODULE}_vars_set"
+            download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
+                "${TEMP_DIR%/}" "${MAXRETRIES:-2}" || DRETVAL=$?
+            "${MODULE}_vars_unset"
+
             RETVALS=(${RETVALS[@]} $DRETVAL)
         fi
     done

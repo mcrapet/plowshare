@@ -21,12 +21,12 @@
 MODULE_FREAKSHARE_REGEXP_URL="http://\(www\.\)\?freakshare\.com/"
 
 MODULE_FREAKSHARE_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_FREAKSHARE_DOWNLOAD_RESUME=no
 MODULE_FREAKSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_FREAKSHARE_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_FREAKSHARE_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login (free or premium)
@@ -54,8 +54,6 @@ freakshare_login() {
 # $2: freakshare.com url
 # stdout: real file download link
 freakshare_download() {
-    eval "$(process_options freakshare "$MODULE_FREAKSHARE_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://freakshare.com'
@@ -159,8 +157,6 @@ freakshare_download() {
 # $3: remote filename
 # stdout: download_url
 freakshare_upload() {
-    eval "$(process_options freakshare "$MODULE_FREAKSHARE_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3

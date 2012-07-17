@@ -23,9 +23,9 @@ VERSION="GIT-snapshot"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
-VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-INTERFACE,i:,interface:,IFACE,Force IFACE network interface
+INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
@@ -65,7 +65,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS"
-    print_module_options "$MODULES" 'DELETE'
+    print_module_options "$MODULES" DELETE
 }
 
 #
@@ -85,16 +85,15 @@ done
 match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowdel' "$OPTIONS"
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
-eval "$(process_options 'plowdel' "$OPTIONS$MODULE_OPTIONS" "$@")"
+# Process plowup options
+eval "$(process_core_options1 'plowdel' "$OPTIONS" \
+    "$@")" || exit $ERR_BAD_COMMAND_LINE
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
-    VERBOSE=0
-elif [ -n "$VERBOSE" ]; then
-    [ "$VERBOSE" -gt "4" ] && VERBOSE=4
-else
-    VERBOSE=2
+    declare -r VERBOSE=0
+elif [ -z "$VERBOSE" ]; then
+    declare -r VERBOSE=2
 fi
 
 test "$HELP" && { usage; exit 0; }
@@ -106,17 +105,29 @@ if [ $# -lt 1 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process module options
+eval "$(process_core_options2 'plowdel' "$MODULE_OPTIONS" \
+    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+
+COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
+COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
+
+if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
+    log_error "plowdel: no URL specified!"
+    log_error "plowdel: try \`plowdel --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
+
 set_exit_trap
 
-RETVALS=()
 DCOOKIE=$(create_tempfile) || exit
 
-for URL in "$@"; do
-
-    if [ -z "$URL" ]; then
-        log_debug "empty argument, skipping"
-        continue
-    fi
+for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     MODULE=$(get_module "$URL" "$MODULES")
     if [ -z "$MODULE" ]; then
@@ -127,14 +138,20 @@ for URL in "$@"; do
 
     # Get configuration file module options
     test -z "$NO_PLOWSHARERC" && \
-        process_configfile_module_options 'Plowdel' "$MODULE" 'DELETE'
+        process_configfile_module_options 'Plowdel' "$MODULE" DELETE
+
+    eval "$(process_module_options "$MODULE" DELETE \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
 
     :> "$DCOOKIE"
     DRETVAL=0
+
+    "${MODULE}_vars_set"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
+    "${MODULE}_vars_unset"
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
@@ -144,6 +161,8 @@ for URL in "$@"; do
         log_error "Not found or already deleted"
     elif [ $DRETVAL -eq $ERR_LOGIN_FAILED ]; then
         log_error "Login process failed. Bad username/password or unexpected content"
+    else
+        log_error "Failed inside ${FUNCTION}() [$DRETVAL]"
     fi
     RETVALS=(${RETVALS[@]} $DRETVAL)
 done

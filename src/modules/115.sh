@@ -21,7 +21,7 @@
 MODULE_115_REGEXP_URL="http://\([[:alnum:]]\+\.\)\?115\.com/file/"
 
 MODULE_115_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 MODULE_115_DOWNLOAD_RESUME=no
 MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
@@ -30,8 +30,6 @@ MODULE_115_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 # $2: 115.com url
 # stdout: real file download link
 115_download() {
-    eval "$(process_options rapidshare "$MODULE_115_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local PAGE JSON LINKS HEADERS DIRECT FILENAME U1 U2

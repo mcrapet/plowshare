@@ -22,18 +22,18 @@
 MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\|ul\)\.to/"
 
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
 MODULE_UPLOADED_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_UPLOADED_TO_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
+AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_UPLOADED_TO_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPLOADED_TO_DELETE_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 MODULE_UPLOADED_TO_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free-membership or premium)
@@ -65,8 +65,6 @@ uploaded_to_login() {
 # stdout: real file download link
 # Note: Anonymous download restriction: 1 file every 60 minutes.
 uploaded_to_download() {
-    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local BASE_URL='http://uploaded.to'
     local URL FILE_ID HTML SLEEP FILE_NAME FILE_URL PAGE
@@ -195,8 +193,6 @@ uploaded_to_download() {
 # $3: remote filename
 # stdout: ul.to download link
 uploaded_to_upload() {
-    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -244,8 +240,6 @@ uploaded_to_upload() {
 # $1: cookie file
 # $2: uploaded.to (download) link
 uploaded_to_delete() {
-    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_DELETE_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://uploaded.to'
@@ -278,8 +272,6 @@ uploaded_to_delete() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 uploaded_to_list() {
-    eval "$(process_options uploaded_to "$MODULE_UPLOADED_TO_LIST_OPTIONS" "$@")"
-
     local URL=$1
     local PAGE LINKS NAMES
 

@@ -25,8 +25,7 @@ To run plowshare you will require:
 
 > A POSIX compliant operating system: 
     - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
-    - BSD (requires GNU-sed and GNU-getopt)
-    - Mac OSX: need homebrew
+    - BSD/Mac OSX: requires GNU-sed
     - Cygwin
 > Bash (version >= 3.0, version >= 3.0.12 recommended)
 > Curl (with SSL support, usually required for premium account)

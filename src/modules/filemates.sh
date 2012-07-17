@@ -23,8 +23,8 @@
 MODULE_FILEMATES_REGEXP_URL="http://\(www\.\)\?filemates\.com/"
 
 MODULE_FILEMATES_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_FILEMATES_DOWNLOAD_RESUME=no
 MODULE_FILEMATES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
@@ -55,8 +55,6 @@ filemates_login() {
 # $2: filemates url
 # stdout: real file download link
 filemates_download() {
-    eval "$(process_options filemates "$MODULE_FILEMATES_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local PAGE FILE_URL ACCOUNT

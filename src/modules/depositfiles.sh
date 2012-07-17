@@ -21,12 +21,12 @@
 MODULE_DEPOSITFILES_REGEXP_URL="http://\([[:alnum:]]\+\.\)\?depositfiles\.com/"
 
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_DEPOSITFILES_DOWNLOAD_RESUME=yes
 MODULE_DEPOSITFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DEPOSITFILES_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_DEPOSITFILES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DEPOSITFILES_DELETE_OPTIONS=""
@@ -79,8 +79,6 @@ depositfiles_login() {
 # $2: depositfiles.com url
 # stdout: real file download link
 depositfiles_download() {
-    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://depositfiles.com'
@@ -209,8 +207,6 @@ depositfiles_download() {
 # $3: remote filename
 # stdout: depositfiles download link
 depositfiles_upload() {
-    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -265,8 +261,6 @@ depositfiles_upload() {
 # $1: cookie file (unused here)
 # $2: delete link
 depositfiles_delete() {
-    eval "$(process_options depositfiles "$MODULE_DEPOSITFILES_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE
 

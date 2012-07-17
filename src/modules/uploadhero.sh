@@ -32,8 +32,6 @@ MODULE_UPLOADHERO_LIST_OPTIONS=""
 # stdout: real file download link
 # Note: Anonymous download restriction: one file every 20 minutes
 uploadhero_download() {
-    eval "$(process_options uploadhero "$MODULE_UPLOADHERO_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace 'www.' '' | replace '/v/' '/dl/')
     local BASE_URL='http://uploadhero.com'
@@ -120,8 +118,6 @@ uploadhero_download() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 uploadhero_list() {
-    eval "$(process_options uploadhero "$MODULE_UPLOADHERO_LIST_OPTIONS" "$@")"
-
     local URL=$1
     local PAGE NAMES LINKS
 

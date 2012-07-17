@@ -26,7 +26,7 @@ MODULE_DATAPORT_CZ_DOWNLOAD_RESUME=yes
 MODULE_DATAPORT_CZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DATAPORT_CZ_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_DATAPORT_CZ_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DATAPORT_CZ_DELETE_OPTIONS=""
@@ -55,8 +55,6 @@ dataport_cz_login() {
 # $2: dataport.cz url
 # stdout: real file download link
 dataport_cz_download() {
-    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS" "$@")"
-
     local URL=$(uri_encode_file "$2")
     local PAGE DL_URL FILENAME FILE_URL
 
@@ -101,8 +99,6 @@ dataport_cz_download() {
 # $3: remote filename
 # stdout: download link
 dataport_cz_upload() {
-    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -138,8 +134,6 @@ dataport_cz_upload() {
 # $1: cookie file (unused here)
 # $2: download link
 dataport_cz_delete() {
-    eval "$(process_options dataport_cz "$MODULE_DATAPORT_CZ_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE
 

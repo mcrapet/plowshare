@@ -21,12 +21,12 @@
 MODULE_FILEPOST_REGEXP_URL="https\?://\(www\.\)\?filepost\.com/"
 
 MODULE_FILEPOST_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,EMAIL:PASSWORD,User account"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_FILEPOST_DOWNLOAD_RESUME=yes
 MODULE_FILEPOST_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_FILEPOST_UPLOAD_OPTIONS="
-AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_FILEPOST_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_FILEPOST_LIST_OPTIONS=""
@@ -92,8 +92,6 @@ filepost_login() {
 # $2: filepost.com url
 # stdout: real file download link
 filepost_download() {
-    eval "$(process_options filepost "$MODULE_FILEPOST_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://filepost.com'
@@ -211,8 +209,6 @@ filepost_download() {
 # $3: remote filename
 # stdout: download_url
 filepost_upload() {
-    eval "$(process_options filepost "$MODULE_FILEPOST_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3

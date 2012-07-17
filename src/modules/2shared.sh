@@ -21,16 +21,16 @@
 MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\|video\|audio\)/"
 
 MODULE_2SHARED_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
 MODULE_2SHARED_DOWNLOAD_RESUME=yes
 MODULE_2SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_2SHARED_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account (mandatory)"
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 MODULE_2SHARED_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_2SHARED_DELETE_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
 
 # Static function. Proceed with login
 # $1: authentication
@@ -62,8 +62,6 @@ AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
 # $2: 2shared url
 # stdout: real file download link
 2shared_download() {
-    eval "$(process_options 2shared "$MODULE_2SHARED_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local PAGE FILE_URL FILENAME WAIT_LINE WAIT_TIME
@@ -108,8 +106,6 @@ AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
 # $3: remote filename
 # stdout: 2shared.com download + admin link
 2shared_upload() {
-    eval "$(process_options 2shared "$MODULE_2SHARED_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -152,8 +148,6 @@ AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account"
 # $1: cookie file
 # $2: admin url
 2shared_delete() {
-    eval "$(process_options 2shared "$MODULE_2SHARED_DELETE_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://www.2shared.com'

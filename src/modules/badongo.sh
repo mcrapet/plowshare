@@ -29,8 +29,6 @@ MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # $2: badongo url
 # stdout: real file download link
 badongo_download() {
-    eval "$(process_options badongo "$MODULE_BADONGO_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace '/audio/' '/file/')
     local BASEURL='http://www.badongo.com'

@@ -21,12 +21,12 @@
 MODULE_BAYFILES_REGEXP_URL="https\?://\(www\.\)\?bayfiles\.com/"
 
 MODULE_BAYFILES_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_BAYFILES_DOWNLOAD_RESUME=yes
 MODULE_BAYFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BAYFILES_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_BAYFILES_DELETE_OPTIONS=""
@@ -60,8 +60,6 @@ bayfiles_login() {
 # $2: bayfiles url
 # stdout: real file download link
 bayfiles_download() {
-    eval "$(process_options bayfiles "$MODULE_BAYFILES_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local API_URL='http://api.bayfiles.com/v1'
@@ -134,8 +132,6 @@ bayfiles_download() {
 # $3: remote filename
 # stdout: download link + delete link + admin link
 bayfiles_upload() {
-    eval "$(process_options bayfiles "$MODULE_BAYFILES_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local API_URL='http://api.bayfiles.com/v1'
@@ -176,8 +172,6 @@ bayfiles_upload() {
 # $1: cookie file (unused here)
 # $2: delete link
 bayfiles_delete() {
-    eval "$(process_options bayfiles "$MODULE_BAYFILES_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE CONFIRM
 

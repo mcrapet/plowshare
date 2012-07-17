@@ -27,9 +27,9 @@ MODULE_ZALAA_DOWNLOAD_RESUME=yes
 MODULE_ZALAA_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_ZALAA_UPLOAD_OPTIONS="
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_ZALAA_UPLOAD_REMOTE_SUPPORT=no
 
 # Output a zalaa file download URL
@@ -37,8 +37,6 @@ MODULE_ZALAA_UPLOAD_REMOTE_SUPPORT=no
 # $2: zalaa url
 # stdout: real file download link
 zalaa_download() {
-    eval "$(process_options zalaa "$MODULE_ZALAA_DOWNLOAD_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE FILE_URL JS_CODE JS_CODE2
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_METHOD FORM_COUNT
@@ -91,8 +89,6 @@ zalaa_download() {
 # $3: remote filename
 # stdout: download link + delete link
 zalaa_upload() {
-    eval "$(process_options zalaa "$MODULE_ZALAA_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://www.zalaa.com'

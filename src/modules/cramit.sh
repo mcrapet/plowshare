@@ -23,15 +23,15 @@
 MODULE_CRAMIT_REGEXP_URL="https\?://\(www\.\)\?\(cramit\.in\|cramitin\.\(net\|us\|eu\)\)/"
 
 MODULE_CRAMIT_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_CRAMIT_DOWNLOAD_RESUME=yes
 MODULE_CRAMIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_CRAMIT_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_CRAMIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_CRAMIT_LIST_OPTIONS=""
@@ -70,8 +70,6 @@ cramit_login() {
 # $2: cramit url
 # stdout: real file download link
 cramit_download() {
-    eval "$(process_options cramit "$MODULE_CRAMIT_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://cramit.in'
@@ -214,8 +212,6 @@ cramit_download() {
 # $3: remote filename
 # stdout: cramit download link and delete link
 cramit_upload() {
-    eval "$(process_options cramit "$MODULE_CRAMIT_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -280,8 +276,6 @@ cramit_upload() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 cramit_list() {
-    eval "$(process_options cramit "$MODULE_CRAMIT_LIST_OPTIONS" "$@")"
-
     local URL=$1
     local RET=0
 

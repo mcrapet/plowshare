@@ -110,26 +110,31 @@ log_error() {
 # $1..$n are curl arguments
 # Important note: -D/--dump-header or -o/--output temporary files are deleted in case of error
 curl() {
-    local -a OPTIONS=(--insecure --compressed --speed-time 600 --connect-timeout 240 "$@")
+    local -a CURL_ARGS=("$@")
+    local -a OPTIONS=(--insecure --compressed --speed-time 600 --connect-timeout 240)
     local -r CURL_PRG=$(type -P curl)
     local DRETVAL=0
 
     # Check if caller has specified a User-Agent, if so, don't put one
-    if ! find_in_array OPTIONS[@] '-A' '--user-agent'; then
+    if ! find_in_array CURL_ARGS[@] '-A' '--user-agent'; then
         OPTIONS[${#OPTIONS[@]}]='--user-agent'
         OPTIONS[${#OPTIONS[@]}]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
     fi
 
     # Check if caller has allowed redirection, if so, limit it
-    if find_in_array OPTIONS[@] '-L' '--location'; then
+    if find_in_array CURL_ARGS[@] '-L' '--location'; then
         OPTIONS[${#OPTIONS[@]}]='--max-redirs'
         OPTIONS[${#OPTIONS[@]}]=5
     fi
 
-    # No verbose unless debug level; don't show progress meter for report level too
-    test $(verbose_level) -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
+    test -n "$NO_CURLRC" && OPTIONS[${#OPTIONS[@]}]='-q'
 
-    test -n "$NO_CURLRC" && OPTIONS=('-q' "${OPTIONS[@]}")
+    # No verbose unless debug level; don't show progress meter for report level too
+    if [ "${FUNCNAME[1]}" = 'curl_with_log' ]; then
+        test $(verbose_level) -eq 0 && OPTIONS[${#OPTIONS[@]}]='--silent'
+    else
+        test $(verbose_level) -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
+    fi
 
     if test -n "$INTERFACE"; then
         OPTIONS[${#OPTIONS[@]}]='--interface'
@@ -147,11 +152,11 @@ curl() {
     fi
 
     if test $(verbose_level) -lt 4; then
-        "$CURL_PRG" "${OPTIONS[@]}" || DRETVAL=$?
+        "$CURL_PRG" "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
-        log_report "${OPTIONS[@]}"
-        "$CURL_PRG" --show-error "${OPTIONS[@]}" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
+        log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
+        "$CURL_PRG" --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes"
         log_report "=== CURL BEGIN ==="
@@ -161,22 +166,22 @@ curl() {
     fi
 
     if [ "$DRETVAL" != 0 ]; then
-        local INDEX F
+        local INDEX FILE
 
-        if INDEX=$(index_in_array OPTIONS[@] '-D' '--dump-header'); then
-            F=${OPTIONS[$INDEX]}
-            if [ -f "$F" ]; then
-                log_debug "deleting temporary HTTP header file: $F"
-                rm -f "$F"
+        if INDEX=$(index_in_array CURL_ARGS[@] '-D' '--dump-header'); then
+            FILE=${OPTIONS[$INDEX]}
+            if [ -f "$FILE" ]; then
+                log_debug "deleting temporary HTTP header file: $FILE"
+                rm -f "$FILE"
             fi
         fi
 
-        if INDEX=$(index_in_array OPTIONS[@] '-o' '--output'); then
-            F=${OPTIONS[$INDEX]}
+        if INDEX=$(index_in_array CURL_ARGS[@] '-o' '--output'); then
+            FILE=${OPTIONS[$INDEX]}
             # Test to reject "-o /dev/null" and final plowdown call
-            if [ -f "$F" ] && ! find_in_array OPTIONS[@] '--globoff'; then
-                log_debug "deleting temporary output file: $F"
-                rm -f "$F"
+            if [ -f "$FILE" ] && ! find_in_array OPTIONS[@] '--globoff'; then
+                log_debug "deleting temporary output file: $FILE"
+                rm -f "$FILE"
             fi
         fi
 
@@ -216,15 +221,7 @@ curl() {
 
 # Force debug verbose level (unless -v0/-q specified)
 curl_with_log() {
-    local TEMP_VERBOSE=$(verbose_level)
-
-    if [ "$TEMP_VERBOSE" -eq 0 ]; then
-        TEMP_VERBOSE=0
-    elif [ "$TEMP_VERBOSE" -lt 3 ]; then
-        TEMP_VERBOSE=3
-    fi
-
-    VERBOSE=$TEMP_VERBOSE curl "$@"
+    curl "$@"
 }
 
 # Substring replacement (replace all matches)
@@ -1864,28 +1861,28 @@ timeout_init() {
 # $1: options
 # $2: indent string
 print_options() {
-    local STR VAR SHORT LONG VALUE HELP
+    local STR VAR SHORT LONG TYPE MSG
     local INDENT=${2:-'  '}
     while read OPTION; do
         test "$OPTION" || continue
-        IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
+        IFS="," read VAR SHORT LONG TYPE MSG <<< "$OPTION"
         if [ -n "$SHORT" ]; then
-            if test "$VALUE"; then
-                STR="-${SHORT%:} $VALUE"
-                test -n "$LONG" && STR="-${SHORT%:}, --${LONG%:}=$VALUE"
+            if test "$TYPE"; then
+                STR="-${SHORT} ${TYPE#*=}"
+                test -n "$LONG" && STR="-${SHORT}, --${LONG}=${TYPE#*=}"
             else
-                STR="-${SHORT%:}"
-                test -n "$LONG" && STR="$STR, --${LONG%:}"
+                STR="-${SHORT}"
+                test -n "$LONG" && STR="$STR, --${LONG}"
             fi
         # long option only
         else
-            if test "$VALUE"; then
-                STR="    --${LONG%:}=$VALUE"
+            if test "$TYPE"; then
+                STR="    --${LONG}=${TYPE#*=}"
             else
-                STR="    --${LONG%:}"
+                STR="    --${LONG}"
             fi
         fi
-        printf '%-35s%s\n' "$INDENT$STR" "$HELP"
+        printf '%-35s%s\n' "$INDENT$STR" "$MSG"
     done <<< "$1"
 }
 
@@ -1933,88 +1930,34 @@ get_module() {
     return 0
 }
 
-# Straighforward options and arguments processing using getopt style
-# $1: program name (used for error message printing)
-# $2: command-line arguments list
-#
-# Example:
-# $ set -- -a user:password -q arg1 arg2
-# $ eval "$(process_options module "
-#           AUTH,a:,auth:,USER:PASSWORD,Help for auth
-#           QUIET,q,quiet,,Help for quiet" "$@")"
-# $ echo "$AUTH / $QUIET / $1 / $2"
-# user:password / 1 / arg1 / arg2
-process_options() {
-    local NAME=$1
-    local OPTIONS=$2
+# $1: program name (used for error reporting only)
+# $2: core option list (one per line)
+# $3..$n: arguments
+process_core_options1() {
+    local -r NAME=$1
+    local -r OPTIONS=$(echo "$2" | strip | drop_empty_lines)
     shift 2
+    VERBOSE=1 process_options "$NAME" "$OPTIONS" -1 "$@" || return
+}
 
-    local SHORT_OPTS LONG_OPTS
+# $1: program name (used for error reporting only)
+# $2: all modules option list (one per line)
+# $3..$n: arguments
+process_core_options2() {
+    local -r NAME=$1
+    local -r OPTIONS=$(echo "$2" | strip | drop_empty_lines)
+    shift 2
+    process_options "$NAME" "$OPTIONS" 0 "$@" || return
+}
 
-    # Strip spaces in options
-    OPTIONS=$(echo "$OPTIONS" | strip | drop_empty_lines)
-
-    if [ -n "$OPTIONS" ]; then
-        while read VAR; do
-            if test "${VAR:0:1}" = "!"; then
-                VAR=${VAR:1}
-            fi
-            # faster than `cut -d',' -f1`
-            unset "${VAR%%,*}"
-        done <<< "$OPTIONS"
-
-        SHORT_OPTS=$(echo "$OPTIONS" | cut -d',' -f2)
-        LONG_OPTS=$(echo "$OPTIONS" | cut -d',' -f3)
-    fi
-
-    # Even if function is called from a module which has no option,
-    # getopt must be called to detect non existant options (like -a user:password)
-    local ARGUMENTS=$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$NAME" -- "$@")
-
-    # To correctly process whitespace and quotes.
-    eval set -- "$ARGUMENTS"
-
-    local -a UNUSED_OPTIONS=()
-    while :; do
-        test "$1" = "--" && { shift; break; }
-        while read OPTION; do
-            IFS="," read VAR SHORT LONG VALUE HELP <<< "$OPTION"
-            UNUSED=0
-            if test "${VAR:0:1}" = "!"; then
-                UNUSED=1
-                VAR=${VAR:1}
-            fi
-            if test "$1" = "-${SHORT%:}" -o "$1" = "--${LONG%:}"; then
-                if test "${SHORT:${#SHORT}-1:1}" = ":" -o \
-                        "${LONG:${#LONG}-1:1}" = ":"; then
-
-                    test -z "$VALUE" && \
-                        stderr "process_options ($VAR): VALUE should not be empty!"
-
-                    if test "$UNUSED" = 0; then
-                        echo "$VAR=$(quote "$2")"
-                    else
-                        if test "${1:0:2}" = "--"; then
-                            UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1=$2")
-                        else
-                            UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1" "$2")
-                        fi
-                    fi
-                    shift
-                else
-                    if test "$UNUSED" = 0; then
-                        echo "$VAR=1"
-                    else
-                        UNUSED_OPTIONS=("${UNUSED_OPTIONS[@]}" "$1")
-                    fi
-                fi
-                break
-            fi
-        done <<< "$OPTIONS"
-        shift
-    done
-    echo "$(declare -p UNUSED_OPTIONS)"
-    echo "set -- $(quote "$@")"
+# $1: module name (used for error reporting only)
+# $2: option family name (string, example:UPLOAD)
+# $3..$n: arguments
+process_module_options() {
+    local -r MODULE=$1
+    local -r OPTIONS=$(get_module_options "$1" "$2" | strip | drop_empty_lines)
+    shift 2
+    process_options "$MODULE" "$OPTIONS" 1 "$@" || return
 }
 
 # Get module list according to capability
@@ -2213,10 +2156,221 @@ stderr() {
     echo "$@" >&2
 }
 
-quote() {
+# This function shell-quotes the argument ($1)
+# Note: Taken from /etc/bash_completion
+quote()
+{
+    echo \'${1//\'/\'\\\'\'}\' #'# Help vim syntax highlighting
+}
+
+# Check argument type
+# $1: program name (used for error reporting only)
+# $2: format (a, e, l, n, N, s, S, V)
+# $3: string
+# $4: option string (used for error reporting only)
+# $?: return 0 for success
+check_argument_type() {
+    local -r NAME=$1
+    local -r TYPE=$2
+    local -r VAL=$3
+    local -r OPT=$4
+    local RET=$ERR_BAD_COMMAND_LINE
+
+    # a: Authentication string (user:password)
+    if [[ "$TYPE" = 'a' && "${VAL#*:}" = "$VAL" ]]; then
+        log_debug "$NAME: missing password for credentials ($OPT)"
+        RET=0
+    # n: Positive integer (>0)
+    elif [[ "$TYPE" = 'n' && "$VAL" -le 0 ]]; then
+        log_error "$NAME: positive integer expected ($OPT)"
+    # N: Positive integer or zero (>=0)
+    elif [[ "$TYPE" = 'N' && ( "$VAL" != [0-9] || "$VAL" = '' ) ]]; then
+        log_error "$NAME: positive or zero integer expected ($OPT)"
+    # s: Non empty string
+    elif [[ "$TYPE" = 's' && "$VAL" = '' ]]; then
+        log_error "$NAME: empty string not expected ($OPT)"
+    # e: E-mail string
+    elif [[ "$TYPE" = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
+        log_error "$NAME: invalid email address ($OPT)"
+    # l: List (comma-separated values)
+    elif [[ "$TYPE" = 'l' && "$VAL" = '' ]]; then
+        log_error "$NAME: comma-separated list expected ($OPT)"
+    # V: special type for verbosity (values={0,1,2,3,4})
+    elif [[ "$TYPE" = 'V' && ( "$VAL" != [0-4] || "$VAL" -lt 0 || "$VAL" -gt 4 ) ]]; then
+       log_error "$NAME: wrong verbose level ($VAL). Should be [0-4]"
+
+    elif [[ "$TYPE" = [lsS] ]]; then
+        RET=0
+    elif [[ "$TYPE" = [aenNV] ]]; then
+        if [ "${VAL:0:1}" = '-' ]; then
+            log_error "$NAME: missing parameter ($OPT)"
+        else
+            RET=0
+        fi
+    else
+        log_error "$NAME: unknown argument type ($TYPE)"
+    fi
+
+    test $RET && echo false
+    return $RET
+}
+
+# Standalone argument parsing (don't use GNU getopt or builtin getopts Bash)
+# $1: program name (used for error reporting only)
+# $2: option list (one per line)
+# $3: step number (-1; 0 or 1)
+# $4..$n: arguments
+# stdout: variable=value (one per line). Content can be eval'ed.
+process_options() {
+    local -r NAME=$1
+    local -r OPTIONS=$2
+    local -r STEP=$3
+
+    local -a RES UNUSED_OPTS UNUSED_ARGS
+    local -a OPTS_VAR_LONG OPTS_NAME_LONG OPTS_TYPE_LONG
+    local -a OPTS_VAR_SHORT OPTS_NAME_SHORT OPTS_TYPE_SHORT
+    local ARG VAR SHORT LONG TYPE HELP SKIP_ARG FOUND
+
+    shift 3
+
+    if [ -z "$OPTIONS" ]; then
+        if [ $STEP -gt 0 ]; then
+            echo "${NAME}_vars_set() { :; }"
+            echo "${NAME}_vars_unset() { :; }"
+        fi
+        return 0
+    fi
+
+    # Populate OPTS_* vars
+    while read ARG; do
+        IFS="," read VAR SHORT LONG TYPE HELP <<< "$ARG"
+        if [ -n "$LONG" ]; then
+            OPTS_VAR_LONG[${#OPTS_VAR_LONG[@]}]=$VAR
+            OPTS_NAME_LONG[${#OPTS_NAME_LONG[@]}]="--$LONG"
+            OPTS_TYPE_LONG[${#OPTS_TYPE_LONG[@]}]=$TYPE
+        fi
+        if [ -n "$SHORT" ]; then
+            OPTS_VAR_SHORT[${#OPTS_VAR_SHORT[@]}]=$VAR
+            OPTS_NAME_SHORT[${#OPTS_NAME_SHORT[@]}]="-$SHORT"
+            OPTS_TYPE_SHORT[${#OPTS_TYPE_SHORT[@]}]=$TYPE
+        fi
+    done <<< "$OPTIONS"
+
     for ARG in "$@"; do
-        echo -n "$(declare -p ARG | sed "s/^declare -- ARG=//") "
-    done | sed "s/ $//"
+        shift
+
+        if [ -n "$SKIP_ARG" ]; then
+            unset SKIP_ARG
+            [ $STEP -eq 0 ] && UNUSED_OPTS[${#UNUSED_OPTS[@]}]="$ARG"
+            continue
+        fi
+
+        if [ "$ARG" = '--' ]; then
+            UNUSED_ARGS=("${UNUSED_ARGS[@]}" "$@")
+            break
+        fi
+
+        unset FOUND
+
+        # Long option
+        if [ "${ARG:0:2}" = '--' ]; then
+            for I in "${!OPTS_NAME_LONG[@]}"; do
+                if [ "${OPTS_NAME_LONG[$I]}" = "${ARG%%=*}" ]; then
+                    # Argument required?
+                    TYPE=${OPTS_TYPE_LONG[$I]}
+
+                    if [ -z "$TYPE" ]; then
+                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=1"
+
+                    # Argument with equal (ex: --timeout=60)
+                    elif [ "${ARG%%=*}" != "$ARG" ]; then
+                        [ $STEP -gt 0 ] || check_argument_type "$NAME" \
+                            "${TYPE%%=*}" "${ARG#*=}" "${ARG%%=*}" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$(quote "${ARG#*=}")"
+                    else
+                        if [ $# -eq 0 ]; then
+                            log_error "$NAME: missing parameter for $ARG"
+                            echo false
+                            return $ERR_BAD_COMMAND_LINE
+                        fi
+
+                        [ $STEP -gt 0 ] || check_argument_type "$NAME" \
+                            "${TYPE%%=*}" "$1" "$ARG" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$(quote "$1")"
+                        SKIP_ARG=1
+                    fi
+
+                    FOUND=1
+                    break
+                fi
+            done
+
+        # Short option
+        elif [ "${ARG:0:1}" = '-' ]; then
+            for I in "${!OPTS_NAME_SHORT[@]}"; do
+                if [ "${OPTS_NAME_SHORT[$I]}" = "${ARG:0:2}" ]; then
+                    # Argument required?
+                    TYPE=${OPTS_TYPE_SHORT[$I]}
+
+                    if [ -z "$TYPE" ]; then
+                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=1"
+
+                    # Argument without whitespace (ex: -v3)
+                    elif [ ${#ARG} -gt 2 ]; then
+                        [ $STEP -gt 0 ] || check_argument_type "$NAME" \
+                            "${TYPE%%=*}" "${ARG:2}" "${ARG:0:2}" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$(quote "${ARG:2}")"
+                    else
+                        if [ $# -eq 0 ]; then
+                            log_error "$NAME: missing parameter for $ARG"
+                            echo false
+                            return $ERR_BAD_COMMAND_LINE
+                        fi
+
+                        [ $STEP -gt 0 ] || check_argument_type "$NAME" \
+                            "${TYPE%%=*}" "$1" "$ARG" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$(quote "$1")"
+                        SKIP_ARG=1
+                    fi
+
+                    FOUND=1
+                    break
+                fi
+            done
+        fi
+
+        if [ $STEP -eq 0 ]; then
+            if [ -z "$FOUND" ]; then
+                if [[ ${ARG:0:1} = '-' ]]; then
+                    log_error "$NAME: unknown command-line option: $ARG"
+                    echo false
+                    return $ERR_BAD_COMMAND_LINE
+                fi
+                UNUSED_ARGS[${#UNUSED_ARGS[@]}]="$ARG"
+            else
+                UNUSED_OPTS[${#UNUSED_OPTS[@]}]="$ARG"
+            fi
+        elif [ -z "$FOUND" ]; then
+            UNUSED_OPTS[${#UNUSED_OPTS[@]}]="$ARG"
+        fi
+    done
+
+    # Declare core options as readonly
+    if [ $STEP -lt 0 ]; then
+        for ARG in "${RES[@]}"; do echo "declare -r $ARG"; done
+
+    # Declare target module options: ${NAME}_vars_set/unset
+    elif [ $STEP -gt 0 ]; then
+        echo "${NAME}_vars_set() { :"
+        for ARG in "${RES[@]}"; do echo "$ARG"; done
+        echo '}'
+        echo "${NAME}_vars_unset() { :"
+        for ARG in "${RES[@]}"; do echo "${ARG%%=*}="; done
+        echo '}'
+    fi
+
+    declare -p UNUSED_ARGS
+    declare -p UNUSED_OPTS
 }
 
 # Delete blank lines
@@ -2467,9 +2621,9 @@ image_delete_imgur() {
 
 # Some debug information
 log_notice_stack() {
-    local N=
+    local N
     for N in "${!FUNCNAME[@]}"; do
-        [ "$N" -le 1 ] && continue
+        [ $N -le 1 ] && continue
         log_notice "failed inside ${FUNCNAME[$N]}(), line ${BASH_LINENO[$((N-1))]}, $(basename_file "${BASH_SOURCE[$N]}")"
         # quit if we go outside core.sh
         match '/core\.sh' "${BASH_SOURCE[$N]}" || break

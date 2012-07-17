@@ -99,8 +99,6 @@ captcha_ayl_process() {
 # $2: dl.free.fr url
 # stdout: real file download link
 dl_free_fr_download() {
-    eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local PAGE FORM_HTML FORM_ACTION FORM_FILE FORM_SUBM SESSID
@@ -169,8 +167,6 @@ dl_free_fr_download() {
 # $3: remote filename
 # stdout: dl.free.fr download + del link
 dl_free_fr_upload() {
-    eval "$(process_options dl_free_fr "$MODULE_DL_FREE_FR_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local UPLOADURL='http://dl.free.fr'

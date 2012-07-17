@@ -25,7 +25,7 @@ MODULE_UPTOBOX_DOWNLOAD_RESUME=yes
 MODULE_UPTOBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_UPTOBOX_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_UPTOBOX_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login
@@ -57,8 +57,6 @@ uptobox_login() {
 # $2: uptobox url
 # stdout: real file download link
 uptobox_download() {
-    eval "$(process_options uptobox "$MODULE_UPTOBOX_DOWNLOAD_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE WAIT_TIME CAPTCHA CODE DIGIT XCOORD FILE_URL
 
@@ -170,8 +168,6 @@ uptobox_download() {
 # $3: remote filename
 # stdout: download link + delete link
 uptobox_upload() {
-    eval "$(process_options uptobox "$MODULE_UPTOBOX_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3

@@ -21,12 +21,12 @@
 MODULE_TURBOBIT_REGEXP_URL="http://\(www\.\)\?turbobit\.net/"
 
 MODULE_TURBOBIT_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_DOWNLOAD_RESUME=yes
 MODULE_TURBOBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_TURBOBIT_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
@@ -66,8 +66,6 @@ is_dead_turbobit(){
 # $2: turbobit url
 # stdout: real file download link
 turbobit_download() {
-    eval "$(process_options turbobit "$MODULE_TURBOBIT_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://turbobit.net'
@@ -263,8 +261,6 @@ turbobit_download() {
 # $3: remote filename
 # stdout: turbobit download link + delete link
 turbobit_upload() {
-    eval "$(process_options turbobit "$MODULE_TURBOBIT_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -321,8 +317,6 @@ turbobit_upload() {
 # $1: cookie file (unused here)
 # $2: delete link
 turbobit_delete() {
-    eval "$(process_options turbobit "$MODULE_TURBOBIT_DELETE_OPTIONS" "$@")"
-
     local PAGE URL
 
     PAGE=$(curl -b 'user_lang=en' "$2") || return

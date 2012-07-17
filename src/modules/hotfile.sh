@@ -21,13 +21,13 @@
 MODULE_HOTFILE_REGEXP_URL="https\?://\(www\.\)\?hotfile\.com/"
 
 MODULE_HOTFILE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
+AUTH,a,auth,a=USER:PASSWORD,User account
 NOMD5,,nomd5,,Disable md5 authentication (use plain text)"
 MODULE_HOTFILE_DOWNLOAD_RESUME=no
 MODULE_HOTFILE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_HOTFILE_UPLOAD_OPTIONS="
-AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)
+AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)
 NOMD5,,nomd5,,Disable md5 authentication (use plain text)"
 MODULE_HOTFILE_UPLOAD_REMOTE_SUPPORT=no
 
@@ -38,8 +38,6 @@ MODULE_HOTFILE_LIST_OPTIONS=""
 # $2: hotfile.com url
 # stdout: real file download link
 hotfile_download() {
-    eval "$(process_options hotfile "$MODULE_HOTFILE_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL="${2}&lang=en"
     local API_URL='http://api.hotfile.com'
@@ -180,8 +178,6 @@ hotfile_download() {
 # $3: remote filename
 # stdout: download_url
 hotfile_upload() {
-    eval "$(process_options hotfile "$MODULE_HOTFILE_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local SERVER URL FILE_SIZE UPID DATA USER PASSWORD PASSWD_FORM

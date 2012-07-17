@@ -21,16 +21,16 @@
 MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?net\(load\|folder\)\.in/"
 
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a,auth,a=USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_DOWNLOAD_RESUME=no
 MODULE_NETLOAD_IN_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_NETLOAD_IN_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,Premium account"
+AUTH,a,auth,a=USER:PASSWORD,Premium account"
 MODULE_NETLOAD_IN_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_NETLOAD_IN_LIST_OPTIONS="
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used for password-protected folder"
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used for password-protected folder"
 
 # Static function. Proceed with login
 # $1: $AUTH argument string
@@ -53,8 +53,6 @@ netload_in_premium_login() {
 # $2: netload.in url
 # stdout: real file download link
 netload_in_download() {
-    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$(echo "$2" | replace 'www.' '')
     local BASE_URL='http://netload.in'
@@ -194,8 +192,6 @@ netload_in_download() {
 # http://api.netload.in/index.php?id=3
 # Note: Password protected archives upload is not managed here.
 netload_in_upload() {
-    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -258,8 +254,6 @@ netload_in_upload() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 netload_in_list() {
-    eval "$(process_options netload_in "$MODULE_NETLOAD_IN_LIST_OPTIONS" "$@")"
-
     local URL=$1
     local PAGE LINKS NAMES
 

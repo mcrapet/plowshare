@@ -21,12 +21,12 @@
 MODULE_EXTABIT_REGEXP_URL="http://\(www\.\)\?extabit\.com/file/"
 
 MODULE_EXTABIT_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,EMAIL:PASSWORD,User account"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_EXTABIT_DOWNLOAD_RESUME=no
 MODULE_EXTABIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_EXTABIT_UPLOAD_OPTIONS="
-AUTH,a:,auth:,EMAIL:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_EXTABIT_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login (free or premium)
@@ -55,8 +55,6 @@ extabit_login() {
 # $2: extabit url
 # stdout: real file download link
 extabit_download() {
-    eval "$(process_options extabit "$MODULE_EXTABIT_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://extabit.com'
@@ -170,8 +168,6 @@ extabit_download() {
 # $3: remote filename
 # stdout: extabit.com download link
 extabit_upload() {
-    eval "$(process_options extabit "$MODULE_EXTABIT_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3

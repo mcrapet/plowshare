@@ -21,15 +21,15 @@
 MODULE_ORON_REGEXP_URL="http://\(www\.\)\?\(oron\)\.com/"
 
 MODULE_ORON_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files"
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_ORON_DOWNLOAD_RESUME=no
 MODULE_ORON_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_ORON_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
 PRIVATE_FILE,,private,,Do not make file visible in folder view (account only)"
 MODULE_ORON_UPLOAD_REMOTE_SUPPORT=yes
 
@@ -100,8 +100,6 @@ oron_extract_file_id() {
 # stdout: real file download link
 #         file name
 oron_download() {
-    eval "$(process_options oron "$MODULE_ORON_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local HTML FILE_ID FILE_URL FILE_NAME METHOD_F METHOD_P
@@ -248,8 +246,6 @@ oron_download() {
 # stdout: download link
 #         delete link
 oron_upload() {
-    eval "$(process_options oron "$MODULE_ORON_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DEST_FILE=$3
@@ -439,8 +435,6 @@ oron_upload() {
 # $1: cookie file
 # $2: kill URL
 oron_delete() {
-    eval "$(process_options oron "$MODULE_ORON_DELETE_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local HTML FILE_ID KILLCODE
@@ -471,8 +465,6 @@ oron_delete() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 oron_list() {
-    eval "$(process_options oron "$MODULE_ORON_LIST_OPTIONS" "$@")"
-
     local URL=$1
     local RET=0
 

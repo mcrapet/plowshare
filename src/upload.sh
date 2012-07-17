@@ -26,16 +26,16 @@ OPTIONS="
 HELP,h,help,,Show help info
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowup version
-VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-MAX_LIMIT_RATE,,max-rate:,SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
-MIN_LIMIT_RATE,,min-rate:,SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
-INTERFACE,i:,interface:,IFACE,Force IFACE network interface
-TIMEOUT,t:,timeout:,SECS,Timeout after SECS seconds of waits
-MAXRETRIES,r:,max-retries:,N,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
-NAME_PREFIX,,name-prefix:,STRING,Prepend argument to each destination filename
-NAME_SUFFIX,,name-suffix:,STRING,Append argument to each destination filename
-PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format (for each upload). Default string is: \"%u (%D)\".
+MAX_LIMIT_RATE,,max-rate,n=SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
+MIN_LIMIT_RATE,,min-rate,n=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
+INTERFACE,i,interface,s=IFACE,Force IFACE network interface
+TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
+MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
+NAME_PREFIX,,name-prefix,s=STRING,Prepend argument to each destination filename
+NAME_SUFFIX,,name-suffix,s=STRING,Append argument to each destination filename
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each upload). Default string is: \"%u (%D)\".
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
@@ -90,7 +90,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS"
-    test -z "$1" || print_module_options "$MODULES" 'UPLOAD'
+    test -z "$1" || print_module_options "$MODULES" UPLOAD
 }
 
 # Check if module name is contained in list
@@ -194,16 +194,15 @@ done
 match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowup' "$OPTIONS"
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
-eval "$(process_options 'plowup' "$OPTIONS$MODULE_OPTIONS" "$@")"
+# Process plowup options
+eval "$(process_core_options1 'plowup' "$OPTIONS" \
+    "$@")" || exit $ERR_BAD_COMMAND_LINE
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
-    VERBOSE=0
-elif [ -n "$VERBOSE" ]; then
-    [ "$VERBOSE" -gt "4" ] && VERBOSE=4
-else
-    VERBOSE=2
+    declare -r VERBOSE=0
+elif [ -z "$VERBOSE" ]; then
+    declare -r VERBOSE=2
 fi
 
 test "$HELPFULL" && { usage 1; exit 0; }
@@ -216,30 +215,12 @@ if [ $# -lt 1 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-if [ $# -eq 1 -a -f "$1" ]; then
-    log_error "plowup: you must specify module name before filename."
-    log_error "plowup: try \`plowup --help' for more information."
-    exit $ERR_BAD_COMMAND_LINE
-fi
-
-# Check requested module
-MODULE=$(module_exist "$MODULES" "$1") || {
-    log_error "plowup: unsupported module ($1)";
-    exit $ERR_NOMODULE;
-}
-
-if [ $# -eq 1 ]; then
-    log_error "plowup: you must specify a filename."
-    log_error "plowup: try \`plowup --help' for more information."
-    exit $ERR_BAD_COMMAND_LINE
-fi
-
 log_report_info
 log_report "plowup version $VERSION"
 
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_module_options 'Plowup' "$MODULE" 'UPLOAD'
+    process_configfile_module_options 'Plowup' "$MODULE" UPLOAD
 
 # Curl minimal rate (--speed-limit) does not support suffixes
 if [ -n "$MIN_LIMIT_RATE" ]; then
@@ -254,8 +235,38 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug "using local ~/.curlrc"
 fi
 
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process module options
+eval "$(process_core_options2 'plowup' "$MODULE_OPTIONS" \
+    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+
+COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
+COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
+
+if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
+    log_error "plowup: no module specified!"
+    log_error "plowup: try \`plowup --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
+
+# Check requested module
+MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
+    log_error "plowup: unsupported module ($1)";
+    exit $ERR_NOMODULE;
+}
+
+if [ ${#COMMAND_LINE_ARGS[@]} -lt 2 ]; then
+    log_error "plowup: you must specify a filename."
+    log_error "plowup: try \`plowup --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
+
 # Remove module name from argument list
-shift 1
+unset COMMAND_LINE_ARGS[0]
 
 set_exit_trap
 
@@ -263,8 +274,7 @@ UCOOKIE=$(create_tempfile) || exit
 URESULT=$(create_tempfile) || exit
 FUNCTION=${MODULE}_upload
 
-RETVALS=()
-for FILE in "$@"; do
+for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
     # Check for remote upload
     if match_remote_url "$FILE"; then
@@ -292,7 +302,7 @@ for FILE in "$@"; do
             continue
         fi
     else
-        # non greedy parsing
+        # Non greedy parsing
         IFS=":" read LOCALFILE DESTFILE <<< "$FILE"
 
         if [ -d "$LOCALFILE" ]; then
@@ -326,11 +336,16 @@ for FILE in "$@"; do
 
     timeout_init $TIMEOUT
 
+    eval "$(process_module_options "$MODULE" UPLOAD \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+
     TRY=0
+    "${MODULE}_vars_set"
+
     while :; do
         :> "$UCOOKIE"
         URETVAL=0
-        $FUNCTION "${UNUSED_OPTIONS[@]}" "$UCOOKIE" "$LOCALFILE" \
+        $FUNCTION "$UCOOKIE" "$LOCALFILE" \
             "$DESTFILE" >"$URESULT" || URETVAL=$?
 
         if [ $URETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
@@ -352,6 +367,8 @@ for FILE in "$@"; do
 
         log_notice "Starting upload ($MODULE): retry $TRY/$MAXRETRIES"
     done
+
+    "${MODULE}_vars_unset"
 
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true
@@ -376,7 +393,7 @@ for FILE in "$@"; do
     elif [ $URETVAL -eq $ERR_BAD_COMMAND_LINE ]; then
         log_error "Wrong module option, check your command line"
     else
-        log_error "failed inside ${FUNCTION}() [$URETVAL]"
+        log_error "Failed inside ${FUNCTION}() [$URETVAL]"
     fi
     RETVALS=(${RETVALS[@]} $URETVAL)
 done

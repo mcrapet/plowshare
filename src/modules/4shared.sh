@@ -21,20 +21,20 @@
 MODULE_4SHARED_REGEXP_URL="https\?://\(www\.\)\?4shared\.com/"
 
 MODULE_4SHARED_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected files
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files
 TORRENT,,torrent,,Get torrent link (instead of direct download link)"
 MODULE_4SHARED_DOWNLOAD_RESUME=yes
 MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_4SHARED_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_4SHARED_LIST_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones
-LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 
 # Static function. Proceed with login (tested on free-membership)
 4shared_login() {
@@ -60,8 +60,6 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
 # $2: 4shared url
 # stdout: real file download link
 4shared_download() {
-    eval "$(process_options 4shared "$MODULE_4SHARED_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='https://www.4shared.com'
@@ -169,8 +167,6 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
 # $3: remote filename
 # stdout: download + del link
 4shared_upload() {
-    eval "$(process_options 4shared "$MODULE_4SHARED_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -252,8 +248,6 @@ LINK_PASSWORD,p:,link-password:,PASSWORD,Used in password-protected folder"
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 4shared_list() {
-    eval "$(process_options 4shared "$MODULE_4SHARED_LIST_OPTIONS" "$@")"
-
     local URL=$(echo "$1" | replace '/folder/' '/dir/')
     local BASE_URL='https://www.4shared.com'
     local COOKIE_FILE RET=0

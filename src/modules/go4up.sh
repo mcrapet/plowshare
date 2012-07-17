@@ -21,14 +21,14 @@
 MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 
 MODULE_GO4UP_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account
-INCLUDE,,include:,LIST,Provide list of host site (space separated)
-COUNT,,count:,COUNT,Take COUNT hosters from the available list. Default is 5.
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account
+INCLUDE,,include,l=LIST,Provide list of host site (space separated)
+COUNT,,count,n=COUNT,Take COUNT hosters from the available list. Default is 5.
 API,,api,,Use public API (recommended)"
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_GO4UP_DELETE_OPTIONS="
-AUTH_FREE,b:,auth-free:,EMAIL:PASSWORD,Free account (mandatory)"
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 
 MODULE_GO4UP_LIST_OPTIONS=""
 
@@ -66,8 +66,6 @@ go4up_login() {
 # $3: remote filename
 # stdout: go4up.com download link
 go4up_upload() {
-    eval "$(process_options go4up "$MODULE_GO4UP_UPLOAD_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -304,8 +302,6 @@ go4up_list() {
 # $1: cookie file
 # $2: file URL
 go4up_delete() {
-    eval "$(process_options go4up "$MODULE_GO4UP_DELETE_OPTIONS" "$@")"
-
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://go4up.com'

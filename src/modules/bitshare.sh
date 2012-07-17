@@ -21,14 +21,14 @@
 MODULE_BITSHARE_REGEXP_URL="http://\(www\.\)\?bitshare\.com/"
 
 MODULE_BITSHARE_DOWNLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_BITSHARE_DOWNLOAD_RESUME=yes
 MODULE_BITSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_BITSHARE_UPLOAD_OPTIONS="
-METHOD,,method:,METHOD,Upload method (openapi or form, default: openapi)
-AUTH,a:,auth:,USER:PASSWORD,User account
-HASHKEY,,hashkey:,HASHKEY,Hashkey used in openapi (override -a/--auth)"
+METHOD,,method,s=METHOD,Upload method (openapi or form, default: openapi)
+AUTH,a,auth,a=USER:PASSWORD,User account
+HASHKEY,,hashkey,s=HASHKEY,Hashkey used in openapi (override -a/--auth)"
 MODULE_BITSHARE_UPLOAD_REMOTE_SUPPORT=yes
 
 # Login to bitshare (HTML form)
@@ -55,8 +55,6 @@ bitshare_login() {
 # $2: bitshare url
 # stdout: real file download link
 bitshare_download() {
-    eval "$(process_options bitshare "$MODULE_BITSHARE_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASE_URL='http://bitshare.com'
@@ -184,8 +182,6 @@ bitshare_download() {
 # $3: remote filename
 # stdout: bitshare download link and delete link
 bitshare_upload() {
-    eval "$(process_options bitshare "$MODULE_BITSHARE_UPLOAD_OPTIONS" "$@")"
-
     if [ -z "$METHOD" -o "$METHOD" = 'openapi' ]; then
         if [ -n "$HASHKEY" ]; then
             [ -z "$AUTH" ] || \

@@ -25,12 +25,12 @@ MODULE_MEGASHARES_DOWNLOAD_RESUME=yes
 MODULE_MEGASHARES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEGASHARES_UPLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account
-CATEGORY,,category:,CATEGORY,Upload category
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+CATEGORY,,category,s=CATEGORY,Upload category
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 PRIVATE_FILE,,private,,Do not make file searchable/public
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_MEGASHARES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEGASHARES_DELETE_OPTIONS=""
@@ -123,8 +123,6 @@ dec_to_base32hex() {
 # $2: megashares.com url
 # stdout: real file download link
 megashares_download() {
-    eval "$(process_options megashares "$MODULE_MEGASHARES_DOWNLOAD_OPTIONS" "$@")"
-
     local URL=$2
     local FID URL PAGE BASEURL QUOTA_LEFT FILE_SIZE FILE_URL FILE_NAME
 
@@ -224,8 +222,6 @@ megashares_download() {
 # $3: remote filename
 # stdout: megashares download + delete link
 megashares_upload() {
-    eval "$(process_options megashares "$MODULE_MEGASHARES_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -369,8 +365,6 @@ megashares_upload() {
 # $1: cookie file (unused here)
 # $2: megashares.com (delete) link
 megashares_delete() {
-    eval "$(process_options megashares "$MODULE_MEGASHARES_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE FORM_HTML FORM_ACTION
 

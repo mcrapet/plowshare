@@ -26,11 +26,11 @@ MODULE_1FICHIER_DOWNLOAD_RESUME=yes
 MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_1FICHIER_UPLOAD_OPTIONS="
-AUTH,a:,auth:,USER:PASSWORD,User account
-LINK_PASSWORD,p:,link-password:,PASSWORD,Protect a link with a password
-MESSAGE,d:,message:,MESSAGE,Set file message (is send with notification email)
-DOMAIN,,domain:,ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
-TOEMAIL,,email-to:,EMAIL,<To> field for notification email"
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+MESSAGE,d,message,S=MESSAGE,Set file message (is send with notification email)
+DOMAIN,,domain,N=ID,You can set domain ID to upload (ID can be found at http://www.1fichier.com/en/api/web.html)
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_1FICHIER_DELETE_OPTIONS=""
@@ -43,8 +43,6 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 # Note: Consecutive HTTP requests must be delayed (>10s).
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
-    eval "$(process_options 1fichier "$MODULE_1FICHIER_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local PAGE FILE_URL FILENAME
@@ -97,8 +95,6 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 # $3: remote filename
 # stdout: download + del link
 1fichier_upload() {
-    eval "$(process_options 1fichier "$MODULE_1FICHIER_UPLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
@@ -146,8 +142,6 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 # $1: cookie file (unused here)
 # $2: delete url
 1fichier_delete() {
-    eval "$(process_options 1fichier "$MODULE_1FICHIER_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE
 

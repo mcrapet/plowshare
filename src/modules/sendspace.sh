@@ -25,7 +25,7 @@ MODULE_SENDSPACE_DOWNLOAD_RESUME=yes
 MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_SENDSPACE_UPLOAD_OPTIONS="
-DESCRIPTION,d:,description:,DESCRIPTION,Set file description"
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_SENDSPACE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_SENDSPACE_DELETE_OPTIONS=""
@@ -67,8 +67,6 @@ sendspace_download() {
 # $3: remote filename
 # stdout: sendspace.com download + delete link
 sendspace_upload() {
-    eval "$(process_options sendspace "$MODULE_SENDSPACE_UPLOAD_OPTIONS" "$@")"
-
     local FILE=$2
     local DESTFILE=$3
     local DATA DL_LINK DEL_LINK
@@ -137,8 +135,6 @@ sendspace_upload() {
 # $1: cookie file (unused here)
 # $2: delete link
 sendspace_delete() {
-    eval "$(process_options sendspace "$MODULE_SENDSPACE_DELETE_OPTIONS" "$@")"
-
     local URL=$2
     local PAGE FORM_HTML FORM_URL FORM_SUBMIT
 
@@ -169,8 +165,6 @@ sendspace_delete() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links (file and/or folder)
 sendspace_list() {
-    eval "$(process_options sendspace "$MODULE_SENDSPACE_LIST_OPTIONS" "$@")"
-
     local URL=$1
     local PAGE LINKS NAMES
 

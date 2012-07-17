@@ -22,7 +22,7 @@
 MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
 
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
-AUTH_FREE,b:,auth-free:,USER:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_EUROSHARE_EU_DOWNLOAD_RESUME=no
 MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
@@ -31,8 +31,6 @@ MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # $2: euroshare.eu url
 # stdout: real file download link
 euroshare_eu_download() {
-    eval "$(process_options euroshare_eu "$MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS" "$@")"
-
     local COOKIEFILE=$1
     local URL=$2
     local BASEURL=$(basename_url "$URL")

@@ -25,11 +25,11 @@ VERSION="GIT-snapshot"
 OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowlist version
-VERBOSE,v:,verbose:,LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-INTERFACE,i:,interface:,IFACE,Force IFACE network interface
+INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
-PRINTF_FORMAT,,printf:,FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\".
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\".
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
@@ -69,7 +69,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS"
-    print_module_options "$MODULES" 'LIST'
+    print_module_options "$MODULES" LIST
 }
 
 # Plowlist printf format
@@ -161,16 +161,15 @@ done
 match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowlist' "$OPTIONS"
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
-eval "$(process_options 'plowlist' "$OPTIONS$MODULE_OPTIONS" "$@")"
+# Process plowup options
+eval "$(process_core_options1 'plowlist' "$OPTIONS" \
+    "$@")" || exit $ERR_BAD_COMMAND_LINE
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
-    VERBOSE=0
-elif [ -n "$VERBOSE" ]; then
-    [ "$VERBOSE" -gt "4" ] && VERBOSE=4
-else
-    VERBOSE=2
+    declare -r VERBOSE=0
+elif [ -z "$VERBOSE" ]; then
+    declare -r VERBOSE=2
 fi
 
 test "$HELP" && { usage; exit 0; }
@@ -189,15 +188,33 @@ fi
 # Print chosen options
 [ -n "$RECURSE" ] && log_debug "plowlist: --recursive selected"
 
+if [ $# -lt 1 ]; then
+    log_error "plowlist: no folder URL specified!"
+    log_error "plowlist: try \`plowlist --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
+
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process module options
+eval "$(process_core_options2 'plowlist' "$MODULE_OPTIONS" \
+    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+
+COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
+COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
+
+if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
+    log_error "plowlist: no folder URL specified!"
+    log_error "plowlist: try \`plowlist --help' for more information."
+    exit $ERR_BAD_COMMAND_LINE
+fi
+
 set_exit_trap
 
-RETVALS=()
-for URL in "$@"; do
-
-    if [ -z "$URL" ]; then
-        log_debug "empty argument, skipping"
-        continue
-    fi
+for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     MODULE=$(get_module "$URL" "$MODULES")
     if test -z "$MODULE"; then
@@ -208,14 +225,20 @@ for URL in "$@"; do
 
     # Get configuration file module options
     test -z "$NO_PLOWSHARERC" && \
-        process_configfile_module_options 'Plowlist' "$MODULE" 'LIST'
+        process_configfile_module_options 'Plowlist' "$MODULE" LIST
+
+    eval "$(process_module_options "$MODULE" LIST \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
 
     LRETVAL=0
+
+    "${MODULE}_vars_set"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
         pretty_print "${PRINTF_FORMAT:-%F%u}" "$MODULE" || LRETVAL=$?
+    "${MODULE}_vars_unset"
 
     if [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error "Non existing or empty folder"
@@ -225,6 +248,8 @@ for URL in "$@"; do
         log_error "You must provide a valid password"
     elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
         log_error "Links are temporarily unavailable. Maybe uploads are still beeing processed"
+    else
+        log_error "Failed inside ${FUNCTION}() [$LRETVAL]"
     fi
     RETVALS=(${RETVALS[@]} $LRETVAL)
 done
