@@ -24,6 +24,21 @@ MODULE_BADONGO_DOWNLOAD_OPTIONS=""
 MODULE_BADONGO_DOWNLOAD_RESUME=no
 MODULE_BADONGO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_BADONGO_UPLOAD_OPTIONS="
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
+MODULE_BADONGO_UPLOAD_REMOTE_SUPPORT=no
+
+# Decode 'escaped' javascript code
+# $1: HTML data
+# $2: nth element to grep (index start at 1)
+unescape_javascript() {
+    local CODE=$(echo "$1" | grep '^eval((' | nth_line $2)
+    (echo 'decodeURIComponent = function(x) { print(x); return x; }' && \
+        echo 'var Event = { observe: function(a,b,c) {} };' && \
+        echo 'var window = { beginDownload: function(isClick) {}, setTimeout: function(code,delay) {} };' && \
+        echo "$CODE") | javascript
+}
+
 # Output a file URL to download from Badongo
 # $1: cookie file
 # $2: badongo url
@@ -167,13 +182,43 @@ badongo_download() {
     echo "$FILE_URL"
 }
 
-# Decode 'escaped' javascript code
-# $1: HTML data
-# $2: nth element to grep (index start at 1)
-unescape_javascript() {
-    local CODE=$(echo "$1" | grep '^eval((' | nth_line $2)
-    (echo 'decodeURIComponent = function(x) { print(x); return x; }' && \
-        echo 'var Event = { observe: function(a,b,c) {} };' && \
-        echo 'var window = { beginDownload: function(isClick) {}, setTimeout: function(code,delay) {} };' && \
-        echo "$CODE") | javascript
+# Upload a file to Badongo
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download link
+#         delete link
+badongo_upload() {
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://upload.badongo.com'
+
+    local PAGE SESS_I DESCR
+
+    PAGE=$(curl "$BASE_URL/single_front/?cou=en") || return
+
+    # Parse session ID
+    SESS_ID=$(echo "$PAGE" | parse 'PHPSESSID' ', "\([0-9a-f]\+\)");') || return
+
+    test "$DESCRIPTION" && DESCR=$(echo "$DESCRIPTION" | uri_encode_strict)
+
+    # Note: This request requires both POST and query parameters and curl does
+    #       not support simultanous use of -F and -d so we get one long URL :-(
+    PAGE=$(curl_with_log --user-agent 'Shockwave Flash' \
+        -F "Filename=$DEST_FILE" \
+        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        -F 'Upload=Submit Query' \
+        "$BASE_URL/mpu_upload_single.php?UL_ID=undefined&UPLOAD_IDENTIFIER=undefined&page=upload_s&s=&cou=en&PHPSESSID=$SESS_ID&desc=$DESCR") || return
+
+    [ -n "$PAGE" ] || return $ERR_FATAL
+
+    # Retrieve links
+    PAGE=$(curl_with_log -d 'page=upload_s_f' -d "PHPSESSID=$SESS_ID" \
+        -d 'url=undefined' -d 'url_kill=undefined' -d 'affliate=' \
+        "$BASE_URL/upload_complete.php")
+
+    # Extract + output links
+    echo "$PAGE" | parse 'http' '&url=\([^&]\+\)' | uri_decode || return
+    echo "$PAGE" | parse 'http' '&url_kill=\([^&]\+\)' | uri_decode || return
 }
