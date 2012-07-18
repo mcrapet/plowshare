@@ -34,6 +34,8 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_CRAMIT_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_CRAMIT_DELETE_OPTIONS=""
+
 MODULE_CRAMIT_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
@@ -321,4 +323,35 @@ cramit_list_rec() {
     fi
 
     return $RET
+}
+
+# Delete a file from Cramit
+# $1: cookie file
+# $2: cramit (delete) link
+cramit_delete() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://cramit.in/'
+    local PAGE FILE_ID DEL_ID
+
+    FILE_ID=$(echo "$URL" | parse . 'cramit\.in/\(.\+\)?kill') || return
+    DEL_ID=$(echo "$URL" | parse . '?killcode=\(.\+\)$') || return
+
+    log_debug "FILE_ID: '$FILE_ID'"
+    log_debug "Del_ID: '$DEL_ID'"
+
+    PAGE=$(curl "$URL") || return
+
+    if match 'Do you want to delete file' "$PAGE"; then
+        PAGE=$(curl -d 'op=del_file' -d "id=$FILE_ID" -d "del_id=$DEL_ID" \
+        -d 'confirm=yes' "$BASE_URL") || return
+
+        match 'File deleted successfully' "$PAGE" && return 0
+
+    elif match 'No such file exist' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }

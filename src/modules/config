@@ -6,7 +6,7 @@
 badongo      | download | upload | delete |      |
 bayfiles     | download | upload | delete |      |
 bitshare     | download | upload |        |      |
-cramit       | download | upload |        | list |
+cramit       | download | upload | delete | list |
 data_hu      | download |        |        |      |
 dataport_cz  | download | upload | delete |      |
 depositfiles | download | upload | delete | list |
