@@ -3,7 +3,7 @@
 1fichier     | download | upload | delete |      |
 2shared      | download | upload | delete |      |
 4shared      | download | upload |        | list |
-badongo      | download | upload |        |      |
+badongo      | download | upload | delete |      |
 bayfiles     | download | upload | delete |      |
 bitshare     | download | upload |        |      |
 cramit       | download | upload |        | list |

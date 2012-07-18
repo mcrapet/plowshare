@@ -28,6 +28,8 @@ MODULE_BADONGO_UPLOAD_OPTIONS="
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_BADONGO_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_BADONGO_DELETE_OPTIONS=""
+
 # Decode 'escaped' javascript code
 # $1: HTML data
 # $2: nth element to grep (index start at 1)
@@ -158,7 +160,7 @@ badongo_download() {
     GLF_H=$(echo "$JSCODE" | parse "'h'" "[[:space:]]'\([^']*\)" | replace '!' '%21') || return
     GLF_T=$(echo "$JSCODE" | parse "'t'" "[[:space:]]'\([^']*\)" | replace '!' '%21') || return
 
-    JSCODE=$(curl --get -b "_gflCur=0" -b "$COOKIE_FILE" \
+    JSCODE=$(curl --get -b '_gflCur=0' -b "$COOKIE_FILE" \
         -d 'rs=getFileLink' -d 'rst=' -d "rsrnd=$MTIME" \
         -d "rsargs[]=0&rsargs[]=yellow&rsargs[]=${GLF_Z}&rsargs[]=${GLF_H}&rsargs[]=${GLF_T}&rsargs[]=${FILETYPE}&rsargs[]=${FILEID}&rsargs[]=" \
         --referer "$ACTION" "$ACTION" | break_html_lines) || return
@@ -168,7 +170,7 @@ badongo_download() {
     # Example: http://www.badongo.com/fd/0294088241036178/CCI9368696599696972/0/I!18b47cc7!9ccbab6f6695639867936a6d9969?zenc=
     FILE_URL="${LINK_PART1}${LINK_PART2}?zenc="
 
-    PAGE=$(curl -b "_gflCur=0" -b "$COOKIE_FILE" --referer "$ACTION" \
+    PAGE=$(curl -b '_gflCur=0' -b "$COOKIE_FILE" --referer "$ACTION" \
         "$FILE_URL") || return
     JSCODE=$(unescape_javascript "$PAGE" 5)
 
@@ -221,4 +223,14 @@ badongo_upload() {
     # Extract + output links
     echo "$PAGE" | parse 'http' '&url=\([^&]\+\)' | uri_decode || return
     echo "$PAGE" | parse 'http' '&url_kill=\([^&]\+\)' | uri_decode || return
+}
+
+# Delete a file from Badongo
+# $1: cookie file
+# $2: badongo (delete) link
+badongo_delete() {
+    local PAGE
+
+    PAGE=$(curl -b 'badongoL=en' "$2") || return
+    match '<h3>File delete</h3>' "$PAGE" || return $ERR_FATAL
 }
