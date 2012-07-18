@@ -31,6 +31,8 @@ AUTH,a,auth,a=USER:PASSWORD,User account
 HASHKEY,,hashkey,s=HASHKEY,Hashkey used in openapi (override -a/--auth)"
 MODULE_BITSHARE_UPLOAD_REMOTE_SUPPORT=yes
 
+MODULE_BITSHARE_DELETE_OPTIONS=""
+
 # Login to bitshare (HTML form)
 # $1: authentication
 # $2: cookie file
@@ -413,4 +415,27 @@ bitshare_upload_form() {
 
     echo "$DOWNLOAD_URL"
     echo "$DELETE_URL"
+}
+
+# Delete a file from Bitshare
+# $1: cookie file (unused here)
+# $2: bitshare (delete) link
+bitshare_delete() {
+    local -r URL=$2
+    local PAGE
+
+    PAGE=$(curl -b 'language_selection=EN' "$URL") || return
+    match '<p class="error">Wrong Link</p>' "$PAGE" && return $ERR_LINK_DEAD
+
+    # Note: Page tries to show captcha. It's broken, but deletion works anyway.
+    if match '<h1>Delete File?</h1>' "$PAGE"; then
+        PAGE=$(curl -d 'sum' -d 'submit=Delete' "$URL") || return
+
+        if match '<p class="success">File deleted!</p>' "$PAGE"; then
+            return 0
+        fi
+    fi
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }
