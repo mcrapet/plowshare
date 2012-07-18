@@ -811,7 +811,7 @@ html_to_utf8() {
 # - Unsafe characters (RFC2396) should not be percent-encoded anymore: <>{}|\^`
 #
 # stdin: data (example: relative URL)
-# stdout: data (should complain RFC3986)
+# stdout: data (should be compliant with RFC3986)
 uri_encode_strict() {
     sed -e 's/\%/%25/g' -e 's/ /%20/g' \
         -e 's/!/%21/g' -e 's/*/%2A/g' -e 's/'\''/%27/g' \
@@ -830,20 +830,21 @@ uri_encode_strict() {
 # curl doesn't do any checks, whereas wget convert provided url.
 #
 # stdin: data (example: absolute URL)
-# stdout: data (nearly complain RFC3986)
+# stdout: data (nearly compliant with RFC3986)
 uri_encode() {
     sed -e 's/ /%20/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
 }
 
 # Decode a complete url.
-# - check for space character and round/squares brackets
-# - reserved characters: only coma is checked
+# - Reserved characters (9): ():&=+,/[]
+# - Check for space character
 #
 # stdin: data (example: absolute URL)
-# stdout: data (nearly complain RFC3986)
+# stdout: data (nearly compliant with RFC3986)
 uri_decode() {
     sed -e 's/%20/ /g' -e 's/%26/\&/g' -e 's/%2C/,/g' -e 's/%28/(/g' \
-        -e 's/%29/)/g' -e 's/%2B/+/g' -e 's/%3D/=/g' -e 's/%5B/\[/g' -e 's/%5D/\]/g'
+        -e 's/%29/)/g' -e 's/%2B/+/g' -e 's/%3D/=/g' -e 's/%5B/\[/g' \
+        -e 's/%5D/\]/g' -e 's/%3A/:/g' -e 's|%2F|/|g'
 }
 
 # Retrieves size of file
@@ -1805,7 +1806,7 @@ list_submit() {
     if test "$2"; then
         local -a LINKS NAMES
 
-        # Note: Bash 4 has 'mapfile' builtin
+        # Note: Bash 4 has 'mapfile' builtin
         I=0
         while IFS= read -r LINE; do LINKS[I++]=$LINE; done <<< "$1"
         I=0
