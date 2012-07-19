@@ -240,14 +240,16 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
         pretty_print "${PRINTF_FORMAT:-%F%u}" "$MODULE" || LRETVAL=$?
     "${MODULE}_vars_unset"
 
-    if [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
+    if [ $LRETVAL -eq 0 ]; then
+        : # everything went fine
+    elif [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error "Non existing or empty folder"
         [ -z "$RECURSE" ] && \
             log_notice "Try adding -R/--recursive option to look into sub folders"
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error "You must provide a valid password"
     elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
-        log_error "Links are temporarily unavailable. Maybe uploads are still beeing processed"
+        log_error "Links are temporarily unavailable. Maybe uploads are still being processed"
     else
         log_error "Failed inside ${FUNCTION}() [$LRETVAL]"
     fi
