@@ -195,8 +195,7 @@ badongo_upload() {
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://upload.badongo.com'
-
-    local PAGE SESS_I DESCR
+    local PAGE SESS_ID DESCR
 
     PAGE=$(curl "$BASE_URL/single_front/?cou=en") || return
 
