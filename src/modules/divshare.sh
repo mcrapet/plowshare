@@ -31,6 +31,9 @@ FOLDER,,folder,s=FOLDER,Folder to upload files into
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_DIVSHARE_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_DIVSHARE_DELETE_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+
 
 # Static function. Proceed with login
 # $1: authentication
@@ -250,4 +253,40 @@ divshare_upload() {
     # Output link and delete link (which is actually the same)
     echo "$LINK"
     echo "$LINK"
+}
+
+# Delete a file from DivShare
+# $1: cookie file
+# $2: divshare (download) link
+divshare_delete() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://www.divshare.com'
+    local -r FILE_GONE_MSG="Sorry, we couldn't find this file"
+    local PAGE FILE_ID
+
+    test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
+    divshare_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+
+    # Check if file exists
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+    match "$FILE_GONE_MSG" "$PAGE" && return $ERR_LINK_DEAD
+
+    FILE_ID=$(divshare_extract_file_id "$URL") || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" -d "files%5B%5D=$FILE_ID" -d 'folders%5B%5D=' \
+        "$BASE_URL/scripts/v3/ajax/dash/delete.php") || return
+
+    # We expect an empty reply
+    if [ -n "$PAGE" ]; then
+        log_error 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    # Check if the file is gone
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+    if ! match "$FILE_GONE_MSG" "$PAGE"; then
+        log_error 'Could not delete file.'
+        return $ERR_FATAL
+    fi
 }
