@@ -343,10 +343,7 @@ divshare_list() {
         fi
     fi
 
-    # Add prefix to each line (FIXME: should find a better solution)
-    LINKS=$(sed -e "s=^=$PREFIX=" <<< "$LINKS")
-
-    list_submit "$LINKS" "$NAMES" && RET=0
+    list_submit "$LINKS" "$NAMES" "$PREFIX" && RET=0
 
     # Are there any subfolders?
     if [ -n "$REC" ] && match '/icons/\(folder\|gallery\)' "$LINK_DIVS"; then

@@ -290,8 +290,5 @@ uploaded_to_list() {
 
     test "$LINKS" || return $ERR_LINK_DEAD
 
-    # Add prefix to each line (FIXME: should find a better solution)
-    LINKS=$(sed -e 's=^=http://uploaded.to/file/=' <<< "$LINKS")
-
-    list_submit "$LINKS" "$NAMES" || return
+    list_submit "$LINKS" "$NAMES" 'http://uploaded.to/file/' || return
 }

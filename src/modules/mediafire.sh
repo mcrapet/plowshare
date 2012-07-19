@@ -264,8 +264,5 @@ mediafire_list() {
     NAMES=$(echo "$DATA" | parse_all_tag filename)
     LINKS=$(echo "$DATA" | parse_all_tag quickkey)
 
-    # Add prefix to each line (FIXME: should find a better solution)
-    LINKS=$(sed -e 's=^=http://www.mediafire.com/\?=' <<< "$LINKS")
-
-    list_submit "$LINKS" "$NAMES" || return
+    list_submit "$LINKS" "$NAMES" 'http://www.mediafire.com/?' || return
 }

@@ -1795,8 +1795,9 @@ split_auth() {
 
 # Report list results. Only used by list module functions.
 #
-# $1: links list (one url per line).
+# $1: links list (one url per line)
 # $2: (optional) name list (one filename per line)
+# $3: (optional) link prefix (gets prepended to every link)
 # $?: 0 for success or $ERR_LINK_DEAD
 list_submit() {
     local LINE I
@@ -1813,7 +1814,7 @@ list_submit() {
         while IFS= read -r LINE; do NAMES[I++]=$LINE; done <<< "$2"
 
         for I in "${!LINKS[@]}"; do
-            echo "${LINKS[$I]}"
+            echo "$3${LINKS[$I]}"
             echo "${NAMES[$I]}"
         done
     else
