@@ -162,7 +162,7 @@ match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowlist' "$OPTIONS"
 
 # Process plowup options
-eval "$(process_core_options1 'plowlist' "$OPTIONS" \
+eval "$(process_core_options 'plowlist' "$OPTIONS" \
     "$@")" || exit $ERR_BAD_COMMAND_LINE
 
 # Verify verbose level
@@ -199,8 +199,8 @@ declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
 COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
-# Process module options
-eval "$(process_core_options2 'plowlist' "$MODULE_OPTIONS" \
+# Process modules options
+eval "$(process_all_modules_options 'plowlist' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
 
 COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")

@@ -1903,16 +1903,13 @@ print_module_options() {
     done <<< "$1"
 }
 
-# Get all modules options with specified family name.
-# Note: All lines are prefix with "!" character.
+# Get all modules options with specified family name
 #
 # $1: module name list (one per line)
 # $2: option family name (string, example:UPLOAD)
 get_all_modules_options() {
     while read MODULE; do
-        get_module_options "$MODULE" "$2" | while read OPTION; do
-            if test "$OPTION"; then echo "!$OPTION"; fi
-        done
+        get_module_options "$MODULE" "$2"
     done <<< "$1"
 }
 
@@ -1934,9 +1931,9 @@ get_module() {
 # $1: program name (used for error reporting only)
 # $2: core option list (one per line)
 # $3..$n: arguments
-process_core_options1() {
+process_core_options() {
     local -r NAME=$1
-    local -r OPTIONS=$(echo "$2" | strip | drop_empty_lines)
+    local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
     shift 2
     VERBOSE=1 process_options "$NAME" "$OPTIONS" -1 "$@" || return
 }
@@ -1944,9 +1941,9 @@ process_core_options1() {
 # $1: program name (used for error reporting only)
 # $2: all modules option list (one per line)
 # $3..$n: arguments
-process_core_options2() {
+process_all_modules_options() {
     local -r NAME=$1
-    local -r OPTIONS=$(echo "$2" | strip | drop_empty_lines)
+    local -r OPTIONS=$2
     shift 2
     process_options "$NAME" "$OPTIONS" 0 "$@" || return
 }
@@ -1956,7 +1953,7 @@ process_core_options2() {
 # $3..$n: arguments
 process_module_options() {
     local -r MODULE=$1
-    local -r OPTIONS=$(get_module_options "$1" "$2" | strip | drop_empty_lines)
+    local -r OPTIONS=$(get_module_options "$1" "$2")
     shift 2
     process_options "$MODULE" "$OPTIONS" 1 "$@" || return
 }
@@ -1990,7 +1987,7 @@ process_configfile_options() {
     test -f "$CONFIG" || return 0
 
     # Strip spaces in options
-    OPTIONS=$(echo "$2" | strip | drop_empty_lines)
+    OPTIONS=$(strip_and_drop_empty_lines "$2")
 
     SECTION=$(sed -ne "/\[$1\]/,/^\[/p" -ne "/\[General\]/,/^\[/p" "$CONFIG" | \
               sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
@@ -2040,8 +2037,7 @@ process_configfile_module_options() {
 
     log_report "use $CONFIG"
 
-    # Strip spaces in options
-    OPTIONS=$(get_module_options "$2" "$3" | strip | drop_empty_lines)
+    OPTIONS=$(get_module_options "$2" "$3")
 
     SECTION=$(sed -ne "/\[$1\]/,/^\[/p" -ne "/\[General\]/,/^\[/p" "$CONFIG" | \
               sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
@@ -2370,11 +2366,11 @@ process_options() {
     declare -p UNUSED_OPTS
 }
 
-# Delete blank lines
+# Delete leading and trailing whitespace & blank lines
 # stdin: input (multiline) string
 # stdout: result string
-drop_empty_lines() {
-    sed -e '/^[[:space:]]*$/d'
+strip_and_drop_empty_lines() {
+    sed -e '/^[[:space:]]*$/d; s/^[[:space:]]*//; s/[[:space:]]*$//' <<< "$1"
 }
 
 # Look for a configuration module variable
@@ -2384,7 +2380,7 @@ drop_empty_lines() {
 # stdout: options list (one per line)
 get_module_options() {
     local VAR="MODULE_$(uppercase "$1")_${2}_OPTIONS"
-    echo "${!VAR}"
+    strip_and_drop_empty_lines "${!VAR}"
 }
 
 # Example: 12345 => "3h25m45s"
