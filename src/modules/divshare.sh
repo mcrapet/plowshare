@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare\.com/download"
+MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare\.com/"
 
 MODULE_DIVSHARE_DOWNLOAD_OPTIONS=""
 MODULE_DIVSHARE_DOWNLOAD_RESUME=no
@@ -34,6 +34,8 @@ MODULE_DIVSHARE_UPLOAD_REMOTE_SUPPORT=no
 MODULE_DIVSHARE_DELETE_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 
+MODULE_DIVSHARE_LIST_OPTIONS="
+DIRECT,,direct,,Output direct (HTTP) links for images in a gallery"
 
 # Static function. Proceed with login
 # $1: authentication
@@ -289,4 +291,75 @@ divshare_delete() {
         log_error 'Could not delete file.'
         return $ERR_FATAL
     fi
+}
+
+# List a DivShare web folder URL
+# $1: divshare URL
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links and file names (alternating)
+divshare_list() {
+    local -r URL=$1
+    local -r REC=$2
+    local -r BASE_URL='http://www.divshare.com'
+    local RET=$ERR_LINK_DEAD
+    local PREFIX="$BASE_URL"
+    local PAGE LINK_DIVS LINKS NAMES
+
+    if ! match "$BASE_URL/\(folder\|gallery\)/" "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    # Note: Galleries redirect to slideshow of first contained image
+    PAGE=$(curl -i "$URL") || return
+
+    # Extract all the DIV tags which hold the file links (all in one line)
+    # Note: parse_all_tag doesn't work here because </div> is on a new line
+    LINK_DIVS=$(echo "$PAGE" | break_html_lines | \
+        parse_all_quiet 'class="folder_file_list"' '^\(.*\)$')
+
+    if match 'folder' "$URL"; then
+        # Normal folder - extract individual links and file names
+        LINKS=$(echo "$LINK_DIVS" | parse_all_attr '/icons/files' 'href') || return
+        NAMES=$(echo "$LINK_DIVS" | parse_all_attr '/icons/files' 'title' | \
+            uri_decode) || return
+
+    else
+        # Gallery - get all pictures (has no file names)
+        local SHOW_URL SHOW_ID
+
+        SHOW_URL=$(echo "$PAGE" | grep_http_header_location) || return
+        SHOW_ID=${SHOW_URL##*/}
+        PAGE=$(curl "$BASE_URL/embed/slideshow/$SHOW_ID") || return
+
+        # extract just the IDs of all images so we can make up correct links
+        LINKS=$(echo "$PAGE" | parse_all 'img' \
+            'src=.*/\([[:digit:]]\{8\}-[[:alnum:]]\{3\}\)" ') || return
+
+        if [ -n "$DIRECT" ]; then
+            PREFIX="$BASE_URL/img/"
+        else
+            PREFIX="$BASE_URL/download/"
+        fi
+    fi
+
+    # Add prefix to each line (FIXME: should find a better solution)
+    LINKS=$(sed -e "s=^=$PREFIX=" <<< "$LINKS")
+
+    list_submit "$LINKS" "$NAMES" && RET=0
+
+    # Are there any subfolders?
+    if [ -n "$REC" ] && match '/icons/\(folder\|gallery\)' "$LINK_DIVS"; then
+        local FOLDERS FOLDER
+
+        FOLDERS=$(echo "$LINK_DIVS" | \
+            parse_all_attr '/icons/\(folder\|gallery\)' 'href') || return
+
+        while read FOLDER; do
+            log_debug "entering sub folder: $BASE_URL$FOLDER"
+            divshare_list "$BASE_URL$FOLDER" "$REC" && RET=0
+        done <<< "$FOLDERS"
+    fi
+
+    return $RET
 }

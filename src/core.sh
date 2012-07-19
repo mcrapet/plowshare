@@ -1819,7 +1819,7 @@ list_submit() {
     else
         while IFS= read -r LINE; do
             test "$LINE" || continue
-            echo "$LINE"
+            echo "$3$LINE"
             echo
         done <<< "$1"
     fi
