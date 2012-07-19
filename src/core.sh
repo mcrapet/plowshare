@@ -71,7 +71,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # $1: filename
 logcat_report() {
     if test -s "$1"; then
-        test $(verbose_level) -ge 4 && \
+        test $VERBOSE -ge 4 && \
             stderr "$(sed -e 's/^/rep:/' "$1")"
     fi
     return 0
@@ -79,23 +79,23 @@ logcat_report() {
 
 # This should not be called within modules
 log_report() {
-    test $(verbose_level) -ge 4 && stderr "rep: $@"
+    test $VERBOSE -ge 4 && stderr "rep: $@"
     return 0
 }
 
 log_debug() {
-    test $(verbose_level) -ge 3 && stderr "dbg: $@"
+    test $VERBOSE -ge 3 && stderr "dbg: $@"
     return 0
 }
 
 # This should not be called within modules
 log_notice() {
-    test $(verbose_level) -ge 2 && stderr "$@"
+    test $VERBOSE -ge 2 && stderr "$@"
     return 0
 }
 
 log_error() {
-    test $(verbose_level) -ge 1 && stderr "$@"
+    test $VERBOSE -ge 1 && stderr "$@"
     return 0
 }
 
@@ -131,9 +131,9 @@ curl() {
 
     # No verbose unless debug level; don't show progress meter for report level too
     if [ "${FUNCNAME[1]}" = 'curl_with_log' ]; then
-        test $(verbose_level) -eq 0 && OPTIONS[${#OPTIONS[@]}]='--silent'
+        test $VERBOSE -eq 0 && OPTIONS[${#OPTIONS[@]}]='--silent'
     else
-        test $(verbose_level) -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
+        test $VERBOSE -ne 3 && OPTIONS[${#OPTIONS[@]}]='--silent'
     fi
 
     if test -n "$INTERFACE"; then
@@ -151,7 +151,7 @@ curl() {
         OPTIONS[${#OPTIONS[@]}]=$MIN_LIMIT_RATE
     fi
 
-    if test $(verbose_level) -lt 4; then
+    if test $VERBOSE -lt 4; then
         "$CURL_PRG" "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
@@ -2080,7 +2080,7 @@ process_configfile_module_options() {
 log_report_info() {
     local G
 
-    if test $(verbose_level) -ge 4; then
+    if test $VERBOSE -ge 4; then
         log_report '=== SYSTEM INFO BEGIN ==='
         log_report "[mach] $(uname -a)"
         log_report "[bash] $BASH_VERSION"
@@ -2148,10 +2148,6 @@ captcha_method_translate() {
 ## Private ('static') functions
 ## Can be called from this script only.
 ##
-
-verbose_level() {
-    echo ${VERBOSE:-0}
-}
 
 stderr() {
     echo "$@" >&2
