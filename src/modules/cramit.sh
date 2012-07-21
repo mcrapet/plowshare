@@ -344,7 +344,7 @@ cramit_delete() {
 
     if match 'Do you want to delete file' "$PAGE"; then
         PAGE=$(curl -d 'op=del_file' -d "id=$FILE_ID" -d "del_id=$DEL_ID" \
-        -d 'confirm=yes' "$BASE_URL") || return
+            -d 'confirm=yes' "$BASE_URL") || return
 
         match 'File deleted successfully' "$PAGE" && return 0
 
