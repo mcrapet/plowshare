@@ -113,12 +113,12 @@ divshare_extract_file_id() {
 # $2: divshare url
 # stdout: real file download link
 divshare_download() {
-    local COOKIEFILE=$1
-    local URL=$2
-    local BASE_URL='http://www.divshare.com'
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://www.divshare.com'
     local PAGE REDIR_URL WAIT_PAGE WAIT_TIME FILE_URL FILENAME
 
-    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
 
     if match '<div id="fileInfoHeader">File Information</div>'; then
         return $ERR_LINK_DEAD
@@ -133,14 +133,14 @@ divshare_download() {
     }
 
     if ! match_remote_url "$REDIR_URL"; then
-        WAIT_PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL")
+        WAIT_PAGE=$(curl -b "$COOKIE_FILE" "${BASE_URL}$REDIR_URL") || return
         WAIT_TIME=$(echo "$WAIT_PAGE" | parse_quiet 'http-equiv="refresh"' 'content="\([^;]*\)')
-        REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)')
+        REDIR_URL=$(echo "$WAIT_PAGE" | parse 'http-equiv="refresh"' 'url=\([^"]*\)') || return
 
         # Usual wait time is 15 seconds
-        wait $((WAIT_TIME)) seconds || return
+        wait $((WAIT_TIME)) || return
 
-        PAGE=$(curl -b "$COOKIEFILE" "${BASE_URL}$REDIR_URL") || return
+        PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL$REDIR_URL") || return
     fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr 'btn_download_new' 'href') || return
