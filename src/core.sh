@@ -1622,12 +1622,13 @@ captcha_nack() {
 
             log_debug "DeathByCaptcha report nack ($USERNAME)"
 
-            RESPONSE=$(curl \
-                -F "username=$USERNAME" \
-                -F "password=$PASSWORD" \
+            RESPONSE=$(curl -F "username=$USERNAME" -F "password=$PASSWORD" \
+                --header 'Accept: application/json' \
                 "http://api.dbcapi.me/api/captcha/$TID/report") || return
 
-            log_error "DeathByCaptcha: report nack FIXME[$RESPONSE]"
+            STR=$(echo "$RESPONSE" | parse_json_quiet 'status')
+            [ "$STATUS" = '0' ] || \
+                log_error "DeathByCaptcha: report nack error ($RESPONSE)"
         else
             log_error "$FUNCNAME failed: DeathByCaptcha missing account data"
         fi
