@@ -254,7 +254,7 @@ download() {
             rm -f "$DRESULT"
         else
             DRETVAL=0
-            $FUNCTION "$@" "$DCOOKIE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
+            $FUNCTION "$DCOOKIE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
 
             if [ $DRETVAL -eq 0 -o \
                     $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE -o \
