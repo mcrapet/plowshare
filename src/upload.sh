@@ -339,6 +339,10 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     eval "$(process_module_options "$MODULE" UPLOAD \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
+    if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
+        log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
+    fi
+
     TRY=0
     "${MODULE}_vars_set"
 
