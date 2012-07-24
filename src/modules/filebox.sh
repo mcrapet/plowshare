@@ -29,6 +29,8 @@ MODULE_FILEBOX_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_FILEBOX_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_FILEBOX_DELETE_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: $AUTH argument string
 # $2: cookie file
@@ -187,4 +189,43 @@ filebox_upload() {
 
     echo "$BASE_URL/$FILE_ID"
     echo "$DEL_LINK"
+}
+
+# Delete a file on filebox
+# $1: cookie file (unused here)
+# $2: filebox (delete) URL
+filebox_delete() {
+    local -r URL=$2
+    local -r BASE_URL='http://www.filebox.com'
+    local PAGE
+
+    PAGE=$(curl -L -b 'lang=english' "$URL") || return
+
+    # No such file exist
+    if match 'No such file exist' "$PAGE"; then
+        return $ERR_LINK_DEAD
+
+    # Wrong Delete ID
+    elif match 'Wrong Delete ID' "$PAGE"; then
+        log_error 'Wrong delete ID'
+        return $ERR_FATAL
+
+    # Do you want to delete file: <b><FILE_NAME></b> ?
+    elif match 'Do you want to delete file' "$PAGE"; then
+        local FILE_ID KILL_CODE
+
+        FILE_ID=$(echo "$URL" | parse . \
+            "^$BASE_URL/\([[:alnum:]]\+\)?killcode=[[:alnum:]]\+$") || return
+        KILL_CODE=$(echo "$URL" | parse . \
+            "^$BASE_URL/[[:alnum:]]\+?killcode=\([[:alnum:]]\+\)$") || return
+
+        PAGE=$(curl -b 'lang=english' -F 'op=del_file' -F "id=$FILE_ID" \
+            -F "del_id=$KILL_CODE" -F 'confirm=yes' "$BASE_URL/") || return
+
+        # <font class="ok">File deleted successfully</font><br><br>
+        match 'File deleted successfully' "$PAGE" && return 0
+    fi
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }

@@ -14,7 +14,7 @@ divshare     | download | upload | delete | list |
 dl_free_fr   | download | upload | delete |      |
 euroshare_eu | download |        |        |      |
 extabit      | download | upload |        |      |
-filebox      | download | upload |        |      |
+filebox      | download | upload | delete |      |
 filemates    | download |        |        |      |
 filepost     | download | upload |        | list |
 freakshare   | download | upload |        |      |
