@@ -31,6 +31,7 @@ MODULE_FILEMATES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_FILEMATES_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+FOLDER,,folder,s=FOLDER,Folder to upload files into
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 PREMIUM,,premium,,Make file inaccessible to non-premium users
 PRIVATE_FILE,,private,,Do not make file visible in folder view
@@ -85,6 +86,54 @@ filemates_login() {
 filemates_switch_lang() {
     # Note: Server reply is empty (redirects)
     curl -b "$1" -c "$1" -d 'op=change_lang' -d 'lang=english' "$2" || return
+}
+
+# Check if specified folder name is valid.
+# When multiple folders wear the same name, first one is taken.
+# $1: folder name selected by user
+# $2: base URL
+# $3: cookie file (logged into account)
+# stdout: folder ID
+filemate_check_folder() {
+    local -r NAME=$1
+    local -r BASE_URL=$2
+    local -r COOKIE_FILE=$3
+    local PAGE FORM FOLDERS FOL FOL_ID
+
+    # Special treatment for root folder (always uses ID "0")
+    if [ "$NAME" = '/' ]; then
+        echo 0
+        return 0
+    fi
+
+    # Retrieve "My Files" page
+    PAGE=$(curl -b "$COOKIE_FILE" -d 'op=my_files' "$BASE_URL") || return
+    FORM=$(grep_form_by_name "$PAGE" 'F1') || return
+
+    # <option value="ID">&nbsp;NAME</option>
+    # Note: - Site uses "&nbsp;" to indent sub folders
+    #       - First entry is label "Move files to folder"
+    #       - Second entry is root folder "/"
+    FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
+        replace '&nbsp;' '') || return
+    if [ -z "$FOLDERS" ]; then
+        log_error "No folder found, site updated?"
+        return $ERR_FATAL
+    fi
+
+    log_debug 'Available folders:' $FOLDERS
+
+    while IFS= read -r FOL; do
+        if [ "$FOL" = "$NAME" ]; then
+            FOL_ID=$(echo "$FORM" | \
+                parse_attr "^<option.*$FOL</option>" 'value') || return
+            echo "$FOL_ID"
+            return 0
+        fi
+    done <<< "$FOLDERS"
+
+    log_error "Invalid folder, choose from:" $FOLDERS
+    return $ERR_BAD_COMMAND_LINE
 }
 
 # Output a filemates file download URL
@@ -217,7 +266,7 @@ filemates_upload() {
     local -r BASE_URL='http://filemates.com'
     local -r MAX_SIZE=5368709120 # up to 5 GiB
     local PAGE SIZE FORM SRV_URL SRV_BASE_URL UP_ID SESS_ID FILE_CODE STATE
-    local LINK DEL_LINK
+    local LINK DEL_LINK FOLDER_ID
 
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
 
@@ -237,6 +286,13 @@ filemates_upload() {
 
     filemates_switch_lang "$COOKIE_FILE" "$BASE_URL"
     filemates_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+
+    # If user chose a folder, check it now
+    # Note: This needs to go after login.
+    if [ -n "$FOLDER" ]; then
+        FOLDER_ID=$(filemate_check_folder "$FOLDER" "$BASE_URL" "$COOKIE_FILE") || return
+        log_debug "Folder ID: '$FOLDER_ID'"
+    fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
 
@@ -302,11 +358,42 @@ filemates_upload() {
     LINK=$(echo "$PAGE" | parse 'Download Link' '>\(http[^<]\+\)<' 1) || return
     DEL_LINK=$(echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1) || return
 
+    # Move file to a folder?
+    # Note: This goes before the extended file properties to make things easier
+    if [ -n "$FOLDER" ]; then
+        log_debug 'Moving file...'
+        local FILE_ID
+
+        # Retrieve "My Files" page
+        PAGE=$(curl -b "$COOKIE_FILE" -d 'op=my_files' "$BASE_URL") || return
+        FORM=$(grep_form_by_name "$PAGE" 'F1') || return
+
+        # <TD><input type="checkbox" name="file_id" value="123456"></TD>
+        # <TD align=left><a href="http://...">file name</a></TD>
+        FILE_ID=$(echo "$FORM" | parse "$LINK" '^\(.*\)$' -1 | \
+            parse_form_input_by_name 'file_id') || return
+
+        # Move to destination folder
+        # Note: Source folder ("fld_id") is always root ("0") for newly uploaded files
+        PAGE=$(curl -b "$COOKIE_FILE" -i \
+            -F 'op=my_files' \
+            -F 'fld_id=0' \
+            -F 'key=' \
+            -F 'create_new_folder=' \
+            -F "file_id=$FILE_ID" \
+            -F "to_folder=$FOLDER_ID" \
+            -F 'to_folder_move=Move files' \
+            "$BASE_URL") || return
+
+        PAGE=$(echo "$PAGE" | grep_http_header_location_quiet)
+        match '?op=my_files' "$PAGE" || log_error 'Could not move file. Site update?'
+    fi
+
     # Edit the file? (description, password, visibility, premium-only)
     if [ -n "$DESCRIPTION" -o -z "$PRIVATE_FILE" -o -n "$PREMIUM" -o \
-            -n "$LINK_PASSWORD" ]; then
-        log_debug 'Editing file...'
+        -n "$LINK_PASSWORD" ]; then
 
+        log_debug 'Editing file...'
         local F_NAME F_DESC F_PASS F_PUB F_PREM
 
         # Set values
@@ -326,9 +413,9 @@ filemates_upload() {
             -F "file_public=$F_PUB" \
             -F "file_premium_only=$F_PREM" \
             -F 'save= Submit ' \
-            "$BASE_URL/?op=file_edit;file_code=$FILE_CODE") || return
+            "${BASE_URL}?op=file_edit;file_code=$FILE_CODE") || return
 
-        PAGE=$(echo "$PAGE" | grep_http_header_location) || return
+        PAGE=$(echo "$PAGE" | grep_http_header_location_quiet)
         match '?op=my_files' "$PAGE" || log_error 'Could not edit file. Site update?'
     fi
 
