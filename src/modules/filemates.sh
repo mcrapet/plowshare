@@ -31,23 +31,47 @@ MODULE_FILEMATES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 # Static function. Proceed with login (free or premium)
 # $1: authentication
 # $2: cookie file
+# $3: base url
+# stdout: account type ("free" or "premium") on success
 filemates_login() {
-    local COOKIE_FILE=$2
-    local BASE_URL='http://filemates.com'
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA PAGE NAME ACCOUNT
 
-    local LOGIN_DATA LOGIN_RESULT NAME
+    LOGIN_DATA='login=$USER&password=$PASSWORD'
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" \
+        "op=login&redirect=${BASE_URL}&${LOGIN_DATA}" "$BASE_URL" \
+        -b "$COOKIE_FILE") || return
 
-    LOGIN_DATA='op=login&login=$USER&password=$PASSWORD&redirect='
-    LOGIN_RESULT=$(post_login "$1" "$COOKIE_FILE" "$LOGIN_DATA$BASE_URL" "$BASE_URL") || return
-
-    # Set-Cookie: login xfss
+    # Note: Successfull login is empty (redirects) and sets cookies: login xfss
     NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
-    if [ -n "$NAME" ]; then
-        log_debug "Successfully logged in as $NAME member"
-        return 0
+    [ -n "$NAME" ] || return $ERR_LOGIN_FAILED
+
+    # Determine account type
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/?op=my_account") || return
+    ACCOUNT=$(echo "$PAGE" | parse 'User level' '^[[:space:]]*\([^<]*\)' 3)
+
+    if match '^[[:space:]]*Free' "$PAGE"; then
+        ACCOUNT='free'
+    # Note: educated guessing for now
+    elif match '^[[:space:]]*Premium' "$HTML"; then
+        ACCOUNT='premium'
+    else
+        log_error 'Could not determine account type. Site updated?'
+        return $ERR_FATAL
     fi
 
-    return $ERR_LOGIN_FAILED
+    log_debug "Successfully logged in as $ACCOUNT member '$NAME'"
+    echo "$ACCOUNT"
+}
+
+# Static function. Switch language to english
+# $1: cookie file
+# $2: base URL
+filemates_switch_lang() {
+    # Note: Server reply is empty (redirects)
+    curl -b "$1" -c "$1" -d 'op=change_lang' -d 'lang=english' "$2" || return
 }
 
 # Output a filemates file download URL
@@ -55,20 +79,18 @@ filemates_login() {
 # $2: filemates url
 # stdout: real file download link
 filemates_download() {
-    local COOKIE_FILE=$1
-    local URL=$2
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://filemates.com'
     local PAGE FILE_URL ACCOUNT
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD
 
-    if [ -n "$AUTH_FREE" ]; then
-        filemates_login "$AUTH_FREE" "$COOKIE_FILE" || return
+    filemates_switch_lang "$COOKIE_FILE" "$BASE_URL"
 
-        # Distinguish acount type (free or premium)
-        PAGE=$(curl -b "$COOKIE_FILE" 'http://www.filemates.com/?op=my_account') || return
-        ACCOUNT=$(echo "$PAGE" | parse 'User level' '^[[:space:]]*\([^<]*\)' 3)
-        if [ "$ACCOUNT" != 'Free' ]; then
-            log_error "Premium users not handled. Sorry"
-        fi
+    if [ -n "$AUTH_FREE" ]; then
+        ACCOUNT=$(filemates_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL") || return
+
+        [ "$ACCOUNT" != 'free' ] && log_error 'Premium users not handled. Sorry'
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
@@ -84,10 +106,10 @@ filemates_download() {
     # Send (post) form
     # Note: usr_login is empty even if logged in
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
     FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
+    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname') || return
     FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
 
     PAGE=$(curl -b "$COOKIE_FILE" -F 'referer=' \
@@ -118,7 +140,7 @@ filemates_download() {
 
     # File Password (ask the uploader to give you this key)
     if match '"password"' "$PAGE"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD="$(prompt_for_password)" || return
         fi
@@ -126,12 +148,12 @@ filemates_download() {
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
-    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
+    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
+    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free') || return
 
     # <span id="countdown_str">Wait <span id="phmz1e">60</span> seconds</span>
-    WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
+    WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span) || return
     wait $((WAIT_TIME + 1)) || return
 
     # Didn't included -d 'method_premium='
@@ -157,7 +179,7 @@ filemates_download() {
         fi
         log_error "Remote error: $ERR"
     else
-        log_error "Unexpected content, site updated?"
+        log_error 'Unexpected content, site updated?'
     fi
 
     return $ERR_FATAL
