@@ -28,6 +28,10 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_FILEMATES_DOWNLOAD_RESUME=no
 MODULE_FILEMATES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_FILEMATES_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+MODULE_FILEMATES_UPLOAD_REMOTE_SUPPORT=no
+
 # Static function. Proceed with login (free or premium)
 # $1: authentication
 # $2: cookie file
@@ -183,4 +187,102 @@ filemates_download() {
     fi
 
     return $ERR_FATAL
+}
+
+# Upload a file to FileMates
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download link
+#         delete link
+filemates_upload() {
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://filemates.com'
+    local -r MAX_SIZE=5368709120 # up to 5 GiB
+    local PAGE SIZE FORM SRV_URL SRV_BASE_URL UP_ID SESS_ID FN ST
+
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+    SIZE=$(get_filesize "$FILE") || return
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_debug "File is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    # Check for forbidden file extensions
+    case "${DEST_FILE##*.}" in
+        'php' | 'pl' | 'cgi' | 'py' | 'sh' | 'shtml')
+            log_error 'File extension is forbidden. Try renaming your file.'
+            return $ERR_FATAL
+            ;;
+    esac
+
+    filemates_switch_lang "$COOKIE_FILE" "$BASE_URL"
+    filemates_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
+
+    # Gather relevant data
+    FORM=$(grep_form_by_name "$PAGE" 'file') || return
+    SESS_ID=$(echo "$FORM" | parse_form_input_by_name_quiet 'sess_id') || return
+    SRV_URL=$(echo "$FORM" | parse_form_input_by_name 'srv_tmp_url') || return
+    SRV_BASE_URL=$(basename_url "$SRV_URL") || return
+    UP_ID=$(random d 12) || return
+
+    log_debug "Session ID: '$SESS_ID'"
+    log_debug "Server URL: '$SRV_URL'"
+
+    # Prepare upload
+    PAGE=$(curl -b "$COOKIE_FILE" \
+        "${SRV_URL}/status.html?$UP_ID=$DEST_FILE=filemates.com") || return
+
+    if ! match 'Initializing upload...' "$PAGE"; then
+        log_error 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    # Upload file
+    PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+        -F 'upload_type=file' \
+        -F "sess_id=$SESS_ID" \
+        -F "srv_tmp_url=$SRV_URL" \
+        -F "file_0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        -F 'file_1=;filename=' \
+        -F 'link_rcpt=' \
+        -F 'link_pass=' \
+        -F 'tos=1' \
+        -F 'submit_btn= Upload! ' \
+        "$SRV_BASE_URL/cgi-bin/upload.cgi?upload_id=$UP_ID&js_on=1&utype=reg&upload_type=file") || return
+
+    # Gather relevant data
+    FORM=$(grep_form_by_name "$PAGE" 'F1' | break_html_lines) || return
+    FN=$(echo "$FORM" | parse_tag 'fn' 'textarea') || return
+    ST=$(echo "$FORM" | parse_tag 'st' 'textarea') || return
+
+    log_debug "FN: '$FN'"
+    log_debug "ST: '$ST'"
+
+    if [ "$ST" = 'OK' ]; then
+        log_debug 'Upload successfull.'
+    elif [ "$ST" = 'unallowed extension' ]; then
+        log_error 'File extension is forbidden.'
+        return $ERR_FATAL
+    else
+        log_error "Unknown upload state: $ST"
+        return $ERR_FATAL
+    fi
+
+    # Get download URL
+    # Note: At this point we know the upload state is "OK" due to "if" above.
+    PAGE=$(curl -b "$COOKIE_FILE" \
+        -F "fn=$FN" \
+        -F 'st=OK' \
+        -F 'op=upload_result' \
+        "$BASE_URL") || return
+
+    # Extract + output links
+    echo "$PAGE" | parse 'Download Link' '>\(http[^<]\+\)<' 1 || return
+    echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1 || return
 }

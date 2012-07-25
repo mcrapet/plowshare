@@ -15,7 +15,7 @@ dl_free_fr   | download | upload | delete |      |
 euroshare_eu | download |        |        |      |
 extabit      | download | upload |        |      |
 filebox      | download | upload | delete |      |
-filemates    | download |        |        |      |
+filemates    | download | upload |        |      |
 filepost     | download | upload |        | list |
 freakshare   | download | upload |        |      |
 go4up        |          | upload | delete | list |
