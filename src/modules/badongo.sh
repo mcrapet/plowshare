@@ -191,37 +191,8 @@ badongo_download() {
 # stdout: download link
 #         delete link
 badongo_upload() {
-    local -r COOKIE_FILE=$1
-    local -r FILE=$2
-    local -r DEST_FILE=$3
-    local -r BASE_URL='http://upload.badongo.com'
-    local PAGE SESS_ID DESCR
-
-    PAGE=$(curl "$BASE_URL/single_front/?cou=en") || return
-
-    # Parse session ID
-    SESS_ID=$(echo "$PAGE" | parse 'PHPSESSID' ', "\([0-9a-f]\+\)");') || return
-
-    test "$DESCRIPTION" && DESCR=$(echo "$DESCRIPTION" | uri_encode_strict)
-
-    # Note: This request requires both POST and query parameters and curl does
-    #       not support simultanous use of -F and -d so we get one long URL :-(
-    PAGE=$(curl_with_log --user-agent 'Shockwave Flash' \
-        -F "Filename=$DEST_FILE" \
-        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
-        -F 'Upload=Submit Query' \
-        "$BASE_URL/mpu_upload_single.php?UL_ID=undefined&UPLOAD_IDENTIFIER=undefined&page=upload_s&s=&cou=en&PHPSESSID=$SESS_ID&desc=$DESCR") || return
-
-    [ -n "$PAGE" ] || return $ERR_FATAL
-
-    # Retrieve links
-    PAGE=$(curl_with_log -d 'page=upload_s_f' -d "PHPSESSID=$SESS_ID" \
-        -d 'url=undefined' -d 'url_kill=undefined' -d 'affliate=' \
-        "$BASE_URL/upload_complete.php")
-
-    # Extract + output links
-    echo "$PAGE" | parse 'http' '&url=\([^&]\+\)' | uri_decode || return
-    echo "$PAGE" | parse 'http' '&url_kill=\([^&]\+\)' | uri_decode || return
+    log_error 'Badongo will be closing down on 2012-07-31 and refuses new uploads'
+    return $ERR_FATAL
 }
 
 # Delete a file from Badongo
