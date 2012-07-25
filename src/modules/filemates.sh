@@ -128,31 +128,37 @@ filemates_download() {
         -F "fname=$FORM_FNAME" \
         -F "method_free=$FORM_METHOD" "$URL") || return
 
-    if match '<div class="err"' "$PAGE"; then
-        # You can download files up to 400 Mb only.
-        # Upgrade your account to download bigger files.
-        if matchi 'upgrade your account to download' "$PAGE"; then
-            return $ERR_LINK_NEED_PERMISSIONS
+    # You can download files up to 400 Mb only.
+    # Upgrade your account to download bigger files.
+    if match 'You can download files up to .* only' "$PAGE"; then
+        return $ERR_SIZE_LIMIT_EXCEEDED
 
-        # You have to wait X minutes, Y seconds till next download
-        elif matchi 'You have to wait' "$PAGE"; then
-            local MINS SECS
-            MINS=$(echo "$PAGE" | \
-                parse_quiet 'class="err"' 'wait \([[:digit:]]\+\) minute')
-            SECS=$(echo "$PAGE" | \
-                parse_quiet 'class="err"' ', \([[:digit:]]\+\) second')
+    # You need to upgrade to Premium to download this file!
+    elif match 'upgrade to Premium to download this file' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
 
-            echo $(( MINS * 60 + SECS ))
-            return $ERR_LINK_TEMP_UNAVAILABLE
-        fi
-    fi
+    # You have to wait X minutes, Y seconds till next download
+    elif matchi 'You have to wait' "$PAGE"; then
+        local MINS SECS
+        MINS=$(echo "$PAGE" | \
+            parse_quiet 'class="err"' 'wait \([[:digit:]]\+\) minute')
+        SECS=$(echo "$PAGE" | \
+            parse_quiet 'class="err"' ', \([[:digit:]]\+\) second')
+
+        log_error 'Forced delay between downloads.'
+        echo $(( MINS * 60 + SECS ))
+        return $ERR_LINK_TEMP_UNAVAILABLE
 
     # File Password (ask the uploader to give you this key)
-    if match '"password"' "$PAGE"; then
+    elif match '"password"' "$PAGE"; then
         log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD="$(prompt_for_password)" || return
         fi
+
+    elif match '<div class="err"' "$PAGE"; then
+        ERR=$(echo "$PAGE" | parse_tag  'class="err"' div)
+        log_error "Remote error: $ERR"
     fi
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
