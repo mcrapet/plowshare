@@ -29,7 +29,12 @@ MODULE_FILEMATES_DOWNLOAD_RESUME=no
 MODULE_FILEMATES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_FILEMATES_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+PREMIUM,,premium,,Make file inaccessible to non-premium users
+PRIVATE_FILE,,private,,Do not make file visible in folder view
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_FILEMATES_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login (free or premium)
@@ -201,7 +206,8 @@ filemates_upload() {
     local -r DEST_FILE=$3
     local -r BASE_URL='http://filemates.com'
     local -r MAX_SIZE=5368709120 # up to 5 GiB
-    local PAGE SIZE FORM SRV_URL SRV_BASE_URL UP_ID SESS_ID FN ST
+    local PAGE SIZE FORM SRV_URL SRV_BASE_URL UP_ID SESS_ID FILE_CODE STATE
+    local LINK DEL_LINK
 
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
 
@@ -213,7 +219,7 @@ filemates_upload() {
 
     # Check for forbidden file extensions
     case "${DEST_FILE##*.}" in
-        'php' | 'pl' | 'cgi' | 'py' | 'sh' | 'shtml')
+        php|pl|cgi|py|sh|shtml)
             log_error 'File extension is forbidden. Try renaming your file.'
             return $ERR_FATAL
             ;;
@@ -244,13 +250,14 @@ filemates_upload() {
     fi
 
     # Upload file
+    # Note: Password is set later on to simplify things a bit
     PAGE=$(curl_with_log -b "$COOKIE_FILE" \
         -F 'upload_type=file' \
         -F "sess_id=$SESS_ID" \
         -F "srv_tmp_url=$SRV_URL" \
         -F "file_0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         -F 'file_1=;filename=' \
-        -F 'link_rcpt=' \
+        -F "link_rcpt=$TOEMAIL" \
         -F 'link_pass=' \
         -F 'tos=1' \
         -F 'submit_btn= Upload! ' \
@@ -258,31 +265,63 @@ filemates_upload() {
 
     # Gather relevant data
     FORM=$(grep_form_by_name "$PAGE" 'F1' | break_html_lines) || return
-    FN=$(echo "$FORM" | parse_tag 'fn' 'textarea') || return
-    ST=$(echo "$FORM" | parse_tag 'st' 'textarea') || return
+    FILE_CODE=$(echo "$FORM" | parse_tag 'fn' 'textarea') || return
+    STATE=$(echo "$FORM" | parse_tag 'st' 'textarea') || return
 
-    log_debug "FN: '$FN'"
-    log_debug "ST: '$ST'"
+    log_debug "File Code: '$FILE_CODE'"
+    log_debug "State: '$STATE'"
 
-    if [ "$ST" = 'OK' ]; then
+    if [ "$STATE" = 'OK' ]; then
         log_debug 'Upload successfull.'
-    elif [ "$ST" = 'unallowed extension' ]; then
+    elif [ "$STATE" = 'unallowed extension' ]; then
         log_error 'File extension is forbidden.'
         return $ERR_FATAL
     else
-        log_error "Unknown upload state: $ST"
+        log_error "Unknown upload state: $STATE"
         return $ERR_FATAL
     fi
 
     # Get download URL
-    # Note: At this point we know the upload state is "OK" due to "if" above.
+    # Note: At this point we know the upload state is "OK" due to "if" above
     PAGE=$(curl -b "$COOKIE_FILE" \
-        -F "fn=$FN" \
+        -F "fn=$FILE_CODE" \
         -F 'st=OK' \
         -F 'op=upload_result' \
         "$BASE_URL") || return
 
-    # Extract + output links
-    echo "$PAGE" | parse 'Download Link' '>\(http[^<]\+\)<' 1 || return
-    echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1 || return
+    LINK=$(echo "$PAGE" | parse 'Download Link' '>\(http[^<]\+\)<' 1) || return
+    DEL_LINK=$(echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1) || return
+
+    # Edit the file? (description, password, visibility, premium-only)
+    if [ -n "$DESCRIPTION" -o -z "$PRIVATE_FILE" -o -n "$PREMIUM" -o \
+            -n "$LINK_PASSWORD" ]; then
+        log_debug 'Editing file...'
+
+        local F_NAME F_DESC F_PASS F_PUB F_PREM
+
+        # Set values
+        F_NAME=$DEST_FILE
+        [ -n "$DESCRIPTION" ] && F_DESC=$DESCRIPTION
+        [ -n "$LINK_PASSWORD" ] && F_PASS=$LINK_PASSWORD
+        [ -z "$PRIVATE_FILE" ] && F_PUB=1
+        [ -n "$PREMIUM" ] && F_PREM=1
+
+        # Post changes (include HTTP headers to check for proper redirection)
+        PAGE=$(curl -i -b "$COOKIE_FILE" \
+            -F 'op=file_edit' \
+            -F "file_code=$FILE_CODE" \
+            -F "file_name=$F_NAME" \
+            -F "file_descr=$F_DESC" \
+            -F "file_password=$F_PASS" \
+            -F "file_public=$F_PUB" \
+            -F "file_premium_only=$F_PREM" \
+            -F 'save= Submit ' \
+            "$BASE_URL/?op=file_edit;file_code=$FILE_CODE") || return
+
+        PAGE=$(echo "$PAGE" | grep_http_header_location) || return
+        match '?op=my_files' "$PAGE" || log_error 'Could not edit file. Site update?'
+    fi
+
+    echo "$LINK"
+    echo "$DEL_LINK"
 }
