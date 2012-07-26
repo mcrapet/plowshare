@@ -11,7 +11,7 @@ data_hu      | download |        |        |      |
 dataport_cz  | download | upload | delete |      |
 depositfiles | download | upload | delete | list |
 divshare     | download | upload | delete | list |
-dl_free_fr   | download | upload |        |      |
+dl_free_fr   | download | upload | delete |      |
 euroshare_eu | download |        |        |      |
 extabit      | download | upload |        |      |
 filebox      | download | upload |        |      |

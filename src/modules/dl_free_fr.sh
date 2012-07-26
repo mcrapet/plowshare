@@ -27,6 +27,8 @@ MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_DL_FREE_FR_DELETE_OPTIONS=""
+
 AYL_SERVER='http://api.adyoulike.com/'
 # Adyoulike decoding function
 # Main engine: http://api-ayl.appspot.com/static/js/ayl_lib.js
@@ -230,5 +232,32 @@ dl_free_fr_upload() {
 
         wait $WAIT_TIME seconds
     done
+    return $ERR_FATAL
+}
+
+# Delete a file from dl.free.fr
+# $1: cookie file (unused here)
+# $2: dl.free.fr (delete) link
+dl_free_fr_delete() {
+    local URL=$2
+    local -r BASE_URL='http://dl.free.fr'
+    local PAGE
+
+    PAGE=$(curl "$URL") || return
+
+    # Fichier perimé ou déjà supprimé
+    match 'Fichier perim&eacute ou d&eacute;j&agrave; supprim&eacute;' \
+        "$PAGE" && return $ERR_LINK_DEAD
+
+    # Si vous souhaitez réelement supprimer le fichier nommé [<FILE_NAME>] cliquez ici
+    if match 'Si vous souhaitez r&eacute;element supprimer' "$PAGE"; then
+        URL=$(echo "$PAGE" | parse_attr 'Si vous souhaitez' 'href') || return
+        PAGE=$(curl "$BASE_URL$URL") || return
+
+        # Le fichier nommé [<FILE_NAME>] a été supprimé avec succès.
+        match 'supprim&eacute; avec succ&egrave;s' "$PAGE" && return 0
+    fi
+
+    log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
 }
