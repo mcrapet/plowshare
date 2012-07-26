@@ -37,6 +37,8 @@ PRIVATE_FILE,,private,,Do not make file visible in folder view
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_FILEMATES_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_FILEMATES_DELETE_OPTIONS=""
+
 # Static function. Proceed with login (free or premium)
 # $1: authentication
 # $2: cookie file
@@ -330,4 +332,45 @@ filemates_upload() {
 
     echo "$LINK"
     echo "$DEL_LINK"
+}
+
+# Delete a file on FileMates
+# $1: cookie file
+# $2: kill URL
+filemates_delete() {
+    local -r COOKIE_FILE=$1
+    local URL=$2
+    local -r BASE_URL='http://filemates.com'
+    local PAGE FILE_ID KILL_CODE
+
+    filemates_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -i -b "$COOKIE_FILE" -L "$URL") || return
+
+    # <font class="ok">File deleted successfully</font><br><br>
+    if match 'No such file exist' "$PAGE"; then
+        return $ERR_LINK_DEAD
+
+    # <font style="color:#d33;">Wrong Delete ID</font>
+    elif match 'Wrong Delete ID' "$PAGE"; then
+        log_error 'You provided a wrong kill code'
+        return $ERR_FATAL
+
+    # Do you want to delete file: <b><FILE_NAME></b> ?<br><br>
+    elif match 'Do you want to delete file' "$PAGE"; then
+
+        # Check + parse redirection URL (easier to parse than original URL)
+        URL=$(echo "$PAGE" | grep_http_header_location) || return
+        FILE_ID=$(echo "$URL" | parse . '&id=\([[:alnum:]]\{12\}\)') || return
+        KILL_CODE=$(echo "$URL" | parse . '&del_id=\([[:alnum:]]\{10\}\)') || return
+
+        PAGE=$(curl -b "$COOKIE_FILE" -F 'op=del_file' -F "id=$FILE_ID" \
+            -F "del_id=$KILL_CODE" -F 'confirm=yes' "$BASE_URL") || return
+
+        # <font class="ok">File deleted successfully</font><br><br>
+        match 'File deleted successfully' "$PAGE" && return 0
+    fi
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }
