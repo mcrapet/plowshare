@@ -36,7 +36,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 PREMIUM,,premium,,Make file inaccessible to non-premium users
 PRIVATE_FILE,,private,,Do not make file visible in folder view
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
-MODULE_FILEMATES_UPLOAD_REMOTE_SUPPORT=no
+MODULE_FILEMATES_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_FILEMATES_DELETE_OPTIONS=""
 
@@ -265,18 +265,25 @@ filemates_upload() {
     local -r DEST_FILE=$3
     local -r BASE_URL='http://filemates.com'
     local -r MAX_SIZE=5368709120 # up to 5 GiB
-    local PAGE SIZE FORM SRV_URL SRV_BASE_URL UP_ID SESS_ID FILE_CODE STATE
-    local LINK DEL_LINK FOLDER_ID
+    local PAGE FORM SRV_URL SRV_BASE_URL UP_ID SESS_ID FILE_CODE STATE
+    local LINK DEL_LINK FOLDER_ID REN_REMOTE
 
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
 
-    SIZE=$(get_filesize "$FILE") || return
-    if [ $SIZE -gt $MAX_SIZE ]; then
-        log_debug "File is bigger than $MAX_SIZE"
-        return $ERR_SIZE_LIMIT_EXCEEDED
+    # Check size limit for local uploads
+    if ! match_remote_url "$FILE"; then
+        local SIZE
+
+        SIZE=$(get_filesize "$FILE") || return
+        if [ $SIZE -gt $MAX_SIZE ]; then
+            log_debug "File is bigger than $MAX_SIZE"
+            return $ERR_SIZE_LIMIT_EXCEEDED
+        fi
     fi
 
     # Check for forbidden file extensions
+    # Note: Remote upload allows these extension but the completed files cannot
+    #       be renamed to have an forbidden extension
     case "${DEST_FILE##*.}" in
         php|pl|cgi|py|sh|shtml)
             log_error 'File extension is forbidden. Try renaming your file.'
@@ -317,17 +324,35 @@ filemates_upload() {
 
     # Upload file
     # Note: Password is set later on to simplify things a bit
-    PAGE=$(curl_with_log -b "$COOKIE_FILE" \
-        -F 'upload_type=file' \
-        -F "sess_id=$SESS_ID" \
-        -F "srv_tmp_url=$SRV_URL" \
-        -F "file_0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
-        -F 'file_1=;filename=' \
-        -F "link_rcpt=$TOEMAIL" \
-        -F 'link_pass=' \
-        -F 'tos=1' \
-        -F 'submit_btn= Upload! ' \
-        "$SRV_BASE_URL/cgi-bin/upload.cgi?upload_id=$UP_ID&js_on=1&utype=reg&upload_type=file") || return
+    if ! match_remote_url "$FILE"; then
+        PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+            -F 'upload_type=file' \
+            -F "sess_id=$SESS_ID" \
+            -F "srv_tmp_url=$SRV_URL" \
+            -F "file_0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+            -F 'file_1=;filename=' \
+            -F "link_rcpt=$TOEMAIL" \
+            -F 'link_pass=' \
+            -F 'tos=1' \
+            -F 'submit_btn= Upload! ' \
+            "$SRV_BASE_URL/cgi-bin/upload.cgi?upload_id=$UP_ID&js_on=1&utype=reg&upload_type=file") || return
+
+    else
+        PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+            -F "sess_id=$SESS_ID" \
+            -F 'upload_type=url' \
+            -F "srv_tmp_url=$SRV_URL" \
+            -F "url_mass=$FILE" \
+            -F 'url_proxy=' \
+            -F "link_rcpt=$TOEMAIL" \
+            -F 'link_pass=' \
+            -F 'tos=1' \
+            -F 'submit_btn= Upload! ' \
+            "$SRV_BASE_URL/cgi-bin/upload.cgi?upload_id=$UP_ID&js_on=1&utype=reg&upload_type=url") || return
+
+        # Remember if we need to rename the file
+        [ "$DEST_FILE" != 'dummy' ] && REN_REMOTE='yes'
+    fi
 
     # Gather relevant data
     FORM=$(grep_form_by_name "$PAGE" 'F1' | break_html_lines) || return
@@ -391,17 +416,23 @@ filemates_upload() {
 
     # Edit the file? (description, password, visibility, premium-only)
     if [ -n "$DESCRIPTION" -o -z "$PRIVATE_FILE" -o -n "$PREMIUM" -o \
-        -n "$LINK_PASSWORD" ]; then
+        -n "$LINK_PASSWORD" -o -n "$REN_REMOTE" ]; then
 
         log_debug 'Editing file...'
-        local F_NAME F_DESC F_PASS F_PUB F_PREM
+        local F_NAME F_DESC F_PASS F_PUB F_PREM REDIR
 
         # Set values
-        F_NAME=$DEST_FILE
         [ -n "$DESCRIPTION" ] && F_DESC=$DESCRIPTION
         [ -n "$LINK_PASSWORD" ] && F_PASS=$LINK_PASSWORD
         [ -z "$PRIVATE_FILE" ] && F_PUB=1
         [ -n "$PREMIUM" ] && F_PREM=1
+
+        # Parse file name from URL for remote files if we do not rename them
+        if match_remote_url "$FILE" && [ "$DEST_FILE" = 'dummy' ]; then
+            F_NAME=${LINK##*/}
+        else
+            F_NAME=$DEST_FILE
+        fi
 
         # Post changes (include HTTP headers to check for proper redirection)
         PAGE=$(curl -i -b "$COOKIE_FILE" \
@@ -415,8 +446,26 @@ filemates_upload() {
             -F 'save= Submit ' \
             "${BASE_URL}?op=file_edit;file_code=$FILE_CODE") || return
 
-        PAGE=$(echo "$PAGE" | grep_http_header_location_quiet)
-        match '?op=my_files' "$PAGE" || log_error 'Could not edit file. Site update?'
+        REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+
+        if match '?op=my_files' "$REDIR"; then
+            # When the name changes, we need to adapt the links too
+            if [ -n "$REN_REMOTE" ]; then
+                log_debug 'Updating Links...'
+
+                # Use short version of link to get download page and parse full link from it
+                # Note: $DEST_FILE is no good due to character substitution done by server
+                PAGE=$(curl ${LINK%/*}) || return
+                LINK=$(echo "$PAGE" | parse_attr 'You have requested' 'value') || return
+                DEL_LINK="${LINK}?${DEL_LINK##*\?}"
+            fi
+
+        elif match 'Filename too short' "$PAGE"; then
+            log_error 'Filename is too short'
+
+        else
+            log_error 'Could not edit file. Site update?'
+        fi
     fi
 
     echo "$LINK"
