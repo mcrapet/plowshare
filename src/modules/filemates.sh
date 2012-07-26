@@ -39,6 +39,8 @@ MODULE_FILEMATES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_FILEMATES_DELETE_OPTIONS=""
 
+MODULE_FILEMATES_LIST_OPTIONS=""
+
 # Static function. Proceed with login (free or premium)
 # $1: authentication
 # $2: cookie file
@@ -373,4 +375,41 @@ filemates_delete() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# List a FileMates web folder URL
+# $1: folder URL
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links and file names (alternating)
+filemates_list() {
+    local -r URL=$1
+    local -r REC=$2
+    local -r BASE_URL='http://filemates.com'
+    local RET=$ERR_LINK_DEAD
+    local PAGE LINKS NAMES
+
+    PAGE=$(curl "$URL") || return
+    LINKS=$(echo "$PAGE" | parse_all_attr 'class="link"' 'href') || return
+    NAMES=$(echo "$PAGE" | parse_all_tag 'class="link"' 'a') || return
+
+    list_submit "$LINKS" "$NAMES" && RET=0
+
+    # Are there any subfolders?
+    if [ -n "$REC" ]; then
+        local FOLDERS FOLDER
+
+        FOLDERS=$(echo "$PAGE" | parse_all_attr 'folder2.gif' 'href') || return
+
+        # First folder can be parent folder (". .") - drop it to avoid infinite loops
+        FOLDER=$(echo "$PAGE" | parse_tag 'folder2.gif' 'b') || return
+        [ "$FOLDER" = '. .' ] && FOLDERS=$(echo "$FOLDERS" | delete_first_line)
+
+        while read FOLDER; do
+            [ -z "$FOLDER" ] && continue
+            log_debug "entering sub folder: $FOLDER"
+            filemates_list "$FOLDER" "$REC" && RET=0
+        done <<< "$FOLDERS"
+    fi
+
+    return $RET
 }
