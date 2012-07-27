@@ -170,6 +170,8 @@ oron_download() {
             [ -z "$HOURS" ] && HOURS=0
             [ -z "$MINS" ]  && MINS=0
             [ -z "$SECS" ]  && SECS=0
+
+            log_error 'Forced delay between downloads.'
             echo $(( ((($DAYS * 24) + $HOURS) * 60 + $MINS) * 60 + $SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
@@ -213,8 +215,9 @@ oron_download() {
         -F 'down_direct=1' \
         "$URL") || return
 
-    # Check for possible errors
-    if match 'Wrong captcha' "$HTML"; then
+    if match '<a.*>Download File</a>' "$HTML"; then
+        FILE_URL=$(echo "$HTML" | parse_attr 'Download File' 'href') || return
+    elif match 'Wrong captcha' "$HTML"; then
         log_error 'Wrong captcha'
         captcha_nack $ID
         return $ERR_CAPTCHA
@@ -222,9 +225,6 @@ oron_download() {
         log_error 'Session expired'
         echo 10 # just some arbitrary small value
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match 'Download File</a></td>' "$HTML"; then
-        log_debug 'DL link found'
-        FILE_URL=$(echo "$HTML" | parse_attr 'Download File' 'href') || return
     elif match 'Retype Password' "$HTML"; then
         log_error 'Incorrect link password'
         return $ERR_LINK_PASSWORD_REQUIRED
