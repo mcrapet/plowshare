@@ -68,6 +68,14 @@ rapidshare_download() {
             -d 'withcookie=1' -d 'withpublicid=0' \
             "$BASE_URL") || return
 
+        # ERROR: Login failed. Password incorrect or account not found.
+        if match 'Login failed' "$DETAILS"; then
+            return $ERR_LOGIN_FAILED
+        elif match '^ERROR' "$DETAILS"; then
+            log_error "Remote error: ${DETAILS#ERROR: }"
+            return $ERR_FATAL
+        fi
+
         # "cookie" parameter overrides "login" & "password"
         COOKIE=$(echo "$DETAILS" | parse '^cookie=' '=\([[:alnum:]]\+\)') || return
 
