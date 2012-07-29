@@ -17,10 +17,9 @@ Matthieu Crapet <mcrapet@gmail.com>
 MODULES MAINTAINERS
 ===================
 
-- StalkR <stalkr@stalkr.net>
-	Official maintainer [2011.02.02-...]
-	filesonic module support (feb 2011)
-	dl.free.fr module support (feb 2010)
+Jan <krompospeed@googlemail.com>
+	Official maintainer [2012.04.01-...]
+	oron, rapidgator, go4up modules
 
 
 CONTRIBUTORS (alphabet sorted)
@@ -71,6 +70,11 @@ Ryan <ryan.b.shaw@gmail.com>
 Soonbesleeping <soonbesleeping@gmail.com>
 	Initial wupload.com upload function (jun 2011)
 
+StalkR <stalkr@stalkr.net>
+	Official maintainer [2011.02.02-2011.12.24] with 23 commits.
+	filesonic module support (feb 2011)
+	dl.free.fr module support (feb 2010)
+
 Thomas Jensen <thomas.otvald@gmail.com>
 	Early sharingmatrix/filesonic module (before using reCaptcha) (sep 2010)
 
@@ -93,6 +97,6 @@ AND MORE...
 - scripts contributors
 - premium account contributors
 - donators (paypal, ssh box, ...)
-- distro packagers (ubuntu, fedora, ...)
+- distro packagers (ubuntu, fedora, archlinux, ...)
 
 # vim:ts=8:fenc=utf-8
