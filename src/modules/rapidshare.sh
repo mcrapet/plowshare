@@ -62,6 +62,8 @@ rapidshare_download() {
         local DETAILS CUR_DATE END_DATE
 
         split_auth "$AUTH" USER PASSWORD || return
+        USER=$(echo "$USER" | uri_encode_strict)
+        PASSWORD=$(echo "$PASSWORD" | uri_encode_strict)
 
         DETAILS=$(curl -d 'sub=getaccountdetails' \
             -d "login=$USER" -d "password=$PASSWORD" \
