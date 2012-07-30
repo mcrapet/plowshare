@@ -323,51 +323,88 @@ match_remote_url() {
     matchi '^[[:space:]]*https\?://' "$1"
 }
 
-# Get lines that match filter+match regular expressions and extract string from it.
+# Get lines that match filter+parse regular expressions and extract string from it.
 #
-# $1: regexp to filter (take lines matching $1 pattern)
-# $2: regexp to match (must contain parentheses). Example: "url:'\(http.*\)'"
-# $3: (optional) how many lines to skip (default is 0, filter and match regexp on same line).
-#     Example ($3=1): get lines that first filter regexp, then apply match regexp on the line after.
+# $1: regexp to filter (take lines matching $1 pattern; "." or "" disable filtering).
+# $2: regexp to parse (must contain parentheses to capture text). Example: "url:'\(http.*\)'"
+# $3: (optional) how many lines to skip (default is 0: filter and match regexp on same line).
+#     Note: $3 may only be used if line filtering is active ($1 != ".")
+#     Example ($3=1): get lines matching filter regexp, then apply parse regexp on the line after.
+#     Example ($3=-1): get lines matching filter regexp, then apply parse regexp on the line before.
 # stdin: text data
 # stdout: result
 parse_all() {
+    local PARSE=$2
     local N=${3:-0}
-    local STRING REGEXP SKIP
+    local -r D=$'\001' # Change sed separator to allow '/' characters in regexp
+    local STRING FILTER
 
-    # Change sed separator to accept '/' characters
-    local -r D=$'\001'
-
-    if [ '^' = "${2:0:1}" ]; then
-        if [ '$' = "${2:(-1):1}" ]; then
-            REGEXP=$2
-        else
-            REGEXP="$2.*$"
-        fi
-    elif [ '$' = "${2:(-1):1}" ]; then
-        REGEXP="^.*$2"
+    if [ -n "$1" -a "$1" != '.' ]; then
+        FILTER="\\${D}$1${D}" # /$1/
     else
-        REGEXP="^.*$2.*$"
+        [ $N -eq 0 ] || return $ERR_FATAL
     fi
 
-    if (( N > 0 )); then
-        [ "$N" -gt 10 ] && \
-            log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
-        while (( N-- )); do
-            SKIP="${SKIP}n;"
-        done
-        # STRING=$(sed -n "/$1/{n;s/$REGEXP/\1/p}")
-        STRING=$(sed -n "\\${D}$1${D}{${SKIP}s${D}$REGEXP${D}\1${D}p}")
-    elif [ "$2" = '.' ]; then
-        # STRING=$(sed -n "s/$REGEXP/\1/p")
-        STRING=$(sed -n "s${D}$REGEXP${D}\1${D}p")
+    [ ${PARSE:0:1} = '^' ] || REGEXP="^.*$PARSE"
+    [ ${PARSE:(-1):1} = '$' ] || REGEXP="$PARSE.*$"
+    PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p;
+
+    if [ $N -eq 0 ]; then
+        # STRING=$(sed -ne "/$1/ s/$2/\1/p")
+        STRING=$(sed -ne "$FILTER $PARSE")
+
+    elif [ $N -eq 1 ]; then
+        # Note: Loop is required for consecutive matches
+        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;b a")
+        STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;b a}")
+
+    elif [ $N -eq -1 ]; then
+        # STRING=$(sed -ne "/$1/ {x; s/$2/\1/p; b}" -e 'h')
+        STRING=$(sed -ne "$FILTER {x; $PARSE; b}" -e 'h')
+
     else
-        # STRING=$(sed -n "/$1/s/$REGEXP/\1/p")
-        STRING=$(sed -n "\\${D}$1${D}s${D}$REGEXP${D}\1${D}p")
+        local -r FIRST_LINE='^\([^\n]*\).*$'
+        local -r LAST_LINE='^.*\n\(.*\)$'
+        local N_ABS=$(( N < 0 ? -N : N ))
+        local I=$(( N_ABS - 2 )) # Note: N_ABS >= 2 due to "elif" above
+        local LINES='.*'
+        local INIT='N'
+        local FILTER_LINE PARSE_LINE
+
+        [ $N_ABS -gt 10 ] &&
+            log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
+
+        while (( I-- )); do
+            INIT="$INIT;N"
+        done
+
+        while (( N_ABS-- )); do
+            LINES="$LINES\\n.*"
+        done
+
+        if [ $N -gt 0 ]; then
+            FILTER_LINE=$FIRST_LINE
+            PARSE_LINE=$LAST_LINE
+        else
+            FILTER_LINE=$LAST_LINE
+            PARSE_LINE=$FIRST_LINE
+        fi
+
+        STRING=$(sed -ne "1 {$INIT;h;n}" \
+            -e "H;g;s/^.*\\n\\($LINES\)$/\\1/;h" \
+            -e "s/$FILTER_LINE/\1/" \
+            -e "$FILTER {g;s/$PARSE_LINE/\1/;$PARSE }")
+
+        # Explanation: [1], [2] let hold space always contain the current line
+        #                       as well as the previous N lines
+        # [3] let pattern space contain only the line we test filter regex
+        #     on (i.e. first buffered line on skip > 0, last line on skip < 0)
+        # [4] if filter regex matches, let pattern space contain the line to
+        #     be parsed and apply parse command
     fi
 
     if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"/$1/s/$REGEXP/\""
+        log_error "$FUNCNAME failed (sed): \"/$1/ ${PARSE//$D//}\" (skip $N)"
         log_notice_stack
         return $ERR_FATAL
     fi
