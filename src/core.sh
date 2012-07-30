@@ -912,10 +912,10 @@ prompt_for_password() {
 # stdout: html result (can be null string)
 # $? is zero on success
 post_login() {
-    local AUTH=$1
-    local COOKIE=$2
-    local POSTDATA=$3
-    local LOGIN_URL=$4
+    local -r AUTH=$1
+    local -r COOKIE=$2
+    local -r POSTDATA=$3
+    local -r LOGIN_URL=$4
     shift 4
     local -a CURL_ARGS=("$@")
     local USER PASSWORD DATA RESULT
@@ -1037,8 +1037,8 @@ wait() {
 
 # $1: local image filename (with full path). No specific image format expected.
 # $2: captcha type or hint
-# $3 (optional): minimal captcha length
-# $4 (optional): maximal captcha length (unused)
+# $3: (optional) minimal captcha length
+# $4: (optional) maximal captcha length (unused)
 # stdout: On 2 lines: <word> \n <transaction_id>
 #         nothing is echoed in case of error
 #
@@ -1506,7 +1506,7 @@ solvemedia_captcha_process() {
         # Reload image?
         if [ -z "$WORDS" ]; then
             log_debug "empty, request another image"
-            XY="-d t_img.x=23 -d t_img.y=7"
+            XY='-d t_img.x=23 -d t_img.y=7'
         fi
 
         # Verify solution/request new challenge
@@ -1549,8 +1549,8 @@ solvemedia_captcha_process() {
 captcha_ack() {
     [ "$1" = 0 ] && return
 
-    local M=${1:0:1}
-    local TID=${1:1}
+    local -r M=${1:0:1}
+    local -r TID=${1:1}
     local RESPONSE STR
 
     if [ a = "$M" ]; then
@@ -1563,7 +1563,7 @@ captcha_ack() {
             log_debug "captcha.trader report ack ($USERNAME)"
 
             RESPONSE=$(curl -F 'match=' \
-                -F "is_correct=1"       \
+                -F 'is_correct=1'       \
                 -F "ticket=$TID"        \
                 -F "password=$PASSWORD" \
                 -F "username=$USERNAME" \
@@ -1586,8 +1586,8 @@ captcha_ack() {
 captcha_nack() {
     [ "$1" = 0 ] && return
 
-    local M=${1:0:1}
-    local TID=${1:1}
+    local -r M=${1:0:1}
+    local -r TID=${1:1}
     local RESPONSE STR
 
     if [ a = "$M" ]; then
@@ -1768,7 +1768,7 @@ md5() {
 # Split credentials
 # $1: auth string (user:password)
 # $2: variable name (user)
-# $3 (optional): variable name (password)
+# $3: (optional) variable name (password)
 # Note: $2 or $3 can't be named '__AUTH__' or '__STR__'
 split_auth() {
     local __AUTH__=$1
@@ -1871,8 +1871,9 @@ timeout_init() {
 # $1: options
 # $2: indent string
 print_options() {
+    local -r INDENT=${2:-'  '}
     local STR VAR SHORT LONG TYPE MSG
-    local INDENT=${2:-'  '}
+
     while read OPTION; do
         test "$OPTION" || continue
         IFS="," read VAR SHORT LONG TYPE MSG <<< "$OPTION"
@@ -1974,7 +1975,7 @@ process_module_options() {
 # $1: keyword to grep (must not contain '|' char)
 # stdout: return module list (one name per line)
 grep_list_modules() {
-   local CONFIG="$LIBDIR/modules/config"
+   local -r CONFIG="$LIBDIR/modules/config"
 
    if [ ! -f "$CONFIG" ]; then
        stderr "can't find config file"
@@ -2388,7 +2389,7 @@ strip_and_drop_empty_lines() {
 # $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 get_module_options() {
-    local VAR="MODULE_$(uppercase "$1")_${2}_OPTIONS"
+    local -r VAR="MODULE_$(uppercase "$1")_${2}_OPTIONS"
     strip_and_drop_empty_lines "${!VAR}"
 }
 
@@ -2423,6 +2424,7 @@ timeout_update() {
 # $3: alternate element to find (can be null)
 # $?: 0 for success (one element found), not found otherwise
 find_in_array() {
+    local ELT
     for ELT in "${!1}"; do
         [ "$ELT" = "$2" -o "$ELT" = "$3" ] && return 0
     done
@@ -2436,7 +2438,7 @@ find_in_array() {
 # $?: 0 for success (one element found), not found otherwise
 # stdout: array index, undefined if not found.
 index_in_array() {
-    local I=0
+    local ELT I=0
     for ELT in "${!1}"; do
         (( ++I ))
         if [ "$ELT" = "$2" -o "$ELT" = "$3" ]; then
@@ -2453,7 +2455,7 @@ index_in_array() {
 # $2: captcha trader password (or passkey)
 # $?: 0 for success (enough credits)
 service_captchatrader_ready() {
-    local USER=$1
+    local -r USER=$1
     local RESPONSE STATUS AMOUNT ERROR
 
     if [ -z "$1" -o -z "$2" ]; then
@@ -2486,7 +2488,7 @@ service_captchatrader_ready() {
 # $1: antigate.com captcha key
 # $?: 0 for success (enough credits)
 service_antigate_ready() {
-    local KEY=$1
+    local -r KEY=$1
     local AMOUNT
 
     if [ -z "$KEY" ]; then
@@ -2525,7 +2527,7 @@ service_antigate_ready() {
 # $2: death by captcha password
 # $?: 0 for success (enough credits)
 service_captchadeathby_ready() {
-    local USER=$1
+    local -r USER=$1
     local JSON STATUS AMOUNT ERROR
 
     if [ -z "$1" -o -z "$2" ]; then
