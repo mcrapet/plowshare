@@ -279,11 +279,18 @@ nth_line() {
    sed -ne "${1}p"
 }
 
-# Delete fist line of a text
+# Delete fist line(s) of a buffer
+# $1: (optional) How many head lines to delete (default is 1)
 # stdin: input string (multiline)
 delete_first_line() {
-    # equivalent to `tail -n +2`
-    sed -ne '2,$p'
+    local -r N=${1:-1}
+
+    if (( N < 1 )); then
+        return $ERR_FATAL
+    fi
+
+    # equivalent to `tail -n +2` (if $1=1)
+    sed -ne "$((N+1)),\$p"
 }
 
 # Delete last line of a text
