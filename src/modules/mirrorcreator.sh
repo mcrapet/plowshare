@@ -23,7 +23,7 @@ MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
-INCLUDE,,include,l=LIST,Provide list of host site (space separated)
+INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
 COUNT,,count,n=COUNT,Take COUNT hosters from the available list. Default is 5."
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
@@ -89,8 +89,9 @@ mirrorcreator_upload() {
             (( COUNT-- > 0 )) || break
             SITES_SEL="$SITES_SEL $SITE"
         done
-    elif [ -n "$INCLUDE" ]; then
-        for SITE in $INCLUDE; do
+    elif [ "${#INCLUDE[@]}" -gt 0 ]; then
+        for SITE in "${INCLUDE[@]}"; do
+            # FIXME: Should match word boundary (\< & \> are GNU grep extensions)
             if match "$SITE" "$SITES_ALL"; then
                 SITES_SEL="$SITES_SEL $SITE"
             else

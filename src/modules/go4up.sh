@@ -22,7 +22,7 @@ MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 
 MODULE_GO4UP_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account
-INCLUDE,,include,l=LIST,Provide list of host site (space separated)
+INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
 COUNT,,count,n=COUNT,Take COUNT hosters from the available list. Default is 5.
 API,,api,,Use public API (recommended)"
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
@@ -82,7 +82,7 @@ go4up_upload() {
             return $ERR_BAD_COMMAND_LINE
         fi
 
-        if [ -n "$COUNT" -o -n "$INCLUDE" ]; then
+        if [ -n "$COUNT" -o "${#INCLUDE[@]}" -gt 0 ]; then
             log_error 'Public API does not support hoster selection.'
             return $ERR_BAD_COMMAND_LINE
         fi
@@ -133,6 +133,8 @@ go4up_upload() {
     else
         PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
             "$BASE_URL") || return
+        LINK=$(echo "$PAGE" | parse_attr iframe src) || return
+        PAGE=$(curl "$LINK") || return
         FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
     fi
 
@@ -141,7 +143,7 @@ go4up_upload() {
         FORM=$(echo "$FORM" | break_html_lines)
     fi
 
-    USER_ID=$(echo "$FORM" | parse_form_input_by_name 'id_user')
+    USER_ID=$(echo "$FORM" | parse_form_input_by_name_quiet 'id_user')
     SITES_ALL=$(echo "$FORM" | parse_all_attr checkbox value) || return
 
     # Code copied from mirrorcreator module
@@ -162,8 +164,9 @@ go4up_upload() {
             (( COUNT-- > 0 )) || break
             SITES_SEL="$SITES_SEL $SITE"
         done
-    elif [ -n "$INCLUDE" ]; then
-        for SITE in $INCLUDE; do
+    elif [ "${#INCLUDE[@]}" -gt 0 ]; then
+        for SITE in "${INCLUDE[@]}"; do
+            # FIXME: Should match word boundary (\< & \> are GNU grep extensions)
             if match "$SITE" "$SITES_ALL"; then
                 SITES_SEL="$SITES_SEL $SITE"
             else

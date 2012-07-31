@@ -2166,6 +2166,19 @@ quote()
     echo \'${1//\'/\'\\\'\'}\' #'# Help vim syntax highlighting
 }
 
+# $1: input string
+# stdout: quote items (one per line)
+quote_array() {
+    local -a ARR
+    local E
+    IFS="," read -r -a ARR <<< "$1"
+    echo '('
+    for E in "${ARR[@]}"; do
+        echo "$(quote "$(strip <<< "$E")")"
+    done
+    echo ')'
+}
+
 # Check argument type
 # $1: program name (used for error reporting only)
 # $2: format (a, e, l, n, N, s, S, V)
@@ -2195,7 +2208,7 @@ check_argument_type() {
     # e: E-mail string
     elif [[ "$TYPE" = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
         log_error "$NAME: invalid email address ($OPT)"
-    # l: List (comma-separated values)
+    # l: List (comma-separated values), non empty
     elif [[ "$TYPE" = 'l' && "$VAL" = '' ]]; then
         log_error "$NAME: comma-separated list expected ($OPT)"
     # V: special type for verbosity (values={0,1,2,3,4})
@@ -2232,7 +2245,7 @@ process_options() {
     local -a RES UNUSED_OPTS UNUSED_ARGS
     local -a OPTS_VAR_LONG OPTS_NAME_LONG OPTS_TYPE_LONG
     local -a OPTS_VAR_SHORT OPTS_NAME_SHORT OPTS_TYPE_SHORT
-    local ARG VAR SHORT LONG TYPE HELP SKIP_ARG FOUND
+    local ARG VAR SHORT LONG TYPE HELP SKIP_ARG FOUND FUNC
 
     shift 3
 
@@ -2280,7 +2293,13 @@ process_options() {
             for I in "${!OPTS_NAME_LONG[@]}"; do
                 if [ "${OPTS_NAME_LONG[$I]}" = "${ARG%%=*}" ]; then
                     # Argument required?
-                    TYPE=${OPTS_TYPE_LONG[$I]}
+                    TYPE=${OPTS_TYPE_LONG[$I]%%=*}
+
+                    if [ "$TYPE" = 'l' ]; then
+                        FUNC=quote_array
+                    else
+                        FUNC=quote
+                    fi
 
                     if [ -z "$TYPE" ]; then
                         RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=1"
@@ -2288,8 +2307,8 @@ process_options() {
                     # Argument with equal (ex: --timeout=60)
                     elif [ "${ARG%%=*}" != "$ARG" ]; then
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
-                            "${TYPE%%=*}" "${ARG#*=}" "${ARG%%=*}" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$(quote "${ARG#*=}")"
+                            "$TYPE" "${ARG#*=}" "${ARG%%=*}" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$($FUNC "${ARG#*=}")"
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -2298,8 +2317,8 @@ process_options() {
                         fi
 
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
-                            "${TYPE%%=*}" "$1" "$ARG" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$(quote "$1")"
+                            "$TYPE" "$1" "$ARG" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$($FUNC "$1")"
                         SKIP_ARG=1
                     fi
 
@@ -2313,7 +2332,13 @@ process_options() {
             for I in "${!OPTS_NAME_SHORT[@]}"; do
                 if [ "${OPTS_NAME_SHORT[$I]}" = "${ARG:0:2}" ]; then
                     # Argument required?
-                    TYPE=${OPTS_TYPE_SHORT[$I]}
+                    TYPE=${OPTS_TYPE_SHORT[$I]%%=*}
+
+                    if [ "$TYPE" = 'l' ]; then
+                        FUNC=quote_array
+                    else
+                        FUNC=quote
+                    fi
 
                     if [ -z "$TYPE" ]; then
                         RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=1"
@@ -2321,8 +2346,8 @@ process_options() {
                     # Argument without whitespace (ex: -v3)
                     elif [ ${#ARG} -gt 2 ]; then
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
-                            "${TYPE%%=*}" "${ARG:2}" "${ARG:0:2}" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$(quote "${ARG:2}")"
+                            "$TYPE" "${ARG:2}" "${ARG:0:2}" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$($FUNC "${ARG:2}")"
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -2331,8 +2356,8 @@ process_options() {
                         fi
 
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
-                            "${TYPE%%=*}" "$1" "$ARG" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$(quote "$1")"
+                            "$TYPE" "$1" "$ARG" || return
+                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$($FUNC "$1")"
                         SKIP_ARG=1
                     fi
 
