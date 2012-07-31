@@ -87,7 +87,6 @@ captcha_ayl_process() {
 
         # Reload image
         log_debug "empty, request another image"
-
     done
 
     echo "$RESPONSE"
@@ -128,6 +127,8 @@ dl_free_fr_download() {
 
     test "$CHECK_LINK" && return 0
 
+    FILENAME=$(echo "$PAGE" | parse 'Fichier:' '">\([^<]*\)' 1) || return
+
     FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_FILE=$(echo "$FORM_HTML" | parse_form_input_by_name 'file' | uri_encode_strict)
@@ -138,7 +139,7 @@ dl_free_fr_download() {
     WTTI=$(captcha_ayl_process $PUBKEY) || return
     { read WORD; read TOKEN; read TKID; read ID; } <<<"$WTTI"
 
-    PAGE=$(curl -v -c "$COOKIE_FILE" \
+    PAGE=$(curl -c "$COOKIE_FILE" \
         -d "file=$FORM_FILE" \
         -d "submit=$FORM_SUBM" \
         -d "_ayl_response=$WORD" \
@@ -161,6 +162,7 @@ dl_free_fr_download() {
     log_debug "correct captcha"
 
     echo "$URL"
+    echo "$FILENAME"
 }
 
 # Upload a file to dl.free.fr
