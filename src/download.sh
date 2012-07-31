@@ -725,7 +725,8 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
     unset ELEMENTS[0]
 
     for URL in "${ELEMENTS[@]}"; do
-        MODULE=$(get_module "$URL" "$MODULES")
+        MRETVAL=0
+        MODULE=$(get_module "$URL" "$MODULES") || true
 
         if [ -z "$MODULE" ]; then
             if match_remote_url "$URL"; then
@@ -737,7 +738,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 URL_TEMP=$(curl --user-agent '' -i "$URL_ENCODED" | grep_http_header_location_quiet) || true
 
                 if [ -n "$URL_TEMP" ]; then
-                    MODULE=$(get_module "$URL_TEMP" "$MODULES")
+                    MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
                     test "$MODULE" && URL="$URL_TEMP"
                 elif test "$NO_MODULE_FALLBACK"; then
                     log_notice "No module found, do a simple HTTP GET as requested"
@@ -746,9 +747,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             fi
         fi
 
-        if [ -z "$MODULE" ]; then
+        if [ $MRETVAL -ne 0 ]; then
             log_error "Skip: no module for URL ($URL)"
-            RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
+            RETVALS=(${RETVALS[@]} $MRETVAL)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" 'NOMODULE'
         elif test "$GET_MODULE"; then
             RETVALS=(${RETVALS[@]} 0)
@@ -761,14 +762,12 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             eval "$(process_module_options "$MODULE" DOWNLOAD \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-            DRETVAL=0
-
             "${MODULE}_vars_set"
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
-                "${TEMP_DIR%/}" "${MAXRETRIES:-2}" || DRETVAL=$?
+                "${TEMP_DIR%/}" "${MAXRETRIES:-2}" || MRETVAL=$?
             "${MODULE}_vars_unset"
 
-            RETVALS=(${RETVALS[@]} $DRETVAL)
+            RETVALS=(${RETVALS[@]} $MRETVAL)
         fi
     done
 done

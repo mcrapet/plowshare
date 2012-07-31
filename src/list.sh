@@ -215,11 +215,12 @@ fi
 set_exit_trap
 
 for URL in "${COMMAND_LINE_ARGS[@]}"; do
+    LRETVAL=0
 
-    MODULE=$(get_module "$URL" "$MODULES")
-    if test -z "$MODULE"; then
+    MODULE=$(get_module "$URL" "$MODULES") || LRETVAL=$?
+    if [ $LRETVAL -ne 0 ]; then
         log_error "Skip: no module for URL ($URL)"
-        RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
+        RETVALS=(${RETVALS[@]} $LRETVAL)
         continue
     fi
 
@@ -232,8 +233,6 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
-
-    LRETVAL=0
 
     "${MODULE}_vars_set"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \

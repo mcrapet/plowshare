@@ -1932,10 +1932,10 @@ get_module() {
         local VAR="MODULE_$(uppercase "$MODULE")_REGEXP_URL"
         if match "${!VAR}" "$1"; then
             echo $MODULE
-            break
+            return 0
         fi
     done <<< "$2"
-    return 0
+    return $ERR_NOMODULE
 }
 
 # $1: program name (used for error reporting only)

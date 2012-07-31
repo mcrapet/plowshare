@@ -128,11 +128,12 @@ set_exit_trap
 DCOOKIE=$(create_tempfile) || exit
 
 for URL in "${COMMAND_LINE_ARGS[@]}"; do
+    DRETVAL=0
 
-    MODULE=$(get_module "$URL" "$MODULES")
-    if [ -z "$MODULE" ]; then
+    MODULE=$(get_module "$URL" "$MODULES") || DRETVAL=$?
+    if [ $DRETVAL -ne 0 ]; then
         log_error "Skip: no module for URL ($URL)"
-        RETVALS=(${RETVALS[@]} $ERR_NOMODULE)
+        RETVALS=(${RETVALS[@]} $DRETVAL)
         continue
     fi
 
@@ -147,7 +148,6 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     log_notice "Starting delete ($MODULE): $URL"
 
     :> "$DCOOKIE"
-    DRETVAL=0
 
     "${MODULE}_vars_set"
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
