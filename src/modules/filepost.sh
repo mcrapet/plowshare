@@ -35,137 +35,156 @@ AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_FILEPOST_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+# $4: SID (parsed from cookie)
 filepost_login() {
-    local AUTH=$1
-    local COOKIE_FILE=$2
-    local BASE_URL=$3
-    local LOGIN_DATA LOGIN_RESULT STATUS SID
-
-    # Get SID cookie entry
-    # Note: Giving SID as cookie input seems optional
-    #       (adding "-b $COOKIE_FILE" as last argument to post_login is not required)
-    curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL"
-    SID=$(parse_cookie_quiet 'SID' < "$COOKIE_FILE")
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local -r SID=$4
+    local LOGIN_DATA PAGE STATUS NAME TYPE
 
     LOGIN_DATA='email=$USER&password=$PASSWORD&remember=on&recaptcha_response_field='
-    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/general/login_form/?SID=$SID&JsHttpRequest=$(date +%s000)-xml") || return
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/general/login_form/?SID=$SID&JsHttpRequest=$(date +%s0000)-xml" \
+        -b "$COOKIE_FILE") || return
 
-    # JsHttpRequest is important to get JSON answers, if unused, we get an extra
-    # cookie entry named "error" (in case of incorrect login)
+    # "JsHttpRequest" is important to get JSON answers, if unused, we get an
+    # extra cookie entry named "error" (in case of incorrect login)
 
     # This IP address has been blocked on our service due to some fraudulent activity.
-    if match 'IP address has been blocked on our service' "$LOGIN_RESULT"; then
+    if match 'IP address has been blocked on our service' "$PAGE"; then
         log_error 'Your IP/account is blocked by the server.'
         return $ERR_FATAL
 
     # Sometimes prompts for reCaptcha (like depositfiles)
     # {"id":"1234","js":{"answer":{"captcha":true}},"text":""}
-    elif match_json_true 'captcha' "$LOGIN_RESULT"; then
-        log_debug "recaptcha solving required for login"
+    elif match_json_true 'captcha' "$PAGE"; then
+        log_debug "Captcha solving required for login"
 
         local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6Leu6cMSAAAAAFOynB3meLLnc9-JYi-4l94A6cIE'
         WCI=$(recaptcha_process $PUBKEY) || return
-        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+        { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
 
         LOGIN_DATA="email=\$USER&password=\$PASSWORD&remember=on&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD"
-        LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-            "$BASE_URL/general/login_form/?SID=$SID&JsHttpRequest=$(date +%s000)-xml") || return
+        PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "$BASE_URL/general/login_form/?SID=$SID&JsHttpRequest=$(date +%s0000)-xml" \
+            -b "$COOKIE_FILE") || return
+
+        # {"id":"1234","js":{"answer":{"success":true},"redirect":"http:\/\/filepost.com\/"},"text":""}
+        if match_json_true 'success' "$PAGE"; then
+            log_debug 'Correct captcha'
+            captcha_ack $ID
 
         # {"id":"1234","js":{"error":"Incorrect e-mail\/password combination"},"text":""}
-        if match 'Incorrect e-mail' "$LOGIN_RESULT"; then
+        elif match 'Incorrect e-mail' "$PAGE"; then
             captcha_ack $ID
             return $ERR_LOGIN_FAILED
-        # {"id":"1234","js":{"answer":{"success":true},"redirect":"http:\/\/filepost.com\/"},"text":""}
-        elif match_json_true 'success' "$LOGIN_RESULT"; then
-            captcha_ack $ID
-            log_debug "correct captcha"
+
         # {"id":"1234","js":{"answer":{"captcha":true},"error":"The code you entered is incorrect. Please try again."},"text":""}
-        else
+        elif match 'The code you entered is incorrect' "$PAGE"; then
             captcha_nack $ID
-            log_debug "reCaptcha error"
             return $ERR_CAPTCHA
+
+        else
+            log_error "Unexpected result: $PAGE"
+            return $ERR_FATAL
         fi
     fi
 
     # If successful, two entries are added into cookie file: u and remembered_user
     STATUS=$(parse_cookie_quiet 'remembered_user' < "$COOKIE_FILE")
-    if [ -z "$STATUS" ]; then
-        return $ERR_LOGIN_FAILED
+    [ -z "$STATUS" ] && return $ERR_LOGIN_FAILED
+
+    # Determine account type
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
+    NAME=$(echo "$PAGE" | parse_tag 'Welcome, ' b) || return
+
+    if match '<li>Account type:[[:space:]]*<span>Free</span></li>' "$PAGE"; then
+        TYPE='free'
+    # Note: educated guessing for now
+    elif match '<li>Account type: <span>Premium</span></li>' "$PAGE"; then
+        TYPE='premium'
+    else
+        log_error 'Could not determine account type. Site updated?'
+        return $ERR_FATAL
     fi
+
+    log_debug "Successfully logged in as $TYPE member '$NAME'"
+    echo "$TYPE"
+}
+
+# Switch language to english
+# $1: cookie file
+# $2: base URL
+filepost_switch_lang() {
+    curl -c "$1" -d 'language=1' -d "JsHttpRequest=$(date +%s0000)-xml" \
+        "$2/general/select_language/" -o /dev/null || return
 }
 
 # $1: cookie file
 # $2: filepost.com url
 # stdout: real file download link
 filepost_download() {
-    local COOKIEFILE=$1
-    local URL=$2
-    local BASE_URL='http://filepost.com'
-    local PAGE FILE_NAME JSON SID CODE FILE_PASS TID JSURL WAIT ROLE
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='https://filepost.com'
+    local PAGE SID FILE_NAME JSON SID CODE FILE_PASS TID JS_URL WAIT ROLE
+
+    filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    SID=$(parse_cookie 'SID' < "$COOKIE_FILE") || return
 
     if [ -n "$AUTH" ]; then
-        filepost_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-        PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
-
-        # duplicated code (see below)
-        if matchi 'file not found' "$PAGE"; then
-            return $ERR_LINK_DEAD
-        fi
-
-        ROLE=$(echo "$PAGE" | parse_tag 'Account type' span) || return
-        if [ "$ROLE" != 'Free' ]; then
-            FILE_URL=$(echo "$PAGE" | parse '/get_file/' "('\(http[^']*\)") || return
-            FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
-
-            echo "$FILE_URL"
-            echo "$FILE_NAME"
-            return 0
-        fi
-    elif [ -s "$COOKIEFILE" ]; then
-        PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
-    else
-        PAGE=$(curl -L -c "$COOKIEFILE" "$URL") || return
+        ROLE=filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID" || return
     fi
 
-    # <div class="file_info file_info_deleted">
-    if matchi 'file not found' "$PAGE"; then
-        return $ERR_LINK_DEAD
-    # <div class="file_info file_info_temp_unavailable">
-    # We are sorry, the server where this file is located is currently unavailable,
-    # but should be recovered soon. Please try to download this file later.
-    elif matchi 'is currently unavailable' "$PAGE"; then
+    PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
+
+    # <h1 title="">File not found</h1>
+    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+
+    [ -n "$CHECK_LINK" ] && return 0
+
+    # We are sorry, the server where this file is located is currently unavailable, but should be recovered soon. Please try to download this file later.
+    if matchi 'is currently unavailable' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif matchi 'files over 400MB can be' "$PAGE"; then
+
+    # Files over 1024MB can be downloaded by premium<br/ >members only. Please upgrade to premium to<br />download this file at the highest speed.
+    elif match 'Files over .\+ can be downloaded by premium' "$PAGE"; then
         return $ERR_SIZE_LIMIT_EXCEEDED
+
     elif matchi 'premium membership is required' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    test "$CHECK_LINK" && return 0
-
     FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
-    FILE_PASS=
+
+    if [ "$ROLE" = 'premium' ]; then
+        FILE_URL=$(echo "$PAGE" | parse '/get_file/' "('\(http[^']*\)") || return
+
+        echo "$FILE_URL"
+        echo "$FILE_NAME"
+        return 0
+    fi
 
     CODE=$(echo "$URL" | parse '/files/' 'files/\([^/]*\)') || return
     TID=t$(random d 4)
-
-    # Cookie is just needed for SID
-    SID=$(parse_cookie 'SID' < "$COOKIEFILE") || return
-    JSURL="$BASE_URL/files/get/?SID=$SID&JsHttpRequest=$(date +%s000)-xml"
+    JS_URL="$BASE_URL/files/get/?SID=$SID&JsHttpRequest=$(date +%s0000)-xml"
 
     log_debug "code=$CODE, sid=$SID, tid=$TID"
 
     JSON=$(curl --data \
-        "action=set_download&code=$CODE&token=$TID" "$JSURL") || return
+        "action=set_download&code=$CODE&token=$TID" "$JS_URL") || return
 
     # {"id":"12345","js":{"answer":{"wait_time":"60"}},"text":""}
     WAIT=$(echo "$JSON" | parse 'wait_time' \
         'wait_time"[[:space:]]*:[[:space:]]*"\([^"]*\)')
 
-    if test -z "$WAIT"; then
-        log_error "Cannot get wait time"
+    if [ -z "$WAIT" ]; then
+        log_error 'Cannot get wait time'
         log_debug "$JSON"
         return $ERR_FATAL
     fi
@@ -176,21 +195,22 @@ filepost_download() {
     local PUBKEY WCI CHALLENGE WORD ID
     PUBKEY='6Leu6cMSAAAAAFOynB3meLLnc9-JYi-4l94A6cIE'
     WCI=$(recaptcha_process $PUBKEY) || return
-    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+    { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
 
-    JSON=$(curl --data \
-        "code=$CODE&file_pass=$FILE_PASS&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD&token=$TID" \
-        "$JSURL") || return
+    JSON=$(curl -d "code=$CODE" -d "file_pass=$FILE_PASS" \
+        -d "recaptcha_challenge_field=$CHALLENGE" \
+        -d "recaptcha_response_field=$WORD" -d "token=$TID" \
+        "$JS_URL") || return
 
     # {"id":"12345","js":{"error":"You entered a wrong CAPTCHA code. Please try again."},"text":""}
     if matchi 'wrong CAPTCHA code' "$JSON"; then
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'Correct captcha'
 
     # {"id":"12345","js":{"answer":{"link":"http:\/\/fs122.filepost.com\/get_file\/...\/"}},"text":""}
     # {"id":"12345","js":{"error":"f"},"text":""}
@@ -200,7 +220,7 @@ filepost_download() {
         if match 'need to wait' "$ERR"; then
             return $ERR_LINK_TEMP_UNAVAILABLE
         else
-            log_error "remote error: $ERR"
+            log_error "Unexpected remote error: $ERR"
             return $ERR_FATAL
         fi
     fi
@@ -217,20 +237,18 @@ filepost_download() {
 # $3: remote filename
 # stdout: download_url
 filepost_upload() {
-    local COOKIE_FILE=$1
-    local FILE=$2
-    local DESTFILE=$3
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
     local BASE_URL='https://filepost.com'
-    local PAGE ROLE SERVER MAX_SIZE SID DONE_URL DATA FID
+    local PAGE SERVER MAX_SIZE SID DONE_URL DATA FID
 
-    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
+    filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    SID=$(parse_cookie_quiet 'SID' < "$COOKIE_FILE") || return
+    filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID" > /dev/null || return
 
-    filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     PAGE=$(curl -L -b "$COOKIE_FILE" "$BASE_URL/files/upload") || return
-
-    ROLE=$(echo "$PAGE" | parse_tag 'Account type' span) || return
-    log_debug "Account type: $ROLE"
-
     SERVER=$(echo "$PAGE" | parse '[[:space:]]upload_url' ":[[:space:]]'\([^']*\)") || return
     MAX_SIZE=$(echo "$PAGE" | parse 'max_file_size:' ":[[:space:]]*\([^,]\+\)") || return
 
@@ -240,13 +258,12 @@ filepost_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    SID=$(echo "$PAGE" | parse 'SID:' ":[[:space:]]*'\([^']*\)") || return
     DONE_URL=$(echo "$PAGE" | parse 'done_url:' ":[[:space:]]*'\([^']*\)") || return
 
     DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
-        -F "Filename=$DESTFILE" \
+        -F "Filename=$DEST_FILE" \
         -F "SID=$SID" \
-        -F "file=@$FILE;filename=$DESTFILE" \
+        -F "file=@$FILE;filename=$DEST_FILE" \
         -F 'Upload=Submit Query' \
         "$SERVER") || return
 
@@ -276,7 +293,9 @@ filepost_delete() {
     fi
 
     [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
-    filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    SID=$(parse_cookie_quiet 'SID' < "$COOKIE_FILE") || return
+    filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID" > /dev/null || return
 
     PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
 
@@ -284,10 +303,9 @@ filepost_delete() {
     match '<ins class="delete">Delete File</ins>' "$PAGE" || return $ERR_LINK_DEAD
 
     FILE_ID=$(echo "$PAGE" | parse_form_input_by_name 'items\[files\]') || return
-    SID=$(parse_cookie 'SID' < "$COOKIE_FILE") || return
 
     # Deletion via edit/delete page doesn't work, so we use file manager instead
-    # Note: Parameters concerning file order ... are not required
+    # Note: Parameters concerning file order etc. are not required
     PAGE=$(curl -b "$COOKIE_FILE" --referer "$BASE_URL/files/manager/" \
         -d 'action=delete_items' -d "items[files][0]=$FILE_ID" \
         "$BASE_URL/files/manager/?SID=$SID&JsHttpRequest=$(date +%s)0000-xml") || return
