@@ -29,6 +29,9 @@ MODULE_FILEPOST_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_FILEPOST_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_FILEPOST_DELETE_OPTIONS="
+AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
+
 MODULE_FILEPOST_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
@@ -256,6 +259,45 @@ filepost_upload() {
 
     echo "$DATA" | parse_attr 'id="down_link' value || return
     echo "$DATA" | parse_attr 'id="edit_link' value || return
+}
+
+# Delete a file from FilePost
+# $1: cookie file
+# $2: filepost (download) link
+filepost_delete() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='https://filepost.com'
+    local PAGE FILE_ID SID
+
+    if ! match '/files/edit/' "$URL"; then
+        log_error "This is not a delete link"
+        return $ERR_FATAL
+    fi
+
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
+    filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+
+    # <span><b><ins class="delete">Delete File</ins></b></span>
+    match '<ins class="delete">Delete File</ins>' "$PAGE" || return $ERR_LINK_DEAD
+
+    FILE_ID=$(echo "$PAGE" | parse_form_input_by_name 'items\[files\]') || return
+    SID=$(parse_cookie 'SID' < "$COOKIE_FILE") || return
+
+    # Deletion via edit/delete page doesn't work, so we use file manager instead
+    # Note: Parameters concerning file order ... are not required
+    PAGE=$(curl -b "$COOKIE_FILE" --referer "$BASE_URL/files/manager/" \
+        -d 'action=delete_items' -d "items[files][0]=$FILE_ID" \
+        "$BASE_URL/files/manager/?SID=$SID&JsHttpRequest=$(date +%s)0000-xml") || return
+
+    # No useful feedback ... check if file is gone
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+    match '<ins class="delete">Delete File</ins>' "$PAGE" || return 0
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }
 
 # List a filepost web folder URL
