@@ -70,7 +70,7 @@ go4up_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://go4up.com'
-    local PAGE LINK FORM UPLOAD_ID USER_ID
+    local PAGE LINK FORM UPLOAD_ID USER_ID UPLOAD_BASE_URL
     local SITE HOST SITES_ALL SITES_SEL SITES_FORM SITES_MULTI
 
     if [ -n "$API" ]; then
@@ -130,13 +130,17 @@ go4up_upload() {
         PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
             "$BASE_URL/remote.php") || return
         FORM=$(grep_form_by_id "$PAGE" 'form_upload') || return
+        UPLOAD_BASE_URL=$(echo "$FORM" | parse_form_action) || return
     else
         PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
             "$BASE_URL") || return
-        LINK=$(echo "$PAGE" | parse_attr iframe src) || return
-        PAGE=$(curl "$LINK") || return
+        UPLOAD_BASE_URL=$(echo "$PAGE" | parse_attr iframe src) || return
+        PAGE=$(curl "$UPLOAD_BASE_URL") || return
         FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
     fi
+
+    UPLOAD_BASE_URL=$(basename_url "$UPLOAD_BASE_URL") || return
+    log_debug "Upload base URL: $UPLOAD_BASE_URL"
 
     # When logged into account all form fields are on a single line
     if [ -n "$AUTH_FREE" ]; then
@@ -201,12 +205,11 @@ go4up_upload() {
             parse_form_input_by_id 'progress_key') || return
 
         PAGE=$(curl_with_log -b "$COOKIE_FILE" \
-            --referer "$BASE_URL/remote.php" \
             -F "APC_UPLOAD_PROGRESS=$UPLOAD_ID" \
             -F "id_user=$USER_ID" \
             -F "url=$FILE" \
             $SITES_MULTI \
-            "$BASE_URL/copy_remote.php") || return
+            "$UPLOAD_BASE_URL/copy_remote.php") || return
 
         if ! match 'Your link' "$PAGE"; then
             log_error 'Error uploading to server'
@@ -224,33 +227,29 @@ go4up_upload() {
             parse 'path_to_upload_script' '"\([^"]\+\)"') || return
 
         PAGE=$(curl -b "$COOKIE_FILE" \
-            --referer "$BASE_URL/index.php" \
             $SITES_FORM \
             -d "id_user=$USER_ID" \
             -d "upload_file[]=$DESTFILE" \
-            "$BASE_URL$UPLOAD_URL1") || return
+            "$UPLOAD_BASE_URL$UPLOAD_URL1") || return
 
         # if(typeof UberUpload.startUpload == 'function')
         # { UberUpload.startUpload("f7c3511c7eac0716dc64bba7e32ef063",0,0); }
         UPLOAD_ID=$(echo "$PAGE" | parse 'startUpload(' '"\([^"]\+\)"') || return
-        log_debug "id: $UPLOAD_ID"
+        log_debug "Upload ID: $UPLOAD_ID"
 
         # Note: No need to call ubr_set_progress.php, ubr_get_progress.php
 
         PAGE=$(curl_with_log -b "$COOKIE_FILE" \
-            --referer "$BASE_URL/index.php" \
             -F "id_user=$USER_ID" \
             -F "upfile_$(date +%s)000=@$FILE;filename=$DESTFILE" \
             $SITES_MULTI \
-            "$BASE_URL$UPLOAD_URL2?upload_id=$UPLOAD_ID") || return
+            "$UPLOAD_BASE_URL$UPLOAD_URL2?upload_id=$UPLOAD_ID") || return
 
         # parent.UberUpload.redirectAfterUpload('../../uploaded.php?upload_id=9f07...
         UPLOAD_URL1=$(echo "$PAGE" | \
             parse 'redirectAfter' "'\.\./\.\.\([^']\+\)'") || return
 
-        PAGE=$(curl -b "$COOKIE_FILE" \
-            --referer "$BASE_URL/index.php" \
-            "$BASE_URL$UPLOAD_URL1") || return
+        PAGE=$(curl -b "$COOKIE_FILE" "$UPLOAD_BASE_URL$UPLOAD_URL1") || return
 
         LINK=$(echo "$PAGE" | parse_attr '/dl/' href) || return
     fi
