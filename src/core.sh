@@ -1087,17 +1087,17 @@ captcha_process() {
     # Auto (guess) mode
     if [ -z "$METHOD_SOLVE" ]; then
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
-            METHOD_SOLVE='antigate'
-            METHOD_VIEW='none'
+            METHOD_SOLVE=antigate
+            METHOD_VIEW=none
         elif [ -n "$CAPTCHA_BHOOD" ]; then
-            METHOD_SOLVE='captchabrotherhood'
-            METHOD_VIEW='none'
+            METHOD_SOLVE=captchabrotherhood
+            METHOD_VIEW=none
         elif [ -n "$CAPTCHA_TRADER" ]; then
-            METHOD_SOLVE='captchatrader'
-            METHOD_VIEW='none'
+            METHOD_SOLVE=captchatrader
+            METHOD_VIEW=none
         elif [ -n "$CAPTCHA_DEATHBY" ]; then
-            METHOD_SOLVE='deathbycaptcha'
-            METHOD_VIEW='none'
+            METHOD_SOLVE=deathbycaptcha
+            METHOD_VIEW=none
         else
             METHOD_SOLVE=prompt
         fi
@@ -1602,7 +1602,7 @@ solvemedia_captcha_process() {
 }
 
 # Positive acknowledge of captcha answer
-# $1: id (given by captcha_process or recpatcha_process)
+# $1: id (returned by captcha_process/recaptcha_process/solvemedia_captcha_process)
 captcha_ack() {
     [ "$1" = 0 ] && return
 
@@ -1610,11 +1610,7 @@ captcha_ack() {
     local -r TID=${1:1}
     local RESPONSE STR
 
-    if [ a = "$M" ]; then
-        :
-    elif [ b = "$M" ]; then
-        :
-    elif [ c = "$M" ]; then
+    if [ c = "$M" ]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local USERNAME=${CAPTCHA_TRADER%%:*}
             local PASSWORD=${CAPTCHA_TRADER#*:}
@@ -1633,15 +1629,13 @@ captcha_ack() {
         else
             log_error "$FUNCNAME failed: captcha.trader missing account data"
         fi
-    elif [ d = "$M" ]; then
-        :
-    else
+    elif [[ "$M" != [abd] ]]; then
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
 
 # Negative acknowledge of captcha answer
-# $1: id (given by captcha_process or recpatcha_process)
+# $1: id (returned by captcha_process/recaptcha_process/solvemedia_captcha_process)
 captcha_nack() {
     [ "$1" = 0 ] && return
 
@@ -2558,7 +2552,6 @@ index_in_array() {
 # $2: captcha trader password (or passkey)
 # $?: 0 for success (enough credits)
 service_captchatrader_ready() {
-    local -r USER=$1
     local RESPONSE STATUS AMOUNT ERROR
 
     if [ -z "$1" -o -z "$2" ]; then
@@ -2566,7 +2559,7 @@ service_captchatrader_ready() {
         return $ERR_FATAL
     fi
 
-    RESPONSE=$(curl "http://api.captchatrader.com/get_credits/$USER/$2") || { \
+    RESPONSE=$(curl "http://api.captchatrader.com/get_credits/$1/$2") || { \
         log_notice "captcha.trader: site seems to be down"
         return $ERR_NETWORK
     }
@@ -2575,7 +2568,7 @@ service_captchatrader_ready() {
     if [ "$STATUS" = '0' ]; then
         AMOUNT=$(echo "$RESPONSE" | parse_quiet . ',[[:space:]]*\([[:digit:]]\+\)')
         if [[ $AMOUNT -lt 10 ]]; then
-            log_notice "captcha.trader: not enough credits ($USER)"
+            log_notice "captcha.trader: not enough credits ($1)"
             return $ERR_FATAL
         fi
     else
