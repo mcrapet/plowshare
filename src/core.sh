@@ -54,6 +54,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
 #   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
 #   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
+#   - CAPTCHA_BHOOD    (plowdown) Captcha Brotherhood account
 #   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
 #   - MODULE           Module name (don't include .sh)
 #
@@ -1088,6 +1089,9 @@ captcha_process() {
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
             METHOD_SOLVE='antigate'
             METHOD_VIEW='none'
+        elif [ -n "$CAPTCHA_BHOOD" ]; then
+            METHOD_SOLVE='captchabrotherhood'
+            METHOD_VIEW='none'
         elif [ -n "$CAPTCHA_TRADER" ]; then
             METHOD_SOLVE='captchatrader'
             METHOD_VIEW='none'
@@ -1269,6 +1273,59 @@ captcha_process() {
             # result on two lines
             echo "$WORD"
             echo "a$TID"
+            ;;
+        captchabrotherhood)
+            local USERNAME=${CAPTCHA_BHOOD%%:*}
+            local PASSWORD=${CAPTCHA_BHOOD#*:}
+
+            if ! service_captchabrotherhood_ready "$USERNAME" "$PASSWORD"; then
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            log_notice "Using captcha brotherhood bypass service ($USERNAME)"
+
+            # Content-Type is mandatory.
+            # timeout parameter has no effect
+            RESPONSE=$(curl --data-binary "@$FILENAME" \
+                --header 'Content-Type: text/html' \
+                "http://ocrhood.gazcad.com/sendNewCaptcha.aspx?username=$USERNAME&password=$PASSWORD&captchaSource=plowshare&timeout=20") || return
+
+            if [ "${RESPONSE:0:3}" = 'OK-' ]; then
+                TID=${RESPONSE:3}
+                if [ -n "$TID" ]; then
+                    for I in 6 5 5 6 6 7 7 8; do
+                        wait $I seconds
+                        RESPONSE=$(curl --get \
+                            -d "username=$USERNAME" -d "password=$PASSWORD" \
+                            -d "captchaID=$TID" \
+                            'http://ocrhood.gazcad.com/askCaptchaResult.aspx') || return
+
+                        if [ "${RESPONSE:0:12}" = 'OK-answered-' ]; then
+                            WORD=${RESPONSE:12}
+                            if [ -n "$WORD" ]; then
+                                # result on two lines
+                                echo "$WORD"
+                                echo "b$TID"
+                                return 0
+                            else
+                                RESPONSE='empty word?'
+                            fi
+                            break
+                        elif [ "${RESPONSE:0:3}" != 'OK-' ]; then
+                            break
+                        fi
+
+                        # OK-on user-
+                    done
+                else
+                    RESPONSE='empty tid?'
+                fi
+            fi
+
+            log_error "Captcha Brotherhood error: ${RESPONSE#Error-}"
+            rm -f "$FILENAME"
+            return $ERR_FATAL
             ;;
         captchatrader)
             local USERNAME=${CAPTCHA_TRADER%%:*}
@@ -1555,6 +1612,8 @@ captcha_ack() {
 
     if [ a = "$M" ]; then
         :
+    elif [ b = "$M" ]; then
+        :
     elif [ c = "$M" ]; then
         if [ -n "$CAPTCHA_TRADER" ]; then
             local USERNAME=${CAPTCHA_TRADER%%:*}
@@ -1600,6 +1659,23 @@ captcha_nack() {
                 log_error "antigate error: $RESPONSE"
         else
             log_error "$FUNCNAME failed: antigate missing captcha key"
+        fi
+
+    elif [ b = "$M" ]; then
+        if [ -n "$CAPTCHA_BHOOD" ]; then
+            local USERNAME=${CAPTCHA_BHOOD%%:*}
+            local PASSWORD=${CAPTCHA_BHOOD#*:}
+
+            log_debug "captcha brotherhood report nack ($USERNAME)"
+
+            RESPONSE=$(curl --get \
+                -d "username=$USERNAME" -d "password=$PASSWORD" \
+                -d "captchaID=$TID" \
+                'http://ocrhood.gazcad.com/complainCaptcha.aspx') || return
+
+            log_error "$FUNCNAME FIXME cbh[$RESPONSE]"
+        else
+            log_error "$FUNCNAME failed: captcha brotherhood missing account data"
         fi
 
     elif [ c = "$M" ]; then
@@ -2129,6 +2205,8 @@ captcha_method_translate() {
             local SITE
             if [ -n "$CAPTCHA_ANTIGATE" ]; then
                 SITE=antigate
+            elif [ -n "$CAPTCHA_BHOOD" ]; then
+                SITE=captchabrotherhood
             elif [ -n "$CAPTCHA_TRADER" ]; then
                 SITE=captchatrader
             elif [ -n "$CAPTCHA_DEATHBY" ]; then
@@ -2545,6 +2623,37 @@ service_antigate_ready() {
     else
         log_debug "antigate credits: \$$AMOUNT"
     fi
+}
+
+# Verify balance (Captcha Brotherhood)
+# $1: captcha brotherhood username
+# $2: captcha brotherhood password
+# $?: 0 for success (enough credits)
+service_captchabrotherhood_ready() {
+    local RESPONSE AMOUNT ERROR
+
+    if [ -z "$1" -o -z "$2" ]; then
+        log_error "CaptchaBrotherhood missing account data"
+        return $ERR_FATAL
+    fi
+
+    RESPONSE=$(curl --get -d "username=$1" -d "password=$2" \
+        'http://ocrhood.gazcad.com/askCredits.aspx') || return
+
+    if [ "${RESPONSE:0:3}" = 'OK-' ]; then
+        AMOUNT=${RESPONSE:3}
+
+        if (( AMOUNT < 10 )); then
+            log_notice "CaptchaBrotherHood: not enough credits ($1)"
+            return $ERR_FATAL
+        fi
+    else
+        ERROR=${RESPONSE#Error-}
+        log_error "CaptchaBrotherHood: $ERROR"
+        return $ERR_FATAL
+    fi
+
+    log_debug "CaptchaBrotherhood credits: $AMOUNT"
 }
 
 # Verify balance (DeathByCaptcha)

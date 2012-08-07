@@ -42,6 +42,7 @@ CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Av
 CAPTCHA_PROGRAM,,captchaprogram,s=SCRIPT,Call external script for captcha solving.
 CAPTCHA_TRADER,,captchatrader,a=USER:PASSWD,CaptchaTrader account
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
+CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies,s=FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
@@ -688,6 +689,7 @@ if [ -n "$CAPTCHA_METHOD" ]; then
 else
     [ -n "$CAPTCHA_TRADER" ] && log_debug "plowdown: --captchatrader selected"
     [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowdown: --captchabhood selected"
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdown: --deathbycaptcha selected"
 fi
 

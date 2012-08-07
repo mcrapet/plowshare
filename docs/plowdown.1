@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "July 1, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "August 7, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -108,6 +108,9 @@ Default option value is 2 (i.e. 3 tries) and applies for one single URL download
 .BI "   " " " --antigate "=KEY"
 Use Antigate.com service to solve captcha.
 .TP
+.BI "   " " " --captchabhood "=USER:PASSWORD"
+Use Captcha Brotherhood service to solve captcha.
+.TP
 .BI "   " " " --captchatrader "=USER:PASSWORD"
 Use Captcha Trader service to solve captcha.
 .TP
@@ -123,7 +126,7 @@ Force specific captcha solving method. Available values:
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website (Antigate, CaptchaTrader or DeathByCaptcha account required).
+\fBonline\fR : use captcha solving website (Antigate, CaptchaBrotherhood, CaptchaTrader or DeathByCaptcha account required).
 .RE
 .RS
 \fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
