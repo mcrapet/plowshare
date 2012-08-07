@@ -42,8 +42,8 @@ To run plowshare you will require:
     - img2txt (libcaca) or
     - tiv (perl script using Image::Magick, color output) or
     - Antigate.com account or
-    - CapthaBrotherhood account or
-    - CapthaTrader account or
+    - CaptchaBrotherhood account or
+    - CaptchaTrader account or
     - DeathByCaptcha account
 
 > Some websites requires javascript interpreter [1]
