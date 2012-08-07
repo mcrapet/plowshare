@@ -272,59 +272,59 @@ download() {
             0)
                 ;;
             $ERR_LOGIN_FAILED)
-                log_notice "Login process failed. Bad username/password or unexpected content"
+                log_error "Login process failed. Bad username/password or unexpected content"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_TEMP_UNAVAILABLE)
-                log_notice "Warning: file link is alive but not currently available, try later"
+                log_error "File link is alive but not currently available, try later"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
-                log_notice "You must provide a valid password"
+                log_error "You must provide a valid password"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'PASSWORD'
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
-                log_notice "Insufficient permissions (private/premium link)"
+                log_error "Insufficient permissions (private/premium link)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_SIZE_LIMIT_EXCEEDED)
-                log_notice "Insufficient permissions (file size limit exceeded)"
+                log_error "Insufficient permissions (file size limit exceeded)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_DEAD)
-                log_notice "Link is not alive: file not found"
+                log_error "Link is not alive: file not found"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'NOTFOUND'
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_MAX_WAIT_REACHED)
-                log_notice "Delay limit reached (${FUNCTION})"
+                log_error "Delay limit reached (${FUNCTION})"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_MAX_TRIES_REACHED)
-                log_notice "Retry limit reached (max=$MAX_RETRIES)"
+                log_error "Retry limit reached (max=$MAX_RETRIES)"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_CAPTCHA)
-                log_notice "Error decoding captcha (${FUNCTION})"
+                log_error "Error decoding captcha (${FUNCTION})"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_SYSTEM)
-                log_notice "System failure (${FUNCTION})"
+                log_error "System failure (${FUNCTION})"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_BAD_COMMAND_LINE)
-                log_notice "Wrong module option, check your command line"
+                log_error "Wrong module option, check your command line"
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
