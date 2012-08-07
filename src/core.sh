@@ -2642,7 +2642,7 @@ service_captchabrotherhood_ready() {
         fi
     else
         ERROR=${RESPONSE#Error-}
-        log_error "CaptchaBrotherHood: $ERROR"
+        log_error "CaptchaBrotherHood error: $ERROR"
         return $ERR_FATAL
     fi
 
