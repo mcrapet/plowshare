@@ -745,6 +745,8 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 elif test "$NO_MODULE_FALLBACK"; then
                     log_notice "No module found, do a simple HTTP GET as requested"
                     MODULE='module_null'
+                else
+                    MRETVAL=$ERR_NOMODULE
                 fi
             fi
         fi
