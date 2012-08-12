@@ -345,8 +345,8 @@ parse_all() {
         [ $N -eq 0 ] || return $ERR_FATAL
     fi
 
-    [ ${PARSE:0:1} = '^' ] || REGEXP="^.*$PARSE"
-    [ ${PARSE:(-1):1} = '$' ] || REGEXP="$PARSE.*$"
+    [ ${PARSE:0:1} = '^' ] || PARSE="^.*$PARSE"
+    [ ${PARSE:(-1):1} = '$' ] || PARSE="$PARSE.*$"
     PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p;
 
     if [ $N -eq 0 ]; then
