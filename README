@@ -23,7 +23,7 @@ Dependencies
 
 To run plowshare you will require:
 
-> A POSIX compliant operating system: 
+> A POSIX compliant operating system:
     - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
     - BSD/Mac OSX: requires GNU-sed
     - Cygwin
@@ -62,7 +62,7 @@ See INSTALL file for details.
 Usage examples
 ==============
 
-All four scripts share the same verbose options: 
+All four scripts share the same verbose options:
 > '-v0' (alias: '-q'),
 > '-v1' (errors only),
 > '-v2' (infos message; default),
@@ -79,7 +79,7 @@ $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
   Like firefox (append .part suffix to filename while file is being downloaded)
 $ plowdown --temp-rename http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-2. Download a file from Rapidshare with a proxy (curl supports "http_proxy" and 
+2. Download a file from Rapidshare with a proxy (curl supports "http_proxy" and
    "https_proxy" environment variables, notice that 3128 is the default port)
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
@@ -104,7 +104,7 @@ $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
 
 9. Advanced use. Use a different download manager for the final link download.
-   File URL, file name and cookie file are available through interpolations. 
+   File URL, file name and cookie file are available through interpolations.
 $ plowdown --exec 'wget -O "%f" %d' http://www.mediafire.com/?k10t0egmhi23f
 $ plowdown --exec 'wget --load-cookies %c -O "%f" %d' http://uploading.com/files/39267me4/foo.zip/
   For premium users, use 2 connections:
@@ -175,7 +175,7 @@ $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/fold
 Implement your own modules
 ==========================
 
-Core of plowshare export a set of API to help text and HTML processing. 
+Core of plowshare export a set of API to help text and HTML processing.
 It is designed to be as simple as possible to develop new modules.
 A module must be written in shell with portability in mind; one module matches
 one website.
