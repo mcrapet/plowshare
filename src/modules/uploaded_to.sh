@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\|ul\)\.to/"
+MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\.\(to\|net\)\|ul\.to\)/"
 
 MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -65,8 +65,8 @@ uploaded_to_login() {
 # stdout: real file download link
 # Note: Anonymous download restriction: 1 file every 60 minutes.
 uploaded_to_download() {
-    local COOKIEFILE=$1
-    local BASE_URL='http://uploaded.to'
+    local -r COOKIEFILE=$1
+    local -r BASE_URL='http://uploaded.net'
     local URL FILE_ID HTML SLEEP FILE_NAME FILE_URL PAGE
 
     # uploaded.to redirects all possible urls of a file to the canonical one
@@ -193,10 +193,10 @@ uploaded_to_download() {
 # $3: remote filename
 # stdout: ul.to download link
 uploaded_to_upload() {
-    local COOKIEFILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local BASE_URL='http://uploaded.to'
+    local -r COOKIEFILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r BASE_URL='http://uploaded.net'
 
     local JS SERVER DATA FILE_ID AUTH_DATA ADMIN_CODE
 
@@ -221,14 +221,10 @@ uploaded_to_upload() {
     FILE_ID="${DATA%%,*}"
 
     if [ -n "$DESCRIPTION" ]; then
-        if [ -n "$AUTH" ]; then
-            DATA=$(curl -b "$COOKIEFILE" --referer "$BASE_URL/manage" \
-            --form-string "description=$DESCRIPTION" \
-            "$BASE_URL/file/$FILE_ID/edit/description") || return
-            log_debug "description set to: $DATA"
-        else
-            log_error "Anonymous users cannot set description"
-        fi
+        DATA=$(curl -b "$COOKIEFILE" --referer "$BASE_URL/manage" \
+        --form-string "description=$DESCRIPTION" \
+        "$BASE_URL/file/$FILE_ID/edit/description") || return
+        log_debug "description set to: $DATA"
     fi
 
     echo "http://ul.to/$FILE_ID"
