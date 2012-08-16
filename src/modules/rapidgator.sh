@@ -141,7 +141,6 @@ rapidgator_download() {
     local -r URL=$2
     local -r BASE_URL='http://rapidgator.net'
     local -r CAPTCHA_URL='/download/captcha'
-
     local ACCOUNT HTML FILE_ID FILE_NAME SESSION_ID JSON STATE
     local WAIT_TIME FORM RESP CHALL CAPTCHA_DATA ID
 
@@ -169,6 +168,23 @@ rapidgator_download() {
 
     [ -n "$CHECK_LINK" ] && return 0
 
+    # [premium] You have reached daily quota of downloaded information for premium accounts. At the moment, the quota is 15 GB
+    # [free, anon] You have reached your daily downloads limit. Please try again later.
+    if match 'You have reached.*daily.*\(quota\|limit\)' "$HTML"; then
+        # We'll take it literally and wait till the next day
+        # Note: Consider the time zone of their server (+4:00)
+        local HOUR MIN TIME
+
+        # Get current UTC time, prevent leading zeros
+        TIME=$(date --utc +'%-H:%-M') || return
+        HOUR=${TIME%:*}
+        MIN=${TIME#*:}
+
+        log_error 'Daily limit reached.'
+        echo $(( ((23 - ((HOUR + 4) % 24) ) * 60 + (61 - MIN) ) * 60 ))
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     # Parse file name from page
     FILE_NAME=$(echo "$HTML" | parse 'Downloading:' \
         '^[[:space:]]\+\([[:graph:]]\+\)[[:space:]]\+</a>$' 3) || return
@@ -187,23 +203,8 @@ rapidgator_download() {
     fi
 
     # Consider errors (enforced limits) which only occur for free users
-    # You have reached your daily downloads limit. Please try again later.
-    if match 'reached your daily downloads limit' "$HTML"; then
-        # We'll take it literally and wait till the next day
-        # Note: Consider the time zone of their server (+4:00)
-        local HOUR MIN TIME
-
-        # Get current UTC time, prevent leading zeros
-        TIME=$(date --utc +'%-H:%-M') || return
-        HOUR=${TIME%:*}
-        MIN=${TIME#*:}
-
-        log_error 'Daily limit reached.'
-        echo $(( ((23 - ((HOUR + 4) % 24) ) * 60 + (61 - MIN)) * 60 ))
-        return $ERR_LINK_TEMP_UNAVAILABLE
-
     # You have reached your hourly downloads limit. Please, try again later.
-    elif match 'reached your hourly downloads limit' "$HTML"; then
+    if match 'reached your hourly downloads limit' "$HTML"; then
         log_error 'Hourly limit reached.'
         echo 3600
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -216,8 +217,8 @@ rapidgator_download() {
 
     # You can download files up to 500 MB in free mode.
     # This file can be downloaded by premium only
-    elif match 'download files up to .\+ in free mode' "$HTML" || \
-        match 'can be downloaded by premium only' "$HTML"; then
+    # Note: The regexp would also match the "parallel download" error above.
+    elif match 'can.*download.*\(in free mode\|premium only\)' "$HTML"; then
         return $ERR_LINK_NEED_PERMISSIONS
 
     # Delay between downloads must be not less than 15 min.
