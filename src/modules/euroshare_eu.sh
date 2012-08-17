@@ -26,53 +26,43 @@ AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_EUROSHARE_EU_DOWNLOAD_RESUME=no
 MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
-# Output a euroshare.eu file download URL
+# Output a Euroshare.eu file download URL
 # $1: cookie file
 # $2: euroshare.eu url
 # stdout: real file download link
+#         file name
 euroshare_eu_download() {
-    local COOKIEFILE=$1
-    local URL=$2
-    local BASEURL=$(basename_url "$URL")
-    local PAGE DL_URL FILE_URL
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://www.euroshare.eu'
+    local PAGE DL_URL
 
-    # html returned uses utf-8 charset
+    # HTML returned uses UTF-8 charset
     PAGE=$(curl "$URL") || return
-    if match "<h2>Súbor sa nenašiel</h2>" "$PAGE"; then
-        return $ERR_LINK_DEAD
-    elif test "$CHECK_LINK"; then
-        return 0
-    fi
 
-    if test "$AUTH_FREE"; then
+    # <strong>Požadovaný súbor sa na serveri nenachádza alebo bol odstránený</strong>
+    match 'Požadovaný súbor sa na serveri nenachádza' "$PAGE" && return $ERR_LINK_DEAD
+    [ -n "$CHECK_LINK" ] && return 0
+
+    if [ -n "$AUTH_FREE" ]; then
         local LOGIN_DATA LOGIN_RESULT
 
-        LOGIN_DATA='login=$USER&pass=$PASSWORD&submit=Prihlásiť sa'
-        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
-            "$BASEURL") || return
+        LOGIN_DATA='login=$USER&password=$PASSWORD+&trvale=1'
+        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "$BASE_URL/customer-zone/login/" -L) || return
 
-        if ! match "/logout" "$LOGIN_RESULT"; then
-            return $ERR_LOGIN_FAILED
-        fi
+        # <p>Boli ste úspešne prihlásený</p>
+        match 'Boli ste úspešne prihlásený' "$LOGIN_RESULT" || return $ERR_LOGIN_FAILED
     fi
 
-    # html returned uses utf-8 charset
-    PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
 
-    if match "<h2>Prebieha sťahovanie</h2>" "$PAGE"; then
-        log_error "You are already downloading a file from this IP."
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
+    # <a href="/file/15529848/xyz/download/"><div class="downloadButton" >Stiahnuť</div></a>
+    DL_URL="$BASE_URL"$(echo "$PAGE" | \
+        parse 'Stiahnuť' 'href="\(/file/.\+/download/\)">') || return
+    DL_URL=$(curl -i "$DL_URL") || return
 
-    if match "<center>Všetky sloty pre Free užívateľov sú obsadené." "$PAGE"; then
-        # Arbitrary wait
-        echo 125
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
-
-    DL_URL=$(echo "$PAGE" | parse_attr 'class="free"' href) || return
-    DL_URL=$(curl --head "$DL_URL") || return
-    FILE_URL=$(echo "$DL_URL" | grep_http_header_location) || return
-
-    echo "$FILE_URL"
+    # Extract + output download link and file name
+    echo "$DL_URL" | grep_http_header_location || return
+    echo "$PAGE" | parse_tag 'strong' || return
 }
