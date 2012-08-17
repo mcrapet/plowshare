@@ -26,6 +26,34 @@ AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_EUROSHARE_EU_DOWNLOAD_RESUME=no
 MODULE_EUROSHARE_EU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_EUROSHARE_EU_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
+MODULE_EUROSHARE_EU_UPLOAD_REMOTE_SUPPORT=no
+
+# Static function. Proceed with login (free)
+# $1: authentication
+# $2: cookie file
+# $3: base url
+euroshare_eu_login() {
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA PAGE EMAIL
+
+    LOGIN_DATA='login=$USER&password=$PASSWORD+&trvale=1'
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/customer-zone/login/" -L) || return
+
+    # <p>Boli ste úspešne prihlásený</p>
+    match 'Boli ste úspešne prihlásený' "$PAGE" || return $ERR_LOGIN_FAILED
+
+    # <li><a href="/customer-zone/logout/" title="Odhlásiť">Odhlásiť (xyz)</a></li>
+    EMAIL=$(echo "$PAGE" | parse 'Odhlásiť' 'Odhlásiť (\([^)]\+\))') || return
+
+    log_debug "Successfully logged in as member '$EMAIL'"
+}
+
 # Output a Euroshare.eu file download URL
 # $1: cookie file
 # $2: euroshare.eu url
@@ -45,14 +73,7 @@ euroshare_eu_download() {
     [ -n "$CHECK_LINK" ] && return 0
 
     if [ -n "$AUTH_FREE" ]; then
-        local LOGIN_DATA LOGIN_RESULT
-
-        LOGIN_DATA='login=$USER&password=$PASSWORD+&trvale=1'
-        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
-            "$BASE_URL/customer-zone/login/" -L) || return
-
-        # <p>Boli ste úspešne prihlásený</p>
-        match 'Boli ste úspešne prihlásený' "$LOGIN_RESULT" || return $ERR_LOGIN_FAILED
+        euroshare_eu_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
@@ -65,4 +86,32 @@ euroshare_eu_download() {
     # Extract + output download link and file name
     echo "$DL_URL" | grep_http_header_location || return
     echo "$PAGE" | parse_tag 'strong' || return
+}
+
+# Upload a file to Euroshare.eu
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download link
+#         delete link
+euroshare_eu_upload() {
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://www.euroshare.eu'
+    local JSON
+
+    if [ -n "$AUTH_FREE" ]; then
+        euroshare_eu_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    JSON=$(curl_with_log -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+        -F "description=$DESCRIPTION" \
+        -F 'category=0' \
+        -F "files[]=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        "$BASE_URL/ajax/upload/file/") || return
+
+    # Extract + output download link and delete link
+    echo "$JSON" | parse_json url || return
+    echo "$JSON" | parse_json delete_url || return
 }
