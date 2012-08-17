@@ -31,6 +31,9 @@ AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_EUROSHARE_EU_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_EUROSHARE_EU_DELETE_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
+
 # Static function. Proceed with login (free)
 # $1: authentication
 # $2: cookie file
@@ -114,4 +117,41 @@ euroshare_eu_upload() {
     # Extract + output download link and delete link
     echo "$JSON" | parse_json url || return
     echo "$JSON" | parse_json delete_url || return
+}
+
+# Delete a file from Euroshare.eu
+# $1: cookie file (unused here)
+# $2: euroshare.eu (delete) link
+euroshare_eu_delete() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://www.euroshare.eu'
+    local PAGE FILE_ID
+
+    PAGE=$(curl "$URL") || return
+
+    # <p>Požadovaný súbor neexistuje alebo už bol odstránený!<p>
+    match 'Požadovaný súbor neexistuje' "$PAGE" && return $ERR_LINK_DEAD
+
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+    # Note: Deletion page does not work, so we use the file manager instead
+    FILE_ID=$(echo "$URL" | \
+        parse_quiet . '/delete/[[:alnum:]]\+/\([[:digit:]]\+\)/')
+
+    if [ -z "$FILE_ID" ]; then
+        log_error 'This is not a delete link.'
+        return $ERR_FATAL
+    fi
+    log_debug "File ID: '$FILE_ID'"
+
+    euroshare_eu_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+        -d "id=item_$FILE_ID" \
+        "$BASE_URL/ajax/file-manager/file-remove/") || return
+
+    if ! match 'Array' "$PAGE"; then
+        log_error 'Could not delete file. Site updated?'
+        return $ERR_FATAL
+    fi
 }

@@ -11,7 +11,7 @@ dataport_cz     | download | upload | delete |      |
 depositfiles    | download | upload | delete | list |
 divshare        | download | upload | delete | list |
 dl_free_fr      | download | upload | delete |      |
-euroshare_eu    | download | upload |        |      |
+euroshare_eu    | download | upload | delete |      |
 extabit         | download | upload |        |      |
 filebox         | download | upload | delete |      |
 filemates       | download | upload | delete | list |
