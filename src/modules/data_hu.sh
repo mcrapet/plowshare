@@ -24,6 +24,38 @@ MODULE_DATA_HU_DOWNLOAD_OPTIONS=""
 MODULE_DATA_HU_DOWNLOAD_RESUME=yes
 MODULE_DATA_HU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
+MODULE_DATA_HU_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+data_hu_login() {
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local RND LOGIN_DATA JSON ERR USER
+
+    RND=$(random h 32) || return
+    LOGIN_DATA="act=dologin&login_passfield=login_$RND&target=%2Findex.php&t=&id=&data=&url_for_login=%2Findex.php%3Fisl%3D1&need_redirect=1&username=\$USER&login_$RND=\$PASSWORD"
+    JSON=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+       "$BASE_URL/login.php" -H 'X-Requested-With: XMLHttpRequest') || return
+
+    ERR=$(echo "$JSON" | parse_json 'error') || return
+
+    if [ "$ERR" != 0 ]; then
+        ERR=$(echo "$JSON" | parse_json 'message') || return
+        match 'Sikeres bel\u00e9p\u00e9s!' "$ERR" && return $ERR_LOGIN_FAILED
+
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
+    fi
+
+    split_auth "$AUTH_FREE" USER || return
+    log_debug "Successfully logged in as member '$USER'"
+}
+
 # Output a data_hu file download URL
 # $1: cookie file (unused here)
 # $2: data.hu url
@@ -44,4 +76,53 @@ data_hu_download() {
     test "$CHECK_LINK" && return 0
 
     echo "$FILE_URL"
+}
+
+# Upload a file to Data.hu
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: data.hu download link
+data_hu_upload() {
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://data.hu'
+    local PAGE UP_URL FORM SIZE MAX_SIZE MID SID
+
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    data_hu_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/index.php?isl=1") || return
+    UP_URL=$(echo "$PAGE" | \
+        parse_attr '<iframe class="upload_frame_item"' 'src') || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL$UP_URL") || return
+    FORM=$(grep_form_by_id "$PAGE" 'upload') || return
+
+    MAX_SIZE=$(echo "$FORM" | parse_form_input_by_name 'MAX_FILE_SIZE') || return
+    SIZE=$(get_filesize "$FILE") || return
+
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_debug "File is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    UP_URL=$(echo "$FORM" | parse_form_action) || return
+    MID=$(echo "$FORM" | parse_form_input_by_id 'upload_target_mappaid') || return
+    SID=$(echo "$UP_URL" | parse . 'sid=\([[:xdigit:]]\+\)$') || return
+
+    curl_with_log -b "$COOKIE_FILE" \
+        -F "MAX_FILE_SIZE=$MAX_SIZE" \
+        -F "filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        -F "upload_target_mappaid=$MID" \
+        "$BASE_URL$UP_URL" -o /dev/null || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" --get -d 'upload=done' -d "sid=$SID" \
+        "$BASE_URL/index.php") || return
+
+    # Extract + output download link and delete link
+    echo "$PAGE" | parse 'get_downloadlink_popup' \
+        'downloadlink=\([^&]\+\)&filename' || return
+    echo "$PAGE" | parse '?act=del&' '^[:blank:]*\(.\+\)$' || return
 }
