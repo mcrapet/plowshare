@@ -57,25 +57,28 @@ data_hu_login() {
 }
 
 # Output a data_hu file download URL
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: data.hu url
 # stdout: real file download link
+#         file name
 data_hu_download() {
-    local URL=$2
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://data.hu'
     local PAGE
 
-    PAGE=$(curl -L "$URL") || return
-
-    if match "/missing.php" "$PAGE"; then
-        return $ERR_LINK_DEAD
+    if [ -n "$AUTH_FREE" ]; then
+        data_hu_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
-    FILE_URL=$(echo "$PAGE" | \
-        parse_attr 'download_box_button' 'href') || return
+    PAGE=$(curl -b "$COOKIE_FILE" -L "$URL") || return
 
-    test "$CHECK_LINK" && return 0
+    match "/missing.php" "$PAGE" && return $ERR_LINK_DEAD
+    [ -n "$CHECK_LINK" ] && return 0
 
-    echo "$FILE_URL"
+    # Extract + output download link and file name
+    echo "$PAGE" | parse_attr 'download_box_button' 'href' || return
+    echo "$PAGE" | parse_tag 'download_filename' 'div' || return
 }
 
 # Upload a file to Data.hu
