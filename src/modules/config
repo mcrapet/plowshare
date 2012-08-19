@@ -6,7 +6,7 @@
 bayfiles        | download | upload | delete |      |
 bitshare        | download | upload | delete |      |
 cramit          | download | upload | delete | list |
-data_hu         | download | upload |        |      |
+data_hu         | download | upload | delete |      |
 dataport_cz     | download | upload | delete |      |
 depositfiles    | download | upload | delete | list |
 divshare        | download | upload | delete | list |

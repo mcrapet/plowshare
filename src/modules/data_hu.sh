@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DATA_HU_REGEXP_URL="http://\(www\.\)\?data.hu/get/"
+MODULE_DATA_HU_REGEXP_URL="http://\(www\.\)\?data.hu/"
 
 MODULE_DATA_HU_DOWNLOAD_OPTIONS=""
 MODULE_DATA_HU_DOWNLOAD_RESUME=yes
@@ -26,6 +26,8 @@ MODULE_DATA_HU_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 
 MODULE_DATA_HU_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+
+MODULE_DATA_HU_DELETE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -128,4 +130,23 @@ data_hu_upload() {
     echo "$PAGE" | parse 'get_downloadlink_popup' \
         'downloadlink=\([^&]\+\)&filename' || return
     echo "$PAGE" | parse '?act=del&' '^[:blank:]*\(.\+\)$' || return
+}
+
+# Delete a file from Data.hu
+# $1: cookie file (unused here)
+# $2: data.eu (delete) link
+data_hu_delete() {
+    local -r URL=$2
+    local PAGE
+
+    PAGE=$(curl -L "$URL") || return
+
+    # Note: Site redirects to JS redirect to main page if file does not exist
+    match 'index.php?isl=1' "$PAGE" && return $ERR_LINK_DEAD
+
+    # popup_message('Üzenet','A fájl (xyz 123KB) törlése sikerült!')
+    match 'A fájl (.\+) törlése sikerült!' "$PAGE" && return 0
+
+    log_error 'Unexpected content. Site updated?'
+    return $ERR_FATAL
 }
