@@ -217,6 +217,10 @@ turbobit_download() {
     # De-obfuscation: timeout.js generates code to be evaled.
     JS_CODE=$(curl -b "$COOKIEFILE" "$JS_URL") || return
     JS_CODE2=$(echo "eval = function(x) { print(x); }; $JS_CODE" | javascript) || return
+
+    # Workaround: SpiderMonkey 1.8 raises an error on anonymous function
+    JS_CODE2=$(sed -e 's/^function[[:space:]]*(/1,function(/' <<< "$JS_CODE2")
+
     PAGE_LINK0=$(echo "
       $JS_CODE2
       clearTimeout = function() { };
