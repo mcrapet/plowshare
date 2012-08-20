@@ -105,8 +105,11 @@ elif [ "$1" = 'install' ]; then
                 SED_PATH=`command -v $SED_PRG 2>/dev/null` || true
                 if [ -n "$SED_PATH" ]; then
                     echo "Patching core.sh to call $SED_PRG"
-                    sed -i -e '/^set -/a\
-'"shopt -s expand_aliases; alias sed='$SED_PRG'" "$DATADIR/core.sh"
+                    # Note: OpenBSD and NetBSD don't have sed -i
+                    $CP "$DATADIR/core.sh" "$DATADIR/core.sh.$$"
+                    sed -e '/^set -/a\
+'"shopt -s expand_aliases; alias sed='$SED_PRG'" "$DATADIR/core.sh.$$" > "$DATADIR/core.sh"
+                    $RM "$DATADIR/core.sh.$$"
                     break
                 fi
             done
