@@ -745,13 +745,13 @@ parse_form_action() {
 }
 
 # Retrieve "value" attribute from an <input> marker with "name" attribute
-# Note: "value" attribute must be placed after "name" attribute.
+# Note: "value" attribute must be on same line as "name" attribute.
 #
 # $1: name attribute of <input> marker
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_name() {
-    parse "<[Ii][Nn][Pp][Uu][Tt]\([[:space:]]*[^ ]*\)*name=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*name=[\"']\?$1[\"']\?" 'value'
 }
 
 # Like parse_form_input_by_name, but hide possible error
@@ -761,13 +761,13 @@ parse_form_input_by_name_quiet() {
 }
 
 # Retrieve "value" attribute from an <input> marker with "type" attribute
-# Note: "value" attribute must be placed after "type" attribute.
+# Note: "value" attribute must be on same line as "type" attribute.
 #
 # $1: type attribute of <input> marker (for example: "submit")
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
-    parse "<[Ii][Nn][Pp][Uu][Tt]\([[:space:]]*[^ ]*\)*type=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*type=[\"']\?$1[\"']\?" 'value'
 }
 
 # Like parse_form_input_by_type, but hide possible error
@@ -777,13 +777,13 @@ parse_form_input_by_type_quiet() {
 }
 
 # Retrieve "value" attribute from an <input> marker with "id" attribute
-# Note: "value" attribute must be placed after "id" attribute.
+# Note: "value" attribute must be on same line as "id" attribute.
 #
 # $1: id attribute of <input> marker
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_id() {
-    parse "<[Ii][Nn][Pp][Uu][Tt]\([[:space:]]*[^ ]*\)*id=[\"']\?$1[\"']\?" "value=[\"']\?\([^'\">]*\)"
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*id=[\"']\?$1[\"']\?" 'value'
 }
 
 # Like parse_form_input_by_id, but hide possible error
