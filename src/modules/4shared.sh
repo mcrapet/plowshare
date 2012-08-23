@@ -100,7 +100,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
         PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" -b '4langcookie=en' \
             -d "userPass2=$LINK_PASSWORD" \
             -d "dsid=$FORM_DSID" \
-            "$FORM_ACTION") || return
+            "$FORM_ACTION") || return
 
         # The password you have entered is not valid
         if match 'enter a password to access' "$PAGE"; then
@@ -301,7 +301,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
         PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b '4langcookie=en' \
             -d "userPass2=$LINK_PASSWORD" \
             -d "dsid=$FORM_DSID" \
-            "$FORM_ACTION") || return
+            "$FORM_ACTION") || return
 
         # The password you have entered is not valid
         if match 'enter a password to access' "$PAGE"; then

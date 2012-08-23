@@ -160,7 +160,7 @@ filebox_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    # Anonymous upload don't have SESSID
+    # Anonymous upload don't have SESSID
     SESSID=$(echo "$PAGE" | parse_quiet 'scriptData' ':[[:space:]]*"\([^"]*\)')
     [ -z "$SESSID" ] && SESSID=$(random d 16)
 

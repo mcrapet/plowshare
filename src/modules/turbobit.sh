@@ -207,7 +207,7 @@ turbobit_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    JS_URL=$(echo "$PAGE" | parse_attr '/timeout\.js' src) || return
+    JS_URL=$(echo "$PAGE" | parse_attr '/timeout\.js' src) || return
 
     # Wait time after correct captcha
     WAIT_TIME2=$(echo "$PAGE" | parse 'Waiting\.init' "({\([^}]\+\)" | \

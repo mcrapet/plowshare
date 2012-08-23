@@ -194,7 +194,7 @@ cramit_download() {
     if match 'Wrong password' "$PAGE"; then
         return $ERR_LINK_PASSWORD_REQUIRED
 
-    # Note: get sometimes "Skipped countdown" errors with premium. What's this?
+    # Note: get sometimes "Skipped countdown" errors with premium. What's this?
     elif match '<p class="err">' "$PAGE"; then
         ERR=$(echo "$PAGE" | parse 'class="err">' '^\([^<]*\)' 1)
         log_error "Remote error: $ERR"

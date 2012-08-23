@@ -31,7 +31,7 @@ MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
 
-# Static function
+# Static function
 get_ofuscated_link() {
     local VAR=$1
     local I N C R

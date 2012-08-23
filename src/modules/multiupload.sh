@@ -64,7 +64,7 @@ multiupload_upload() {
     # service_20 : OR (Oron)
     # service_21 : FF (FileFactory)
     # service_23 : FS (FreakShare)
-    # service_24 : TB (TurboBit)
+    # service_24 : TB (TurboBit)
     # service_25 : UB (UploadBoost)
     # service_26 : BF (Bayfiles)
     #
@@ -74,7 +74,7 @@ multiupload_upload() {
     # - 2012.05.25: DF, 2S, PL, OR, FF, FS, TB, UB, BF
 
     # Keep default settings
-    SERVICES=$(echo "$FORM_HTML" | parse_all_attr 'checked>' name) || return
+    SERVICES=$(echo "$FORM_HTML" | parse_all_attr 'checked>' name) || return
     FORM_FIELDS=""
     while read LINE; do
         N=$(echo "$LINE" | parse_quiet . '^service_\([[:digit:]]\+\)')

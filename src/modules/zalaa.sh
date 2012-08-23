@@ -68,7 +68,7 @@ zalaa_download() {
         -d "method_free=$FORM_METHOD" \
         -d "ipcount_val=$FORM_COUNT" "$URL") || return
 
-    FILE_URL=$(echo "$PAGE" | parse_attr 'btndnlbt"' href) || return
+    FILE_URL=$(echo "$PAGE" | parse_attr 'btndnlbt"' href) || return
 
     # Note: referer is required
     PAGE=$(curl -b 'lang=english' --referer "$URL" "$FILE_URL") || return
