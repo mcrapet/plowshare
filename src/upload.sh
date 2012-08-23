@@ -29,7 +29,7 @@ GETVERSION,,version,,Return plowup version
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 MAX_LIMIT_RATE,,max-rate,n=SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
-MIN_LIMIT_RATE,,min-rate,n=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
+MIN_LIMIT_RATE_RAW,,min-rate,n=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
@@ -223,8 +223,8 @@ test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options 'Plowup' "$MODULE" UPLOAD
 
 # Curl minimal rate (--speed-limit) does not support suffixes
-if [ -n "$MIN_LIMIT_RATE" ]; then
-    MIN_LIMIT_RATE=$(parse_rate "$MIN_LIMIT_RATE")
+if [ -n "$MIN_LIMIT_RATE_RAW" ]; then
+    declare -r MIN_LIMIT_RATE=$(parse_rate "$MIN_LIMIT_RATE_RAW")
 fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
