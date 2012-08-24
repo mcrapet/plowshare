@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "June 22, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowlist" "1" "August 24, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowlist \- Command-line link-lister for file-sharing web-folders
@@ -49,6 +49,9 @@ If your machine has several network interfaces, force using \fIIFACE\fR interfac
 .TP
 .B -R, --recursive
 Recurse into sub folders.
+.TP
+.B "   " --fallback
+If no module is found for link, get page (HTTP GET) and simply grep all URLs contained inside.
 .TP
 .B "   " --no-plowsharerc
 Do not use local or global config file (plowshare.conf).

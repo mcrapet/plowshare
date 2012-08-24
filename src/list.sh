@@ -30,6 +30,7 @@ QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\".
+NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
@@ -144,6 +145,17 @@ pretty_print() {
     done
 }
 
+# Fake list module function. See --fallback switch.
+# $1: some web url
+# $2: recurse subfolders (ignored here)
+# stdout: list of links
+module_null_list() {
+    local PAGE LINKS
+    PAGE=$(curl -L "$1" | break_html_lines_alt) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'https\?://' 'href\|src')
+    list_submit "$LINKS" || return
+}
+
 #
 # Main
 #
@@ -219,9 +231,15 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     MODULE=$(get_module "$URL" "$MODULES") || LRETVAL=$?
     if [ $LRETVAL -ne 0 ]; then
-        log_error "Skip: no module for URL ($URL)"
-        RETVALS=(${RETVALS[@]} $LRETVAL)
-        continue
+        if test "$NO_MODULE_FALLBACK"; then
+            log_notice "No module found, list URLs in page as requested"
+            MODULE='module_null'
+            LRETVAL=0
+        else
+            log_error "Skip: no module for URL ($URL)"
+            RETVALS=(${RETVALS[@]} $LRETVAL)
+            continue
+        fi
     fi
 
     # Get configuration file module options
@@ -243,7 +261,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
         : # everything went fine
     elif [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error "Non existing or empty folder"
-        [ -z "$RECURSE" ] && \
+        [ -z "$RECURSE" -a -z "$NO_MODULE_FALLBACK" ] && \
             log_notice "Try adding -R/--recursive option to look into sub folders"
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error "You must provide a valid password"

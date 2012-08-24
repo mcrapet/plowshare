@@ -701,15 +701,15 @@ parse_tag_quiet() {
 # - "parse_xxx attr" is a shortcut for "parse_xxx attr attr"
 #
 # $1: (optional) regexp to filter (take lines matching $1 pattern)
-# $2: attribute name. Example: "href"
+# $2: attribute name. Examples: "href" or "b\|i\|u"
 # stdin: (X)HTML data
 # stdout: result
 parse_all_attr() {
     local -r A=${2:-"$1"}
     local -r D=$'\001'
     local STRING=$(sed \
-        -ne "\\${D}$1${D}s${D}.*[[:space:]]$A[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\1${D}p" \
-        -ne "\\${D}$1${D}s${D}.*[[:space:]]$A[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\1${D}p")
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\2${D}p" \
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\2${D}p")
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
         log_notice_stack

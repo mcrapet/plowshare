@@ -163,7 +163,7 @@ _plowlist()
 
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i -R --interface --printf --recursive --no-plowsharerc' -- $cur ) )
+            -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
