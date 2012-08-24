@@ -35,7 +35,7 @@ uploading_download() {
     local PAGE WAIT CODE PASS JSON FILENAME FILE_URL
 
     # Force language to English
-    PAGE=$(curl -c "$COOKIE_FILE" -b "lang=1" "$URL") || return
+    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=1' "$URL") || return
 
     # <h2>OOPS! Looks like file not found.</h2>
     if match 'file not found' "$PAGE"; then
@@ -80,8 +80,11 @@ uploading_download() {
         -d "code=$CODE" -d "pass=$PASS" \
         "$BASE_URL/files/get/?ajax") || return
 
-    # {"answer":{"link":"http:\/\/fs53.uploading.com\/get_file\/... "}}
+    # {"answer":{"link":"http:\/\/uploading.com\/files\/thankyou\/... "}}
     FILE_URL=$(echo "$JSON" | parse_json link) || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$FILE_URL") || return
+    FILE_URL=$(echo "$PAGE" | parse_attr '=.file_form' action) || return
 
     echo "$FILE_URL"
     echo "$FILENAME"
