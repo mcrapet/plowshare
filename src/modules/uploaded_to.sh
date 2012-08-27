@@ -27,8 +27,11 @@ MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
 MODULE_UPLOADED_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
 MODULE_UPLOADED_TO_UPLOAD_OPTIONS="
+ADMIN_CODE,,admin-code,s=ADMIN_CODE,Admin code (used for file deletion)
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)
-DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
+FOLDER,,folder,s=FOLDER,Folder to upload files into
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+PRIVATE_FILE,,private,,Do not allow others to download the file"
 MODULE_UPLOADED_TO_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPLOADED_TO_DELETE_OPTIONS="
@@ -133,6 +136,40 @@ uploaded_to_parse_json_alt() {
     STRING=${STRING//\\t/	}
 
     echo "$STRING"
+}
+
+# Check if specified folder name is valid.
+# When multiple folders wear the same name, first one is taken.
+# $1: folder name selected by user
+# $2: cookie file (logged into account)
+# $3: base URL
+# stdout: folder ID
+uploaded_to_check_folder() {
+    local -r NAME=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local JSON FOLDERS FOL_ID
+
+    # Special treatment for root folder (always uses ID "0")
+    if [ "$NAME" = 'root' ]; then
+        echo 0
+        return 0
+    fi
+
+    JSON=$(curl -b "$COOKIE_FILE" "$BASE_URL/api/folder/tree") || return
+
+    # Find matching folder ID
+    FOL_ID=$(echo "$JSON" | parse_quiet . \
+        "{\"id\":\"\([[:alnum:]]\+\)\",\"name\":\"$NAME\"")
+
+    if [ -n "$FOL_ID" ]; then
+        echo "$FOL_ID"
+        return 0
+    fi
+
+    FOLDERS=$(echo "$JSON" | parse_json 'name' 'split') || return
+    log_error 'Invalid folder, choose from:' $FOLDERS
+    return $ERR_BAD_COMMAND_LINE
 }
 
 # Output an Uploaded.to file download URL
@@ -310,44 +347,105 @@ uploaded_to_download() {
     echo "$FILE_NAME"
 }
 
-# Upload a file to uploaded.to
+# Upload a file to Uploaded.to
 # $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: ul.to download link
 uploaded_to_upload() {
-    local -r COOKIEFILE=$1
+    local -r COOKIE_FILE=$1
     local -r FILE=$2
-    local -r DESTFILE=$3
+    local -r DEST_FILE=$3
     local -r BASE_URL='http://uploaded.net'
+    local -r MAX_SIZE=1073741823
+    local PAGE SERVER FILE_ID AUTH_DATA ACCOUNT FOLDER_ID
 
-    local JS SERVER DATA FILE_ID AUTH_DATA ADMIN_CODE
+    # Sanity checks
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
-    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
+    if [ -n "$LINK_PASSWORD" ]; then
+        local -r PW_MAX=12
 
-    JS=$(curl "$BASE_URL/js/script.js") || return
-    SERVER=$(echo "$JS" | parse '//stor' "[[:space:]]'\([^']*\)") || return
+        if [ -n "$PRIVATE_FILE" ]; then
+            log_error 'Private files cannot be password protected'
+            return $ERR_BAD_COMMAND_LINE
+        fi
 
-    log_debug "uploadServer: $SERVER"
+        # Check length limitation
+        if [ ${#LINK_PASSWORD} -gt $PW_MAX ]; then
+            log_error "Password must not be longer than $PW_MAX characters"
+            return $ERR_BAD_COMMAND_LINE
+        fi
+    fi
 
-    uploaded_to_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-    AUTH_DATA=$(parse_cookie 'login' < "$COOKIEFILE" | uri_decode) || return
+    if [ -n "$ADMIN_CODE" ]; then
+        local -r AC_MAX=30
+        local -r AC_FORBIDDEN="/ '\"%#;&"
 
-    # TODO: Allow changing admin code (used for deletion)
-    ADMIN_CODE=$(random a 8)
+        # Check length limitation
+        if [ ${#ADMIN_CODE} -gt $AC_MAX ]; then
+            log_error "Admin code must not be longer than $AC_MAX characters"
+            return $ERR_BAD_COMMAND_LINE
+        fi
 
-    DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
-        -F "Filename=$DESTFILE" \
-        -F "Filedata=@$FILE;filename=$DESTFILE" \
+        # Check for forbidden characters
+        if match "[$AC_FORBIDDEN]" "$ADMIN_CODE"; then
+            log_error "Admin code must not contain any of these: $AC_FORBIDDEN"
+            return $ERR_BAD_COMMAND_LINE
+        fi
+    else
+        ADMIN_CODE=$(random a 8)
+    fi
+
+    PAGE=$(curl "$BASE_URL/js/script.js") || return
+    SERVER=$(echo "$PAGE" | parse 'uploadServer =' "[[:space:]]'\([^']*\)") || return
+
+    log_debug "Upload server: $SERVER"
+
+    ACCOUNT=$(uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
+
+    if [ "$ACCOUNT" != 'premium' ]; then
+        local SIZE
+        SIZE=$(get_filesize "$FILE") || return
+
+        if [ $SIZE -gt $MAX_SIZE ]; then
+            log_debug "File is bigger than $MAX_SIZE"
+            return $ERR_SIZE_LIMIT_EXCEEDED
+        fi
+    fi
+
+    # If user chose a folder, check it now
+    if [ -n "$FOLDER" ]; then
+        FOLDER_ID=$(uploaded_to_check_folder "$FOLDER" "$COOKIE_FILE" \
+            "$BASE_URL") || return
+    fi
+    log_debug "Folder ID: $FOLDER_ID"
+
+    AUTH_DATA=$(parse_cookie 'login' < "$COOKIE_FILE" | uri_decode | \
+        parse . '^\(&id=.\+&pw=.\+\)&cks=') || return
+
+    PAGE=$(curl_with_log --user-agent 'Shockwave Flash' \
+        -F "Filename=$DEST_FILE" \
+        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         -F 'Upload=Submit Query' \
-        "${SERVER}upload?admincode=${ADMIN_CODE}$AUTH_DATA") || return
-    FILE_ID="${DATA%%,*}"
+        "${SERVER}upload?admincode=$ADMIN_CODE$AUTH_DATA") || return
+    FILE_ID="${PAGE%%,*}"
 
-    if [ -n "$DESCRIPTION" ]; then
-        DATA=$(curl -b "$COOKIEFILE" --referer "$BASE_URL/manage" \
-        --form-string "description=$DESCRIPTION" \
-        "$BASE_URL/file/$FILE_ID/edit/description") || return
-        log_debug "description set to: $DATA"
+    # Do we need to edit the file? (change visibility, set password)
+    if [ -n "$PRIVATE_FILE" -o -n "$LINK_PASSWORD" ]; then
+        log_debug 'Editing file...'
+        local OPT_PRIV='true'
+
+        [ -n "$LINK_PASSWORD" ] && OPT_PRIV=$LINK_PASSWORD
+
+        # Note: Site uses the same API call to set file private or set a password
+        PAGE=$(curl -b "$COOKIE_FILE" \
+            -d "auth=$FILE_ID" -d "priv=$OPT_PRIV" \
+            "$BASE_URL/api/file/priv") || return
+
+        if [ "$PAGE" != '{"succ":"true"}' ]; then
+            log_error 'Could not set password/private. Site updated?'
+        fi
     fi
 
     echo "http://ul.to/$FILE_ID"
