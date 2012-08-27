@@ -172,6 +172,19 @@ uploaded_to_check_folder() {
     return $ERR_BAD_COMMAND_LINE
 }
 
+# Extract file ID from download link
+# $1: canonical uploaded.to download URL
+# $2: base URL
+# stdout: file ID
+uploaded_to_extract_file_id() {
+    local FILE_ID
+
+    FILE_ID=$(echo "$1" | parse . "$2/file/\([[:alnum:]]\+\)$") || return
+    log_debug "File ID: '$FILE_ID'"
+    echo "$FILE_ID"
+}
+
+
 # Output an Uploaded.to file download URL
 # $1: cookie file
 # $2: upload.to url
@@ -252,8 +265,7 @@ uploaded_to_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Extract the raw file ID
-    FILE_ID=$(echo "$URL" | parse . '/file/\([^/]*\)') || return
+    FILE_ID=$(uploaded_to_extract_file_id "$URL" "$BASE_URL") || return
 
     # Request download (use dummy "-d" to force a POST request)
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
@@ -453,35 +465,40 @@ uploaded_to_upload() {
     echo "$ADMIN_CODE"
 }
 
-# Delete a file on uploaded.to
+# Delete a file on Uploaded.to
 # $1: cookie file
 # $2: uploaded.to (download) link
 uploaded_to_delete() {
-    local COOKIE_FILE=$1
-    local URL=$2
-    local BASE_URL='http://uploaded.to'
-    local PAGE FILE_ID
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL='http://uploaded.net'
+    local URL PAGE FILE_ID
 
-    test "$AUTH" || return $ERR_LINK_NEED_PERMISSIONS
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
-    # extract the raw file id
-    PAGE=$(curl -L "$URL") || return
+    # Get canonical URL
+    URL=$(curl -I -L "$2" | grep_http_header_location_quiet | last_line) || return
+    [ -n "$URL" ] || URL=$2
 
-    # <h1>Page not found<br /><small class="cL">Error: 404</small></h1>
-    if match "Error: 404" "$PAGE"; then
+    # Recognize folders
+    if match "$BASE_URL/folder/" "$URL"; then
+        log_error 'This is a directory list'
+        return $ERR_FATAL
+    fi
+
+    # Page not found
+    # The requested file isn't available anymore!
+    if match "$BASE_URL/\(404\|410\)" "$URL"; then
         return $ERR_LINK_DEAD
     fi
 
-    FILE_ID=$(echo "$PAGE" | parse 'file/' 'file/\([^/"]\+\)') || return
-    log_debug "file id=$FILE_ID"
-
     uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/file/$FILE_ID/delete") || return
+    FILE_ID=$(uploaded_to_extract_file_id "$URL" "$BASE_URL") || return
+    PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+        -d "file%5B%5D=$FILE_ID" "$BASE_URL/api/Remove") || return
 
-    # {succ:true}
-    # Note: This is not JSON because succ is not quoted (")
-    match 'true' "$PAGE" || return $ERR_FATAL
+    # {"succ":1,"trust":0}
+    [ "$PAGE" = '{"succ":1,"trust":0}' ] || return $ERR_FATAL
 }
 
 # List an uploaded.to shared file folder URL
