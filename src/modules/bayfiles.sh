@@ -149,10 +149,9 @@ bayfiles_upload() {
     # {"error":"","uploadUrl":"http ..","progressUrl":"http .."}
     UPLOAD_URL=$(echo "$JSON" | parse_json 'uploadUrl') || return
 
-    # Sanity check
+    # Sanity check (wrong upload url: site is broken)
     if [[ $UPLOAD_URL = http:///* ]]; then
-        log_error "remote error: wrong upload url, site is broken"
-        return $ERR_FATAL
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     JSON=$(curl_with_log -F "file=@$FILE;filename=$DESTFILE" \
