@@ -145,7 +145,7 @@ pretty_check() {
     TOKEN=$(parse_quiet . '\(%.\)' <<<"$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
-        return $ERR_FATAL
+        return $ERR_BAD_COMMAND_LINE
     fi
 }
 
