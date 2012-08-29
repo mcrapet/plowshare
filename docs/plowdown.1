@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "August 7, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowdown" "1" "August 29, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -87,13 +87,16 @@ If your machine has several network interfaces, force using \fIIFACE\fR interfac
 .BI "   " " " --max-rate "=SPEED"
 Limit download speed in bytes per seconds. Suffixes are:
 .RS 
-\fBk\fR  for kilobytes (kB),
+\fBk\fR  for kilobytes (kB i.e. 1000),
 .RE
 .RS
-\fBm\fR  for megabytes (MB),
+\fBM\fR  for megabytes (MB i.e. 1000^2),
 .RE
 .RS
-\fBg\fR  for gigabytes (GB).
+\fBK\fR or \fBKi\fR  for kibibytes (KB or KiB i.e 1024),
+.RE
+.RS
+\fBm\fR or \fBMi\fR  for mebibytes (mB or MiB i.e 1024^2).
 .RE
 .TP
 .BI -t, " " --timeout "=SECS"

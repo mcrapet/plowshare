@@ -2288,9 +2288,61 @@ quote_array() {
     echo ')'
 }
 
+# Parse (positive) speed rate
+# Ki is kibi (2^10 = 1024). Alias: K
+# Mi is mebi (2^20 = 1024^2 = 1048576). Alias:m
+# k  is kilo (10^3 = 1000)
+# M  is mega (10^6 = 1000000)
+#
+# $1: integer number (with or withour suffix)
+# $2: don't echo flag (just check)
+# stdout: quote items (one per line)
+parse_transfer_speed() {
+    local -i M
+    local N=${1// }
+
+    # Probe for unit
+    case "$N" in
+        *Ki)
+            M=1024
+            N=${N%Ki}
+            ;;
+        *K)
+            M=1024
+            N=${N%K}
+            ;;
+        *Mi)
+            M=1048576
+            N=${N%Mi}
+            ;;
+        *m)
+            M=1048576
+            N=${N%m}
+            ;;
+        *k)
+            M=1000
+            N=${N%k}
+            ;;
+        *M)
+            M=1000000
+            N=${N%M}
+            ;;
+        *)
+            M=1
+            ;;
+    esac
+
+    if [[ $N = *[![:digit:]]* || $N -eq 0 ]]; then
+        return 1
+    fi
+
+    [[ $2 ]] && return 0
+    echo $(( N * M ))
+}
+
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, e, l, n, N, s, S, V)
+# $2: format (a, e, l, n, N, r, s, S, V)
 # $3: string
 # $4: option string (used for error reporting only)
 # $?: return 0 for success
@@ -2314,6 +2366,9 @@ check_argument_type() {
     # s: Non empty string
     elif [[ "$TYPE" = 's' && "$VAL" = '' ]]; then
         log_error "$NAME: empty string not expected ($OPT)"
+    # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
+    elif [ "$TYPE" = 'r' ] && ! parse_transfer_speed "$VAL" 1; then
+        log_error "$NAME: positive transfer rate expected ($OPT)"
     # e: E-mail string
     elif [[ "$TYPE" = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
         log_error "$NAME: invalid email address ($OPT)"
@@ -2326,7 +2381,7 @@ check_argument_type() {
 
     elif [[ "$TYPE" = [lsS] ]]; then
         RET=0
-    elif [[ "$TYPE" = [aenNV] ]]; then
+    elif [[ "$TYPE" = [aenNrV] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
             log_error "$NAME: missing parameter ($OPT)"
         else
@@ -2406,6 +2461,8 @@ process_options() {
 
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
+                    elif [ "$TYPE" = 'r' ]; then
+                        FUNC=parse_transfer_speed
                     else
                         FUNC=quote
                     fi
@@ -2445,6 +2502,8 @@ process_options() {
 
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
+                    elif [ "$TYPE" = 'r' ]; then
+                        FUNC=parse_transfer_speed
                     else
                         FUNC=quote
                     fi

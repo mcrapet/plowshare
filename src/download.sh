@@ -34,7 +34,7 @@ NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o,output-directory,s=DIR,Directory where files will be saved
 TEMP_DIR,,temp-directory,s=DIR,Directory where files are temporarily downloaded
 TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
-MAX_LIMIT_RATE,,max-rate,n=SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
+MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).

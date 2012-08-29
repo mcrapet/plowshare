@@ -28,8 +28,8 @@ HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowup version
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-MAX_LIMIT_RATE,,max-rate,n=SPEED,Limit maximum speed to bytes/sec (suffixes: k=kB, m=MB, g=GB)
-MIN_LIMIT_RATE_RAW,,min-rate,n=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
+MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
+MIN_LIMIT_RATE,,min-rate,r=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
@@ -63,20 +63,6 @@ absolute_path() {
     TARGET=$PWD
     cd "$SAVED_PWD"
     echo "$TARGET"
-}
-
-# Convert to byte value. Does not deal with floating notation.
-# $1: rate with optional suffix (example: "50K")
-# stdout: number
-parse_rate() {
-    local N="${1//[^0-9]}"
-    if test "${1:(-1):1}" = "K"; then
-        echo $((N * 1024))
-    elif test "${1:(-1):1}" = "k"; then
-        echo $((N * 1000))
-    else
-        echo $((N))
-    fi
 }
 
 # Print usage
@@ -222,9 +208,11 @@ log_report "plowup version $VERSION"
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options 'Plowup' "$MODULE" UPLOAD
 
-# Curl minimal rate (--speed-limit) does not support suffixes
-if [ -n "$MIN_LIMIT_RATE_RAW" ]; then
-    declare -r MIN_LIMIT_RATE=$(parse_rate "$MIN_LIMIT_RATE_RAW")
+if [ -n "$MAX_LIMIT_RATE" -a -n "$MIN_LIMIT_RATE" ]; then
+  if (( MAX_LIMIT_RATE < MIN_LIMIT_RATE )); then
+      log_error "--min-rate ($MIN_LIMIT_RATE) is greater than --max-rate ($MAX_LIMIT_RATE)"
+      exit $ERR_BAD_COMMAND_LINE
+  fi
 fi
 
 if [ -n "$PRINTF_FORMAT" ]; then

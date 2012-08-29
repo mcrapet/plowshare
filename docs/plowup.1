@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "June 30, 2012" "GPL" "Plowshare GIT-snapshot"
+.TH "plowup" "1" "August 29, 2012" "GPL" "Plowshare GIT-snapshot"
 
 .SH NAME
 plowup \- Command-line uploader for file-sharing websites
@@ -54,18 +54,21 @@ If your machine has several network interfaces, force using \fIIFACE\fR interfac
 .BI "   " " " --max-rate "=SPEED"
 Limit upload maximum speed in bytes per seconds. Suffixes are:
 .RS 
-\fBk\fR  for kilobytes (kB),
+\fBk\fR  for kilobytes (kB i.e. 1000),
 .RE
 .RS
-\fBm\fR  for megabytes (MB),
+\fBM\fR  for megabytes (MB i.e. 1000^2),
 .RE
 .RS
-\fBg\fR  for gigabytes (GB).
+\fBK\fR or \fBKi\fR  for kibibytes (KB or KiB i.e 1024),
+.RE
+.RS
+\fBm\fR or \fBMi\fR  for mebibytes (mB or MiB i.e 1024^2).
 .RE
 .TP
 .BI "   " " " --min-rate "=SPEED"
 Limit upload minimum speed in bytes per seconds (for a delay of 30 seconds).
-\fBK\fR (kibibyte) or \fBk\fR (kilobyte) suffixes can be specified.
+Suffixes are the same than \fB--max-rate\fR.
 .TP
 .BI -t, " " --timeout "=SECS"
 Cancel upload download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
