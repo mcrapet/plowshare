@@ -617,7 +617,7 @@ grep_form_by_name() {
 #     If not specified: take forms having any "id" attribute (empty or not)
 # stdout: result
 grep_form_by_id() {
-    local A=${2:-'.*'}
+    local -r A=${2:-'.*'}
     local STRING=$(sed -ne \
         "/<[Ff][Oo][Rr][Mm][[:space:]].*id[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
@@ -710,6 +710,7 @@ parse_all_attr() {
     local STRING=$(sed \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\2${D}p" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\2${D}p")
+
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
         log_notice_stack
@@ -914,7 +915,7 @@ get_filesize() {
 #
 # $1: Suffix
 create_tempfile() {
-    local SUFFIX=$1
+    local -r SUFFIX=$1
     local FILE="${TMPDIR:-/tmp}/$(basename_file "$0").$$.$RANDOM$SUFFIX"
     :> "$FILE" || return $ERR_SYSTEM
     echo "$FILE"
@@ -1773,7 +1774,7 @@ captcha_nack() {
 random() {
     local I=0
     local LEN=${2:-8}
-    local SEED=$RANDOM
+    local -r SEED=$RANDOM
     local RESULT N
 
     # FIXME: Adding LC_CTYPE=C in front of printf is required?
