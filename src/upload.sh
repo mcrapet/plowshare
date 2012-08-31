@@ -128,7 +128,7 @@ pretty_check() {
     # This must be non greedy!
     local S TOKEN
     S=${1//%[fudamsDnt%]}
-    TOKEN=$(parse_quiet . '\(%.\)' <<<"$S")
+    TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
         return $ERR_BAD_COMMAND_LINE
@@ -181,8 +181,7 @@ match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowup' "$OPTIONS"
 
 # Process plowup options
-eval "$(process_core_options 'plowup' "$OPTIONS" \
-    "$@")" || exit $ERR_BAD_COMMAND_LINE
+eval "$(process_core_options 'plowup' "$OPTIONS" "$@")" || exit
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -230,7 +229,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
 # Process modules options
 eval "$(process_all_modules_options 'plowup' "$MODULE_OPTIONS" \
-    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+    "${UNUSED_OPTS[@]}")" || exit
 
 COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")

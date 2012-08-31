@@ -92,7 +92,7 @@ pretty_check() {
     # This must be non greedy!
     local S TOKEN
     S=${1//%[fFumnt%]}
-    TOKEN=$(parse_quiet . '\(%.\)' <<<"$S")
+    TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
         return $ERR_BAD_COMMAND_LINE
@@ -104,7 +104,7 @@ pretty_check() {
 # $2: module name
 pretty_print() {
     local FMT=$1
-    local CR=$'\n'
+    local -r CR=$'\n'
     local URL NAME S
 
     test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "$2" <<< "$FMT")
@@ -174,8 +174,7 @@ match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowlist' "$OPTIONS"
 
 # Process plowup options
-eval "$(process_core_options 'plowlist' "$OPTIONS" \
-    "$@")" || exit $ERR_BAD_COMMAND_LINE
+eval "$(process_core_options 'plowlist' "$OPTIONS" "$@")" || exit
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -213,7 +212,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
 # Process modules options
 eval "$(process_all_modules_options 'plowlist' "$MODULE_OPTIONS" \
-    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+    "${UNUSED_OPTS[@]}")" || exit
 
 COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")

@@ -573,7 +573,7 @@ grep_form_by_order() {
 
     # Get first form only
     local STRING=$(sed -ne \
-        '/<[Ff][Oo][Rr][Mm][[:space:]]/,/<\/[Ff][Oo][Rr][Mm]>/{p;/<\/[Ff][Oo][Rr][Mm]/q}' <<<"$DATA")
+        '/<[Ff][Oo][Rr][Mm][[:space:]]/,/<\/[Ff][Oo][Rr][Mm]>/{p;/<\/[Ff][Oo][Rr][Mm]/q}' <<< "$DATA")
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"n=$N\""
@@ -815,7 +815,7 @@ parse_cookie_quiet() {
 #
 # $1: URL
 basename_url() {
-    sed -e 's=\(https\?://[^/?#]*\).*=\1=' <<<"$1"
+    sed -e 's=\(https\?://[^/?#]*\).*=\1=' <<< "$1"
 }
 
 # Return basename of file path
@@ -981,7 +981,8 @@ post_login() {
     log_notice "Starting login process: $USER/${PASSWORD//?/*}"
 
     DATA=$(eval echo "${POSTDATA//&/\\&}")
-    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" "${CURL_ARGS[@]}" "$LOGIN_URL") || return
+    RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" "${CURL_ARGS[@]}" \
+        "$LOGIN_URL") || return
 
     # "$RESULT" can be empty, this is not necessarily an error
     if [ ! -s "$COOKIE" ]; then
@@ -1287,7 +1288,7 @@ captcha_process() {
             for I in 8 5 5 6 6 7 7 8; do
                 wait $I seconds
                 RESPONSE=$(curl --get \
-                    --data "key=${CAPTCHA_ANTIGATE}&action=get&id=$TID"  \
+                    --data "key=${CAPTCHA_ANTIGATE}&action=get&id=$TID" \
                     'http://antigate.com/res.php') || return
 
                 if [ 'CAPCHA_NOT_READY' = "$RESPONSE" ]; then
@@ -1377,8 +1378,8 @@ captcha_process() {
             log_notice "Using captcha.trader bypass service ($USERNAME)"
 
             # Plowshare API key for CaptchaTrader
-            RESPONSE=$(curl -F "match=" \
-                -F "api_key=1645b45413c7e23a470475f33692cb63" \
+            RESPONSE=$(curl -F 'match=' \
+                -F 'api_key=1645b45413c7e23a470475f33692cb63' \
                 -F "password=$PASSWORD" \
                 -F "username=$USERNAME" \
                 -F "value=@$FILENAME;filename=file" \
@@ -1545,7 +1546,7 @@ recaptcha_process() {
         WORDS=$(captcha_process "$FILENAME" recaptcha) || return
         rm -f "$FILENAME"
 
-        { read WORDS; read TID; } <<<"$WORDS"
+        { read WORDS; read TID; } <<< "$WORDS"
 
         [ -n "$WORDS" ] && break
 
@@ -1717,8 +1718,8 @@ captcha_nack() {
 
             log_debug "captcha.trader report nack ($USERNAME)"
 
-            RESPONSE=$(curl -F "match=" \
-                -F "is_correct=0"       \
+            RESPONSE=$(curl -F 'match=' \
+                -F 'is_correct=0'       \
                 -F "ticket=$TID"        \
                 -F "password=$PASSWORD" \
                 -F "username=$USERNAME" \
@@ -1786,7 +1787,7 @@ random() {
             while (( I < $LEN )); do
                 N=$(printf '%04u' $((RANDOM % 10000)))
                 RESULT=$RESULT$N
-                (( I += 4))
+                (( I += 4 ))
             done
             ;;
         h|hex)
@@ -1795,7 +1796,7 @@ random() {
             while (( I < $LEN )); do
                 N=$(printf '%04x' $((RANDOM & 65535)))
                 RESULT=$RESULT$N
-                (( I += 4))
+                (( I += 4 ))
             done
             ;;
         H)
@@ -1804,7 +1805,7 @@ random() {
             while (( I < $LEN )); do
                 N=$(printf '%04X' $((RANDOM & 65535)))
                 RESULT=$RESULT$N
-                (( I += 4))
+                (( I += 4 ))
             done
             ;;
         l)
@@ -2161,7 +2162,7 @@ process_configfile_module_options() {
               sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
-        local M=$(lowercase "$2")
+        local -r M=$(lowercase "$2")
 
         # For example:
         # AUTH,a:,auth:,USER:PASSWORD,Free or Premium account"
@@ -2798,8 +2799,8 @@ service_captchadeathby_ready() {
 # stdout: delete url
 # $?: 0 for success
 image_upload_imgur() {
-    local IMG=$1
-    local BASE_API='http://api.imgur.com/2'
+    local -r IMG=$1
+    local -r BASE_API='http://api.imgur.com/2'
     local RESPONSE DIRECT_URL SITE_URL DEL_HASH
 
     log_debug "uploading image to Imgur.com"
@@ -2835,8 +2836,8 @@ image_upload_imgur() {
 # Delete (captcha) image from Imgur (picture hosting service)
 # $1: delete hash
 image_delete_imgur() {
-    local HID=$1
-    local BASE_API='http://api.imgur.com/2'
+    local -r HID=$1
+    local -r BASE_API='http://api.imgur.com/2'
     local RESPONSE MSG
 
     log_debug "deleting image from Imgur.com"

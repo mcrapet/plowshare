@@ -86,8 +86,7 @@ match '--no-plowsharerc' "$*" || \
     process_configfile_options 'Plowdel' "$OPTIONS"
 
 # Process plowup options
-eval "$(process_core_options 'plowdel' "$OPTIONS" \
-    "$@")" || exit $ERR_BAD_COMMAND_LINE
+eval "$(process_core_options 'plowdel' "$OPTIONS" "$@")" || exit
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -112,7 +111,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
 # Process modules options
 eval "$(process_all_modules_options 'plowdel' "$MODULE_OPTIONS" \
-    "${UNUSED_OPTS[@]}")" || exit $ERR_BAD_COMMAND_LINE
+    "${UNUSED_OPTS[@]}")" || exit
 
 COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
