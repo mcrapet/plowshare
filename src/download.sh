@@ -736,8 +736,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 # (disable User-Agent because some proxy can fake it)
                 log_debug "No module found, try simple redirection"
 
-                URL_ENCODED=$(echo "$URL" | uri_encode)
-                URL_TEMP=$(curl --user-agent '' -i "$URL_ENCODED" | grep_http_header_location_quiet) || true
+                URL_ENCODED=$(uri_encode <<< "$URL")
+                HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
+                URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
 
                 if [ -n "$URL_TEMP" ]; then
                     MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
@@ -746,6 +747,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                     log_notice "No module found, do a simple HTTP GET as requested"
                     MODULE='module_null'
                 else
+                    match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
+                        "$URL" && log_notice "Raw IPv4 address not expected. Provide an URL with a DNS name."
+                    log_debug "remote server reply: $(echo "$HEADERS" | first_line | tr -d '\r\n')"
                     MRETVAL=$ERR_NOMODULE
                 fi
             fi
