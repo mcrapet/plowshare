@@ -77,14 +77,14 @@ uploaded_to_download() {
     fi
 
     # recognize folders
-    if match 'uploaded\.to/folder/' "$URL"; then
+    if match 'uploaded\.net/folder/' "$URL"; then
         log_error "This is a directory list"
         return $ERR_FATAL
     fi
 
     # Page not found
     # The requested file isn't available anymore!
-    if match 'uploaded\.to/\(404\|410\)' "$URL"; then
+    if match 'uploaded\.net/\(404\|410\)' "$URL"; then
         return $ERR_LINK_DEAD
     fi
 
