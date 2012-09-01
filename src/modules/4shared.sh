@@ -141,8 +141,14 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag 'downloadDelayTimeSec' 'div')
     test -z "$WAIT_TIME" && WAIT_TIME=20
 
-    # Try to figure the real filename from HTML
-    FILE_NAME=$(echo "$WAIT_HTML" | parse_tag 'blue xlargen"' 'b')
+    # Try to figure real filename from HTML
+    FILE_NAME=$(echo "$WAIT_HTML" | parse_tag_quiet 'blue xlargen"' 'b')
+
+    # Alternate attempt:
+    # <h1 class="fileName light-blue lucida f24"> ... </h1>
+    if [ -z "$FILE_NAME" ]; then
+        FILE_NAME=$(echo "$WAIT_HTML" | parse_tag '=.fileName' 'h1')
+    fi
 
     if [ -z "$TORRENT" ]; then
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr_quiet 'linkShow' href)
