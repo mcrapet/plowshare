@@ -107,7 +107,7 @@ mediafire_download() {
     if match 'name="downloadp"' "$PAGE"; then
         log_debug "File is password protected"
         if [ -z "$LINK_PASSWORD" ]; then
-            LINK_PASSWORD="$(prompt_for_password)" || return
+            LINK_PASSWORD=$(prompt_for_password) || return
         fi
         PAGE=$(curl -L --post301 -b "$COOKIEFILE" \
             --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return

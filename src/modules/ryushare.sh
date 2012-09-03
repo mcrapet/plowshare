@@ -86,7 +86,7 @@ ryushare_download() {
     if match '"password"' "$PAGE"; then
         log_debug "File is password protected"
         if [ -z "$LINK_PASSWORD" ]; then
-            LINK_PASSWORD="$(prompt_for_password)" || return
+            LINK_PASSWORD=$(prompt_for_password) || return
         fi
     fi
 

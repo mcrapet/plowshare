@@ -89,7 +89,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     if match 'enter a password to access' "$PAGE"; then
         log_debug "File is password protected"
         if [ -z "$LINK_PASSWORD" ]; then
-            LINK_PASSWORD="$(prompt_for_password)" || return
+            LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
         local FORM_HTML FORM_ACTION FORM_DSID
@@ -296,7 +296,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     if match 'enter a password to access' "$PAGE"; then
         log_debug "Folder is password protected"
         if [ -z "$LINK_PASSWORD" ]; then
-            LINK_PASSWORD="$(prompt_for_password)" || return
+            LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
         local FORM_HTML FORM_ACTION FORM_DSID
