@@ -1480,7 +1480,7 @@ captcha_process() {
                 log_notice "$TEXT1"
             fi
 
-            read -p "$TEXT2" RESPONSE
+            read -r -p "$TEXT2" RESPONSE
             echo "$RESPONSE"
             echo $TID
             ;;
