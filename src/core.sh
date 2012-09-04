@@ -2355,31 +2355,31 @@ check_argument_type() {
     local -r OPT=$4
     local RET=$ERR_BAD_COMMAND_LINE
 
-    # a: Authentication string (user:password)
-    if [[ "$TYPE" = 'a' && "${VAL#*:}" = "$VAL" ]]; then
+    # a: Authentication string (user or user:password)
+    if [[ $TYPE = 'a' && $VAL != *:* ]]; then
         log_debug "$NAME: missing password for credentials ($OPT)"
         RET=0
     # n: Positive integer (>0)
-    elif [[ "$TYPE" = 'n' && "$VAL" -le 0 ]]; then
+    elif [[ $TYPE = 'n' && ( $VAL = *[![:digit:]]* || $VAL -le 0 ) ]]; then
         log_error "$NAME: positive integer expected ($OPT)"
     # N: Positive integer or zero (>=0)
-    elif [[ "$TYPE" = 'N' && ( "$VAL" != [0-9] || "$VAL" = '' ) ]]; then
+    elif [[ $TYPE = 'N' && ( $VAL = *[![:digit:]]* || $VAL = '' ) ]]; then
         log_error "$NAME: positive or zero integer expected ($OPT)"
     # s: Non empty string
-    elif [[ "$TYPE" = 's' && "$VAL" = '' ]]; then
+    elif [[ $TYPE = 's' && $VAL = '' ]]; then
         log_error "$NAME: empty string not expected ($OPT)"
     # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
     elif [ "$TYPE" = 'r' ] && ! parse_transfer_speed "$VAL" 1; then
         log_error "$NAME: positive transfer rate expected ($OPT)"
     # e: E-mail string
-    elif [[ "$TYPE" = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
+    elif [[ $TYPE = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
         log_error "$NAME: invalid email address ($OPT)"
     # l: List (comma-separated values), non empty
-    elif [[ "$TYPE" = 'l' && "$VAL" = '' ]]; then
+    elif [[ $TYPE = 'l' && $VAL = '' ]]; then
         log_error "$NAME: comma-separated list expected ($OPT)"
     # V: special type for verbosity (values={0,1,2,3,4})
-    elif [[ "$TYPE" = 'V' && ( "$VAL" != [0-4] || "$VAL" -lt 0 || "$VAL" -gt 4 ) ]]; then
-       log_error "$NAME: wrong verbose level ($VAL). Should be [0-4]"
+    elif [[ $TYPE = 'V' && $VAL != [0-4] ]]; then
+       log_error "$NAME: wrong verbose level \`$VAL'. Must be 0, 1, 2, 3 or 4."
 
     elif [[ "$TYPE" = [lsS] ]]; then
         RET=0
