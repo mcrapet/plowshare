@@ -2091,8 +2091,8 @@ grep_list_modules() {
        return $ERR_SYSTEM
    fi
 
-   sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/p" "$CONFIG" | \
-       cut -d'|' -f1 | strip
+   sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/s/[[:space:]]*|.*$//p" \
+       "$CONFIG"
 }
 
 # $1: section name in ini-style file ("General" will be considered too)
