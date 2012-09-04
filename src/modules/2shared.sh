@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\|video\|audio\)/"
+MODULE_2SHARED_REGEXP_URL="http://\(www\.\)\?2shared\.com/\(file\|document\|fadmin\|photo\|audio\|video\)/"
 
 MODULE_2SHARED_DOWNLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
@@ -62,13 +62,13 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
 # $2: 2shared url
 # stdout: real file download link
 2shared_download() {
-    local COOKIE_FILE=$1
-    local URL=$2
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://www.2shared.com'
     local PAGE FILE_URL FILENAME WAIT_LINE WAIT_TIME
 
     # .htm are redirected to .html
     if [ -n "$AUTH_FREE" ]; then
-        local BASE_URL='http://www.2shared.com'
         2shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
         PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
     else
@@ -89,9 +89,15 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
             echo $((WAIT_TIME))
         fi
         return $ERR_LINK_TEMP_UNAVAILABLE
+
+    elif match '/photo/' "$URL"; then
+        FILE_URL=$(echo "$PAGE" | parse 'retrieveLink\.jsp' "get('\([^']*\)")
+        FILE_URL=$(curl "$BASE_URL$FILE_URL") || return
+
+    else
+        FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
     test "$CHECK_LINK" && return 0
 
     FILENAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) download - 2shared$')
@@ -106,10 +112,10 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
 # $3: remote filename
 # stdout: 2shared.com download + admin link
 2shared_upload() {
-    local COOKIE_FILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local BASE_URL='http://www.2shared.com'
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r BASE_URL='http://www.2shared.com'
 
     local PAGE FORM_HTML FORM_ACTION FORM_DC COMPLETE DL_URL AD_URL
 
@@ -136,7 +142,7 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL$COMPLETE") || return
-    DL_URL=$(echo "$PAGE" | parse_attr '/file/' action) || return
+    DL_URL=$(echo "$PAGE" | parse_attr '/\(file\|photo\|audio\|video\)/' action) || return
     AD_URL=$(echo "$PAGE" | parse_attr '/fadmin/' action)
 
     echo "$DL_URL"
