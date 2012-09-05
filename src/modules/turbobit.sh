@@ -120,6 +120,13 @@ turbobit_download() {
         PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$FREE_URL") || return
     fi
 
+    # <h1>Our service is currently unavailable in your country.</h1>
+    # <h1>Sorry about that.</h1>
+    if match 'service is currently unavailable in your country' "$PAGE"; then
+        log_error "Service not available for your country"
+        return $ERR_FATAL
+    fi
+
     # Check for dead link
     is_dead_turbobit "$PAGE" || return
 
