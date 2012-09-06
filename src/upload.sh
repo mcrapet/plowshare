@@ -203,10 +203,6 @@ fi
 log_report_info
 log_report "plowup version $VERSION"
 
-# Get configuration file module options
-test -z "$NO_PLOWSHARERC" && \
-    process_configfile_module_options 'Plowup' "$MODULE" UPLOAD
-
 if [ -n "$MAX_LIMIT_RATE" -a -n "$MIN_LIMIT_RATE" ]; then
   if (( MAX_LIMIT_RATE < MIN_LIMIT_RATE )); then
       log_error "--min-rate ($MIN_LIMIT_RATE) is greater than --max-rate ($MAX_LIMIT_RATE)"
@@ -251,6 +247,10 @@ if [ ${#COMMAND_LINE_ARGS[@]} -lt 2 ]; then
     log_error "plowup: try \`plowup --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
+
+# Get configuration file module options
+test -z "$NO_PLOWSHARERC" && \
+    process_configfile_module_options 'Plowup' "${COMMAND_LINE_ARGS[0]}" UPLOAD
 
 # Remove module name from argument list
 unset COMMAND_LINE_ARGS[0]
