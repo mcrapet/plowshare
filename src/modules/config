@@ -25,6 +25,7 @@ mirrorcreator   |          | upload |        | list |
 multiupload     |          | upload |        | list |
 netload_in      | download | upload |        | list |
 oron            | download | upload | delete | list |
+putlocker       | download | upload |        |      |
 rapidgator      | download | upload | delete |      |
 rapidshare      | download | upload | delete |      |
 ryushare        | download | upload |        |      |
