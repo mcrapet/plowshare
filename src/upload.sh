@@ -250,7 +250,14 @@ fi
 
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_module_options 'Plowup' "${COMMAND_LINE_ARGS[0]}" UPLOAD
+    process_configfile_module_options 'Plowup' "$MODULE" UPLOAD
+
+eval "$(process_module_options "$MODULE" UPLOAD \
+    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+
+if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
+    log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
+fi
 
 # Remove module name from argument list
 unset COMMAND_LINE_ARGS[0]
@@ -322,13 +329,6 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     log_notice "Destination file: $DESTFILE"
 
     timeout_init $TIMEOUT
-
-    eval "$(process_module_options "$MODULE" UPLOAD \
-        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-
-    if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
-        log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
-    fi
 
     TRY=0
     "${MODULE}_vars_set"
