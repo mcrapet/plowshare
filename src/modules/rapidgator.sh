@@ -49,6 +49,19 @@ rapidgator_login() {
     HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASE_URL/auth/login" -L -b "$COOKIE_FILE") || return
 
+    # check for JS redirection
+    # <script language="JavaScript">function ZD5wC ... window.location.href='/auth/login?'+MGOwqz+'';MGOwqz='';</script>
+    if match 'window.location.href=' "$HTML"; then
+        log_debug 'JS redirect detected'
+        local JS_CODE REDIR
+
+        detect_javascript || return
+        JS_CODE=$(echo "$HTML" | \
+            parse . '<script language="JavaScript">\(.\+\)</script>') || return
+        REDIR=$(echo "var window={};window.location={}; $JS_CODE print(window.location.href);" | javascript) || return
+        HTML=$(curl -L -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$BASE_URL$REDIR") || return
+    fi
+
     STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
     [ -n "$STATUS" ] || return $ERR_LOGIN_FAILED
 
