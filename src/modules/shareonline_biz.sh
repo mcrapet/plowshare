@@ -24,6 +24,10 @@ MODULE_SHAREONLINE_BIZ_DOWNLOAD_OPTIONS=""
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_RESUME=no
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
+MODULE_SHAREONLINE_BIZ_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+MODULE_SHAREONLINE_BIZ_UPLOAD_REMOTE_SUPPORT=no
+
 # Output an shareonline.biz file download URL
 # $1: cookie file
 # $2: shareonline.biz url
@@ -131,4 +135,76 @@ shareonline_biz_download() {
 
     echo "$FILE_URL"
     echo "$FILENAME"
+}
+
+# Upload a file to Share-Online.biz
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: shareonline download link
+shareonline_biz_upload() {
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r REQUEST_URL='http://www.share-online.biz/upv3_session.php'
+    local DATA USER PASSWORD ERR UP_URL SESSION_ID SIZE SIZE_SRV LINK MD5
+
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+    # We use the public upload API (http://www.share-online.biz/uploadapi/)
+
+    split_auth "$AUTH_FREE" USER PASSWORD || return
+
+    # Create upload session
+    DATA=$(curl -F "username=$USER" -F "password=$PASSWORD" "$REQUEST_URL") || return
+
+    if match '<title>502 Bad Gateway</title>' "$DATA"; then
+        log_error 'Remote server error, maybe due to overload.'
+        echo 120 # arbitrary time
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    ERR=$(echo "$DATA" | parse_quiet '^\*\*\* EXCEPTION \(.\+\) -')
+    if [ -n "$ERR" ]; then
+        if [ "$ERR" = 'username or password invalid' ]; then
+            return $ERR_LOGIN_FAILED
+        fi
+
+        log_error "Unexpected remote error: $ERR"
+        return $ERR_FATAL
+    fi
+
+    # EN29W3AMYGX0;dlw159-2.share-online.biz/upload
+    IFS=";" read SESSION_ID UP_URL <<< "$DATA"
+
+    [ 'http://' = "${UP_URL:0:7}" ] || UP_URL="http://$UP_URL"
+    SIZE=$(get_filesize "$FILE") || return
+
+    DATA=$(curl -F "username=$USER" -F "password=$PASSWORD" \
+        -F "upload_session=$SESSION_ID" -F 'chunk_no=1' -F 'chunk_number=1' \
+        -F "filesize=$SIZE" -F "fn=@$FILE;filename=$DEST_FILE" -F 'finalize=1' \
+        "$UP_URL") || return
+
+    ERR=$(echo "$DATA" | parse_quiet '^\*\*\* EXCEPTION \(.\+\) -')
+
+    if [ -n "$ERR" ]; then
+        if [ "$ERR" = 'session creation/reuse failed -' ]; then
+            log_error 'Server reports invalid session'
+            return $ERR_FATAL
+        fi
+
+        log_error "Unexpected remote error: $ERR"
+        return $ERR_FATAL
+    fi
+
+    # http://www.share-online.biz/dl/8XDBW3AM57;128;656957fb0a59502fc47c7c01a814d21f
+    IFS=";" read LINK SIZE_SRV MD5 <<< "$DATA"
+
+    log_debug "File size on server: $SIZE_SRV"
+    log_debug "MD5 hash: $MD5"
+
+    if [ $SIZE -ne $SIZE_SRV ]; then
+        log_error "Server reports wrong filesize: $SIZE_SRV (local: $SIZE)"
+    fi
+
+    echo "$LINK"
 }
