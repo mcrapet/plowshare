@@ -120,28 +120,32 @@ usage() {
 }
 
 # Mark status of link (inside file or to stdout). See --mark-downloaded switch.
-# $1: type (file or url)
-# $2: MARK_DOWN option flag
+# $1: type ("file" or "url" string)
+# $2: mark link (boolean) flag
+# $3: if type="file": list file (containing URLs)
+# $4: raw URL
+# $5: text to prepend (no comma character)
+# $6: text to append on a second line (can be empty)
 mark_queue() {
-    local FILELIST=$3
+    local -r FILE=$3
     local URL=$4
-    local TEXT=$5
-    local TAIL=$6
+    local -r TEXT_PRE="#$5"
+    local TEXT_POST=${6:+"\n# $6"}
 
     if [ -n "$2" ]; then
         if [ 'file' = "$1" ]; then
-            if test -w "$FILELIST"; then
-                TAIL=${TAIL//,/\\,}
+            if test -w "$FILE"; then
+                TEXT_POST=${TEXT_POST//,/\\,}
                 URL=${URL//,/\\,}
 
-                sed -i -e "s,^[[:space:]]*\($URL\)[[:space:]]*$,#$TEXT \1$TAIL," "$FILELIST" &&
-                    log_notice "link marked in file: $FILELIST (#$TEXT)" ||
-                    log_error "failed marking link in file: $FILELIST (#$TEXT)"
+                sed -i -e "s,^[[:space:]]*\($URL[[:space:]]*\)$,$TEXT_PRE \1$TEXT_POST," "$FILE" &&
+                    log_notice "link marked in file: $FILE ($TEXT_PRE)" ||
+                    log_error "failed marking link in file: $FILE ($TEXT_PRE)"
             else
-                log_notice "error: can't mark link, no write permission ($FILELIST)"
+                log_notice "error: can't mark link, no write permission ($FILE)"
             fi
         else
-            echo "#${TEXT} $URL"
+            echo "$TEXT_PRE $URL$TEXT_POST"
         fi
     fi
 }
@@ -283,7 +287,7 @@ download() {
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
                 log_error "You must provide a valid password"
-                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'PASSWORD'
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" PASSWORD
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
@@ -299,7 +303,7 @@ download() {
                 ;;
             $ERR_LINK_DEAD)
                 log_error "Link is not alive: file not found"
-                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" 'NOTFOUND'
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" NOTFOUND
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
@@ -514,7 +518,7 @@ download() {
             rm -f "$DCOOKIE"
         fi
 
-        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" "" "|$FILENAME_OUT"
+        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" OK "$FILENAME_OUT"
         break
     done
     return 0
@@ -751,13 +755,16 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                     log_debug "remote server reply: $(echo "$HEADERS" | first_line | tr -d '\r\n')"
                     MRETVAL=$ERR_NOMODULE
                 fi
+            else
+                log_debug "Skip: '$URL' (in $ITEM) doesn't seem to be a link"
+                MRETVAL=$ERR_NOMODULE
             fi
         fi
 
         if [ $MRETVAL -ne 0 ]; then
             log_error "Skip: no module for URL ($URL)"
             RETVALS=(${RETVALS[@]} $MRETVAL)
-            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" 'NOMODULE'
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" NOMODULE
         elif test "$GET_MODULE"; then
             RETVALS=(${RETVALS[@]} 0)
             echo "$MODULE"
