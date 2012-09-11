@@ -88,7 +88,7 @@ process_item() {
 
     if match_remote_url "$ITEM"; then
         echo 'url'
-        echo "$ITEM" | strip
+        strip <<< "$ITEM"
     elif [ -f "$ITEM" ]; then
         case "${ITEM##*.}" in
             zip|rar|tar|[7gx]z|bz2|mp[234]|avi|mkv)
@@ -401,7 +401,7 @@ download() {
                 FILENAME_OUT=$FILENAME
             fi
 
-            FILE_URL=$(echo "$FILE_URL" | uri_encode)
+            FILE_URL=$(uri_encode <<< "$FILE_URL")
 
             if [ -f "$FILENAME_OUT" ]; then
                 if [ -n "$NOOVERWRITE" ]; then
