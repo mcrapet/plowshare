@@ -257,16 +257,9 @@ filemates_download() {
         -d "method_free=$FORM_METHOD" \
         -d "password=$LINK_PASSWORD" \
         -d "code=$CODE" \
-        "$URL") || return
+        "$URL" | break_html_lines) || return
 
-    FILE_URL=$(echo "$PAGE" | parse_quiet '=.downLinkDo' "Do('\([^']*\)")
-    if match_remote_url "$FILE_URL"; then
-        echo "$FILE_URL"
-        echo "$FORM_FNAME"
-        return 0
-    fi
-
-    FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
+    FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'srv[[:digit:]]' href)
     if match_remote_url "$FILE_URL"; then
         echo "$FILE_URL"
         echo "$FORM_FNAME"
