@@ -44,7 +44,7 @@ NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 # This function is duplicated from download.sh
 absolute_path() {
     local SAVED_PWD=$PWD
-    TARGET="$1"
+    local TARGET=$1
 
     while [ -L "$TARGET" ]; do
         DIR=$(dirname "$TARGET")

@@ -54,13 +54,13 @@ NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
 
 
-# - Results are similar to "readlink -f" (available on GNU but not BSD)
-# - If '-P' flags (of cd) are removed directory symlinks won't be
-#   translated (but results are correct too)
-# - Assume that $1 is correct (don't check for infinite loop)
+# Translate to absolute path (like GNU "readlink -f")
+# $1: script path (usually a symlink)
+# Note: If '-P' flags (of cd) are removed, directory symlinks
+# won't be translated (but results are correct too).
 absolute_path() {
     local SAVED_PWD=$PWD
-    TARGET="$1"
+    local TARGET=$1
 
     while [ -L "$TARGET" ]; do
         DIR=$(dirname "$TARGET")
