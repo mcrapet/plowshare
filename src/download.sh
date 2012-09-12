@@ -156,17 +156,14 @@ mark_queue() {
 # $1: filename (with or without path)
 # stdout: non existing filename
 create_alt_filename() {
-    local FILENAME=$1
-    local COUNT=1
+    local -r FILENAME=$1
+    local -i COUNT=1
 
-    while [ "$COUNT" -le 99 ]; do
-        if [ ! -f "${FILENAME}.$COUNT" ]; then
-            FILENAME="${FILENAME}.$COUNT"
-            break
-        fi
+    while (( COUNT < 100 )); do
+        [ -f "${FILENAME}.$COUNT" ] || break
         (( ++COUNT ))
     done
-    echo "$FILENAME"
+    echo "${FILENAME}.$COUNT"
 }
 
 # Example: "MODULE_FILESONIC_DOWNLOAD_RESUME=no"
@@ -204,7 +201,7 @@ download() {
     local MAX_RETRIES=$7
 
     local DRETVAL AWAIT CODE FILENAME FILE_URL
-    local URL_ENCODED=$(echo "$URL_RAW" | uri_encode)
+    local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
 
     log_notice "Starting download ($MODULE): $URL_ENCODED"
