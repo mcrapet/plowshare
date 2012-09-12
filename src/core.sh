@@ -1178,16 +1178,18 @@ captcha_process() {
         if check_exec tput; then
             MAX_OUTPUT_WIDTH=$(tput cols)
             MAX_OUTPUT_HEIGHT=$(tput lines)
-            if check_exec identify; then
-                local DIMENSION=$(identify -quiet "$FILENAME" | cut -d' ' -f3)
-                local W=${DIMENSION%x*}
-                local H=${DIMENSION#*x}
-                [ "$W" -lt "$MAX_OUTPUT_WIDTH" ] && MAX_OUTPUT_WIDTH=$W
-                [ "$H" -lt "$MAX_OUTPUT_HEIGHT" ] && MAX_OUTPUT_HEIGHT=$H
-            fi
         else
-            MAX_OUTPUT_WIDTH=150
-            MAX_OUTPUT_HEIGHT=57
+            # Try environment variables
+            MAX_OUTPUT_WIDTH=${COLUMNS:-150}
+            MAX_OUTPUT_HEIGHT=${LINES:-57}
+        fi
+
+        if check_exec identify; then
+            local DIMENSION=$(identify -quiet "$FILENAME" | cut -d' ' -f3)
+            local W=${DIMENSION%x*}
+            local H=${DIMENSION#*x}
+            [ "$W" -lt "$MAX_OUTPUT_WIDTH" ] && MAX_OUTPUT_WIDTH=$W
+            [ "$H" -lt "$MAX_OUTPUT_HEIGHT" ] && MAX_OUTPUT_HEIGHT=$H
         fi
     fi
 
