@@ -360,12 +360,12 @@ parse_all() {
 
     elif [ $N -eq 1 ]; then
         # Note: Loop is required for consecutive matches
-        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;b a")
-        STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;b a}")
+        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;b a;}")
+        STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;b a;}")
 
     elif [ $N -eq -1 ]; then
-        # STRING=$(sed -ne "/$1/ {x; s/$2/\1/p; b}" -e 'h')
-        STRING=$(sed -ne "$FILTER {x; $PARSE; b}" -e 'h')
+        # STRING=$(sed -ne "/$1/ {x; s/$2/\1/p; b;}" -e 'h')
+        STRING=$(sed -ne "$FILTER {x; $PARSE; b;}" -e 'h')
 
     else
         local -r FIRST_LINE='^\([^\n]*\).*$'
