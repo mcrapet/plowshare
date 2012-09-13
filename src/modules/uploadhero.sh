@@ -27,6 +27,8 @@ MODULE_UPLOADHERO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_UPLOADHERO_UPLOAD_OPTIONS=""
 MODULE_UPLOADHERO_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_UPLOADHERO_DELETE_OPTIONS=""
+
 MODULE_UPLOADHERO_LIST_OPTIONS=""
 
 # Set a cookie manually
@@ -206,6 +208,30 @@ uploadhero_upload() {
     # Output file link + delete link
     echo "$BASE_URL/dl/$FILE_ID"
     echo "$PAGE" | parse '/delete/' ">\($BASE_URL/delete/[[:alnum:]]\+\)<"
+}
+
+# Delete a file from UploadHero
+# $1: cookie file (unused here)
+# $2: uploadhero (delete) link
+uploadhero_delete() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://uploadhero.com'
+    local PAGE REDIR DEL_ID
+
+    PAGE=$(curl --include "$URL") || return
+
+    # Note: Redirects to main page if file is already deleted
+    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+    [ "$REDIR" = '/' ] && return $ERR_LINK_DEAD
+
+    DEL_ID=${URL##*/}
+    PAGE=$(curl "$BASE_URL/apifull.php?deleteidok=$DEL_ID") || return
+
+    if [ "$PAGE" != 'ok' ]; then
+        log_error 'Could not delete file.'
+        return $ERR_FATAL
+    fi
 }
 
 # List an uploadhero shared file folder URL

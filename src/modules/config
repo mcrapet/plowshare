@@ -32,7 +32,7 @@ ryushare        | download | upload |        |      |
 sendspace       | download | upload | delete | list |
 shareonline_biz | download | upload |        |      |
 turbobit        | download | upload | delete |      |
-uploadhero      | download | upload |        | list |
+uploadhero      | download | upload | delete | list |
 uploading       | download |        |        |      |
 uploaded_to     | download | upload | delete | list |
 uptobox         | download | upload |        |      |
