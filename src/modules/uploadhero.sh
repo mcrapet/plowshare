@@ -72,17 +72,15 @@ uploadhero_switch_lang() {
     uploadhero_cookie_set "$1" 'lang' 'en' "${2#http://}" || return
 }
 
-# Output an uploadhero file download URL
+# Output an UploadHero file download URL
 # $1: cookie file
 # $2: uploadhero url
 # stdout: real file download link
-# Note: Anonymous download restriction: one file every 20 minutes
 uploadhero_download() {
-    local COOKIEFILE=$1
-    local URL=$(echo "$2" | replace 'www.' '' | replace '/v/' '/dl/')
-    local BASE_URL='http://uploadhero.com'
-    local FILE_ID HTML PAGE FILE_NAME FILE_URL CAPTCHA_URL CAPTCHA_IMG
-    local LIMIT_URL LIMIT_HTML LIMIT_MIN LIMIT_SEC WAIT_TIME
+    local -r COOKIE_FILE=$1
+    local -r URL=$(echo "$2" | replace 'www.' '' | replace '/v/' '/dl/')
+    local -r BASE_URL='http://uploadhero.com'
+    local FILE_ID PAGE FILE_NAME FILE_URL CAPTCHA_URL CAPTCHA_IMG
 
     # Recognize folders
     if match 'uploadhero.com/f/' "$URL"; then
@@ -90,60 +88,60 @@ uploadhero_download() {
         return $ERR_FATAL
     fi
 
-    # Get url content (in english)
-    HTML=$(curl -c "$COOKIEFILE" -b "lang=en" "$URL") || return
+    uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
     # Verify if link exists
-    if match '<div class="raison">' "$HTML"; then
-        return $ERR_LINK_DEAD
-    fi
+    match '<div class="raison">' "$PAGE" && return $ERR_LINK_DEAD
+    [ -n "$CHECK_LINK" ] && return 0
 
     # Check limit (one file every 20 minutes)
-    if match 'id="lightbox_block_dl"' "$HTML"; then
-        LIMIT_URL=$(echo "$HTML" | parse_attr 'id="lightbox_block_dl"' href)
+    if match 'id="lightbox_block_dl"' "$PAGE"; then
+        local LIMIT_URL LIMIT_HTML LIMIT_MIN LIMIT_SEC WAIT_TIME
+
+        LIMIT_URL=$(echo "$PAGE" | parse_attr 'id="lightbox_block_dl"' href)
         LIMIT_HTML=$(curl "$BASE_URL$LIMIT_URL") || return
         LIMIT_MIN=$(echo "$LIMIT_HTML" | parse_tag 'id="minutes"' span)
         LIMIT_SEC=$(echo "$LIMIT_HTML" | parse_tag 'id="seconds"' span)
         WAIT_TIME=$(($LIMIT_MIN * 60 + $LIMIT_SEC + 1))
-        wait $WAIT_TIME seconds || return
 
-        # Get a new page (hopefully without limit)
-        HTML=$(curl -c "$COOKIEFILE" -b "lang=en" "$URL") || return
+        log_error 'Forced delay between downloads.'
+        echo $WAIT_TIME
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # Extract the raw file id
-    FILE_ID=$(echo "$URL" | parse 'uploadhero' '/dl/\([^/]*\)')
+    FILE_ID=$(echo "$URL" | parse . '/dl/\([^/]*\)')
     log_debug "File id=$FILE_ID"
 
     # Extract filename (first <div> marker)
-    FILE_NAME=$(echo "$HTML" | parse_tag 'class="nom_de_fichier"' div)
+    FILE_NAME=$(echo "$PAGE" | parse_tag 'class="nom_de_fichier"' div)
     log_debug "Filename : $FILE_NAME"
 
     # Handle captcha
-    CAPTCHA_URL=$(echo "$HTML" | parse 'id="captcha"' 'src="\([^"]*\)')
+    CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha"' 'src')
     CAPTCHA_URL="$BASE_URL$CAPTCHA_URL"
 
     # Create new formatted image (cookie is mandatory)
     CAPTCHA_IMG=$(create_tempfile) || return
-    curl -c "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
+    curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
 
     # Decode captcha
     local WI WORD ID
     WI=$(captcha_process "$CAPTCHA_IMG") || return
-    { read WORD; read ID; } <<<"$WI"
+    { read WORD; read ID; } <<< "$WI"
     rm -f "$CAPTCHA_IMG"
 
     log_debug "decoded captcha: $WORD"
 
-    # Get final url
-    PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL?code=$WORD") || return
+    # Get final URL
+    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL?code=$WORD") || return
 
     if ! match 'setTimeout' "$PAGE"; then
         captcha_nack $ID
-        log_error "Wrong captcha"
         return $ERR_CAPTCHA
     elif match 'magicomfg' "$PAGE"; then
-        FILE_URL=$(echo "$PAGE" | parse_attr 'magicomfg' href) || return
+        FILE_URL=$(echo "$PAGE" | parse_attr 'magicomfg' 'href') || return
     else
         log_error "No match. Site update?"
         return $ERR_FATAL
