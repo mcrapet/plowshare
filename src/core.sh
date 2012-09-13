@@ -59,7 +59,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - MODULE           Module name (don't include .sh)
 #
 # Global variables defined here:
-#   - PS_TIMEOUT       Timeout (in seconds) for one URL download
+#   - PS_TIMEOUT       (plowdown, plowup) Timeout (in seconds) for one item
 #
 # Logs are sent to stderr stream.
 # Policies:
@@ -1040,22 +1040,22 @@ javascript() {
 # $1: Sleep duration
 # $2: Unit (seconds | minutes)
 wait() {
-    local VALUE=$1
-    local UNIT=$2
+    local -r VALUE=$1
+    local -r UNIT=$2
+    local UNIT_STR TOTAL_SECS
 
     if test "$VALUE" = '0'; then
         log_debug "wait called with null duration"
-        return
+        return 0
     fi
 
-    if [ "$UNIT" = "minutes" ]; then
-        UNIT_SECS=60
+    if [ "$UNIT" = 'minutes' ]; then
         UNIT_STR=minutes
+        TOTAL_SECS=$((VALUE * 60))
     else
-        UNIT_SECS=1
         UNIT_STR=seconds
+        TOTAL_SECS=$((VALUE))
     fi
-    local TOTAL_SECS=$((VALUE * UNIT_SECS))
 
     timeout_update $TOTAL_SECS || return
 
@@ -1064,11 +1064,11 @@ wait() {
     local CLEAR="     \b\b\b\b\b"
     if test -t 2; then
       while [ "$REMAINING" -gt 0 ]; do
-          log_notice -ne "\r$MSG $(splitseconds $REMAINING) left${CLEAR}"
+          log_notice -ne "\r$MSG $(splitseconds $REMAINING) left$CLEAR"
           sleep 1
           (( --REMAINING ))
       done
-      log_notice -e "\r$MSG done${CLEAR}"
+      log_notice -e "\r$MSG done$CLEAR"
     else
       log_notice "$MSG"
       sleep $TOTAL_SECS
