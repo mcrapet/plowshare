@@ -139,6 +139,7 @@ uploadhero_download() {
 
     if ! match 'setTimeout' "$PAGE"; then
         captcha_nack $ID
+        log_error "Wrong captcha"
         return $ERR_CAPTCHA
     elif match 'magicomfg' "$PAGE"; then
         FILE_URL=$(echo "$PAGE" | parse_attr 'magicomfg' 'href') || return
