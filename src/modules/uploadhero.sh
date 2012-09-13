@@ -24,7 +24,51 @@ MODULE_UPLOADHERO_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADHERO_DOWNLOAD_RESUME=no
 MODULE_UPLOADHERO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
+MODULE_UPLOADHERO_UPLOAD_OPTIONS=""
+MODULE_UPLOADHERO_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_UPLOADHERO_LIST_OPTIONS=""
+
+# Set a cookie manually
+#
+# Note: This function assumes no cookie of the given name is present. It cannot
+#       change values of existing cookies!
+#
+# $1: cookie file
+# $2: name
+# $3: value
+# $4: domain
+# $5: path (defaults to "/")
+# $6: expiration date (unix timestamp, defaults to "0", i.e. session cookie)
+# $7: secure only (set to any value to create secured cookie)
+uploadhero_cookie_set() {
+    local -r PATH=${5:-/}
+    local -r EXP=${6:-0}
+    local SEC FLAG
+
+    if [ '.' = "${4:0:1}" ]; then
+        FLAG='TRUE'
+    else
+        FLAG='FALSE'
+    fi
+
+    if [ -n "$7" ]; then
+        SEC='TRUE'
+    else
+        SEC='FALSE'
+    fi
+
+    # Cookie file syntax:
+    # http://www.hashbangcode.com/blog/netscape-http-cooke-file-parser-php-584.html
+    echo "$4	$FLAG	$PATH	$SEC	$EXP	$2	$3" >> "$1"
+}
+
+# Switch language to english
+# $1: cookie file
+# $2: base URL
+uploadhero_switch_lang() {
+    uploadhero_cookie_set "$1" 'lang' 'en' "${2#http://}" || return
+}
 
 # Output an uploadhero file download URL
 # $1: cookie file
@@ -111,6 +155,57 @@ uploadhero_download() {
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
+}
+
+# Upload a file to UploadHero
+# $1: cookie file
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: uploadhero download link
+uploadhero_upload() {
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://uploadhero.com'
+    local -r MAX_SIZE=2147483648 # 2GiB
+    local PAGE UP_URL SESSION_ID SIZE FILE_ID
+
+    SIZE=$(get_filesize "$FILE")
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_debug "File is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$BASE_URL") || return
+
+    # upload_url: "http://c28.uploadhero.com/upload/upload.php",
+    UP_URL=$(echo "$PAGE" | \
+        parse 'upload_url' 'upload_url: "\(http://[^"]\+\)",') || return
+
+    # post_params: {"PHPSESSID" : "ud2i8866uoeu6p2fehpvj218m2", "ID" : ""},
+    SESSION_ID=$(echo "$PAGE" | \
+        parse 'PHPSESSID' '{"PHPSESSID" : "\([[:alnum:]]\+\)",') || return
+
+    FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
+        -F "Filename=$DEST_FILE" \
+        -F "PHPSESSID=$SESSION_ID" \
+        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        -F 'Upload=Submit Query' \
+        "$UP_URL") || return
+
+    if [ -z "FILE_ID" ]; then
+        log_error 'Could not upload file.'
+        return $ERR_FATAL
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" --referer "$BASE_URL/remote-upload" --get \
+        -d 'folder=' -d "name=$DEST_FILE" -d "size=$SIZE" \
+        "$BASE_URL/fileinfo.php") || return
+
+    # Output file link + delete link
+    echo "$BASE_URL/dl/$FILE_ID"
+    echo "$PAGE" | parse '/delete/' ">\($BASE_URL/delete/[[:alnum:]]\+\)<"
 }
 
 # List an uploadhero shared file folder URL
