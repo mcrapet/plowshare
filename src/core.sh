@@ -188,13 +188,18 @@ curl() {
 
         case "$DRETVAL" in
             # Failed to initialize.
-            2)
-                log_error "out of memory?"
+            2|27)
+                log_error "$FUNCNAME: out of memory?"
                 return $ERR_SYSTEM
+                ;;
+            # Couldn't resolve host. The given remote host was not resolved.
+            6)
+                log_notice "$FUNCNAME: couldn't resolve host"
+                return $ERR_NETWORK
                 ;;
             # Failed to connect to host.
             7)
-                log_error "can't connect: DNS or firewall error"
+                log_notice "$FUNCNAME: couldn't connect to host"
                 return $ERR_NETWORK
                 ;;
             # Partial file
@@ -202,17 +207,17 @@ curl() {
                 return $ERR_LINK_TEMP_UNAVAILABLE
                 ;;
             # HTTP retrieve error / Operation timeout
-            22 | 28)
-                log_error "curl retrieve error"
+            22|28)
+                log_error "$FUNCNAME: HTTP retrieve error"
                 return $ERR_NETWORK
                 ;;
             # Write error
             23)
-                log_error "write failed, disk full?"
+                log_error "$FUNCNAME: write failed, disk full?"
                 return $ERR_SYSTEM
                 ;;
             *)
-                log_error "curl failed ($DRETVAL)"
+                log_error "$FUNCNAME: failed with exit code $DRETVAL"
                 return $ERR_NETWORK
                 ;;
         esac
