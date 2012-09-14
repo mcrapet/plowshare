@@ -759,7 +759,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         fi
 
         if [ $MRETVAL -ne 0 ]; then
-            log_error "Skip: no module for URL ($URL)"
+            log_error "Skip: no module for URL ($(basename_url "$URL")/)"
             RETVALS=(${RETVALS[@]} $MRETVAL)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" NOMODULE
         elif test "$GET_MODULE"; then

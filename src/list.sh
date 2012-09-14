@@ -235,7 +235,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
             MODULE='module_null'
             LRETVAL=0
         else
-            log_error "Skip: no module for URL ($URL)"
+            log_error "Skip: no module for URL ($(basename_url "$URL")/)"
             RETVALS=(${RETVALS[@]} $LRETVAL)
             continue
         fi
