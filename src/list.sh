@@ -230,7 +230,11 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     MODULE=$(get_module "$URL" "$MODULES") || LRETVAL=$?
     if [ $LRETVAL -ne 0 ]; then
-        if test "$NO_MODULE_FALLBACK"; then
+        if ! match_remote_url "$URL"; then
+            log_error "Skip: not an URL ($URL)"
+            RETVALS=(${RETVALS[@]} $LRETVAL)
+            continue
+        elif test "$NO_MODULE_FALLBACK"; then
             log_notice "No module found, list URLs in page as requested"
             MODULE='module_null'
             LRETVAL=0
