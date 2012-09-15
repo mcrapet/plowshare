@@ -54,7 +54,7 @@ rapidshare_download() {
     fi
 
     if [ -z "$FILEID" -o -z "$FILENAME" ]; then
-        log_error "Cannot parse fileID/filename from URL: $URL"
+        log_error "Cannot parse file ID/filename from URL: $URL"
         return $ERR_FATAL
     fi
 
@@ -85,7 +85,7 @@ rapidshare_download() {
         CUR_DATE=$(echo "$DETAILS" | parse '^servertime=' '=\([[:digit:]]\+\)') || return
         END_DATE=$(echo "$DETAILS" | parse '^billeduntil' '=\([[:digit:]]\+\)') || return
         if (( END_DATE > CUR_DATE )); then
-            log_debug "premium account detected"
+            log_debug 'Premium account detected'
             IS_PREMIUM=1
         fi
 
@@ -100,45 +100,52 @@ rapidshare_download() {
 
     ERROR=$(echo "$PAGE" | parse_quiet 'ERROR:' 'ERROR:[[:space:]]*\(.*\)')
 
-    if match 'need to wait' "$ERROR"; then
-        WAIT=$(echo "$ERROR" | parse '.' 'wait \([[:digit:]]\+\) seconds') || return
-        log_debug "Server has asked to wait $WAIT seconds"
-        echo $((WAIT))
-        return $ERR_LINK_TEMP_UNAVAILABLE
+    if [ -n "$ERROR" ]; then
+        if match 'need to wait' "$ERROR"; then
+            WAIT=$(echo "$ERROR" | parse '.' 'wait \([[:digit:]]\+\) seconds') || return
+            log_debug "Server has asked to wait $WAIT seconds."
+            echo $((WAIT))
+            return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif matchi 'File \(deleted\|not found\|ID invalid\|is marked as illegal\)' "$ERROR"; then
-        log_debug "website error: $ERROR"
-        return $ERR_LINK_DEAD
+        elif matchi 'File \(deleted\|not found\|ID invalid\|is marked as illegal\)' "$ERROR"; then
+            log_debug "Remote error: $ERROR"
+            return $ERR_LINK_DEAD
 
-    elif match 'flooding' "$ERROR"; then
-        log_debug "Server said we are flooding it."
-        echo 360
-        return $ERR_LINK_TEMP_UNAVAILABLE
+        elif match 'flooding' "$ERROR"; then
+            log_debug 'Server said we are flooding it.'
+            echo 360
+            return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif match 'slots' "$ERROR"; then
-        log_debug "Server said there is no free slots available"
-        return $ERR_LINK_TEMP_UNAVAILABLE
+        elif match 'slots' "$ERROR"; then
+            log_debug 'Server said there is no free slots available.'
+            return $ERR_LINK_TEMP_UNAVAILABLE
 
-    elif matchi 'Login failed' "$ERROR"; then
-        return $ERR_LOGIN_FAILED
+        elif matchi 'Login failed' "$ERROR"; then
+            return $ERR_LOGIN_FAILED
 
-    # RapidPro expired. (34fa3175)
-    elif test "$ERROR"; then
-        log_error "website error: $ERROR"
+        # You need RapidPro to download more files from your IP address. (8d5611a9)
+        elif match 'download more files from your IP address' "$ERROR"; then
+            log_error 'No parallel download allowed.'
+            echo 120 # wait some arbitrary time
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        # RapidPro expired. (34fa3175)
+        log_error "Remote error: $ERROR"
         return $ERR_FATAL
     fi
 
     # DL:$hostname,$dlauth,$countdown,$md5hex
-    IFS="," read RSHOST DLAUTH WTIME CRC <<< "${PAGE#DL:}"
+    IFS=',' read RSHOST DLAUTH WTIME CRC <<< "${PAGE#DL:}"
 
     if [ -z "$RSHOST" -o -z "$DLAUTH" -o -z "$WTIME" -o -z "$CRC" ]; then
-        log_error "unexpected page content"
+        log_error 'Unexpected page content'
         return $ERR_FATAL
     fi
 
     test "$CHECK_LINK" && return 0
 
-    log_debug "file md5: $CRC"
+    log_debug "File MD5: $CRC"
 
     wait $((WTIME)) seconds || return
 
@@ -176,12 +183,12 @@ rapidshare_upload() {
 
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/rsapi.cgi"
 
-    INFO=$(curl_with_log -F "sub=upload" \
+    INFO=$(curl_with_log -F 'sub=upload' \
         -F "filecontent=@$FILE;filename=$DESTFILE" \
         -F "login=$USER" -F "password=$PASSWORD" "$UPLOAD_URL") || return
 
     if ! match '^COMPLETE' "$INFO"; then
-        ERROR=$(echo "$INFO" | parse_quiet "ERROR:" "ERROR:[[:space:]]*\(.*\)")
+        ERROR=$(echo "$INFO" | parse_quiet 'ERROR:' 'ERROR:[[:space:]]*\(.*\)')
         log_error "upload failed: $ERROR"
         return $ERR_FATAL
     fi
