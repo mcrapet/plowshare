@@ -179,7 +179,7 @@ uploaded_to_check_folder() {
 uploaded_to_extract_file_id() {
     local FILE_ID
 
-    FILE_ID=$(echo "$1" | parse . "$2/file/\([[:alnum:]]\+\)$") || return
+    FILE_ID=$(echo "$1" | parse . "$2/file/\([[:alnum:]]\+\)") || return
     log_debug "File ID: '$FILE_ID'"
     echo "$FILE_ID"
 }
@@ -327,8 +327,13 @@ uploaded_to_download() {
 
         captcha_ack "$ID"
 
+        if [ "$ERR" = 'limit-dl' ]; then
+            log_error 'Free download limit reached'
+            echo 600 # wait some arbitrary time
+            return $ERR_LINK_TEMP_UNAVAILABLE
+
         # You have reached the max. number of possible free downloads for this hour
-        if match 'possible free downloads for this hour' "$ERR"; then
+        elif match 'possible free downloads for this hour' "$ERR"; then
             log_error 'Hourly limit reached.'
             echo 3600
             return $ERR_LINK_TEMP_UNAVAILABLE
