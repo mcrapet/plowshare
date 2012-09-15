@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# uploaded.to module
+# uploaded.net module
 # Copyright (c) 2011-2012 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,32 +18,32 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPLOADED_TO_REGEXP_URL="http://\(www\.\)\?\(uploaded\.\(to\|net\)\|ul\.to\)/"
+MODULE_UPLOADED_NET_REGEXP_URL="http://\(www\.\)\?\(uploaded\.\(to\|net\)\|ul\.to\)/"
 
-MODULE_UPLOADED_TO_DOWNLOAD_OPTIONS="
+MODULE_UPLOADED_NET_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
-MODULE_UPLOADED_TO_DOWNLOAD_RESUME=no
-MODULE_UPLOADED_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_UPLOADED_NET_DOWNLOAD_RESUME=no
+MODULE_UPLOADED_NET_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
-MODULE_UPLOADED_TO_UPLOAD_OPTIONS="
+MODULE_UPLOADED_NET_UPLOAD_OPTIONS="
 ADMIN_CODE,,admin-code,s=ADMIN_CODE,Admin code (used for file deletion)
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)
 FOLDER,,folder,s=FOLDER,Folder to upload files into
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 PRIVATE_FILE,,private,,Do not allow others to download the file"
-MODULE_UPLOADED_TO_UPLOAD_REMOTE_SUPPORT=no
+MODULE_UPLOADED_NET_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_UPLOADED_TO_DELETE_OPTIONS="
+MODULE_UPLOADED_NET_DELETE_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
-MODULE_UPLOADED_TO_LIST_OPTIONS=""
+MODULE_UPLOADED_NET_LIST_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
 # $2: cookie file
 # $3: base url
 # stdout: account type ("free" or "premium") on success
-uploaded_to_login() {
+uploaded_net_login() {
     local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
@@ -62,7 +62,7 @@ uploaded_to_login() {
     fi
 
     # Note: Login changes site's language according to account's preference
-    uploaded_to_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    uploaded_net_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     # Determine account type
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/me") || return
@@ -86,7 +86,7 @@ uploaded_to_login() {
 # Switch language to english
 # $1: cookie file
 # $2: base URL
-uploaded_to_switch_lang() {
+uploaded_net_switch_lang() {
     # Note: Language is associated with session, no new cookie is set
     curl -b "$1" -o /dev/null "$2/language/en" || return
 }
@@ -103,7 +103,7 @@ uploaded_to_switch_lang() {
 #     - "split": split input buffer on comma character (,).
 # stdin: JSON data
 # stdout: result
-uploaded_to_parse_json_alt() {
+uploaded_net_parse_json_alt() {
     local -r D="[\"']\?" # string/name delimiter
     local -r S="^.*$D$1$D[[:space:]]*:[[:space:]]*" # start of JSON string
     local -r E='\([,}[:space:]].*\)\?$' # end of JSON string
@@ -144,7 +144,7 @@ uploaded_to_parse_json_alt() {
 # $2: cookie file (logged into account)
 # $3: base URL
 # stdout: folder ID
-uploaded_to_check_folder() {
+uploaded_net_check_folder() {
     local -r NAME=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
@@ -173,10 +173,10 @@ uploaded_to_check_folder() {
 }
 
 # Extract file ID from download link
-# $1: canonical uploaded.to download URL
+# $1: canonical uploaded.net download URL
 # $2: base URL
 # stdout: file ID
-uploaded_to_extract_file_id() {
+uploaded_net_extract_file_id() {
     local FILE_ID
 
     FILE_ID=$(echo "$1" | parse . "$2/file/\([[:alnum:]]\+\)") || return
@@ -185,16 +185,16 @@ uploaded_to_extract_file_id() {
 }
 
 
-# Output an Uploaded.to file download URL
+# Output an Uploaded.net file download URL
 # $1: cookie file
-# $2: upload.to url
+# $2: upload.net url
 # stdout: real file download link
-uploaded_to_download() {
+uploaded_net_download() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL='http://uploaded.net'
     local URL ACCOUNT PAGE JSON WAIT ERR FILE_ID FILE_NAME FILE_URL
 
-    # Uploaded.to redirects all possible urls of a file to the canonical one
+    # Uploaded.net redirects all possible urls of a file to the canonical one
     # Note: There can be multiple redirections before the final one
     URL=$(curl -I -L "$2" | grep_http_header_location_quiet | last_line) || return
     [ -n "$URL" ] || URL=$2
@@ -213,12 +213,12 @@ uploaded_to_download() {
 
     [ -n "$CHECK_LINK" ] && return 0
 
-    uploaded_to_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+    uploaded_net_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     # Note: File owner never needs password and only owner may access private
     # files, so login comes first.
     if [ -n "$AUTH" ]; then
-        ACCOUNT=$(uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
+        ACCOUNT=$(uploaded_net_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
     fi
 
     # Note: Save HTTP headers to catch premium users' "direct downloads"
@@ -265,7 +265,7 @@ uploaded_to_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_ID=$(uploaded_to_extract_file_id "$URL" "$BASE_URL") || return
+    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
 
     # Request download (use dummy "-d" to force a POST request)
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
@@ -275,7 +275,7 @@ uploaded_to_download() {
     if [ "$JSON" != '{succ:true}' ]; then
         ERR=$(echo "$JSON" | parse_json_quiet 'err')
 
-        # from 'http://uploaded.to/js/download.js' - 'function(limit)'
+        # from 'http://uploaded.net/js/download.js' - 'function(limit)'
         if [ "$ERR" = 'limit-dl' ]; then
             log_error 'Free download limit reached'
             echo 600 # wait some arbitrary time
@@ -304,7 +304,7 @@ uploaded_to_download() {
         'period: <span>\([[:digit:]]\+\)</span>') || return
     wait $((WAIT + 1)) || return
 
-    # from 'http://uploaded.to/js/download.js' - 'Recaptcha.create'
+    # from 'http://uploaded.net/js/download.js' - 'Recaptcha.create'
     local PUBKEY WCI CHALLENGE WORD ID
     PUBKEY='6Lcqz78SAAAAAPgsTYF3UlGf2QFQCNuPMenuyHF3'
     WCI=$(recaptcha_process $PUBKEY) || return
@@ -355,21 +355,21 @@ uploaded_to_download() {
 
     captcha_ack "$ID"
 
-    # {type:'download',url:'http://storXXXX.uploaded.to/dl/...'}
+    # {type:'download',url:'http://storXXXX.uploaded.net/dl/...'}
     # Note: This is no valid JSON due to the unquoted/single quoted strings
-    FILE_URL=$(echo "$JSON" | uploaded_to_parse_json_alt 'url') || return
+    FILE_URL=$(echo "$JSON" | uploaded_net_parse_json_alt 'url') || return
     FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
 }
 
-# Upload a file to Uploaded.to
+# Upload a file to Uploaded.net
 # $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: ul.to download link
-uploaded_to_upload() {
+uploaded_net_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
@@ -419,7 +419,7 @@ uploaded_to_upload() {
 
     log_debug "Upload server: $SERVER"
 
-    ACCOUNT=$(uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
+    ACCOUNT=$(uploaded_net_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
 
     if [ "$ACCOUNT" != 'premium' ]; then
         local SIZE
@@ -433,7 +433,7 @@ uploaded_to_upload() {
 
     # If user chose a folder, check it now
     if [ -n "$FOLDER" ]; then
-        FOLDER_ID=$(uploaded_to_check_folder "$FOLDER" "$COOKIE_FILE" \
+        FOLDER_ID=$(uploaded_net_check_folder "$FOLDER" "$COOKIE_FILE" \
             "$BASE_URL") || return
     fi
     log_debug "Folder ID: $FOLDER_ID"
@@ -470,10 +470,10 @@ uploaded_to_upload() {
     echo "$ADMIN_CODE"
 }
 
-# Delete a file on Uploaded.to
+# Delete a file on Uploaded.net
 # $1: cookie file
-# $2: uploaded.to (download) link
-uploaded_to_delete() {
+# $2: uploaded.net (download) link
+uploaded_net_delete() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL='http://uploaded.net'
     local URL PAGE FILE_ID
@@ -496,9 +496,9 @@ uploaded_to_delete() {
         return $ERR_LINK_DEAD
     fi
 
-    uploaded_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    uploaded_net_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
-    FILE_ID=$(uploaded_to_extract_file_id "$URL" "$BASE_URL") || return
+    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
     PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
         -d "file%5B%5D=$FILE_ID" "$BASE_URL/api/Remove") || return
 
@@ -506,11 +506,11 @@ uploaded_to_delete() {
     [ "$PAGE" = '{"succ":1,"trust":0}' ] || return $ERR_FATAL
 }
 
-# List an uploaded.to shared file folder URL
-# $1: uploaded.to url
+# List an Uploaded.net shared file folder URL
+# $1: uploaded.net url
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
-uploaded_to_list() {
+uploaded_net_list() {
     local URL=$1
     local PAGE LINKS NAMES
 
@@ -529,5 +529,5 @@ uploaded_to_list() {
 
     test "$LINKS" || return $ERR_LINK_DEAD
 
-    list_submit "$LINKS" "$NAMES" 'http://uploaded.to/file/' || return
+    list_submit "$LINKS" "$NAMES" 'http://uploaded.net/file/' || return
 }

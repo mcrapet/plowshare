@@ -34,6 +34,6 @@ shareonline_biz | download | upload |        |      |
 turbobit        | download | upload | delete |      |
 uploadhero      | download | upload | delete | list |
 uploading       | download |        |        |      |
-uploaded_to     | download | upload | delete | list |
+uploaded_net    | download | upload | delete | list |
 uptobox         | download | upload |        |      |
 zalaa           | download | upload |        |      |
