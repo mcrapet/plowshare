@@ -82,7 +82,8 @@ uploading_download() {
     test "$CHECK_LINK" && return 0
 
     # <h2>Maximum File Size Limit</h2>
-    if matchi 'File Size Limit' "$PAGE"; then
+    # <h2>File access denied</h2>
+    if matchi 'File \(Size Limit\|access denied\)' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
 
     # <h2>Parallel Download</h2>
