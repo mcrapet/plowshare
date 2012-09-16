@@ -536,11 +536,12 @@ grep_http_header_content_type() {
 }
 
 # Grep "Content-Disposition" HTTP header
+# See RFC5987 and RFC2183.
 #
 # stdin: HTTP response headers (see below)
 # stdout: attachement filename
 grep_http_header_content_disposition() {
-    parse_all '^[Cc]ontent-[Dd]isposition:' "filename=[\"']\?\([^\"'[:cntrl:]]*\)"
+    parse_all '^[Cc]ontent-[Dd]isposition:' "filename\*\?=[\"']\?\([^\"'[:cntrl:]]*\)"
 }
 
 # Extract a specific form from a HTML content.
