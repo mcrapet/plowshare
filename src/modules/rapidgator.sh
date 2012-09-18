@@ -189,7 +189,7 @@ rapidgator_download() {
         local HOUR MIN TIME
 
         # Get current UTC time, prevent leading zeros
-        TIME=$(date --utc +'%-H:%-M') || return
+        TIME=$(date -u +'%-H:%-M') || return
         HOUR=${TIME%:*}
         MIN=${TIME#*:}
 
