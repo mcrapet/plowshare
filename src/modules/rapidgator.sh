@@ -189,12 +189,12 @@ rapidgator_download() {
         local HOUR MIN TIME
 
         # Get current UTC time, prevent leading zeros
-        TIME=$(date -u +'%-H:%-M') || return
+        TIME=$(date -u +'%k:%M') || return
         HOUR=${TIME%:*}
         MIN=${TIME#*:}
 
         log_error 'Daily limit reached.'
-        echo $(( ((23 - ((HOUR + 4) % 24) ) * 60 + (61 - MIN) ) * 60 ))
+        echo $(( ((23 - ((HOUR + 4) % 24) ) * 60 + (61 - ${MIN#0}) ) * 60 ))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
@@ -333,22 +333,28 @@ rapidgator_download() {
     log_debug "Captcha data: $CAPTCHA_DATA"
 
     # Get download link (Note: No quotes around $CAPTCHA_DATA!)
-    HTML=$(curl -i -b "$COOKIE_FILE" --referer "$BASE_URL$CAPTCHA_URL" \
+    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
+        --referer "$BASE_URL$CAPTCHA_URL" \
         -d 'DownloadCaptchaForm%5Bcaptcha%5D=' \
         $CAPTCHA_DATA \
         "$BASE_URL$CAPTCHA_URL") || return
 
-    if match 'Click here to download' "$HTML"; then
-        captcha_ack $ID
-        log_debug "correct captcha"
-    elif match 'verification code is incorrect' "$HTML" ||
-        [ "$(echo "$HTML" | parse_cookie_quiet 'failed_on_captcha')" = '1' ]; then
-        captcha_nack $ID
-        return $ERR_CAPTCHA
-    else
+    if ! match 'Click here to download' "$HTML"; then
+        local FAIL_COOKIE
+        FAIL_COOKIE=$(parse_cookie_quiet 'failed_on_captcha' < "$COOKIE_FILE")
+
+        if match 'verification code is incorrect' "$HTML" || \
+            [ $FAIL_COOKIE -eq 1 ]; then
+            captcha_nack $ID
+            return $ERR_CAPTCHA
+        fi
+
         log_error 'Unexpected content. Site updated?'
         return $ERR_FATAL
     fi
+
+    captcha_ack $ID
+    log_debug 'Correct captcha'
 
     # Extract + output download link
     echo "$HTML" | parse 'location.href' "'\(.\+\)'" || return
