@@ -174,9 +174,9 @@ shareonline_biz_upload() {
     fi
 
     # EN29W3AMYGX0;dlw159-2.share-online.biz/upload
-    IFS=";" read SESSION_ID UP_URL <<< "$DATA"
+    IFS=';' read SESSION_ID UP_URL <<< "$DATA"
 
-    [ 'http://' = "${UP_URL:0:7}" ] || UP_URL="http://$UP_URL"
+    match_remote_url $UP_URL || UP_URL="http://$UP_URL"
     SIZE=$(get_filesize "$FILE") || return
 
     DATA=$(curl -F "username=$USER" -F "password=$PASSWORD" \
