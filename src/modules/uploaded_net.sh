@@ -79,7 +79,7 @@ uploaded_net_login() {
         return $ERR_FATAL
     fi
 
-    log_debug "Successfully logged in as $TYPE member '$ID' ($NAME)"
+    log_debug "Successfully logged in as $TYPE member '$ID' (${NAME:-n/a})"
     echo "$TYPE"
 }
 
