@@ -20,7 +20,7 @@ MODULE_FILES    = $(wildcard src/modules/*.sh) src/modules/config
 MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1
 MANPAGES5 = plowshare.conf.5
 MANPAGES  = $(addprefix docs/,$(MANPAGES1)) $(addprefix docs/,$(MANPAGES5))
-DOCS      = AUTHORS CHANGELOG COPYING INSTALL README
+DOCS      = AUTHORS COPYING INSTALL README
 
 CONTRIB_FILES = $(addprefix contrib/,plowdown_add_remote_loop.sh plowdown_loop.sh \
                 plowdown_parallel.sh)
