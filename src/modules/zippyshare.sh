@@ -53,13 +53,29 @@ zippyshare_download() {
         PART1=$(echo "$PAGE" | parse 'swfobject\.embedSWF' "url:[[:space:]]*'\([^']*\)") || return
         N1=$(echo "$PAGE" | parse 'swfobject\.embedSWF' 'seed:[[:space:]]*\([[:digit:]]*\)') || return
         FILE_URL="$PART1&time=$((5 * N1 % 71678963))"
-    else
-        # document.getElementById('dlbutton').href = "/d/91294633/"+(z)+"/foo.bar";
+    elif match '+(z)+' "$PAGE"; then
+        # document.getElementById('dlbutton').href = "/d/91294631/"+(z)+"/foo.bar";
         PART1=$(echo "$PAGE" | parse '(z)' '"\(/d/[^"]*\)') || return
         PART2=$(echo "$PAGE" | parse '(z)' '+"\([^"]*\)') || return
         N1=$(echo "$PAGE" | parse '(z)' '=[[:space:]]*\([[:digit:]]\+\)[[:space:]]*+' -3)
         N2=$(echo "$PAGE" | parse '(z)' '+[[:space:]]*\([[:digit:]]\+\)[[:space:]]*;' -3)
         FILE_URL="$(basename_url "$URL")$PART1$((N1 + N2 - 7))$PART2"
+    elif match ')\.omg' "$PAGE"; then
+        # document.getElementById('dlbutton').omg = "asdasd".substr(0, 3);
+        PART1=$(echo "$PAGE" | parse 'Math\.pow' '"\(/d/[^"]*\)') || return
+        PART2=$(echo "$PAGE" | parse 'Math\.pow' '+"\([^"]*\)') || return
+        N1=$(echo "$PAGE" | parse ')\.omg' '=[[:space:]]*\([[:digit:]]\+\)' -1)
+        N2=$(echo "$PAGE" | parse ')\.omg' '\([[:digit:]]\+\));')
+        FILE_URL="$(basename_url "$URL")$PART1$((N1 ** 3 + N2))$PART2"
+    elif match '([[:digit:]]\+%[[:digit:]]\+' "$PAGE"; then
+        # document.getElementById('dlbutton').href = "/d/23839625/"+(381623%55245 + 381323%913)+"/foo.bar"
+        PART1=$(echo "$PAGE" | parse '/d/' '"\(/d/[^"]*\)') || return
+        PART2=$(echo "$PAGE" | parse '/d/' '+"\([^"]*\)') || return
+        N1=$(echo "$PAGE" | parse '/d/' '"+(\(.\+\))+"') || return
+        FILE_URL="$(basename_url "$URL")$PART1$((N1))$PART2"
+    else
+        log_error "Unexpected content, site updated?"
+        return $ERR_FATAL
     fi
 
     FILE_NAME=$(echo "$PAGE" | parse_quiet '>Name:[[:space:]]*<' '">\([^<]*\)')
