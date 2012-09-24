@@ -198,9 +198,9 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Parse file name from page
-    FILE_NAME=$(echo "$HTML" | parse 'Downloading:' \
-        '^[[:space:]]\+\([[:graph:]]\+\)[[:space:]]\+</a>$' 3) || return
+    # Parse file name from page title
+    FILE_NAME=$(echo "$HTML" | parse_tag 'title') || return
+    FILE_NAME=${FILE_NAME#Download file }
 
     # If this is a premium download, we already have the download link
     if [ "$ACCOUNT" = 'premium' ]; then
