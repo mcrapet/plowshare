@@ -51,9 +51,14 @@ filepost_login() {
     # JsHttpRequest is important to get JSON answers, if unused, we get an extra
     # cookie entry named "error" (in case of incorrect login)
 
+    # This IP address has been blocked on our service due to some fraudulent activity.
+    if match 'IP address has been blocked on our service' "$LOGIN_RESULT"; then
+        log_error 'Your IP/account is blocked by the server.'
+        return $ERR_FATAL
+
     # Sometimes prompts for reCaptcha (like depositfiles)
     # {"id":"1234","js":{"answer":{"captcha":true}},"text":""}
-    if match_json_true 'captcha' "$LOGIN_RESULT"; then
+    elif match_json_true 'captcha' "$LOGIN_RESULT"; then
         log_debug "recaptcha solving required for login"
 
         local PUBKEY WCI CHALLENGE WORD ID
