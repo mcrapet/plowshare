@@ -26,12 +26,118 @@ MODULE_MEDIAFIRE_DOWNLOAD_RESUME=yes
 MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+FOLDER,,folder,s=FOLDER,Folder to upload files into"
 MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
 
-# Static function
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+mediafire_login() {
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local -r ENC_BASE_URL=$(uri_encode_strict <<< "$BASE_URL/")
+    local LOGIN_DATA PAGE CODE NAME
+
+    # Make sure we have "ukey" cookie (mandatory)
+    curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL"
+
+    # Note: "login_remember=on" not required
+
+    LOGIN_DATA='login_email=$USER&login_pass=$PASSWORD&submit_login=Login+to+MediaFire'
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "${BASE_URL/#http/https}/dynamic/login.php?popup=1" \
+        -b "$COOKIE_FILE") || return
+
+    # Note: Cookies "user" and "session" get set on successful login, "skey" is changed"
+    CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
+    NAME=$(echo "$PAGE" | parse 'var fp' "var fp='\([^']\+\)';") || return
+
+    # Check for errors
+    # Note: All error codes are explained in page returned by server.
+    if [ $CODE -ne 15 ]; then
+        log_debug "Remote error: $ERR"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    log_debug "Successfully logged in as member '$NAME'"
+}
+
+# Retrieve current session key
+# $1: cookie file (logged into account)
+# $2: base URL
+# stdout: session key
+mediafire_extract_session_key() {
+    local PAGE KEY
+
+    # Though we cannot login via the official API (requires app ID) we can
+    # extract the session ID and use most of the API with that :-)
+    PAGE=$(curl -b "$1" "$2/myfiles.php") || return
+    KEY=$(echo "$PAGE" | \
+        parse 'window.tH.YQ' 'window.tH.YQ("\([[:xdigit:]]\+\)",') || return
+
+    log_debug "Session key: '$KEY'"
+    echo "$KEY"
+}
+
+# Check if specified folder name is valid.
+# When multiple folders wear the same name, first one is taken.
+# $1: session key
+# $2: base URL
+# $3: folder name selected by user
+# stdout: folder key
+mediafire_check_folder() {
+    local -r SESSION_KEY=$1
+    local -r BASE_URL=$2
+    local -r NAME=$3
+    local -a FOLDER_NAMES # all folder names encountered
+    local -a FOLDER_KEYS # all folder keys encountered
+    local XML IDX LINE NAMES KEYS
+
+    # Get root folder to initialize folder traversal
+    XML=$(curl -d "session_token=$SESSION_KEY" \
+        "$BASE_URL/api/folder/get_info.php") || return
+    FOLDER_KEYS[0]=$(echo "$XML" | parse_tag . 'folderkey') || return
+    FOLDER_NAMES[0]=$(echo "$XML" | parse_tag . 'name') || return
+    IDX=0
+
+    while [ $IDX -lt ${#FOLDER_NAMES[@]} ]; do
+
+        # Check whether we found the correct folder
+        if [ "${FOLDER_NAMES[$IDX]}" = "$NAME" ]; then
+            log_debug "Folder found! Folder key: '${FOLDER_KEYS[$IDX]}'"
+            echo "${FOLDER_KEYS[$IDX]}"
+            return 0
+        fi
+
+        # Get all sub folders
+        XML=$(curl -d "session_token=$SESSION_KEY" -d "folder_key=${FOLDER_KEYS[$IDX]}" -d 'content_type=folders' \
+            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+        KEYS=$(echo "$XML" | parse_all_tag_quiet 'folderkey')
+        NAMES=$(echo "$XML" | parse_all_tag_quiet 'name')
+
+        # Append names/keys (if any) to respective array
+        if [ -n "$KEYS" ]; then
+            while read -r LINE; do
+                FOLDER_NAMES[${#FOLDER_NAMES[@]}]=$LINE
+            done <<< "$NAMES"
+
+            while read -r LINE; do
+                FOLDER_KEYS[${#FOLDER_KEYS[@]}]=$LINE
+            done <<< "$KEYS"
+        fi
+
+        (( ++IDX ))
+    done
+
+    log_error 'Invalid folder, choose from:' ${FOLDER_NAMES[*]}
+    return $ERR_BAD_COMMAND_LINE
+}
+
 get_ofuscated_link() {
     local VAR=$1
     local I N C R
@@ -131,63 +237,51 @@ mediafire_download() {
 # $3: remote filename
 # stdout: mediafire.com download link
 mediafire_upload() {
-    local COOKIEFILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local SZ=$(get_filesize "$FILE")
-    local BASE_URL='http://www.mediafire.com'
-    local XML UKEY USER FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY N
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://www.mediafire.com'
+    local XML UKEY USER SESSION_KEY FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY
+    local N SIZE MAX_SIZE
 
-    if [ -n "$AUTH_FREE" ]; then
-        # Get ukey cookie entry (mandatory)
-        curl -c "$COOKIEFILE" -o /dev/null "$BASE_URL"
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    SESSION_KEY=$(mediafire_extract_session_key "$COOKIE_FILE" "$BASE_URL") || return
 
-        # HTTPS login (login_remember=on not required)
-        LOGIN_DATA='login_email=$USER&login_pass=$PASSWORD&submit_login=Login+to+MediaFire'
-        LOGIN_RESULT=$(post_login "$AUTH_FREE" "$COOKIEFILE" "$LOGIN_DATA" \
-            'http://www.mediafire.com/dynamic/login.php?popup=1' -b "$COOKIEFILE") || return
+    log_debug "Get uploader configuration"
+    XML=$(curl -b "$COOKIE_FILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | \
+        break_html_lines) || return
 
-        # If successful, two entries are added into cookie file: user and session
-        SESSION=$(parse_cookie_quiet 'session' < "$COOKIEFILE")
-        if [ -z "$SESSION" ]; then
-            log_error "login process failed"
-            return $ERR_FATAL
-        fi
-    else
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    MAX_SIZE=$(echo "$XML" | parse_tag 'max_file_size') || return
 
-    # File size limit check
-    if [ "$SZ" -gt 209715200 ]; then
-        log_debug "file is bigger than 200MB"
+    # Check file size
+    SIZE=$(get_filesize "$FILE")
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_debug "File is bigger than $MAX_SIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    log_debug "Get uploader configuration"
-    XML=$(curl -b "$COOKIEFILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | break_html_lines) ||
-            { log_error "Couldn't upload file!"; return $ERR_FATAL; }
-
-    UKEY=$(echo "$XML" | parse_tag_quiet ukey)
-    USER=$(echo "$XML" | parse_tag_quiet user)
-    FOLDER_KEY=$(echo "$XML" | parse_tag_quiet folderkey)
-    MFUL_CONFIG=$(echo "$XML" | parse_tag_quiet MFULConfig)
-
-    log_debug "folderkey: $FOLDER_KEY"
-    log_debug "ukey: $UKEY"
-    log_debug "MFULConfig: $MFUL_CONFIG"
-
-    if [ -z "$UKEY" -o -z "$FOLDER_KEY" -o -z "$MFUL_CONFIG" -o -z "$USER" ]; then
-        log_error "Can't parse uploader configuration!"
-        return $ERR_FATAL
+    if [ -n "$FOLDER" ]; then
+        FOLDER_KEY=$(mediafire_check_folder "$SESSION_KEY" "$BASE_URL" "$FOLDER") || return
+    else
+        FOLDER_KEY=$(echo "$XML" | parse_tag folderkey) || return
     fi
 
+    UKEY=$(echo "$XML" | parse_tag ukey) || return
+    USER=$(echo "$XML" | parse_tag user) || return
+    MFUL_CONFIG=$(echo "$XML" | parse_tag MFULConfig) || return
+
+    log_debug "Folder Key: $FOLDER_KEY"
+    log_debug "UKey: $UKEY"
+    log_debug "MFULConfig: $MFUL_CONFIG"
+
     # HTTP header "Expect: 100-continue" seems to confuse server
-    # Note: -b "$COOKIEFILE" is not required here
+    # Note: -b "$COOKIE_FILE" is not required here
     XML=$(curl_with_log -0 \
         -F "Filename=$DESTFILE" \
         -F "Upload=Submit Query" \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
-        --user-agent "Shockwave Flash" \
+        --user-agent 'Shockwave Flash' \
         --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" \
         "$BASE_URL/douploadtoapi/?type=basic&ukey=$UKEY&user=$USER&uploadkey=$FOLDER_KEY&upload=0") || return
 
@@ -204,7 +298,7 @@ mediafire_upload() {
     # Get error code (<result>)
     if [ -z "$UPLOAD_KEY" ]; then
         local ERR_CODE=$(echo "$XML" | parse_tag_quiet result)
-        log_error "mediafire internal error: ${ERR_CODE:-n/a}"
+        log_error "Unexpected remote error: ${ERR_CODE:-n/a}"
         return $ERR_FATAL
     fi
 
@@ -213,7 +307,8 @@ mediafire_upload() {
     for N in 4 3 3 2 2 2; do
         wait $N seconds || return
 
-        XML=$(curl "$BASE_URL/basicapi/pollupload.php?key=$UPLOAD_KEY&MFULConfig=$MFUL_CONFIG") || return
+        XML=$(curl --get -d "key=$UPLOAD_KEY" -d "MFULConfig=$MFUL_CONFIG" \
+            "$BASE_URL/basicapi/pollupload.php") || return
 
         # <description>Verifying File</description>
         if match '<description>No more requests for this key</description>' "$XML"; then
@@ -224,7 +319,7 @@ mediafire_upload() {
         fi
     done
 
-    log_error "Can't get quick key!"
+    log_error 'Cannot get download link. Site updated?'
     return $ERR_FATAL
 }
 
