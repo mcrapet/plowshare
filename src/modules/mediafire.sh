@@ -141,7 +141,7 @@ mediafire_check_folder() {
     return $ERR_BAD_COMMAND_LINE
 }
 
-get_ofuscated_link() {
+mediafire_get_ofuscated_link() {
     local VAR=$1
     local I N C R
 
@@ -160,78 +160,81 @@ get_ofuscated_link() {
 # $2: mediafire.com url
 # stdout: real file download link
 mediafire_download() {
-    local COOKIEFILE=$1
-    local URL=$(echo "$2" | replace '/download.php?' '?')
-    local LOCATION PAGE FILE_URL FILENAME JSON JS_VAR
+    local -r COOKIE_FILE=$1
+    local URL PAGE FILE_URL FILE_NAME JSON JS_VAR
 
-    LOCATION=$(curl --head "$URL" | grep_http_header_location_quiet) || return
-
-    if match '^http://download' "$LOCATION"; then
-        log_debug "direct download"
-        echo "$LOCATION"
-        return 0
-    elif match 'errno=999$' "$LOCATION"; then
-        return $ERR_LINK_NEED_PERMISSIONS
-    elif match 'errno=320$' "$LOCATION"; then
-        return $ERR_LINK_DEAD
-    elif match 'errno=378$' "$LOCATION"; then
-        return $ERR_LINK_DEAD
-    elif match 'errno=' "$LOCATION"; then
-        log_error "site redirected with an unknown error"
-        return $ERR_FATAL
+    if [ -n "$AUTH_FREE" ]; then
+        mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
-    PAGE=$(curl -L -c "$COOKIEFILE" "$URL" | break_html_lines) || return
+    # Mediafire redirects all possible urls of a file to the canonical one
+    URL=$(curl --head "$2" | grep_http_header_location_quiet) || return
+    [ -n "$URL" ] || URL=$2
 
-    if ! match 'class="download_file_title"' "$PAGE"; then
-        return $ERR_LINK_DEAD
-    fi
-    test "$CHECK_LINK" && return 0
+    case "$URL" in
+        http://download*)
+            log_debug 'Direct download'
+            echo "$URL"
+            return 0
+            ;;
+        *errno=999)
+            return $ERR_LINK_NEED_PERMISSIONS
+            ;;
+        *errno=320|*errno=378)
+            return $ERR_LINK_DEAD
+            ;;
+        *errno=*)
+            log_error "Unexpected remote error: ${URL#*errno=}"
+            return $ERR_FATAL
+    esac
+
+    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL" | break_html_lines) || return
+    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet 'class="download_file_title"' 'div')
+
+    [ -z "$FILE_NAME" ] && return $ERR_LINK_DEAD
+    [ -n "$CHECK_LINK" ] && return 0
 
     # reCaptcha
     if match '<textarea name="recaptcha_challenge_field"' "$PAGE"; then
-
         local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
         WCI=$(recaptcha_process $PUBKEY) || return
-        { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+        { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
 
-        PAGE=$(curl -L -b "$COOKIEFILE" --data \
-            "recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            -d "recaptcha_challenge_field=$CHALLENGE" \
+            -d "recaptcha_response_field=$WORD" \
             "$URL" | break_html_lines) || return
 
         # You entered the incorrect keyword below, please try again!
         if match 'incorrect keyword' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'Correct captcha'
     fi
 
     # Check for password protected link
     if match 'name="downloadp"' "$PAGE"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
-        PAGE=$(curl -L --post301 -b "$COOKIEFILE" \
-            --data "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
-        if match 'name="downloadp"' "$PAGE"; then
-            return $ERR_LINK_PASSWORD_REQUIRED
-        fi
+        PAGE=$(curl -L --post301 -b "$COOKIE_FILE" \
+            -d "downloadp=$LINK_PASSWORD" "$URL" | break_html_lines) || return
+
+        match 'name="downloadp"' "$PAGE" && return $ERR_LINK_PASSWORD_REQUIRED
     fi
 
-    JS_VAR=$(echo "$PAGE" |  parse 'function[[:space:]]*_' '"\([^"]\+\)";' 1) || return
-    FILE_URL=$(get_ofuscated_link "$JS_VAR" | parse_attr href) || return
-
-    FILENAME=$(curl -I "$FILE_URL" | grep_http_header_content_disposition) || return
+    JS_VAR=$(echo "$PAGE" | parse 'function[[:space:]]*_' '"\([^"]\+\)";' 1) || return
+    FILE_URL=$(mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href) || return
 
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to mediafire
