@@ -27,7 +27,10 @@ MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
-FOLDER,,folder,s=FOLDER,Folder to upload files into"
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+FOLDER,,folder,s=FOLDER,Folder to upload files into
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+PRIVATE_FILE,,private,,Do not show file in folder view"
 MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
@@ -313,14 +316,38 @@ mediafire_upload() {
         # <description>Verifying File</description>
         if match '<description>No more requests for this key</description>' "$XML"; then
             QUICK_KEY=$(echo "$XML" | parse_tag_quiet quickkey)
-
-            echo "$BASE_URL/?$QUICK_KEY"
-            return 0
+            break
         fi
     done
 
-    log_error 'Cannot get download link. Site updated?'
-    return $ERR_FATAL
+    if [ -z "$QUICK_KEY" ]; then
+        log_error 'Could not get download link. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    if [ -n "$DESCRIPTION" -o -n "$PRIVATE_FILE" ]; then
+        XML=$(curl -d "session_token=$SESSION_KEY" \
+            -d "quick_key=$QUICK_KEY" \
+            ${DESCRIPTION:+-d "description=$DESCRIPTION"} \
+            ${PRIVATE_FILE:+-d 'privacy=private'} \
+            "$BASE_URL/api/file/update.php") || return
+
+        [ $(echo "$XML" | parse_tag_quiet 'result') = 'Success' ] || \
+            log_error 'Could not set description/hide file.'
+    fi
+
+    # Note: Making a file private removes its password...
+    if [ -n "$LINK_PASSWORD" ]; then
+        XML=$(curl -d "session_token=$SESSION_KEY" \
+            -d "quick_key=$QUICK_KEY" \
+            -d "password=$LINK_PASSWORD" \
+            "$BASE_URL/api/file/update_password.php") || return
+
+        [ $(echo "$XML" | parse_tag_quiet 'result') = 'Success' ] || \
+            log_error 'Could not set password.'
+    fi
+
+    echo "$BASE_URL/?$QUICK_KEY"
 }
 
 # List a mediafire shared file folder URL
