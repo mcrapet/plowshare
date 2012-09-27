@@ -23,25 +23,64 @@
 MODULE_RYUSHARE_REGEXP_URL="https\?://\(www\.\)\?ryushare\.com/"
 
 MODULE_RYUSHARE_DOWNLOAD_OPTIONS="
+AUTH,a,auth,a=USER:PASSWORD,User account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_RYUSHARE_DOWNLOAD_RESUME=yes
 MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_RYUSHARE_UPLOAD_OPTIONS="
+AUTH,a,auth,a=USER:PASSWORD,User account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_RYUSHARE_UPLOAD_REMOTE_SUPPORT=no
 
+# Static function. Proceed with login
+# $1: credentials string
+# $2: cookie file
+# $3: base url
+ryushare_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA LOGIN_RESULT STATUS NAME
+
+    LOGIN_DATA='op=login&login=$USER&password=$PASSWORD&loginFormSubmit=Login&redirect='
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA$BASE_URL" \
+        "$BASE_URL" -L) || return
+
+    # If successful, two entries are added into cookie file: login and xfss
+    STATUS=$(parse_cookie_quiet 'xfss' < "$COOKIE_FILE")
+    if [ -z "$STATUS" ]; then
+        return $ERR_LOGIN_FAILED
+    fi
+
+    NAME=$(parse_cookie 'login' < "$COOKIE_FILE")
+    log_debug "Successfully logged in as $NAME member"
+
+    if match '>Renew premium<' "$LOGIN_RESULT"; then
+        echo 'premium'
+    else
+        echo 'free'
+    fi
+}
+
 # Output a ryushare file download URL
-# $1: cookie file (unused here)
+# $1: cookie file (account only)
 # $2: ryushare url
 # stdout: real file download link
 ryushare_download() {
-    local URL=$2
-    local PAGE WAIT_TIME FILE_URL ERR CODE
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://ryushare.com'
+    local PAGE TYPE WAIT_TIME FILE_URL ERR CODE
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
 
-    PAGE=$(curl -b 'lang=english' "$URL") || return
+    TYPE=anon
+    if [ -n "$AUTH" ]; then
+        TYPE=$(ryushare_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
+    fi
+
+    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
     if match 'File Not Found' "$PAGE"; then
@@ -50,19 +89,22 @@ ryushare_download() {
 
     test "$CHECK_LINK" && return 0
 
-    FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-    FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
-    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+    if [ "$TYPE" != 'premium' ]; then
+        FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
+        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
+        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
+        FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname' | \
+            uri_encode_strict)
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
 
-    PAGE=$(curl -b 'lang=english' -d 'referer=' \
-        -d "op=$FORM_OP" \
-        -d "usr_login=$FORM_USR" \
-        -d "id=$FORM_ID" \
-        -d "fname=$FORM_FNAME" \
-        -d "method_free=$FORM_METHOD" "$URL") || return
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d 'referer=' \
+            -d "op=$FORM_OP" \
+            -d "usr_login=$FORM_USR" \
+            -d "id=$FORM_ID" \
+            -d "fname=$FORM_FNAME" \
+            -d "method_free=$FORM_METHOD" "$URL") || return
+    fi
 
     if match '<div class="err">' "$PAGE"; then
         # Sorry! User who was uploaded this file requires premium to download.
@@ -94,7 +136,7 @@ ryushare_download() {
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
     FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
     FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
-    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
+    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
     FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
 
     # Funny captcha, this is text (4 digits)!
@@ -122,19 +164,33 @@ ryushare_download() {
         done <<< "$CAPTCHA"
     fi
 
-    WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
-    wait $((WAIT_TIME + 1)) || return
+    if [ "$TYPE" = 'premium' ]; then
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d "referer=$URL" \
+            -H 'Expect: ' \
+            -d "op=$FORM_OP" \
+            -d "id=$FORM_ID" \
+            -d "rand=$FORM_RAND" \
+            -d "method_free=$FORM_METHOD" \
+            -d 'method_premium=1' \
+            -d "down_direct=$FORM_DD" \
+            -d "password=$LINK_PASSWORD" \
+            "$URL") || return
+    else
+        WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
+        wait $((WAIT_TIME + 1)) || return
 
-    # Didn't included -d 'method_premium='
-    PAGE=$(curl -b 'lang=english' -d "referer=$URL" \
-        -d "op=$FORM_OP" \
-        -d "id=$FORM_ID" \
-        -d "rand=$FORM_RAND" \
-        -d "method_free=$FORM_METHOD" \
-        -d "down_direct=$FORM_DD" \
-        -d "password=$LINK_PASSWORD" \
-        -d "code=$CODE" \
-        "$URL") || return
+        # Didn't included -d 'method_premium='
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d "referer=$URL" \
+            -d "op=$FORM_OP" \
+            -d "id=$FORM_ID" \
+            -d "rand=$FORM_RAND" \
+            -d "method_free=$FORM_METHOD" \
+            -d "method_premium=1" \
+            -d "down_direct=$FORM_DD" \
+            -d "password=$LINK_PASSWORD" \
+            -d "code=$CODE" \
+            "$URL") || return
+    fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'here to download' href)
     if match_remote_url "$FILE_URL"; then
@@ -162,18 +218,26 @@ ryushare_download() {
 }
 
 # Upload a file to ryushare.com
-# $1: cookie file (unused here)
+# $1: cookie file (account only)
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download link + delete link
 ryushare_upload() {
-    local FILE=$2
-    local DESTFILE=$3
-    local BASE_URL='http://ryushare.com'
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r BASE_URL='http://ryushare.com'
 
     local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
 
-    PAGE=$(curl -b 'lang=english' "$BASE_URL") || return
+    if [ -n "$AUTH" ]; then
+        ryushare_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
+        USER_TYPE=reg
+    else
+        USER_TYPE=anon
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
 
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
@@ -183,7 +247,6 @@ ryushare_upload() {
     FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url')
 
     UPLOAD_ID=$(random dec 12)
-    USER_TYPE=anon
 
     # xupload.js
     # Note: HTTP header "Expect: 100-continue" seems to confuse server (lighttpd)
