@@ -274,7 +274,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     if match_remote_url "$FILE"; then
         DESTFILE=${FILE##*:}
         if [ "$DESTFILE" = "${DESTFILE/\/}" ]; then
-            LOCALFILE=$(echo  "${FILE%:*}" | strip | uri_encode)
+            LOCALFILE=$(echo "${FILE%:*}" | strip | uri_encode)
         else
             LOCALFILE=$(echo "$FILE" | strip | uri_encode)
             DESTFILE='dummy'

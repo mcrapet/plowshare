@@ -84,7 +84,7 @@ rapidgator_login() {
 # $1: cookie file
 # $2: base URL
 rapidgator_switch_lang() {
-    curl -b "$1" -c "$1"  -d 'lang=en' -o /dev/null \
+    curl -b "$1" -c "$1" -d 'lang=en' -o /dev/null \
         "$2/site/lang" || return
 }
 
@@ -379,7 +379,7 @@ rapidgator_upload() {
         log_error 'Folders only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 
-    elif [ -z "$AUTH" -a  -n "$CLEAR" ]; then
+    elif [ -z "$AUTH" -a -n "$CLEAR" ]; then
         log_error 'Remote upload list only available for accounts.'
         return $ERR_BAD_COMMAND_LINE
 

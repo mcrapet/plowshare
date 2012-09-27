@@ -147,7 +147,7 @@ ryushare_download() {
     fi
 
     if match '<div class="err">' "$PAGE"; then
-        ERR=$(echo "$PAGE" | parse_tag  'class="err">' div)
+        ERR=$(echo "$PAGE" | parse_tag 'class="err">' div)
         if match 'Wrong password' "$ERR"; then
             return $ERR_LINK_PASSWORD_REQUIRED
         elif match 'Wrong captcha' "$ERR"; then

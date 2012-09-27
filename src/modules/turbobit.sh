@@ -280,9 +280,8 @@ turbobit_upload() {
     local PAGE UPLOAD_URL JSON MESSAGE FILE_ID DELETE_ID FORM_UID
 
     if test -n "$AUTH"; then
-        turbobit_login "$AUTH" "$COOKIEFILE" "$URL" >/dev/null || \
-            return
-        PAGE=$(curl -c "$COOKIEFILE" -b "$COOKIEFILE"  "$URL") || return
+        turbobit_login "$AUTH" "$COOKIEFILE" "$URL" >/dev/null || return
+        PAGE=$(curl -c "$COOKIEFILE" -b "$COOKIEFILE" "$URL") || return
     else
         PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$URL") || return
     fi
