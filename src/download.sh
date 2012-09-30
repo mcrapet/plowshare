@@ -572,15 +572,16 @@ pretty_print() {
     test "${FMT#*%u}" != "$FMT" && FMT=$(replace '%u' "${A[4]}" <<< "$FMT")
     test "${FMT#*%d}" != "$FMT" && FMT=$(replace '%d' "${A[5]}" <<< "$FMT")
 
+    # Note: Drop "HttpOnly" attribute, as it is not covered in the RFCs
     if test "${FMT#*%c}" != "$FMT"; then
-        COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file $0).cookies.$$.txt"
-        cp "${A[3]}" "$COOKIE_FILE"
+        COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file "$0").cookies.$$.txt"
+        sed -e 's/^#HttpOnly_//' "${A[3]}" > "$COOKIE_FILE"
         FMT=$(replace '%c' "$COOKIE_FILE" <<< "$FMT")
     fi
     if test "${FMT#*%C}" != "$FMT"; then
         if module_config_need_cookie "${A[0]}"; then
-            COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file $0).cookies.$$.txt"
-            cp "${A[3]}" "$COOKIE_FILE"
+            COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file "$0").cookies.$$.txt"
+            sed -e 's/^#HttpOnly_//' "${A[3]}" > "$COOKIE_FILE"
         else
             COOKIE_FILE=""
         fi
