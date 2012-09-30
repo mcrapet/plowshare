@@ -100,6 +100,14 @@ shareonline_biz_download() {
         return $ERR_FATAL
     fi
 
+    local CAP_ID URL_ID
+    CAP_ID=$(echo "$PAGE" | parse 'var[[:space:]]\+dl=' \
+        '[[:space:]]dl="\([^"]*\)') || return
+    CAP_ID=$(base64 -d <<< "$CAP_ID")
+    URL_ID=$(echo "$PAGE" | parse '///' '///\([[:digit:]]\+\)') || return
+    log_debug "captcha: '$CAP_ID'"
+    log_debug "url id: $URL_ID"
+
     # Solve recaptcha
     local PUBKEY WCI CHALLENGE WORD ID
     PUBKEY='6LdatrsSAAAAAHZrB70txiV5p-8Iv8BtVxlTtjKX'
@@ -110,9 +118,10 @@ shareonline_biz_download() {
     wait 15 || return
 
     BASE64LINK=$(curl -b "$COOKIE_FILE" -d 'dl_free=1' \
+        -d "captcha=${CAP_ID:5}" \
         -d "recaptcha_challenge_field=$CHALLENGE" \
         -d "recaptcha_response_field=$WORD" \
-        "${FREE_URL}captcha/${ID}00") || return
+        "${FREE_URL}captcha/$URL_ID") || return
 
     if [ "$BASE64LINK" = '0' ]; then
         captcha_nack $ID
