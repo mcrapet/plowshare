@@ -438,8 +438,13 @@ download() {
             curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
                 -o "$FILENAME_TMP" "$FILE_URL" >"$DRESULT" || DRETVAL=$?
 
-            read CODE <"$DRESULT"
-            rm -f "$DCOOKIE" "$DRESULT"
+            if [ -f "$DRESULT" ]; then
+                read CODE < "$DRESULT"
+                rm -f "$DCOOKIE" "$DRESULT"
+            else
+                CODE=-1
+                rm -f "$DCOOKIE"
+            fi
 
             if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                 # Obtained HTTP return status are 200 and 206
