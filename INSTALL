@@ -1,6 +1,6 @@
-Plowshare GIT-snapshot installation notes.
+Plowshare3 GIT-snapshot installation notes.
 
-There are two ways to install Plowshare.
+There are two ways to install Plowshare3.
 
 For regular PC users
 ====================
@@ -16,7 +16,7 @@ $ make install DESTDIR=/media/rootfs
 or
 $ make install PREFIX=/opt DESTDIR=/media/rootfs
 
-Plowshare is also available for several Linux distribution
+Plowshare3 is also available for several Linux distribution
 (Debian, Ubuntu, Archlinux, Fedora, Gentoo, ...):
 Consult online documentation for up-to-date list:
 http://code.google.com/p/plowshare/wiki/Readme
@@ -33,7 +33,7 @@ $ sudo bash setup.sh install
 # Or as non-root:
 $ PREFIX=$HOME bash setup.sh install
 
-Plowshare has been reported to work on:
+Plowshare3 has been reported to work on:
 - Buffalo LinkStation Live (HS-DHxxxGL) (+ optware)
 - DealExtreme NAS WLX-652 (Snake OS firmware)
 - Fonera 2.0n (OpenWrt)

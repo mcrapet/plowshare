@@ -1,5 +1,5 @@
 ##
-# Plowshare Makefile
+# Plowshare3 Makefile
 ##
 
 # Tools
@@ -32,14 +32,14 @@ ETC_FILES = $(addprefix etc/,plowshare.completion)
 PREFIX ?= /usr/local
 ETCDIR  = /etc
 BINDIR  = $(PREFIX)/bin
-DATADIR = ${PREFIX}/share/plowshare
-DOCDIR  = ${PREFIX}/share/doc/plowshare
+DATADIR = ${PREFIX}/share/plowshare3
+DOCDIR  = ${PREFIX}/share/doc/plowshare3
 MANDIR  = ${PREFIX}/share/man/man
 
 # Packaging
 GIT_DATE:=$(shell LANG=C git log -n1 --pretty=%ci | cut -d' ' -f1)
 GIT_HASH:=$(shell LANG=C git log -n1 --pretty=%h)
-DISTDIR = plowshare-snapshot-git$(subst -,,$(GIT_DATE))
+DISTDIR = plowshare3-snapshot-git$(subst -,,$(GIT_DATE).$(GIT_HASH))
 
 install:
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
@@ -72,7 +72,7 @@ test:
 
 install_bash_completion:
 	@$(INSTALL) -d $(DESTDIR)$(ETCDIR)/bash_completion.d
-	@sed -e "/cut/s,/usr/local/share/plowshare,$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare
+	@sed -e "/cut/s,/usr/local/share/plowshare3,$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare3
 
 dist: distdir
 	@tar -cf - $(DISTDIR)/* | gzip -9 >$(DISTDIR).tar.gz

@@ -36,7 +36,7 @@ _plowup()
     else
         local m list
         list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
-            /usr/local/share/plowshare/modules/config | cut -d'|' -f1)
+            /usr/local/share/plowshare3/modules/config | cut -d'|' -f1)
 
         # check for already given module name
         # note: _get_first_arg is not accurate enough (option with argument)
