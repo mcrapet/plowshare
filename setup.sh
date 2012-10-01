@@ -24,7 +24,7 @@
 
 set -e
 
-NAME=plowshare
+NAME=plowshare4
 
 # DESTDIR is provided for staged installs (used for packagers only)
 DESTDIR=${DESTDIR:-}

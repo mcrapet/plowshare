@@ -1,14 +1,14 @@
 
-                               Plowshare GIT-snapshot
+                  Plowshare for Bash 4, GIT-snapshot
 
 
 Introduction
 ============
 
-Plowshare is a command line (CLI) application designed for popular
+Plowshare4 is a command line (CLI) application designed for popular
 file-sharing websites (aka Hosters).
 
-Plowshare is a set of four tools (written entirely in shell script):
+Plowshare4 is a set of four tools (written entirely in shell script):
   - plowdown, for downloading URLs
   - plowup, for uploading files
   - plowdel, for deleting remote files
@@ -21,15 +21,15 @@ http://code.google.com/p/plowshare/wiki/Readme
 Dependencies
 ============
 
-To run plowshare and all its modules you will need:
+To run plowshare4 and all its modules you will need:
 
 > A POSIX compliant operating system:
     - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
       (Busybox sed is working too, need version >1.10)
     - BSD/Mac OSX: requires GNU-sed
     - Cygwin
-> Bash (version >= 3.0, version >= 3.0.12 recommended)
-> Curl (with SSL support, usually required for premium account)
+> Bash (version >= 4.1)
+> Curl (version >= 7.24, with SSL support: usually required for premium account)
 > Character encoding converter (recommended)
     - recode or
     - perl + HTML::Entities
