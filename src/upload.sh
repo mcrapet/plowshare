@@ -86,7 +86,7 @@ usage() {
 # $?: zero for found, non zero otherwie
 # stdout: lowercase module name (if found)
 module_exist() {
-    local N1=$(lowercase "$2")
+    local N1=${2,,}
     local N2=${N1//./_}
     local MODULE
 
@@ -102,7 +102,7 @@ module_exist() {
 # Example: "MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no"
 # $1: module name
 module_config_remote_upload() {
-    local VAR="MODULE_$(uppercase "$1")_UPLOAD_REMOTE_SUPPORT"
+    local -u VAR="MODULE_${1}_UPLOAD_REMOTE_SUPPORT"
     test "${!VAR}" = 'yes'
 }
 

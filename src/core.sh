@@ -250,17 +250,16 @@ strip() {
     sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
-# Return uppercase string : tr '[:lower:]' '[:upper:]'
-# Note: Busybox "tr" command may not have classes support (CONFIG_FEATURE_TR_CLASSES)
+# Return uppercase string
 # $*: input string(s)
 uppercase() {
-    tr '[a-z]' '[A-Z]' <<< "$*"
+    echo "${*^^}"
 }
 
-# Return lowercase string : tr '[:upper:]' '[:lower:]'
+# Return lowercase string
 # $*: input string(s)
 lowercase() {
-    tr '[A-Z]' '[a-z]' <<< "$*"
+    echo "${*,,}"
 }
 
 # Grep first line of a text
@@ -2046,7 +2045,7 @@ get_all_modules_options() {
 # $2: module name list (one per line)
 get_module() {
     while read MODULE; do
-        local VAR="MODULE_$(uppercase "$MODULE")_REGEXP_URL"
+        local -u VAR="MODULE_${MODULE}_REGEXP_URL"
         if match "${!VAR}" "$1"; then
             echo $MODULE
             return 0
@@ -2590,7 +2589,7 @@ strip_and_drop_empty_lines() {
 # $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 get_module_options() {
-    local -r VAR="MODULE_$(uppercase "$1")_${2}_OPTIONS"
+    local -ur VAR="MODULE_${1}_${2}_OPTIONS"
     strip_and_drop_empty_lines "${!VAR}"
 }
 
