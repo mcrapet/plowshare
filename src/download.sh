@@ -290,6 +290,7 @@ download() {
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
                 log_error "Insufficient permissions (private/premium link)"
+                mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" NOPERM
                 rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
