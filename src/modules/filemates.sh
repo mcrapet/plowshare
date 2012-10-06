@@ -260,6 +260,8 @@ filemates_download() {
         "$URL" | break_html_lines) || return
 
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'srv[[:digit:]]' href)
+    test -z "$FILE_URL" && \
+        FILE_URL=$(echo "$PAGE" | parse_quiet 'srv[[:digit:]]' "Do('\([^']*\)")
     if match_remote_url "$FILE_URL"; then
         echo "$FILE_URL"
         echo "$FORM_FNAME"
