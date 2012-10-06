@@ -49,10 +49,13 @@ zippyshare_download() {
 
     if match 'var[[:space:]]*submitCaptcha' "$PAGE"; then
         # reCaptcha is requested if you don't have flash v9
-        # Otherwise, use DownloadButton_v1.14s.swf
+        # Otherwise, use flash button:
+        # - 2012.09.19: DownloadButton_v1.14s.swf (6111 bytes), 5ee74a5c7105a716fe011067696b867b
+        # - 2012.10.05: DownloadButton_v1.14s.swf (6122 bytes), ecbb52766d006af6663d7fd968ad13d9
         PART1=$(echo "$PAGE" | parse 'swfobject\.embedSWF' "url:[[:space:]]*'\([^']*\)") || return
         N1=$(echo "$PAGE" | parse 'swfobject\.embedSWF' 'seed:[[:space:]]*\([[:digit:]]*\)') || return
-        FILE_URL="$PART1&time=$((5 * N1 % 71678963))"
+        #FILE_URL="$PART1&time=$((5 * N1 % 71678963))"
+        FILE_URL="$PART1&time=$((8 * N1 % 46784661))"
     elif match '+(z)+' "$PAGE"; then
         # document.getElementById('dlbutton').href = "/d/91294631/"+(z)+"/foo.bar";
         PART1=$(echo "$PAGE" | parse '(z)' '"\(/d/[^"]*\)') || return
