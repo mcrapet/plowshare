@@ -38,6 +38,7 @@ To run plowshare3 and all its modules you will need:
   for manual console entry or an account to an automatic solving service:
     - display (imagemagick, X11) or
     - sxiv (imlib2, X11, very fast) or
+    - feh (imlib2, X11) or
     - qiv (imlib2, X11) or
     - aview (libaa) or
     - img2txt (libcaca) or
