@@ -1152,6 +1152,8 @@ captcha_process() {
         if [ "$METHOD_SOLVE" != 'prompt-nox' -a -n "$DISPLAY" ]; then
             if check_exec 'display'; then
                 METHOD_VIEW=X-display
+            elif check_exec 'feh'; then
+                METHOD_VIEW=X-feh
             elif check_exec 'sxiv'; then
                 METHOD_VIEW=X-sxiv
             elif check_exec 'qiv'; then
@@ -1223,6 +1225,10 @@ captcha_process() {
             ;;
         X-display)
             display "$FILENAME" &
+            PRG_PID=$!
+            ;;
+        X-feh)
+            feh "$FILENAME" &
             PRG_PID=$!
             ;;
         X-qiv)
