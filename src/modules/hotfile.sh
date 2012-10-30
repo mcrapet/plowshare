@@ -93,6 +93,13 @@ hotfile_download() {
     # This file is either removed due to copyright claim or is deleted by the uploader.
     if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
         return $ERR_LINK_DEAD
+
+    # Direct download (hotlink)
+    elif match 'Click here to download' "$WAIT_HTML"; then
+        LINK=$(echo "$WAIT_HTML" | parse_attr 'click_download' 'href') || return
+        FILE_URL=$(curl -b "$COOKIE_FILE" --include "$LINK" | grep_http_header_location)
+        echo "$FILE_URL"
+        return 0
     fi
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'function[[:space:]]*starttimer' \
