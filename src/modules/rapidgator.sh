@@ -47,7 +47,7 @@ rapidgator_login() {
 
     LOGIN_DATA='LoginForm[email]=$USER&LoginForm[password]=$PASSWORD&LoginForm[rememberMe]=1'
     HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/auth/login" -L -b "$COOKIE_FILE") || return
+        "${BASE_URL/#http/https}/auth/login" -L -b "$COOKIE_FILE") || return
 
     # check for JS redirection
     # <script language="JavaScript">function ZD5wC ... window.location.href='/auth/login?'+MGOwqz+'';MGOwqz='';</script>
