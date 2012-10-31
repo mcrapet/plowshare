@@ -183,6 +183,13 @@ rapidshare_upload() {
 
     UPLOAD_URL="https://rs${SERVER_NUM}.rapidshare.com/cgi-bin/rsapi.cgi"
 
+    local SZ=$(get_filesize "$FILE")
+    local -r MAX_SIZE=2147483648 # 2GiB
+    if [ "$SZ" -gt "$MAX_SIZE" ]; then
+        log_debug "file is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
     INFO=$(curl_with_log -F 'sub=upload' \
         -F "filecontent=@$FILE;filename=$DESTFILE" \
         -F "login=$USER" -F "password=$PASSWORD" "$UPLOAD_URL") || return
