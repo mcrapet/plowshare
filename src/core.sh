@@ -1869,7 +1869,7 @@ random() {
 # See RFC1321.
 #
 # $1: input string
-# stdout: message-digest fingerprint (32-digit hexadecimal number)
+# stdout: message-digest fingerprint (32-digit hexadecimal number, lowercase letters)
 # $? zero for success or $ERR_SYSTEM
 md5() {
     # GNU coreutils
@@ -1884,6 +1884,31 @@ md5() {
     # FIXME: use javascript if requested
     else
         log_error "$FUNCNAME: cannot find md5 calculator"
+        return $ERR_SYSTEM
+    fi
+}
+
+# Calculate MD5 hash (128-bit) of a file.
+# $1: input file
+# stdout: message-digest fingerprint (32-digit hexadecimal number, lowercase letters)
+# $? zero for success or $ERR_SYSTEM
+md5_file() {
+    if [ -f "$1" ]; then
+        # GNU coreutils
+        if check_exec md5sum; then
+            md5sum -b "$1" 2>/dev/null | cut -d' ' -f1
+        # BSD
+        elif check_exec md5; then
+            "$(type -P md5)" -q "$1"
+        # OpenSSL
+        elif check_exec openssl; then
+            openssl dgst -md5 "$1" | cut -d' ' -f2
+        else
+            log_error "$FUNCNAME: cannot find md5 calculator"
+            return $ERR_SYSTEM
+        fi
+    else
+        log_error "$FUNCNAME: cannot stat file"
         return $ERR_SYSTEM
     fi
 }
