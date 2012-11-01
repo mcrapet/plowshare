@@ -3,6 +3,7 @@
 1fichier        | download | upload | delete |      |
 2shared         | download | upload | delete |      |
 4shared         | download | upload |        | list |
+anonfiles       | download | upload |        |      |
 bayfiles        | download | upload | delete |      |
 bitshare        | download | upload | delete |      |
 cramit          | download | upload | delete | list |

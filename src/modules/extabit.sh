@@ -114,6 +114,10 @@ extabit_download() {
     # Only premium users can download this file.
     elif match 'premium users can download' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
+
+    # The file that you're trying to download is larger than 400 Mb
+    elif match 'to download files of any size!' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     FILE_NAME=$(echo "$PAGE" | parse_attr 'div title' title)

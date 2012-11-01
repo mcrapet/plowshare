@@ -49,12 +49,12 @@ mediafire_login() {
     # Make sure we have "ukey" cookie (mandatory)
     curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL"
 
-    # Note: "login_remember=on" not required
-
+    # Notes: - "login_remember=on" not required
+    #        - force SSLv3 to avoid problems with curl using OpenSSL/1.0.1
     LOGIN_DATA='login_email=$USER&login_pass=$PASSWORD&submit_login=Login+to+MediaFire'
     PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
         "${BASE_URL/#http/https}/dynamic/login.php?popup=1" \
-        -b "$COOKIE_FILE") || return
+        -b "$COOKIE_FILE" --sslv3) || return
 
     # Note: Cookies "user" and "session" get set on successful login, "skey" is changed"
     CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
