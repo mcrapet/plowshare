@@ -359,7 +359,7 @@ download() {
 
         if test -z "$FILENAME"; then
             if [[ $FILE_URL = */ ]]; then
-                log_error "Output filename not specified, module download function must be wrong"
+                log_notice "Output filename not specified, module download function might be wrong"
                 FILENAME="dummy-$$"
             else
                 FILENAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
@@ -372,6 +372,12 @@ download() {
         if [ "${#FILENAME}" -ge 255 ]; then
             FILENAME="${FILENAME:0:254}"
             log_debug "filename is too long, truncating it"
+        fi
+
+        # Sanity check 4
+        if [ "${FILENAME#*/}" != "$FILENAME" ]; then
+            log_debug "filename contains slashes, translate to underscore"
+            FILENAME=${FILENAME//\//_}
         fi
 
         log_notice "File URL: $FILE_URL"
