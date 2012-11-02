@@ -48,14 +48,31 @@ zippyshare_download() {
     test "$CHECK_LINK" && return 0
 
     if match 'var[[:space:]]*submitCaptcha' "$PAGE"; then
-        # reCaptcha is requested if you don't have flash v9
-        # Otherwise, use flash button:
-        # - 2012.09.19: DownloadButton_v1.14s.swf (6111 bytes), 5ee74a5c7105a716fe011067696b867b
-        # - 2012.10.05: DownloadButton_v1.14s.swf (6122 bytes), ecbb52766d006af6663d7fd968ad13d9
-        PART1=$(echo "$PAGE" | parse 'swfobject\.embedSWF' "url:[[:space:]]*'\([^']*\)") || return
-        N1=$(echo "$PAGE" | parse 'swfobject\.embedSWF' 'seed:[[:space:]]*\([[:digit:]]*\)') || return
-        #FILE_URL="$PART1&time=$((5 * N1 % 71678963))"
-        FILE_URL="$PART1&time=$((8 * N1 % 46784661))"
+        # There is a flash v9 (as3) button which is dynamically generated.
+        # It contains a formula to bypass captcha: n * seed % m.
+        # For non javascript users, reCaptcha is not setup yet.
+
+        #local -r BASE_URL=$(basename_url "$URL")
+        #PART1=$(echo "$PAGE" | parse '/captcha' 'url:[[:space:]]*"\([^"]*\)') || return
+        #N1=$(echo "$PAGE" | parse 'shortencode' "shortencode:[[:space:]]*'\([[:digit:]]*\)") || return
+        #PART2=$(echo "$PAGE" | parse '/d/' "=[[:space:]]*'\([^']*\)") || return
+        #
+        # Recaptcha.create
+        #local PUBKEY WCI CHALLENGE WORD ID
+        #PUBKEY='6LeIaL0SAAAAAMnofB1i7QAJta9G7uCipEPcp89r'
+        #WCI=$(recaptcha_process $PUBKEY) || return
+        #{ read WORD; read CHALLENGE; read ID; } <<< "$WCI"
+        #
+        #PAGE=$(curl -v -b "$COOKIE_FILE" --referer "$URL" \
+        #    -H 'X-Requested-With: XMLHttpRequest' \
+        #    -F "recaptcha_challenge_field=$CHALLENGE" \
+        #    -F "recaptcha_response_field=$WORD" \
+        #    -F "shortencode=$N1" \
+        #    "$BASE_URL$PART1") || return
+
+        log_error "Cannot download link. Flash (with ActionScript3) button need to be disassembled"
+        return $ERR_FATAL
+
     elif match '+(z)+' "$PAGE"; then
         # document.getElementById('dlbutton').href = "/d/91294631/"+(z)+"/foo.bar";
         PART1=$(echo "$PAGE" | parse '(z)' '"\(/d/[^"]*\)') || return
