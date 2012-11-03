@@ -107,21 +107,31 @@ ryushare_download() {
     fi
 
     if match '<div class="err">' "$PAGE"; then
+        ERR=$(echo "$PAGE" | parse_tag 'class="err">' div)
+
         # Sorry! User who was uploaded this file requires premium to download.
-        if match 'file requires premium' "$PAGE"; then
+        if match 'file requires premium' "$ERR"; then
             return $ERR_LINK_NEED_PERMISSIONS
 
         # You have to wait X minutes, Y seconds till next download
-        elif matchi 'You have to wait' "$PAGE"; then
+        elif matchi 'You have to wait' "$ERR"; then
             local MINS SECS
             MINS=$(echo "$PAGE" | \
                 parse_quiet 'class="err">' 'wait \([[:digit:]]\+\) minute')
             SECS=$(echo "$PAGE" | \
                 parse_quiet 'class="err">' ', \([[:digit:]]\+\) second')
 
+            log_error 'Forced delay between downloads.'
             echo $(( MINS * 60 + SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
+
+        # You can download files up to 1024 Mb only.
+        elif match 'You can download files up to .* only' "$ERR"; then
+            return $ERR_SIZE_LIMIT_EXCEEDED
         fi
+
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
     fi
 
     # Check for password protected link
