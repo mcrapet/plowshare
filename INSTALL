@@ -22,8 +22,8 @@ Consult online documentation for up-to-date list:
 http://code.google.com/p/plowshare/wiki/Readme
 
 
-For restricted sytems (mostly NAS)
-==================================
+For restricted systems (mostly NAS)
+===================================
 - busybox may be present instead of bash
 - GNU coreutils tools may not be complete
 
