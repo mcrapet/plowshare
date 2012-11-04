@@ -21,7 +21,7 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 
-VERSION="GIT-snapshot"
+VERSION='GIT-snapshot'
 OPTIONS="
 HELP,h,help,,Show help info
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)

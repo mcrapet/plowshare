@@ -87,7 +87,7 @@ distdir:
 		cp -pf $$file $(DISTDIR)/$$file; \
 	done
 	@for file in $(SRCS); do \
-		sed -i 's/^VERSION=.*/VERSION="GIT-$(GIT_HASH) ($(GIT_DATE))"/' $(DISTDIR)/$$file; \
+		sed -i 's/^VERSION=.*/VERSION='\''GIT-$(GIT_HASH) ($(GIT_DATE))'\''/' $(DISTDIR)/$$file; \
 	done
 	@for file in $(DOCS); do \
 		sed -i '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1GIT-$(GIT_HASH) ($(GIT_DATE))\2/' $(DISTDIR)/$$file; \
