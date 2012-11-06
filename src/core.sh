@@ -52,7 +52,6 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - MIN_LIMIT_RATE   Network minimum speed (used by curl)
 #   - NO_CURLRC        Do not read of use curlrc config
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
-#   - CAPTCHA_TRADER   (plowdown) CaptchaTrader account
 #   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
 #   - CAPTCHA_BHOOD    (plowdown) Captcha Brotherhood account
 #   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
@@ -1137,9 +1136,6 @@ captcha_process() {
         elif [ -n "$CAPTCHA_BHOOD" ]; then
             METHOD_SOLVE=captchabrotherhood
             METHOD_VIEW=none
-        elif [ -n "$CAPTCHA_TRADER" ]; then
-            METHOD_SOLVE=captchatrader
-            METHOD_VIEW=none
         elif [ -n "$CAPTCHA_DEATHBY" ]; then
             METHOD_SOLVE=deathbycaptcha
             METHOD_VIEW=none
@@ -1379,53 +1375,6 @@ captcha_process() {
             rm -f "$FILENAME"
             return $ERR_FATAL
             ;;
-        captchatrader)
-            local USERNAME=${CAPTCHA_TRADER%%:*}
-            local PASSWORD=${CAPTCHA_TRADER#*:}
-
-            if ! service_captchatrader_ready "$USERNAME" "$PASSWORD"; then
-                rm -f "$FILENAME"
-                return $ERR_CAPTCHA
-            fi
-
-            log_notice "Using captcha.trader bypass service ($USERNAME)"
-
-            # Plowshare API key for CaptchaTrader
-            RESPONSE=$(curl -F 'match=' \
-                -F 'api_key=1645b45413c7e23a470475f33692cb63' \
-                -F "password=$PASSWORD" \
-                -F "username=$USERNAME" \
-                -F "value=@$FILENAME;filename=file" \
-                'http://api.captchatrader.com/submit') || return
-
-            if [ -z "$RESPONSE" ]; then
-                log_error "captcha.trader empty answer"
-                rm -f "$FILENAME"
-                return $ERR_NETWORK
-            fi
-
-            if match '503 Service Unavailable' "$RESPONSE"; then
-                log_error "captcha.trader server unavailable"
-                rm -f "$FILENAME"
-                return $ERR_CAPTCHA
-            fi
-
-            TID=$(echo "$RESPONSE" | parse_quiet . '\[\([^,]*\)')
-            WORD=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
-
-            if [ "$TID" -eq '-1' ]; then
-                log_error "captcha.trader error: $WORD"
-                rm -f "$FILENAME"
-                if [ 'INSUFFICIENT CREDITS' = "$WORD" ]; then
-                    return $ERR_FATAL
-                fi
-                return $ERR_CAPTCHA
-            fi
-
-            # result on two lines
-            echo "$WORD"
-            echo "c$TID"
-            ;;
         deathbycaptcha)
             local HTTP_CODE POLL_URL
             local USERNAME=${CAPTCHA_DEATHBY%%:*}
@@ -1662,26 +1611,7 @@ captcha_ack() {
     local -r TID=${1:1}
     local RESPONSE STR
 
-    if [ c = "$M" ]; then
-        if [ -n "$CAPTCHA_TRADER" ]; then
-            local USERNAME=${CAPTCHA_TRADER%%:*}
-            local PASSWORD=${CAPTCHA_TRADER#*:}
-
-            log_debug "captcha.trader report ack ($USERNAME)"
-
-            RESPONSE=$(curl -F 'match=' \
-                -F 'is_correct=1'       \
-                -F "ticket=$TID"        \
-                -F "password=$PASSWORD" \
-                -F "username=$USERNAME" \
-                'http://api.captchatrader.com/respond') || return
-
-            STR=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
-            [ -n "$STR" ] && log_error "captcha.trader error: $STR"
-        else
-            log_error "$FUNCNAME failed: captcha.trader missing account data"
-        fi
-    elif [[ "$M" != [abd] ]]; then
+    if [[ "$M" != [abd] ]]; then
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
@@ -1722,26 +1652,6 @@ captcha_nack() {
             log_error "$FUNCNAME FIXME cbh[$RESPONSE]"
         else
             log_error "$FUNCNAME failed: captcha brotherhood missing account data"
-        fi
-
-    elif [ c = "$M" ]; then
-        if [ -n "$CAPTCHA_TRADER" ]; then
-            local USERNAME=${CAPTCHA_TRADER%%:*}
-            local PASSWORD=${CAPTCHA_TRADER#*:}
-
-            log_debug "captcha.trader report nack ($USERNAME)"
-
-            RESPONSE=$(curl -F 'match=' \
-                -F 'is_correct=0'       \
-                -F "ticket=$TID"        \
-                -F "password=$PASSWORD" \
-                -F "username=$USERNAME" \
-                'http://api.captchatrader.com/respond') || return
-
-            STR=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
-            [ -n "$STR" ] && log_error "captcha.trader error: $STR"
-        else
-            log_error "$FUNCNAME failed: captcha.trader missing account data"
         fi
 
     elif [ d = "$M" ]; then
@@ -2276,8 +2186,6 @@ captcha_method_translate() {
                 SITE=antigate
             elif [ -n "$CAPTCHA_BHOOD" ]; then
                 SITE=captchabrotherhood
-            elif [ -n "$CAPTCHA_TRADER" ]; then
-                SITE=captchatrader
             elif [ -n "$CAPTCHA_DEATHBY" ]; then
                 SITE=deathbycaptcha
             else
@@ -2679,39 +2587,6 @@ index_in_array() {
         fi
     done
     return 1
-}
-
-# Verify balance (captcha.trader)
-# $1: captcha trader username
-# $2: captcha trader password (or passkey)
-# $?: 0 for success (enough credits)
-service_captchatrader_ready() {
-    local RESPONSE STATUS AMOUNT ERROR
-
-    if [ -z "$1" -o -z "$2" ]; then
-        log_error "captcha.trader missing account data"
-        return $ERR_FATAL
-    fi
-
-    RESPONSE=$(curl "http://api.captchatrader.com/get_credits/$1/$2") || { \
-        log_notice "captcha.trader: site seems to be down"
-        return $ERR_NETWORK
-    }
-
-    STATUS=$(echo "$RESPONSE" | parse_quiet . '\[\([^,]*\)')
-    if [ "$STATUS" = '0' ]; then
-        AMOUNT=$(echo "$RESPONSE" | parse_quiet . ',[[:space:]]*\([[:digit:]]\+\)')
-        if [[ $AMOUNT -lt 10 ]]; then
-            log_notice "captcha.trader: not enough credits ($1)"
-            return $ERR_FATAL
-        fi
-    else
-        ERROR=$(echo "$RESPONSE" | parse_quiet . ',"\([^"]*\)')
-        log_error "captcha.trader error: $ERROR"
-        return $ERR_FATAL
-    fi
-
-    log_debug "captcha.trader credits: $AMOUNT"
 }
 
 # Verify balance (antigate)
