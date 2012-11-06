@@ -45,7 +45,6 @@ To run plowshare4 and all its modules you will need:
     - tiv (perl script using Image::Magick, color output) or
     - Antigate.com account or
     - CaptchaBrotherhood account or
-    - CaptchaTrader account or
     - DeathByCaptcha account
 
 > Some websites requires javascript interpreter [1]
