@@ -1340,18 +1340,17 @@ captcha_process() {
             # Content-Type is mandatory.
             # timeout parameter has no effect
             RESPONSE=$(curl --data-binary "@$FILENAME" \
-                --header 'Content-Type: text/html' \
-                "http://ocrhood.gazcad.com/sendNewCaptcha.aspx?username=$USERNAME&password=$PASSWORD&captchaSource=plowshare&timeout=20") || return
+                --header 'Content-Type: text/html'     \
+                "http://www.captchabrotherhood.com/sendNewCaptcha.aspx?username=$USERNAME&password=$PASSWORD&captchaSource=plowshare&timeout=30&captchaSite=-1") || return
 
             if [ "${RESPONSE:0:3}" = 'OK-' ]; then
                 TID=${RESPONSE:3}
                 if [ -n "$TID" ]; then
                     for I in 6 5 5 6 6 7 7 8; do
                         wait $I seconds
-                        RESPONSE=$(curl --get \
-                            -d "username=$USERNAME" -d "password=$PASSWORD" \
-                            -d "captchaID=$TID" \
-                            'http://ocrhood.gazcad.com/askCaptchaResult.aspx') || return
+                        RESPONSE=$(curl --get -d "username=$USERNAME"   \
+                            -d "password=$PASSWORD" -d "captchaID=$TID" \
+                            'http://www.captchabrotherhood.com/askCaptchaResult.aspx') || return
 
                         if [ "${RESPONSE:0:12}" = 'OK-answered-' ]; then
                             WORD=${RESPONSE:12}
@@ -2765,7 +2764,7 @@ service_captchabrotherhood_ready() {
     fi
 
     RESPONSE=$(curl --get -d "username=$1" -d "password=$2" \
-        'http://ocrhood.gazcad.com/askCredits.aspx') || return
+        'http://www.captchabrotherhood.com/askCredits.aspx') || return
 
     if [ "${RESPONSE:0:3}" = 'OK-' ]; then
         AMOUNT=${RESPONSE:3}
