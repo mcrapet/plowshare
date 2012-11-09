@@ -320,7 +320,7 @@ uploaded_net_download() {
 
     if [ -n "$ERR" ]; then
         if [ "$ERR" = 'captcha' ]; then
-            log_error 'Captcha wrong'
+            log_error 'Wrong captcha'
             captcha_nack "$ID"
             return $ERR_CAPTCHA
         fi
