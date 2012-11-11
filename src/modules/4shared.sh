@@ -26,6 +26,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files
 TORRENT,,torrent,,Get torrent link (instead of direct download link)"
 MODULE_4SHARED_DOWNLOAD_RESUME=yes
 MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_4SHARED_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_4SHARED_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
