@@ -388,7 +388,9 @@ download() {
             local FILENAME_TMP FILENAME_OUT
             local -a CURL_ARGS=()
 
-            # Temporary download path
+            FILE_URL=$(uri_encode <<< "$FILE_URL")
+
+            # Temporary download filename (with full path)
             if test "$TMP_DIR"; then
                 FILENAME_TMP="$TMP_DIR/$FILENAME"
             elif test "$OUT_DIR"; then
@@ -397,29 +399,34 @@ download() {
                 FILENAME_TMP=$FILENAME
             fi
 
-            # Final path
+            # Final filename (with full path)
             if test "$OUT_DIR"; then
                 FILENAME_OUT="$OUT_DIR/$FILENAME"
             else
                 FILENAME_OUT=$FILENAME
             fi
 
-            FILE_URL=$(uri_encode <<< "$FILE_URL")
-
-            if [ -f "$FILENAME_OUT" ]; then
-                if [ -n "$NOOVERWRITE" ]; then
-                    if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
-                        FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
-                        FILENAME_TMP=$FILENAME_OUT
-                    else
-                        FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
-                    fi
+            if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
+                if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
+                    FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                    FILENAME_TMP=$FILENAME_OUT
                 else
+                    FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
+                fi
+            fi
+
+            if test "$TEMP_RENAME"; then
+                FILENAME_TMP="${FILENAME_TMP}.part"
+            fi
+
+            if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
+                if [ -f "$FILENAME_OUT" ]; then
                     # Can we overwrite destination file?
                     if [ ! -w "$FILENAME_OUT" ]; then
                         module_config_resume "$MODULE" && \
-                            log_error "error: no write permission, cannot resume" || \
-                            log_error "error: no write permission, cannot overwrite"
+                            log_error "error: no write permission, cannot resume final file ($FILENAME_OUT)" || \
+                            log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
+                        rm -f "$DCOOKIE"
                         return $ERR_SYSTEM
                     fi
 
@@ -428,10 +435,32 @@ download() {
                             CURL_ARGS=("${CURL_ARGS[@]}" -C -)
                     fi
                 fi
-            fi
+            else
+                if [ -f "$FILENAME_OUT" ]; then
+                    # Can we overwrite destination file?
+                    if [ ! -w "$FILENAME_OUT" ]; then
+                        log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
+                        rm -f "$DCOOKIE"
+                        return $ERR_SYSTEM
+                    fi
+                    log_notice "warning: final file will be overwritten ($FILENAME_OUT)"
+                fi
 
-            if test "$TEMP_RENAME"; then
-                FILENAME_TMP="${FILENAME_TMP}.part"
+                if [ -f "$FILENAME_TMP" ]; then
+                    # Can we overwrite temporary file?
+                    if [ ! -w "$FILENAME_TMP" ]; then
+                        module_config_resume "$MODULE" && \
+                            log_error "error: no write permission, cannot resume tmp/part file ($FILENAME_TMP)" || \
+                            log_error "error: no write permission, cannot overwrite tmp/part file ($FILENAME_TMP)"
+                        rm -f "$DCOOKIE"
+                        return $ERR_SYSTEM
+                    fi
+
+                    if [ -s "$FILENAME_TMP" ] ; then
+                        module_config_resume "$MODULE" && \
+                            CURL_ARGS=("${CURL_ARGS[@]}" -C -)
+                    fi
+                fi
             fi
 
             module_config_need_cookie "$MODULE" && \
@@ -489,7 +518,7 @@ download() {
                 continue
             fi
 
-            if test "$FILENAME_TMP" != "$FILENAME_OUT"; then
+            if [ "$FILENAME_TMP" != "$FILENAME_OUT" ]; then
                 test "$TEMP_RENAME" || \
                     log_notice "Moving file to output directory: ${OUT_DIR:-.}"
                 mv -f "$FILENAME_TMP" "$FILENAME_OUT"
