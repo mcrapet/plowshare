@@ -168,10 +168,10 @@ uptobox_download() {
 # $3: remote filename
 # stdout: download link + delete link
 uptobox_upload() {
-    local COOKIE_FILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local BASE_URL='http://uptobox.com'
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r BASE_URL='http://uptobox.com'
 
     local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
 
