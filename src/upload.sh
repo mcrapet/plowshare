@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
 #
 # Upload a file to file sharing servers
 # Copyright (c) 2010-2012 Plowshare team
@@ -169,6 +169,8 @@ pretty_print() {
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+
+set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
 MODULES=$(grep_list_modules 'upload') || exit

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Common set of functions used by modules
 # Copyright (c) 2010-2012 Plowshare team
