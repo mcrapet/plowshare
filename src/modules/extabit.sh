@@ -185,7 +185,7 @@ extabit_upload() {
     # http://code.google.com/p/extabit-api/wiki/APIDocumentation
 
     extabit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
-    PAGE=$(curl -L -b "$COOKIE_FILE" -b 'language=en' "$BASE_URL") || return
+    PAGE=$(curl -L -b "$COOKIE_FILE" -b 'language=en' "$BASE_URL/sync.jsp") || return
 
     local FORM_HTML FORM_ACTION FORM_MAXFSIZE
     FORM_HTML=$(grep_form_by_id "$PAGE" 'upload_files_form') || return
@@ -210,5 +210,7 @@ extabit_upload() {
         -F 'checkbox_terms=on' \
         "$FORM_ACTION") || return
 
-    echo "$PAGE" | parse_attr 'df_html_link' 'href' || return
+    # Site redirects to download page directly after upload
+    FORM_HTML=$(grep_form_by_id "$PAGE" 'cmn_form') || return
+    echo "$BASE_URL$(echo "$FORM_HTML" | parse_form_action)" || return
 }
