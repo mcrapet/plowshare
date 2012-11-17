@@ -28,7 +28,7 @@ To run plowshare4 and all its modules you will need:
       (Busybox sed is working too, need version >1.10)
     - BSD/Mac OSX: requires GNU-sed
     - Cygwin
-> Bash (version >= 4.1)
+> Bash (version >= 4.1). It will NOT work using Busybox or Dash (POSIX) shell.
 > Curl (version >= 7.24, with SSL support: usually required for premium account)
 > Character encoding converter (recommended)
     - recode or
