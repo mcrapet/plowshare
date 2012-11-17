@@ -25,6 +25,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_UPLOADED_NET_DOWNLOAD_RESUME=no
 MODULE_UPLOADED_NET_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_UPLOADED_NET_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_UPLOADED_NET_UPLOAD_OPTIONS="
 ADMIN_CODE,,admin-code,s=ADMIN_CODE,Admin code (used for file deletion)
@@ -242,7 +243,10 @@ uploaded_net_download() {
 
     if [ "$ACCOUNT" = "premium" ]; then
         # Premium users can resume downloads
-        MODULE_UPLOADED_TO_DOWNLOAD_RESUME=yes
+        MODULE_UPLOADED_NET_DOWNLOAD_RESUME=yes
+
+        # Seems that download rate is lowered..
+        MODULE_UPLOADED_NET_DOWNLOAD_SUCCESSIVE_INTERVAL=30
 
         # Get download link, if this was a direct download
         FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
@@ -320,7 +324,7 @@ uploaded_net_download() {
 
     if [ -n "$ERR" ]; then
         if [ "$ERR" = 'captcha' ]; then
-            log_error 'Captcha wrong'
+            log_error 'Wrong captcha'
             captcha_nack "$ID"
             return $ERR_CAPTCHA
         fi
@@ -515,12 +519,12 @@ uploaded_net_list() {
     local PAGE LINKS NAMES
 
     # check whether it looks like a folder link
-    if ! match "${MODULE_UPLOADED_TO_REGEXP_URL}folder/" "$URL"; then
+    if ! match "${MODULE_UPLOADED_NET_REGEXP_URL}f\(older\)\?/" "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
 
-    test "$2" && log_debug "recursive folder does not exist in depositfiles"
+    test "$2" && log_debug "recursive folder does not exist in uploaded.net"
 
     PAGE=$(curl -L "$URL") || return
 

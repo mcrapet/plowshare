@@ -24,6 +24,7 @@ MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_MEDIAFIRE_DOWNLOAD_RESUME=yes
 MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_MEDIAFIRE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
@@ -81,7 +82,7 @@ mediafire_extract_session_key() {
     # extract the session ID and use most of the API with that :-)
     PAGE=$(curl -b "$1" "$2/myfiles.php") || return
     KEY=$(echo "$PAGE" | \
-        parse 'window.tH.YQ' 'window.tH.YQ("\([[:xdigit:]]\+\)",') || return
+        parse 'tH.YQ' 'tH.YQ("\([[:xdigit:]]\+\)",') || return
 
     log_debug "Session key: '$KEY'"
     echo "$KEY"
@@ -324,7 +325,18 @@ mediafire_upload() {
     done
 
     if [ -z "$QUICK_KEY" ]; then
-        log_error 'Could not get download link. Site updated?'
+        local ERR
+
+        ERR=$(echo "$XML" | parse_tag_quiet fileerror)
+
+        case "$ERR" in
+        13)
+            log_error 'File already uploaded.'
+            ;;
+        *)
+            log_error "Unexpected remote error: $ERR"
+        esac
+
         return $ERR_FATAL
     fi
 

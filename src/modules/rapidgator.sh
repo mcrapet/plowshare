@@ -24,6 +24,7 @@ MODULE_RAPIDGATOR_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_RAPIDGATOR_DOWNLOAD_RESUME=yes
 MODULE_RAPIDGATOR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_RAPIDGATOR_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_RAPIDGATOR_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account
@@ -33,6 +34,7 @@ CLEAR,,clear,,Clear list of remote uploads"
 MODULE_RAPIDGATOR_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_RAPIDGATOR_DELETE_OPTIONS=""
+MODULE_RAPIDGATOR_LIST_OPTIONS=""
 
 # Static function. Proceed with login (free)
 # $1: authentication
@@ -632,4 +634,29 @@ rapidgator_delete() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# List a rapidgator.net shared file folder URL
+# $1: rapidgator.net link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+rapidgator_list() {
+    local URL=$1
+    local PAGE LINKS NAMES
+
+    if ! match "${MODULE_RAPIDGATOR_REGEXP_URL}folder/" "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_debug "recursive folder does not exist in depositfiles"
+
+    PAGE=$(curl -L "$URL") || return
+    PAGE=$(echo "$PAGE" | parse_all_quiet '=.td-for-select' '\(<a href=.*\)$')
+    [ -z "$PAGE" ] && return $ERR_LINK_DEAD
+
+    NAMES=$(echo "$PAGE" | parse_all . 'alt=..>[[:space:]]*\([^<]*\)')
+    LINKS=$(echo "$PAGE" | parse_all_attr href)
+
+    list_submit "$LINKS" "$NAMES" 'http://rapidgator.net' || return
 }

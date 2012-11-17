@@ -23,6 +23,7 @@ MODULE_UPTOBOX_REGEXP_URL="http\?://\(www\.\)\?uptobox\.com/"
 MODULE_UPTOBOX_DOWNLOAD_OPTIONS=""
 MODULE_UPTOBOX_DOWNLOAD_RESUME=yes
 MODULE_UPTOBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_UPTOBOX_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_UPTOBOX_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -168,10 +169,10 @@ uptobox_download() {
 # $3: remote filename
 # stdout: download link + delete link
 uptobox_upload() {
-    local COOKIE_FILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local BASE_URL='http://uptobox.com'
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r BASE_URL='http://uptobox.com'
 
     local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
 

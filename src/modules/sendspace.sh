@@ -20,115 +20,151 @@
 
 MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/\(file\|folder\|delete\)/"
 
-MODULE_SENDSPACE_DOWNLOAD_OPTIONS=""
+MODULE_SENDSPACE_DOWNLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_SENDSPACE_DOWNLOAD_RESUME=yes
 MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+MODULE_SENDSPACE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_SENDSPACE_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_SENDSPACE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_SENDSPACE_DELETE_OPTIONS=""
 MODULE_SENDSPACE_LIST_OPTIONS=""
 
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+sendspace_login() {
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA STATUS USER
+
+    # Note: "remember=on" not needed
+    LOGIN_DATA='action=login&submit=login&target=%2F&action_type=login&remember=1&username=$USER&password=$PASSWORD'
+    $(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+       "$BASE_URL/login.html" -o /dev/null) || return
+
+    STATUS=$(parse_cookie_quiet 'ssal' < "$COOKIE_FILE")
+    if [ -z "$STATUS" ]; then
+        return $ERR_LOGIN_FAILED
+    fi
+
+    split_auth "$AUTH_FREE" USER || return
+    log_debug "Successfully logged in as member '$USER'"
+}
+
 # Output a sendspace file download URL
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: sendspace.com url
 # stdout: real file download link
 sendspace_download() {
-    local URL=$2
-    local PAGE FILE_URL
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://www.sendspace.com'
+    local PAGE
 
-    if match 'sendspace\.com/folder/' "$URL"; then
-        log_error "This is a directory list, use plowlist!"
+    if match "${BASE_URL}/folder/" "$URL"; then
+        log_error 'This is a directory list, use plowlist!'
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl "$URL") || return
-
-    # - Sorry, the file you requested is not available.
-    if match '<div class="msg error"' "$PAGE"; then
-        local ERR=$(echo "$PAGE" | parse '="msg error"' '">\([^<]*\)')
-        log_error "$ERR"
-        return $ERR_LINK_DEAD
+    if [ -n "$AUTH_FREE" ]; then
+        sendspace_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
-    PAGE=$(curl --referer "$URL" "$URL") || return
-    FILE_URL=$(echo "$PAGE" | parse_attr 'download_button' 'href') || return
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
 
-    test "$CHECK_LINK" && return 0
+    if match '<div class="msg error"' "$PAGE"; then
+        local ERR=$(echo "$PAGE" | parse_tag 'class="msg error"' 'div') || return
 
-    echo "$FILE_URL"
+        # Sorry, the file you requested is not available.
+        if match 'file you requested is not available' "$ERR"; then
+            return $ERR_LINK_DEAD
+        fi
+
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
+    fi
+
+    [ -n "$CHECK_LINK" ] && return 0
+
+    # parse and output URL and file name
+    echo "$PAGE" | parse_attr 'download_button' 'href' || return
+    echo "$PAGE" | parse_tag 'class="bgray"' 'b' || return
 }
 
 # Upload a file to sendspace.com
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: sendspace.com download + delete link
 sendspace_upload() {
-    local FILE=$2
-    local DESTFILE=$3
-    local DATA DL_LINK DEL_LINK
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://www.sendspace.com'
+    local PAGE SIZE MAXSIZE OPT_USER OPT_FOLDER
+    local FORM_HTML FORM_URL FORM_PROG_URL FORM_DEST_DIR FORM_SIG FORM_MAIL
 
-    DATA=$(curl 'http://www.sendspace.com') || return
+    if [ -n "$AUTH_FREE" ]; then
+        sendspace_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
 
-    local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_DDIR FORM_JSEMA FORM_SIGN FORM_UFILES FORM_TERMS
-    FORM_HTML=$(grep_form_by_order "$DATA" 3 | break_html_lines_alt)
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
+
+    FORM_HTML=$(grep_form_by_order "$PAGE" -1 | break_html_lines_alt) || return
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-
-    # Note: depending servers: MAX_FILE_SIZE and UPLOAD_IDENTIFIER are not always present
-    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'MAX_FILE_SIZE')
-    test "$FORM_MAXFSIZE" || \
-        FORM_MAXFSIZE=$(echo "$FORM_URL" | parse . 'MAX_FILE_SIZE=\([[:digit:]]\+\)')
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'UPLOAD_IDENTIFIER')
-    test "$FORM_UID" || \
-        FORM_UID=$(echo "$FORM_URL" | parse . 'UPLOAD_IDENTIFIER=\([^&]\+\)')
-
-    FORM_DDIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'DESTINATION_DIR')
-    FORM_JSENA=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'js_enabled')
-    FORM_SIGN=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature')
-    FORM_UFILES=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'upload_files')
-    FORM_TERMS=$(echo "$FORM_HTML" | parse_form_input_by_name 'terms')
+    MAXSIZE=$(echo "$FORM_URL" | parse . 'MAX_FILE_SIZE=\([[:digit:]]\+\)') || return
 
     # File size limit check
-    local SZ=$(get_filesize "$FILE")
-    if [ "$SZ" -gt "$FORM_MAXFSIZE" ]; then
-        log_debug "file is bigger than $FORM_MAXFSIZE"
+    local SIZE=$(get_filesize "$FILE") || return
+    if [ "$SIZE" -gt "$MAXSIZE" ]; then
+        log_debug "File is bigger than $MAXSIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    DATA=$(curl_with_log \
-        -F "MAX_FILE_SIZE=$FORM_MAXFSIZE" \
-        -F "UPLOAD_IDENTIFIER=$FORM_UID"  \
-        -F "DESTINATION_DIR=$FORM_DDIR"   \
-        -F "js_enabled=$FORM_JSENA"       \
-        -F "signature=$FORM_SIGN"         \
-        -F "upload_files[]=$FORM_UFILES"  \
-        -F "terms=$FORM_TERMS"            \
-        -F "file[]="                      \
-        -F "ownemail="                    \
-        -F "recpemail="                   \
-        -F 'recpemail_fcbkinput=recipient@email.com' \
-        -F "upload_file[]=@$FILE;filename=$DESTFILE" \
-        --form-string "description[]=$DESCRIPTION"   \
+    FORM_PROG_URL=$(echo "$FORM_HTML" | parse_form_input_by_name 'PROGRESS_URL') || return
+    FORM_DEST_DIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR') || return
+    FORM_SIG=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature') || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        local FORM_USER
+        FORM_MAIL=$(echo "$FORM_HTML" | parse_form_input_by_name 'ownemail') || return
+        FORM_USER=$(echo "$FORM_HTML" | parse_form_input_by_name 'userid') || return
+        OPT_USER="-F userid=$FORM_USER"
+        OPT_FOLDER='-F folder_id=0'
+    fi
+
+    PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+        -F "PROGRESS_URL=$FORM_PROG_URL"              \
+        -F "DESTINATION_DIR=$FORM_DEST_DIR"           \
+        -F 'js_enabled=1'                             \
+        -F "signature=$FORM_SIG"                      \
+        -F 'upload_files='                            \
+        $OPT_USER                                     \
+        -F 'terms=1'                                  \
+        -F 'file[]='                                  \
+        --form-string "description[]=$DESCRIPTION"    \
+        -F "upload_file[]=@$FILE;filename=$DEST_FILE" \
+        $OPT_FOLDER                                   \
+        -F 'recpemail_fcbkinput=recipient@email.com'  \
+        -F "ownemail=$FORM_MAIL"                      \
+        -F 'recpemail='                               \
         "$FORM_URL") || return
 
-    if [ -z "$DATA" ]; then
-        log_error "upload unsuccessful"
+    if [ -z "$PAGE" ] || match '403 Forbidden Request' "$PAGE"; then
+        log_error 'Upload unsuccessful. Site updated?'
         return $ERR_FATAL
     fi
 
-    if match '403 Forbidden Request' "$DATA"; then
-        log_error "Upload unsuccessful or site updated?"
-        return $ERR_FATAL
-    fi
-
-    DL_LINK=$(echo "$DATA" | parse_attr 'share link' 'href') || return
-    DEL_LINK=$(echo "$DATA" | parse_attr '/delete/' 'href') || return
-
-    echo "$DL_LINK"
-    echo "$DEL_LINK"
+    # parse and output download and delete link
+    echo "$PAGE" | parse_attr 'share link' 'href' || return
+    echo "$PAGE" | parse_attr '/delete/' 'href' || return
 }
 
 # Delete a file on sendspace

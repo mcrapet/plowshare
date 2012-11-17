@@ -20,14 +20,14 @@ filepost        | download | upload | delete | list |
 freakshare      | download | upload |        |      |
 go4up           |          | upload | delete | list |
 hotfile         | download | upload |        | list |
+jheberg         |          | upload |        | list |
 mediafire       | download | upload |        | list |
 megashares      | download | upload | delete |      |
 mirrorcreator   |          | upload |        | list |
 multiupload     |          | upload |        | list |
 netload_in      | download | upload |        | list |
-oron            | download | upload | delete | list |
 putlocker       | download | upload |        |      |
-rapidgator      | download | upload | delete |      |
+rapidgator      | download | upload | delete | list |
 rapidshare      | download | upload | delete |      |
 ryushare        | download | upload |        |      |
 sendspace       | download | upload | delete | list |

@@ -24,6 +24,7 @@ MODULE_PUTLOCKER_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_PUTLOCKER_DOWNLOAD_RESUME=yes
 MODULE_PUTLOCKER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_PUTLOCKER_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_PUTLOCKER_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
@@ -120,26 +121,67 @@ putlocker_upload() {
     local -r BASE_URL='http://upload.putlocker.com/uploadapi.php'
     local DATA MSG USER PASSWORD DL_URL
 
-    test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
-    split_auth "$AUTH_FREE" USER PASSWORD || return
+    if [ -n "$AUTH_FREE" ]; then
+        split_auth "$AUTH_FREE" USER PASSWORD || return
 
-    DATA=$(curl_with_log \
-        -F "file=@$FILE;filename=$DESTFILE" \
-        -F "user=$USER" \
-        -F "password=$PASSWORD" \
-        -F 'convert=0' \
-        "$BASE_URL") || return
+        DATA=$(curl_with_log \
+            -F "file=@$FILE;filename=$DESTFILE" \
+            -F "user=$USER" \
+            -F "password=$PASSWORD" \
+            -F 'convert=0' \
+            "$BASE_URL") || return
 
-    MSG=$(parse_tag message <<< "$DATA") || return
+        MSG=$(parse_tag message <<< "$DATA") || return
 
-    if match 'File Uploaded Successfully' "$MSG"; then
-        DL_URL=$(parse_tag link <<< "$DATA") || return
-        echo "$DL_URL"
-        return 0
-    elif match 'Wrong username or password' "$MSG"; then
-        return $ERR_LOGIN_FAILED
+        if match 'File Uploaded Successfully' "$MSG"; then
+            DL_URL=$(parse_tag link <<< "$DATA") || return
+            echo "$DL_URL"
+            return 0
+        elif match 'Wrong username or password' "$MSG"; then
+            return $ERR_LOGIN_FAILED
+        fi
+
+        log_error "Unexpected status: $MSG"
+        return $ERR_FATAL
     fi
 
-    log_error "Unexpected status: $MSG"
+    local PAGE SRV_CGI SIZE_LIMIT SESSION AUTH_HASH DONE_ID
+    local -r UP_URL='http://www.putlocker.com/upload_form.php'
+
+    PAGE=$(curl "$UP_URL") || return
+    SRV_CGI=$(echo "$PAGE" | parse "'script'" ":[[:space:]]*'\([^']\+\)") || return
+    SIZE_LIMIT=$(echo "$PAGE" | parse "'sizeLimit'" ":[[:space:]]*\([^,]\+\)") || return
+    SESSION=$(echo "$PAGE" | parse 'scriptData' "'session':[[:space:]]*'\([^']*\)") || return
+    AUTH_HASH=$(echo "$PAGE" | parse 'scriptData' "'auth_hash':[[:space:]]*'\([^']*\)") || return
+    DONE_ID=$(echo "$PAGE" | parse 'done=' "e=\([^']*\)") || return
+
+    local SZ=$(get_filesize "$FILE")
+    if [ "$SZ" -gt "$SIZE_LIMIT" ]; then
+        log_debug "file is bigger than $SIZE_LIMIT"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    # Uses Uploadify v2.1.4 (jquery.uploadify) like filebox
+    DATA=$(curl_with_log \
+        -F "Filename=$DESTFILE" \
+        -F 'folder=/' -F 'do_convert=1' -F 'fileext=*' \
+        -F "session=$SESSION" \
+        -F "auth_hash=$AUTH_HASH" \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
+        -F 'Upload=Submit Query' \
+        "$SRV_CGI") || return
+
+    if [ "$DATA" = 'cool story bro' ]; then
+        PAGE=$(curl --get -d "done=$DONE_ID" "$UP_URL") || return
+        DATA=$(echo "$PAGE" | parse_attr 'Just Show' href) || return
+        PAGE=$(curl -b "upload_hash=$DONE_ID" \
+            "http://www.putlocker.com/$DATA") || return
+
+        DL_URL=$(echo "$PAGE" | parse '<textarea' '^\(.*\)$' 1) || return
+        echo "${DL_URL//$'\r'}"
+        return 0
+    fi
+
+    log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
 }

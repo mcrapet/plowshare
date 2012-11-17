@@ -12,11 +12,11 @@
 #
 # Plowshare is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
+# along with Plowshare. If not, see <http://www.gnu.org/licenses/>.
 #
 # Note: This module is a clone of uptobox.
 
@@ -27,6 +27,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_RYUSHARE_DOWNLOAD_RESUME=yes
 MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_RYUSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_RYUSHARE_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -92,36 +93,46 @@ ryushare_download() {
     if [ "$TYPE" != 'premium' ]; then
         FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
         FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
         FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-        FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname' | \
-            uri_encode_strict)
+        FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname') || return
         FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
 
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d 'referer=' \
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
             -d "op=$FORM_OP" \
             -d "usr_login=$FORM_USR" \
             -d "id=$FORM_ID" \
-            -d "fname=$FORM_FNAME" \
+            --data-urlencode "fname=$FORM_FNAME" \
+            -d 'referer=' \
             -d "method_free=$FORM_METHOD" "$URL") || return
     fi
 
     if match '<div class="err">' "$PAGE"; then
+        ERR=$(echo "$PAGE" | parse_tag 'class="err">' div)
+
         # Sorry! User who was uploaded this file requires premium to download.
-        if match 'file requires premium' "$PAGE"; then
+        if match 'file requires premium' "$ERR"; then
             return $ERR_LINK_NEED_PERMISSIONS
 
         # You have to wait X minutes, Y seconds till next download
-        elif matchi 'You have to wait' "$PAGE"; then
+        elif matchi 'You have to wait' "$ERR"; then
             local MINS SECS
             MINS=$(echo "$PAGE" | \
                 parse_quiet 'class="err">' 'wait \([[:digit:]]\+\) minute')
             SECS=$(echo "$PAGE" | \
                 parse_quiet 'class="err">' ', \([[:digit:]]\+\) second')
 
+            log_error 'Forced delay between downloads.'
             echo $(( MINS * 60 + SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
+
+        # You can download files up to 1024 Mb only.
+        elif match 'You can download files up to .* only' "$ERR"; then
+            return $ERR_SIZE_LIMIT_EXCEEDED
         fi
+
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
     fi
 
     # Check for password protected link
@@ -134,10 +145,10 @@ ryushare_download() {
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
+    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
     FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
-    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
+    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct') || return
 
     # Funny captcha, this is text (4 digits)!
     # Copy/Paste from uptobox
@@ -165,11 +176,12 @@ ryushare_download() {
     fi
 
     if [ "$TYPE" = 'premium' ]; then
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d "referer=$URL" \
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
             -H 'Expect: ' \
             -d "op=$FORM_OP" \
             -d "id=$FORM_ID" \
             -d "rand=$FORM_RAND" \
+            -d "referer=$URL" \
             -d "method_free=$FORM_METHOD" \
             -d 'method_premium=1' \
             -d "down_direct=$FORM_DD" \
@@ -177,15 +189,16 @@ ryushare_download() {
             "$URL") || return
     else
         WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
-        wait $((WAIT_TIME + 1)) || return
+        # Wait some more to avoid "Skipped countdown" error
+        wait $((WAIT_TIME + 3)) || return
 
-        # Didn't included -d 'method_premium='
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d "referer=$URL" \
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
             -d "op=$FORM_OP" \
             -d "id=$FORM_ID" \
             -d "rand=$FORM_RAND" \
+            -d "referer=$URL" \
             -d "method_free=$FORM_METHOD" \
-            -d "method_premium=1" \
+            -d 'method_premium=' \
             -d "down_direct=$FORM_DD" \
             -d "password=$LINK_PASSWORD" \
             -d "code=$CODE" \
