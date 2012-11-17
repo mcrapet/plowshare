@@ -245,6 +245,9 @@ uploaded_net_download() {
         # Premium users can resume downloads
         MODULE_UPLOADED_NET_DOWNLOAD_RESUME=yes
 
+        # Seems that download rate is lowered..
+        MODULE_UPLOADED_NET_DOWNLOAD_SUCCESSIVE_INTERVAL=30
+
         # Get download link, if this was a direct download
         FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
 
