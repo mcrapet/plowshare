@@ -43,6 +43,7 @@ To run plowshare4 and all its modules you will need:
     - aview (libaa) or
     - img2txt (libcaca) or
     - tiv (perl script using Image::Magick, color output) or
+    - 9kw.eu account or
     - Antigate.com account or
     - CaptchaBrotherhood account or
     - DeathByCaptcha account

@@ -40,6 +40,7 @@ TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
 CAPTCHA_PROGRAM,,captchaprogram,s=SCRIPT,Call external script for captcha solving.
+CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
@@ -754,6 +755,7 @@ if [ -n "$CAPTCHA_METHOD" ]; then
     captcha_method_translate "$CAPTCHA_METHOD" || exit
     log_notice "plowdown: force captcha method ($CAPTCHA_METHOD)"
 else
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowdown: --9kweu selected"
     [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
     [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowdown: --captchabhood selected"
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdown: --deathbycaptcha selected"
