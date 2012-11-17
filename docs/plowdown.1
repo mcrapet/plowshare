@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "October 2, 2012" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowdown" "1" "November 17, 2012" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowdown \- Command-line downloader for file-sharing websites
@@ -108,6 +108,9 @@ Default option value is disabled (no timeout, infinite) and applies for one sing
 Set maximum retries for download failures. Apply on module exit value: \fB3\fR (network error), \fB7\fR (captcha error).
 Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
 .TP
+.BI "   " " " --9kweu "=KEY"
+Use 9kw.eu service to solve captcha.
+.TP
 .BI "   " " " --antigate "=KEY"
 Use Antigate.com service to solve captcha.
 .TP
@@ -126,7 +129,7 @@ Force specific captcha solving method. Available values:
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website (Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+\fBonline\fR : use captcha solving website (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
 .RE
 .RS
 \fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.

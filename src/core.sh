@@ -53,6 +53,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - NO_CURLRC        Do not read of use curlrc config
 #   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
 #   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
+#   - CAPTCHA_9KWEU    (plowdown) 9kw.eu captcha key
 #   - CAPTCHA_BHOOD    (plowdown) Captcha Brotherhood account
 #   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
 #   - MODULE           Module name (don't include .sh)
@@ -1133,6 +1134,9 @@ captcha_process() {
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
             METHOD_SOLVE=antigate
             METHOD_VIEW=none
+        elif [ -n "$CAPTCHA_9KWEU" ]; then
+            METHOD_SOLVE=9kweu
+            METHOD_VIEW=none
         elif [ -n "$CAPTCHA_BHOOD" ]; then
             METHOD_SOLVE=captchabrotherhood
             METHOD_VIEW=none
@@ -1256,6 +1260,64 @@ captcha_process() {
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
+        9kweu)
+            if ! service_9kweu_ready "$CAPTCHA_9KWEU"; then
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            log_notice 'Using 9kw.eu captcha recognition system'
+
+            # Note for later: extra params can be supplied: min_len & max_len & phrase & numeric
+            RESPONSE=$(curl -F 'method=post' \
+                -F 'action=usercaptchaupload' \
+                -F "apikey=$CAPTCHA_9KWEU" \
+                -F "file-upload-01=@$FILENAME;filename=file.jpg" \
+                'http://www.9kw.eu/index.cgi') || return
+
+            if [ -z "$RESPONSE" ]; then
+                log_error "9kw.eu empty answer"
+                rm -f "$FILENAME"
+                return $ERR_NETWORK
+            # Error range: 0001..0014. German language.
+            elif [[ $RESPONSE = 00[01][[:digit:]][[:space:]]* ]]; then
+                log_error "9kw.eu error: ${RESPONSE:5}"
+                rm -f "$FILENAME"
+                return $ERR_FATAL
+            fi
+
+            TID=$RESPONSE
+
+            for I in 8 5 5 6 6 7 7 8 9 9; do
+                wait $I seconds
+                RESPONSE=$(curl --get --data 'action=usercaptchacorrectdata' \
+                    --data "apikey=$CAPTCHA_9KWEU" --data "id=$TID" \
+                    --data 'info=1' 'http://www.9kw.eu/index.cgi') || return
+
+                if [ 'NO DATA' = "$RESPONSE" ]; then
+                    continue
+                elif [ -z "$RESPONSE" ]; then
+                    continue
+                elif [ -n "$RESPONSE" ]; then
+                    WORD=$RESPONSE
+                    break
+                else
+                    log_error "9kw.eu error: $RESPONSE"
+                    rm -f "$FILENAME"
+                    return $ERR_FATAL
+                fi
+            done
+
+            if [ -z "$WORD" ]; then
+                log_error "9kw.eu error: service not unavailable"
+                rm -f "$FILENAME"
+                return $ERR_CAPTCHA
+            fi
+
+            # Result on two lines
+            echo "$WORD"
+            echo "9$TID"
+            ;;
         antigate)
             if ! service_antigate_ready "$CAPTCHA_ANTIGATE"; then
                 rm -f "$FILENAME"
@@ -1352,7 +1414,7 @@ captcha_process() {
                         if [ "${RESPONSE:0:12}" = 'OK-answered-' ]; then
                             WORD=${RESPONSE:12}
                             if [ -n "$WORD" ]; then
-                                # result on two lines
+                                # Result on two lines
                                 echo "$WORD"
                                 echo "b$TID"
                                 return 0
@@ -1611,7 +1673,7 @@ captcha_ack() {
     local -r TID=${1:1}
     local RESPONSE STR
 
-    if [[ "$M" != [abd] ]]; then
+    if [[ "$M" != [a9bd] ]]; then
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
@@ -1625,7 +1687,19 @@ captcha_nack() {
     local -r TID=${1:1}
     local RESPONSE STR
 
-    if [ a = "$M" ]; then
+    if [ '9' = "$M" ]; then
+        if [ -n "$CAPTCHA_9KWEU" ]; then
+            RESPONSE=$(curl --get --data 'action=usercaptchacorrectback' \
+                --data "apikey=$CAPTCHA_9KWEU" --data "id=$TID" \
+                --data 'correct=2' 'http://www.9kw.eu/index.cgi') || return
+
+            [ 'OK' = "$RESPONSE" ] || \
+                log_error "9kw.eu error: $RESPONSE"
+        else
+            log_error "$FUNCNAME failed: 9kweu missing captcha key"
+        fi
+
+    elif [ a = "$M" ]; then
         if [ -n "$CAPTCHA_ANTIGATE" ]; then
             RESPONSE=$(curl --get \
                 --data "key=${CAPTCHA_ANTIGATE}&action=reportbad&id=$TID"  \
@@ -2184,6 +2258,8 @@ captcha_method_translate() {
             local SITE
             if [ -n "$CAPTCHA_ANTIGATE" ]; then
                 SITE=antigate
+            elif [ -n "$CAPTCHA_9KWEU" ]; then
+                SITE=9kweu
             elif [ -n "$CAPTCHA_BHOOD" ]; then
                 SITE=captchabrotherhood
             elif [ -n "$CAPTCHA_DEATHBY" ]; then
@@ -2587,6 +2663,36 @@ index_in_array() {
         fi
     done
     return 1
+}
+
+# Verify balance (9kw.eu)
+# $1: 9kw.eu captcha key
+# $?: 0 for success (enough credits)
+service_9kweu_ready() {
+    local -r KEY=$1
+    local AMOUNT
+
+    if [ -z "$KEY" ]; then
+        log_error "9kweu: missing captcha key"
+        return $ERR_FATAL
+    fi
+
+    AMOUNT=$(curl --get --data 'action=usercaptchaguthaben' \
+        --data "apikey=$CAPTCHA_9KWEU" 'http://www.9kw.eu/index.cgi') || { \
+        log_notice '9kweu: site seems to be down'
+        return $ERR_NETWORK
+    }
+
+    # 0011 Balance insufficient
+    if [ "${AMOUNT:0:5}" = '0011 ' ]; then
+        log_notice "9kw.eu: no more credits"
+        return $ERR_FATAL
+    elif [[ $AMOUNT = 00[01][[:digit:]][[:space:]]* ]]; then
+        log_error "9kw.eu remote error: ${AMOUNT:5}"
+        return $ERR_FATAL
+    else
+        log_debug "9kw.eu credits: $AMOUNT"
+    fi
 }
 
 # Verify balance (antigate)
