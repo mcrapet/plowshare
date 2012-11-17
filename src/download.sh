@@ -831,10 +831,10 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
         if [ $MRETVAL -ne 0 ]; then
             log_error "Skip: no module for URL ($(basename_url "$URL")/)"
-            RETVALS=(${RETVALS[@]} $MRETVAL)
+            RETVALS+=($MRETVAL)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" NOMODULE
         elif test "$GET_MODULE"; then
-            RETVALS=(${RETVALS[@]} 0)
+            RETVALS+=(0)
             echo "$MODULE"
         else
             # Get configuration file module options
@@ -850,7 +850,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             "${MODULE}_vars_unset"
 
             PREVIOUS_HOST=$(basename_url "$URL")
-            RETVALS=(${RETVALS[@]} $MRETVAL)
+            RETVALS+=($MRETVAL)
         fi
     done
 done
