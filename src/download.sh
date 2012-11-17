@@ -810,7 +810,8 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 else
                     match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
                         "$URL" && log_notice "Raw IPv4 address not expected. Provide an URL with a DNS name."
-                    log_debug "remote server reply: $(echo "$HEADERS" | first_line | tr -d '\r\n')"
+                    test "$HEADERS" && \
+                        log_debug "remote server reply: $(echo "$HEADERS" | first_line | tr -d '\r\n')"
                     MRETVAL=$ERR_NOMODULE
                 fi
             else
