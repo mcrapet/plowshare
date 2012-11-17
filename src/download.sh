@@ -165,18 +165,25 @@ create_alt_filename() {
     echo "${FILENAME}.$COUNT"
 }
 
-# Example: "MODULE_FILESONIC_DOWNLOAD_RESUME=no"
+# Example: "MODULE_RYUSHARE_DOWNLOAD_RESUME=no"
 # $1: module name
 module_config_resume() {
     local VAR="MODULE_$(uppercase "$1")_DOWNLOAD_RESUME"
     test "${!VAR}" = 'yes'
 }
 
-# Example: "MODULE_FILESONIC_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
+# Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
 # $1: module name
 module_config_need_cookie() {
     local VAR="MODULE_$(uppercase "$1")_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
     test "${!VAR}" = 'yes'
+}
+
+# Example: "MODULE_RYUSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=10"
+# $1: module name
+module_config_wait() {
+    local VAR="MODULE_$(uppercase "$1")_DOWNLOAD_SUCCESSIVE_INTERVAL"
+    echo $((${!VAR}))
 }
 
 # Fake download module function. See --fallback switch.
@@ -198,6 +205,7 @@ download() {
     local OUT_DIR=$5
     local TMP_DIR=$6
     local MAX_RETRIES=$7
+    local LAST_HOST=$8
 
     local DRETVAL AWAIT CODE FILENAME FILE_URL
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
@@ -205,6 +213,15 @@ download() {
 
     log_notice "Starting download ($MODULE): $URL_ENCODED"
     timeout_init $TIMEOUT
+
+    AWAIT=$(module_config_wait "$MODULE")
+    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* ]]; then
+        log_notice "Same previous hoster, forced wait requested"
+        wait $AWAIT || {
+            log_error "Delay limit reached (${FUNCTION})";
+            return $ERR_MAX_WAIT_REACHED;
+        }
+    fi
 
     while :; do
         local DCOOKIE=$(create_tempfile)
@@ -757,13 +774,17 @@ fi
 
 set_exit_trap
 
+# Remember last host because hosters may require waiting between
+# sucessive downloads.
+PREVIOUS_HOST=none
+
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
     OLD_IFS=$IFS
     IFS=$'\n'
     ELEMENTS=( $(process_item "$ITEM") )
     IFS=$OLD_IFS
 
-    TYPE="${ELEMENTS[0]}"
+    TYPE=${ELEMENTS[0]}
     unset ELEMENTS[0]
 
     for URL in "${ELEMENTS[@]}"; do
@@ -815,9 +836,10 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             "${MODULE}_vars_set"
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
-                "${TEMP_DIR%/}" "${MAXRETRIES:-2}" || MRETVAL=$?
+                "${TEMP_DIR%/}" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
             "${MODULE}_vars_unset"
 
+            PREVIOUS_HOST=$(basename_url "$URL")
             RETVALS=(${RETVALS[@]} $MRETVAL)
         fi
     done
