@@ -110,6 +110,12 @@ dl_free_fr_download() {
     # - Range request is ignored for non Free ISP users (due to redir?)
     PAGE=$(curl -L -i -r 0-1024 "$URL") || return
 
+    # WWW-Authenticate: Basic realm="Autorisation requise"
+    if match '^HTTP/1.1 401' "$PAGE"; then
+        #PAGE=$(curl --basic --user ":password" -L -i -r 0-1024 "$URL") || return
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
     # Free is your ISP, this is direct download
     if match '^HTTP/1.1 206' "$PAGE"; then
         test "$CHECK_LINK" && return 0
