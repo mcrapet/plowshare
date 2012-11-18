@@ -134,18 +134,18 @@ MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
         return $ERR_FATAL
     fi
 
-	PAGE=$(curl_with_log \
-		-F "upload_type=$FORM_UTYPE" \
-		-F "sess_id=$FORM_SESS" \
-		-F "srv_tmp_url=$FORM_TMP_SRV" \
-		-F "file_0=@$FILE;filename=$DEST_FILE" \
-        -F "file_0_descr=$DESCRIPTION" \
-        -F "file_1=@/dev/null;filename=" \
-		-F 'tos=1' \
-        -F "link_rcpt=$TOEMAIL" \
-		-F 'submit_btn= Upload! ' \
-        "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
-        break_html_lines) || return
+    PAGE=$(curl_with_log \
+       -F "upload_type=$FORM_UTYPE" \
+       -F "sess_id=$FORM_SESS" \
+       -F "srv_tmp_url=$FORM_TMP_SRV" \
+       -F "file_0=@$FILE;filename=$DEST_FILE" \
+       -F "file_0_descr=$DESCRIPTION" \
+       -F "file_1=@/dev/null;filename=" \
+       -F 'tos=1' \
+       -F "link_rcpt=$TOEMAIL" \
+       -F 'submit_btn= Upload! ' \
+       "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
+       break_html_lines) || return
 
     local FORM2_ACTION FORM2_FN FORM2_ST FORM2_OP
     FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
