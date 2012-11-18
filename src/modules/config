@@ -1,5 +1,6 @@
 # Site list with capabilities
 115             | download |        |        |      |
+180upload       | download | upload |        |      |
 1fichier        | download | upload | delete |      |
 2shared         | download | upload | delete |      |
 4shared         | download | upload |        | list |
