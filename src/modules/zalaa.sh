@@ -94,7 +94,7 @@ zalaa_upload() {
     local DESTFILE=$3
     local BASE_URL='http://www.zalaa.com'
 
-    local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
+    local PAGE UPLOAD_ID USER_TYPE DL_URL DEL_URL
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_UHOST FORM_SESS FORM_TMP_SRV
 
     PAGE=$(curl -L -b 'lang=english' "$BASE_URL") || return
