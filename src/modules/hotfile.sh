@@ -254,11 +254,8 @@ hotfile_list() {
     NUM=$(echo "$PAGE" | parse ' files)' '(\([[:digit:]]*\) files')
     log_debug "There is/are $NUM file(s) in the folder"
 
-    PAGE=$(echo "$PAGE" | grep 'hotfile.com/dl/')
-    test "$PAGE" || return $ERR_LINK_DEAD
-
-    LINKS=$(echo "$PAGE" | parse_all_attr '<a' href)
-    NAMES=$(echo "$PAGE" | parse_all_tag a)
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/dl/' href)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet '/dl/' a)
 
     list_submit "$LINKS" "$NAMES" || return
 }
