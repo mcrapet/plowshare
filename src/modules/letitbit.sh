@@ -18,7 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_LETITBIT_REGEXP_URL="http://\(www\.\)\?letitbit\.net/"
+MODULE_LETITBIT_REGEXP_URL="http://\(\(www\|u[[:digit:]]\{8\}\)\.\)\?letitbit\.net/"
+
+MODULE_LETITBIT_DOWNLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
+MODULE_LETITBIT_DOWNLOAD_RESUME=yes
+MODULE_LETITBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_LETITBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_LETITBIT_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
@@ -48,6 +54,151 @@ letitbit_login() {
 
     EMAIL=$(parse_cookie 'log' < "$COOKIE_FILE" | uri_decode) || return
     log_debug "Successfully logged in as member '$EMAIL'"
+}
+
+# Output a file URL to download from Letitbit.net
+# $1: cookie file
+# $2: letitbit url
+# stdout: real file download link
+#         file name
+letitbit_download() {
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL='http://letitbit.net'
+    local PAGE URL SERVER WAIT CONTROL FILE_NAME
+    local FORM_HTML FORM_REDIR FORM_UID5 FORM_UID FORM_ID FORM_LIVE FORM_SEO
+    local FORM_NAME FORM_PIN FORM_REAL_UID FORM_REAL_NAME FORM_HOST FORM_SERVER
+    local FORM_SIZE FORM_FILE_ID FORM_INDEX FORM_DIR FORM_ODIR FORM_DESC
+    local FORM_LSA FORM_PAGE FORM_SKYMONK FORM_MD5 FORM_REAL_UID_FREE
+    local FORM_SHASH FORM_SPIN
+
+    # server redirects "simple links" to real download server
+    #
+    # simple: http://letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
+    #         http://www.letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
+    # real: http://u29043481.letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
+    URL=$(curl --head "$2" | grep_http_header_location_quiet "PAGE")
+    [ -n "URL" ] || URL=$2
+    LINK_BASE_URL=${URL%%/download/*}
+
+    if [ -n "$AUTH_FREE" ]; then
+        letitbit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+
+    if match 'File not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    [ -n "$CHECK_LINK" ] && return 0
+
+    FORM_HTML=$(grep_form_by_id "$PAGE" 'ifree_form') || return
+    FORM_REDIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'redirect_to_pin') || return
+    FORM_UID5=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid5') || return
+    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid') || return
+    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
+    FORM_LIVE=$(echo "$FORM_HTML" | parse_form_input_by_name 'live') || return
+    FORM_SEO=$(echo "$FORM_HTML" | parse_form_input_by_name 'seo_name') || return
+    FORM_NAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'name') || return
+    FORM_PIN=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin') || return
+    FORM_REAL_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'realuid') || return
+    FORM_REAL_NAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'realname') || return
+    FORM_HOST=$(echo "$FORM_HTML" | parse_form_input_by_name 'host') || return
+    FORM_SERVER=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'ssserver')
+    FORM_SIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'sssize') || return
+    FORM_FILE_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'file_id') || return
+    FORM_INDEX=$(echo "$FORM_HTML" | parse_form_input_by_name 'index') || return
+    FORM_DIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'dir')
+    FORM_ODIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'optiondir')
+    FORM_DESC=$(echo "$FORM_HTML" | parse_form_input_by_name 'desc') || return
+    FORM_LSA=$(echo "$FORM_HTML" | parse_form_input_by_name 'lsarrserverra') || return
+    FORM_PAGE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'page')
+    FORM_SKYMONK=$(echo "$FORM_HTML" | parse_form_input_by_name 'is_skymonk') || return
+    FORM_MD5=$(echo "$FORM_HTML" | parse_form_input_by_name 'md5crypt') || return
+    FORM_REAL_UID_FREE=$(echo "$FORM_HTML" | parse_form_input_by_name 'realuid_free') || return
+    FORM_SHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'slider_hash') || return
+    FORM_SPIN=$(echo "$FORM_HTML" | parse_form_input_by_name 'slider_pin') || return
+
+    FILE_NAME=$(echo "$PAGE" | parse 'fileName =' '"\(.\+\)"') || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -c "$COOKIE_FILE"               \
+        -d "redirect_to_pin=$FORM_REDIR" -d "uid5=$FORM_UID5"                  \
+        -d "uid=$FORM_UID"      -d "id=$FORM_ID"     -d "live=$FORM_LIVE"      \
+        -d "seo_name=$FORM_SEO" -d "name=$FORM_NAME" -d "pin=$FORM_PIN"        \
+        -d "realuid=$FORM_REAL_UID"      -d "realname=$FORM_REAL_NAME"         \
+        -d "host=$FORM_HOST"             -d "ssserver=$FORM_SERVER"            \
+        -d "sssize=$FORM_SIZE"           -d "file_id=$FORM_FILE_ID"            \
+        -d "index=$FORM_INDEX"  -d "dir=$FORM_DIR"   -d "optiondir=$FORM_ODIR" \
+        -d "desc=$FORM_DESC"             -d "lsarrserverra=$FORM_LSA"          \
+        -d "page=$FORM_PAGE"             -d "is_skymonk=$FORM_SKYMONK"         \
+        -d "md5crypt=$FORM_MD5"          -d "realuid_free=$FORM_REAL_UID_FREE" \
+        -d "slider_hash=$FORM_SHASH"     -d "slider_pin=$FORM_SPIN"            \
+        "$LINK_BASE_URL/download3.php") || return
+
+    # Note: Site adds an additional "control field" to the usual ReCaptcha stuff
+    CONTROL=$(echo "$PAGE" | parse 'var[[:space:]]\+recaptcha_control_field' \
+        "=[[:space:]]\+'\([^']\+\)';") || return
+
+    WAIT=$(echo "$PAGE" | parse_tag 'Wait for Your turn' 'span') || return
+    wait $((WAIT + 1)) || return
+
+    # dummy "-d" to force a POST request
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -d '' \
+        -H 'X-Requested-With: XMLHttpRequest' \
+        "$LINK_BASE_URL/ajax/download3.php") || return
+
+    if [ "$PAGE" != '1' ]; then
+        # daily limit reached!?
+        log_error "Unexpected response: $PAGE"
+        return $ERR_FATAL
+    fi
+
+    # Solve recaptcha
+    local PUBKEY WCI CHALLENGE WORD CONTROL ID
+    PUBKEY='6Lc9zdMSAAAAAF-7s2wuQ-036pLRbM0p8dDaQdAM'
+    WCI=$(recaptcha_process $PUBKEY)
+    { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
+
+    # Note: "recaptcha_control_field" *must* be encoded properly
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en'    \
+        --referer "$LINK_BASE_URL/download3.php"  \
+        -H 'X-Requested-With: XMLHttpRequest'     \
+        -d "recaptcha_challenge_field=$CHALLENGE" \
+        -d "recaptcha_response_field=$WORD"       \
+        --data-urlencode "recaptcha_control_field=$CONTROL" \
+        "$LINK_BASE_URL/ajax/check_recaptcha.php") || return
+
+    # Server response should contain multiple URLs if successful
+    if ! match 'http' "$PAGE"; then
+        if [ "$PAGE" = 'error_wrong_captcha' ]; then
+            log_error 'Wrong captcha'
+            captcha_nack "$ID"
+            return $ERR_CAPTCHA
+
+        elif [ "$PAGE" = 'error_free_download_blocked' ]; then
+            # We'll take it literally and wait till the next day
+            local HOUR MIN TIME
+
+            # Get current UTC time, prevent leading zeros
+            TIME=$(date -u +'%k:%M') || return
+            HOUR=${TIME%:*}
+            MIN=${TIME#*:}
+
+            log_error 'Daily limit (1 download per day) reached.'
+            echo $(( ((23 - HOUR) * 60 + (61 - ${MIN#0}) ) * 60 ))
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        log_error "Unexpected remote error: $PAGE"
+        return $ERR_FATAL
+    fi
+
+    log_debug 'Correct captcha'
+    captcha_ack "$ID"
+
+    # Response contains multiple possible download links, we just pick the first
+    echo "$PAGE" | parse . '"\(http:[^"]\+\)"' || return
+    echo "$FILE_NAME"
 }
 
 # Upload a file to Letitbit.net
