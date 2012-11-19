@@ -896,7 +896,7 @@ uri_encode() {
 uri_decode() {
     sed -e 's/%20/ /g' -e 's/%26/\&/g' -e 's/%2C/,/g' -e 's/%28/(/g' \
         -e 's/%29/)/g' -e 's/%2B/+/g' -e 's/%3D/=/g' -e 's/%5B/\[/g' \
-        -e 's/%5D/\]/g' -e 's/%3A/:/g' -e 's|%2F|/|g'
+        -e 's/%5D/\]/g' -e 's/%3A/:/g' -e 's|%2F|/|g' -e 's|%40|@|g'
 }
 
 # Retrieves size of file
