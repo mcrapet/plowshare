@@ -90,7 +90,7 @@ process_item() {
         echo 'url'
         strip <<< "$ITEM"
     elif [ -f "$ITEM" ]; then
-        case "${ITEM##*.}" in
+        case ${ITEM##*.} in
             zip|rar|tar|[7gx]z|bz2|mp[234]|avi|mkv)
                 log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
                 ;;
@@ -286,7 +286,7 @@ download() {
             fi
         fi
 
-        case "$DRETVAL" in
+        case $DRETVAL in
             0)
                 ;;
             $ERR_LOGIN_FAILED)
