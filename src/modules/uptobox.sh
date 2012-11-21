@@ -20,7 +20,8 @@
 
 MODULE_UPTOBOX_REGEXP_URL="http\?://\(www\.\)\?uptobox\.com/"
 
-MODULE_UPTOBOX_DOWNLOAD_OPTIONS=""
+MODULE_UPTOBOX_DOWNLOAD_OPTIONS="
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_UPTOBOX_DOWNLOAD_RESUME=yes
 MODULE_UPTOBOX_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_UPTOBOX_DOWNLOAD_SUCCESSIVE_INTERVAL=
@@ -54,14 +55,39 @@ uptobox_login() {
 }
 
 # Output a uptobox file download URL
-# $1: cookie file (unused here)
+# $1: cookie file (account only)
 # $2: uptobox url
 # stdout: real file download link
 uptobox_download() {
-    local URL=$2
-    local PAGE WAIT_TIME CAPTCHA CODE DIGIT XCOORD FILE_URL
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://uptobox.com'
+    local PAGE WAIT_TIME CAPTCHA CODE DIGIT XCOORD FILE_URL PREMIUM
 
-    PAGE=$(curl -b 'lang=english' "$URL") || return
+    if [ -n "$AUTH" ]; then
+        uptobox_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+
+        # Distinguish acount type (free or premium)
+        PAGE=$(curl -b "$COOKIE_FILE" 'http://www.uptobox.com/?op=my_account') || return
+
+        # Opposite is: 'Upgrade to premium';
+        if match 'Renew premium' "$PAGE"; then
+            local DIRECT_URL
+            PREMIUM=1
+            DIRECT_URL=$(curl -I -b "$COOKIE_FILE" "$URL" | grep_http_header_location_quiet)
+            if [ -n "$DIRECT_URL" ]; then
+                echo "$DIRECT_URL"
+                return 0
+            fi
+
+            PAGE=$(curl -i -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
+        else
+            # Should wait 45s instead of 60s!
+            PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
+        fi
+    else
+        PAGE=$(curl -b 'lang=english' "$URL") || return
+    fi
 
     # The file you were looking for could not be found, sorry for any inconvenience
     if match 'File Not Found' "$PAGE"; then
@@ -75,16 +101,36 @@ uptobox_download() {
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
     FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-    FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
-    FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
 
-    PAGE=$(curl -b 'lang=english' -F 'referer=' \
-        -F "op=$FORM_OP" \
-        -F "usr_login=$FORM_USR" \
-        -F "id=$FORM_ID" \
-        -F "fname=$FORM_FNAME" \
-        -F "method_free=$FORM_METHOD" "$URL") || return
+    if [ "$PREMIUM" = '1' ]; then
+        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d 'referer=' \
+            -d "op=$FORM_OP" \
+            -d "id=$FORM_ID" \
+            -d "rand=$FORM_RAND" \
+            -d 'method_free=' -d 'down_direct=1' \
+            -d "method_premium=$FORM_METHOD" "$URL") || return
+
+        # Click here to start your download
+        FILE_URL=$(echo "$PAGE" | parse_attr '/d/' href)
+        if match_remote_url "$FILE_URL"; then
+            echo "$FILE_URL"
+            return 0
+        fi
+    else
+        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
+        FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -F 'referer=' \
+            -F "op=$FORM_OP" \
+            -F "usr_login=$FORM_USR" \
+            -F "id=$FORM_ID" \
+            -F "fname=$FORM_FNAME" \
+            -F "method_free=$FORM_METHOD" "$URL") || return
+    fi
 
     if match 'Enter code below:' "$PAGE"; then
         WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
@@ -120,7 +166,7 @@ uptobox_download() {
         wait $((WAIT_TIME)) || return
 
         # Didn't included -F 'method_premium='
-        PAGE=$(curl -b 'lang=english' -F "referer=$URL" \
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -F "referer=$URL" \
             -F "op=$FORM_OP" \
             -F "usr_login=$FORM_USR" \
             -F "id=$FORM_ID" \
@@ -178,12 +224,13 @@ uptobox_upload() {
 
     if [ -n "$AUTH" ]; then
         uptobox_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
-        USER_TYPE=reg
-    else
-        USER_TYPE=anon
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
+
+    # "anon", "reg", "prem"
+    USER_TYPE=$(echo "$PAGE" | parse 'var utype' "='\([^']*\)") || return
+    log_debug "User type: '$USER_TYPE'"
 
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
