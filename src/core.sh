@@ -190,7 +190,7 @@ curl() {
             fi
         fi
 
-        case "$DRETVAL" in
+        case $DRETVAL in
             # Failed to initialize.
             2|27)
                 log_error "$FUNCNAME: out of memory?"
@@ -1229,7 +1229,7 @@ captcha_process() {
     local IMG_HASH PRG_PID IMG_PNM
 
     # How to display image
-    case "$METHOD_VIEW" in
+    case $METHOD_VIEW in
         none)
             log_notice "Local image: $FILENAME"
             ;;
@@ -1280,7 +1280,7 @@ captcha_process() {
     local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
 
     # How to solve captcha
-    case "$METHOD_SOLVE" in
+    case $METHOD_SOLVE in
         none)
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
@@ -1521,7 +1521,7 @@ captcha_process() {
     esac
 
     # Second pass for cleaning up
-    case "$METHOD_VIEW" in
+    case $METHOD_VIEW in
         X-*)
             [[ $PRG_PID ]] && kill -HUP $PRG_PID 2>&1 >/dev/null
             ;;
@@ -1794,7 +1794,7 @@ random() {
 
     # FIXME: Adding LC_CTYPE=C in front of printf is required?
 
-    case "$1" in
+    case $1 in
         d|dec)
             RESULT=$(( SEED % 9 + 1 ))
             (( ++I ))
@@ -2342,7 +2342,7 @@ log_report_info() {
 # $2 (optional): solve method (variable name)
 # $3 (optional): display method (variable name)
 captcha_method_translate() {
-    case "$1" in
+    case $1 in
         none)
             [[ $2 ]] && unset "$2" && eval $2=none
             [[ $3 ]] && unset "$3" && eval $3=none
