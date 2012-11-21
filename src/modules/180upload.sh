@@ -101,7 +101,7 @@ MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
 
     # Check for forbidden file extensions
-    case "${DEST_FILE##*.}" in
+    case ${DEST_FILE##*.} in
         php|pl|cgi|py|sh|shtml)
             log_error 'File extension is forbidden. Try renaming your file.'
             return $ERR_FATAL

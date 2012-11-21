@@ -315,7 +315,7 @@ filemates_upload() {
     # Check for forbidden file extensions
     # Note: Remote upload allows these extension but the completed files cannot
     #       be renamed to have an forbidden extension
-    case "${DEST_FILE##*.}" in
+    case ${DEST_FILE##*.} in
         php|pl|cgi|py|sh|shtml)
             log_error 'File extension is forbidden. Try renaming your file.'
             return $ERR_FATAL
