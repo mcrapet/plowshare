@@ -24,6 +24,7 @@ hotfile         | download | upload |        | list |
 jheberg         |          | upload |        | list |
 mediafire       | download | upload |        | list |
 megashares      | download | upload | delete |      |
+mirorii         |          | upload |        | list |
 mirrorcreator   |          | upload |        | list |
 multiupload     |          | upload |        | list |
 netload_in      | download | upload |        | list |
