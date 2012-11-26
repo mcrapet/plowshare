@@ -46,11 +46,11 @@ jheberg_upload() {
 
     if [ -n "$AUTH" ]; then
         split_auth "$AUTH" USER PASSWORD || return
-        JSON=$(curl -F "file=@$FILE;filename=$DESTFILE" \
+        JSON=$(curl_with_log -F "file=@$FILE;filename=$DESTFILE" \
             -F "username=$USER" -F "password=$PASSWORD" \
             "$UPLOAD_URL") || return
     else
-        JSON=$(curl -F "file=@$FILE;filename=$DESTFILE" \
+        JSON=$(curl_with_log -F "file=@$FILE;filename=$DESTFILE" \
             "$UPLOAD_URL") || return
     fi
 

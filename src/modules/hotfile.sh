@@ -80,9 +80,15 @@ hotfile_download() {
         else
             MODULE_HOTFILE_DOWNLOAD_RESUME=yes
 
-            FILE_URL=$(curl --get "username=$USER" $PASSWD_FORM \
+            FILE_URL=$(curl --get -d "username=$USER" $PASSWD_FORM \
                 -d 'action=getdirectdownloadlink' \
                 -d "link=$URL" "$API_URL") || return
+
+            # Check for API error
+            if [ "${FILE_URL:0:1}" = '.' ]; then
+                log_error "Unexpected response: $FILE_URL"
+                return $ERR_FATAL
+            fi
 
             echo "$FILE_URL"
             return 0
@@ -254,11 +260,8 @@ hotfile_list() {
     NUM=$(echo "$PAGE" | parse ' files)' '(\([[:digit:]]*\) files')
     log_debug "There is/are $NUM file(s) in the folder"
 
-    PAGE=$(echo "$PAGE" | grep 'hotfile.com/dl/')
-    test "$PAGE" || return $ERR_LINK_DEAD
-
-    LINKS=$(echo "$PAGE" | parse_all_attr '<a' href)
-    NAMES=$(echo "$PAGE" | parse_all_tag a)
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/dl/' href)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet '/dl/' a)
 
     list_submit "$LINKS" "$NAMES" || return
 }

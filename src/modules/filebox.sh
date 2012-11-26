@@ -143,7 +143,7 @@ filebox_download() {
 filebox_upload() {
     local COOKIE_FILE=$1
     local FILE=$2
-    local DESTFILE=$3
+    local DEST_FILE=$3
     local BASE_URL='http://www.filebox.com'
     local PAGE SRV_CGI SIZE_LIMIT SESSID RESPONSE FILE_ID FILE_ORIG_ID DEL_LINK
 
@@ -168,10 +168,10 @@ filebox_upload() {
     # Uses Uploadify (jQuery plugin) v2.1.4 for files upload
     # But we don't care, we just call directly server side upload script (cgi)!
     RESPONSE=$(curl_with_log \
-        -F "Filename=$DESTFILE" \
+        -F "Filename=$DEST_FILE" \
         -F "sess_id=$SESSID" \
         -F 'folder=/' \
-        -F "Filedata=@$FILE;filename=$DESTFILE" \
+        -F "Filedata=@$FILE;filename=$DEST_FILE" \
         -F 'Upload=Submit Query' \
         "$SRV_CGI") || return
 
