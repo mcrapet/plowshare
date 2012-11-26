@@ -64,11 +64,8 @@ letitbit_upload() {
     local PAGE SIZE MAX_SIZE UPLOAD_SERVER MARKER STATUS_URL
     local FORM_HTML FORM_OWNER FORM_PIN FORM_BASE FORM_HOST
 
-    if [ -n "$AUTH_FREE" ]; then
-        letitbit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
-    else
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    letitbit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL") || return
     FORM_HTML=$(grep_form_by_id "$PAGE" 'upload_form') || return
