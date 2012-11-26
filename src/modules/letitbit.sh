@@ -98,12 +98,12 @@ letitbit_upload() {
     MARKER=$(printf "%X_%s" "$(date +%s000)" "$(random Ll 40)") || return
 
     # Upload local file
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' \
-        -F "MAX_FILE_SIZE=$MAX_SIZE"           \
-        -F "owner=$FORM_OWNER"                 \
-        -F "pin=$FORM_PIN"                     \
-        -F "base=$FORM_BASE"                   \
-        -F "host=$FORM_HOST"                   \
+    PAGE=$(curl_with_log -b "$COOKIE_FILE" -b 'lang=en' \
+        -F "MAX_FILE_SIZE=$MAX_SIZE" \
+        -F "owner=$FORM_OWNER"       \
+        -F "pin=$FORM_PIN"           \
+        -F "base=$FORM_BASE"         \
+        -F "host=$FORM_HOST"         \
         -F "file0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         "http://$UPLOAD_SERVER/marker=$MARKER") || return
 
