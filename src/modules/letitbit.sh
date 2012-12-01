@@ -30,6 +30,8 @@ MODULE_LETITBIT_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_LETITBIT_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_LETITBIT_LIST_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: authentication
 # $2: cookie file
@@ -321,4 +323,30 @@ letitbit_upload() {
         '<textarea[^>]*>\(http.\+html\)$' || return
     echo "$PAGE" | parse "$BASE_URL/download/delete" \
         '<div[^>]*>\(http.\+html\)<br/>' || return
+}
+
+# List an Letitbit.net shared file folder URL
+# $1: letitbit.net folder url
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+letitbit_list() {
+    local URL=$1
+    local PAGE LINKS NAMES
+
+    # check whether it looks like a folder link
+    if ! match "${MODULE_LETITBIT_REGEXP_URL}folder/" "$URL"; then
+        log_error "This is not a directory list."
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_debug "letitbit does not display sub folders"
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_attr 'target="_blank"' 'href')
+    NAMES=$(echo "$PAGE" | parse_all_tag 'target="_blank"' 'font')
+
+    test "$LINKS" || return $ERR_LINK_DEAD
+
+    list_submit "$LINKS" "$NAMES" || return
 }
