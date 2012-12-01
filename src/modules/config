@@ -22,7 +22,7 @@ freakshare      | download | upload |        |      |
 go4up           |          | upload | delete | list |
 hotfile         | download | upload |        | list |
 jheberg         |          | upload |        | list |
-letitbit        | download | upload |        | list |
+letitbit        | download | upload | delete | list |
 mediafire       | download | upload |        | list |
 megashares      | download | upload | delete |      |
 mirorii         |          | upload |        | list |

@@ -32,6 +32,8 @@ MODULE_LETITBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_LETITBIT_LIST_OPTIONS=""
 
+MODULE_LETITBIT_DELETE_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: authentication
 # $2: cookie file
@@ -323,6 +325,61 @@ letitbit_upload() {
         '<textarea[^>]*>\(http.\+html\)$' || return
     echo "$PAGE" | parse "$BASE_URL/download/delete" \
         '<div[^>]*>\(http.\+html\)<br/>' || return
+}
+
+# Delete a file on Letitbit.net
+# $1: cookie file
+# $2: letitbit.net (delete) link
+letitbit_delete() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://letitbit.net'
+    local DEL_PART PAGE
+
+    # http://letitbit.net/download/delete15623193_0be902ba49/70662.717a170fc1bf0620a7f62fde1975/worl.html
+    if ! match 'download/delete' "$URL"; then
+        log_error 'This is not a delete link.'
+        return $ERR_FATAL
+    fi
+
+    # Check (manually) if file exists
+    # remove "delete15623193_0be902ba49/" to get normal download link
+    DEL_PART=$(echo "$URL" | parse . '\(delete[^/]\+\)') || return
+    PAGE=$(curl -L -b 'lang=en' "${URL/$DEL_PART\//}") || return
+
+    if match 'File not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    curl -L -b 'lang=en' -c "$COOKIE_FILE" -o /dev/null "$URL" || return
+
+    # Solve recaptcha
+    local PUBKEY WCI CHALLENGE WORD CONTROL ID
+    PUBKEY='6Lc9zdMSAAAAAF-7s2wuQ-036pLRbM0p8dDaQdAM'
+    WCI=$(recaptcha_process $PUBKEY)
+    { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
+
+    PAGE=$(curl --referer "$URL" -b "$COOKIE_FILE" \
+        -H 'X-Requested-With: XMLHttpRequest'      \
+        -d "recaptcha_challenge_field=$CHALLENGE"  \
+        -d "recaptcha_response_field=$WORD"        \
+        "$BASE_URL/ajax/check_recaptcha2.php") || return
+
+    case "$PAGE" in
+        ok)
+            captcha_ack "$ID"
+            return 0
+            ;;
+        error_wrong_captcha)
+            log_error 'Wrong captcha'
+            captcha_nack "$ID"
+            return $ERR_CAPTCHA
+            ;;
+        *)
+            log_error "Unexpected response: $PAGE"
+            return $ERR_FATAL
+            ;;
+    esac
 }
 
 # List an Letitbit.net shared file folder URL
