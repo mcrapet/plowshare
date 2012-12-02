@@ -1278,7 +1278,7 @@ captcha_process() {
                 log_error "9kw.eu empty answer"
                 rm -f "$FILENAME"
                 return $ERR_NETWORK
-            # Error range: 0001..0014. German language.
+            # Error range: 0001..0015. German language.
             elif [[ $RESPONSE = 00[01][[:digit:]][[:space:]]* ]]; then
                 log_error "9kw.eu error: ${RESPONSE:5}"
                 rm -f "$FILENAME"
@@ -1672,7 +1672,19 @@ captcha_ack() {
     local -r TID=${1:1}
     local RESPONSE STR
 
-    if [[ "$M" != [a9bd] ]]; then
+    if [ '9' = "$M" ]; then
+        if [ -n "$CAPTCHA_9KWEU" ]; then
+            RESPONSE=$(curl --get --data 'action=usercaptchacorrectback' \
+                --data "apikey=$CAPTCHA_9KWEU" --data "id=$TID" \
+                --data 'correct=1' 'http://www.9kw.eu/index.cgi') || return
+
+            [ 'OK' = "$RESPONSE" ] || \
+                log_error "9kw.eu error: $RESPONSE"
+        else
+            log_error "$FUNCNAME failed: 9kweu missing captcha key"
+        fi
+
+    elif [[ "$M" != [abd] ]]; then
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
