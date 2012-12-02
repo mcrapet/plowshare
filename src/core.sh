@@ -2016,9 +2016,9 @@ print_options() {
     local -r INDENT=${2:-'  '}
     local STR VAR SHORT LONG TYPE MSG
 
-    while read OPTION; do
-        test "$OPTION" || continue
-        IFS="," read VAR SHORT LONG TYPE MSG <<< "$OPTION"
+    while read -r; do
+        test "$REPLY" || continue
+        IFS="," read VAR SHORT LONG TYPE MSG <<< "$REPLY"
         if [ -n "$SHORT" ]; then
             if test "$TYPE"; then
                 STR="-${SHORT} ${TYPE#*=}"
@@ -2044,11 +2044,11 @@ print_options() {
 # $1: module name list (one per line)
 # $2: option family name (string, example:UPLOAD)
 print_module_options() {
-    while read MODULE; do
-        OPTIONS=$(get_module_options "$MODULE" "$2")
+    while read -r; do
+        local OPTIONS=$(get_module_options "$REPLY" "$2")
         if test "$OPTIONS"; then
             echo
-            echo "Options for module <$MODULE>:"
+            echo "Options for module <$REPLY>:"
             echo
             print_options "$OPTIONS"
         fi
@@ -2060,8 +2060,8 @@ print_module_options() {
 # $1: module name list (one per line)
 # $2: option family name (string, example:UPLOAD)
 get_all_modules_options() {
-    while read MODULE; do
-        get_module_options "$MODULE" "$2"
+    while read -r; do
+        get_module_options "$REPLY" "$2"
     done <<< "$1"
 }
 
@@ -2070,10 +2070,10 @@ get_all_modules_options() {
 # $1: url
 # $2: module name list (one per line)
 get_module() {
-    while read MODULE; do
-        local -u VAR="MODULE_${MODULE}_REGEXP_URL"
+    while read -r; do
+        local -u VAR="MODULE_${REPLY}_REGEXP_URL"
         if match "${!VAR}" "$1"; then
-            echo $MODULE
+            echo "$REPLY"
             return 0
         fi
     done <<< "$2"
