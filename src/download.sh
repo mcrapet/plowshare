@@ -90,16 +90,13 @@ process_item() {
         echo 'url'
         strip <<< "$ITEM"
     elif [ -f "$ITEM" ]; then
-        case ${ITEM##*.} in
-            zip|rar|tar|[7gx]z|bz2|mp[234]|avi|mkv)
-                log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
-                ;;
-            *)
-                # Discard empty lines and comments
-                echo 'file'
-                sed -ne "s,^[[:space:]]*\([^#].*\)$,\1,p" "$ITEM" | strip
-                ;;
-        esac
+        if [[ $ITEM =~ (zip|rar|tar|[7gx]z|bz2|mp[234]|avi|mkv)$ ]]; then
+            log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
+        else
+            # Discard empty lines and comments
+            echo 'file'
+            sed -ne '/^[[:space:]]*[^#[:space:]]/{s/^[[:space:]]*//; s/[[:space:]]*$//; p}' "$ITEM"
+        fi
     else
         log_error "Skip: cannot stat '$ITEM': No such file or directory"
     fi
