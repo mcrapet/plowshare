@@ -109,6 +109,10 @@ uploadhero_download() {
         log_error 'Forced delay between downloads.'
         echo $WAIT_TIME
         return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # 1GB file limit. Premium users only.
+    elif match 'id="lightbox_1gbfile"' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     # Extract the raw file id
