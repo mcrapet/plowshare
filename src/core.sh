@@ -2147,8 +2147,8 @@ process_configfile_options() {
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
         while read LINE; do
-            NAME=$(echo "${LINE%%=*}" | strip)
-            VALUE=$(echo "${LINE#*=}" | strip)
+            NAME=$(strip <<< "${LINE%%=*}")
+            VALUE=$(strip <<< "${LINE#*=}")
 
             # Look for optional double quote (protect leading/trailing spaces)
             if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
@@ -2206,7 +2206,7 @@ process_configfile_module_options() {
             # Look for 'module/option_name' (short or long) in section list
             LINE=$(echo "$SECTION" | grep "^$M/\($SHORT\|$LONG\)[[:space:]]*=" | sed -n '$p') || true
             if [ -n "$LINE" ]; then
-                VALUE=$(echo "${LINE#*=}" | strip)
+                VALUE=$(strip <<< "${LINE#*=}")
 
                 # Look for optional double quote (protect leading/trailing spaces)
                 if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
