@@ -97,7 +97,7 @@ process_item() {
             *)
                 # Discard empty lines and comments
                 echo 'file'
-                sed -ne "s,^[[:space:]]*\([^#].*\)$,\1,p" "$ITEM" | strip
+                sed -ne '/^[[:space:]]*[^#[:space:]]/{s/^[[:space:]]*//; s/[[:space:]]*$//; p}' "$ITEM"
                 ;;
         esac
     else
