@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPLOADHERO_REGEXP_URL="http://\(www\.\)\?\(uploadhero\)\.com/"
+MODULE_UPLOADHERO_REGEXP_URL="http://\(www\.\)\?\(uploadhero\)\.com\?/"
 
 MODULE_UPLOADHERO_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADHERO_DOWNLOAD_RESUME=no
@@ -80,17 +80,17 @@ uploadhero_switch_lang() {
 uploadhero_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$(echo "$2" | replace 'www.' '' | replace '/v/' '/dl/')
-    local -r BASE_URL='http://uploadhero.com'
+    local -r BASE_URL='http://uploadhero.co'
     local FILE_ID PAGE FILE_NAME FILE_URL CAPTCHA_URL CAPTCHA_IMG
 
     # Recognize folders
-    if match 'uploadhero.com/f/' "$URL"; then
+    if match 'uploadhero.com\?/f/' "$URL"; then
         log_error "This is a directory list"
         return $ERR_FATAL
     fi
 
     uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
-    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+    PAGE=$(curl -L -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
     # Verify if link exists
     match '<div class="raison">' "$PAGE" && return $ERR_LINK_DEAD
@@ -117,7 +117,7 @@ uploadhero_download() {
 
     # Extract filename (first <div> marker)
     FILE_NAME=$(echo "$PAGE" | parse_tag 'class="nom_de_fichier"' div)
-    log_debug "Filename : $FILE_NAME"
+    log_debug "Filename: $FILE_NAME"
 
     # Handle captcha
     CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha"' 'src')
@@ -168,7 +168,7 @@ uploadhero_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://uploadhero.com'
+    local -r BASE_URL='http://uploadhero.co'
     local -r MAX_SIZE=2147483648 # 2GiB
     local PAGE UP_URL SESSION_ID SIZE FILE_ID
 
@@ -216,7 +216,7 @@ uploadhero_upload() {
 uploadhero_delete() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local -r BASE_URL='http://uploadhero.com'
+    local -r BASE_URL='http://uploadhero.co'
     local PAGE REDIR DEL_ID
 
     PAGE=$(curl --include "$URL") || return
