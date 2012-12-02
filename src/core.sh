@@ -118,14 +118,13 @@ curl() {
 
     # Check if caller has specified a User-Agent, if so, don't put one
     if ! find_in_array CURL_ARGS[@] '-A' '--user-agent'; then
-        OPTIONS[${#OPTIONS[@]}]='--user-agent'
-        OPTIONS[${#OPTIONS[@]}]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
+        OPTIONS+=(--user-agent \
+            'Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0')
     fi
 
     # Check if caller has allowed redirection, if so, limit it
     if find_in_array CURL_ARGS[@] '-L' '--location'; then
-        OPTIONS[${#OPTIONS[@]}]='--max-redirs'
-        OPTIONS[${#OPTIONS[@]}]=5
+        OPTIONS+=(--max-redirs 5)
     fi
 
     test -n "$NO_CURLRC" && OPTIONS[${#OPTIONS[@]}]='-q'
@@ -138,18 +137,13 @@ curl() {
     fi
 
     if test -n "$INTERFACE"; then
-        OPTIONS[${#OPTIONS[@]}]='--interface'
-        OPTIONS[${#OPTIONS[@]}]=$INTERFACE
+        OPTIONS+=(--interface $INTERFACE)
     fi
     if test -n "$MAX_LIMIT_RATE"; then
-        OPTIONS[${#OPTIONS[@]}]='--limit-rate'
-        OPTIONS[${#OPTIONS[@]}]=$MAX_LIMIT_RATE
+        OPTIONS+=(--limit-rate $MAX_LIMIT_RATE)
     fi
     if test -n "$MIN_LIMIT_RATE"; then
-        OPTIONS[${#OPTIONS[@]}]='--speed-time'
-        OPTIONS[${#OPTIONS[@]}]=30
-        OPTIONS[${#OPTIONS[@]}]='--speed-limit'
-        OPTIONS[${#OPTIONS[@]}]=$MIN_LIMIT_RATE
+        OPTIONS+=(--speed-time 30 --speed-limit $MIN_LIMIT_RATE)
     fi
 
     if test $VERBOSE -lt 4; then
