@@ -84,7 +84,8 @@ ryushare_download() {
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    # The file was removed by adminstrator
+    if match 'File Not Found\|file was removed' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
