@@ -77,7 +77,7 @@ letitbit_download() {
     #         http://www.letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
     # real: http://u29043481.letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
     URL=$(curl --head "$2" | grep_http_header_location_quiet "PAGE")
-    [ -n "URL" ] || URL=$2
+    [ -n "$URL" ] || URL=$2
     LINK_BASE_URL=${URL%%/download/*}
 
     if [ -n "$AUTH_FREE" ]; then
