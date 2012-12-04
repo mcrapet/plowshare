@@ -21,27 +21,28 @@
 MODULE_LETITBIT_REGEXP_URL="http://\(\(www\|u[[:digit:]]\{8\}\)\.\)\?letitbit\.net/"
 
 MODULE_LETITBIT_DOWNLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_LETITBIT_DOWNLOAD_RESUME=yes
 MODULE_LETITBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_LETITBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_LETITBIT_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_LETITBIT_UPLOAD_REMOTE_SUPPORT=no
 
 # Static function. Proceed with login
 # $1: authentication
 # $2: cookie file
 # $3: base url
+# stdout: account type ("free" or "premium") on success
 letitbit_login() {
-    local -r AUTH_FREE=$1
+    local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
-    local LOGIN_DATA PAGE ERR EMAIL
+    local LOGIN_DATA PAGE ERR TYPE EMAIL
 
     LOGIN_DATA='act=login&login=$USER&password=$PASSWORD'
-    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASE_URL/index.php" -b 'lang=en') || return
 
     # Note: Cookies "pas" + "log" (=login name) get set on successful login
@@ -52,8 +53,27 @@ letitbit_login() {
         return $ERR_LOGIN_FAILED
     fi
 
+    # Determine account type
+    PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+        -d 'act=get_attached_passwords' \
+        "$BASE_URL/ajax/get_attached_passwords.php") || return
+
+    # There are no attached premium accounts found
+    if match 'no attached premium accounts' "$PAGE"; then
+        TYPE='free'
+
+    # Note: Contains a table of associated premium codes
+    elif match '^[[:space:]]*<th>Premium account</th>' "$PAGE"; then
+        TYPE='premium'
+    else
+        log_error 'Could not determine account type. Site updated?'
+        return $ERR_FATAL
+    fi
+
     EMAIL=$(parse_cookie 'log' < "$COOKIE_FILE" | uri_decode) || return
-    log_debug "Successfully logged in as member '$EMAIL'"
+    log_debug "Successfully logged in as $TYPE member '$EMAIL'"
+
+    echo "$TYPE"
 }
 
 # Output a file URL to download from Letitbit.net
@@ -64,7 +84,7 @@ letitbit_login() {
 letitbit_download() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL='http://letitbit.net'
-    local PAGE URL SERVER WAIT CONTROL FILE_NAME
+    local PAGE URL ACCOUNT SERVER WAIT CONTROL FILE_NAME
     local FORM_HTML FORM_REDIR FORM_UID5 FORM_UID FORM_ID FORM_LIVE FORM_SEO
     local FORM_NAME FORM_PIN FORM_REAL_UID FORM_REAL_NAME FORM_HOST FORM_SERVER
     local FORM_SIZE FORM_FILE_ID FORM_INDEX FORM_DIR FORM_ODIR FORM_DESC
@@ -73,18 +93,19 @@ letitbit_download() {
 
     # server redirects "simple links" to real download server
     #
-    # simple: http://letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
-    #         http://www.letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
-    # real: http://u29043481.letitbit.net/download/02014.03e95de12be3f3f2b358a2992c1b/file.html
+    # simple: http://letitbit.net/download/...
+    #         http://www.letitbit.net/download/...
+    # real:   http://u29043481.letitbit.net/download/...
     URL=$(curl --head "$2" | grep_http_header_location_quiet "PAGE")
     [ -n "$URL" ] || URL=$2
     LINK_BASE_URL=${URL%%/download/*}
 
-    if [ -n "$AUTH_FREE" ]; then
-        letitbit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    if [ -n "$AUTH" ]; then
+         ACCOUNT=$(letitbit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
     fi
 
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    # Note: Premium users are redirected to a download page
+    PAGE=$(curl --location -b "$COOKIE_FILE" -b 'lang=en' "$URL") || return
 
     if match 'File not found' "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -92,6 +113,23 @@ letitbit_download() {
 
     [ -n "$CHECK_LINK" ] && return 0
 
+    if [ "$ACCOUNT" = 'premium' ]; then
+        local FILE_LINKS
+
+        FILE_NAME=$(echo "$PAGE" | parse_tag 'File:' 'a') || return
+        FILE_LINKS=$(echo "$PAGE" | \
+            parse_all_attr 'Link to the file download' 'href') || return
+
+        # Note: The page performs some kind of verification on all links, but
+        #       we try to do without this for now and just use the 1st link.
+        log_debug "All Links: $FILE_LINKS"
+
+        echo "$FILE_LINKS" | first_line
+        echo "$FILE_NAME"
+        return 0
+    fi
+
+    # anon/free account download
     FORM_HTML=$(grep_form_by_id "$PAGE" 'ifree_form') || return
     FORM_REDIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'redirect_to_pin') || return
     FORM_UID5=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid5') || return
@@ -215,8 +253,9 @@ letitbit_upload() {
     local PAGE SIZE MAX_SIZE UPLOAD_SERVER MARKER STATUS_URL
     local FORM_HTML FORM_OWNER FORM_PIN FORM_BASE FORM_HOST
 
-    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
-    letitbit_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    # Login (don't care for account type)
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
+    letitbit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL") || return
     FORM_HTML=$(grep_form_by_id "$PAGE" 'upload_form') || return
