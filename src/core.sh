@@ -1702,9 +1702,10 @@ captcha_nack() {
             RESPONSE=$(curl --get \
                 -d "username=$USERNAME" -d "password=$PASSWORD" \
                 -d "captchaID=$TID" \
-                'http://ocrhood.gazcad.com/complainCaptcha.aspx') || return
+                'http://www.captchabrotherhood.com/complainCaptcha.aspx') || return
 
-            log_error "$FUNCNAME FIXME cbh[$RESPONSE]"
+            [ 'OK-Complained' = "$RESPONSE" ] || \
+                log_error "$FUNCNAME FIXME cbh[$RESPONSE]"
         else
             log_error "$FUNCNAME failed: captcha brotherhood missing account data"
         fi
