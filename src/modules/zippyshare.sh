@@ -36,7 +36,7 @@ MODULE_ZIPPYSHARE_UPLOAD_REMOTE_SUPPORT=no
 zippyshare_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME PART1 PART2 N1 N2
+    local PAGE FILE_URL FILE_NAME PART_URL JS
 
     # JSESSIONID required
     PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
@@ -73,27 +73,24 @@ zippyshare_download() {
 
         log_error "Cannot download link. Flash (with ActionScript3) button need to be disassembled"
         return $ERR_FATAL
+    fi
 
-    elif match '+(z)+' "$PAGE"; then
-        # document.getElementById('dlbutton').href = "/d/91294631/"+(z)+"/foo.bar";
-        PART1=$(echo "$PAGE" | parse '(z)' '"\(/d/[^"]*\)') || return
-        PART2=$(echo "$PAGE" | parse '(z)' '+"\([^"]*\)') || return
-        N1=$(echo "$PAGE" | parse '(z)' '=[[:space:]]*\([[:digit:]]\+\)[[:space:]]*+' -3)
-        N2=$(echo "$PAGE" | parse '(z)' '+[[:space:]]*\([[:digit:]]\+\)[[:space:]]*;' -3)
-        FILE_URL="$(basename_url "$URL")$PART1$((N1 + N2 - 7))$PART2"
-    elif match ')\.omg' "$PAGE"; then
-        # document.getElementById('dlbutton').omg = "asdasd".substr(0, 3);
-        PART1=$(echo "$PAGE" | parse 'Math\.pow' '"\(/d/[^"]*\)') || return
-        PART2=$(echo "$PAGE" | parse 'Math\.pow' '+"\([^"]*\)') || return
-        N1=$(echo "$PAGE" | parse ')\.omg' '=[[:space:]]*\([[:digit:]]\+\)' -1)
-        N2=$(echo "$PAGE" | parse ')\.omg' '\([[:digit:]]\+\));')
-        FILE_URL="$(basename_url "$URL")$PART1$((N1 ** 3 + N2))$PART2"
-    elif match '([[:digit:]]\+%[[:digit:]]\+' "$PAGE"; then
-        # document.getElementById('dlbutton').href = "/d/23839625/"+(381623%55245 + 381323%913)+"/foo.bar"
-        PART1=$(echo "$PAGE" | parse '/d/' '"\(/d/[^"]*\)') || return
-        PART2=$(echo "$PAGE" | parse '/d/' '+"\([^"]*\)') || return
-        N1=$(echo "$PAGE" | parse '/d/' '"+(\(.\+\))+"') || return
-        FILE_URL="$(basename_url "$URL")$PART1$((N1))$PART2"
+    detect_javascript || return
+
+    JS=$(grep_script_by_order "$PAGE" -3)
+    if [ -n "$JS" ]; then
+        JS=$(echo "$JS" | delete_first_line | delete_last_line)
+
+        PART_URL=$(echo "var elt = {};
+            var document = {
+              getElementById: function(id) {
+                return elt;
+              }
+            };
+            $JS
+            print(elt.href);" | javascript) || return
+
+        FILE_URL="$(basename_url "$URL")$PART_URL"
     else
         log_error "Unexpected content, site updated?"
         return $ERR_FATAL
