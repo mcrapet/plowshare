@@ -537,51 +537,6 @@ grep_http_header_content_disposition() {
     parse_all '^[Cc]ontent-[Dd]isposition:' "filename\*\?=[\"']\?\([^\"'[:cntrl:]]*\)"
 }
 
-# Extract a specific form from a HTML content.
-# Notes:
-# - start marker <form> and end marker </form> must be on separate lines
-# - HTML comments are just ignored
-#
-# $1: (X)HTML data
-# $2: (optional) Nth <form> Index start at 1: first form of page.
-#     Negative index possible: -1 means last form of page and so on.
-#     Zero or empty value means 1.
-# stdout: result
-grep_form_by_order() {
-    local DATA=$1
-    local N=${2:-'1'}
-    local DOT
-
-    # Check numbers de <form> tags
-    DOT=$(echo "$DATA" | sed -ne '/<[Ff][Oo][Rr][Mm][[:space:]]/s/.*/./p' | tr -d '\n')
-    if (( $N < 0 )); then
-        N=$(( ${#DOT} + 1 + N ))
-        if (( $N <= 0 )); then
-            log_error "$FUNCNAME failed: negative index is too big (detected ${#DOT} forms)"
-            return $ERR_FATAL
-        fi
-    fi
-
-    while [ "$N" -gt "1" ]; do
-        (( --N ))
-        DATA=$(echo "$DATA" | sed -ne '/<\/[Ff][Oo][Rr][Mm]>/,$p' | \
-            sed -e '1s/<\/[Ff][Oo][Rr][Mm]>/<_FORM_>/1')
-
-        test -z "$DATA" && break
-    done
-
-    # Get first form only
-    local STRING=$(sed -ne \
-        '/<[Ff][Oo][Rr][Mm][[:space:]]/,/<\/[Ff][Oo][Rr][Mm]>/{p;/<\/[Ff][Oo][Rr][Mm]/q}' <<< "$DATA")
-
-    if [ -z "$STRING" ]; then
-        log_error "$FUNCNAME failed (sed): \"n=$N\""
-        return $ERR_FATAL
-    fi
-
-    echo "$STRING"
-}
-
 # Extract a named form from a HTML content.
 # Notes:
 # - if several forms (with same name) are available: return all of them
@@ -626,6 +581,20 @@ grep_form_by_id() {
     fi
 
     echo "$STRING"
+}
+
+# Extract a specific FORM block from a HTML content.
+# $1: (X)HTML data
+# $2: (optional) Nth <form> block
+grep_form_by_order() {
+    grep_block_by_order '[Ff][Oo][Rr][Mm]' "$@"
+}
+
+# Extract a specific SCRIPT block from a HTML content.
+# $1: (X)HTML data
+# $2: (optional) Nth <script> block
+grep_script_by_order() {
+    grep_block_by_order '[Ss][Cc][Rr][Ii][Pp][Tt]' "$@"
 }
 
 # Split into several lines html markers.
@@ -2365,6 +2334,56 @@ parse_transfer_speed() {
 
     [[ $2 ]] && return 0
     echo $(( N * M ))
+}
+
+# Extract a specific block from a HTML content.
+# Notes:
+# - Use this function with leaves block (avoid <div>, <p>)
+# - Two distinct blocks can't begin or end on the same line
+# - HTML comments are just ignored
+#
+# $1: Marker regex.
+# $2: (X)HTML data
+# $3: (optional) Nth <tag>. Index start at 1: first block of page.
+#     Negative index possible: -1 means last block of page and so on.
+#     Zero or empty value means 1.
+# stdout: result
+grep_block_by_order() {
+    local -r TAG=$1
+    local DATA=$2
+    local N=${3:-'1'}
+    local DOT NEW
+
+    # Check number of <tag> markers
+    DOT=$(echo "$DATA" | sed -ne "/<$TAG[[:space:]>]/s/.*/./p" | tr -d '\n')
+    if (( $N < 0 )); then
+        N=$(( ${#DOT} + 1 + N ))
+        if (( $N <= 0 )); then
+            log_error "${FUNCNAME[1]} failed: negative index is too big (detected ${#DOT} forms)"
+            return $ERR_FATAL
+        fi
+    fi
+
+    NEW=${TAG//[}
+    NEW=${NEW//]}
+    while [ "$N" -gt "1" ]; do
+        (( --N ))
+        DATA=$(echo "$DATA" | sed -ne "/<\/$TAG>/,\$p" | \
+            sed -e "1s/<\/\?$TAG[[:space:]>]/<_${NEW}_>/g")
+
+        test -z "$DATA" && break
+    done
+
+    # Get first form only
+    local STRING=$(sed -ne \
+        "/<$TAG[[:space:]>]/,/<\/$TAG>/{p;/<\/$TAG/q}" <<< "$DATA")
+
+    if [ -z "$STRING" ]; then
+        log_error "${FUNCNAME[1]} failed (sed): \"n=$N\""
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Check argument type
