@@ -222,6 +222,10 @@ ryushare_download() {
             return $ERR_LINK_PASSWORD_REQUIRED
         elif match 'Wrong captcha' "$ERR"; then
             return $ERR_CAPTCHA
+        elif match 'Skipped countdown' "$ERR"; then
+            # Can do a retry
+            log_debug "Remote error: $ERR"
+            return $ERR_NETWORK
         fi
         log_error "Remote error: $ERR"
     else
