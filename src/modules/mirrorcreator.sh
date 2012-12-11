@@ -156,7 +156,7 @@ mirrorcreator_list() {
     fi
 
     PAGE=$(curl -L "$URL") || return
-    STATUS=$(echo "$PAGE" | parse 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
+    STATUS=$(echo "$PAGE" | parse_last 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
     ID=$(echo "$PAGE" | parse '/files/' '\.com/files/\([^/]*\)/') || return
 
     PAGE=$(curl -L "$BASE_URL$STATUS") || return
