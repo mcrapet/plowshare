@@ -195,21 +195,43 @@ mediafire_download() {
     [ -z "$FILE_NAME" ] && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
-    # reCaptcha
-    if match '<textarea name="recaptcha_challenge_field"' "$PAGE"; then
-        local PUBKEY WCI CHALLENGE WORD ID
-        PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
-        WCI=$(recaptcha_process $PUBKEY) || return
-        { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
+    # handle captcha (reCaptcha or SolveMedia) if there is one
+    if match 'form_captcha' "$PAGE"; then
+        local FORM_CAPTCHA PUBKEY CHALLENGE ID RESP CAPTCHA_DATA
+
+        FORM_CAPTCHA=$(grep_form_by_name "$PAGE" 'form_captcha') || return
+
+        if match 'recaptcha/api' "$FORM_CAPTCHA"; then
+            log_debug 'reCaptcha found'
+
+            local WORD
+            PUBKEY='6LextQUAAAAAALlQv0DSHOYxqF3DftRZxA5yebEe'
+            RESP=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<< "$RESP"
+
+            CAPTCHA_DATA="-d recaptcha_challenge_field=$CHALLENGE -d recaptcha_response_field=$WORD"
+
+        elif match 'api\.solvemedia' "$FORM_CAPTCHA"; then
+            log_debug 'Solve Media CAPTCHA found'
+
+            PUBKEY='Z94dMnWequbvKmy-HchLrZJ3-.qB6AJ1'
+            RESP=$(solvemedia_captcha_process $PUBKEY) || return
+            { read CHALLENGE; read ID; } <<< "$RESP"
+
+            CAPTCHA_DATA="--data-urlencode adcopy_challenge=$CHALLENGE -d adcopy_response=manual_challenge"
+
+        else
+            log_error 'Unexpected content/captcha type. Site updated?'
+            return $ERR_FATAL
+        fi
+
+        log_debug "Captcha data: $CAPTCHA_DATA"
 
         PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
-            -H 'X-Requested-With: XMLHttpRequest' \
-            -d "recaptcha_challenge_field=$CHALLENGE" \
-            -d "recaptcha_response_field=$WORD" \
-            "$URL" | break_html_lines) || return
+            $CAPTCHA_DATA "$URL") || return
 
-        # You entered the incorrect keyword below, please try again!
-        if match 'incorrect keyword' "$PAGE"; then
+        # Your entry was incorrect, please try again!
+        if match 'Your entry was incorrect' "$PAGE"; then
             captcha_nack $ID
             log_error 'Wrong captcha'
             return $ERR_CAPTCHA
