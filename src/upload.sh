@@ -35,7 +35,7 @@ TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
 NAME_PREFIX,,name-prefix,s=STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix,s=STRING,Append argument to each destination filename
-PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each upload). Default string is: \"%u (%D)\".
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each upload). Default string is: \"%D%A%u\".
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
@@ -112,10 +112,11 @@ module_config_remote_upload() {
 # %f: destination (remote) filename
 # %u: download url
 # %d: delete url
-# %a: admin url or admin code
+# %a: admin url/code
 # %m: module name
 # %s: filesize (in bytes)
-# %D: %d or %a (if %d is empty)
+# %D: alias for "#DEL %d%n" or empty string (if %d is empty)
+# %A: alias for "#ADM %a%n" or empty string (if %a is empty)
 # and also:
 # %n: newline
 # %t: tabulation
@@ -127,7 +128,7 @@ module_config_remote_upload() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[fudamsDnt%]}
+    S=${1//%[fudamsADnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -141,26 +142,44 @@ pretty_check() {
 pretty_print() {
     local -a A=("${!1}")
     local FMT=$2
+    local -r CR=$'\n'
+
+    if test "${FMT#*%D}" != "$FMT"; then
+        if [ -z "${A[4]}" ]; then
+            FMT=${FMT//%D/}
+        else
+            FMT=$(replace '%D' "#DEL %d%n" <<< "$FMT")
+        fi
+    fi
+
+    if test "${FMT#*%A}" != "$FMT"; then
+        if [ -z "${A[5]}" ]; then
+            FMT=${FMT//%A/}
+        else
+            FMT=$(replace '%A' "#ADM %a%n" <<< "$FMT")
+        fi
+    fi
 
     test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
     test "${FMT#*%s}" != "$FMT" && \
-         FMT=$(replace '%s' $(get_filesize "${A[1]}") <<< "$FMT")
+        FMT=$(replace '%s' $(get_filesize "${A[1]}") <<< "$FMT")
+
+    # Don't lose trailing newlines
+    if test "${FMT#*%[nDA]}" != "$FMT"; then
+        FMT=$(replace '%n' "$CR" <<< "$FMT" ; echo -n x)
+    else
+        FMT="${FMT}${CR}x"
+    fi
+
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
+
     test "${FMT#*%f}" != "$FMT" && FMT=$(replace '%f' "${A[2]}" <<< "$FMT")
     test "${FMT#*%u}" != "$FMT" && FMT=$(replace '%u' "${A[3]}" <<< "$FMT")
     test "${FMT#*%d}" != "$FMT" && FMT=$(replace '%d' "${A[4]}" <<< "$FMT")
     test "${FMT#*%a}" != "$FMT" && FMT=$(replace '%a' "${A[5]}" <<< "$FMT")
-    test "${FMT#*%D}" != "$FMT" && \
-        FMT=$(replace '%D' "${A[4]:-${A[5]}}" <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
 
-    if test "${FMT#*%n}" != "$FMT"; then
-        # Don't lose trailing newlines
-        FMT=$(replace '%n' $'\n' <<< "$FMT" ; echo -n x)
-        echo -n "${FMT%x}"
-    else
-        echo "$FMT"
-    fi
+    echo -n "${FMT%x}"
 }
 
 #
@@ -368,7 +387,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         if [ -n "$DL_URL" ]; then
             DATA=("$MODULE" "$LOCALFILE" "$DESTFILE" \
                   "$DL_URL" "$DEL_URL" "$ADMIN_URL_OR_CODE")
-            pretty_print DATA[@] "${PRINTF_FORMAT:-%u (%D)}"
+            pretty_print DATA[@] "${PRINTF_FORMAT:-%D%A%u}"
         else
             log_error "Output URL expected"
             URETVAL=$ERR_FATAL
