@@ -160,10 +160,10 @@ create_alt_filename() {
     local -i COUNT=1
 
     while (( COUNT < 100 )); do
-        [ -f "${FILENAME}.$COUNT" ] || break
+        [ -f "$FILENAME.$COUNT" ] || break
         (( ++COUNT ))
     done
-    echo "${FILENAME}.$COUNT"
+    echo "$FILENAME.$COUNT"
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_RESUME=no"
@@ -434,7 +434,7 @@ download() {
             fi
 
             if test "$TEMP_RENAME"; then
-                FILENAME_TMP="${FILENAME_TMP}.part"
+                FILENAME_TMP="$FILENAME_TMP.part"
             fi
 
             if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
