@@ -151,12 +151,13 @@ curl() {
     else
         local TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
-        "$CURL_PRG" --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 | tee "$TEMPCURL" || DRETVAL=$?
+        "$CURL_PRG" --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
-        log_report "Received $FILESIZE bytes"
+        log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
         log_report "=== CURL BEGIN ==="
         logcat_report "$TEMPCURL"
         log_report "=== CURL END ==="
+        cat "$TEMPCURL"
         rm -f "$TEMPCURL"
     fi
 
