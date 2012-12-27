@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_NETLOAD_IN_REGEXP_URL="http://\(www\.\)\?net\(load\|folder\)\.in/"
+MODULE_NETLOAD_IN_REGEXP_URL="https\?://\(www\.\)\?net\(load\|folder\)\.in/"
 
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,Premium account"
