@@ -2273,7 +2273,7 @@ quote()
     echo \'${1//\'/\'\\\'\'}\' #'# Help vim syntax highlighting
 }
 
-# $1: input string
+# $1: input string (this is a comma separated list)
 # stdout: quote items (one per line)
 quote_array() {
     local -a ARR
@@ -2281,7 +2281,7 @@ quote_array() {
     IFS="," read -r -a ARR <<< "$1"
     echo '('
     for E in "${ARR[@]}"; do
-        echo "$(quote "$(strip <<< "$E")")"
+        quote "$(strip <<< "$E")"
     done
     echo ')'
 }
@@ -2340,7 +2340,7 @@ parse_transfer_speed() {
 
 # Extract a specific block from a HTML content.
 # Notes:
-# - Use this function with leaves block (avoid <div>, <p>)
+# - Use this function with leaf blocks (avoid <div>, <p>)
 # - Two distinct blocks can't begin or end on the same line
 # - HTML comments are just ignored
 #
