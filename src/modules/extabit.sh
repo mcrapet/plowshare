@@ -59,7 +59,7 @@ extabit_download() {
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://extabit.com'
-    local REDIR PAGE DIV_ID WAIT_TIME JSON ERR QUERY FILE_NAME FILE_URL TYPE
+    local REDIR PAGE WAIT_TIME JSON ERR QUERY FILE_NAME FILE_URL TYPE
 
     REDIR=$(curl -i "$URL" | grep_http_header_location_quiet)
     [ -n "$REDIR" ] && URL=$REDIR
@@ -122,8 +122,7 @@ extabit_download() {
     fi
 
     FILE_NAME=$(echo "$PAGE" | parse_attr 'div title' title)
-    DIV_ID=$(echo "$PAGE" | parse '\.captchatimer' "#\([^']\+\)") || return
-    WAIT_TIME=$(echo "$PAGE" | parse_tag "=\"$DIV_ID\"" div) || return
+    WAIT_TIME=$(echo "$PAGE" | parse 'capcha_timer_placeholder_en' '">\([^<]*\)' 1) || return
 
     wait $((WAIT_TIME)) || return
 

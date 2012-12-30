@@ -126,7 +126,7 @@ multiupload_list() {
     #  Print links (stdout)
     while read SITE_URL; do
         test "$SITE_URL" || continue
-        curl -I "$SITE_URL" | grep_http_header_location
+        curl --head "$SITE_URL" | grep_http_header_location_quiet || continue
         echo "$FILE_NAME"
     done <<< "$LINKS"
 }

@@ -24,7 +24,7 @@ MODULE_BAYFILES_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_BAYFILES_DOWNLOAD_RESUME=yes
 MODULE_BAYFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_BAYFILES_DOWNLOAD_SUCCESSIVE_INTERVAL=
+MODULE_BAYFILES_DOWNLOAD_SUCCESSIVE_INTERVAL=300
 
 MODULE_BAYFILES_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -118,6 +118,7 @@ bayfiles_download() {
     # Premium account
     else
         FILE_URL=$(echo "$PAGE" | parse_attr 'class="highlighted-btn' 'href') || return
+        MODULE_BAYFILES_DOWNLOAD_SUCCESSIVE_INTERVAL=0
     fi
 
     # Extract filename from $PAGE, work for both cases

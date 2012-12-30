@@ -61,10 +61,15 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 # $2: 4shared url
 # stdout: real file download link
 4shared_download() {
-    local COOKIEFILE=$1
+    local -r COOKIEFILE=$1
     local URL=$2
-    local BASE_URL='https://www.4shared.com'
+    local -r BASE_URL='https://www.4shared.com'
     local REAL_URL URL PAGE WAIT_URL FILE_URL FILE_NAME
+
+    if [ -z "$AUTH_FREE" ]; then
+        log_error "4shared does not allow anonymous file download. Add --auth-free option."
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
 
     REAL_URL=$(curl -I "$URL" | grep_http_header_location_quiet) || return
     if test "$REAL_URL"; then
@@ -109,6 +114,14 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
         fi
     fi
 
+    # Try to figure real filename from HTML
+    # - <meta property="og:title" content="..."/>
+    FILE_NAME=$(echo "$PAGE" | parse_attr_quiet 'og:title' 'content')
+    # - <h1 class="fileName light-blue lucida f24"> ... </h1>
+    if [ -z "$FILE_NAME" ]; then
+        FILE_NAME=$(echo "$PAGE" | parse_tag '=.fileName' 'h1')
+    fi
+
     # Special case for /photo/ URLs
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet '?forceAttachmentDownload=' href)
     if [ -n "$FILE_URL" ]; then
@@ -141,15 +154,6 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     # <div class="sec" id='downloadDelayTimeSec'>20</div>
     WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag 'downloadDelayTimeSec' 'div')
     test -z "$WAIT_TIME" && WAIT_TIME=20
-
-    # Try to figure real filename from HTML
-    FILE_NAME=$(echo "$WAIT_HTML" | parse_tag_quiet 'blue xlargen"' 'b')
-
-    # Alternate attempt:
-    # <h1 class="fileName light-blue lucida f24"> ... </h1>
-    if [ -z "$FILE_NAME" ]; then
-        FILE_NAME=$(echo "$WAIT_HTML" | parse_tag '=.fileName' 'h1')
-    fi
 
     if [ -z "$TORRENT" ]; then
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr_quiet 'linkShow' href)

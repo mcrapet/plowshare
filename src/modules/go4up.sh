@@ -285,14 +285,20 @@ go4up_list() {
     fi
 
     while read SITE_URL; do
-        # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
         PAGE=$(curl "$SITE_URL") || return
         NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
 
-        URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+        # window.location = "http://... " <= extra space at the end
+        URL=$(echo "$PAGE" | parse_quiet 'window\.location' '=[[:space:]]*"\([^"]*\)')
+        URL=${URL% }
+
+        # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
         if [ -z "$URL" ]; then
-            log_error 'Remote error. Site maintenance?'
-            return $ERR_FATAL
+            URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+            if [ -z "$URL" ]; then
+                log_error 'Remote error. Site maintenance?'
+                return $ERR_FATAL
+            fi
         fi
 
         echo "$URL"

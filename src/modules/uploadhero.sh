@@ -18,14 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPLOADHERO_REGEXP_URL="http://\(www\.\)\?\(uploadhero\)\.com/"
+MODULE_UPLOADHERO_REGEXP_URL="http://\(www\.\)\?\(uploadhero\)\.com\?/"
 
-MODULE_UPLOADHERO_DOWNLOAD_OPTIONS=""
+MODULE_UPLOADHERO_DOWNLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_UPLOADHERO_DOWNLOAD_RESUME=no
 MODULE_UPLOADHERO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_UPLOADHERO_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
-MODULE_UPLOADHERO_UPLOAD_OPTIONS=""
+MODULE_UPLOADHERO_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_UPLOADHERO_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPLOADHERO_DELETE_OPTIONS=""
@@ -73,6 +75,29 @@ uploadhero_switch_lang() {
     uploadhero_cookie_set "$1" 'lang' 'en' "${2#http://}" || return
 }
 
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+uploadhero_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA STATUS USER
+
+    LOGIN_DATA='pseudo_login=$USER&password_login=$PASSWORD'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/lib/connexion.php") || return
+
+    # Username or password invalid.
+    if match 'Username or password invalid' "$LOGIN_RESULT"; then
+        return $ERR_LOGIN_FAILED
+    fi
+
+    split_auth "$AUTH" USER || return
+    log_debug "Successfully logged in as member '$USER'"
+}
+
 # Output an UploadHero file download URL
 # $1: cookie file
 # $2: uploadhero url
@@ -80,17 +105,22 @@ uploadhero_switch_lang() {
 uploadhero_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$(echo "$2" | replace 'www.' '' | replace '/v/' '/dl/')
-    local -r BASE_URL='http://uploadhero.com'
+    local -r BASE_URL='http://uploadhero.co'
     local FILE_ID PAGE FILE_NAME FILE_URL CAPTCHA_URL CAPTCHA_IMG
 
     # Recognize folders
-    if match 'uploadhero.com/f/' "$URL"; then
+    if match 'uploadhero.com\?/f/' "$URL"; then
         log_error "This is a directory list"
         return $ERR_FATAL
     fi
 
     uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
-    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        uploadhero_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    PAGE=$(curl -L -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
     # Verify if link exists
     match '<div class="raison">' "$PAGE" && return $ERR_LINK_DEAD
@@ -109,6 +139,10 @@ uploadhero_download() {
         log_error 'Forced delay between downloads.'
         echo $WAIT_TIME
         return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # 1GB file limit. Premium users only.
+    elif match 'id="lightbox_1gbfile"' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
     # Extract the raw file id
@@ -117,7 +151,7 @@ uploadhero_download() {
 
     # Extract filename (first <div> marker)
     FILE_NAME=$(echo "$PAGE" | parse_tag 'class="nom_de_fichier"' div)
-    log_debug "Filename : $FILE_NAME"
+    log_debug "Filename: $FILE_NAME"
 
     # Handle captcha
     CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha"' 'src')
@@ -168,9 +202,9 @@ uploadhero_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://uploadhero.com'
+    local -r BASE_URL='http://uploadhero.co'
     local -r MAX_SIZE=2147483648 # 2GiB
-    local PAGE UP_URL SESSION_ID SIZE FILE_ID
+    local PAGE UP_URL SESSION_ID SIZE FILE_ID USER_ID
 
     SIZE=$(get_filesize "$FILE")
     if [ $SIZE -gt $MAX_SIZE ]; then
@@ -179,6 +213,11 @@ uploadhero_upload() {
     fi
 
     uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        uploadhero_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
     PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$BASE_URL") || return
 
     # upload_url: "http://c28.uploadhero.com/upload/upload.php",
@@ -189,25 +228,40 @@ uploadhero_upload() {
     SESSION_ID=$(echo "$PAGE" | \
         parse 'PHPSESSID' '{"PHPSESSID" : "\([[:alnum:]]\+\)",') || return
 
-    FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
-        -F "Filename=$DEST_FILE" \
-        -F "PHPSESSID=$SESSION_ID" \
-        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
-        -F 'Upload=Submit Query' \
-        "$UP_URL") || return
+    if [ -n "$AUTH_FREE" ]; then
+        USER_ID=$(echo "$PAGE" | parse '"ID"' \
+            '"ID"[[:space:]]*:[[:space:]]*"\([^"]\+\)') || return
+        FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
+            -F "Filename=$DEST_FILE" \
+            -F "ID=$USER_ID" \
+            -F "PHPSESSID=$SESSION_ID" \
+            -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+            -F 'Upload=Submit Query' \
+            "$UP_URL") || return
+    else
+        FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
+            -F "Filename=$DEST_FILE" \
+            -F "PHPSESSID=$SESSION_ID" \
+            -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+            -F 'Upload=Submit Query' \
+            "$UP_URL") || return
+    fi
 
     if [ -z "FILE_ID" ]; then
         log_error 'Could not upload file.'
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -b "$COOKIE_FILE" --referer "$BASE_URL/remote-upload" --get \
+    PAGE=$(curl --get -b "$COOKIE_FILE" --referer "$BASE_URL/home" \
         -d 'folder=' -d "name=$DEST_FILE" -d "size=$SIZE" \
         "$BASE_URL/fileinfo.php") || return
 
     # Output file link + delete link
     echo "$BASE_URL/dl/$FILE_ID"
-    echo "$PAGE" | parse '/delete/' ">\($BASE_URL/delete/[[:alnum:]]\+\)<"
+
+    if [ -z "$AUTH_FREE" ]; then
+        echo "$PAGE" | parse '/delete/' ">\($BASE_URL/delete/[[:alnum:]]\+\)<"
+    fi
 }
 
 # Delete a file from UploadHero
@@ -216,7 +270,7 @@ uploadhero_upload() {
 uploadhero_delete() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local -r BASE_URL='http://uploadhero.com'
+    local -r BASE_URL='http://uploadhero.co'
     local PAGE REDIR DEL_ID
 
     PAGE=$(curl --include "$URL") || return

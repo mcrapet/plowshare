@@ -84,7 +84,8 @@ ryushare_download() {
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    # The file was removed by adminstrator
+    if match 'File Not Found\|file was removed' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -221,6 +222,10 @@ ryushare_download() {
             return $ERR_LINK_PASSWORD_REQUIRED
         elif match 'Wrong captcha' "$ERR"; then
             return $ERR_CAPTCHA
+        elif match 'Skipped countdown' "$ERR"; then
+            # Can do a retry
+            log_debug "Remote error: $ERR"
+            return $ERR_NETWORK
         fi
         log_error "Remote error: $ERR"
     else

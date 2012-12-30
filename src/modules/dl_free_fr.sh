@@ -25,7 +25,11 @@ MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
 MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_DL_FREE_FR_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
-MODULE_DL_FREE_FR_UPLOAD_OPTIONS=""
+MODULE_DL_FREE_FR_UPLOAD_OPTIONS="
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+TOEMAIL,,email-to,e=EMAIL,<To> field for uploader email (TO field)
+CCEMAIL,,email-cc,e=EMAIL,<Cc> field for notification email (CC field)
+MESSAGE,,message,S=MESSAGE,Set email description (sent with notification email)"
 MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DL_FREE_FR_DELETE_OPTIONS=""
@@ -195,12 +199,12 @@ dl_free_fr_upload() {
     PAGE=$(curl_with_log -D "$HEADERS" \
         --referer "$UPLOADURL/index_nojs.pl" \
         -F "ufile=@$FILE;filename=$DESTFILE" \
-        -F "mail1=" \
-        -F "mail2=" \
+        -F "mail1=$TOEMAIL" \
+        -F "mail2=$CCEMAIL" \
         -F "mail3=" \
         -F "mail4=" \
-        -F "message=test" \
-        -F "password=" \
+        -F "message=$MESSAGE" \
+        -F "password=$LINK_PASSWORD" \
         "$UPLOADURL$FORM_ACTION") || return
 
     MON_PL=$(cat "$HEADERS" | grep_http_header_location) || return

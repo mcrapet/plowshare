@@ -36,7 +36,7 @@ MODULE_ZIPPYSHARE_UPLOAD_REMOTE_SUPPORT=no
 zippyshare_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME PART1 PART2 N1 N2
+    local PAGE FILE_URL FILE_NAME PART_URL JS N
 
     # JSESSIONID required
     PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
@@ -48,61 +48,78 @@ zippyshare_download() {
 
     test "$CHECK_LINK" && return 0
 
+    # <meta property="og:title" content="... "
+    FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content)
+
     if match 'var[[:space:]]*submitCaptcha' "$PAGE"; then
-        # There is a flash v9 (as3) button which is dynamically generated.
-        # It contains a formula to bypass captcha: n * seed % m.
-        # For non javascript users, reCaptcha is not setup yet.
+        local PART1 PART2
+        local -r BASE_URL=$(basename_url "$URL")
 
-        #local -r BASE_URL=$(basename_url "$URL")
-        #PART1=$(echo "$PAGE" | parse '/captcha' 'url:[[:space:]]*"\([^"]*\)') || return
-        #N1=$(echo "$PAGE" | parse 'shortencode' "shortencode:[[:space:]]*'\([[:digit:]]*\)") || return
-        #PART2=$(echo "$PAGE" | parse '/d/' "=[[:space:]]*'\([^']*\)") || return
-        #
+        PART1=$(echo "$PAGE" | parse '/captcha' 'url:[[:space:]]*"\([^"]*\)') || return
+        N=$(echo "$PAGE" | parse 'shortencode' "shortencode:[[:space:]]*'\([[:digit:]]*\)") || return
+        PART2=$(echo "$PAGE" | parse '/d/' "=[[:space:]]*'\([^']*\)") || return
+
         # Recaptcha.create
-        #local PUBKEY WCI CHALLENGE WORD ID
-        #PUBKEY='6LeIaL0SAAAAAMnofB1i7QAJta9G7uCipEPcp89r'
-        #WCI=$(recaptcha_process $PUBKEY) || return
-        #{ read WORD; read CHALLENGE; read ID; } <<< "$WCI"
-        #
-        #PAGE=$(curl -v -b "$COOKIE_FILE" --referer "$URL" \
-        #    -H 'X-Requested-With: XMLHttpRequest' \
-        #    -F "recaptcha_challenge_field=$CHALLENGE" \
-        #    -F "recaptcha_response_field=$WORD" \
-        #    -F "shortencode=$N1" \
-        #    "$BASE_URL$PART1") || return
+        local PUBKEY WCI CHALLENGE WORD ID
+        PUBKEY='6LeIaL0SAAAAAMnofB1i7QAJta9G7uCipEPcp89r'
+        WCI=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
 
-        log_error "Cannot download link. Flash (with ActionScript3) button need to be disassembled"
-        return $ERR_FATAL
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            -d "challenge=$CHALLENGE" \
+            -d "response=$WORD" \
+            -d "shortencode=$N" \
+            "$BASE_URL$PART1") || return
 
-    elif match '+(z)+' "$PAGE"; then
-        # document.getElementById('dlbutton').href = "/d/91294631/"+(z)+"/foo.bar";
-        PART1=$(echo "$PAGE" | parse '(z)' '"\(/d/[^"]*\)') || return
-        PART2=$(echo "$PAGE" | parse '(z)' '+"\([^"]*\)') || return
-        N1=$(echo "$PAGE" | parse '(z)' '=[[:space:]]*\([[:digit:]]\+\)[[:space:]]*+' -3)
-        N2=$(echo "$PAGE" | parse '(z)' '+[[:space:]]*\([[:digit:]]\+\)[[:space:]]*;' -3)
-        FILE_URL="$(basename_url "$URL")$PART1$((N1 + N2 - 7))$PART2"
-    elif match ')\.omg' "$PAGE"; then
-        # document.getElementById('dlbutton').omg = "asdasd".substr(0, 3);
-        PART1=$(echo "$PAGE" | parse 'Math\.pow' '"\(/d/[^"]*\)') || return
-        PART2=$(echo "$PAGE" | parse 'Math\.pow' '+"\([^"]*\)') || return
-        N1=$(echo "$PAGE" | parse ')\.omg' '=[[:space:]]*\([[:digit:]]\+\)' -1)
-        N2=$(echo "$PAGE" | parse ')\.omg' '\([[:digit:]]\+\));')
-        FILE_URL="$(basename_url "$URL")$PART1$((N1 ** 3 + N2))$PART2"
-    elif match '([[:digit:]]\+%[[:digit:]]\+' "$PAGE"; then
-        # document.getElementById('dlbutton').href = "/d/23839625/"+(381623%55245 + 381323%913)+"/foo.bar"
-        PART1=$(echo "$PAGE" | parse '/d/' '"\(/d/[^"]*\)') || return
-        PART2=$(echo "$PAGE" | parse '/d/' '+"\([^"]*\)') || return
-        N1=$(echo "$PAGE" | parse '/d/' '"+(\(.\+\))+"') || return
-        FILE_URL="$(basename_url "$URL")$PART1$((N1))$PART2"
+        # Returns "true" or "false"
+        if [ "$PAGE" != 'true' ]; then
+            captcha_nack $ID
+            log_debug "reCaptcha error"
+            return $ERR_CAPTCHA
+        fi
+
+        captcha_ack $ID
+        log_debug "correct captcha"
+
+        echo "$BASE_URL$PART2"
+        echo "${FILE_NAME% }"
+        return 0
+    fi
+
+    detect_javascript || return
+
+    # Detect audio/video content
+    if match 'Audio Player' "$PAGE"; then
+      N=-7
+    elif  match 'class=.movie-share.' "$PAGE"; then
+      N=-5
+    else
+      N=-3
+    fi
+
+    JS=$(grep_script_by_order "$PAGE" $N)
+
+    if [ -n "$JS" ]; then
+        JS=$(echo "$JS" | delete_first_line | delete_last_line)
+
+        PART_URL=$(echo "var elt = {};
+            var document = {
+              getElementById: function(id) {
+                return elt;
+              }
+            };
+            $JS
+            print(elt.href);" | javascript) || return
+
+        FILE_URL="$(basename_url "$URL")$PART_URL"
     else
         log_error "Unexpected content, site updated?"
         return $ERR_FATAL
     fi
 
-    FILE_NAME=$(echo "$PAGE" | parse_quiet '>Name:[[:space:]]*<' '">\([^<]*\)')
-
     echo "$FILE_URL"
-    echo "$FILE_NAME"
+    echo "${FILE_NAME% }"
 }
 
 # Upload a file to zippyshare.com

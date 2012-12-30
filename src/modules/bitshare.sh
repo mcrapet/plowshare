@@ -83,12 +83,13 @@ bitshare_download() {
     # Add cookie entries: last_file_downloaded, trafficcontrol
     RESPONSE=$(curl -i -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
 
-    # File unavailable
-    if match "<h1>Error - File not available</h1>" "$RESPONSE"; then
-        return $ERR_LINK_DEAD
+    # Error - File not available
+    match 'File not available' "$RESPONSE" || return $ERR_LINK_DEAD
+
+    [ -n "$CHECK_LINK" ] && return 0
 
     # Download limit
-    elif match "You reached your hourly traffic limit\." "$RESPONSE"; then
+    if match "You reached your hourly traffic limit\." "$RESPONSE"; then
         WAIT=$(echo "$RESPONSE" | parse '<span id="blocktimecounter">' \
             '<span id="blocktimecounter">\([[:digit:]]\+\) seconds\?</span>')
         echo $((WAIT))

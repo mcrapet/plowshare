@@ -46,8 +46,8 @@ sendspace_login() {
 
     # Note: "remember=on" not needed
     LOGIN_DATA='action=login&submit=login&target=%2F&action_type=login&remember=1&username=$USER&password=$PASSWORD'
-    $(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
-       "$BASE_URL/login.html" -o /dev/null) || return
+    post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/login.html" -o /dev/null || return
 
     STATUS=$(parse_cookie_quiet 'ssal' < "$COOKIE_FILE")
     if [ -z "$STATUS" ]; then
