@@ -20,12 +20,14 @@
 
 MODULE_UPLOADHERO_REGEXP_URL="http://\(www\.\)\?\(uploadhero\)\.com\?/"
 
-MODULE_UPLOADHERO_DOWNLOAD_OPTIONS=""
+MODULE_UPLOADHERO_DOWNLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_UPLOADHERO_DOWNLOAD_RESUME=no
 MODULE_UPLOADHERO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_UPLOADHERO_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
-MODULE_UPLOADHERO_UPLOAD_OPTIONS=""
+MODULE_UPLOADHERO_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_UPLOADHERO_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPLOADHERO_DELETE_OPTIONS=""
@@ -73,6 +75,29 @@ uploadhero_switch_lang() {
     uploadhero_cookie_set "$1" 'lang' 'en' "${2#http://}" || return
 }
 
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+uploadhero_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA STATUS USER
+
+    LOGIN_DATA='pseudo_login=$USER&password_login=$PASSWORD'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/lib/connexion.php") || return
+
+    # Username or password invalid.
+    if match 'Username or password invalid' "$LOGIN_RESULT"; then
+        return $ERR_LOGIN_FAILED
+    fi
+
+    split_auth "$AUTH" USER || return
+    log_debug "Successfully logged in as member '$USER'"
+}
+
 # Output an UploadHero file download URL
 # $1: cookie file
 # $2: uploadhero url
@@ -90,6 +115,11 @@ uploadhero_download() {
     fi
 
     uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        uploadhero_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
     PAGE=$(curl -L -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
     # Verify if link exists
@@ -174,7 +204,7 @@ uploadhero_upload() {
     local -r DEST_FILE=$3
     local -r BASE_URL='http://uploadhero.co'
     local -r MAX_SIZE=2147483648 # 2GiB
-    local PAGE UP_URL SESSION_ID SIZE FILE_ID
+    local PAGE UP_URL SESSION_ID SIZE FILE_ID USER_ID
 
     SIZE=$(get_filesize "$FILE")
     if [ $SIZE -gt $MAX_SIZE ]; then
@@ -183,6 +213,11 @@ uploadhero_upload() {
     fi
 
     uploadhero_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        uploadhero_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
     PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$BASE_URL") || return
 
     # upload_url: "http://c28.uploadhero.com/upload/upload.php",
@@ -193,25 +228,40 @@ uploadhero_upload() {
     SESSION_ID=$(echo "$PAGE" | \
         parse 'PHPSESSID' '{"PHPSESSID" : "\([[:alnum:]]\+\)",') || return
 
-    FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
-        -F "Filename=$DEST_FILE" \
-        -F "PHPSESSID=$SESSION_ID" \
-        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
-        -F 'Upload=Submit Query' \
-        "$UP_URL") || return
+    if [ -n "$AUTH_FREE" ]; then
+        USER_ID=$(echo "$PAGE" | parse '"ID"' \
+            '"ID"[[:space:]]*:[[:space:]]*"\([^"]\+\)') || return
+        FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
+            -F "Filename=$DEST_FILE" \
+            -F "ID=$USER_ID" \
+            -F "PHPSESSID=$SESSION_ID" \
+            -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+            -F 'Upload=Submit Query' \
+            "$UP_URL") || return
+    else
+        FILE_ID=$(curl_with_log --user-agent 'Shockwave Flash' \
+            -F "Filename=$DEST_FILE" \
+            -F "PHPSESSID=$SESSION_ID" \
+            -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+            -F 'Upload=Submit Query' \
+            "$UP_URL") || return
+    fi
 
     if [ -z "FILE_ID" ]; then
         log_error 'Could not upload file.'
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -b "$COOKIE_FILE" --referer "$BASE_URL/remote-upload" --get \
+    PAGE=$(curl --get -b "$COOKIE_FILE" --referer "$BASE_URL/home" \
         -d 'folder=' -d "name=$DEST_FILE" -d "size=$SIZE" \
         "$BASE_URL/fileinfo.php") || return
 
     # Output file link + delete link
     echo "$BASE_URL/dl/$FILE_ID"
-    echo "$PAGE" | parse '/delete/' ">\($BASE_URL/delete/[[:alnum:]]\+\)<"
+
+    if [ -z "$AUTH_FREE" ]; then
+        echo "$PAGE" | parse '/delete/' ">\($BASE_URL/delete/[[:alnum:]]\+\)<"
+    fi
 }
 
 # Delete a file from UploadHero
