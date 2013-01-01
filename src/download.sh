@@ -84,7 +84,7 @@ absolute_path() {
 # Guess if item is a generic URL (a simple link string) or a text file with links.
 # $1: single URL or file (containing links)
 process_item() {
-    local ITEM=$1
+    local -r ITEM=$1
 
     if match_remote_url "$ITEM"; then
         echo 'url'
