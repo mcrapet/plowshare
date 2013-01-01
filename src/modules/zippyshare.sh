@@ -29,6 +29,8 @@ MODULE_ZIPPYSHARE_UPLOAD_OPTIONS="
 PRIVATE_FILE,,private,,Do not allow others to download the file"
 MODULE_ZIPPYSHARE_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_ZIPPYSHARE_LIST_OPTIONS=""
+
 # Output a zippyshare file download URL
 # $1: cookie file (unused here)
 # $2: zippyshare url
@@ -49,7 +51,7 @@ zippyshare_download() {
     test "$CHECK_LINK" && return 0
 
     # <meta property="og:title" content="... "
-    FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content)
+    FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content) || return
 
     if match 'var[[:space:]]*submitCaptcha' "$PAGE"; then
         local PART1 PART2
@@ -165,4 +167,77 @@ zippyshare_upload() {
     FILE_URL=$(echo "$PAGE" | parse '="file_upload_remote"' '^\(.*\)$' 1) || return
 
     echo "$FILE_URL"
+}
+
+# List a zippyshare folder
+# $1: zippyshare user link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+zippyshare_list() {
+    local -r URL=$1
+    local USER IDENT RET=0
+
+    PAGE=$(curl -L "$URL") || return
+
+    USER=$(echo "$PAGE" | parse 'var[[:space:]]*user[[:space:]]*=[[:space:]]*enc' \
+        "('\([^']*\)" | uri_encode) || return
+    IDENT=$(echo "$PAGE" | parse 'getTree' 'ident=\([^"]*\)') || return
+    log_debug "User: '$USER'"
+    log_debug "Ident: '$IDENT'"
+
+    # FIXME:
+    # - For audio files. Filename is "Download Now!"
+    # - If IDENT=0 find default directory
+
+    zippyshare_list_rec "$USER" "$IDENT" "${2:-0}" "$URL" || RET=$?
+    return $RET
+}
+
+# static recursive function
+# $1: recursive flag
+# $2: web folder URL
+zippyshare_list_rec() {
+    local -r USER=$1
+    local -r IDENT=$2
+    local -r REC=$3
+    local URL=$4
+    local -r BASE_URL='http://zippyshare.com'
+    local PAGE PAGE2 LINKS NAMES RET LINE
+
+    RET=$ERR_LINK_DEAD
+
+    PAGE=$(curl --get -d 'locale=en' \
+        "$BASE_URL/$USER/$IDENT/dir.html") || return
+
+    if match '/v/' "$PAGE"; then
+        PAGE2=$(echo "$PAGE" | parse_all '/v/' '^\(.*\)$')
+        NAMES=$(echo "$PAGE2" | parse_all_tag a)
+        LINKS=$(echo "$PAGE2" | parse_all_attr href)
+        list_submit "$LINKS" "$NAMES" && RET=0
+
+    # Directory is password protected. Please enter password.
+    elif matchi 'directory is password protected' "$PAGE"; then
+        log_error "Password protected directory: $BASE_URL/$USER/$IDENT/dir.html"
+        # TODO: POST /rest/public/authenticate id=xxx&pass=yyy
+    fi
+
+    # FIXME: Process subtree and not whole tree.
+    if [[ $REC -eq 1 ]]; then
+        # Whatever IDENT the whole 'absolute' tree is returned
+        JSON=$(curl --get -d "user=$USER" -d "ident=$IDENT" \
+            "$BASE_URL/rest/public/getTree") || return
+        LINKS=$(echo "$JSON" | parse_json 'ident' split) || return
+        NAMES=$(echo "$JSON" | parse_json 'data' split) || return
+
+        while read LINE; do
+            test "$LINE" || continue
+            URL="$BASE_URL/$USER/$LINE/dir.html"
+            if [ "$LINE" != "$IDENT" ]; then
+                log_debug "entering sub folder: $URL"
+                zippyshare_list_rec "$USER" "$LINE" "$((REC+1))" "$URL" && RET=0
+            fi
+        done <<< "$LINKS"
+    fi
+
+    return $RET
 }
