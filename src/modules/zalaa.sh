@@ -45,7 +45,8 @@ zalaa_download() {
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    # This file has been removed due to Copyright infringement
+    if match 'File Not Found\|Copyright infringement' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
