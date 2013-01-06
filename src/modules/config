@@ -41,5 +41,5 @@ uploadhero      | download | upload | delete | list |
 uploading       | download | upload |        |      |
 uploaded_net    | download | upload | delete | list |
 uptobox         | download | upload |        |      |
-zalaa           | download | upload |        |      |
+zalaa           | download | upload |        | list |
 zippyshare      | download | upload |        | list |

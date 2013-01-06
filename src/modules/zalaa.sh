@@ -33,6 +33,8 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_ZALAA_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_ZALAA_LIST_OPTIONS=""
+
 # Output a zalaa file download URL
 # $1: cookie file (unused here)
 # $2: zalaa url
@@ -155,4 +157,28 @@ zalaa_upload() {
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# List a zalaa shared file folder URL
+# $1: zalaa url
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+zalaa_list() {
+    local URL=$1
+    local PAGE NAMES LINKS
+
+    # check whether it looks like a folder link
+    if ! match "${MODULE_ZALAA_REGEXP_URL}users/" "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_error "Recursive flag not implemented, ignoring"
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_quiet 'class=.file_block' 'href="\([^"]*\)' 2)
+    NAMES=$(echo "$PAGE" | parse_all_quiet 'class=.file_block' '">\([^<]*\)' 2)
+
+    list_submit "$LINKS" "$NAMES" || return
 }
