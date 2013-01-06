@@ -124,28 +124,26 @@ usage() {
 # $2: mark link (boolean) flag
 # $3: if type="file": list file (containing URLs)
 # $4: raw URL
-# $5: text to prepend (no comma character)
-# $6: text to append on a second line (can be empty)
+# $5: status string (OK, PASSWORD, NOPERM, NOTFOUND, NOMODULE)
+# $6: filename (can be non empty if not available)
 mark_queue() {
     local -r FILE=$3
-    local URL=$4
-    local -r TEXT_PRE="#$5"
-    local TEXT_POST=${6:+"\n# $6"}
+    local -r URL=$4
+    local -r STATUS="#$5"
+    local -r FILENAME=${6:+"# $6\n"}
 
     if [ -n "$2" ]; then
         if [ 'file' = "$1" ]; then
             if test -w "$FILE"; then
-                TEXT_POST=${TEXT_POST//,/\\,}
-                URL=${URL//,/\\,}
-
-                sed -i -e "s,^[[:space:]]*\($URL[[:space:]]*\)$,$TEXT_PRE \1$TEXT_POST," "$FILE" &&
-                    log_notice "link marked in file: $FILE ($TEXT_PRE)" ||
-                    log_error "failed marking link in file: $FILE ($TEXT_PRE)"
+                local -r D=$'\001' # sed separator
+                sed -i -e "s$D^[[:space:]]*\($URL[[:space:]]*\)\$$D$FILENAME$STATUS \1$D" "$FILE" &&
+                    log_notice "link marked in file \`$FILE' ($STATUS)" ||
+                    log_error "failed marking link in file \`$FILE' ($STATUS)"
             else
-                log_notice "error: can't mark link, no write permission ($FILE)"
+                log_error "Can't mark link, no write permission ($FILE)"
             fi
         else
-            echo "$TEXT_PRE $URL$TEXT_POST"
+            echo "$FILENAME$STATUS $URL"
         fi
     fi
 }
