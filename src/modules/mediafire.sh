@@ -162,7 +162,7 @@ mediafire_get_ofuscated_link() {
 # stdout: real file download link
 mediafire_download() {
     local -r COOKIE_FILE=$1
-    local URL PAGE FILE_URL FILE_NAME JSON JS_VAR
+    local URL PAGE JSON JS_VAR
 
     if [ -n "$AUTH_FREE" ]; then
         mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
@@ -190,9 +190,9 @@ mediafire_download() {
     esac
 
     PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL" | break_html_lines) || return
-    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet 'class="download_file_title"' 'div')
 
-    [ -z "$FILE_NAME" ] && return $ERR_LINK_DEAD
+    #<h3 class="error_msg_title">Invalid or Deleted File.</h3>
+    match 'Invalid or Deleted File' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
     # handle captcha (reCaptcha or SolveMedia) if there is one
@@ -254,10 +254,10 @@ mediafire_download() {
     fi
 
     JS_VAR=$(echo "$PAGE" | parse 'function[[:space:]]*_' '"\([^"]\+\)";' 1) || return
-    FILE_URL=$(mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href) || return
 
-    echo "$FILE_URL"
-    echo "$FILE_NAME"
+    # extract + output download link + file name
+    mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href || return
+    echo "$PAGE" | parse_tag 'title' || return
 }
 
 # Upload a file to mediafire
