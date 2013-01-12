@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -1941,6 +1941,82 @@ list_submit() {
     fi
 }
 
+# Return a numeric size (in bytes)
+# $1: integer or floating point number (examples: "128" ; "4k" ; "5.34MiB")
+#     with optional suffix (K, kB, KiB, KB, MiB, MB, GiB, GB)
+# stdout: fixed point number (in bytes)
+translate_size() {
+    local N=${1// }
+    local S T
+
+    if [ "$N" = '' ]; then
+        log_error "$FUNCNAME: argument expected"
+        return $ERR_FATAL
+    fi
+
+    S=$(sed -ne '/\./{s/^\(-\?[[:digit:]]*\)\.\([[:digit:]]\+\).*$/\1_\2/p;b};
+        s/^\(-\?[[:digit:]]\+\).*$/\1_/p' <<< "$N") || return $ERR_SYSTEM
+
+    if [[ $S = '' || $S = '_' ]]; then
+        log_error "$FUNCNAME: invalid parsed number \`$N'"
+        return $ERR_FATAL
+    fi
+
+    declare -i R=10#${S%_*}
+    declare -i F=0
+
+    # Fractionnal part (consider 3 digits)
+    T=${S#*_}
+    if test "$T"; then
+        T="1${T}00"
+        F=10#${T:1:3}
+        T=$(( ${#S} ))
+    else
+        T=$(( ${#S} - 1 ))
+    fi
+
+    S=$(sed -e "s/^\.\?\([KkMmGg]i\?[Bb]\?\)$/\1/" <<< "${N:$T}") || return $ERR_SYSTEM
+
+    case $S in
+        # kilobyte (10^3 bytes)
+        k|kB)
+            echo $(( 1000 * R + F))
+            ;;
+        # kibibyte (KiB)
+        KiB|Ki|K|KB)
+            echo $(( 1024 * R + F))
+            ;;
+        # megabyte (10^6)
+        M|MB)
+            echo $(( 1000000 * R + 1000 * F))
+            ;;
+        # mebibyte (MiB)
+        MiB|Mi|m|mB)
+            echo $(( 1048576 * R + 1000 * F))
+            ;;
+        # gigabyte (10^9)
+        G|GB)
+            echo $(( 1000000000 * R + 1000000 * F))
+            ;;
+        # gibibyte (GiB)
+        GiB|Gi)
+            echo $(( 1073741824 * R + 1000000 * F))
+            ;;
+        # bytes
+        '')
+            echo "$R"
+            ;;
+        *b)
+            log_error "$FUNCNAME: unknown unit \`$S' (we don't deal with bits, use B for bytes)"
+            return $ERR_FATAL
+            ;;
+        *)
+            log_error "$FUNCNAME: unknown unit \`$S'"
+            return $ERR_FATAL
+            ;;
+    esac
+}
+
 ## ----------------------------------------------------------------------------
 
 ##
@@ -2052,7 +2128,7 @@ process_core_options() {
     local -r NAME=$1
     local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
     shift 2
-    VERBOSE=1 process_options "$NAME" "$OPTIONS" -1 "$@" || return
+    VERBOSE=2 process_options "$NAME" "$OPTIONS" -1 "$@" || return
 }
 
 # $1: program name (used for error reporting only)
@@ -2286,56 +2362,31 @@ quote_array() {
     echo ')'
 }
 
-# Parse (positive) speed rate
+# Check for positive speed rate
 # Ki is kibi (2^10 = 1024). Alias: K
 # Mi is mebi (2^20 = 1024^2 = 1048576). Alias:m
 # k  is kilo (10^3 = 1000)
 # M  is mega (10^6 = 1000000)
 #
-# $1: integer number (with or withour suffix)
-# $2: don't echo flag (just check)
-# stdout: quote items (one per line)
-parse_transfer_speed() {
-    local -i M
+# $1: integer number (with or without suffix)
+check_transfer_speed() {
     local N=${1// }
 
     # Probe for unit
     case $N in
-        *Ki)
-            M=1024
-            N=${N%Ki}
+        *Ki|*Mi)
+            N=${N%??}
             ;;
-        *K)
-            M=1024
-            N=${N%K}
-            ;;
-        *Mi)
-            M=1048576
-            N=${N%Mi}
-            ;;
-        *m)
-            M=1048576
-            N=${N%m}
-            ;;
-        *k)
-            M=1000
-            N=${N%k}
-            ;;
-        *M)
-            M=1000000
-            N=${N%M}
+        *K|*m|*k|*M)
+            N=${N%?}
             ;;
         *)
-            M=1
             ;;
     esac
 
     if [[ $N = *[![:digit:]]* || $N -eq 0 ]]; then
         return 1
     fi
-
-    [[ $2 ]] && return 0
-    echo $(( N * M ))
 }
 
 # Extract a specific block from a HTML content.
@@ -2415,7 +2466,7 @@ check_argument_type() {
     elif [[ $TYPE = 's' && $VAL = '' ]]; then
         log_error "$NAME: empty string not expected ($OPT)"
     # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
-    elif [ "$TYPE" = 'r' ] && ! parse_transfer_speed "$VAL" 1; then
+    elif [ "$TYPE" = 'r' ] && ! check_transfer_speed "$VAL"; then
         log_error "$NAME: positive transfer rate expected ($OPT)"
     # e: E-mail string
     elif [[ $TYPE = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
@@ -2465,24 +2516,24 @@ process_options() {
         if [ $STEP -gt 0 ]; then
             echo "${NAME}_vars_set() { :; }"
             echo "${NAME}_vars_unset() { :; }"
+            return 0
         fi
-        return 0
+    else
+        # Populate OPTS_* vars
+        while read ARG; do
+            IFS="," read VAR SHORT LONG TYPE HELP <<< "$ARG"
+            if [ -n "$LONG" ]; then
+                OPTS_VAR_LONG[${#OPTS_VAR_LONG[@]}]=$VAR
+                OPTS_NAME_LONG[${#OPTS_NAME_LONG[@]}]="--$LONG"
+                OPTS_TYPE_LONG[${#OPTS_TYPE_LONG[@]}]=$TYPE
+            fi
+            if [ -n "$SHORT" ]; then
+                OPTS_VAR_SHORT[${#OPTS_VAR_SHORT[@]}]=$VAR
+                OPTS_NAME_SHORT[${#OPTS_NAME_SHORT[@]}]="-$SHORT"
+                OPTS_TYPE_SHORT[${#OPTS_TYPE_SHORT[@]}]=$TYPE
+            fi
+        done <<< "$OPTIONS"
     fi
-
-    # Populate OPTS_* vars
-    while read ARG; do
-        IFS="," read VAR SHORT LONG TYPE HELP <<< "$ARG"
-        if [ -n "$LONG" ]; then
-            OPTS_VAR_LONG[${#OPTS_VAR_LONG[@]}]=$VAR
-            OPTS_NAME_LONG[${#OPTS_NAME_LONG[@]}]="--$LONG"
-            OPTS_TYPE_LONG[${#OPTS_TYPE_LONG[@]}]=$TYPE
-        fi
-        if [ -n "$SHORT" ]; then
-            OPTS_VAR_SHORT[${#OPTS_VAR_SHORT[@]}]=$VAR
-            OPTS_NAME_SHORT[${#OPTS_NAME_SHORT[@]}]="-$SHORT"
-            OPTS_TYPE_SHORT[${#OPTS_TYPE_SHORT[@]}]=$TYPE
-        fi
-    done <<< "$OPTIONS"
 
     for ARG in "$@"; do
         shift
@@ -2510,13 +2561,15 @@ process_options() {
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
                     elif [ "$TYPE" = 'r' ]; then
-                        FUNC=parse_transfer_speed
+                        FUNC=translate_size
                     else
                         FUNC=quote
                     fi
 
                     if [ -z "$TYPE" ]; then
                         RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=1"
+                        [ "${ARG%%=*}" != "$ARG" ] && \
+                            log_notice "$NAME: unwanted argument for ${ARG%%=*}, ignoring"
 
                     # Argument with equal (ex: --timeout=60)
                     elif [ "${ARG%%=*}" != "$ARG" ]; then
@@ -2551,7 +2604,7 @@ process_options() {
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
                     elif [ "$TYPE" = 'r' ]; then
-                        FUNC=parse_transfer_speed
+                        FUNC=translate_size
                     else
                         FUNC=quote
                     fi
