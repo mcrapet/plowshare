@@ -161,12 +161,12 @@ mirrorcreator_list() {
 
     PAGE=$(curl -L "$BASE_URL$STATUS") || return
 
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/redirect/' href) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/redirect\?/' href) || return
     if [ -z "$LINKS" ]; then
         return $ERR_LINK_DEAD
     fi
 
-    NAMES=( $(echo "$PAGE" | parse_all '/redirect/' '\.gif"[[:space:]]alt="\([^"]*\)') )
+    NAMES=( $(echo "$PAGE" | parse_all '/redirect\?/' '\.gif"[[:space:]]alt="\([^"]*\)') )
 
     while read REL_URL; do
         test "$REL_URL" || continue
