@@ -87,7 +87,7 @@ rapidgator_login() {
 # $1: cookie file
 # $2: base URL
 rapidgator_switch_lang() {
-    curl -v -b "$1" -c "$1" -d 'lang=en' -o /dev/null \
+    curl -b "$1" -c "$1" -d 'lang=en' -o /dev/null \
         "$2/site/lang" || return
 }
 
