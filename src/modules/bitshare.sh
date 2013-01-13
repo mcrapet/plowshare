@@ -84,7 +84,7 @@ bitshare_download() {
     RESPONSE=$(curl -i -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
 
     # Error - File not available
-    match 'File not available' "$RESPONSE" || return $ERR_LINK_DEAD
+    ! match 'File not available' "$RESPONSE" || return $ERR_LINK_DEAD
 
     [ -n "$CHECK_LINK" ] && return 0
 
