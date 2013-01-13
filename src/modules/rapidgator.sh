@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidgator.net module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -35,6 +35,7 @@ MODULE_RAPIDGATOR_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_RAPIDGATOR_DELETE_OPTIONS=""
 MODULE_RAPIDGATOR_LIST_OPTIONS=""
+MODULE_RAPIDGATOR_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free)
 # $1: authentication
@@ -86,7 +87,7 @@ rapidgator_login() {
 # $1: cookie file
 # $2: base URL
 rapidgator_switch_lang() {
-    curl -b "$1" -c "$1" -d 'lang=en' -o /dev/null \
+    curl -v -b "$1" -c "$1" -d 'lang=en' -o /dev/null \
         "$2/site/lang" || return
 }
 
@@ -659,4 +660,40 @@ rapidgator_list() {
     LINKS=$(echo "$PAGE" | parse_all_attr href)
 
     list_submit "$LINKS" "$NAMES" 'http://rapidgator.net' || return
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: rapidgator url
+# $3: requested capability list
+# stdout: 1 capability per line
+rapidgator_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_NAME FILE_SIZE
+
+    # Note: Should use rapidgator_switch_lang
+    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+
+    # Various "File not found" responses
+    if match 'Error 404' "$PAGE" || \
+        match 'File not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        FILE_NAME=$(echo "$PAGE" | parse_tag title)
+        FILE_NAME=${FILE_NAME#Download file }
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse 'File size:' '<strong>\([^<]*\)' 1) && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zalaa.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -34,6 +34,8 @@ TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_ZALAA_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_ZALAA_LIST_OPTIONS=""
+
+MODULE_ZALAA_PROBE_OPTIONS=""
 
 # Output a zalaa file download URL
 # $1: cookie file (unused here)
@@ -181,4 +183,38 @@ zalaa_list() {
     NAMES=$(echo "$PAGE" | parse_all_quiet 'class=.file_block' '">\([^<]*\)' 2)
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: zalaa url
+# $3: requested capability list
+# stdout: 1 capability per line
+zalaa_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L -b 'lang=english' "$URL") || return
+
+    # The file you were looking for could not be found, sorry for any inconvenience
+    # This file has been removed due to Copyright infringement
+    if match 'File Not Found\|Copyright infringement' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_attr '"fname"' value <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>File Size[[:space:]]*:<' \
+            '^\(.*\)$' 1) && translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

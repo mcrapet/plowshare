@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zippyshare.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -30,6 +30,8 @@ PRIVATE_FILE,,private,,Do not allow others to download the file"
 MODULE_ZIPPYSHARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_ZIPPYSHARE_LIST_OPTIONS=""
+
+MODULE_ZIPPYSHARE_PROBE_OPTIONS=""
 
 # Output a zippyshare file download URL
 # $1: cookie file (unused here)
@@ -240,4 +242,37 @@ zippyshare_list_rec() {
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: zippyshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+zippyshare_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE FILE_NAME REQ_OUT
+
+    PAGE=$(curl -L -b 'ziplocale=en' "$URL") || return
+
+    # File does not exist on this server
+    if match 'File does not exist' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        # <meta property="og:title" content="... "
+        FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content) && \
+            echo "${FILE_NAME% }" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>Size:<' '">\([^<]*\)</font>') && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidshare.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -32,6 +32,8 @@ MODULE_RAPIDSHARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_RAPIDSHARE_DELETE_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
+
+MODULE_RAPIDSHARE_PROBE_OPTIONS=""
 
 # Output a rapidshare file download URL
 # $1: cookie file (unused here)
@@ -243,4 +245,29 @@ rapidshare_delete() {
     fi
 
     return 0
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: rapidshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+rapidshare_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT #FILE_NAME FILE_SIZE
+
+    # Note: Should use rapidgator_switch_lang
+    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
+
+    # ERROR: File not found.
+    if match '^ERROR' "$PAGE"; then
+        match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+        return $ERR_FATAL
+    fi
+
+    REQ_OUT=c
+
+    echo $REQ_OUT
 }

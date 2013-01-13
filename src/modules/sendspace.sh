@@ -33,6 +33,7 @@ MODULE_SENDSPACE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_SENDSPACE_DELETE_OPTIONS=""
 MODULE_SENDSPACE_LIST_OPTIONS=""
+MODULE_SENDSPACE_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -215,4 +216,37 @@ sendspace_list() {
     NAMES=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl" align="center' title)
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: sendspace url
+# $3: requested capability list
+# stdout: 1 capability per line
+sendspace_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
+
+    if match '<div class="msg error"' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_tag '"bgray"' b <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>File Size:<' 'b>\(.*\)</div') && \
+            translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

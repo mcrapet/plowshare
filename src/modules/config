@@ -1,45 +1,45 @@
 # Site list with capabilities
-115             | download |        |        |      |
-180upload       | download | upload |        |      |
-1fichier        | download | upload | delete |      |
-2shared         | download | upload | delete |      |
-4shared         | download | upload |        | list |
-anonfiles       | download | upload |        |      |
-bayfiles        | download | upload | delete |      |
-billionuploads  | download |        |        |      |
-bitshare        | download | upload | delete |      |
-cramit          | download | upload | delete | list |
-data_hu         | download | upload | delete |      |
-dataport_cz     | download | upload | delete |      |
-depositfiles    | download | upload | delete | list |
-divshare        | download | upload | delete | list |
-dl_free_fr      | download | upload | delete |      |
-euroshare_eu    | download | upload | delete |      |
-extabit         | download | upload |        |      |
-filebox         | download | upload | delete |      |
-filemates       | download | upload | delete | list |
-filepost        | download | upload | delete | list |
-freakshare      | download | upload |        |      |
-go4up           |          | upload | delete | list |
-hotfile         | download | upload |        | list |
-jheberg         |          | upload |        | list |
-letitbit        | download | upload | delete | list |
-mediafire       | download | upload |        | list |
-megashares      | download | upload | delete |      |
-mirorii         |          | upload |        | list |
-mirrorcreator   |          | upload |        | list |
-multiupload     |          | upload |        | list |
-netload_in      | download | upload |        | list |
-putlocker       | download | upload |        |      |
-rapidgator      | download | upload | delete | list |
-rapidshare      | download | upload | delete |      |
-ryushare        | download | upload |        |      |
-sendspace       | download | upload | delete | list |
-shareonline_biz | download | upload |        |      |
-turbobit        | download | upload | delete |      |
-uploadhero      | download | upload | delete | list |
-uploading       | download | upload |        |      |
-uploaded_net    | download | upload | delete | list |
-uptobox         | download | upload |        |      |
-zalaa           | download | upload |        | list |
-zippyshare      | download | upload |        | list |
+115             | download |        |        |      |       |
+180upload       | download | upload |        |      |       |
+1fichier        | download | upload | delete |      |       |
+2shared         | download | upload | delete |      |       |
+4shared         | download | upload |        | list |       |
+anonfiles       | download | upload |        |      |       |
+bayfiles        | download | upload | delete |      |       |
+billionuploads  | download |        |        |      |       |
+bitshare        | download | upload | delete |      | probe |
+cramit          | download | upload | delete | list |       |
+data_hu         | download | upload | delete |      |       |
+dataport_cz     | download | upload | delete |      |       |
+depositfiles    | download | upload | delete | list |       |
+divshare        | download | upload | delete | list |       |
+dl_free_fr      | download | upload | delete |      |       |
+euroshare_eu    | download | upload | delete |      |       |
+extabit         | download | upload |        |      |       |
+filebox         | download | upload | delete |      |       |
+filemates       | download | upload | delete | list |       |
+filepost        | download | upload | delete | list |       |
+freakshare      | download | upload |        |      |       |
+go4up           |          | upload | delete | list |       |
+hotfile         | download | upload |        | list |       |
+jheberg         |          | upload |        | list |       |
+letitbit        | download | upload | delete | list |       |
+mediafire       | download | upload |        | list |       |
+megashares      | download | upload | delete |      |       |
+mirorii         |          | upload |        | list |       |
+mirrorcreator   |          | upload |        | list |       |
+multiupload     |          | upload |        | list |       |
+netload_in      | download | upload |        | list |       |
+putlocker       | download | upload |        |      |       |
+rapidgator      | download | upload | delete | list | probe |
+rapidshare      | download | upload | delete |      | probe |
+ryushare        | download | upload |        |      |       |
+sendspace       | download | upload | delete | list | probe |
+shareonline_biz | download | upload |        |      |       |
+turbobit        | download | upload | delete |      |       |
+uploadhero      | download | upload | delete | list |       |
+uploading       | download | upload |        |      |       |
+uploaded_net    | download | upload | delete | list |       |
+uptobox         | download | upload |        |      |       |
+zalaa           | download | upload |        | list | probe |
+zippyshare      | download | upload |        | list | probe |
