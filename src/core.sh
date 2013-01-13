@@ -1956,6 +1956,7 @@ translate_size() {
     local N=${1// }
     local S T
 
+    N=${N//	}
     if [ "$N" = '' ]; then
         log_error "$FUNCNAME: argument expected"
         return $ERR_FATAL
