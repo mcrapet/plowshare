@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # sendspace.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -129,7 +129,6 @@ sendspace_upload() {
     fi
 
     FORM_PROG_URL=$(echo "$FORM_HTML" | parse_form_input_by_name 'PROGRESS_URL') || return
-    FORM_DEST_DIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR') || return
     FORM_SIG=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature') || return
 
     if [ -n "$AUTH_FREE" ]; then
@@ -142,7 +141,6 @@ sendspace_upload() {
 
     PAGE=$(curl_with_log -b "$COOKIE_FILE" \
         -F "PROGRESS_URL=$FORM_PROG_URL"              \
-        -F "DESTINATION_DIR=$FORM_DEST_DIR"           \
         -F 'js_enabled=1'                             \
         -F "signature=$FORM_SIG"                      \
         -F 'upload_files='                            \
