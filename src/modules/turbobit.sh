@@ -69,85 +69,66 @@ turbobit_login() {
     return 0
 }
 
-# Check for dead link
-# $1: page
-is_dead_turbobit(){
-    match 'File not found' "$1" && return $ERR_LINK_DEAD
-    return 0
-}
-
 # Output a turbobit file download URL
 # $1: cookie file
 # $2: turbobit url
 # stdout: real file download link
 turbobit_download() {
-    local COOKIEFILE=$1
-    local URL=$2
-    local BASE_URL='http://turbobit.net'
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://turbobit.net'
+    local FILE_ID FREE_URL ACCOUNT FILE_URL FILE_NAME PAGE WAIT PAGE_LINK
 
-    local ID_FILE FREE_URL PAGE PART_FILE_URL FILE_URL PAGE_LINK0 PAGE_LINK
-    local FILENAME WAIT_TIME WAIT_TIME2 CAPTCHA_IMG
-    local JS_URL JS_CODE JS_CODE2 LINK_RAND LINK_HASH
+    PAGE=$(curl -c "$COOKIE_FILE" -b 'user_lang=en' "$URL") || return
 
-    # Get id from these url formats:
-    # http://turbobit.net/hsclfbvorabc/full.filename.avi.html
-    # http://turbobit.net/hsclfbvorabc.html
-    ID_FILE=$(echo "$URL" | parse_quiet '.html' '.net/\([^/.]*\)')
+    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    [ -n "$CHECK_LINK" ] && return 0
 
-    # Get id from these url formats:
-    # http://turbobit.net/download/free/hsclfbvorabc
-    if [ -z "$ID_FILE" ]; then
-        ID_FILE=$(echo "$URL" | parse_quiet '/download/free/' 'free/\([^/]*\)')
-    fi
+    FILE_NAME=$(echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1) || return
 
-    if [ -z "$ID_FILE" ]; then
-        log_error "Could not find id in url"
-        return $ERR_LINK_DEAD
-    fi
+    if [ -n "$AUTH" ]; then
+        ACCOUNT=$(turbobit_login "$AUTH" "$COOKIE_FILE" \
+            "$BASE_URL") || return
 
-    FREE_URL="http://turbobit.net/download/free/$ID_FILE"
+        if [ "$ACCOUNT" = 'premium' ]; then
+            PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+            FILE_URL=$(echo "$PAGE" | parse_attr '/redirect/' 'href') || return
 
-    if test -n "$AUTH"; then
-        turbobit_login "$AUTH" "$COOKIEFILE" "$BASE_URL" >/dev/null || return
-        PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL") || return
-
-        # Premium account
-        if match '<u>Turbo Access</u> to' "$PAGE"; then
-            PAGE=$(curl -b "$COOKIEFILE" "$URL") || return
-
-            # Check for dead link
-            is_dead_turbobit "$PAGE" || return
-
-            FILE_URL=$(echo "$PAGE" | parse_attr '/redirect/' 'href')
-            FILE_NAME=$(basename_file "$FILE_URL")
-
-            FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+            # Redirects 3 times...
+            FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
                 grep_http_header_location) || return
-            FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+            FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
                 grep_http_header_location) || return
 
             echo "$FILE_URL"
             echo "$FILE_NAME"
             return 0
         fi
-        PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$FREE_URL") || return
-    else
-        PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$FREE_URL") || return
     fi
 
-    # <h1>Our service is currently unavailable in your country.</h1>
-    # <h1>Sorry about that.</h1>
-    if match 'service is currently unavailable in your country' "$PAGE"; then
-        log_error "Service not available for your country"
+    # Get ID from URL:
+    # http://turbobit.net/hsclfbvorabc/full.filename.avi.html
+    # http://turbobit.net/hsclfbvorabc.html
+    FILE_ID=$(echo "$URL" | parse_quiet '.html' '.net/\([^/.]*\)')
+
+    # http://turbobit.net/download/free/hsclfbvorabc
+    if [ -z "$FILE_ID" ]; then
+        FILE_ID=$(echo "$URL" | parse_quiet '/download/free/' 'free/\([^/]*\)')
+    fi
+
+    if [ -z "$FILE_ID" ]; then
+        log_error 'Could not find file ID. URL invalid.'
         return $ERR_FATAL
     fi
 
-    # Check for dead link
-    is_dead_turbobit "$PAGE" || return
+    FREE_URL="http://turbobit.net/download/free/$FILE_ID"
+    PAGE=$(curl -b "$COOKIE_FILE" "$FREE_URL") || return
 
-    test "$CHECK_LINK" && return 0
-
-    detect_javascript || return
+    # <h1>Our service is currently unavailable in your country.</h1>
+    if match 'service is currently unavailable in your country' "$PAGE"; then
+        log_error 'Service not available in your country'
+        return $ERR_FATAL
+    fi
 
     # reCaptcha page
     if match 'api\.recaptcha\.net' "$PAGE"; then
@@ -157,124 +138,104 @@ turbobit_download() {
         WCI=$(recaptcha_process $PUBKEY) || return
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
-        PAGE=$(curl -b "$COOKIEFILE" --data \
-            "captcha_subtype=&captcha_type=recaptcha&recaptcha_challenge_field=$CHALLENGE&recaptcha_response_field=$WORD" \
-            --referer "$FREE_URL" "$FREE_URL") || return
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$FREE_URL"   \
+            -d 'captcha_subtype=' -d 'captcha_type=recaptcha' \
+            -d "recaptcha_challenge_field=$CHALLENGE"         \
+            -d "recaptcha_response_field=$WORD"               \
+            "$FREE_URL") || return
 
         if match 'Incorrect, try again!' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'Correct captcha'
 
     # Alternative captcha. Can be one of the following:
     # - Securimage: http://www.phpcaptcha.org
     # - Kohana: https://github.com/Yahasana/Kohana-Captcha
     elif match 'onclick="updateCaptchaImage()"' "$PAGE"; then
-        local CAPTCHA_URL CAPTCHA_TYPE CAPTCHA_SUBTYPE
+        local CAPTCHA_URL CAPTCHA_TYPE CAPTCHA_SUBTYPE CAPTCHA_IMG
 
-        CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha-img"' 'src')
-        CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value)
+        CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha-img"' 'src') || return
+        CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value) || return
         CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
 
         # Get new image captcha (cookie is mandatory)
         CAPTCHA_IMG=$(create_tempfile '.png') || return
-        curl -b "$COOKIEFILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
+        curl -b "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
 
         local WI WORD ID
         WI=$(captcha_process "$CAPTCHA_IMG") || return
         { read WORD; read ID; } <<<"$WI"
         rm -f "$CAPTCHA_IMG"
 
-        log_debug "decoded captcha: $WORD"
+        log_debug "Decoded captcha: $WORD"
 
-        PAGE=$(curl -b "$COOKIEFILE" \
-            -d "captcha_subtype=$CAPTCHA_SUBTYPE" \
-            -d "captcha_type=$CAPTCHA_TYPE" \
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$FREE_URL" \
+            -d "captcha_subtype=$CAPTCHA_SUBTYPE"    \
+            -d "captcha_type=$CAPTCHA_TYPE"          \
             -d "captcha_response=$(lowercase $WORD)" \
-            --referer "$FREE_URL" "$FREE_URL") || return
+            "$FREE_URL") || return
 
         if match 'Incorrect, try again!' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'Correct captcha'
     fi
 
     # This code must stay below captcha
-    # case: You have reached the limit of connections
-    # case: From your IP range the limit of connections is reached
-    local ERR1='You have reached the limit of connections'
-    local ERR2='From your IP range the limit of connections is reached'
-    if match "$ERR1\|$ERR2" "$PAGE"; then
-        WAIT_TIME=$(echo "$PAGE" | parse 'limit: ' 'limit: \([^,]*\)') || \
-            { log_error "can't get sleep time"; return $ERR_FATAL; }
-        echo $WAIT_TIME
+    # You have reached the limit of connections
+    # From your IP range the limit of connections is reached
+    if match 'the limit of connections' "$PAGE"; then
+        WAIT=$(echo "$PAGE" | parse 'limit: ' \
+            'limit: \([[:digit:]]\+\),') || return
+
+        log_error 'Limit of connections reached'
+        echo $WAIT
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # This code must stay below captcha
-    # case: Unable to Complete Request
-    # case: The site is temporarily unavailable during upgrade process
-    ERR1='Unable to Complete Request'
-    ERR2='The site is temporarily unavailable during upgrade process'
-    if match "$ERR1\|$ERR2" "$PAGE"; then
+    # Unable to Complete Request
+    # The site is temporarily unavailable during upgrade process
+    if match 'Unable to Complete Request\|temporarily unavailable' "$PAGE"; then
+        log_error 'Site maintainance'
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    JS_URL=$(echo "$PAGE" | parse_attr '/timeout\.js' src) || return
-
     # Wait time after correct captcha
-    WAIT_TIME2=$(echo "$PAGE" | parse 'Waiting\.init' "({\([^}]\+\)" | \
-        parse_json minLimit) || return
-    wait $((WAIT_TIME2)) seconds || return
+    WAIT=$(echo "$PAGE" | parse 'minLimit :' \
+        ': \([[:digit:][:blank:]+-]\+\),') || return
+    wait $((WAIT + 1)) || return
 
-    # De-obfuscation: timeout.js generates code to be evaled.
-    JS_CODE=$(curl -b "$COOKIEFILE" "$JS_URL") || return
-    JS_CODE2=$(echo "eval = function(x) { print(x); }; $JS_CODE" | javascript) || return
-
-    # Workaround: SpiderMonkey 1.8 raises an error on anonymous function
-    JS_CODE2=$(sed -e 's/^function[[:space:]]*(/1,function(/' <<< "$JS_CODE2")
-
-    PAGE_LINK0=$(echo "
-      $JS_CODE2
-      clearTimeout = function() { };
-      $ = function(x) {
-        return {
-          trigger: function() { },
-          load: function(u) { print('$BASE_URL' + u); }
-        };
-      };
-
-      Waiting.minLimit = 0;
-      Waiting.fileId = '$ID_FILE';
-      Waiting.updateTime();
-    " | javascript) || return
+    PAGE_LINK=$(echo "$PAGE" | parse '/download/' '"\([^"]\+\)"') || return
 
     # Get the page containing the file url
-    PAGE_LINK=$(curl -b "$COOKIEFILE" --referer "$FREE_URL" \
-        -H 'X-Requested-With: XMLHttpRequest' "$PAGE_LINK0") || return
+    PAGE=$(curl -b "$COOKIE_FILE" --referer "$FREE_URL" \
+        --header 'X-Requested-With: XMLHttpRequest'     \
+        "$BASE_URL/$PAGE_LINK") || return
 
     # Sanity check
-    if match 'code-404\|text-404' "$PAGE_LINK"; then
-        log_error "site updated?"
+    if match 'code-404\|text-404' "$PAGE"; then
+        log_error 'Unexpected content. Site updated?'
         return $ERR_FATAL
     fi
 
-    PART_FILE_URL=$(echo "$PAGE_LINK" | parse_attr '/download/redirect' 'href') || return
-    FILE_NAME=$(basename_file "$PART_FILE_URL")
+    FILE_URL=$(echo "$PAGE" | parse_attr '/download/redirect/' 'href') || return
+    FILE_URL="$BASE_URL$FILE_URL"
 
-    FILE_URL="http://turbobit.net$PART_FILE_URL"
-    FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+    # Redirects 3 times...
+    FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
         grep_http_header_location) || return
-    FILE_URL=$(curl -b "$COOKIEFILE" --include "$FILE_URL" | \
+    FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
         grep_http_header_location) || return
 
     echo "$FILE_URL"
