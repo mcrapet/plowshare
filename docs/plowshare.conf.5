@@ -1,4 +1,4 @@
-.\" Copyright (c) 2010\-2012 Plowshare Team
+.\" Copyright (c) 2010\-2013 Plowshare Team
 .\"
 .\" This is free documentation; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License as
@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "October 2, 2012" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowshare.conf" "5" "January 15, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -59,6 +59,9 @@ file uses an INI-style format. It is composed of five sections which may be pres
 .RI "    " token " " = " " value
     ...
 .B [Plowlist]
+.RI "    " token " " = " " value
+    ...
+.B [Plowprobe]
 .RI "    " token " " = " " value
     ...
 
@@ -117,9 +120,10 @@ verbose = 3
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2012 The Plowshare Team
+Plowshare is (C) 2010-2013 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowdown (1),
 .BR plowup (1),
 .BR plowdel (1),
-.BR plowlist (1).
+.BR plowlist (1),
+.BR plowprobe (1).

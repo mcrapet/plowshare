@@ -29,7 +29,7 @@ QUIET,q,quiet,,Alias for -v0
 GET_MODULE,,get-module,,Retrieve module name. Faster than --prinft=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\" (check link equivalent).
-TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Defaulf is disabled.
+TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
 "
@@ -182,11 +182,11 @@ probe() {
 # %c: probe return status (0, $ERR_LINK_DEAD, ...)
 # %f: filename or empty string (if not available)
 # %F: alias for "# %f%n" or empty string if %f is empty
-# %h: filename hash or empty string (if not available)
+# %h: filehash or empty string (if not available)
 # %m: module name
 # %s: filesize (in bytes) or empty string (if not available).
 #     Note: it's often approximative.
-# %u: download url or empty string
+# %u: download url
 # and also:
 # %n: newline
 # %t: tabulation

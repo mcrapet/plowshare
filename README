@@ -5,16 +5,17 @@
 Introduction
 ============
 
-Plowshare4 is a command line (CLI) application designed for popular
-file-sharing websites (aka Hosters).
+Plowshare4 is a set of command-line tools (written entirely in shell script)
+designed for managing file-sharing websites (aka Hosters).
 
-Plowshare4 is a set of four tools (written entirely in shell script):
+Plowshare4 is divided into 5 scripts:
   - plowdown, for downloading URLs
   - plowup, for uploading files
   - plowdel, for deleting remote files
   - plowlist, for listing remote shared folders
+  - plowprobe, for retrieving information of downloading URLs
 
-For a complete list of supported sites (named "module"), have a look here:
+For a complete list of supported websites (named "module"), have a look here:
 http://code.google.com/p/plowshare/wiki/Readme
 
 
@@ -179,6 +180,15 @@ $ plowlist --printf '[url=%u]%f[/url]' http://www.sendspace.com/folder/5njdw7
 4. List links contained in a dummy web page. Render results as HTML list.
 $ plowlist --fallback --printf '<li><a href="%u">%u</a></li>' \
       http://en.wikipedia.org/wiki/SI_prefix
+
+Plowprobe
+---------
+
+1. Filter alive links in a text file
+$ plowprobe file_with_links.txt > file_with_active_links.txt
+
+2) Custom results format : print filename and size (as shell comment)
+$ plowprobe --printf "#%f (%s)\\n%u" http://www.sendspace.com/file/5njdw7
 
 
 Implement your own modules
