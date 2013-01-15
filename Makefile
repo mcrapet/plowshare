@@ -11,13 +11,13 @@ RM      = rm -f
 # Files
 
 SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
-       src/core.sh
+       src/probe.sh src/core.sh
 
 SETUP_FILES     = Makefile setup.sh
 TEST_FILES      = tests/modules.sh $(wildcard tests/*.t)
 MODULE_FILES    = $(wildcard src/modules/*.sh) src/modules/config
 
-MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1
+MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1 plowprobe.1
 MANPAGES5 = plowshare.conf.5
 MANPAGES  = $(addprefix docs/,$(MANPAGES1)) $(addprefix docs/,$(MANPAGES5))
 DOCS      = AUTHORS COPYING INSTALL README
@@ -57,6 +57,7 @@ install:
 	$(LN_S) $(DATADIR)/upload.sh   $(DESTDIR)$(BINDIR)/plowup
 	$(LN_S) $(DATADIR)/delete.sh   $(DESTDIR)$(BINDIR)/plowdel
 	$(LN_S) $(DATADIR)/list.sh     $(DESTDIR)$(BINDIR)/plowlist
+	$(LN_S) $(DATADIR)/probe.sh    $(DESTDIR)$(BINDIR)/plowprobe
 
 uninstall:
 	@$(RM) $(DESTDIR)$(BINDIR)/plowdown

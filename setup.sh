@@ -60,14 +60,14 @@ fi
 
 if [ "$1" = 'uninstall' ]; then
     $RM -r "$DATADIR" "$DOCDIR"
-    $RM "$BINDIR/plowdown" "$BINDIR/plowup" "$BINDIR/plowdel" "$BINDIR/plowlist"
-    $RM "$MANDIR1/plowdown.1" "$MANDIR1/plowup.1" "$MANDIR1/plowdel.1" "$MANDIR1/plowlist.1" "$MANDIR5/plowshare.conf.5"
+    $RM "$BINDIR/plowdown" "$BINDIR/plowup" "$BINDIR/plowdel" "$BINDIR/plowlist $BINDIR/plowprobe"
+    $RM "$MANDIR1/plowdown.1" "$MANDIR1/plowup.1" "$MANDIR1/plowdel.1" "$MANDIR1/plowlist.1" "$MANDIR1/plowprobe.1" "$MANDIR5/plowshare.conf.5"
 
 elif [ "$1" = 'install' ]; then
     # Documentation
     mkdir -p "$DOCDIR" "$MANDIR1" "$MANDIR5"
     $CP AUTHORS README "$DOCDIR"
-    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 "$MANDIR1"
+    $CP docs/plowdown.1 docs/plowup.1 docs/plowdel.1 docs/plowlist.1 docs/plowprobe.1 "$MANDIR1"
     $CP docs/plowshare.conf.5 "$MANDIR5"
 
     # Common library
@@ -77,6 +77,7 @@ elif [ "$1" = 'install' ]; then
         src/upload.sh      \
         src/delete.sh      \
         src/list.sh        \
+        src/probe.sh       \
         "$DATADIR"
 
     # Modules
@@ -89,6 +90,7 @@ elif [ "$1" = 'install' ]; then
     $LN_S "$DATADIR_FINAL/upload.sh" "$BINDIR/plowup"
     $LN_S "$DATADIR_FINAL/delete.sh" "$BINDIR/plowdel"
     $LN_S "$DATADIR_FINAL/list.sh" "$BINDIR/plowlist"
+    $LN_S "$DATADIR_FINAL/probe.sh" "$BINDIR/plowprobe"
 
     # Check sed version (don't use `uname -s` yet..)
     SED=`sed --version 2>&1 | sed 1q` || true

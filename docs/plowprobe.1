@@ -1,4 +1,4 @@
-.\" Copyright (c) 2010\-2013 Plowshare Team
+.\" Copyright (c) 2013 Plowshare Team
 .\"
 .\" This is free documentation; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License as
@@ -19,21 +19,23 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "January 15, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowprobe" "1" "January 15, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
-plowlist \- List file-sharing web-folders
+plowprobe \- Gather information from file-sharing download links
 
 .SH SYNOPSIS
-.B plowlist
+.B plowprobe
 [\fIOPTIONS\fP]...
 [\fIMODULE_OPTIONS\fP]...
-\fIURL\fP...
+\fIURL\fP|\fIFILE\fP
+[\fIURL\fP|\fIFILE\fP]...
 
 .SH DESCRIPTION
-.B plowlist
-is a command-line tool designed for listing links (files) on file-sharing websites.
-Provided links can be downloaded with plowdown(1).
+.B plowprobe
+is a command-line tool designed for retrieving metadata from file-sharing
+download links. Information are printed on stdout (only alive links).
+Provided links can also be downloaded with plowdown(1).
 
 Currently supported hosting sites list is available in README file.
 
@@ -47,27 +49,36 @@ Currently supported hosting sites list is available in README file.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
-.B -R, --recursive
-Recurse into sub folders.
-.TP
-.B "   " --fallback
-If no module is found for link, get page (HTTP GET) and simply grep all URLs contained inside.
+.B "   " --no-curlrc
+Do not use curl config file (~/.curlrc).
 .TP
 .B "   " --no-plowsharerc
 Do not use local or global config file (plowshare.conf).
 .TP
+.B "   " --get-module
+Get module(s) for URL(s) and quit. Faster than \fI--prinft=%m\fR.
+.TP
+.B "   " --follow
+If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
+.TP
 .BI "   " " " --printf "=FORMAT"
-Print results in a given format (for each link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
+Print results in a given format (for each non-dead link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
 raw % character
 .TP
+\fI%c\fR
+probe function return status (0 for sucess, 13 for dead link, see list below)
+.TP
 \fI%f\fR
-filename (can be empty string if module list function does not report any name)
+filename (can be empty string)
 .TP
 \fI%F\fR
 empty if %f is empty, or alias to \fB"# %f%n"\fR.
+.TP
+\fI%h\fR
+filehash (can be empty string if not available)
 .TP
 \fI%m\fR
 module name
@@ -75,11 +86,14 @@ module name
 \fI%n\fR
 newline
 .TP
+\fI%s\fR
+filesize in bytes  (can be empty string if not available). Note: it's often approximative.
+.TP
 \fI%t\fR
 tabulation character
 .TP
 \fI%u\fR
-download url
+download (source) url
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
@@ -107,6 +121,9 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .B -h, --help
 Display this help and exit.
 .TP
+.B -H, --longhelp
+Display complete help (with module options) and exit.
+.TP
 .B "   " --version
 Output version information and exit.
 
@@ -115,33 +132,22 @@ Output version information and exit.
 .\" ****************************************************************************
 .SH "MODULE OPTIONS"
 
-.SS Common options
-.TP
-.BI -p, " " --link-password "=PASSWORD"
-Used for password-protected folders.
 .P
-All switches are not implemented nor required for all modules.
-See help message for detailed modules option list.
+There is none yet!
 
 .\" ****************************************************************************
 .\" * Examples                                                                 *
 .\" ****************************************************************************
 .SH EXAMPLES
 
-.SS 1) List links providing shared folder URL(s)
+.SS 1) Filter alive links in a text file 
 .nf
-$ plowlist http://hotfile.com/list/347664/d328dba
-.sp 1
-# First URL is processed, then the second one (this is not parallel)
-$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
+$ plowprobe file_with_links.txt > file_with_active_links.txt
 .fi
 .SS 2) Custom results format
 .nf
-# List to give to plowdown (only links, no filenames)
-$ plowlist --printf %u http://www.sendspace.com/folder/5njdw7 >mylist.txt
-.sp 1
-# vBulletin "BB" syntax
-$ plowlist --printf '[url=%u]%f[/url]' http://www.sendspace.com/folder/5njdw7 >mylist.txt
+# Print links informations: filename and size
+$ plowprobe --printf "#%f (%s)\\n%u" http://www.sendspace.com/file/5njdw7
 .fi
 
 .\" ****************************************************************************
@@ -172,17 +178,19 @@ Fatal error. Upstream site updated or unexpected result.
 No available module (provided URL is not supported).
 .IP 3
 Network error. Mostly curl related.
+.IP 8
+System generic error.
 .IP 10
-Links are temporarily unavailable. This is used by mirroring/multi-upload services, maybe uploads are still beeing processed.
+Link alive but temporarily unavailable.
 .IP 11
-Folder is password protected.
+Link alive but requires a password.
+.IP 12
+Link alive but requires some authentication (private or premium link).
 .IP 13
-Folder has been deleted or does not exist or is empty.
-.IP 15
-Unknown command line parameter or incompatible options.
+Link is dead.
 .PP
 If
-.B plowlist
+.B plowprobe
 is invoked with multiple links and one or several errors occur, the first error code is returned added with 100.
 
 .\" ****************************************************************************
@@ -196,5 +204,5 @@ Plowshare is (C) 2010-2013 The Plowshare Team
 .BR plowdown (1),
 .BR plowup (1),
 .BR plowdel (1),
-.BR plowprobe (1),
+.BR plowlist (1),
 .BR plowshare.conf (5).
