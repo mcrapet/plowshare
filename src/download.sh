@@ -774,6 +774,14 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
+# Sanity check
+for MOD in $MODULES; do
+    if ! declare -f "${MOD}_download" > /dev/null; then
+        log_error "plowdown: module \`${MOD}_download' function was not found"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+done
+
 set_exit_trap
 
 # Remember last host because hosters may require waiting between
