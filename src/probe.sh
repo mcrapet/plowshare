@@ -102,12 +102,6 @@ probe() {
     local FUNCTION=${MODULE}_probe
     local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH
 
-    # Sanity check
-    if ! declare -f $FUNCTION > /dev/null; then
-        log_error "$MODULE: probe module function is not available"
-        return $ERR_BAD_COMMAND_LINE
-    fi
-
     log_debug "Starting probing ($MODULE): $URL_ENCODED"
 
     # $PRINTF_FORMAT
@@ -127,7 +121,7 @@ probe() {
 
     OLD_IFS=$IFS
     IFS=$'\n'
-    local -a DATA=( $(< "$PRESULT") )
+    local -a DATA=($(< "$PRESULT"))
     IFS=$OLD_IFS
 
     rm -f "$PRESULT" "$PCOOKIE"
@@ -311,6 +305,14 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     log_error "plowprobe: try \`plowprobe --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
+
+# Sanity check
+for MOD in $MODULES; do
+    if ! declare -f "${MOD}_probe" > /dev/null; then
+        log_error "plowprobe: module \`${MOD}_probe' function was not found"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+done
 
 set_exit_trap
 
