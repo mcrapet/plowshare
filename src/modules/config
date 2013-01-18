@@ -8,6 +8,7 @@ anonfiles       | download | upload |        |      |       |
 bayfiles        | download | upload | delete |      |       |
 billionuploads  | download | upload |        |      | probe |
 bitshare        | download | upload | delete |      | probe |
+cloudzer_net    | download |        |        |      |       |
 cramit          | download | upload | delete | list |       |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
