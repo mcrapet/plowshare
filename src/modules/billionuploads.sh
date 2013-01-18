@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # billionuploads.com module
-# Copyright (c) 2012 xeros.78<at>gmail.com
+# Copyright (c) 2012-2013 sapk <at> sapk.fr
 #
 # This file is part of Plowshare.
 #
@@ -26,6 +26,12 @@ MODULE_BILLIONUPLOADS_DOWNLOAD_OPTIONS=""
 MODULE_BILLIONUPLOADS_DOWNLOAD_RESUME=yes
 MODULE_BILLIONUPLOADS_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 MODULE_BILLIONUPLOADS_DOWNLOAD_SUCCESSIVE_INTERVAL=
+
+MODULE_BILLIONUPLOADS_UPLOAD_OPTIONS="
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
+MODULE_BILLIONUPLOADS_UPLOAD_REMOTE_SUPPORT=no
 
 # Output a billionuploads.com file download URL and NAME
 # $1: cookie file
@@ -86,4 +92,88 @@ billionuploads_download() {
     FILE_URL=$(echo "$PAGE" | parse '<span id="link"' 'href="\([^"]\+\)"' 1) || return
     echo "$FILE_URL"
     echo "$FILE_NAME"
+}
+
+# Upload a file to billionuploads
+# $1: cookie file (not used here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: download_url
+billionuploads_upload() {
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://billionuploads.com/'
+    local -r MAX_SIZE=2147483648 # 2GiB
+    local PAGE UPLOAD_ID USER_TYPE DL_URL DEL_URL
+    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
+
+    # Check for forbidden file extensions
+    case ${DEST_FILE##*.} in
+        php|pl|cgi|py|sh|shtml)
+            log_error 'File extension is forbidden. Try renaming your file.'
+            return $ERR_FATAL
+            ;;
+    esac
+
+    local SZ=$(get_filesize "$FILE")
+    if [ "$SZ" -gt "$MAX_SIZE" ]; then
+        log_debug "file is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    PAGE=$(curl -L "$BASE_URL") || return
+
+    FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
+    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
+    FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url') || return
+    log_debug "Server URL: '$FORM_TMP_SRV'"
+
+    UPLOAD_ID=$(random dec 12)
+    USER_TYPE=''
+
+    PAGE=$(curl "${FORM_TMP_SRV}/status.html?${UPLOAD_ID}=$DEST_FILE=billionuploads.com") || return
+
+    # Sanity check. Avoid failure after effective upload
+    if match '>404 Not Found<' "$PAGE"; then
+        log_error "upstream error (404)"
+        return $ERR_FATAL
+    fi
+
+    PAGE=$(curl_with_log \
+        -F "upload_type=$FORM_UTYPE" \
+        -F "sess_id=$FORM_SESS" \
+        -F "srv_tmp_url=$FORM_TMP_SRV" \
+        -F "file_0=@$FILE;filename=$DEST_FILE" \
+        --form-string "file_0_descr=$DESCRIPTION" \
+        -F "file_1=@/dev/null;filename=" \
+        -F 'tos=1' \
+        -F "link_rcpt=$TOEMAIL" \
+        -F "link_pass=$LINK_PASSWORD" \
+        -F 'submit_btn= Upload! ' \
+        "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
+        break_html_lines) || return
+
+    local FORM2_ACTION FORM2_FN FORM2_ST FORM2_OP FORM2_RCPT
+    FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
+    FORM2_FN=$(echo "$PAGE" | parse_tag 'fn.>' textarea)
+    FORM2_ST=$(echo "$PAGE" | parse_tag 'st.>' textarea)
+    FORM2_OP=$(echo "$PAGE" | parse_tag 'op.>' textarea)
+    FORM2_RCPT=$(echo "$PAGE" | parse_tag_quiet 'link_rcpt.>' textarea)
+
+    if [ "$FORM2_ST" = 'OK' ]; then
+        PAGE=$(curl -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
+            -d "link_rcpt=$FORM2_RCPT" "$FORM2_ACTION") || return
+
+        DL_URL=$(echo "$PAGE" | parse 'Long link' '\(http[^<]\+\)<' 1) || return
+        DEL_URL=$(echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1)
+
+        echo "$DL_URL"
+        echo "$DEL_URL"
+        return 0
+    fi
+
+    log_error "Unexpected status: $FORM2_ST"
+    return $ERR_FATAL
 }
