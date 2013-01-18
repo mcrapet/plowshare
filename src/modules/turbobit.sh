@@ -32,27 +32,41 @@ MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
 
-# Proceed with login (free-membership or premium)
+# Static function. Proceed with login (free or premium)
+# $1: authentication
+# $2: cookie file
+# $3: base url
+# stdout: account type ("free" or "premium") on success
 turbobit_login() {
     local AUTH=$1
     local COOKIE_FILE=$2
-    local BASEURL=$3
-
-    local LOGIN_DATA LOGIN_RESULT USER_ISLOGGEDIN USER
+    local BASE_URL=$3
+    local LOGIN_DATA PAGE STATUS EMAIL TYPE
 
     # Force page in English
     LOGIN_DATA='user[login]=$USER&user[pass]=$PASSWORD&user[submit]=Login'
-    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASEURL/user/login" -b 'user_lang=en') || return
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/user/login" -b 'user_lang=en' --location) || return
 
-    USER_ISLOGGEDIN=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
-    if [ "$USER_ISLOGGEDIN" = '1' ]; then
-        split_auth "$AUTH" USER || return
-        log_debug "Successfully logged in as $USER member"
-        return 0
+    STATUS=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
+    [ "$STATUS" = '1' ] || return $ERR_LOGIN_FAILED
+
+    # determine user mail and account type
+    EMAIL=$(echo "$PAGE" | parse ' user-name' \
+        '^[[:blank:]]*\([^[:blank:]]\+\)[[:blank:]]' 3) || return
+
+    if match '<u>Turbo Access</u> denied' "$PAGE"; then
+        TYPE='free'
+    elif match '<u>Turbo Access</u> to' "$PAGE"; then
+        TYPE='premium'
+    else
+        log_error 'Could not determine account type. Site updated?'
+        return $ERR_FATAL
     fi
 
-    return $ERR_LOGIN_FAILED
+    log_debug "Successfully logged in as $TYPE member '$EMAIL'"
+    echo "$TYPE"
+    return 0
 }
 
 # Check for dead link
@@ -273,55 +287,72 @@ turbobit_download() {
 # $3: remote filename
 # stdout: turbobit download link + delete link
 turbobit_upload() {
-    local COOKIEFILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local URL='http://turbobit.net'
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://turbobit.net'
+    local PAGE UP_URL APP_TYPE FORM_UID FILE_SIZE MAX_SIZE
+    local JSON FILE_ID DELETE_ID
 
-    local PAGE UPLOAD_URL JSON MESSAGE FILE_ID DELETE_ID FORM_UID
-
-    if test -n "$AUTH"; then
-        turbobit_login "$AUTH" "$COOKIEFILE" "$URL" >/dev/null || return
-        PAGE=$(curl -c "$COOKIEFILE" -b "$COOKIEFILE" "$URL") || return
-    else
-        PAGE=$(curl -c "$COOKIEFILE" -b 'user_lang=en' "$URL") || return
+    if [ -n "$AUTH" ]; then
+        turbobit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
     fi
 
-    UPLOAD_URL=$(echo "$PAGE" | parse 'flashvars=' "urlSite=\([^&]*\)") || return
-    APPTYPE=$(echo "$PAGE" | parse 'flashvars=' 'apptype=\([^"]*\)') || return
+    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'user_lang=en' "$BASE_URL") || return
 
-    if test -n "$AUTH"; then
-        local USER_ID=$(echo "$PAGE" | \
-            parse_quiet 'flashvars=' 'userId=\([^&]*\)')
+    UP_URL=$(echo "$PAGE" | parse 'flashvars=' 'urlSite=\([^&"]\+\)') || return
+    APP_TYPE=$(echo "$PAGE" | parse 'flashvars=' 'apptype=\([^&"]\+\)') || return
+    MAX_SIZE=$(echo "$PAGE" | parse 'flashvars=' 'maxSize=\([[:digit:]]\+\)') || return
+
+    log_debug "Upload URL: $UP_URL"
+    log_debug "App Type: $APP_TYPE"
+    log_debug "Max size: $MAX_SIZE"
+
+    SIZE=$(get_filesize "$FILE") || return
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_debug "File is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    if [ -n "$AUTH" ]; then
+        local USER_ID
+
+        USER_ID=$(echo "$PAGE" | parse 'flashvars=' 'userId=\([^&"]\+\)') || return
+        log_debug "User ID: $USER_ID"
         FORM_UID="-F user_id=$USER_ID"
     fi
 
     # Cookie to error message in English
-    JSON=$(curl_with_log "$UPLOAD_URL" \
-        -F "Filename=$DESTFILE" \
-        -F "apptype=$APPTYPE" \
-        -F "Filedata=@$FILE;filename=$DESTFILE" \
+    JSON=$(curl_with_log --user-agent 'Shockwave Flash' -b "$COOKIE_FILE" -b 'user_lang=en'\
+        -F "Filename=$DEST_FILE" -F 'id=null' \
+        -F "apptype=$APP_TYPE" -F 'stype=null' \
+        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        -F 'Upload=Submit Query' \
         $FORM_UID \
-        --user-agent 'Shockwave Flash' \
-        -b "$COOKIEFILE" \
-        --referer "$URL") || return
+        "$UP_URL") || return
 
-    if match_json_true result "$JSON"; then
-        FILE_ID=$(echo "$JSON" | parse_json id) || return
-        PAGE=$(curl --get -b "$COOKIEFILE" -d "nd=$(date +%s000)" \
-            -d '_search=false&rows=20&page=1&sidx=id&sord=asc' \
-            "$URL/newfile/gridFile/${FILE_ID}") || return
-        DELETE_ID=$(echo "$PAGE" | parse 'null,null,' 'null,null,"\([^"]*\)')
+    if ! match_json_true 'result' "$JSON"; then
+        local MESSAGE
 
-        echo "$URL/$FILE_ID.html"
-        test "$DELETE_ID" && \
-            echo "$URL/delete/file/$FILE_ID/$DELETE_ID"
-        return 0
+        MESSAGE=$(echo "$JSON" | parse_json 'message') || return
+        log_error "Unexpected remote error: $MESSAGE"
+        return $ERR_FATAL
     fi
 
-    MESSAGE=$(echo "$JSON" | parse_json message)
-    log_error "turbobit error: $MESSAGE"
-    return $ERR_FATAL
+    FILE_ID=$(echo "$JSON" | parse_json id) || return
+    log_debug "File ID: $FILE_ID"
+
+    # get info page for file
+    PAGE=$(curl --get -b "$COOKIEFILE" \
+        -d '_search=false' -d "nd=$(date +%s000)" \
+        -d 'rows=20' -d 'page=1'   \
+        -d 'sidx=id' -d 'sord=asc' \
+        "$BASE_URL/newfile/gridFile/$FILE_ID") || return
+
+    DELETE_ID=$(echo "$PAGE" | parse '' 'null,null,"\([^"]\+\)"')
+
+    echo "$BASE_URL/$FILE_ID.html"
+    [ -n "$DELETE_ID" ] && echo "$BASE_URL/delete/file/$FILE_ID/$DELETE_ID"
 }
 
 # Delete a file on turbobit
