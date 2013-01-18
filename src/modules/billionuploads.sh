@@ -33,6 +33,8 @@ DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_BILLIONUPLOADS_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_BILLIONUPLOADS_PROBE_OPTIONS=""
+
 # Output a billionuploads.com file download URL and NAME
 # $1: cookie file
 # $2: billionuploads.com url
@@ -176,4 +178,34 @@ billionuploads_upload() {
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: bitshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+billionuploads_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_NAME FILE_SIZE
+
+    PAGE=$(curl -L "$URL") || return
+
+    ! match 'File Not Found' "$PAGE" || return $ERR_LINK_DEAD
+
+    REQ_OUT=c
+
+    # Filename can be truncated
+    if [[ $REQ_IN = *f* ]]; then
+        FILE_NAME=$(echo "$PAGE" | parse_quiet '>Filename:<' 'b>\([^<]*\)')
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse_quiet '>Size:<' 'b>\([^<]*\)')
+        test "$FILE_SIZE" && translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

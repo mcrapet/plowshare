@@ -6,7 +6,7 @@
 4shared         | download | upload |        | list |       |
 anonfiles       | download | upload |        |      |       |
 bayfiles        | download | upload | delete |      |       |
-billionuploads  | download | upload |        |      |       |
+billionuploads  | download | upload |        |      | probe |
 bitshare        | download | upload | delete |      | probe |
 cramit          | download | upload | delete | list |       |
 data_hu         | download | upload | delete |      |       |
