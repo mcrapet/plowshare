@@ -95,6 +95,11 @@ uploading_download() {
     elif matchi 'daily download limit' "$PAGE"; then
         echo 600
         return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # <h2>File is still uploading</h2>
+    elif matchi 'File is still uploading' "$PAGE"; then
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     CODE=$(echo "$PAGE" | parse '[[:space:]]code:' ":[[:space:]]*[\"']\([^'\"]*\)") || return
