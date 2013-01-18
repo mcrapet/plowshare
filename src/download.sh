@@ -718,6 +718,8 @@ if [ -n "$OUTPUT_DIR" ]; then
         log_error "error: no write permission"
         exit $ERR_SYSTEM
     fi
+elif [ ! -w "$PWD" ]; then
+    test "$CHECK_LINK" || log_notice "Warning: Current directory is not writable!"
 fi
 
 if [ -n "$GLOBAL_COOKIES" ]; then
@@ -787,7 +789,7 @@ PREVIOUS_HOST=none
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
     OLD_IFS=$IFS
     IFS=$'\n'
-    ELEMENTS=( $(process_item "$ITEM") )
+    ELEMENTS=($(process_item "$ITEM"))
     IFS=$OLD_IFS
 
     TYPE=${ELEMENTS[0]}
@@ -828,6 +830,19 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
         if [ $MRETVAL -ne 0 ]; then
             log_error "Skip: no module for URL ($(basename_url "$URL")/)"
+
+            # Check if plowlist can handle $URL
+            if [ -z "$MODULES_LIST" ]; then
+                MODULES_LIST=$(grep_list_modules 'list' 'download') || true
+                for MODULE in $MODULES_LIST; do
+                    source "$LIBDIR/modules/$MODULE.sh"
+                done
+            fi
+            MODULE=$(get_module "$URL" "$MODULES_LIST") || true
+            if [ -n "$MODULE" ]; then
+                log_notice "Note: This URL ($MODULE) is supported by plowlist"
+            fi
+
             RETVALS+=($MRETVAL)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" NOMODULE
         elif test "$GET_MODULE"; then

@@ -2156,18 +2156,24 @@ process_module_options() {
 # Note1: use global variable LIBDIR
 # Note2: VERBOSE (log_debug) not initialised yet
 #
-# $1: keyword to grep (must not contain '|' char)
+# $1: feature to grep (must not contain '|' char)
+# $2 (optional): feature to subtract (must not contain '|' char)
 # stdout: return module list (one name per line)
 grep_list_modules() {
-   local -r CONFIG="$LIBDIR/modules/config"
+    local -r CONFIG="$LIBDIR/modules/config"
 
-   if [ ! -f "$CONFIG" ]; then
-       stderr "can't find config file"
-       return $ERR_SYSTEM
-   fi
+    if [ ! -f "$CONFIG" ]; then
+        stderr "can't find config file"
+        return $ERR_SYSTEM
+    fi
 
-   sed -ne "/^[^#].*|[[:space:]]*$1[[:space:]]*|/s/[[:space:]]*|.*$//p" \
-       "$CONFIG"
+    if test "$2"; then
+        sed -ne "/^[^#]/{/|[[:space:]]*$1/{/|[[:space:]]*$2/!s/^\([^[:space:]|]*\).*/\1/p}}" \
+            "$CONFIG"
+    else
+        sed -ne "/^[^#]/{/|[[:space:]]*$1/s/^\([^[:space:]|]*\).*/\1/p}" \
+            "$CONFIG"
+    fi
 }
 
 # $1: section name in ini-style file ("General" will be considered too)
