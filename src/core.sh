@@ -784,7 +784,11 @@ parse_cookie_quiet() {
 #
 # $1: URL
 basename_url() {
-    sed -e 's=\(https\?://[^/?#]*\).*=\1=' <<< "$1"
+    if [[ $1 =~ https?://[^/?#]* ]]; then
+        echo "${BASH_REMATCH[0]}"
+    else
+        echo "$1"
+    fi
 }
 
 # Return basename of file path
