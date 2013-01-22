@@ -94,10 +94,10 @@ turbobit_download() {
             PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
             FILE_URL=$(echo "$PAGE" | parse_attr '/redirect/' 'href') || return
 
-            # Redirects 3 times...
-            FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
+            # Redirects 2 times...
+            FILE_URL=$(curl -b "$COOKIE_FILE" --head "$FILE_URL" | \
                 grep_http_header_location) || return
-            FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
+            FILE_URL=$(curl -b "$COOKIE_FILE" --head "$FILE_URL" | \
                 grep_http_header_location) || return
 
             echo "$FILE_URL"
@@ -221,7 +221,7 @@ turbobit_download() {
     # Get the page containing the file url
     PAGE=$(curl -b "$COOKIE_FILE" --referer "$FREE_URL" \
         --header 'X-Requested-With: XMLHttpRequest'     \
-        "$BASE_URL/$PAGE_LINK") || return
+        "$BASE_URL$PAGE_LINK") || return
 
     # Sanity check
     if match 'code-404\|text-404' "$PAGE"; then
@@ -232,10 +232,10 @@ turbobit_download() {
     FILE_URL=$(echo "$PAGE" | parse_attr '/download/redirect/' 'href') || return
     FILE_URL="$BASE_URL$FILE_URL"
 
-    # Redirects 3 times...
-    FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
+    # Redirects 2 times...
+    FILE_URL=$(curl -b "$COOKIE_FILE" --head "$FILE_URL" | \
         grep_http_header_location) || return
-    FILE_URL=$(curl -b "$COOKIEFILE" --head "$FILE_URL" | \
+    FILE_URL=$(curl -b "$COOKIE_FILE" --head "$FILE_URL" | \
         grep_http_header_location) || return
 
     echo "$FILE_URL"
@@ -304,7 +304,7 @@ turbobit_upload() {
     log_debug "File ID: $FILE_ID"
 
     # get info page for file
-    PAGE=$(curl --get -b "$COOKIEFILE" \
+    PAGE=$(curl --get -b "$COOKIE_FILE" \
         -d '_search=false' -d "nd=$(date +%s000)" \
         -d 'rows=20' -d 'page=1'   \
         -d 'sidx=id' -d 'sord=asc' \
