@@ -122,10 +122,12 @@ curl() {
         OPTIONS[${#OPTIONS[@]}]='Mozilla/5.0 (X11; Linux x86_64; rv:6.0) Gecko/20100101 Firefox/6.0'
     fi
 
-    # Check if caller has allowed redirection, if so, limit it
+    # If caller has allowed redirection but did not limit it, do it now
     if find_in_array CURL_ARGS[@] '-L' '--location'; then
-        OPTIONS[${#OPTIONS[@]}]='--max-redirs'
-        OPTIONS[${#OPTIONS[@]}]=5
+        if ! find_in_array CURL_ARGS[@] '--max-redirs'; then
+            OPTIONS[${#OPTIONS[@]}]='--max-redirs'
+            OPTIONS[${#OPTIONS[@]}]=5
+        fi
     fi
 
     test -n "$NO_CURLRC" && OPTIONS[${#OPTIONS[@]}]='-q'
@@ -216,6 +218,13 @@ curl() {
             23)
                 log_error "$FUNCNAME: write failed, disk full?"
                 return $ERR_SYSTEM
+                ;;
+            # Too many redirects
+            47)
+                if ! find_in_array CURL_ARGS[@] '--max-redirs'; then
+                    log_error "$FUNCNAME: too many redirects"
+                    return $ERR_FATAL
+                fi
                 ;;
             *)
                 log_error "$FUNCNAME: failed with exit code $DRETVAL"
