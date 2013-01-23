@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # uploading.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -70,7 +70,7 @@ uploading_download() {
     local COOKIE_FILE=$1
     local URL=$2
     local BASE_URL='http://uploading.com'
-    local PAGE WAIT CODE PASS JSON FILENAME FILE_URL
+    local PAGE WAIT CODE PASS JSON FILE_NAME FILE_URL
 
     # Force language to English
     PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=1' "$URL") || return
@@ -101,8 +101,8 @@ uploading_download() {
     PASS=false
     log_debug "code: $CODE"
 
-    FILENAME=$(echo "$PAGE" | parse '<title>' \
-        '<title>Download \(.*\) for free on uploading.com</title>')
+    FILE_NAME=$(echo "$PAGE" | parse_tag title)
+    FILE_NAME=${FILE_NAME% - Free Download - Uploading.com}
 
     # Get wait time
     WAIT=$(echo "$PAGE" | parse_tag '"timer_count"' span) || return
@@ -112,7 +112,7 @@ uploading_download() {
         -d 'action=second_page' -d "code=$CODE" \
         "$BASE_URL/files/get/?ajax") || return
 
-    wait $WAIT || return
+    wait $((WAIT+1)) || return
 
     JSON=$(curl -b "$COOKIE_FILE" -d 'action=get_link' \
         -H 'X-Requested-With: XMLHttpRequest' \
@@ -126,7 +126,7 @@ uploading_download() {
     FILE_URL=$(echo "$PAGE" | parse_attr '=.file_form' action) || return
 
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to Uploading.com
