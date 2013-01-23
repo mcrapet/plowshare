@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Retrieve list of links from a shared-folder (sharing site) url
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # Output links (one per line) on standard output.
 #
@@ -239,7 +239,11 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     MODULE=$(get_module "$URL" "$MODULES") || LRETVAL=$?
     if [ $LRETVAL -ne 0 ]; then
         if ! match_remote_url "$URL"; then
-            log_error "Skip: not an URL ($URL)"
+            if [[ -f "$URL" && "${URL##*.}" = [Dd][Ll][Cc] ]]; then
+                log_error "Skip: .dlc container not handled ($URL)"
+            else
+                log_error "Skip: not an URL ($URL)"
+            fi
             RETVALS=(${RETVALS[@]} $LRETVAL)
             continue
         elif test "$NO_MODULE_FALLBACK"; then
