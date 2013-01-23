@@ -18,12 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_CLOUDZER_NET_REGEXP_URL="http://\(cloudzer\.net/file/\|clz\.to/\)"
+MODULE_CLOUDZER_NET_REGEXP_URL="http://\(cloudzer\.net/file\|clz\.to\)/"
 
 MODULE_CLOUDZER_NET_DOWNLOAD_OPTIONS=""
 MODULE_CLOUDZER_NET_DOWNLOAD_RESUME=no
 MODULE_CLOUDZER_NET_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_CLOUDZER_NET_DOWNLOAD_SUCCESSIVE_INTERVAL=3600
+
+MODULE_CLOUDZER_NET_PROBE_OPTIONS=""
 
 # Output an cloudzer.net file download URL
 # $1: cookie file
@@ -131,4 +133,33 @@ cloudzer_net_download() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: cloudzer.net url
+# $3: requested capability list
+cloudzer_net_probe() {
+    local -r REQ_IN=$3
+    local URL FILEID RESPONSE FILE_NAME FILE_SIZE REQ_OUT
+
+    URL=$(echo "$2" | replace '//clz.to' '//cloudzer.net/file')
+    FILEID=$(echo "$URL" | parse . 'file/\(.*\)$')
+
+    RESPONSE=$(curl "http://cloudzer.net/file/${FILEID}/status") || return
+    { read FILE_NAME; read FILE_SIZE; } <<< "$RESPONSE"
+
+    test -z "$RESPONSE" && return $ERR_LINK_DEAD
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        test "$FILE_SIZE" && translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }
