@@ -35,6 +35,8 @@ MODULE_EUROSHARE_EU_UPLOAD_REMOTE_SUPPORT=no
 MODULE_EUROSHARE_EU_DELETE_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
 
+MODULE_EUROSHARE_EU_PROBE_OPTIONS=""
+
 # Static function. Proceed with login (free)
 # $1: authentication
 # $2: cookie file
@@ -169,4 +171,41 @@ euroshare_eu_delete() {
         log_error 'Could not delete file. Site updated?'
         return $ERR_FATAL
     fi
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: zippyshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+euroshare_eu_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local JSON FILE_NAME FILE_SIZE FILE_HASH REQ_OUT
+
+    # Official API: http://euroshare.eu/euroshare-api/
+    JSON=$(curl --get -d 'sub=checkfile' -d "file=$URL" -d "file_password=" \
+        'http://euroshare.eu/euroshare-api/') || return
+
+    # ERR: File does not exists.
+    match '^ERR:' "$JSON" && return $ERR_LINK_DEAD
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        FILE_NAME=$(echo "$JSON" | parse_json 'file_name') && \
+            echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$JSON" | parse_json 'file_size') && \
+            echo "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *h* ]]; then
+        FILE_HASH=$(echo "$JSON" | parse_json 'md5_hash') && \
+            echo "$FILE_HASH" && REQ_OUT="${REQ_OUT}h"
+    fi
+
+    echo $REQ_OUT
 }
