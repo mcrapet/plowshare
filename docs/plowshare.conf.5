@@ -23,14 +23,14 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "January 15, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowshare.conf" "5" "January 24, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
 
 .SH DESCRIPTION
 .B Plowshare
-(plowdown, plowup, plowdel or plowlist) uses a configuration file called 
+(plowdown, plowup, plowdel, plowlist or plowprobe) uses a configuration file called
 .I plowshare.conf
 for its initial setup. This configuration file is searched for in the following places when plowshare is started:
 .PP
@@ -42,7 +42,7 @@ for its initial setup. This configuration file is searched for in the following 
 .RE
 .PP
 .I plowshare.conf
-file uses an INI-style format. It is composed of five sections which may be present in any order. Each section may contain lines of the form:
+file uses an INI-style format. It is composed of six sections which may be present in any order. Each section may contain lines of the form:
 .PP
 .RS 4
 .nf
