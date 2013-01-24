@@ -67,13 +67,13 @@ uploading_login() {
 # $2: uploading.com url
 # stdout: real file download link
 uploading_download() {
-    local COOKIE_FILE=$1
-    local URL=$2
-    local BASE_URL='http://uploading.com'
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://uploading.com'
     local PAGE WAIT CODE PASS JSON FILE_NAME FILE_URL
 
     # Force language to English
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=1' "$URL") || return
+    PAGE=$(curl -L -c "$COOKIE_FILE" -b 'lang=1' "$URL") || return
 
     # <h2>OOPS! Looks like file not found.</h2>
     if match 'file not found' "$PAGE"; then
