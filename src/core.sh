@@ -1933,13 +1933,11 @@ list_submit() {
     if test "$2"; then
         local -a LINKS NAMES
 
-        # Note: Bash 4 has 'mapfile' builtin
-        I=0
-        while IFS= read -r LINE; do LINKS[I++]=$LINE; done <<< "$1"
-        I=0
-        while IFS= read -r LINE; do NAMES[I++]=$LINE; done <<< "$2"
+        mapfile -t LINKS <<< "$1"
+        mapfile -t NAMES <<< "$2"
 
         for I in "${!LINKS[@]}"; do
+            test "${LINKS[$I]}" || continue
             echo "$3${LINKS[$I]}"
             echo "${NAMES[$I]}"
         done
