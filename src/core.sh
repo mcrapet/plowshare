@@ -2209,7 +2209,7 @@ process_configfile_options() {
               sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
-        while read LINE; do
+        while read -r LINE; do
             NAME=$(strip <<< "${LINE%%=*}")
             VALUE=$(strip <<< "${LINE#*=}")
 
@@ -2263,8 +2263,8 @@ process_configfile_module_options() {
 
         # For example:
         # AUTH,a,auth,a=USER:PASSWORD,User account
-        while read OPTION; do
-            IFS="," read VAR SHORT LONG TYPE_HELP <<< "$OPTION"
+        while read -r; do
+            IFS="," read VAR SHORT LONG TYPE_HELP <<< "$REPLY"
 
             # Look for 'module/option_name' (short or long) in section list
             LINE=$(echo "$SECTION" | grep "^$M/\($SHORT\|$LONG\)[[:space:]]*=" | sed -n '$p') || true
