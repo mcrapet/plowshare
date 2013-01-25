@@ -173,7 +173,7 @@ done
 
 # Get configuration file options. Command-line is not parsed yet.
 match '--no-plowsharerc' "$*" || \
-    process_configfile_options 'Plowlist' "$OPTIONS"
+    process_configfile_options '[Pp]lowlist' "$OPTIONS"
 
 # Process plowup options
 eval "$(process_core_options 'plowlist' "$OPTIONS" "$@")" || exit
@@ -261,7 +261,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     # Get configuration file module options
     test -z "$NO_PLOWSHARERC" && \
-        process_configfile_module_options 'Plowlist' "$MODULE" LIST
+        process_configfile_module_options '[Pp]lowlist' "$MODULE" LIST
 
     eval "$(process_module_options "$MODULE" LIST \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true

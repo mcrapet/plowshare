@@ -255,7 +255,7 @@ done
 
 # Get configuration file options. Command-line is not parsed yet.
 match '--no-plowsharerc' "$*" || \
-    process_configfile_options 'Plowprobe' "$OPTIONS"
+    process_configfile_options '[Pp]lowprobe' "$OPTIONS"
 
 # Process plowprobe options
 eval "$(process_core_options 'plowprobe' "$OPTIONS" "$@")" || exit
@@ -361,7 +361,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         else
             # Get configuration file module options (yes, Plowdown's one)
             test -z "$NO_PLOWSHARERC" && \
-                process_configfile_module_options 'Plowdown' "$MODULE" PROBE
+                process_configfile_module_options '[Pp]lowprobe' "$MODULE" PROBE
 
             eval "$(process_module_options "$MODULE" PROBE \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true

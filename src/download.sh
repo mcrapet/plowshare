@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Download files from file sharing servers
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # Output filenames are printed on standard output (one per line).
 #
@@ -677,7 +677,7 @@ done
 
 # Get configuration file options. Command-line is not parsed yet.
 match '--no-plowsharerc' "$*" || \
-    process_configfile_options 'Plowdown' "$OPTIONS"
+    process_configfile_options '[Pp]lowdown' "$OPTIONS"
 
 # Process plowdown options
 eval "$(process_core_options 'plowdown' "$OPTIONS" "$@")" || exit
@@ -859,7 +859,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         else
             # Get configuration file module options
             test -z "$NO_PLOWSHARERC" && \
-                process_configfile_module_options 'Plowdown' "$MODULE" DOWNLOAD
+                process_configfile_module_options '[Pp]lowdown' "$MODULE" DOWNLOAD
 
             eval "$(process_module_options "$MODULE" DOWNLOAD \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
