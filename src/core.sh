@@ -2205,13 +2205,17 @@ process_configfile_options() {
     # Strip spaces in options
     OPTIONS=$(strip_and_drop_empty_lines "$2")
 
-    SECTION=$(sed -ne "/\[$1\]/,/^\[/p" -ne "/\[General\]/,/^\[/p" "$CONFIG" | \
-              sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
+    # [General] section before [$1] section
+    SECTION=$(sed -ne "/\[$1\]/,/^\[/H; /\[[Gg]eneral\]/,/^\[/p; \${x;p}" \
+        "$CONFIG" | sed -e '/^\(#\|\[\|[[:space:]]*$\)/d') || true
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
         while read -r LINE; do
             NAME=$(strip <<< "${LINE%%=*}")
             VALUE=$(strip <<< "${LINE#*=}")
+
+            # If NAME contain a '/' character, this is a module option, skip it
+            [[ $NAME = */* ]] && continue
 
             # Look for optional double quote (protect leading/trailing spaces)
             if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
@@ -2220,7 +2224,7 @@ process_configfile_options() {
             fi
 
             # Look for 'long_name' in options list
-            OPTION=$(echo "$OPTIONS" | grep ",${NAME}:\?," | sed '1q') || true
+            OPTION=$(sed -ne "/,.\?,${NAME},/{p;q}" <<< "$OPTIONS") || true
             if [ -n "$OPTION" ]; then
                 local VAR=${OPTION%%,*}
                 eval "$VAR=\$VALUE"
@@ -2255,8 +2259,9 @@ process_configfile_module_options() {
 
     OPTIONS=$(get_module_options "$2" "$3")
 
-    SECTION=$(sed -ne "/\[$1\]/,/^\[/p" -ne "/\[General\]/,/^\[/p" "$CONFIG" | \
-              sed -e '/^\(#\|\[\|[[:space:]]*$\)/d')
+    # [General] section after [$1] section
+    SECTION=$(sed -ne "/\[[Gg]eneral\]/,/^\[/H; /\[$1\]/,/^\[/p; \${x;p}" \
+        "$CONFIG" | sed -e '/^\(#\|\[\|[[:space:]]*$\)/d') || true
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
         local -r M=$(lowercase "$2")
@@ -2267,7 +2272,7 @@ process_configfile_module_options() {
             IFS="," read VAR SHORT LONG TYPE_HELP <<< "$REPLY"
 
             # Look for 'module/option_name' (short or long) in section list
-            LINE=$(echo "$SECTION" | grep "^$M/\($SHORT\|$LONG\)[[:space:]]*=" | sed -n '$p') || true
+            LINE=$(sed -ne "/^[[:space:]]*$M\/\($SHORT\|$LONG\)[[:space:]]*=/{p;q}" <<< "$SECTION") || true
             if [ -n "$LINE" ]; then
                 VALUE=$(strip <<< "${LINE#*=}")
 

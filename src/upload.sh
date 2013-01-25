@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Upload a file to file sharing servers
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # Output URL to standard output.
 #
@@ -178,7 +178,7 @@ done
 
 # Get configuration file options. Command-line is not parsed yet.
 match '--no-plowsharerc' "$*" || \
-    process_configfile_options 'Plowup' "$OPTIONS"
+    process_configfile_options '[Pp]lowup' "$OPTIONS"
 
 # Process plowup options
 eval "$(process_core_options 'plowup' "$OPTIONS" "$@")" || exit
@@ -250,7 +250,7 @@ fi
 
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_module_options 'Plowup' "$MODULE" UPLOAD
+    process_configfile_module_options '[Pp]lowup' "$MODULE" UPLOAD
 
 eval "$(process_module_options "$MODULE" UPLOAD \
     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true

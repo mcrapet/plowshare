@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Delete a file from file sharing servers
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -83,7 +83,7 @@ done
 
 # Get configuration file options. Command-line is not parsed yet.
 match '--no-plowsharerc' "$*" || \
-    process_configfile_options 'Plowdel' "$OPTIONS"
+    process_configfile_options '[Pp]lowdel' "$OPTIONS"
 
 # Process plowup options
 eval "$(process_core_options 'plowdel' "$OPTIONS" "$@")" || exit
@@ -150,7 +150,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     # Get configuration file module options
     test -z "$NO_PLOWSHARERC" && \
-        process_configfile_module_options 'Plowdel' "$MODULE" DELETE
+        process_configfile_module_options '[Pp]lowdel' "$MODULE" DELETE
 
     eval "$(process_module_options "$MODULE" DELETE \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
