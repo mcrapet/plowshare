@@ -110,6 +110,10 @@ rapidshare_download() {
             echo $((WAIT))
             return $ERR_LINK_TEMP_UNAVAILABLE
 
+        elif matchi 'Filename invalid' "$ERROR"; then
+            log_debug "Remote error: $ERROR"
+            return $ERR_LINK_DEAD
+
         elif matchi 'File \(deleted\|not found\|ID invalid\|is marked as illegal\)' "$ERROR"; then
             log_debug "Remote error: $ERROR"
             return $ERR_LINK_DEAD
