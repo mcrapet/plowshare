@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 180upload.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -139,7 +139,7 @@ MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
        -F "sess_id=$FORM_SESS" \
        -F "srv_tmp_url=$FORM_TMP_SRV" \
        -F "file_0=@$FILE;filename=$DEST_FILE" \
-       -F "file_0_descr=$DESCRIPTION" \
+       --form-string "file_0_descr=$DESCRIPTION" \
        -F "file_1=@/dev/null;filename=" \
        -F 'tos=1' \
        -F "link_rcpt=$TOEMAIL" \

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # bitshare.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -33,6 +33,8 @@ HASHKEY,,hashkey,s=HASHKEY,Hashkey used in openapi (override -a/--auth)"
 MODULE_BITSHARE_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_BITSHARE_DELETE_OPTIONS=""
+
+MODULE_BITSHARE_PROBE_OPTIONS=""
 
 # Login to bitshare (HTML form)
 # $1: authentication
@@ -84,7 +86,7 @@ bitshare_download() {
     RESPONSE=$(curl -i -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
 
     # Error - File not available
-    match 'File not available' "$RESPONSE" || return $ERR_LINK_DEAD
+    ! match 'File not available' "$RESPONSE" || return $ERR_LINK_DEAD
 
     [ -n "$CHECK_LINK" ] && return 0
 
@@ -440,4 +442,38 @@ bitshare_delete() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: bitshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+bitshare_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_NAME FILE_SIZE
+
+    PAGE=$(curl -c "$COOKIE_FILE" -b 'language_selection=EN' "$URL") || return
+
+    ! match 'File not available' "$PAGE" || return $ERR_LINK_DEAD
+
+    REQ_OUT=c
+
+    # Filename can be truncated
+    if [[ $REQ_IN = *f* ]]; then
+        FILE_NAME=$(echo "$PAGE" | parse_tag title)
+        FILE_NAME=${FILE_NAME#Download }
+        FILE_NAME=${FILE_NAME% - BitShare.com - Free File Hosting and Cloud Storage}
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '<h1>' \
+            '[[:space:]]-[[:space:]]\([[:digit:]]\+\(\.[[:digit:]]\+\)\?[[:space:]][KM]B\)yte') && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

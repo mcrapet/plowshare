@@ -162,7 +162,7 @@ mediafire_get_ofuscated_link() {
 # stdout: real file download link
 mediafire_download() {
     local -r COOKIE_FILE=$1
-    local URL PAGE FILE_URL FILE_NAME JSON JS_VAR
+    local URL PAGE JSON JS_VAR
 
     if [ -n "$AUTH_FREE" ]; then
         mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
@@ -190,9 +190,9 @@ mediafire_download() {
     esac
 
     PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL" | break_html_lines) || return
-    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet 'class="download_file_title"' 'div')
 
-    [ -z "$FILE_NAME" ] && return $ERR_LINK_DEAD
+    #<h3 class="error_msg_title">Invalid or Deleted File.</h3>
+    match 'Invalid or Deleted File' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
     # handle captcha (reCaptcha or SolveMedia) if there is one
@@ -254,10 +254,10 @@ mediafire_download() {
     fi
 
     JS_VAR=$(echo "$PAGE" | parse 'function[[:space:]]*_' '"\([^"]\+\)";' 1) || return
-    FILE_URL=$(mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href) || return
 
-    echo "$FILE_URL"
-    echo "$FILE_NAME"
+    # extract + output download link + file name
+    mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href || return
+    echo "$PAGE" | parse_tag 'title' || return
 }
 
 # Upload a file to mediafire
@@ -393,35 +393,68 @@ mediafire_upload() {
 # stdout: list of links
 mediafire_list() {
     local URL=$1
-    local REC=${2:-no}
-    local LOCATION DATA QUICKKEY NUM LINKS NAMES
+    local REC=$2
+    local -r BASE_URL='http://www.mediafire.com'
+    local RET=$ERR_LINK_DEAD
+    local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NAMES LINKS
 
     if match '/?sharekey=' "$URL"; then
+        local LOCATION
+
         LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
         if ! match '^/' "$LOCATION"; then
-            log_error "not a shared folder"
+            log_error 'This is not a shared folder'
             return $ERR_FATAL
         fi
         URL="http://www.mediafire.com$LOCATION"
     fi
 
-    QUICKKEY=$(echo "$URL" | parse 'mediafire\.com/?' '?\([^&"]*\)')
-    log_debug "quickkey: $QUICKKEY"
+    FOLDER_KEY=$(echo "$URL" | parse 'mediafire\.com/?' '?\([^&"]*\)')
+    log_debug "Key: $FOLDER_KEY"
 
-    # remark: response_format=json is also possible
-    URL="http://www.mediafire.com/api/folder/get_info.php?recursive=$REC&response_format=xml&version=1"
-    DATA=$(curl --get \
-        -d "r=$(random a 6)" \
-        -d "folder_key=$QUICKKEY" \
-        "$URL" | break_html_lines) || return
+    [ ${#FOLDER_KEY} -eq 15 ] && log_error 'This looks like a file link!'
 
-    NUM=$(echo "$DATA" | parse_tag_quiet file_count) || NUM=0
-    log_debug "There is/are $NUM file(s) in the folder"
+    XML=$(curl -d "folder_key=$FOLDER_KEY" \
+        "$BASE_URL/api/folder/get_info.php") || return
 
-    test "$NUM" -eq '0' && return $ERR_LINK_DEAD
+    # Check for errors
+    ERR=$(echo "$XML" | parse_tag_quiet 'message')
 
-    NAMES=$(echo "$DATA" | parse_all_tag filename)
-    LINKS=$(echo "$DATA" | parse_all_tag quickkey)
+    if [ -n "$ERR" ]; then
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
+    fi
 
-    list_submit "$LINKS" "$NAMES" 'http://www.mediafire.com/?' || return
+    # Note: This numbers also includes private files!
+    NUM_FILES=$(echo "$XML" | parse_tag 'file_count') || return
+    NUM_FOLDERS=$(echo "$XML" | parse_tag 'folder_count') || return
+    log_debug "There is/are $NUM_FILES file(s) and $NUM_FOLDERS sub folder(s)"
+
+    # Handle files
+    if [ "$NUM_FILES" -gt 0 ]; then
+        XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=files' \
+            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+
+        NAMES=$(echo "$XML" | parse_all_tag_quiet 'filename')
+        LINKS=$(echo "$XML" | parse_all_tag_quiet 'quickkey')
+
+        list_submit "$LINKS" "$NAMES" "$BASE_URL/?" && RET=0
+    fi
+
+    # Handle folders
+    if [ -n "$REC" -a "$NUM_FOLDERS" -gt 0 ]; then
+        local LINK
+
+        XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=folders' \
+            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+
+        LINKS=$(echo "$XML" | parse_all_tag 'folderkey') || return
+
+        for LINK in $LINKS; do
+            log_debug "Entering sub folder: $LINK"
+            mediafire_list "$BASE_URL/?$LINK" "$REC" && RET=0
+        done
+    fi
+
+    return $RET
 }

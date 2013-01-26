@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # sendspace.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -33,6 +33,7 @@ MODULE_SENDSPACE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_SENDSPACE_DELETE_OPTIONS=""
 MODULE_SENDSPACE_LIST_OPTIONS=""
+MODULE_SENDSPACE_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -129,7 +130,6 @@ sendspace_upload() {
     fi
 
     FORM_PROG_URL=$(echo "$FORM_HTML" | parse_form_input_by_name 'PROGRESS_URL') || return
-    FORM_DEST_DIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'DESTINATION_DIR') || return
     FORM_SIG=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature') || return
 
     if [ -n "$AUTH_FREE" ]; then
@@ -142,7 +142,6 @@ sendspace_upload() {
 
     PAGE=$(curl_with_log -b "$COOKIE_FILE" \
         -F "PROGRESS_URL=$FORM_PROG_URL"              \
-        -F "DESTINATION_DIR=$FORM_DEST_DIR"           \
         -F 'js_enabled=1'                             \
         -F "signature=$FORM_SIG"                      \
         -F 'upload_files='                            \
@@ -217,4 +216,37 @@ sendspace_list() {
     NAMES=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl" align="center' title)
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: sendspace url
+# $3: requested capability list
+# stdout: 1 capability per line
+sendspace_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
+
+    if match '<div class="msg error"' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_tag '"bgray"' b <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>File Size:<' 'b>\(.*\)</div') && \
+            translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

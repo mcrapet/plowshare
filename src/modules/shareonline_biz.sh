@@ -218,3 +218,50 @@ shareonline_biz_upload() {
 
     echo "$LINK"
 }
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: shareonline_biz url
+# $3: requested capability list
+# stdout: 1 capability per line
+shareonline_biz_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE TEMP DLID REQ_OUT
+
+    PAGE=$(curl -L "$URL") || return
+    DLID=$(echo "$PAGE" | parse_quiet '[[:space:]/]dl/' 'dl/\(..........\)[</]')
+
+    test "$DLID" || return $ERR_LINK_DEAD
+
+    # Official API Documentation
+    # http://www.share-online.biz/linkcheckapi/
+    TEMP=$(curl -d "links=$DLID" \
+        'http://api.share-online.biz/linkcheck.php?md5=1') || return
+
+    log_debug "API response: '$TEMP'"
+
+    local ID FILE_STATUS FILE_NAME SIZE HASH
+    IFS=";" read ID FILE_STATUS FILE_NAME SIZE HASH <<< "$TEMP"
+
+    # The requested file isn't available anymore!
+    if [ "$FILE_STATUS" != 'OK' ]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *h* ]]; then
+        test "$HASH" && echo "$HASH" && REQ_OUT="${REQ_OUT}h"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        test "$SIZE" && echo "$SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
+}

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zalaa.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -33,6 +33,10 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_ZALAA_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_ZALAA_LIST_OPTIONS=""
+
+MODULE_ZALAA_PROBE_OPTIONS=""
+
 # Output a zalaa file download URL
 # $1: cookie file (unused here)
 # $2: zalaa url
@@ -45,7 +49,8 @@ zalaa_download() {
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    # This file has been removed due to Copyright infringement
+    if match 'File Not Found\|Copyright infringement' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -154,4 +159,62 @@ zalaa_upload() {
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# List a zalaa shared file folder URL
+# $1: zalaa url
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+zalaa_list() {
+    local URL=$1
+    local PAGE NAMES LINKS
+
+    # check whether it looks like a folder link
+    if ! match "${MODULE_ZALAA_REGEXP_URL}users/" "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_error "Recursive flag not implemented, ignoring"
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_quiet 'class=.file_block' 'href="\([^"]*\)' 2)
+    NAMES=$(echo "$PAGE" | parse_all_quiet 'class=.file_block' '">\([^<]*\)' 2)
+
+    list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: zalaa url
+# $3: requested capability list
+# stdout: 1 capability per line
+zalaa_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L -b 'lang=english' "$URL") || return
+
+    # The file you were looking for could not be found, sorry for any inconvenience
+    # This file has been removed due to Copyright infringement
+    if match 'File Not Found\|Copyright infringement' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_attr '"fname"' value <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>File Size[[:space:]]*:<' \
+            '^\(.*\)$' 1) && translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

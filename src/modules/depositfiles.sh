@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DEPOSITFILES_REGEXP_URL="http://\([[:alnum:]]\+\.\)\?depositfiles\.com/"
+MODULE_DEPOSITFILES_REGEXP_URL="http://\(www\.\)\?\(depositfiles\.com\|dfiles\.eu\)/"
 
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -27,7 +27,8 @@ MODULE_DEPOSITFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 MODULE_DEPOSITFILES_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_DEPOSITFILES_UPLOAD_OPTIONS="
-AUTH,a,auth,a=USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account
+API,,api,,Use new upload method/non-public API"
 MODULE_DEPOSITFILES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DEPOSITFILES_DELETE_OPTIONS=""
@@ -212,46 +213,91 @@ depositfiles_upload() {
     local FILE=$2
     local DESTFILE=$3
     local BASE_URL='http://depositfiles.com'
-    local DATA DL_LINK DEL_LINK
+    local DATA DL_LINK DEL_LINK SIZE MAX_SIZE #used by both methods
+    local FORM_HTML FORM_URL FORM_UID FORM_GO FORM_AGREE # used by old method
+    local UP_URL STATUS MEMBER_KEY # used by new method
 
     if [ -n "$AUTH" ]; then
         depositfiles_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
     fi
 
-    DATA=$(curl -b "$COOKIEFILE" "$BASE_URL") || return
 
-    local FORM_HTML FORM_URL FORM_MAXFSIZE FORM_UID FORM_GO FORM_AGREE
-    FORM_HTML=$(grep_form_by_id "$DATA" 'upload_form') || return
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_MAXFSIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
-    FORM_GO=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'go')
-    FORM_AGREE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'agree')
+    if [ -n "$API" ]; then
+        if [ -n "$AUTH" ]; then
+            DATA=$(curl -b "$COOKIEFILE" "$BASE_URL") || return
+            MEMBER_KEY=$(echo "$DATA" | parse_attr 'upload index_upload' \
+                'sharedkey') || return
+        fi
+
+        DATA=$(curl -b "$COOKIEFILE" "$BASE_URL/api/upload/regular") || return
+        STATUS=$(echo "$DATA" | parse_json 'status') || return
+
+        if [ "$STATUS" != 'OK' ]; then
+            log_error "Unexpected remote error: $STATUS"
+            return $ERR_FATAL
+        fi
+
+        UP_URL=$(echo "$DATA" | parse_json 'upload_url') || return
+        MAX_SIZE=$(echo "$DATA" | parse_json 'max_file_size_mb') || return
+        MAX_SIZE=$(translate_size "${MAX_SIZE}MB") || return
+
+        log_debug "MEMBER_KEY: '$MEMBER_KEY'"
+        log_debug "UP_URL: $UP_URL"
+    else
+        DATA=$(curl -b "$COOKIEFILE" "$BASE_URL") || return
+
+        FORM_HTML=$(grep_form_by_id "$DATA" 'upload_form') || return
+        FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
+        MAX_SIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE')
+        FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'UPLOAD_IDENTIFIER')
+        FORM_GO=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'go')
+        FORM_AGREE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'agree')
+    fi
 
     # File size limit check
-    local SZ=$(get_filesize "$FILE")
-    if [ "$SZ" -gt "$FORM_MAXFSIZE" ]; then
-        log_debug "file is bigger than $FORM_MAXFSIZE"
+    SIZE=$(get_filesize "$FILE") || return
+    if [ "$SIZE" -gt "$MAX_SIZE" ]; then
+        log_debug "File is bigger than $MAX_SIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    DATA=$(curl_with_log -b "$COOKIEFILE" \
-        -F "MAX_FILE_SIZE=$FORM_MAXFSIZE"    \
-        -F "UPLOAD_IDENTIFIER=$FORM_UID"     \
-        -F "go=$FORM_GO"                     \
-        -F "agree=$FORM_AGREE"               \
-        -F "files=@$FILE;filename=$DESTFILE" \
-        -F "padding=$(add_padding)"          \
-        "$FORM_URL") || return
+    if [ -n "$API" ]; then
+        # Note: The website does an OPTIONS request to $UP_URL first, but
+        #       curl cannot do this.
 
-    # Invalid local or global uploads dirs configuration
-    if match 'Invalid local or global' "$DATA"; then
-        log_error "upload failure, rename file and/or extension and retry"
-        return $ERR_FATAL
+        DATA=$(curl_with_log -b "$COOKIEFILE" \
+            -F "files=@$FILE;filename=$DESTFILE" -F 'format=html5'  \
+            -F "member_passkey=$MEMBER_KEY" -F 'fm=_root' -F 'fmh=' \
+            "$UP_URL") || return
+
+        STATUS=$(echo "$DATA" | parse_json 'status') || return
+
+        if [ "$STATUS" != 'OK' ]; then
+            log_error "Unexpected remote error: $STATUS"
+            return $ERR_FATAL
+        fi
+
+        DL_LINK=$(echo "$DATA" | parse_json 'download_url') || return
+        DEL_LINK=$(echo "$DATA" | parse_json 'delete_url') || return
+    else
+        DATA=$(curl_with_log -b "$COOKIEFILE"    \
+            -F "MAX_FILE_SIZE=$FORM_MAXFSIZE"    \
+            -F "UPLOAD_IDENTIFIER=$FORM_UID"     \
+            -F "go=$FORM_GO"                     \
+            -F "agree=$FORM_AGREE"               \
+            -F "files=@$FILE;filename=$DESTFILE" \
+            -F "padding=$(add_padding)"          \
+            "$FORM_URL") || return
+
+        # Invalid local or global uploads dirs configuration
+        if match 'Invalid local or global' "$DATA"; then
+            log_error "upload failure, rename file and/or extension and retry"
+            return $ERR_FATAL
+        fi
+
+        DL_LINK=$(echo "$DATA" | parse 'ud_download_url[[:space:]]' "'\([^']*\)'") || return
+        DEL_LINK=$(echo "$DATA" | parse 'ud_delete_url' "'\([^']*\)'") || return
     fi
-
-    DL_LINK=$(echo "$DATA" | parse 'ud_download_url[[:space:]]' "'\([^']*\)'") || return
-    DEL_LINK=$(echo "$DATA" | parse 'ud_delete_url' "'\([^']*\)'") || return
 
     echo "$DL_LINK"
     echo "$DEL_LINK"

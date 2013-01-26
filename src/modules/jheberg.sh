@@ -88,11 +88,13 @@ jheberg_list() {
         return $ERR_LINK_DEAD
     fi
 
-    PAGE=$(curl "$URL") || return
-    URL2=$(echo "$PAGE" | parse_attr liendownload href) || return
-
-    # Note: HTTP referer is chekced
-    PAGE=$(curl --referer "$URL" "$BASE_URL$URL2") || return
+    # The website redirects to a "captcha" site where currently no captcha
+    # is shown. Instead you just click "Download" and get back to the real
+    # download site. We just need a proper "referer" to skip this detour.
+    #
+    # DL site: http://www.jheberg.net/download/foobar
+    # Captcha site: http://www.jheberg.net/captcha/foobar
+    PAGE=$(curl --referer "${URL/download/captcha}" "$URL") || return
 
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/redirect/' href) || return
     if [ -z "$LINKS" ]; then
