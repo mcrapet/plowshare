@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidgator.net module
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
