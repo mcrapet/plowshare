@@ -2,7 +2,7 @@
 #
 # Install files in usual Linux paths
 # Copyright (c) 2010 Arnau Sanchez
-# Copyright (c) 2011-2012 Plowshare team
+# Copyright (c) 2011-2013 Plowshare team
 #
 # This script is kept simple for portability purpose
 # (`install' from GNU coreutils is not used here).
@@ -108,10 +108,12 @@ elif [ "$1" = 'install' ]; then
                 if [ -n "$SED_PATH" ]; then
                     echo "Patching core.sh to call $SED_PRG"
                     # Note: OpenBSD and NetBSD don't have sed -i
-                    $CP "$DATADIR/core.sh" "$DATADIR/core.sh.$$"
-                    sed -e '/^set -/a\
-'"shopt -s expand_aliases; alias sed='$SED_PRG'" "$DATADIR/core.sh.$$" > "$DATADIR/core.sh"
-                    $RM "$DATADIR/core.sh.$$"
+                    for F in 'core.sh' 'download.sh' 'probe.sh'; do
+                        $CP "$DATADIR/$F" "$DATADIR/$F.$$"
+                        sed -e '/\/licenses\/>/a\
+'"shopt -s expand_aliases; alias sed='$SED_PRG'" "$DATADIR/$F.$$" > "$DATADIR/$F"
+                        $RM "$DATADIR/$F.$$"
+                    done
                     break
                 fi
             done
