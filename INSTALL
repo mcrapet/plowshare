@@ -27,6 +27,9 @@ For restricted systems (mostly NAS)
 - busybox may be present instead of bash
 - GNU coreutils tools may not be complete
 
+Note: This is also the recommended way for BSD & Mac OS X users.
+      The script will look for gsed and patch plowshare.
+
 # Default installation path: is /usr/local
 $ sudo bash setup.sh install
 
