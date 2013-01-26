@@ -106,7 +106,7 @@ elif [ "$1" = 'install' ]; then
             for SED_PRG in gsed gnu-sed; do
                 SED_PATH=`command -v $SED_PRG 2>/dev/null` || true
                 if [ -n "$SED_PATH" ]; then
-                    echo "Patching core.sh to call $SED_PRG"
+                    echo "Patching plowshare to call $SED_PRG"
                     # Note: OpenBSD and NetBSD don't have sed -i
                     for F in 'core.sh' 'download.sh' 'probe.sh'; do
                         $CP "$DATADIR/$F" "$DATADIR/$F.$$"
