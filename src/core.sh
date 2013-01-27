@@ -2013,7 +2013,7 @@ translate_size() {
             echo $(( 1073741824 * R + 1000000 * F))
             ;;
         # bytes
-        '')
+        B|'')
             echo "$R"
             ;;
         *b)
