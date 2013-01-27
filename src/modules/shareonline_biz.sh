@@ -230,7 +230,7 @@ shareonline_biz_probe() {
     local PAGE TEMP DLID REQ_OUT
 
     PAGE=$(curl -L "$URL") || return
-    DLID=$(echo "$PAGE" | parse_quiet '[[:space:]/]dl/' 'dl/\(..........\)[</]')
+    DLID=$(echo "$PAGE" | parse_quiet '[[:space:]/]dl/' 'dl/\([[:alnum:]]\+\)[</]')
 
     test "$DLID" || return $ERR_LINK_DEAD
 
