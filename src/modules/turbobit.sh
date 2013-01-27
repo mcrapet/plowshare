@@ -32,6 +32,8 @@ MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
 
+MODULE_TURBOBIT_PROBE_OPTIONS=""
+
 # Static function. Proceed with login (free or premium)
 # $1: authentication
 # $2: cookie file
@@ -341,4 +343,43 @@ turbobit_delete() {
 
     # File was deleted successfully
     match 'deleted successfully' "$PAGE" || return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Turbobit url
+# $3: requested capability list
+# stdout: 1 capability per line
+turbobit_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl -b 'user_lang=en' "$URL") || return
+
+    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+
+    REQ_OUT=c
+
+    # 		Download file:
+    #		 <span class='file-icon1 unknown'>file</span>		(42 byte)
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1 || return
+        REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        local FILE_SIZE
+
+        FILE_SIZE=$(echo "$PAGE" | parse 'Download file:'  \
+            '(\([[:digit:]]\+\(,[[:digit:]]\+\)\?[[:space:]][KMG]\?b\)\(yte\)\?)$' 1) || return
+
+        # Note: Site uses 'b' for byte but 'translate_size' wants 'B'
+        translate_size "${FILE_SIZE%b}B" || return
+        REQ_OUT="${REQ_OUT}s"
+    fi
+
+    # File hash is only available as part of the download link :-/
+    echo $REQ_OUT
 }
