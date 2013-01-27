@@ -24,7 +24,7 @@ MODULE_TURBOBIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_DOWNLOAD_RESUME=yes
 MODULE_TURBOBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=
+MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=600
 
 MODULE_TURBOBIT_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -91,6 +91,8 @@ turbobit_download() {
             "$BASE_URL") || return
 
         if [ "$ACCOUNT" = 'premium' ]; then
+            MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=0 # guessing for now
+
             PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
             FILE_URL=$(echo "$PAGE" | parse_attr '/redirect/' 'href') || return
 
