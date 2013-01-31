@@ -30,93 +30,106 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 MODULE_SHAREONLINE_BIZ_UPLOAD_REMOTE_SUPPORT=no
 
 # Output an shareonline.biz file download URL
-# $1: cookie file
+# $1: cookie file (unused here)
 # $2: shareonline.biz url
 # stdout: real file download link
 shareonline_biz_download() {
-    local -r COOKIE_FILE=$1
-    local URL=$(echo "$2" | replace '//share-online' '//www.share-online')
-    local REAL_URL UPLOAD_ID TEMP FREE_URL PAGE BASE64LINK FILE_URL
+    local URL UPLOAD_ID PAGE FREE_URL REDIR BASE64LINK FILE_URL
+    local API_UPLOAD_ID FILE_STATUS FILE_NAME SIZE
+    local CAP_ID URL_ID WAIT
 
-    # Deal with redirs (/download.php?ID => /dl/ID/)
-    REAL_URL=$(curl -I "$URL" | grep_http_header_location_quiet) || return
-    if test "$REAL_URL"; then
-       URL=$REAL_URL
+    if ! check_exec 'base64'; then
+        log_error "'base64' is required but was not found in path."
+        return $ERR_FATAL
     fi
 
+    # Deal with redirs:
+    #  share-online.biz => www.share-online.biz)
+    #  /download.php?ID => /dl/ID/
+    URL=$(curl -I "$2" | grep_http_header_location_quiet) || return
+    [ -n "$URL" ] || URL=$2
+    FREE_URL="$URL/free/"
+
     # Extract link id
-    TEMP=$(echo $URL | parse . '/dl/\(.*\)$') || return
-    UPLOAD_ID=$(uppercase "$TEMP")
+    UPLOAD_ID=$(echo $URL | parse . '/dl/\(.*\)$') || return
+    UPLOAD_ID=$(uppercase "$UPLOAD_ID")
     log_debug "upload_id: '$UPLOAD_ID'"
 
     # Get data from shareonline API
-    TEMP=$(curl -d "links=$UPLOAD_ID" \
-        'http://api.share-online.biz/linkcheck.php?md5=1') || return
+    PAGE=$(curl -d "links=$UPLOAD_ID" \
+        'http://api.share-online.biz/linkcheck.php') || return
     log_debug "API response: $TEMP"
 
-    local API_UPLOAD_ID FILE_STATUS FILENAME API_SIZE API_MD5
-    IFS=";" read API_UPLOAD_ID FILE_STATUS FILENAME API_SIZE API_MD5 <<< "$TEMP"
+    IFS=";" read API_UPLOAD_ID FILE_STATUS FILE_NAME SIZE <<< "$PAGE"
 
-    log_debug "upload_id: $API_UPLOAD_ID"
-    log_debug "file status: $FILE_STATUS"
-    log_debug "filename: $FILENAME"
-    log_debug "API size: $API_SIZE"
-    log_debug "API md5 hash: $API_MD5"
+    log_debug "Upload ID: $API_UPLOAD_ID"
+    log_debug "File status: $FILE_STATUS"
+    log_debug "Filename: $FILE_NAME"
+    log_debug "File size: $SIZE"
 
     # The requested file isn't available anymore!
-    if [ "$FILE_STATUS" != 'OK' ]; then
-        return $ERR_LINK_DEAD
-    fi
-
-    test "$CHECK_LINK" && return 0
-
-    # Load Main page (set website language to english is not necessary)
-    # PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" $URL) || return
+    [ "$FILE_STATUS" = 'OK' ] || return $ERR_LINK_DEAD
+    [ -n "$CHECK_LINK" ] && return 0
 
     # Load second page
-    FREE_URL="$URL/free/"
-    PAGE=$(curl -b "$COOKIE_FILE" -d 'dl_free=1' "$FREE_URL" ) || return
+    PAGE=$(curl --include -d 'dl_free=1' -d 'choice=free' "$FREE_URL" ) || return
 
-    # Handle server response
-    if match '/free/' "$PAGE"; then
-        log_debug "free slot available"
-    elif match 'failure/\(full\|threads\|server\)' "$PAGE"; then
-        log_debug "no free user download possible for you at the moment"
+    # Handle errors/redirects
+    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+
+    if [ -n "$REDIR" ]; then
+        local ERR=$(echo "$REDIR" | parse_quiet . 'failure/\([^/]\+\)')
+
+        case $ERR in
+            ipfree)
+                log_error 'No parallel download allowed.'
+                ;;
+            full)
+                log_error 'No free download possible at the moment.'
+                ;;
+            session|bandwidth|overload|cookie|expired|invalid|precheck|proxy|threads|server|chunks)
+                log_error 'Server issues.'
+                ;;
+            freelimit)
+                return $ERR_LINK_NEED_PERMISSIONS
+                ;;
+            size)
+                return $ERR_SIZE_LIMIT_EXCEEDED
+                ;;
+            *)
+                # Note: This also matches when "$ERR" is empty.
+                log_error "Unexpected server response (REDIR = '$REDIR'). Site updated?"
+                return $ERR_FATAL
+                ;;
+        esac
+
         echo 120 # arbitrary time
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match 'failure/\(session\|ip\|bandwith\|cookie\)' "$PAGE"; then
-        log_debug "there is some kind of network error at the moment"
-        return $ERR_NETWORK
-    elif match 'failure/size' "$PAGE"; then
-        log_debug "file to big for free user download"
-        return $ERR_LINK_NEED_PERMISSIONS
-    else
-        log_error "unknown server status - unexpected error - site update?"
-        return $ERR_FATAL
     fi
 
     # Second Page is reCaptcha page if there was no error
     if ! match 'var captcha = false' "$PAGE"; then
-        log_error "No captcha requested? Please report this issue"
+        log_error 'No captcha requested? Please report this issue'
         return $ERR_FATAL
     fi
 
-    local CAP_ID URL_ID
     CAP_ID=$(echo "$PAGE" | parse 'var[[:space:]]\+dl=' \
         '[[:space:]]dl="\([^"]*\)') || return
     CAP_ID=$(base64 -d <<< "$CAP_ID")
     URL_ID=$(echo "$PAGE" | parse '///' '///\([[:digit:]]\+\)') || return
-    log_debug "captcha: '$CAP_ID'"
-    log_debug "url id: $URL_ID"
+    log_debug "Captcha: '$CAP_ID'"
+    log_debug "URL ID: $URL_ID"
 
     # Solve recaptcha
     local PUBKEY WCI CHALLENGE WORD ID
     PUBKEY='6LdatrsSAAAAAHZrB70txiV5p-8Iv8BtVxlTtjKX'
     WCI=$(recaptcha_process $PUBKEY)
-    { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+    { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
 
-    # Wait before send recaptcha data
-    wait 15 || return
+    # Wait before send recaptcha data (and then again before actual download)
+    # 'var wait=30; [...] <current time> + wait/2'
+    WAIT=$(echo "$PAGE" | parse 'var wait' 'wait=\([[:digit:]]\+\)') || return
+    wait $(( ($WAIT / 2) + 1 )) || return
 
     BASE64LINK=$(curl -b "$COOKIE_FILE" -d 'dl_free=1' \
         -d "captcha=${CAP_ID:5}" \
@@ -126,25 +139,25 @@ shareonline_biz_download() {
 
     if [ "$BASE64LINK" = '0' ]; then
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'Correct captcha'
 
     FILE_URL=$(echo "$BASE64LINK" | base64 --decode) || return $ERR_SYSTEM
 
     # Sanity check
     if [ -z "$FILE_URL" ]; then
-        log_error "Emergency exit - the file url is zero - unexpected error - site update?"
+        log_error 'File URL not found. Site updated?'
         return $ERR_FATAL
     fi
 
-    wait 32 || return
+    wait $(( $WAIT + 1 )) || return
 
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to Share-Online.biz
