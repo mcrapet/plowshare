@@ -21,10 +21,11 @@
 
 MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)"
 
-MODULE_1FICHIER_DOWNLOAD_OPTIONS=""
+MODULE_1FICHIER_DOWNLOAD_OPTIONS="
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
 MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_1FICHIER_DOWNLOAD_SUCCESSIVE_INTERVAL=
+MODULE_1FICHIER_DOWNLOAD_SUCCESSIVE_INTERVAL=300
 
 MODULE_1FICHIER_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -39,18 +40,17 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
 MODULE_1FICHIER_PROBE_OPTIONS=""
 
 # Output a 1fichier file download URL
-# $1: cookie file
+# $1: cookie file (unused here)
 # $2: 1fichier.tld url
 # stdout: real file download link
 #
 # Note: Consecutive HTTP requests must be delayed (>10s).
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
-    local COOKIEFILE=$1
-    local URL=$2
-    local PAGE FILE_URL FILENAME
+    local -r URL=$2
+    local PAGE FILE_URL FILE_NAME
 
-    PAGE=$(curl -c "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl "$URL") || return
 
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
@@ -70,26 +70,33 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Adyoulike (advertising) Captcha..
-    # Important: It is currenly disabled...
-    FILE_URL=$(curl -i -b "$COOKIEFILE" \
-        -d '_ayl_captcha_engine=adyoulike' \
-        -d '_ayl_response=' \
-        -d '_ayl_utf8_ie_fix=%E2%98%83' \
-        -d '_ayl_env=prod' \
-        -d '_ayl_token_challenge=VxuaYvYGUvk9npNIV6BKr3n4TNh%7EMjA4' \
-        -d '_ayl_tid=ABEIAuodCEKHRD30ntA6dojxuYaCfgd1' \
-        "$URL" | grep_http_header_location_quiet) || return
+    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet 'Nom du fichier' td)
 
-    if [ -z "$FILE_URL" ]; then
-        log_error "Wrong captcha"
-        return $ERR_CAPTCHA
+    if match 'name="pass"' "$PAGE"; then
+        if [ -z "$LINK_PASSWORD" ]; then
+            LINK_PASSWORD=$(prompt_for_password) || return
+        fi
+
+        FILE_URL=$(curl -i -F "pass=$LINK_PASSWORD" "$URL" | \
+            grep_http_header_location_quiet) || return
+
+        test "$FILE_URL" || return $ERR_LINK_PASSWORD_REQUIRED
+
+        echo "$FILE_URL"
+        echo "$FILE_NAME"
+        return 0
     fi
 
-    FILENAME=$(echo "$PAGE" | parse_quiet '<title>' '<title>Téléchargement du fichier : *\([^<]*\)')
+    FILE_URL=$(curl -i -d 'a=1' "$URL" | \
+        grep_http_header_location_quiet) || return
+
+    if [ -z "$FILE_URL" ]; then
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to 1fichier.tld
