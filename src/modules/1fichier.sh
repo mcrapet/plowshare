@@ -2,7 +2,7 @@
 #
 # 1fichier.com module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)/\?"
+MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)"
 
 MODULE_1FICHIER_DOWNLOAD_OPTIONS=""
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
@@ -35,6 +35,8 @@ TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_1FICHIER_DELETE_OPTIONS=""
+
+MODULE_1FICHIER_PROBE_OPTIONS=""
 
 # Output a 1fichier file download URL
 # $1: cookie file
@@ -166,4 +168,43 @@ MODULE_1FICHIER_DELETE_OPTIONS=""
         log_debug "unexpected result, site updated?"
         return $ERR_FATAL
     fi
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: 1fichier url
+# $3: requested capability list
+1fichier_probe() {
+    local URL=${2%/}
+    local -r REQ_IN=$3
+    local FID RESPONSE FILE_NAME FILE_SIZE
+
+    # Try to get a "strict" url
+    FID=$(echo "$URL" | parse_quiet . '://\([[:alnum:]]*\)\.')
+    [ -n "$FID" ] && URL="http://$FID.1fichier.com"
+
+    RESPONSE=$(curl --form-string "links[]=$URL" \
+        'https://www.1fichier.com/check_links.pl') || return
+
+    # Note: Password protected links return NOT FOUND
+    if match '\(NOT FOUND\|BAD LINK\)$' "$RESPONSE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    # url;filename;filesize
+    IFS=';' read URL FILE_NAME FILE_SIZE <<< "$RESPONSE"
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$FILE_NAME"
+        REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        echo "$FILE_SIZE"
+        REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }
