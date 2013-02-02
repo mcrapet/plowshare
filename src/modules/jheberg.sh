@@ -72,7 +72,7 @@ jheberg_upload() {
 # $2: recurse subfolders (ignored here)
 # stdout: list of links
 jheberg_list() {
-    local -r URL=$1
+    local -r URL=${1/\/captcha\//\/download\/}
     local -r BASE_URL='http://www.jheberg.net'
     local JSON PAGE URL2 LINKS NAMES REL_URL
 
@@ -113,7 +113,7 @@ jheberg_list() {
             -F "slug=$DL_ID" -F "host=$HOSTER"    \
             "$BASE_URL/redirect-ajax/") || return
 
-        URL2=$(echo "$JSON" | parse_json url)
+        URL2=$(echo "$JSON" | parse_json_quiet url)
         if match_remote_url "$URL2"; then
             echo "$URL2"
             echo "${NAMES[0]}"
