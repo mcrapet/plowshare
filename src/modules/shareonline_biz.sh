@@ -34,8 +34,9 @@ MODULE_SHAREONLINE_BIZ_UPLOAD_REMOTE_SUPPORT=no
 # $2: shareonline.biz url
 # stdout: real file download link
 shareonline_biz_download() {
-    local URL UPLOAD_ID PAGE FREE_URL REDIR BASE64LINK FILE_URL
-    local API_UPLOAD_ID FILE_STATUS FILE_NAME SIZE
+    local -r BASE_URL='http://www.share-online.biz'
+    local URL FILE_ID PAGE REDIR BASE64LINK FILE_URL
+    local API_FILE_ID FILE_STATUS FILE_NAME SIZE
     local CAP_ID URL_ID WAIT
 
     if ! check_exec 'base64'; then
@@ -43,26 +44,35 @@ shareonline_biz_download() {
         return $ERR_FATAL
     fi
 
-    # Deal with redirs:
-    #  share-online.biz => www.share-online.biz)
-    #  /download.php?ID => /dl/ID/
-    URL=$(curl -I "$2" | grep_http_header_location_quiet) || return
-    [ -n "$URL" ] || URL=$2
-    FREE_URL="$URL/free/"
+    # Extract file ID from all possible URL formats
+    #  http://www.share-online.biz/download.php?id=xyz
+    #  http://share-online.biz/download.php?id=xyz
+    FILE_ID=$(echo $2 | parse_quiet . 'id=\([[:alnum:]]\+\)$')
 
-    # Extract link id
-    UPLOAD_ID=$(echo $URL | parse . '/dl/\(.*\)$') || return
-    UPLOAD_ID=$(uppercase "$UPLOAD_ID")
-    log_debug "upload_id: '$UPLOAD_ID'"
+    #  http://www.share-online.biz/dl/xyz
+    #  http://share-online.biz/dl/xyz
+    if [ -z "$FILE_ID" ]; then
+        FILE_ID=$(echo $2 | parse_quiet . '/dl/\([[:alnum:]]\+\)$')
+    fi
+
+    if [ -z "$FILE_ID" ]; then
+        log_error 'Could not get file ID. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    FILE_ID=$(uppercase "$FILE_ID")
+	URL="$BASE_URL/dl/$FILE_ID/free/"
+    log_debug "File ID: '$FILE_ID'"
 
     # Get data from shareonline API
-    PAGE=$(curl -d "links=$UPLOAD_ID" \
-        'http://api.share-online.biz/linkcheck.php') || return
-    log_debug "API response: $TEMP"
+    # Note: API requires ID to be uppercase
+    PAGE=$(curl -d "links=$FILE_ID" \
+        "${BASE_URL/www/api}/linkcheck.php") || return
+    log_debug "API response: $PAGE"
 
-    IFS=";" read API_UPLOAD_ID FILE_STATUS FILE_NAME SIZE <<< "$PAGE"
+    IFS=";" read API_FILE_ID FILE_STATUS FILE_NAME SIZE <<< "$PAGE"
 
-    log_debug "Upload ID: $API_UPLOAD_ID"
+    log_debug "File ID: $API_FILE_ID"
     log_debug "File status: $FILE_STATUS"
     log_debug "Filename: $FILE_NAME"
     log_debug "File size: $SIZE"
@@ -72,7 +82,7 @@ shareonline_biz_download() {
     [ -n "$CHECK_LINK" ] && return 0
 
     # Load second page
-    PAGE=$(curl --include -d 'dl_free=1' -d 'choice=free' "$FREE_URL" ) || return
+    PAGE=$(curl --include -d 'dl_free=1' -d 'choice=free' "$URL" ) || return
 
     # Handle errors/redirects
     REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
@@ -135,7 +145,7 @@ shareonline_biz_download() {
         -d "captcha=${CAP_ID:5}" \
         -d "recaptcha_challenge_field=$CHALLENGE" \
         -d "recaptcha_response_field=$WORD" \
-        "${FREE_URL}captcha/$URL_ID") || return
+        "${URL}captcha/$URL_ID") || return
 
     if [ "$BASE64LINK" = '0' ]; then
         captcha_nack $ID
