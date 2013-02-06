@@ -214,7 +214,7 @@ download() {
     timeout_init $TIMEOUT
 
     AWAIT=$(module_config_wait "$MODULE")
-    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* ]]; then
+    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* && -z "$CHECK_LINK" ]]; then
         log_notice "Same previous hoster, forced wait requested"
         wait $AWAIT || {
             log_error "Delay limit reached (${FUNCTION})";
