@@ -210,6 +210,6 @@ extabit_upload() {
         "$FORM_ACTION") || return
 
     # Site redirects to download page directly after upload
-    FORM_HTML=$(grep_form_by_id "$PAGE" 'cmn_form') || return
-    echo "$BASE_URL$(echo "$FORM_HTML" | parse_form_action)" || return
+    # <label class="b-link"><input type="text" value="http://extabit.com/file/xyz"/></label>
+    echo "$PAGE" | parse_attr '<label class="b-link">' 'value' || return
 }
