@@ -12,7 +12,7 @@ cloudzer_net    | download |        |        |      | probe |
 cramit          | download | upload | delete | list |       |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
-depositfiles    | download | upload | delete | list |       |
+depositfiles    | download | upload | delete | list | probe |
 divshare        | download | upload | delete | list |       |
 dl_free_fr      | download | upload | delete |      |       |
 euroshare_eu    | download | upload | delete |      | probe |

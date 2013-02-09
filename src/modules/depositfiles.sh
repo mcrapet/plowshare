@@ -357,3 +357,31 @@ add_padding() {
         STR="$STR "
     done
 }
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Depositfiles url
+# $3: requested capability list
+# stdout: 1 capability per line
+depositfiles_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl --location -b 'lang_current=en' "$URL") || return
+
+    match 'This file does not exist' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse 'var filename' "'\([^']\+\)'" &&
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        echo "$PAGE" | parse 'var filesize' "'\([^']\+\)'" &&
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
+}
