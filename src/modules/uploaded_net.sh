@@ -37,7 +37,9 @@ MODULE_UPLOADED_NET_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPLOADED_NET_DELETE_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
+
 MODULE_UPLOADED_NET_LIST_OPTIONS=""
+MODULE_UPLOADED_NET_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
