@@ -353,31 +353,26 @@ turbobit_delete() {
 turbobit_probe() {
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT
+    local PAGE REQ_OUT FILE_SIZE
 
     PAGE=$(curl -b 'user_lang=en' "$URL") || return
 
     match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
-
     REQ_OUT=c
 
     # 		Download file:
     #		 <span class='file-icon1 unknown'>file</span>		(42 byte)
 
     if [[ $REQ_IN = *f* ]]; then
-        echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1 || return
-        REQ_OUT="${REQ_OUT}f"
+        echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1 &&
+            REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        local FILE_SIZE
-
-        FILE_SIZE=$(echo "$PAGE" | parse 'Download file:'  \
-            '(\([[:digit:]]\+\(,[[:digit:]]\+\)\?[[:space:]][KMG]\?b\)\(yte\)\?)$' 1) || return
-
         # Note: Site uses 'b' for byte but 'translate_size' wants 'B'
-        translate_size "${FILE_SIZE%b}B" || return
-        REQ_OUT="${REQ_OUT}s"
+        FILE_SIZE=$(echo "$PAGE" | parse 'Download file:'  \
+            '(\([[:digit:]]\+\(,[[:digit:]]\+\)\?[[:space:]][KMG]\?b\)\(yte\)\?)$' 1) &&
+            translate_size "${FILE_SIZE%b}B" && REQ_OUT="${REQ_OUT}s"
     fi
 
     # File hash is only available as part of the download link :-/
