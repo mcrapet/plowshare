@@ -71,6 +71,28 @@ mediafire_login() {
     log_debug "Successfully logged in as member '$NAME'"
 }
 
+# Extract file/folder ID from download link
+# $1: Mediafire download URL
+# stdout: file/folder ID
+mediafire_extract_id() {
+    local ID
+
+    # Extract file/folder ID from all possible link formats
+    #   http://www.mediafire.com/download.php?xyz
+    #   http://www.mediafire.com/?xyz
+    ID=$(echo "$1" | parse . '?\([[:alnum:]]\+\)$') || return
+    log_debug "File/Folder ID: '$ID'"
+    echo "$ID"
+}
+
+# Check whether a given ID is a file ID (and not a folder ID)
+# $1: Mediafire file/folder ID
+# $?: return 0 if ID is a file ID, 1 if it is a folder ID
+mediafire_is_file_id() {
+    # Folder IDs have 13 digits, file IDs vary in length (11, 15)
+    [ ${#1} -ne 13 ]
+}
+
 # Retrieve current session key
 # $1: cookie file (logged into account)
 # $2: base URL
@@ -162,22 +184,29 @@ mediafire_get_ofuscated_link() {
 # stdout: real file download link
 mediafire_download() {
     local -r COOKIE_FILE=$1
-    local URL PAGE JSON JS_VAR
+    local -r BASE_URL='http://www.mediafire.com'
+    local FILE_ID URL PAGE JSON JS_VAR
 
     if [ -n "$AUTH_FREE" ]; then
         mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
-    # Mediafire redirects all possible urls of a file to the canonical one
-    URL=$(curl --head "$2" | grep_http_header_location_quiet) || return
-    if [ -z "$URL" ]; then
-        URL=$2
-    elif [[ "$URL" = /* ]]; then
-        URL="$(basename_url "$2")$URL"
+    FILE_ID=$(mediafire_extract_id "$2") || return
+
+    if ! mediafire_is_file_id "$FILE_ID"; then
+        log_error 'This is a folder link. Please use plowlist!'
+        return $ERR_FATAL
     fi
 
+    # Only get site headers first to capture direct download links
+    URL=$(curl --head "$BASE_URL/?$FILE_ID" | grep_http_header_location_quiet) || return
+
     case "$URL" in
-        http://download*)
+        # no redirect, normal download
+        '')
+            URL="$BASE_URL/?$FILE_ID"
+            ;;
+        http://*)
             log_debug 'Direct download'
             echo "$URL"
             return 0
@@ -402,21 +431,23 @@ mediafire_list() {
     local RET=$ERR_LINK_DEAD
     local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NAMES LINKS
 
-    if match '/?sharekey=' "$URL"; then
+    if [[ "$URL" = */?sharekey=* ]]; then
         local LOCATION
 
         LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
-        if ! match '^/' "$LOCATION"; then
+        if [[ "$LOCATION" != /* ]]; then
             log_error 'This is not a shared folder'
             return $ERR_FATAL
         fi
-        URL="http://www.mediafire.com$LOCATION"
+        FOLDER_KEY=$(mediafire_extract_id "$LOCATION") || return
+    else
+        FOLDER_KEY=$(mediafire_extract_id "$URL") || return
     fi
 
-    FOLDER_KEY=$(echo "$URL" | parse 'mediafire\.com/?' '?\([^&"]*\)')
-    log_debug "Key: $FOLDER_KEY"
-
-    [ ${#FOLDER_KEY} -eq 15 ] && log_error 'This looks like a file link!'
+    if mediafire_is_file_id "$FOLDER_KEY"; then
+        log_error 'This is a file link. Please use plowdown!'
+        return $ERR_FATAL
+    fi
 
     XML=$(curl -d "folder_key=$FOLDER_KEY" \
         "$BASE_URL/api/folder/get_info.php") || return
