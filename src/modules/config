@@ -40,7 +40,7 @@ shareonline_biz | download | upload |        |      | probe |
 turbobit        | download | upload | delete |      | probe |
 uploadhero      | download | upload | delete | list |       |
 uploading       | download | upload |        |      |       |
-uploaded_net    | download | upload | delete | list |       |
+uploaded_net    | download | upload | delete | list | probe |
 uptobox         | download | upload |        |      |       |
 zalaa           | download | upload |        | list | probe |
 zippyshare      | download | upload |        | list | probe |

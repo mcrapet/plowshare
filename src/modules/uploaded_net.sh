@@ -535,3 +535,36 @@ uploaded_net_list() {
 
     list_submit "$LINKS" "$NAMES" 'http://uploaded.net/file/' || return
 }
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Uploaded.net url
+# $3: requested capability list
+# stdout: 1 capability per line
+uploaded_net_probe() {
+    local -r REQ_IN=$3
+    local URL PAGE REQ_OUT FILE_SIZE
+
+    # Uploaded.net redirects all possible urls of a file to the canonical one
+    # Note: There can be multiple redirections before the final one
+    URL=$(curl -I -L "$2" | grep_http_header_location_quiet | last_line) || return
+    [ -n "$URL" ] || URL=$2
+
+    # Page not found
+    # The requested file isn't available anymore!
+    [[ $URL = *404 || $URL = *410 ]]  && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    PAGE=$(curl --location -b 'lang_current=en' "$URL/status") || return
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | first_line && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | last_line) && translate_size "$FILE_SIZE" &&
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
+}
