@@ -882,8 +882,7 @@ get_filesize() {
     if [ -z "$FILE_SIZE" ]; then
         FILE_SIZE=$(ls -l "$1" 2>/dev/null | cut -d' ' -f5)
         if [ -z "$FILE_SIZE" ]; then
-            log_error "can't get file size"
-            echo '-1'
+            log_error "$FUNCNAME: error accessing \`$1'"
             return $ERR_SYSTEM
         fi
     fi
@@ -1755,7 +1754,6 @@ captcha_nack() {
 #   - "L": letters [A-Z]. Param: length.
 #   - "ll", "LL": letters [A-Za-z]. Param: length.
 #   - "u16": unsigned short (decimal) number <=65535. Example: "352".
-# $2: (optional) operation parameter
 random() {
     local I=0
     local LEN=${2:-8}
