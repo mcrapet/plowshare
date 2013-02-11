@@ -632,6 +632,14 @@ break_html_lines_alt() {
     sed -e 's/<[^>]*>/&\n/g'
 }
 
+# Delete html comments
+# Credits: http://sed.sourceforge.net/grabbag/scripts/strip_html_comments.sed
+# stdin: (X)HTML data
+# stdout: result
+strip_html_comments() {
+    sed -e '/<!--/!b' -e ':a' -e '/-->/!{N;ba;}' -e 's/<!--.*-->//'
+}
+
 # Parse single named HTML marker content
 # <tag>..</tag>
 # <tag attr="x">..</tag>
@@ -897,7 +905,7 @@ get_filesize() {
 # Create a tempfile and return path
 # Note for later: use mktemp (GNU coreutils)
 #
-# $1: Suffix
+# $1: (optional) filename suffix
 create_tempfile() {
     local -r SUFFIX=$1
     local FILE="${TMPDIR:-/tmp}/$(basename_file "$0").$$.$RANDOM$SUFFIX"
@@ -1752,7 +1760,7 @@ captcha_nack() {
 #                 Param: number of digits.
 #   - "h", "hex": hexadecimal number. First digit is never 0. No '0x' prefix.
 #                 Param: number of digits.
-#   - "H": same as "h" but in uppercases
+#   - "H", "HEX": same as "h" but in uppercases
 #   - "js": Math.random() equivalent (>=0 and <1).
 #           It's a double: ~15.9 number of decimal digits). No param.
 #   - "l": letters [a-z]. Param: length.
@@ -1786,7 +1794,7 @@ random() {
                 (( I += 4 ))
             done
             ;;
-        H)
+        H|HEX)
             RESULT=$(printf '%X' $(( SEED % 15 + 1 )))
             (( ++I ))
             while (( I < $LEN )); do
