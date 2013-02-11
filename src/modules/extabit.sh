@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # extabit.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -30,11 +30,13 @@ MODULE_EXTABIT_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_EXTABIT_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_EXTABIT_PROBE_OPTIONS=""
+
 # Static function. Proceed with login (free or premium)
 extabit_login() {
-    local AUTH=$1
-    local COOKIE_FILE=$2
-    local BASE_URL=$3
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
     local LOGIN_DATA LOGIN_RESULT STATUS
 
     LOGIN_DATA='email=$USER&pass=$PASSWORD&remember=1&auth_submit_login.x=33&auth_submit_login.y=5'
@@ -119,6 +121,11 @@ extabit_download() {
     # The file that you're trying to download is larger than 400 Mb
     elif match 'to download files of any size!' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
+
+    # File is temporary unavailable
+    elif match 'ile is temporary unavailable' "$PAGE"; then
+        echo 3600
+        return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     FILE_NAME=$(echo "$PAGE" | parse_attr 'div title' title)
@@ -212,4 +219,36 @@ extabit_upload() {
     # Site redirects to download page directly after upload
     # <label class="b-link"><input type="text" value="http://extabit.com/file/xyz"/></label>
     echo "$PAGE" | parse_attr '<label class="b-link">' 'value' || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: extabit url
+# $3: requested capability list
+# stdout: 1 capability per line
+extabit_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_NAME FILE_SIZE
+
+    PAGE=$(curl -b 'language=en' "$URL") || return
+
+    # <h1>File not found</h1>
+    if match 'page_404_header' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        FILE_NAME=$(echo "$PAGE" | parse '>File:<' 'title="\([^"]*\)' 2) &&
+            echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>Size:<' '">\([^<]*\)</' 1) && \
+            translate_size "${FILE_SIZE/b/B}" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

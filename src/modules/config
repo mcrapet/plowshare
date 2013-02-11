@@ -16,7 +16,7 @@ depositfiles    | download | upload | delete | list | probe |
 divshare        | download | upload | delete | list |       |
 dl_free_fr      | download | upload | delete |      | probe |
 euroshare_eu    | download | upload | delete |      | probe |
-extabit         | download | upload |        |      |       |
+extabit         | download | upload |        |      | probe |
 filebox         | download | upload | delete |      |       |
 filemates       | download | upload | delete | list |       |
 filepost        | download | upload | delete | list |       |
