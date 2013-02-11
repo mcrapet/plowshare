@@ -28,7 +28,7 @@ _plowup()
             ;;
     esac
 
-    if [[ "$cur" == -* ]]; then
+    if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i -r -t \
             --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
@@ -42,7 +42,7 @@ _plowup()
         # note: _get_first_arg is not accurate enough (option with argument)
         for m in $list; do
             for (( i=0; i < ${#COMP_WORDS[@]}; i++ )); do
-                if [ "${COMP_WORDS[i]}" == $m ]; then
+                if [ "${COMP_WORDS[i]}" = $m ]; then
                     _filedir
                     return 0
                 fi
@@ -88,14 +88,18 @@ _plowdown()
             # empty for now
             return 0
             ;;
+        --cookies)
+            _filedir
+            return 0
+            ;;
     esac
 
-    if [[ "$cur" == -* ]]; then
+    if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i -o -m -r -t -x \
             --max-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
-            --fallback --9kweu --antigate --captchabhood --deathbycaptcha \
+            --fallback --cookies --9kweu --antigate --captchabhood --deathbycaptcha \
             --captchamethod --captchaprogram --printf --exec --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         _filedir
@@ -117,7 +121,7 @@ _plowdel()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a)
+        -a|-b|--auth|--auth-free)
             # argument required but no completion available
             return 0
             ;;
@@ -127,7 +131,7 @@ _plowdel()
             ;;
     esac
 
-    if [[ "$cur" == -* ]]; then
+    if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i --interface --no-plowsharerc' -- $cur ) )
     else
@@ -161,7 +165,7 @@ _plowlist()
             ;;
     esac
 
-    if [[ "$cur" == -* ]]; then
+    if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc' -- $cur ) )
     else
@@ -170,5 +174,39 @@ _plowlist()
     fi
 } &&
 complete -F _plowlist plowlist
+
+have plowprobe &&
+_plowprobe()
+{
+    local cur prev
+
+    COMPREPLY=()
+    cur=`_get_cword`
+    prev=`_get_pword`
+
+    case "$prev" in
+        -v)
+            COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
+            return 0
+            ;;
+        -p|--printf)
+            # argument required but no completion available
+            return 0
+            ;;
+        -i|--interface)
+            _available_interfaces -a
+            return 0
+            ;;
+    esac
+
+    if [[ $cur = -* ]]; then
+        COMPREPLY=( $( compgen -W '--help --version --quiet \
+            -v -q -i --get-module --interface --printf --follow --no-curlrc --no-plowsharerc' -- $cur ) )
+    else
+        # URL pattern expected
+        _filedir
+    fi
+} &&
+complete -F _plowprobe plowprobe
 
 # ex: ts=4 sw=4 et filetype=sh
