@@ -34,6 +34,8 @@ MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DL_FREE_FR_DELETE_OPTIONS=""
 
+MODULE_DL_FREE_FR_PROBE_OPTIONS=""
+
 declare -r AYL_SERVER='http://api.adyoulike.com/'
 # Adyoulike decoding function
 # Main engine: http://api-ayl.appspot.com/static/js/ayl_lib.js
