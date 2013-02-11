@@ -92,14 +92,15 @@ zippyshare_download() {
     fi
 
     detect_javascript || return
+    PAGE=$(strip_html_comments <<< "$PAGE")
 
     # Detect audio/video content
     if match 'Audio Player' "$PAGE"; then
-      N=-7
+      N=-5
     elif  match 'class=.movie-share.' "$PAGE"; then
       N=-5
     else
-      N=-3
+      N=-2
     fi
 
     JS=$(grep_script_by_order "$PAGE" $N)
