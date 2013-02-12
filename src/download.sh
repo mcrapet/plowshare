@@ -379,6 +379,12 @@ download() {
             fi
         fi
 
+        # Sanity check 4
+        if [[ $FILENAME =~ $'\r' ]]; then
+            log_debug "filename contains \r, remove it"
+            FILENAME=${FILENAME//$'\r'}
+        fi
+
         # On most filesystems, maximum filename length is 255
         # http://en.wikipedia.org/wiki/Comparison_of_file_systems
         if [ "${#FILENAME}" -ge 255 ]; then
@@ -386,7 +392,7 @@ download() {
             log_debug "filename is too long, truncating it"
         fi
 
-        # Sanity check 4
+        # Sanity check 5
         if [[ $FILENAME =~ / ]]; then
             log_debug "filename contains slashes, translate to underscore"
             FILENAME=${FILENAME//\//_}
