@@ -1970,7 +1970,7 @@ translate_size() {
         return $ERR_FATAL
     fi
 
-    S=$(sed -ne '/[.,]/{s/^\(-\?[[:digit:]]*\)[.,]\([[:digit:]]\+\).*$/\1_\2/p;b};
+    S=$(sed -ne '/[.,]/{s/^\(-\?[[:digit:]]*\)[.,]\([[:digit:]]\+\).*$/\1_\2/p;b;};
         s/^\(-\?[[:digit:]]\+\).*$/\1_/p' <<< "$N") || return $ERR_SYSTEM
 
     if [[ $S = '' || $S = '_' ]]; then
