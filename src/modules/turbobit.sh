@@ -31,7 +31,6 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
-
 MODULE_TURBOBIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
@@ -86,7 +85,9 @@ turbobit_download() {
     match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
-    FILE_NAME=$(echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1) || return
+    # Download xyz. Free download without registration from TurboBit.net
+    FILE_NAME=$(echo "$PAGE" | parse '<title>' \
+        '^[[:blank:]]*Download \(.\+\). Free' 1) || return
 
     if [ -n "$AUTH" ]; then
         ACCOUNT=$(turbobit_login "$AUTH" "$COOKIE_FILE" \
@@ -360,12 +361,9 @@ turbobit_probe() {
     match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
-    # 		Download file:
-    #		 <span class='file-icon1 unknown'>file</span>		(42 byte)
-
     if [[ $REQ_IN = *f* ]]; then
-        echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1 &&
-            REQ_OUT="${REQ_OUT}f"
+        echo "$PAGE" | parse '<title>' \
+            '^[[:blank:]]*Download \(.\+\). Free' 1 && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
