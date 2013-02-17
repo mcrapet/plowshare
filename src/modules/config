@@ -25,7 +25,7 @@ go4up           |          | upload | delete | list |       |
 hotfile         | download | upload |        | list | probe |
 jheberg         |          | upload |        | list |       |
 letitbit        | download | upload | delete | list | probe |
-mediafire       | download | upload |        | list |       |
+mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |

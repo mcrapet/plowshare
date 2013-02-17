@@ -35,6 +35,7 @@ PRIVATE_FILE,,private,,Do not show file in folder view"
 MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
+MODULE_MEDIAFIRE_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -492,4 +493,50 @@ mediafire_list() {
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Mediafire url
+# $3: requested capability list
+# stdout: 1 capability per line
+mediafire_probe() {
+    local -r REQ_IN=$3
+    local -r BASE_URL='http://www.mediafire.com'
+    local FILE_ID XML REQ_OUT
+
+    FILE_ID=$(mediafire_extract_id "$2") || return
+
+    if ! mediafire_is_file_id "$FILE_ID"; then
+        log_error 'This is a folder link. Please use plowlist!'
+        return $ERR_FATAL
+    fi
+
+    XML=$(curl -d "quick_key=$FILE_ID" "$BASE_URL/api/file/get_info.php") || return
+
+    if [[ "$XML" = *\<error\>* ]]; then
+        local ERR MESSAGE
+        ERR=$(echo "$XML" | parse_tag_quiet 'error')
+
+        [ "$ERR" -eq 110 ] && return $ERR_LINK_DEAD
+
+        MESSAGE=$(echo "$XML" | parse_tag_quiet 'message')
+        log_error "Unexpected remote error: $MESSAGE ($ERR)"
+        return $ERR_FATAL
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$XML" | parse_tag 'filename' && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        echo "$XML" | parse_tag 'size' && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    # also available: file description, tags, public/private,
+    # password protection, filetype, mimetype, file owner, date of creation
+
+    echo $REQ_OUT
 }
