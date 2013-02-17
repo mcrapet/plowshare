@@ -31,8 +31,8 @@ AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 MODULE_LETITBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_LETITBIT_LIST_OPTIONS=""
-
 MODULE_LETITBIT_DELETE_OPTIONS=""
+MODULE_LETITBIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -161,8 +161,6 @@ letitbit_download() {
     FORM_SHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'slider_hash') || return
     FORM_SPIN=$(echo "$FORM_HTML" | parse_form_input_by_name 'slider_pin') || return
 
-    FILE_NAME=$(echo "$PAGE" | parse 'fileName =' '"\(.\+\)"') || return
-
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -c "$COOKIE_FILE"               \
         -d "redirect_to_pin=$FORM_REDIR" -d "uid5=$FORM_UID5"                  \
         -d "uid=$FORM_UID"      -d "id=$FORM_ID"     -d "live=$FORM_LIVE"      \
@@ -240,7 +238,7 @@ letitbit_download() {
 
     # Response contains multiple possible download links, we just pick the first
     echo "$PAGE" | parse . '"\(http:[^"]\+\)"' || return
-    echo "$FILE_NAME"
+    echo "$FORM_NAME"
 }
 
 # Upload a file to Letitbit.net
@@ -406,4 +404,39 @@ letitbit_list() {
     test "$LINKS" || return $ERR_LINK_DEAD
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Letitbit url
+# $3: requested capability list
+# stdout: 1 capability per line
+letitbit_probe() {
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FORM_HTML
+
+    # Letitbit redirects all possible urls of a file to the canonical one
+    PAGE=$(curl --location -b 'lang=en' "$2") || return
+
+    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    FORM_HTML=$(grep_form_by_id "$PAGE" 'ifree_form') || return
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$FORM_HTML" | parse_form_input_by_name 'name' && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        echo "$FORM_HTML" | parse_form_input_by_name 'sssize' && \
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *h* ]]; then
+        echo "$FORM_HTML" | parse_form_input_by_name 'index' && \
+            REQ_OUT="${REQ_OUT}h"
+    fi
+
+    echo $REQ_OUT
 }
