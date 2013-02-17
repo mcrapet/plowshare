@@ -170,7 +170,11 @@ mediafire_download() {
 
     # Mediafire redirects all possible urls of a file to the canonical one
     URL=$(curl --head "$2" | grep_http_header_location_quiet) || return
-    [ -n "$URL" ] || URL=$2
+    if [ -z "$URL" ]; then
+        URL=$2
+    elif [[ "$URL" = /* ]]; then
+        URL="$(basename_url "$2")$URL"
+    fi
 
     case "$URL" in
         http://download*)
