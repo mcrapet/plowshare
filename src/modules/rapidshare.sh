@@ -252,26 +252,50 @@ rapidshare_delete() {
 }
 
 # Probe a download URL
-# $1: cookie file
-# $2: rapidshare url
+# $1: cookie file (unused here)
+# $2: Rapidshare url
 # $3: requested capability list
 # stdout: 1 capability per line
 rapidshare_probe() {
-    local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT #FILE_NAME FILE_SIZE
+    local BASE_URL='https://api.rapidshare.com/cgi-bin/rsapi.cgi'
+    local RESPONSE REQ_OUT FILE_ID FILE_NAME FILE_SIZE FILE_HASH STATUS DUMMY
 
-    # Note: Should use rapidgator_switch_lang
-    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
+    if [[ "$URL" = */#!download\|* ]]; then
+        FILE_ID=$(echo "$URL" | cut -d'|' -f3)
+        FILE_NAME=$(echo "$URL" | cut -d'|' -f4)
+    else
+        FILE_ID=$(echo "$URL" | cut -d'/' -f5)
+        FILE_NAME=$(echo "$URL" | cut -d'/' -f6)
+    fi
+
+    RESPONSE=$(curl -d 'sub=checkfiles' -d "files=$FILE_ID" \
+        -d "filenames=$FILE_NAME" "$BASE_URL") || return
 
     # ERROR: File not found.
-    if match '^ERROR' "$PAGE"; then
-        match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    if [[ "$RESPONSE" = ERROR:\ * ]]; then
+        log_error "Unexpected remote error: ${RESPONSE#ERROR: }"
         return $ERR_FATAL
     fi
 
+    # file ID, filename, size, server ID, status, short host, MD5
+    IFS=',' read DUMMY FILE_NAME FILE_SIZE DUMMY STATUS DUMMY FILE_HASH <<< "$RESPONSE"
+
+    [ "$STATUS" -eq 1 ] || return $ERR_LINK_DEAD
     REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        [ -n "$FILE_NAME" ] && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        [ -n "$FILE_SIZE" ] && echo "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *h* ]]; then
+        [ -n "$FILE_HASH" ] && echo "$FILE_HASH" && REQ_OUT="${REQ_OUT}h"
+    fi
 
     echo $REQ_OUT
 }
