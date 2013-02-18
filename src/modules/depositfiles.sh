@@ -213,7 +213,7 @@ depositfiles_upload() {
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
-    local BASE_URL='http://depositfiles.com'
+    local -r BASE_URL='http://dfiles.eu'
     local DATA DL_LINK DEL_LINK SIZE MAX_SIZE #used by both methods
     local FORM_HTML FORM_URL FORM_UID FORM_GO FORM_AGREE # used by old method
     local UP_URL STATUS MEMBER_KEY # used by new method
