@@ -30,7 +30,7 @@ megashares      | download | upload | delete |      |       |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiupload     |          | upload |        | list |       |
-netload_in      | download | upload |        | list |       |
+netload_in      | download | upload |        | list | probe |
 putlocker       | download | upload |        |      |       |
 rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |
