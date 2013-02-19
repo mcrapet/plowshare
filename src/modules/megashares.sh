@@ -35,6 +35,7 @@ TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_MEGASHARES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MEGASHARES_DELETE_OPTIONS=""
+MODULE_MEGASHARES_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -388,4 +389,40 @@ megashares_delete() {
 
     # Link successfully deleted.
     match 'successfully deleted' "$PAGE" || return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Megashares url
+# $3: requested capability list
+# stdout: 1 capability per line
+megashares_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local URL PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl "$URL") || return
+
+    # Site won't show any info if no download slot is available :-(
+    if match 'try again momentarily' "$PAGE"; then
+        echo 120
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    match 'file does not exist' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse_attr '<h1' 'title' && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse 'Filesize:' \
+            '[[:blank:]]\([[:digit:]]\+\(.[[:digit:]]\+\)\?[[:blank:]][KMG]\?B\)\(ytes\)\?') && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    # also available: file description
+
+    echo $REQ_OUT
 }
