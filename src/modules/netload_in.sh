@@ -306,7 +306,7 @@ netload_in_probe() {
         return $ERR_FATAL
     fi
 
-    FILE_ID=$(echo "$2" | parse . '/datei\([[:alnum:]]\+\)/') || return
+    FILE_ID=$(echo "$2" | parse . '/datei\([[:alnum:]]\+\)[/.]') || return
     log_debug "File ID: '$FILE_ID'"
 
     RESPONSE=$(curl -d "auth=$AUTH_CODE" -d "file_id=$FILE_ID" \
