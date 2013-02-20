@@ -523,7 +523,11 @@ download() {
                 return $DRETVAL
             fi
 
-            if [ "$CODE" = 416 ]; then
+            if [[ "$FILE_URL" = file://* ]]; then
+                log_notice "delete temporary file: ${FILE_URL:7}"
+                rm -f "${FILE_URL:7}"
+
+            elif [ "$CODE" = 416 ]; then
                 # If module can resume transfer, we assume here that this error
                 # means that file have already been downloaded earlier.
                 # We should do a HTTP HEAD request to check file length but
