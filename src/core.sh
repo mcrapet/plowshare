@@ -2427,7 +2427,7 @@ check_transfer_speed() {
 # Notes:
 # - Use this function with leaf blocks (avoid <div>, <p>)
 # - Two distinct blocks can't begin or end on the same line
-# - HTML comments are just ignored
+# - HTML comments are just ignored (call strip_html_comments first)
 #
 # $1: Marker regex.
 # $2: (X)HTML data
@@ -2439,14 +2439,14 @@ grep_block_by_order() {
     local -r TAG=$1
     local DATA=$2
     local N=${3:-'1'}
-    local DOT NEW
+    local MAX NEW
 
     # Check number of <tag> markers
-    DOT=$(echo "$DATA" | sed -ne "/<$TAG[[:space:]>]/s/.*/./p" | tr -d '\n')
+    MAX=$(grep -c "<$TAG[[:space:]>]" <<< "$DATA") || true
     if (( $N < 0 )); then
-        N=$(( ${#DOT} + 1 + N ))
+        N=$(( $MAX + 1 + N ))
         if (( $N <= 0 )); then
-            log_error "${FUNCNAME[1]} failed: negative index is too big (detected ${#DOT} forms)"
+            log_error "${FUNCNAME[1]} failed: negative index is too big (detected $MAX forms)"
             return $ERR_FATAL
         fi
     fi
