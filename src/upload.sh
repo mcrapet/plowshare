@@ -391,6 +391,13 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true
         if [ -n "$DL_URL" ]; then
+
+            # Sanity check
+            if [[ $DL_URL = *$'\r'* ]]; then
+                log_debug 'final link contains \r, remove it (consider fixing module)'
+                DL_URL=${DL_URL//$'\r'}
+            fi
+
             DATA=("$MODULE" "$LOCALFILE" "$DESTFILE" \
                   "$DL_URL" "$DEL_URL" "$ADMIN_URL_OR_CODE")
             pretty_print DATA[@] "${PRINTF_FORMAT:-%D%A%u}"
