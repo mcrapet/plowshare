@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "January 15, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowup" "1" "February 24, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowup \- Simple upload manager for file-sharing websites
@@ -86,20 +86,23 @@ Prepend argument to each destination filename.
 Append argument to each destination filename.
 .TP
 .BI "   " " " --printf "=FORMAT"
-Print results in a given format (for each upload). Default string is: \fI"%u (%D)"\fR. Interpreted sequences are:
+Print results in a given format (for each upload). Default string is: \fI"%D%A%u"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
 raw % character
 .TP
 \fI%a\fR
-admin url or admin code
+admin url or admin code (rare case)
+.TP
+\fI%A\fR
+empty if %a is empty, or alias to \fB"#ADM %a%n"\fR.
 .TP
 \fI%d\fR
 delete url
 .TP
 \fI%D\fR
-%d or %a (if %d is null string)
+empty if %d is empty, or alias to \fB"#DEL %d%n"\fR.
 .TP
 \fI%f\fR
 destination (remote) filename
