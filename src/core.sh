@@ -56,6 +56,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - CAPTCHA_9KWEU    (plowdown) 9kw.eu captcha key
 #   - CAPTCHA_BHOOD    (plowdown) Captcha Brotherhood account
 #   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
+#   - CAPTCHA_PROGRAM  (plowdown) External solver program/script
 #   - MODULE           Module name (don't include .sh)
 #
 # Global variables defined here:
