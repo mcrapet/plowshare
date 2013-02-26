@@ -190,7 +190,6 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     4shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/account/home.jsp") || return
-echo "$PAGE" >a
 
     DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' \
             "=[[:space:]]*'\([^']\+\)") || return
