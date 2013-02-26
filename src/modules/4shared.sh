@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 4shared.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -178,22 +178,25 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 # $3: remote filename
 # stdout: download + del link
 4shared_upload() {
-    local COOKIEFILE=$1
-    local FILE=$2
-    local DESTFILE=$3
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
     local BASE_URL='http://www.4shared.com'
     local PAGE JSON DESTFILE_ENC UP_URL DL_URL FILE_ID DIR_ID LOGIN_ID PASS_HASH
     local SZ SIZE_LIMIT
 
     test "$AUTH_FREE" || return $ERR_LINK_NEED_PERMISSIONS
 
-    4shared_login "$AUTH_FREE" "$COOKIEFILE" "$BASE_URL" || return
+    4shared_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
 
-    PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL/account/home.jsp") || return
-    DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' '=[[:space:]]*\([[:digit:]]\+\)')
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/account/home.jsp") || return
+echo "$PAGE" >a
+
+    DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' \
+            "=[[:space:]]*'\([^']\+\)") || return
 
     # Not required. Example: {"freeSpace":16102203291}
-    JSON=$(curl -b "$COOKIEFILE" "$BASE_URL/rest/account/freeSpace?dirId=$DIR_ID") || return
+    JSON=$(curl -b "$COOKIE_FILE" "$BASE_URL/rest/account/freeSpace?dirId=$DIR_ID") || return
     SZ=$(get_filesize "$FILE")
     SIZE_LIMIT=$(echo "$JSON" | parse_json freeSpace) || return
 
@@ -203,9 +206,11 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     fi
 
     DESTFILE_ENC=$(echo "$DESTFILE" | uri_encode_strict)
+    LOGIN_ID=$(parse_cookie 'Login' < "$COOKIE_FILE") || return
+    PASS_HASH=$(parse_cookie 'Password' < "$COOKIE_FILE") || return
 
-    # Note: x-cookie missing
-    JSON=$(curl -b "$COOKIEFILE" -X POST \
+    JSON=$(curl -b "$COOKIE_FILE" -X POST \
+        -H "x-security: $LOGIN_ID" \
         "$BASE_URL/rest/sharedFileUpload/create?dirId=$DIR_ID&name=$DESTFILE_ENC&size=$SZ") || return
 
     # {"status":true,"url":"","http://...
@@ -215,21 +220,17 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 
     UP_URL=$(echo "$JSON" | parse_json url) || return
     DL_URL=$(echo "$JSON" | parse_json d1link) || return
-    FILE_ID=$(echo "$JSON" | parse_json fileId)
+    FILE_ID=$(echo "$JSON" | parse_json fileId) || return
     DIR_ID=$(echo "$JSON" | parse_json uploadDir)
-
-    LOGIN_ID=$(parse_cookie 'Login' < "$COOKIEFILE") || return
-    PASS_HASH=$(parse_cookie 'Password' < "$COOKIEFILE") || return
 
     JSON=$(curl_with_log -X POST --data-binary "@$FILE" \
         -H "x-root-dir: $DIR_ID" \
         -H "x-upload-dir: $DIR_ID" \
         -H "x-file-name: $DESTFILE_ENC" \
-        -H "x-cookie: Login=$LOGIN_ID; Password=$PASS_HASH;" \
         -H "Content-Type: application/octet-stream" \
-        "$UP_URL&resumableFileId=$FILE_ID&resumableFirstByte=0") || return
+        "$UP_URL&resumableFileId=$FILE_ID&resumableFirstByte=0&sectionSize=$SZ&cuid=$LOGIN_ID&cupa=$PASS_HASH") || return
 
-    # I should get { "status": "OK", "uploadedFileId": -1 }
+    # I should get { "status": "OK", "uploadedFileId": -1, "fileUploadUrl": "" }
     local STATUS ERR
     STATUS=$(echo "$JSON" | parse_json_quiet status)
     if [ "$STATUS" != 'OK' ]; then
@@ -245,11 +246,12 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
         -H "x-cookie: Login=$LOGIN_ID; Password=$PASS_HASH;" \
         "$BASE_URL/rest/sharedFileUpload/finish?fileId=$FILE_ID") || return
 
+    log_debug "JSON:$JSON"
     # {"status":true}
-    if ! match_json_true 'status' "$JSON"; then
-        log_error "bad answer, file moved to Incompleted folder"
-        return $ERR_FATAL
-    fi
+    #if ! match_json_true 'status' "$JSON"; then
+    #    log_error "bad answer, file moved to Incompleted folder"
+    #    return $ERR_FATAL
+    #fi
 
     echo "$DL_URL"
 }
