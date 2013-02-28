@@ -55,7 +55,7 @@ mediafire_login() {
     LOGIN_DATA='login_email=$USER&login_pass=$PASSWORD&submit_login=Login+to+MediaFire'
     PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
         "${BASE_URL/#http/https}/dynamic/login.php?popup=1" \
-        -b "$COOKIE_FILE" --sslv3) || return
+        -b "$COOKIE_FILE" --sslv3 --referer "$BASE_URL") || return
 
     # Note: Cookies "user" and "session" get set on successful login, "skey" is changed"
     CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
