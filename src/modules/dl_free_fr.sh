@@ -132,8 +132,10 @@ dl_free_fr_download() {
         return 0
     fi
 
-    local ERR1="erreur 500 - erreur interne du serveur"
-    local ERR2="erreur 404 - document non trouv."
+    match 'Fichier inexistant\.' "$PAGE" && return $ERR_LINK_DEAD
+
+    local ERR1='erreur 500 - erreur interne du serveur'
+    local ERR2='erreur 404 - document non trouv.'
     if matchi "$ERR1\|$ERR2" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
@@ -307,6 +309,7 @@ dl_free_fr_probe() {
         fi
 
     else
+        match 'Fichier inexistant\.' "$PAGE" && return $ERR_LINK_DEAD
         matchi 'erreur[[:space:]][45]' "$PAGE" && return $ERR_LINK_DEAD
 
         if [[ $REQ_IN = *f* ]]; then
