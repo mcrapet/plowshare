@@ -32,7 +32,7 @@ DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 FOLDER,,folder,s=FOLDER,Folder to upload files into
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 PRIVATE_FILE,,private,,Do not show file in folder view"
-MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
+MODULE_MEDIAFIRE_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
 MODULE_MEDIAFIRE_PROBE_OPTIONS=""
@@ -307,8 +307,50 @@ mediafire_upload() {
     local XML UKEY USER SESSION_KEY FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY
     local N SIZE MAX_SIZE
 
+    # Sanity checks
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+    if match_remote_url "$FILE"; then
+        if ! match "$MODULE_MEDIAFIRE_REGEXP_URL" "$FILE"; then
+            log_error 'Can only copy files already hosted on Mediafire.'
+            return $ERR_FATAL
+        fi
+    fi
+
     mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+
+    # Add Mediashare file to account
+    if match_remote_url "$FILE"; then
+        local FILE_ID PAGE CODE MESSAGE
+
+        FILE_ID=$(mediafire_extract_id "$FILE") || return
+
+        if ! mediafire_is_file_id "$FILE_ID"; then
+            log_error 'This is a folder link. Please use plowlist!'
+            return $ERR_FATAL
+        fi
+
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$FILE" --get -d "qk=$FILE_ID" \
+            "$BASE_URL/dynamic/savefile.php") || return
+        CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
+
+        # Check for errors
+        # Note: All error codes are explained in page returned by server.
+        if [ $CODE -eq 15 ]; then
+            log_error 'File added. Check your account for link.'
+            echo '#'
+            return 0
+        fi
+
+        # Extract error message
+        #  case-14:parent.aH(0,"This file is already...");break;
+        MESSAGE=$(echo "$PAGE" | parse_quiet 'case' \
+            "case$CODE[^\"]*\"\([^\"]\+\)\"") || return
+
+        log_error "Remote error: ${CODE} (${MESSAGE:-n/a})"
+        return $ERR_FATAL
+    fi
+
     SESSION_KEY=$(mediafire_extract_session_key "$COOKIE_FILE" "$BASE_URL") || return
 
     log_debug "Get uploader configuration"
