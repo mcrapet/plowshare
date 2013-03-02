@@ -30,6 +30,8 @@ MODULE_UPTOBOX_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_UPTOBOX_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_UPTOBOX_PROBE_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: credentials string
 # $2: cookie file
@@ -271,4 +273,37 @@ uptobox_upload() {
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: uptobox url
+# $3: requested capability list
+# stdout: 1 capability per line
+uptobox_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L -b 'lang=english' "$URL") || return
+
+    # The file you were looking for could not be found, sorry for any inconvenience
+    if match 'File Not Found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_form_input_by_name 'fname' <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse 'info-bar-grey.>' \
+            '[[:space:]](\([^)]*\)' 1) && translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }
