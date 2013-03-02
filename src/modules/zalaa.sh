@@ -206,7 +206,7 @@ zalaa_probe() {
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse_attr '"fname"' value <<< "$PAGE" && \
+        parse_form_input_by_name 'fname' <<< "$PAGE" && \
             REQ_OUT="${REQ_OUT}f"
     fi
 
