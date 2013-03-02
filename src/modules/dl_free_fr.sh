@@ -34,7 +34,9 @@ MODULE_DL_FREE_FR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DL_FREE_FR_DELETE_OPTIONS=""
 
-AYL_SERVER='http://api.adyoulike.com/'
+MODULE_DL_FREE_FR_PROBE_OPTIONS=""
+
+declare -r AYL_SERVER='http://api.adyoulike.com/'
 # Adyoulike decoding function
 # Main engine: http://api-ayl.appspot.com/static/js/ayl_lib.js
 #
@@ -44,7 +46,7 @@ AYL_SERVER='http://api.adyoulike.com/'
 captcha_ayl_process() {
     local ENV=${2:-prod}
     local URL="${AYL_SERVER}challenge?key=${1}&env=$ENV"
-    local TRY VARS TYPE WORDS RESPONSE TOKEN TOKEN_ID TID
+    local TRY VARS TYPE WORDS RESPONSE TOKEN TOKEN_ID TID FILENAME
 
     TRY=0
     # Arbitrary 100 limit is safer
@@ -107,12 +109,12 @@ captcha_ayl_process() {
 dl_free_fr_download() {
     local COOKIE_FILE=$1
     local URL=$2
-    local PAGE FORM_HTML FORM_ACTION FORM_FILE FORM_SUBM SESSID
+    local PAGE FORM_HTML FORM_ACTION FORM_FILE FORM_SUBM SESSID FILE_NAME
 
     # Notes:
     # - "curl -I" (HTTP HEAD request) is ignored (returns 404 error)
     # - Range request is ignored for non Free ISP users (due to redir?)
-    PAGE=$(curl -L -i -r 0-1024 "$URL") || return
+    PAGE=$(curl -L -i -r 0-1023 "$URL") || return
 
     # WWW-Authenticate: Basic realm="Autorisation requise"
     if match '^HTTP/1.1 401' "$PAGE"; then
@@ -124,21 +126,23 @@ dl_free_fr_download() {
     if match '^HTTP/1.1 206' "$PAGE"; then
         test "$CHECK_LINK" && return 0
 
-        FILENAME=$(echo "$PAGE" | grep_http_header_content_disposition) || return
+        FILE_NAME=$(echo "$PAGE" | grep_http_header_content_disposition) || return
         echo "$URL"
-        echo "$FILENAME"
+        echo "$FILE_NAME"
         return 0
     fi
 
-    local ERR1="erreur 500 - erreur interne du serveur"
-    local ERR2="erreur 404 - document non trouv."
+    match 'Fichier inexistant\.' "$PAGE" && return $ERR_LINK_DEAD
+
+    local ERR1='erreur 500 - erreur interne du serveur'
+    local ERR2='erreur 404 - document non trouv.'
     if matchi "$ERR1\|$ERR2" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
 
-    FILENAME=$(echo "$PAGE" | parse 'Fichier:' '">\([^<]*\)' 1) || return
+    FILE_NAME=$(echo "$PAGE" | parse 'Fichier:' '">\([^<]*\)' 1) || return
 
     FORM_HTML=$(grep_form_by_order "$PAGE" 2) || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
@@ -173,7 +177,7 @@ dl_free_fr_download() {
     log_debug "correct captcha"
 
     echo "$URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to dl.free.fr
@@ -273,4 +277,50 @@ dl_free_fr_delete() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: dl.free.fr url
+# $3: requested capability list
+# stdout: 1 capability per line
+dl_free_fr_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE FILE_NAME FILE_SIZE REQ_OUT
+
+    PAGE=$(curl -L -i -r 0-1023 "$URL") || return
+
+    if match '^HTTP/1.1 401' "$PAGE"; then
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    REQ_OUT=c
+
+    # Free is your ISP, this is direct download
+    if match '^HTTP/1.1 206' "$PAGE"; then
+        if [[ $REQ_IN = *f* ]]; then
+            FILE_NAME=$(echo "$PAGE" | grep_http_header_content_disposition) &&
+                echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+        fi
+        if [[ $REQ_IN = *s* ]]; then
+            FILE_SIZE=$(echo "$PAGE" | parse '^Content-Range:' '/\([[:digit:]]*\)') && \
+                echo "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+        fi
+
+    else
+        match 'Fichier inexistant\.' "$PAGE" && return $ERR_LINK_DEAD
+        matchi 'erreur[[:space:]][45]' "$PAGE" && return $ERR_LINK_DEAD
+
+        if [[ $REQ_IN = *f* ]]; then
+            FILE_NAME=$(echo "$PAGE" | parse 'Fichier:' '">\([^<]*\)' 1) &&
+                echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+        fi
+        if [[ $REQ_IN = *s* ]]; then
+            FILE_SIZE=$(echo "$PAGE" | parse 'Taille:' '">\([^s]*\)' 1) &&
+                translate_size "${FILE_SIZE/o/B}" && REQ_OUT="${REQ_OUT}s"
+        fi
+    fi
+
+    echo $REQ_OUT
 }

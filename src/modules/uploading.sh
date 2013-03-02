@@ -101,11 +101,10 @@ uploading_download() {
     PASS=false
     log_debug "code: $CODE"
 
-    FILE_NAME=$(echo "$PAGE" | parse_tag title)
-    FILE_NAME=${FILE_NAME% - Free Download - Uploading.com}
+    FILE_NAME=$(echo "$PAGE" | parse '>Filemanager' '>\([^<]*\)</' 1)
 
     # Get wait time
-    WAIT=$(echo "$PAGE" | parse_tag '"timer_count"' span) || return
+    WAIT=$(echo "$PAGE" | parse_tag '"timer_secs"' span) || return
 
     PAGE=$(curl -b "$COOKIE_FILE" \
         -H 'X-Requested-With: XMLHttpRequest' \

@@ -79,18 +79,6 @@ putlocker_download() {
     if match 'jPlayer(' "$PAGE"; then
         # this.element.jPlayer("setFile", "/get_file.php?id=...");
         REL_PATH=$(parse 'jPlayer("setFile"' '",[[:space:]]*"\([^"]*\)' <<< "$PAGE") || return
-    # Video content
-    elif match 'video_player\.swf' "$PAGE"; then
-        # playlist: '/get_file.php?stream=...',
-        REL_PATH=$(parse 'playlist:' "t:[[:space:]]*'\([^']*\)" <<< "$PAGE") || return
-        PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL$REL_PATH") || return
-
-        # <media:content url="http://..."
-        FILE_URL=$(echo "$PAGE" | parse 'media:' 'url="\([^"]*\)' | \
-            replace '&amp;' '&') || return
-
-        echo "$FILE_URL"
-        return 0
     else
         # First occurrence
         REL_PATH=$(parse_attr 'Download File' 'href' <<< "$PAGE") || return

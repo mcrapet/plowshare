@@ -32,9 +32,10 @@ DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 FOLDER,,folder,s=FOLDER,Folder to upload files into
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 PRIVATE_FILE,,private,,Do not show file in folder view"
-MODULE_MEDIFIARE_UPLOAD_REMOTE_SUPPORT=no
+MODULE_MEDIAFIRE_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
+MODULE_MEDIAFIRE_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -55,7 +56,7 @@ mediafire_login() {
     LOGIN_DATA='login_email=$USER&login_pass=$PASSWORD&submit_login=Login+to+MediaFire'
     PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
         "${BASE_URL/#http/https}/dynamic/login.php?popup=1" \
-        -b "$COOKIE_FILE" --sslv3) || return
+        -b "$COOKIE_FILE" --sslv3 --referer "$BASE_URL") || return
 
     # Note: Cookies "user" and "session" get set on successful login, "skey" is changed"
     CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
@@ -69,6 +70,28 @@ mediafire_login() {
     fi
 
     log_debug "Successfully logged in as member '$NAME'"
+}
+
+# Extract file/folder ID from download link
+# $1: Mediafire download URL
+# stdout: file/folder ID
+mediafire_extract_id() {
+    local ID
+
+    # Extract file/folder ID from all possible link formats
+    #   http://www.mediafire.com/download.php?xyz
+    #   http://www.mediafire.com/?xyz
+    ID=$(echo "$1" | parse . '?\([[:alnum:]]\+\)$') || return
+    log_debug "File/Folder ID: '$ID'"
+    echo "$ID"
+}
+
+# Check whether a given ID is a file ID (and not a folder ID)
+# $1: Mediafire file/folder ID
+# $?: return 0 if ID is a file ID, 1 if it is a folder ID
+mediafire_is_file_id() {
+    # Folder IDs have 13 digits, file IDs vary in length (11, 15)
+    [ ${#1} -ne 13 ]
 }
 
 # Retrieve current session key
@@ -162,18 +185,29 @@ mediafire_get_ofuscated_link() {
 # stdout: real file download link
 mediafire_download() {
     local -r COOKIE_FILE=$1
-    local URL PAGE JSON JS_VAR
+    local -r BASE_URL='http://www.mediafire.com'
+    local FILE_ID URL PAGE JSON JS_VAR
 
     if [ -n "$AUTH_FREE" ]; then
         mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
-    # Mediafire redirects all possible urls of a file to the canonical one
-    URL=$(curl --head "$2" | grep_http_header_location_quiet) || return
-    [ -n "$URL" ] || URL=$2
+    FILE_ID=$(mediafire_extract_id "$2") || return
+
+    if ! mediafire_is_file_id "$FILE_ID"; then
+        log_error 'This is a folder link. Please use plowlist!'
+        return $ERR_FATAL
+    fi
+
+    # Only get site headers first to capture direct download links
+    URL=$(curl --head "$BASE_URL/?$FILE_ID" | grep_http_header_location_quiet) || return
 
     case "$URL" in
-        http://download*)
+        # no redirect, normal download
+        '')
+            URL="$BASE_URL/?$FILE_ID"
+            ;;
+        http://*)
             log_debug 'Direct download'
             echo "$URL"
             return 0
@@ -273,8 +307,50 @@ mediafire_upload() {
     local XML UKEY USER SESSION_KEY FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY
     local N SIZE MAX_SIZE
 
+    # Sanity checks
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+    if match_remote_url "$FILE"; then
+        if ! match "$MODULE_MEDIAFIRE_REGEXP_URL" "$FILE"; then
+            log_error 'Can only copy files already hosted on Mediafire.'
+            return $ERR_FATAL
+        fi
+    fi
+
     mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+
+    # Add Mediashare file to account
+    if match_remote_url "$FILE"; then
+        local FILE_ID PAGE CODE MESSAGE
+
+        FILE_ID=$(mediafire_extract_id "$FILE") || return
+
+        if ! mediafire_is_file_id "$FILE_ID"; then
+            log_error 'This is a folder link. Please use plowlist!'
+            return $ERR_FATAL
+        fi
+
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$FILE" --get -d "qk=$FILE_ID" \
+            "$BASE_URL/dynamic/savefile.php") || return
+        CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
+
+        # Check for errors
+        # Note: All error codes are explained in page returned by server.
+        if [ $CODE -eq 15 ]; then
+            log_error 'File added. Check your account for link.'
+            echo '#'
+            return 0
+        fi
+
+        # Extract error message
+        #  case-14:parent.aH(0,"This file is already...");break;
+        MESSAGE=$(echo "$PAGE" | parse_quiet 'case' \
+            "case$CODE[^\"]*\"\([^\"]\+\)\"") || return
+
+        log_error "Remote error: ${CODE} (${MESSAGE:-n/a})"
+        return $ERR_FATAL
+    fi
+
     SESSION_KEY=$(mediafire_extract_session_key "$COOKIE_FILE" "$BASE_URL") || return
 
     log_debug "Get uploader configuration"
@@ -398,21 +474,23 @@ mediafire_list() {
     local RET=$ERR_LINK_DEAD
     local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NAMES LINKS
 
-    if match '/?sharekey=' "$URL"; then
+    if [[ "$URL" = */?sharekey=* ]]; then
         local LOCATION
 
         LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
-        if ! match '^/' "$LOCATION"; then
+        if [[ "$LOCATION" != /* ]]; then
             log_error 'This is not a shared folder'
             return $ERR_FATAL
         fi
-        URL="http://www.mediafire.com$LOCATION"
+        FOLDER_KEY=$(mediafire_extract_id "$LOCATION") || return
+    else
+        FOLDER_KEY=$(mediafire_extract_id "$URL") || return
     fi
 
-    FOLDER_KEY=$(echo "$URL" | parse 'mediafire\.com/?' '?\([^&"]*\)')
-    log_debug "Key: $FOLDER_KEY"
-
-    [ ${#FOLDER_KEY} -eq 15 ] && log_error 'This looks like a file link!'
+    if mediafire_is_file_id "$FOLDER_KEY"; then
+        log_error 'This is a file link. Please use plowdown!'
+        return $ERR_FATAL
+    fi
 
     XML=$(curl -d "folder_key=$FOLDER_KEY" \
         "$BASE_URL/api/folder/get_info.php") || return
@@ -457,4 +535,50 @@ mediafire_list() {
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Mediafire url
+# $3: requested capability list
+# stdout: 1 capability per line
+mediafire_probe() {
+    local -r REQ_IN=$3
+    local -r BASE_URL='http://www.mediafire.com'
+    local FILE_ID XML REQ_OUT
+
+    FILE_ID=$(mediafire_extract_id "$2") || return
+
+    if ! mediafire_is_file_id "$FILE_ID"; then
+        log_error 'This is a folder link. Please use plowlist!'
+        return $ERR_FATAL
+    fi
+
+    XML=$(curl -d "quick_key=$FILE_ID" "$BASE_URL/api/file/get_info.php") || return
+
+    if [[ "$XML" = *\<error\>* ]]; then
+        local ERR MESSAGE
+        ERR=$(echo "$XML" | parse_tag_quiet 'error')
+
+        [ "$ERR" -eq 110 ] && return $ERR_LINK_DEAD
+
+        MESSAGE=$(echo "$XML" | parse_tag_quiet 'message')
+        log_error "Unexpected remote error: $MESSAGE ($ERR)"
+        return $ERR_FATAL
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$XML" | parse_tag 'filename' && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        echo "$XML" | parse_tag 'size' && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    # also available: file description, tags, public/private,
+    # password protection, filetype, mimetype, file owner, date of creation
+
+    echo $REQ_OUT
 }

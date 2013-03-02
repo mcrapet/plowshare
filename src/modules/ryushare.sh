@@ -35,6 +35,8 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_RYUSHARE_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_RYUSHARE_PROBE_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: credentials string
 # $2: cookie file
@@ -310,4 +312,32 @@ ryushare_upload() {
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Ryushare url
+# $3: requested capability list
+# stdout: 1 capability per line
+ryushare_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -b 'lang=english' "$URL") || return
+
+    match 'File Not Found\|file was removed' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse_form_input_by_name 'fname' && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse 'You have requested' \
+            '(\([[:digit:]]\+\(\.[[:digit:]]\+\)\?[[:space:]][KMG]\?B\)') && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

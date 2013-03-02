@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # cramit.in module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -38,6 +38,8 @@ MODULE_CRAMIT_UPLOAD_REMOTE_SUPPORT=no
 MODULE_CRAMIT_DELETE_OPTIONS=""
 
 MODULE_CRAMIT_LIST_OPTIONS=""
+
+MODULE_CRAMIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
 cramit_login() {
@@ -101,14 +103,14 @@ cramit_download() {
         FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
         FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
         FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
-        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
+        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'free_method')
 
         PAGE=$(curl -b "$COOKIE_FILE" -F 'referer=' \
             -F "op=$FORM_OP" \
             -F "usr_login=$FORM_USR" \
             -F "id=$FORM_ID" \
             -F "fname=$FORM_FNAME" \
-            -F "method_free=$FORM_METHOD" "$URL" | break_html_lines_alt) || return
+            -F "free_method=$FORM_METHOD" "$URL" | break_html_lines_alt) || return
     fi
 
     # Check for password protected link
@@ -119,7 +121,7 @@ cramit_download() {
         fi
     fi
 
-    if match 'Enter the code below:' "$PAGE"; then
+    if match 'Enter the captcha below:' "$PAGE"; then
         FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
         FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
         FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
@@ -144,8 +146,7 @@ cramit_download() {
             -F "password=$LINK_PASSWORD" \
             -F "code=$WORD" "$URL" | break_html_lines_alt) || return
 
-        # <p class="err">
-        if match 'Wrong captcha' "$PAGE"; then
+        if match 'File location :' "$PAGE"; then
             captcha_nack $ID
             log_error "Wrong captcha"
             return $ERR_CAPTCHA
@@ -153,7 +154,6 @@ cramit_download() {
 
         captcha_ack $ID
         log_debug "correct captcha"
-
 
     elif match '<p class="err">' "$PAGE"; then
         # You have to wait X minutes before your next download
@@ -202,11 +202,8 @@ cramit_download() {
         return $ERR_FATAL
     fi
 
-    FILE_URL=$(echo "$PAGE" | parse_attr 'file_download' href) || return
-    HEADERS=$(curl -I "$FILE_URL") || return
-
-    echo "$HEADERS" | grep_http_header_location || return
-    echo "$HEADERS" | grep_http_header_content_disposition || echo "$FORM_FNAME"
+    echo "$PAGE" | parse_attr '/cgi-bin/' href || return
+    echo "$FORM_FNAME"
 }
 
 # Upload a file to cramit
@@ -355,4 +352,36 @@ cramit_delete() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: cramit url
+# $3: requested capability list
+# stdout: 1 capability per line
+cramit_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L -b 'lang=english' "$URL" | break_html_lines_alt) || return
+
+    # The file you were looking for could not be found, sorry for any inconvenience
+    if match 'File Not Found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_form_input_by_name 'fname' <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse 'File location' '(\([^)]*\)' 5) && \
+            translate_size "${FILE_SIZE/b/B}" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

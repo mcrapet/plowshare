@@ -347,7 +347,7 @@ rapidgator_download() {
         FAIL_COOKIE=$(parse_cookie_quiet 'failed_on_captcha' < "$COOKIE_FILE")
 
         if match 'verification code is incorrect' "$HTML" || \
-            [ $FAIL_COOKIE -eq 1 ]; then
+            [ "$FAIL_COOKIE" -eq 1 ]; then
             captcha_nack $ID
             return $ERR_CAPTCHA
         fi

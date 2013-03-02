@@ -24,13 +24,14 @@ MODULE_TURBOBIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_DOWNLOAD_RESUME=yes
 MODULE_TURBOBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=
+MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=600
 
 MODULE_TURBOBIT_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
+MODULE_TURBOBIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
 # $1: authentication
@@ -38,15 +39,55 @@ MODULE_TURBOBIT_DELETE_OPTIONS=""
 # $3: base url
 # stdout: account type ("free" or "premium") on success
 turbobit_login() {
-    local AUTH=$1
-    local COOKIE_FILE=$2
-    local BASE_URL=$3
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL="$3/user/login"
     local LOGIN_DATA PAGE STATUS EMAIL TYPE
 
     # Force page in English
     LOGIN_DATA='user[login]=$USER&user[pass]=$PASSWORD&user[submit]=Login'
     PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/user/login" -b 'user_lang=en' --location) || return
+        "$BASE_URL" -b 'user_lang=en' --location) || return
+
+    # <div class='error'>Limit of login attempts exeeded.</div>
+    if match '>Limit of login attempts exeeded\.<' "$PAGE"; then
+        if match 'onclick="updateCaptchaImage()"' "$PAGE"; then
+            local CAPTCHA_URL CAPTCHA_TYPE CAPTCHA_SUBTYPE CAPTCHA_IMG
+
+            CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'alt="Captcha"' 'src') || return
+            CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value) || return
+            CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
+
+            # Get new image captcha (cookie is mandatory)
+            CAPTCHA_IMG=$(create_tempfile '.png') || return
+            curl -b "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
+
+            local WI WORD ID
+            WI=$(captcha_process "$CAPTCHA_IMG") || return
+            { read WORD; read ID; } <<<"$WI"
+            rm -f "$CAPTCHA_IMG"
+
+            log_debug "Decoded captcha: $WORD"
+
+            # Mandatory: -b "$COOKIE_FILE"
+            LOGIN_DATA="$LOGIN_DATA&user[captcha_response]=$WORD&user[captcha_type]=$CAPTCHA_TYPE&user[captcha_subtype]=$CAPTCHA_SUBTYPE"
+            PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+                "$BASE_URL" -b "$COOKIE_FILE" -b 'user_lang=en' --location) || return
+
+            # <div class='error'>Incorrect verification code</div>
+            if match 'Incorrect verification code' "$PAGE"; then
+                captcha_nack $ID
+                log_error 'Wrong captcha'
+                return $ERR_CAPTCHA
+            fi
+
+            captcha_ack $ID
+            log_debug 'Correct captcha'
+        else
+            log_error 'Too many logins, must wait'
+            return $ERR_FATAL
+        fi
+    fi
 
     STATUS=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
     [ "$STATUS" = '1' ] || return $ERR_LOGIN_FAILED
@@ -84,13 +125,17 @@ turbobit_download() {
     match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
-    FILE_NAME=$(echo "$PAGE" | parse 'Download file:' '>\([^<]\+\)<' 1) || return
+    # Download xyz. Free download without registration from TurboBit.net
+    FILE_NAME=$(echo "$PAGE" | parse '<title>' \
+        '^[[:blank:]]*Download \(.\+\). Free' 1) || return
 
     if [ -n "$AUTH" ]; then
         ACCOUNT=$(turbobit_login "$AUTH" "$COOKIE_FILE" \
             "$BASE_URL") || return
 
         if [ "$ACCOUNT" = 'premium' ]; then
+            MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=0 # guessing for now
+
             PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
             FILE_URL=$(echo "$PAGE" | parse_attr '/redirect/' 'href') || return
 
@@ -339,4 +384,35 @@ turbobit_delete() {
 
     # File was deleted successfully
     match 'deleted successfully' "$PAGE" || return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Turbobit url
+# $3: requested capability list
+# stdout: 1 capability per line
+turbobit_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -b 'user_lang=en' "$URL") || return
+
+    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse '<title>' \
+            '^[[:blank:]]*Download \(.\+\). Free' 1 && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        # Note: Site uses 'b' for byte but 'translate_size' wants 'B'
+        FILE_SIZE=$(echo "$PAGE" | parse 'Download file:'  \
+            '(\([[:digit:]]\+\(,[[:digit:]]\+\)\?[[:space:]][KMG]\?b\)\(yte\)\?)$' 1) &&
+            translate_size "${FILE_SIZE%b}B" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    # File hash is only available as part of the download link :-/
+    echo $REQ_OUT
 }

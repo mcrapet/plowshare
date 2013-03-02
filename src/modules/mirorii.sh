@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # mirorii.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -35,61 +35,49 @@ mirorii_upload() {
     local -r FILE=$2
     local -r DESTFILE=$3
     local -r BASE_URL='http://www.mirorii.com'
-    local PAGE FORM_HTML FORM_ACTION FORM_PBMODE FORM_EXTFOLDER UPLOAD_ID
+    local PAGE FORM_HTML FORM_ACTION FORM_REMOTE FORM_FILES FORM_SITES
+    local SITES_ALL_VALUE SITES_ALL_ID SITES_SEL_VALUE SITES_SEL_ID
 
-    PAGE=$(curl "$BASE_URL") || return
-
-    FORM_HTML=$(grep_form_by_id "$PAGE" myform) || return
+    PAGE=$(curl "$BASE_URL" | break_html_lines) || return
+    FORM_HTML=$(grep_form_by_id "$PAGE" F1) || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_PBMODE=$(echo "$FORM_HTML" | parse_form_input_by_name 'pbmode') || return
-    FORM_EXTFOLDER=$(echo "$FORM_HTML" | parse_form_input_by_name 'ext_folder') || return
+    FORM_REMOTE=$(echo "$FORM_HTML" | parse_form_input_by_name 'remote') || return
+    FORM_FILES=$(echo "$FORM_HTML" | parse_form_input_by_name 'files') || return
 
-    # var UID = Math.round(10000*Math.random())+'0'+Math.round(10000*Math.random());
-    UPLOAD_ID=$(random dec 4)0$(random dec 4)
+    # Retrieve complete hosting site list
+    SITES_ALL_VALUE=$(echo "$FORM_HTML" | parse_all_attr '[[:space:]]name=.site.[[:space:]]' value)
+    SITES_ALL_ID=$(echo "$FORM_HTML" | parse_all_attr '[[:space:]]name=.site.[[:space:]]' id)
 
-    PAGE=$(curl_with_log \
-        -F "file_0=@$FILE;filename=$DESTFILE" \
-        --form-string "file_0_descr=$DESCRIPTION" \
-        --form-string "ext_folder=$FORM_EXTFOLDER" \
-        --form-string "pbmode=$FORM_PBMODE" \
-        "$BASE_URL$FORM_ACTION?upload_id=$UPLOAD_ID&js_on=1&xpass=&xmode=1" | \
-        break_html_lines) || return
-
-    local FORM2_ACTION FORM2_FN FORM2_FN_ORIG FORM2_STATUS FORM2_SIZE FORM2_DESCR
-    local FORM2_MIME FORM2_NB FORM2_DURATION FORM2_EXTFOLDER
-
-    FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
-    FORM2_FN=$(echo "$PAGE" | parse_tag 'file_name\[\].>' textarea)
-    FORM2_FN_ORIG=$(echo "$PAGE" | parse_tag 'file_name_orig\[\].>' textarea)
-    FORM2_STATUS=$(echo "$PAGE" | parse_tag 'file_status\[\].>' textarea)
-    FORM2_SIZE=$(echo "$PAGE" | parse_tag 'file_size\[\].>' textarea)
-    FORM2_DESCR=$(echo "$PAGE" | parse_tag_quiet 'file_descr\[\].>' textarea)
-    FORM2_MIME=$(echo "$PAGE" | parse_tag 'file_mime\[\].>' textarea)
-    FORM2_NB=$(echo "$PAGE" | parse_tag 'number_of_files.>' textarea)
-    FORM2_DURATION=$(echo "$PAGE" | parse_tag 'duration.>' textarea)
-    FORM2_EXTFOLDER=$(echo "$PAGE" | parse_tag 'ext_folder.>' textarea)
-
-    if [ "$FORM2_STATUS" = 'OK' ]; then
-        PAGE=$(curl \
-            -d "file_name%5B%5D=$FORM2_FN" \
-            -d "file_name_orig%5B%5D=$FORM2_FN_ORIG" \
-            -d "file_status%5B%5D=$FORM2_STATUS" \
-            -d "file_size%5B%5D=$FORM2_SIZE" \
-            -d "file_descr%5B%5D=$FORM2_DESCR" \
-            -d "file_mime%5B%5D=$FORM2_MIME" \
-            -d "number_of_files=$FORM2_NB" \
-            -d "duration=$FORM2_DURATION" \
-            -d "ext_folder=$FORM2_EXTFOLDER" \
-            -d "ip=10.10.48.48" \
-            -d "host=undefined" \
-            "$FORM2_ACTION") || return
-
-        echo "$PAGE" | parse 'textarea' '>\(http.*\)$' || return
-        return 0
+    if [ -z "$SITES_ALL_ID" ]; then
+        log_error "Empty list, site updated?"
+        return $ERR_FATAL
+    else
+        log_debug "Available sites:" $SITES_ALL_ID
     fi
 
-    log_error "Unexpected status: $FORM2_STATUS"
-    return $ERR_FATAL
+    # Default hosting sites selection
+    SITES_SEL_VALUE=$(echo "$FORM_HTML" | parse_all_attr '[[:space:]]checked[[:space:]]' value)
+    SITES_SEL_ID=$(echo "$FORM_HTML" | parse_all_attr '[[:space:]]checked[[:space:]]' id)
+
+    if [ -z "$SITES_SEL_ID" ]; then
+        log_debug "Empty site selection. Nowhere to upload!"
+        return $ERR_FATAL
+    fi
+
+    log_debug "Selected sites:" $SITES_SEL_ID
+
+    FORM_SITES=""
+    while read LINE; do
+        FORM_SITES="$FORM_SITES -F site=$LINE"
+    done <<< "$SITES_SEL_VALUE"
+
+    PAGE=$(curl_with_log -L -F "files=$FORM_FILES" -F "remote=$FORM_REMOTE" \
+        -F "file1=@$FILE;filename=$DESTFILE" \
+        --form-string "description1=$DESCRIPTION" \
+        --form-string 'links=' \
+        $FORM_SITES "$FORM_ACTION" | break_html_lines) || return
+
+    echo "$PAGE" | parse '>Fichier' "href=.\([^'\"]*\)" 1
 }
 
 # List links from a Mirorii link
@@ -98,32 +86,28 @@ mirorii_upload() {
 # stdout: list of links
 mirorii_list() {
     local -r URL=$1
-    local PAGE LINKS_URL COOKIE_FILE NAMES H LINK
+    local PAGE LINKS LINK
 
     if test "$2"; then
         log_error "Recursive flag has no sense here, abort"
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    COOKIE_FILE=$(create_tempfile) || return
+    PAGE=$(curl "$URL") || return
+    LINKS=$(echo "$PAGE" | parse_all_tag 'www\.mirorii\.com/.*_blank' a)
 
-    # Get PHPSESSID cookie entry (required later)
-    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
-    LINKS_URL=$(echo "$PAGE" | parse_attr 'upload-url' href) || return
+    while read SITE_URL; do
+        PAGE=$(curl "$SITE_URL") || return
+        LINK=$(echo "$PAGE" | parse_attr 'frame' src)
 
-    PAGE=$(curl -b "$COOKIE_FILE" "$LINKS_URL" | break_html_lines) || return
-    rm -f "$COOKIE_FILE"
+        # Referer mandatory here
+        #PAGE=$(curl --referer "$SITE_URL" "$LINK") || return
+        PAGE=$(curl --referer "$LINK" "$SITE_URL") || return
 
-    NAMES=$(echo "$PAGE" | parse_all 'Ajax.\PeriodicalUpdater' "('\([^']*\)") || return
-    log_debug "Parsed hosters: '"$NAMES"'"
-
-    for H in $NAMES; do
-        LINK=$(echo "$PAGE" | parse_attr_quiet "id=.${H}." href)
-        if [ -n "$LINK" ]; then
+        LINK=$(echo "$PAGE" | parse_attr 'scrolling=' src)
+        if match_remote_url "$LINK"; then
             echo "$LINK"
-            echo "$H"
-        else
-            log_debug "hoster $H not uploaded"
+            echo
         fi
-    done
+    done <<< "$LINKS"
 }

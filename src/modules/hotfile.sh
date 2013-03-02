@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # hotfile.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -33,6 +33,8 @@ NOMD5,,nomd5,,Disable md5 authentication (use plain text)"
 MODULE_HOTFILE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_HOTFILE_LIST_OPTIONS=""
+
+MODULE_HOTFILE_PROBE_OPTIONS=""
 
 # Output a hotfile.com file download URL
 # $1: cookie file
@@ -264,4 +266,43 @@ hotfile_list() {
     NAMES=$(echo "$PAGE" | parse_all_tag_quiet '/dl/' a)
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: hotfile url
+# $3: requested capability list
+# stdout: 1 capability per line
+hotfile_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+
+    local RESPONSE REQ_OUT FILE_STATUS FILE_NAME SIZE HASH
+
+    RESPONSE=$(curl --get -L -d 'action=checklinks' \
+        -d "links=$URL" -d 'fields=status,name,size,md5' \
+        'http://api.hotfile.com') || return
+
+    IFS="," read FILE_STATUS FILE_NAME SIZE HASH <<< "$RESPONSE"
+
+    # The requested file isn't available anymore!
+    if [[ $FILE_STATUS -eq 0 ]]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *h* ]]; then
+        test "$HASH" && echo "$HASH" && REQ_OUT="${REQ_OUT}h"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        test "$SIZE" && echo "$SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

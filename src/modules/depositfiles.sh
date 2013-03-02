@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DEPOSITFILES_REGEXP_URL="http://\(www\.\)\?\(depositfiles\.com\|dfiles\.eu\)/"
+MODULE_DEPOSITFILES_REGEXP_URL="https\?://\(www\.\)\?\(depositfiles\.\(com\|org\)\)\|\(dfiles\.\(eu\|ru\)\)/"
 
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -33,6 +33,7 @@ MODULE_DEPOSITFILES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_DEPOSITFILES_DELETE_OPTIONS=""
 MODULE_DEPOSITFILES_LIST_OPTIONS=""
+MODULE_DEPOSITFILES_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free & gold account)
 depositfiles_login() {
@@ -212,7 +213,7 @@ depositfiles_upload() {
     local COOKIEFILE=$1
     local FILE=$2
     local DESTFILE=$3
-    local BASE_URL='http://depositfiles.com'
+    local -r BASE_URL='http://dfiles.eu'
     local DATA DL_LINK DEL_LINK SIZE MAX_SIZE #used by both methods
     local FORM_HTML FORM_URL FORM_UID FORM_GO FORM_AGREE # used by old method
     local UP_URL STATUS MEMBER_KEY # used by new method
@@ -356,4 +357,32 @@ add_padding() {
     for ((I=0; I<3000; I++)); do
         STR="$STR "
     done
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Depositfiles url
+# $3: requested capability list
+# stdout: 1 capability per line
+depositfiles_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl --location -b 'lang_current=en' "$URL") || return
+
+    match 'This file does not exist' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse 'var filename' "'\([^']\+\)'" &&
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        echo "$PAGE" | parse 'var filesize' "'\([^']\+\)'" &&
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

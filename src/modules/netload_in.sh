@@ -33,6 +33,8 @@ MODULE_NETLOAD_IN_UPLOAD_REMOTE_SUPPORT=no
 MODULE_NETLOAD_IN_LIST_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used for password-protected folder"
 
+MODULE_NETLOAD_IN_PROBE_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: $AUTH argument string
 # $2: cookie file
@@ -285,4 +287,53 @@ netload_in_list() {
     NAMES=$(echo "$PAGE" | parse_all 'Link_[[:digit:]]' '^\([^<]*\)' 2)
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Netfolder.in url
+# $3: requested capability list
+# stdout: 1 capability per line
+netload_in_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local -r AUTH_CODE='1E6Nk8ZeaT23SpnzBPLRX7hrPiEEq01C'
+    local -r BASE_URL='https://api.netload.in/info.php'
+    local RESPONSE REQ_OUT FILE_ID FILE_NAME FILE_SIZE FILE_HASH STATUS
+
+    if [[ "$URL" = */folder* ]]; then
+        log_error "This is a folder. Please use plowlist."
+        return $ERR_FATAL
+    fi
+
+    FILE_ID=$(echo "$2" | parse . '/datei\([[:alnum:]]\+\)[/.]') || return
+    log_debug "File ID: '$FILE_ID'"
+
+    RESPONSE=$(curl -d "auth=$AUTH_CODE" -d "file_id=$FILE_ID" \
+        -d 'bz=1' -d 'md5=1' "$BASE_URL") || return
+
+    if [ "$RESPONSE" = 'unknown_auth' ]; then
+        log_error "API key invalid. Please report this issue!"
+        return $ERR_FATAL
+    fi
+
+    # file ID, filename, size, status, MD5
+    IFS=';' read FILE_ID FILE_NAME FILE_SIZE STATUS FILE_HASH <<< "$RESPONSE"
+
+    [ "$STATUS" = 'online' ] || return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        [ -n "$FILE_NAME" ] && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        [ -n "$FILE_SIZE" ] && echo "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *h* ]]; then
+        [ -n "$FILE_HASH" ] && echo "$FILE_HASH" && REQ_OUT="${REQ_OUT}h"
+    fi
+
+    echo $REQ_OUT
 }
