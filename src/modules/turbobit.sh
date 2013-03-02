@@ -39,15 +39,55 @@ MODULE_TURBOBIT_PROBE_OPTIONS=""
 # $3: base url
 # stdout: account type ("free" or "premium") on success
 turbobit_login() {
-    local AUTH=$1
-    local COOKIE_FILE=$2
-    local BASE_URL=$3
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL="$3/user/login"
     local LOGIN_DATA PAGE STATUS EMAIL TYPE
 
     # Force page in English
     LOGIN_DATA='user[login]=$USER&user[pass]=$PASSWORD&user[submit]=Login'
     PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/user/login" -b 'user_lang=en' --location) || return
+        "$BASE_URL" -b 'user_lang=en' --location) || return
+
+    # <div class='error'>Limit of login attempts exeeded.</div>
+    if match '>Limit of login attempts exeeded\.<' "$PAGE"; then
+        if match 'onclick="updateCaptchaImage()"' "$PAGE"; then
+            local CAPTCHA_URL CAPTCHA_TYPE CAPTCHA_SUBTYPE CAPTCHA_IMG
+
+            CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'alt="Captcha"' 'src') || return
+            CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value) || return
+            CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
+
+            # Get new image captcha (cookie is mandatory)
+            CAPTCHA_IMG=$(create_tempfile '.png') || return
+            curl -b "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
+
+            local WI WORD ID
+            WI=$(captcha_process "$CAPTCHA_IMG") || return
+            { read WORD; read ID; } <<<"$WI"
+            rm -f "$CAPTCHA_IMG"
+
+            log_debug "Decoded captcha: $WORD"
+
+            # Mandatory: -b "$COOKIE_FILE"
+            LOGIN_DATA="$LOGIN_DATA&user[captcha_response]=$WORD&user[captcha_type]=$CAPTCHA_TYPE&user[captcha_subtype]=$CAPTCHA_SUBTYPE"
+            PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+                "$BASE_URL" -b "$COOKIE_FILE" -b 'user_lang=en' --location) || return
+
+            # <div class='error'>Incorrect verification code</div>
+            if match 'Incorrect verification code' "$PAGE"; then
+                captcha_nack $ID
+                log_error 'Wrong captcha'
+                return $ERR_CAPTCHA
+            fi
+
+            captcha_ack $ID
+            log_debug 'Correct captcha'
+        else
+            log_error 'Too many logins, must wait'
+            return $ERR_FATAL
+        fi
+    fi
 
     STATUS=$(parse_cookie_quiet 'user_isloggedin' < "$COOKIE_FILE")
     [ "$STATUS" = '1' ] || return $ERR_LOGIN_FAILED
