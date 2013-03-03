@@ -55,18 +55,20 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match "Le fichier demandé n'existe pas." "$PAGE"; then
+    elif match "Le fichier demandé n'existe pas.\|file has been deleted" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     test "$CHECK_LINK" && return 0
 
     # notice typo in 'telechargement'
-    if match "entre 2 télécharger\?ments" "$PAGE"; then
-        log_error "No parallel download allowed"
+    if match 'entre 2 télécharger\?ments' "$PAGE"; then
+        log_error 'No parallel download allowed.'
         return $ERR_LINK_TEMP_UNAVAILABLE
+
     # Please wait until the file has been scanned by our anti-virus
     elif match 'Please wait until the file has been scanned' "$PAGE"; then
+        log_error 'File is scanned for viruses.'
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
