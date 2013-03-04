@@ -299,7 +299,7 @@ letitbit_upload() {
         -F "file0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         "http://$UPLOAD_SERVER/marker=$MARKER") || return
 
-    if [ "$PAGE" != 'POST - OK' ]; then
+    if [ "$(echo "$PAGE" | parse_json_quiet 'code')" -ne 200 ]; then
         log_error "Unexpected response: $PAGE"
         return $ERR_FATAL
     fi
