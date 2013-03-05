@@ -545,11 +545,13 @@ uploaded_net_list() {
 # stdout: 1 capability per line
 uploaded_net_probe() {
     local -r REQ_IN=$3
-    local URL PAGE REQ_OUT FILE_SIZE
+    local -r BASE_URL='http://uploaded.net'
+    local URL PAGE REQ_OUT FILE_ID FILE_SIZE
 
     # Uploaded.net redirects all possible urls of a file to the canonical one
     # Note: There can be multiple redirections before the final one
-    URL=$(curl -I -L "$2" | grep_http_header_location_quiet | last_line) || return
+    URL=$(curl --head --location "$2" | grep_http_header_location_quiet | \
+        last_line) || return
     [ -n "$URL" ] || URL=$2
 
     # Page not found
@@ -557,7 +559,8 @@ uploaded_net_probe() {
     [[ $URL = *404 || $URL = *410 ]]  && return $ERR_LINK_DEAD
     REQ_OUT=c
 
-    PAGE=$(curl --location -b 'lang_current=en' "$URL/status") || return
+    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
+    PAGE=$(curl --location "$BASE_URL/file/$FILE_ID/status") || return
 
     if [[ $REQ_IN = *f* ]]; then
         echo "$PAGE" | first_line && REQ_OUT="${REQ_OUT}f"
