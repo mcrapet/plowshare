@@ -48,7 +48,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME
+    local PAGE FILE_URL FILE_NAME REDIR
 
     PAGE=$(curl "$URL") || return
 
@@ -58,8 +58,6 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     elif match "Le fichier demandé n'existe pas.\|file has been deleted" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-
-    test "$CHECK_LINK" && return 0
 
     # notice typo in 'telechargement'
     if match 'entre 2 télécharger\?ments' "$PAGE"; then
@@ -91,6 +89,16 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     FILE_URL=$(curl -i -d 'a=1' "$URL" | \
         grep_http_header_location_quiet) || return
+
+    # Note: Some files only show up as unavailable at this point :-/
+    PAGE=$(curl --head "$FILE_URL") || return
+    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+
+    if [[ "$REDIR" = *FILENOTFOUND474 ]]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
 
     if [ -z "$FILE_URL" ]; then
         echo 300
