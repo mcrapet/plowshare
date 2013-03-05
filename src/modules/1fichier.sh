@@ -87,8 +87,16 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return 0
     fi
 
-    FILE_URL=$(curl -i -d 'a=1' "$URL" | \
-        grep_http_header_location_quiet) || return
+    PAGE=$(curl --include -d 'a=1' "$URL") || return
+
+    # En téléchargement standard, [...] et vous devez attendre au moins 5 minutes entre chaque téléchargement.
+    if match 'vous devez attendre au moins 5 minutes' "$PAGE"; then
+        log_error 'Forced delay between downloads.'
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
 
     # Note: Some files only show up as unavailable at this point :-/
     PAGE=$(curl --head "$FILE_URL") || return
