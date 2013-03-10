@@ -1111,21 +1111,31 @@ captcha_process() {
         captcha_method_translate "$CAPTCHA_METHOD" METHOD_SOLVE METHOD_VIEW
     fi
 
-    # Auto (guess) mode
-    if [ -z "$METHOD_SOLVE" ]; then
-        if [ -n "$CAPTCHA_ANTIGATE" ]; then
+    # Fallback mode
+    : ${METHOD_SOLVE:=online}
+
+    if [ "$METHOD_SOLVE" = 'online' ]; then
+        if service_antigate_ready "$CAPTCHA_ANTIGATE"; then
             METHOD_SOLVE=antigate
-            METHOD_VIEW=none
-        elif [ -n "$CAPTCHA_9KWEU" ]; then
+            : ${METHOD_VIEW:=none}
+        elif service_9kweu_ready "$CAPTCHA_9KWEU"; then
             METHOD_SOLVE=9kweu
-            METHOD_VIEW=none
-        elif [ -n "$CAPTCHA_BHOOD" ]; then
+            : ${METHOD_VIEW:=none}
+        elif service_captchabrotherhood_ready "${CAPTCHA_BHOOD%%:*}" "${CAPTCHA_BHOOD#*:}"; then
             METHOD_SOLVE=captchabrotherhood
-            METHOD_VIEW=none
-        elif [ -n "$CAPTCHA_DEATHBY" ]; then
+            : ${METHOD_VIEW:=none}
+        elif service_captchadeathby_ready "${CAPTCHA_DEATHBY%%:*}" "${CAPTCHA_DEATHBY#*:}"; then
             METHOD_SOLVE=deathbycaptcha
-            METHOD_VIEW=none
+            : ${METHOD_VIEW:=none}
+        fi
+    fi
+
+    if [ "$METHOD_SOLVE" = 'online' ]; then
+        if [ -n "$CAPTCHA_METHOD" ]; then
+            log_error 'No online recognition service found! Captcha solving request will fail.'
+            METHOD_SOLVE=none
         else
+            log_notice 'No online recognition service found! Default to user prompt.'
             METHOD_SOLVE=prompt
         fi
     fi
@@ -1243,11 +1253,6 @@ captcha_process() {
             return $ERR_CAPTCHA
             ;;
         9kweu)
-            if ! service_9kweu_ready "$CAPTCHA_9KWEU"; then
-                rm -f "$FILENAME"
-                return $ERR_CAPTCHA
-            fi
-
             log_notice 'Using 9kw.eu captcha recognition system'
 
             # Note for later: extra params can be supplied: min_len & max_len & phrase & numeric
@@ -1301,11 +1306,6 @@ captcha_process() {
             echo "9$TID"
             ;;
         antigate)
-            if ! service_antigate_ready "$CAPTCHA_ANTIGATE"; then
-                rm -f "$FILENAME"
-                return $ERR_CAPTCHA
-            fi
-
             log_notice "Using antigate captcha recognition system"
 
             # Note for later: extra params can be supplied: min_len & max_len
@@ -1371,11 +1371,6 @@ captcha_process() {
             local USERNAME=${CAPTCHA_BHOOD%%:*}
             local PASSWORD=${CAPTCHA_BHOOD#*:}
 
-            if ! service_captchabrotherhood_ready "$USERNAME" "$PASSWORD"; then
-                rm -f "$FILENAME"
-                return $ERR_CAPTCHA
-            fi
-
             log_notice "Using captcha brotherhood bypass service ($USERNAME)"
 
             # Content-Type is mandatory.
@@ -1423,11 +1418,6 @@ captcha_process() {
             local HTTP_CODE POLL_URL
             local USERNAME=${CAPTCHA_DEATHBY%%:*}
             local PASSWORD=${CAPTCHA_DEATHBY#*:}
-
-            if ! service_captchadeathby_ready "$USERNAME" "$PASSWORD"; then
-                rm -f "$FILENAME"
-                return $ERR_CAPTCHA
-            fi
 
             log_notice "Using DeathByCaptcha service ($USERNAME)"
 
@@ -2335,20 +2325,12 @@ captcha_method_translate() {
             [[ $3 ]] && unset "$3" && eval $3=""
             ;;
         online)
-            local SITE
-            if [ -n "$CAPTCHA_ANTIGATE" ]; then
-                SITE=antigate
-            elif [ -n "$CAPTCHA_9KWEU" ]; then
-                SITE=9kweu
-            elif [ -n "$CAPTCHA_BHOOD" ]; then
-                SITE=captchabrotherhood
-            elif [ -n "$CAPTCHA_DEATHBY" ]; then
-                SITE=deathbycaptcha
-            else
-                log_error "Error: no captcha solver account provided"
+            if [ -z "$CAPTCHA_ANTIGATE" -a -z "$CAPTCHA_9KWEU" -a \
+                    -z "$CAPTCHA_BHOOD" -a -z "$CAPTCHA_DEATHBY" ]; then
+                log_error 'No captcha solver account provided. Consider using --9kweu, --antigate, --captchabhood or --deathbycaptcha options.'
                 return $ERR_FATAL
             fi
-            [[ $2 ]] && unset "$2" && eval $2=$SITE
+            [[ $2 ]] && unset "$2" && eval $2=online
             [[ $3 ]] && unset "$3" && eval $3=none
             ;;
         *)
@@ -2780,7 +2762,6 @@ service_9kweu_ready() {
     local AMOUNT
 
     if [ -z "$KEY" ]; then
-        log_error "9kweu: missing captcha key"
         return $ERR_FATAL
     fi
 
@@ -2807,10 +2788,9 @@ service_9kweu_ready() {
 # $?: 0 for success (enough credits)
 service_antigate_ready() {
     local -r KEY=$1
-    local AMOUNT
+    local AMOUNT LOAD
 
     if [ -z "$KEY" ]; then
-        log_error "antigate: missing captcha key"
         return $ERR_FATAL
     fi
 
@@ -2821,22 +2801,39 @@ service_antigate_ready() {
     }
 
     if match '500 Internal Server Error' "$AMOUNT"; then
-        log_error "antigate: internal server error (HTTP 500)"
+        log_error 'antigate: internal server error (HTTP 500)'
         return $ERR_CAPTCHA
     elif match '502 Bad Gateway' "$AMOUNT"; then
-        log_error "antigate: bad gateway (HTTP 502)"
+        log_error 'antigate: bad gateway (HTTP 502)'
         return $ERR_CAPTCHA
     elif match '503 Service Unavailable' "$AMOUNT"; then
-        log_error "antigate: service unavailable (HTTP 503)"
+        log_error 'antigate: service unavailable (HTTP 503)'
         return $ERR_CAPTCHA
     elif match '^ERROR' "$AMOUNT"; then
         log_error "antigate error: $AMOUNT"
         return $ERR_FATAL
     elif [ '0.0000' = "$AMOUNT" -o '-' = "${AMOUNT:0:1}" ]; then
-        log_notice "antigate: no more credits (or bad key)"
+        log_notice 'antigate: no more credits (or bad key)'
         return $ERR_FATAL
     else
         log_debug "antigate credits: \$$AMOUNT"
+    fi
+
+    # Get real time system load info (XML results)
+    if LOAD=$(curl 'http://antigate.com/load.php'); then
+        local N P B T
+        N=$(parse_tag 'waiting' <<< "$LOAD")
+        P=$(parse_tag 'load' <<< "$LOAD")
+        B=$(parse_tag 'minbid' <<< "$LOAD")
+        T=$(parse_tag 'averageRecognitionTime' <<< "$LOAD")
+        log_debug "Available workers: $N (load: ${P}%)"
+        log_debug "Mininum bid: $B"
+        log_debug "Average recognition time (s): $T"
+
+        if [ "$N" = '0' -a "$P" = '100' ]; then
+            log_notice 'antigate: no slot available (all workers are busy)'
+            return $ERR_FATAL
+        fi
     fi
 }
 
@@ -2848,7 +2845,6 @@ service_captchabrotherhood_ready() {
     local RESPONSE AMOUNT ERROR
 
     if [ -z "$1" -o -z "$2" ]; then
-        log_error "CaptchaBrotherhood missing account data"
         return $ERR_FATAL
     fi
 
@@ -2880,7 +2876,6 @@ service_captchadeathby_ready() {
     local JSON STATUS AMOUNT ERROR
 
     if [ -z "$1" -o -z "$2" ]; then
-        log_error "DeathByCaptcha missing account data"
         return $ERR_FATAL
     fi
 
