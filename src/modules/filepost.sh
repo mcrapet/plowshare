@@ -34,6 +34,7 @@ MODULE_FILEPOST_DELETE_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 
 MODULE_FILEPOST_LIST_OPTIONS=""
+MODULE_FILEPOST_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
 # $1: authentication
@@ -359,4 +360,42 @@ filepost_list_rec() {
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: Filepost url
+# $3: requested capability list
+# stdout: 1 capability per line
+filepost_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local -r BASE_URL='https://filepost.com'
+    local PAGE REQ_OUT FILE_SIZE
+
+    filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" --data-urlencode "urls=$URL" \
+        "$BASE_URL/files/checker/?JsHttpRequest=$(date +%s0000)-xml") || return
+
+    match 'Active' "$PAGE" || return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    # Get rid of escaping
+    PAGE=$(echo "$PAGE" | replace '\' '')
+
+    if [[ $REQ_IN = *f* ]]; then
+        # Parse file name from full URL (Note the trailing slash!)
+        #   https://filepost.com/files/123/xyz/
+        echo "$PAGE" | parse '' 'files/[^/]\+/\([^/]\+\)/' | uri_decode &&
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '' \
+            '<td>\([[:digit:].]\+[[:space:]][KMG]\?B\)\(ytes\)\?</td>') &&
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+    echo $REQ_OUT
 }

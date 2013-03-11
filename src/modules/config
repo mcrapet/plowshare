@@ -19,7 +19,7 @@ euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 filebox         | download | upload | delete |      |       |
 filemates       | download | upload | delete | list |       |
-filepost        | download | upload | delete | list |       |
+filepost        | download | upload | delete | list | probe |
 freakshare      | download | upload |        |      |       |
 go4up           |          | upload | delete | list |       |
 hotfile         | download | upload |        | list | probe |
