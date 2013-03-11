@@ -35,6 +35,12 @@ TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
 NAME_PREFIX,,name-prefix,s=STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix,s=STRING,Append argument to each destination filename
+CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: imgur, none, nox, online, prompt.
+CAPTCHA_PROGRAM,,captchaprogram,s=SCRIPT,Call external script for captcha solving.
+CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
+CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
+CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
+CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each upload). Default string is: \"%D%A%u\".
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
@@ -235,6 +241,24 @@ if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
 
+if [ -n "$CAPTCHA_PROGRAM" ]; then
+    log_debug "plowup: --captchaprogram selected"
+    if [ ! -x "$CAPTCHA_PROGRAM" ]; then
+        log_error "error: executable permissions expected"
+        exit $ERR_SYSTEM
+    fi
+fi
+
+if [ -n "$CAPTCHA_METHOD" ]; then
+    captcha_method_translate "$CAPTCHA_METHOD" || exit
+    log_notice "plowup: force captcha method ($CAPTCHA_METHOD)"
+else
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowup: --9kweu selected"
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowup: --antigate selected"
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowup: --captchabhood selected"
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowup: --deathbycaptcha selected"
+fi
+
 if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug "using local ~/.curlrc"
 fi
@@ -378,7 +402,12 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
             wait ${AWAIT:-60} || { URETVAL=$?; break; }
         elif [[ $MAXRETRIES -eq 0 ]]; then
             break
-        elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK ]; then
+        elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK -a \
+                $URETVAL -ne $ERR_CAPTCHA ]; then
+            break
+        # Special case
+        elif [ $URETVAL -eq $ERR_CAPTCHA -a "$CAPTCHA_METHOD" = 'none' ]; then
+            log_debug "captcha method set to none, abort"
             break
         elif (( MAXRETRIES < ++TRY )); then
             URETVAL=$ERR_MAX_TRIES_REACHED
