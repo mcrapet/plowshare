@@ -140,7 +140,7 @@ filepost_download() {
     SID=$(parse_cookie 'SID' < "$COOKIE_FILE") || return
 
     if [ -n "$AUTH" ]; then
-        ROLE=filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID" || return
+        ROLE=$(filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID") || return
     fi
 
     PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
