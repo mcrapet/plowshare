@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEPOST_REGEXP_URL="https\?://\(www\.\)\?filepost\.com/"
+MODULE_FILEPOST_REGEXP_URL="https\?://\(fp\.io\|\(www\.\)\?filepost\.com\)/"
 
 MODULE_FILEPOST_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
@@ -132,9 +132,12 @@ filepost_switch_lang() {
 # stdout: real file download link
 filepost_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$2
     local -r BASE_URL='https://filepost.com'
-    local PAGE SID FILE_NAME JSON SID CODE FILE_PASS TID JS_URL WAIT ROLE
+    local URL PAGE SID FILE_NAME JSON SID CODE FILE_PASS TID JS_URL WAIT ROLE
+
+    # Site redirects all possible urls of a file to the canonical one
+    URL=$(curl --head --location "$2" | grep_http_header_location_quiet) || return
+    [ -n "$URL" ] || URL=$2
 
     filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
     SID=$(parse_cookie 'SID' < "$COOKIE_FILE") || return
