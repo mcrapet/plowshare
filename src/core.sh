@@ -848,13 +848,27 @@ html_to_utf8() {
 # stdin: data (example: relative URL)
 # stdout: data (should be compliant with RFC3986)
 uri_encode_strict() {
-    sed -e 's/\%/%25/g' -e 's/ /%20/g' \
-        -e 's/!/%21/g' -e 's/*/%2A/g' -e 's/'\''/%27/g' \
-        -e 's/(/%28/g' -e 's/)/%29/g' -e 's/;/%3B/g'    \
-        -e 's/:/%3A/g' -e 's/@/%40/g' -e 's/&/%26/g'    \
-        -e 's/=/%3D/g' -e 's/+/%2B/g' -e 's/\$/%24/g'   \
-        -e 's/,/%2C/g' -e 's|/|%2F|g' -e 's/?/%3F/g'    \
-        -e 's/#/%23/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
+    sed -e '
+s/ /%20/g
+s/!/%21/g
+s/#/%23/g
+s/\$/%24/g
+s/\%/%25/g
+s/&/%26/g
+s/'\''/%27/g
+s/(/%28/g
+s/)/%29/g
+s/*/%2A/g
+s/+/%2B/g
+s/,/%2C/g
+s|/|%2F|g
+s/:/%3A/g
+s/;/%3B/g
+s/=/%3D/g
+s/?/%3F/g
+s/@/%40/g
+s/\[/%5B/g
+s/\]/%5D/g' #'# Help vim syntax highlighting
 }
 
 # Encode a complete url.
@@ -867,7 +881,10 @@ uri_encode_strict() {
 # stdin: data (example: absolute URL)
 # stdout: data (nearly compliant with RFC3986)
 uri_encode() {
-    sed -e 's/ /%20/g' -e 's/\[/%5B/g' -e 's/\]/%5D/g'
+    sed -e '
+s/ /%20/g
+s/\[/%5B/g
+s/\]/%5D/g'
 }
 
 # Decode a complete url.
@@ -877,9 +894,20 @@ uri_encode() {
 # stdin: data (example: absolute URL)
 # stdout: data (nearly compliant with RFC3986)
 uri_decode() {
-    sed -e 's/%20/ /g' -e 's/%26/\&/g' -e 's/%2C/,/g' -e 's/%28/(/g' \
-        -e 's/%29/)/g' -e 's/%2B/+/g' -e 's/%3D/=/g' -e 's/%5B/\[/g' \
-        -e 's/%5D/\]/g' -e 's/%3A/:/g' -e 's|%2F|/|g' -e 's|%40|@|g'
+    sed -e '
+s/%20/ /g
+s/%21/!/g
+s/%26/\&/g
+s/%28/(/g
+s/%29/)/g
+s/%2B/+/g
+s/%2C/,/g
+s|%2F|/|g
+s/%3A/:/g
+s/%3D/=/g
+s/%40/@/g
+s/%5B/\[/g
+s/%5D/\]/g'
 }
 
 # Retrieves size of file
