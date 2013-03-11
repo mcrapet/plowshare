@@ -849,11 +849,11 @@ html_to_utf8() {
 # stdout: data (should be compliant with RFC3986)
 uri_encode_strict() {
     sed -e '
+s/\%/%25/g
 s/ /%20/g
 s/!/%21/g
 s/#/%23/g
 s/\$/%24/g
-s/\%/%25/g
 s/&/%26/g
 s/'\''/%27/g
 s/(/%28/g
