@@ -51,12 +51,12 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - MAX_LIMIT_RATE   Network maximum speed (used by curl)
 #   - MIN_LIMIT_RATE   Network minimum speed (used by curl)
 #   - NO_CURLRC        Do not read of use curlrc config
-#   - CAPTCHA_METHOD   (plowdown) User-specified captcha method
-#   - CAPTCHA_ANTIGATE (plowdown) Antigate.com captcha key
-#   - CAPTCHA_9KWEU    (plowdown) 9kw.eu captcha key
-#   - CAPTCHA_BHOOD    (plowdown) Captcha Brotherhood account
-#   - CAPTCHA_DEATHBY  (plowdown) DeathByCaptcha account
-#   - CAPTCHA_PROGRAM  (plowdown) External solver program/script
+#   - CAPTCHA_METHOD   (plowdown, plowup) User-specified captcha method
+#   - CAPTCHA_ANTIGATE (plowdown, plowup) Antigate.com captcha key
+#   - CAPTCHA_9KWEU    (plowdown, plowup) 9kw.eu captcha key
+#   - CAPTCHA_BHOOD    (plowdown, plowup) Captcha Brotherhood account
+#   - CAPTCHA_DEATHBY  (plowdown, plowup) DeathByCaptcha account
+#   - CAPTCHA_PROGRAM  (plowdown, plowup) External solver program/script
 #   - MODULE           Module name (don't include .sh)
 #
 # Global variables defined here:
@@ -1119,11 +1119,11 @@ captcha_process() {
         return $ERR_FATAL
     fi
 
-    # plowdown --captchaprogram
+    # plowdown/plowup --captchaprogram
     if [ -n "$CAPTCHA_PROGRAM" ]; then
         local RET=0
 
-        WORD=$(exec "$CAPTCHA_PROGRAM" "$MODULE" "$FILENAME" "${CAPTCHA_TYPE}-$3") || RET=$?
+        WORD=$(exec "$CAPTCHA_PROGRAM" "$MODULE" "$FILENAME" "${CAPTCHA_TYPE}${3:+-$3}") || RET=$?
         if [ $RET -eq 0 ]; then
             echo "$WORD"
             echo $TID
@@ -1134,15 +1134,15 @@ captcha_process() {
         fi
     fi
 
-    # plowdown --captchamethod
+    # plowdown/plowup --captchamethod
     if [ -n "$CAPTCHA_METHOD" ]; then
         captcha_method_translate "$CAPTCHA_METHOD" METHOD_SOLVE METHOD_VIEW
+    # Auto-guess mode (solve)
+    else
+        METHOD_SOLVE='online,prompt'
     fi
 
-    # Fallback mode
-    : ${METHOD_SOLVE:=online}
-
-    if [ "$METHOD_SOLVE" = 'online' ]; then
+    if [[ "$METHOD_SOLVE" = *online* ]]; then
         if service_antigate_ready "$CAPTCHA_ANTIGATE"; then
             METHOD_SOLVE=antigate
             : ${METHOD_VIEW:=none}
@@ -1155,70 +1155,94 @@ captcha_process() {
         elif service_captchadeathby_ready "${CAPTCHA_DEATHBY%%:*}" "${CAPTCHA_DEATHBY#*:}"; then
             METHOD_SOLVE=deathbycaptcha
             : ${METHOD_VIEW:=none}
-        fi
-    fi
-
-    if [ "$METHOD_SOLVE" = 'online' ]; then
-        if [ -n "$CAPTCHA_METHOD" ]; then
+        elif [ -n "$CAPTCHA_METHOD" ]; then
             log_error 'No online recognition service found! Captcha solving request will fail.'
-            METHOD_SOLVE=none
+            METHOD_SOLVE=nop
+        fi
+    fi
+
+    # Fallback (solve)
+    if [ "$METHOD_SOLVE" != "${METHOD_SOLVE//,}" ]; then
+        METHOD_SOLVE=${METHOD_SOLVE##*,}
+        log_debug "no captcha solving method found: fallback to \`$METHOD_SOLVE'."
+    fi
+
+    # Auto-guess mode (view)
+    : ${METHOD_VIEW:=view-x,view-aa,none}
+
+    # 1) Probe for X11/Xorg viewers
+    if [[ "$METHOD_VIEW" = *view-x* ]]; then
+        if test -z "$DISPLAY"; then
+            log_notice 'DISPLAY variable not exported!'
+        fi
+
+        if check_exec 'display'; then
+            METHOD_VIEW=X-display
+        elif check_exec 'feh'; then
+            METHOD_VIEW=X-feh
+        elif check_exec 'sxiv'; then
+            METHOD_VIEW=X-sxiv
+        elif check_exec 'qiv'; then
+            METHOD_VIEW=X-qiv
         else
-            log_notice 'No online recognition service found! Default to user prompt.'
-            METHOD_SOLVE=prompt
+            log_notice 'No X11 image viewer found to display captcha image'
         fi
     fi
 
-    if [ -z "$METHOD_VIEW" ]; then
-        # X11 server installed ?
-        if [ "$METHOD_SOLVE" != 'prompt-nox' -a -n "$DISPLAY" ]; then
-            if check_exec 'display'; then
-                METHOD_VIEW=X-display
-            elif check_exec 'feh'; then
-                METHOD_VIEW=X-feh
-            elif check_exec 'sxiv'; then
-                METHOD_VIEW=X-sxiv
-            elif check_exec 'qiv'; then
-                METHOD_VIEW=X-qiv
-            else
-                log_notice "No X11 image viewer found, to display captcha image"
-            fi
+    # 2) Probe for framebuffer viewers
+    if [[ "$METHOD_VIEW" = *view-fb* ]]; then
+        if ! test -c '/dev/fb0'; then
+            log_notice '/dev/fb0 not found'
         fi
-        if [ -z "$METHOD_VIEW" ]; then
-            # libcaca
-            if check_exec img2txt; then
-                METHOD_VIEW=img2txt
-            # terminal image view (perl script using Image::Magick)
-            elif check_exec tiv; then
-                METHOD_VIEW=tiv
-            # libaa
-            elif check_exec aview && check_exec convert; then
-                METHOD_VIEW=aview
-            else
-                log_notice "No ascii viewer found to display captcha image"
-                METHOD_VIEW=none
-            fi
+
+        if check_exec 'fim'; then
+            METHOD_VIEW=fb-fim
+        else
+            log_notice 'No FB image viewer found to display captcha image'
         fi
     fi
 
+    # 3) Probe for ascii viewers
     # Try to maximize the image size on terminal
     local MAX_OUTPUT_WIDTH MAX_OUTPUT_HEIGHT
-    if [ "$METHOD_VIEW" != 'none' -a "${METHOD_VIEW:0:1}" != 'X' ]; then
-        if check_exec tput; then
-            MAX_OUTPUT_WIDTH=$(tput cols)
-            MAX_OUTPUT_HEIGHT=$(tput lines)
+    if [[ "$METHOD_VIEW" = *view-aa* ]]; then
+        # libcaca
+        if check_exec img2txt; then
+            METHOD_VIEW=img2txt
+        # terminal image view (perl script using Image::Magick)
+        elif check_exec tiv; then
+            METHOD_VIEW=tiv
+        # libaa
+        elif check_exec aview && check_exec convert; then
+            METHOD_VIEW=aview
         else
-            # Try environment variables
-            MAX_OUTPUT_WIDTH=${COLUMNS:-150}
-            MAX_OUTPUT_HEIGHT=${LINES:-57}
+            log_notice 'No ascii viewer found to display captcha image'
         fi
 
-        if check_exec identify; then
-            local DIMENSION=$(identify -quiet "$FILENAME" | cut -d' ' -f3)
-            local W=${DIMENSION%x*}
-            local H=${DIMENSION#*x}
-            [ "$W" -lt "$MAX_OUTPUT_WIDTH" ] && MAX_OUTPUT_WIDTH=$W
-            [ "$H" -lt "$MAX_OUTPUT_HEIGHT" ] && MAX_OUTPUT_HEIGHT=$H
+        if [[ "$METHOD_VIEW" != *view-aa* ]]; then
+            if check_exec tput; then
+                MAX_OUTPUT_WIDTH=$(tput cols)
+                MAX_OUTPUT_HEIGHT=$(tput lines)
+            else
+                # Try environment variables
+                MAX_OUTPUT_WIDTH=${COLUMNS:-150}
+                MAX_OUTPUT_HEIGHT=${LINES:-57}
+            fi
+
+            if check_exec identify; then
+                local DIMENSION=$(identify -quiet "$FILENAME" | cut -d' ' -f3)
+                local W=${DIMENSION%x*}
+                local H=${DIMENSION#*x}
+                [ "$W" -lt "$MAX_OUTPUT_WIDTH" ] && MAX_OUTPUT_WIDTH=$W
+                [ "$H" -lt "$MAX_OUTPUT_HEIGHT" ] && MAX_OUTPUT_HEIGHT=$H
+            fi
         fi
+    fi
+
+    # Fallback (view)
+    if [ "$METHOD_VIEW" != "${METHOD_VIEW//,}" ]; then
+        METHOD_VIEW=${METHOD_VIEW##*,}
+        log_debug "no captcha viewing method found: fallback to \`$METHOD_VIEW'."
     fi
 
     local IMG_HASH PRG_PID IMG_PNM
@@ -1261,6 +1285,10 @@ captcha_process() {
             sxiv -q -s "$FILENAME" &
             [ $? -eq 0 ] && PRG_PID=$!
             ;;
+        fb-fim)
+            fim "$FILENAME" &
+            PRG_PID=$!
+            ;;
         imgur)
             IMG_HASH=$(image_upload_imgur "$FILENAME") || true
             ;;
@@ -1276,7 +1304,7 @@ captcha_process() {
 
     # How to solve captcha
     case $METHOD_SOLVE in
-        none)
+        nop)
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
@@ -1497,7 +1525,7 @@ captcha_process() {
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
-        prompt*)
+        prompt)
             # Reload mecanism is not available for all types
             if [ "$CAPTCHA_TYPE" = 'recaptcha' -o \
                  "$CAPTCHA_TYPE" = 'solvemedia' ]; then
@@ -2329,7 +2357,7 @@ log_report_info() {
     fi
 }
 
-# Translate plowdown --captchamethod argument
+# Translate plowdown/plowup --captchamethod argument
 # to solve & view method (used by captcha_process)
 # $1: method (string)
 # $2 (optional): solve method (variable name)
@@ -2337,20 +2365,24 @@ log_report_info() {
 captcha_method_translate() {
     case $1 in
         none)
-            [[ $2 ]] && unset "$2" && eval $2=none
+            [[ $2 ]] && unset "$2" && eval $2=nop
             [[ $3 ]] && unset "$3" && eval $3=none
             ;;
         imgur)
             [[ $2 ]] && unset "$2" && eval $2=prompt
             [[ $3 ]] && unset "$3" && eval $3=imgur
             ;;
-        prompt)
-            [[ $2 ]] && unset "$2" && eval $2=$1
-            [[ $3 ]] && unset "$3" && eval $3=""
+        x11|xorg)
+            if [ -z "$DISPLAY" ]; then
+                log_error 'Cannot open display. Are you running on a X11/Xorg environment ?'
+                return $ERR_FATAL
+            fi
+            [[ $2 ]] && unset "$2" && eval $2=prompt
+            [[ $3 ]] && unset "$3" && eval $3=view-x
             ;;
         nox)
-            [[ $2 ]] && unset "$2" && eval $2=prompt-nox
-            [[ $3 ]] && unset "$3" && eval $3=""
+            [[ $2 ]] && unset "$2" && eval $2=prompt
+            [[ $3 ]] && unset "$3" && eval $3=view-aa
             ;;
         online)
             if [ -z "$CAPTCHA_ANTIGATE" -a -z "$CAPTCHA_9KWEU" -a \
@@ -2360,6 +2392,14 @@ captcha_method_translate() {
             fi
             [[ $2 ]] && unset "$2" && eval $2=online
             [[ $3 ]] && unset "$3" && eval $3=none
+            ;;
+        fb|fb0)
+            if ! test -c '/dev/fb0'; then
+                log_error 'Cannot find framebuffer device /dev/fb0'
+                return $ERR_FATAL
+            fi
+            [[ $2 ]] && unset "$2" && eval $2=prompt
+            [[ $3 ]] && unset "$3" && eval $3=view-fb
             ;;
         *)
             log_error "Error: unknown captcha method: $1"
