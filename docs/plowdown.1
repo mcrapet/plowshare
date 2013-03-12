@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "February 26, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowdown" "1" "March 12, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowdown \- Simple download manager for file-sharing websites
@@ -48,65 +48,28 @@ Currently supported hosting sites list is available in README file.
 .B -c, --check-link
 Check and write alive link(s) to standard output, files are not downloaded.
 .TP
+.BI -i, " " --interface "=IFACE"
+If your machine has several network interfaces, force using \fIIFACE\fR interface.
+.TP
 .B -m, --mark-downloaded
 Mark downloaded links in (regular) file arguments.
 .TP
 .BI -o, " " --output-directory "=DIRECTORY"
 Directory where files will be saved. Default is current directory.
 .TP
-.B -x, --no-overwrite
-Do not overwrite existing files. Existing file will be preserved and filename will be
-suffixed with .1, .2, and so on.
-.SS Logging options
-.TP
-.BI -v, " " --verbose "=LEVEL"
-Set output verbose level:
-.RS 
-\fB0\fR  none,
-.RE
-.RS 
-\fB1\fR  errors,
-.RE
-.RS
-\fB2\fR  notice (default behavior),
-.RE
-.RS
-\fB3\fR  debug,
-.RE
-.RS
-\fB4\fR  report (very noisy, log HTML pages).
-.RE
-.TP
-.B -q, --quiet
-Alias for \fB-v0\fR. Do not print any debug messages.
-.SS Tuning settings
-.TP
-.BI -i, " " --interface "=IFACE"
-If your machine has several network interfaces, force using \fIIFACE\fR interface.
-.TP
-.BI "   " " " --max-rate "=SPEED"
-Limit download speed in bytes per second. Suffixes are:
-.RS 
-\fBk\fR  for kilobytes (kB i.e. 1000),
-.RE
-.RS
-\fBM\fR  for megabytes (MB i.e. 1000^2),
-.RE
-.RS
-\fBK\fR or \fBKi\fR  for kibibytes (KB or KiB i.e. 1024),
-.RE
-.RS
-\fBm\fR or \fBMi\fR  for mebibytes (mB or MiB i.e. 1024^2).
-.RE
+.BI -r, " " --max-retries "=N"
+Set maximum retries for download failures. Apply on module exit value: \fB3\fR (network error), \fB7\fR (captcha error).
+Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
 .TP
 .BI -t, " " --timeout "=SECS"
 Cancel download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
 This error can be returned in various cases: unallowed parallel download, daily downloads limit reached, remote hoster overloaded.
 Default option value is disabled (no timeout, infinite) and applies for one single URL download.
 .TP
-.BI -r, " " --max-retries "=N"
-Set maximum retries for download failures. Apply on module exit value: \fB3\fR (network error), \fB7\fR (captcha error).
-Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
+.B -x, --no-overwrite
+Do not overwrite existing files. Existing file will be preserved and filename will be
+suffixed with .1, .2, and so on.
+.SS Captcha options
 .TP
 .BI "   " " " --9kweu "=KEY"
 Use 9kw.eu service to solve captchas.
@@ -123,23 +86,26 @@ Use Death by Captcha service to solve captchas.
 .BI "   " " " --captchamethod "=METHOD"
 Force specific captcha solving method. Available values:
 .RS
-\fBimgur\fR : upload image to Imgur.com service, print image url in console. Useful for NAS and embedded devices.
+\fBimgur\fR : upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
 .RE
 .RS
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+.RE
+.RS
+\fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for FB viewer: fim.
 .RE
 .RS
 \fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
 .RE
 .RS
-\fBprompt\fR : display image (X11 or text) and prompt for manual entering. Looks for viewers: display, sxiv, qiv, img2txt, aview, tiv.
+\fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
 .RE
 .TP
 .BI "   " " " --captchaprogram "=SCRIPT"
-Call external program (or script) for solving captcha.
+Call external program (or script) for solving captchas.
 
 Three arguments are given:
 .RS
@@ -168,29 +134,28 @@ Note: this exit code is eligible with retry policy (\fI-r/--max-retries\fP).
 
 Note: plowdown legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
 .RE
+.SS Tuning settings
+.TP
+.BI "   " " " --max-rate "=SPEED"
+Limit download speed in bytes per second. Suffixes are:
+.RS 
+\fBk\fR  for kilobytes (kB i.e. 1000),
+.RE
+.RS
+\fBM\fR  for megabytes (MB i.e. 1000^2),
+.RE
+.RS
+\fBK\fR or \fBKi\fR  for kibibytes (KB or KiB i.e. 1024),
+.RE
+.RS
+\fBm\fR or \fBMi\fR  for mebibytes (mB or MiB i.e. 1024^2).
+.RE
 .TP
 .BI "   " " " --temp-directory "=DIRECTORY"
 Directory where files are temporarily downloaded.
 .TP
 .B "   " --temp-rename
 Append .part suffix to filename while file is being downloaded. Download resume will not work with this option.
-.SS Miscellaneous options
-.TP
-.BI "   " " " --cookies "=FILE"
-Use provided cookie file for HTTP requests. This can be used to bypass login process on registered (premium) accounts.
-This is not implemented by all modules.
-.TP
-.B "   " --fallback
-If no module is found for link, simply download it (HTTP GET).
-.TP
-.B "   " --no-curlrc
-Do not use curl config file (~/.curlrc).
-.TP
-.B "   " --no-plowsharerc
-Do not use local or global config file (plowshare.conf).
-.TP
-.B "   " --get-module
-Get module(s) for URL(s) and quit. Useful for wrappers.
 .TP
 .BI "   " " " --printf "=FORMAT"
 Don't process final link, print results in a given format (for each link). This can be useful for wrappers. Interpreted sequences are:
@@ -232,6 +197,45 @@ Don't process final link, execute command (for each link). This can be useful to
 Interpreted sequences are the same used by \fI--printf\fP option.
 
 If this option is used several times, the last one will be used.
+.SS Logging options
+.TP
+.BI -v, " " --verbose "=LEVEL"
+Set output verbose level:
+.RS
+\fB0\fR  none,
+.RE
+.RS
+\fB1\fR  errors,
+.RE
+.RS
+\fB2\fR  notice (default behavior),
+.RE
+.RS
+\fB3\fR  debug,
+.RE
+.RS
+\fB4\fR  report (very noisy, log HTML pages).
+.RE
+.TP
+.B -q, --quiet
+Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Miscellaneous options
+.TP
+.BI "   " " " --cookies "=FILE"
+Use provided cookie file for HTTP requests. This can be used to bypass login process on registered (premium) accounts.
+This is not implemented by all modules.
+.TP
+.B "   " --fallback
+If no module is found for link, simply download it (HTTP GET).
+.TP
+.B "   " --no-curlrc
+Do not use curl config file (~/.curlrc).
+.TP
+.B "   " --no-plowsharerc
+Do not use local or global config file (plowshare.conf).
+.TP
+.B "   " --get-module
+Get module(s) for URL(s) and quit. Useful for wrappers.
 .SS Generic program information
 .TP
 .B -h, --help
