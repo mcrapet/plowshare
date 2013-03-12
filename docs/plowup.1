@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "February 24, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowup" "1" "March 12, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowup \- Simple upload manager for file-sharing websites
@@ -51,6 +51,81 @@ See specific module options below.
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
+.BI -r, " " --max-retries "=N"
+Set maximum retries for upload failures. Apply on module exit value: \fB1\fR (fatal error), \fB3\fR (network error), \fB7\fR (captcha error).
+Default option value is 0 (no retry) and applies for one single upload.
+.TP
+.BI -t, " " --timeout "=SECS"
+Cancel upload download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
+This error mainly occurs on remote upload operations.
+Default option value is disabled (no timeout, infinite) and applies for one single upload.
+.SS Captcha options
+.TP
+.BI "   " " " --9kweu "=KEY"
+Use 9kw.eu service to solve captchas.
+.TP
+.BI "   " " " --antigate "=KEY"
+Use Antigate.com service to solve captchas.
+.TP
+.BI "   " " " --captchabhood "=USER:PASSWORD"
+Use Captcha Brotherhood service to solve captchas.
+.TP
+.BI "   " " " --deathbycaptcha "=USER:PASSWORD"
+Use Death by Captcha service to solve captchas.
+.TP
+.BI "   " " " --captchamethod "=METHOD"
+Force specific captcha solving method. Available values:
+.RS
+\fBimgur\fR : upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
+.RE
+.RS
+\fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
+.RE
+.RS
+\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+.RE
+.RS
+\fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for FB viewer: fim.
+.RE
+.RS
+\fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
+.RE
+.RS
+\fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
+.RE
+.TP
+.BI "   " " " --captchaprogram "=SCRIPT"
+Call external program (or script) for solving captchas.
+
+Three arguments are given:
+.RS
+\fB$1\fR
+module name (lowercase). For example: \fImediafire\fR.
+.RE
+.RS
+\fB$2\fR
+image filename (with full path).
+.RE
+.RS
+\fB$3\fR
+hint or captcha type (string). For example: \fIrecaptcha\fR, \fIsolvemedia\fR or \fIdigits-4\fR.
+
+Return value and exit status:
+.RE
+.RS
+\fB0\fR : solving success. Result must be printed on stdout.
+.RE
+.RS
+\fB2\fR : external solver is not able to solve requested captcha. Let plowup continue solving it normally (will consider \fI--captchamethod\fP if specified).
+.RE
+.RS
+\fB7\fR : external solver failed.
+Note: this exit code is eligible with retry policy (\fI-r/--max-retries\fP).
+
+Note: plowup legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
+.RE
+.SS Tuning settings
+.TP
 .BI "   " " " --max-rate "=SPEED"
 Limit upload maximum speed in bytes per second. Suffixes are:
 .RS 
@@ -69,15 +144,6 @@ Limit upload maximum speed in bytes per second. Suffixes are:
 .BI "   " " " --min-rate "=SPEED"
 Limit upload minimum speed in bytes per second (for a delay of 30 seconds).
 Suffixes are the same than \fB--max-rate\fR.
-.TP
-.BI -t, " " --timeout "=SECS"
-Cancel upload download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
-This error mainly occurs on remote upload operations.
-Default option value is disabled (no timeout, infinite) and applies for one single upload.
-.TP
-.BI -r, " " --max-retries "=N"
-Set maximum retries for upload failures. Apply on module exit value: \fB1\fR (fatal error), \fB3\fR (network error).
-Default option value is 0 (no retry) and applies for one single upload.
 .TP
 .BI "   " " " --name-prefix "=STRING"
 Prepend argument to each destination filename.
@@ -126,10 +192,10 @@ download url
 .TP
 .BI -v, " " --verbose "=LEVEL"
 Set output verbose level:
-.RS 
+.RS
 \fB0\fR  none,
 .RE
-.RS 
+.RS
 \fB1\fR  errors,
 .RE
 .RS
@@ -255,6 +321,8 @@ Authentication failed (bad login/password).
 Timeout reached (refer to \fI-t/--timeout\fP command-line option).
 .IP 6
 Maximum tries reached (refer to \fI-r/--max-retries\fP command-line option).
+.IP 7
+Captcha generic error.
 .IP 8
 System generic error.
 .IP 10
