@@ -1145,19 +1145,19 @@ captcha_process() {
     if [[ "$METHOD_SOLVE" = *online* ]]; then
         if service_antigate_ready "$CAPTCHA_ANTIGATE"; then
             METHOD_SOLVE=antigate
-            : ${METHOD_VIEW:=none}
+            : ${METHOD_VIEW:=log}
         elif service_9kweu_ready "$CAPTCHA_9KWEU"; then
             METHOD_SOLVE=9kweu
-            : ${METHOD_VIEW:=none}
+            : ${METHOD_VIEW:=log}
         elif service_captchabrotherhood_ready "${CAPTCHA_BHOOD%%:*}" "${CAPTCHA_BHOOD#*:}"; then
             METHOD_SOLVE=captchabrotherhood
-            : ${METHOD_VIEW:=none}
+            : ${METHOD_VIEW:=log}
         elif service_captchadeathby_ready "${CAPTCHA_DEATHBY%%:*}" "${CAPTCHA_DEATHBY#*:}"; then
             METHOD_SOLVE=deathbycaptcha
-            : ${METHOD_VIEW:=none}
+            : ${METHOD_VIEW:=log}
         elif [ -n "$CAPTCHA_METHOD" ]; then
             log_error 'No online recognition service found! Captcha solving request will fail.'
-            METHOD_SOLVE=nop
+            METHOD_SOLVE=none
         fi
     fi
 
@@ -1168,7 +1168,7 @@ captcha_process() {
     fi
 
     # Auto-guess mode (view)
-    : ${METHOD_VIEW:=view-x,view-aa,none}
+    : ${METHOD_VIEW:=view-x,view-aa,log}
 
     # 1) Probe for X11/Xorg viewers
     if [[ "$METHOD_VIEW" = *view-x* ]]; then
@@ -1249,7 +1249,7 @@ captcha_process() {
 
     # How to display image
     case $METHOD_VIEW in
-        none)
+        log)
             log_notice "Local image: $FILENAME"
             ;;
         aview)
@@ -1304,7 +1304,7 @@ captcha_process() {
 
     # How to solve captcha
     case $METHOD_SOLVE in
-        nop)
+        none)
             rm -f "$FILENAME"
             return $ERR_CAPTCHA
             ;;
@@ -2365,8 +2365,8 @@ log_report_info() {
 captcha_method_translate() {
     case $1 in
         none)
-            [[ $2 ]] && unset "$2" && eval $2=nop
-            [[ $3 ]] && unset "$3" && eval $3=none
+            [[ $2 ]] && unset "$2" && eval $2=none
+            [[ $3 ]] && unset "$3" && eval $3=log
             ;;
         imgur)
             [[ $2 ]] && unset "$2" && eval $2=prompt
@@ -2391,7 +2391,7 @@ captcha_method_translate() {
                 return $ERR_FATAL
             fi
             [[ $2 ]] && unset "$2" && eval $2=online
-            [[ $3 ]] && unset "$3" && eval $3=none
+            [[ $3 ]] && unset "$3" && eval $3=log
             ;;
         fb|fb0)
             if ! test -c '/dev/fb0'; then
