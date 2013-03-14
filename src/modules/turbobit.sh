@@ -31,6 +31,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
+MODULE_TURBOBIT_LIST_OPTIONS=""
 MODULE_TURBOBIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
@@ -384,6 +385,42 @@ turbobit_delete() {
 
     # File was deleted successfully
     match 'deleted successfully' "$PAGE" || return $ERR_FATAL
+}
+
+# List a turbobit.net folder
+# $1: turbobit.net folder link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+turbobit_list() {
+    local -r URL=$1
+    local PAGE QUERY_URL FOLDER_ID JSON LINKS NAMES
+
+    if ! match '/folder/' "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_debug 'recursive folder does not exist in turbobit.net'
+
+    PAGE=$(curl -L -b 'user_lang=en' "$URL") || return
+
+    QUERY_URL=$(echo "$PAGE" | parse '[[:space:]]url:' "'\(/[^']*\)")
+    FOLDER_ID=$(echo "$PAGE" | parse '[[:space:]]postData:' \
+      'id_folder:[[:space:]]\([[:digit:]]\+\)') || return
+
+    JSON=$(curl --get  -b 'user_lang=en' \
+        -d "id_folder=$FOLDER_ID" -d 'rows=400' \
+        "http://turbobit.net$QUERY_URL") || return
+
+    LINKS=$(parse_json 'id' 'split' <<<"$JSON")
+
+    # Not very classy! sed makes one link per line.
+    NAMES=$(parse_all . '_blank.>\([^<]*\)<\\/a>",' <\
+        <(sed -e 's/]/]\n/g' <<<"$JSON"))
+
+    test "$LINKS" || return $ERR_LINK_DEAD
+
+    list_submit "$LINKS" "$NAMES" 'http://turbobit.net/' '.html' || return
 }
 
 # Probe a download URL
