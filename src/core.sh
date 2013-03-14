@@ -1977,6 +1977,7 @@ split_auth() {
 # $1: links list (one url per line)
 # $2: (optional) name list (one filename per line)
 # $3: (optional) link prefix (gets prepended to every link)
+# $4: (optional) link suffix (gets appended to every link)
 # $?: 0 for success or $ERR_LINK_DEAD
 list_submit() {
     local LINE I
@@ -1991,13 +1992,13 @@ list_submit() {
 
         for I in "${!LINKS[@]}"; do
             test "${LINKS[$I]}" || continue
-            echo "$3${LINKS[$I]}"
+            echo "$3${LINKS[$I]}$4"
             echo "${NAMES[$I]}"
         done
     else
         while IFS= read -r LINE; do
             test "$LINE" || continue
-            echo "$3$LINE"
+            echo "$3$LINE$4"
             echo
         done <<< "$1"
     fi
