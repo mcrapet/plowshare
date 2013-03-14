@@ -36,7 +36,7 @@ TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_1FICHIER_DELETE_OPTIONS=""
-
+MODULE_1FICHIER_LIST_OPTIONS=""
 MODULE_1FICHIER_PROBE_OPTIONS=""
 
 # Output a 1fichier file download URL
@@ -193,6 +193,31 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         log_debug "unexpected result, site updated?"
         return $ERR_FATAL
     fi
+}
+
+# List a 1fichier folder
+# $1: 1fichier folder link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+1fichier_list() {
+    local -r URL=$1
+    local PAGE LINKS NAMES
+
+    if ! match '/dir/' "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_debug 'recursive folder does not exist in 1fichier.com'
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'T.l.chargement de' href)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'T.l.chargement de' a)
+
+    test "$LINKS" || return $ERR_LINK_DEAD
+
+    list_submit "$LINKS" "$NAMES" || return
 }
 
 # Probe a download URL
