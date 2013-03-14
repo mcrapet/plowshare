@@ -29,6 +29,8 @@ MODULE_UPLOADING_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 MODULE_UPLOADING_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_UPLOADING_PROBE_OPTIONS=""
+
 # Static function. Proceed with login
 # $1: authentication
 # $2: cookie file
@@ -193,4 +195,37 @@ uploading_upload() {
 
     # Extract and output file link
     echo "$JSON" | parse_json 'link' || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: uploading.com url
+# $3: requested capability list
+# stdout: 1 capability per line
+uploading_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L -b 'lang=1' "$URL") || return
+
+    # <h2>OOPS! Looks like file not found.</h2>
+    if match 'file not found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse 'filemanager_action"' '<li>\([^<]*\)' 1 <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse 'size tip_container' \
+            'tip_container">\([^<]*\)') && translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

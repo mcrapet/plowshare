@@ -39,7 +39,7 @@ sendspace       | download | upload | delete | list | probe |
 shareonline_biz | download | upload |        |      | probe |
 turbobit        | download | upload | delete | list | probe |
 uploadhero      | download | upload | delete | list |       |
-uploading       | download | upload |        |      |       |
+uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
 uptobox         | download | upload |        |      | probe |
 zalaa           | download | upload |        | list | probe |
