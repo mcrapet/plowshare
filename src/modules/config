@@ -38,7 +38,7 @@ ryushare        | download | upload |        |      | probe |
 sendspace       | download | upload | delete | list | probe |
 shareonline_biz | download | upload |        |      | probe |
 turbobit        | download | upload | delete | list | probe |
-uploadhero      | download | upload | delete | list |       |
+uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
 uptobox         | download | upload |        |      | probe |

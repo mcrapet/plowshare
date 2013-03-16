@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# uploadhero module
-# Copyright (c) 2012 Plowshare team
+# uploadhero.co module
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -31,8 +31,8 @@ AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_UPLOADHERO_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPLOADHERO_DELETE_OPTIONS=""
-
 MODULE_UPLOADHERO_LIST_OPTIONS=""
+MODULE_UPLOADHERO_PROBE_OPTIONS=""
 
 # Set a cookie manually
 #
@@ -310,4 +310,34 @@ uploadhero_list() {
     NAMES=$(echo "$PAGE" | parse_all_tag_quiet '<td class="td2">' td | html_to_utf8)
 
     list_submit "$LINKS" "$NAMES" || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: uploadhero url
+# $3: requested capability list
+# stdout: 1 capability per line
+uploadhero_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L -b 'lang=en' "$URL") || return
+
+    # Verify if link exists
+    match '<div class="raison">' "$PAGE" && return $ERR_LINK_DEAD
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_tag 'class="nom_de_fichier"' div <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse_tag 'Filesize:' strong ) && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }
