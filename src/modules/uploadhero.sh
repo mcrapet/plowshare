@@ -122,6 +122,12 @@ uploadhero_download() {
 
     PAGE=$(curl -L -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
+    # You are currently using a dedicated server, this is not allowed by our T.O.S.
+    if match '<title>UploadHero - VPN</title>' "$PAGE"; then
+        log_error 'You are currently using a dedicated server, this is not allowed.'
+        return $ERR_FATAL
+    fi
+
     # Verify if link exists
     match '<div class="raison">' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
