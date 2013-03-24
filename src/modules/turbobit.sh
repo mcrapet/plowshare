@@ -307,6 +307,13 @@ turbobit_upload() {
 
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'user_lang=en' "$BASE_URL") || return
 
+    # Because of the irrational use of service resources , access to upload new
+    # files in your account is temporarily closed. When an increase temperature
+    # of your thermometer down to 0 degrees, access to upload will be opened.
+    if match '>Access to upload files closed</h2>' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     UP_URL=$(echo "$PAGE" | parse 'flashvars=' 'urlSite=\([^&"]\+\)') || return
     APP_TYPE=$(echo "$PAGE" | parse 'flashvars=' 'apptype=\([^&"]\+\)') || return
     MAX_SIZE=$(echo "$PAGE" | parse 'flashvars=' 'maxSize=\([[:digit:]]\+\)') || return
