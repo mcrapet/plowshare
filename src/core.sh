@@ -361,9 +361,9 @@ parse_all() {
         STRING=$(sed -ne "$FILTER $PARSE")
 
     elif [ $N -eq 1 ]; then
-        # Note: Loop is required for consecutive matches
-        # STRING=$(sed -ne "/$1/ {n;h; s/$2/\1/p; g;b;}")
-        STRING=$(sed -ne "$FILTER {n;h; $PARSE; g;b;}")
+        # Note: Loop (with label) is required for consecutive matches
+        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;b a;}")
+        STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;ba;}")
 
     elif [ $N -eq -1 ]; then
         # STRING=$(sed -ne "/$1/ {x; s/$2/\1/p; b;}" -e 'h')
