@@ -342,7 +342,7 @@ match_remote_url() {
 # stdout: result
 parse_all() {
     local PARSE=$2
-    local N=${3:-0}
+    local -i N=${3:-0}
     local -r D=$'\001' # Change sed separator to allow '/' characters in regexp
     local STRING FILTER
 
@@ -362,8 +362,8 @@ parse_all() {
 
     elif [ $N -eq 1 ]; then
         # Note: Loop is required for consecutive matches
-        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;b a;}")
-        STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;b a;}")
+        # STRING=$(sed -ne "/$1/ {n;h; s/$2/\1/p; g;b;}")
+        STRING=$(sed -ne "$FILTER {n;h; $PARSE; g;b;}")
 
     elif [ $N -eq -1 ]; then
         # STRING=$(sed -ne "/$1/ {x; s/$2/\1/p; b;}" -e 'h')
