@@ -556,7 +556,7 @@ uploaded_net_probe() {
 
     # Page not found
     # The requested file isn't available anymore!
-    [[ $URL = *404 || $URL = *410 ]]  && return $ERR_LINK_DEAD
+    [[ $URL = */404 || $URL = */410/* ]]  && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
