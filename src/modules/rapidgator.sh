@@ -360,7 +360,7 @@ rapidgator_download() {
     log_debug 'Correct captcha'
 
     # Extract + output download link
-    echo "$HTML" | parse 'location.href' "'\(.\+\)'" || return
+    echo "$HTML" | parse 'function getUrl' "'\(.\+\)'" 2 || return
     echo "$FILE_NAME"
 }
 
