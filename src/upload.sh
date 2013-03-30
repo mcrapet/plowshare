@@ -192,6 +192,13 @@ pretty_print() {
 # Main
 #
 
+# Check interpreter
+if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
+    echo "plowup: Your shell is too old. Bash 4.1+ is required." >&2
+    echo "plowup: Your version is $BASH_VERSION" >&2
+    exit 1
+fi
+
 # Get library directory
 LIBDIR=$(absolute_path "$0")
 
