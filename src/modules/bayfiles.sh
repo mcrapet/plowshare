@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # bayfiles.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -31,6 +31,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_BAYFILES_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_BAYFILES_DELETE_OPTIONS=""
+MODULE_BAYFILES_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
 # Uses official API: http://bayfiles.com/api
@@ -194,4 +195,35 @@ bayfiles_delete() {
 
     # Invalid security token. Please check your link.
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: bayfile url
+# $3: requested capability list
+# stdout: 1 capability per line
+bayfiles_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl -L "$URL") || return
+
+    if match 'The link is incorrect' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_attr 'title=' 'title' <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>File:<' '<strong>\([^<]*\)' 1) && \
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

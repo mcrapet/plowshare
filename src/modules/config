@@ -5,7 +5,7 @@
 2shared         | download | upload | delete |      |       |
 4shared         | download | upload |        | list |       |
 anonfiles       | download | upload |        |      |       |
-bayfiles        | download | upload | delete |      |       |
+bayfiles        | download | upload | delete |      | probe |
 billionuploads  | download | upload |        |      | probe |
 bitshare        | download | upload | delete |      | probe |
 cloudzer_net    | download |        |        |      | probe |
