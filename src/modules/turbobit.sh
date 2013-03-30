@@ -123,8 +123,10 @@ turbobit_download() {
 
     PAGE=$(curl -c "$COOKIE_FILE" -b 'user_lang=en' "$URL") || return
 
-    # <h1>This document was not found in System</h1>
-    match 'was not found' "$PAGE" && return $ERR_LINK_DEAD
+    # This document was not found in System
+    # File was not found. It could possibly be deleted.
+    # File not found. Probably it was deleted.
+    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
     # Download xyz. Free download without registration from TurboBit.net
@@ -443,7 +445,10 @@ turbobit_probe() {
 
     PAGE=$(curl -b 'user_lang=en' "$URL") || return
 
-    match 'was not found'  "$PAGE" && return $ERR_LINK_DEAD
+    # This document was not found in System
+    # File was not found. It could possibly be deleted.
+    # File not found. Probably it was deleted.
+    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
