@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # freakshare.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -29,6 +29,8 @@ MODULE_FREAKSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 MODULE_FREAKSHARE_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_FREAKSHARE_UPLOAD_REMOTE_SUPPORT=no
+
+MODULE_FREAKSHARE_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
 freakshare_login() {
@@ -192,9 +194,50 @@ freakshare_upload() {
         -F "file[]=@$FILE;filename=$DESTFILE" \
         "$FORM_ACTION?X-Progress-ID=undefined$(random h 32)") || return
 
+    if match '^HTTP/1.1 404 Not Found' "$PAGE"; then
+        echo 600
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     URL=$(echo "$PAGE" | grep_http_header_location) || return
     PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
 
     echo "$PAGE" | parse_attr '/files/' value || return
     echo "$PAGE" | parse_attr '/delete/' value || return
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: freakshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+freakshare_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    # Set english language (server side information, identified by PHPSESSID)
+    curl -o /dev/null -c "$COOKIE_FILE" \
+        'http://freakshare.com/index.php?language=EN' || return
+
+    PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
+
+    if match '404 - Not Found\|or is deleted\|This file does not exist!' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse '=.box_heading' '">\(.*\)[[:space:]]-[[:space:]]' <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(parse '=.box_heading' '[[:space:]]-[[:space:]]\([^<]*\)' <<< "$PAGE")
+        translate_size "${FILE_SIZE%yte}" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

@@ -20,7 +20,7 @@ extabit         | download | upload |        |      | probe |
 filebox         | download | upload | delete |      |       |
 filemates       | download | upload | delete | list |       |
 filepost        | download | upload | delete | list | probe |
-freakshare      | download | upload |        |      |       |
+freakshare      | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
 hotfile         | download | upload |        | list | probe |
 jheberg         |          | upload |        | list |       |
