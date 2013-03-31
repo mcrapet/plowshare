@@ -111,7 +111,7 @@ letitbit_download() {
     # Note: Premium users are redirected to a download page
     PAGE=$(curl --location -b "$COOKIE_FILE" -b 'lang=en' "$URL") || return
 
-    if match 'File not found' "$PAGE"; then
+    if match 'File not found\|страница не существует' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -418,7 +418,7 @@ letitbit_probe() {
     # Letitbit redirects all possible urls of a file to the canonical one
     PAGE=$(curl --location -b 'lang=en' "$2") || return
 
-    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    match 'File not found\|страница не существует' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     FORM_HTML=$(grep_form_by_id "$PAGE" 'ifree_form') || return
