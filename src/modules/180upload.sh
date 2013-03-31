@@ -76,6 +76,11 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     # <div class="err">Skipped countdown</div>
     if match '<div class="err"' "$PAGE"; then
         ERR=$(echo "$PAGE" | parse_tag 'class="err"' div)
+        if match 'Skipped countdown' "$ERR"; then
+            # Can do a retry
+            log_debug "Remote error: $ERR"
+            return $ERR_NETWORK
+        fi
         log_error "Remote error: $ERR"
     else
         FILE_NAME=$(echo "$PAGE" | parse_tag '"style1"' span) || return
