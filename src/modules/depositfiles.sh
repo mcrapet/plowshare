@@ -84,7 +84,7 @@ depositfiles_login() {
 depositfiles_download() {
     local COOKIEFILE=$1
     local URL=$2
-    local BASE_URL='http://depositfiles.com'
+    local -r BASE_URL='http://dfiles.eu'
     local START DLID WAITTIME DATA FID SLEEP FILE_URL
 
     if [ -n "$AUTH" ]; then
@@ -136,11 +136,11 @@ depositfiles_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    DATA=$(curl --data "gateway_result=1" "$BASE_URL/en/files/$DLID") || return
+    DATA=$(curl --data 'gateway_result=1' "$BASE_URL/en/files/$DLID") || return
 
     # 2. Check if we have been redirected to initial page
     if match '<input type="button" value="Gold downloading"' "$DATA"; then
-        log_error "FIXME"
+        log_error 'FIXME'
         return $ERR_FATAL
     fi
 
@@ -184,11 +184,11 @@ depositfiles_download() {
         { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
         DATA=$(curl --get --location -b 'lang_current=en' \
-            --data "fid=$FID&challenge=$CHALLENGE&response=$WORD" \
-            -H "X-Requested-With: XMLHttpRequest" --referer "$URL" \
-            "$BASE_URL/get_file.php") || return
+            -H 'X-Requested-With: XMLHttpRequest' --referer "$URL" \
+            -d "fid=$FID" -d "response=$WORD" \
+            -d "challenge=$CHALLENGE" "$BASE_URL/get_file.php") || return
 
-        if match 'Download the file' "$DATA"; then
+        if match '=.downloader_file_form' "$DATA"; then
             captcha_ack $ID
             log_debug "correct captcha"
 
@@ -221,7 +221,6 @@ depositfiles_upload() {
     if [ -n "$AUTH" ]; then
         depositfiles_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
     fi
-
 
     if [ -n "$API" ]; then
         if [ -n "$AUTH" ]; then
@@ -333,7 +332,7 @@ depositfiles_list() {
     local URL=$1
     local PAGE LINKS NAMES
 
-    if ! match 'depositfiles\.com/\(../\)\?folders/' "$URL"; then
+    if ! match "${MODULE_DEPOSITFILES_REGEXP_URL}folders" "$URL"; then
         log_error "This is not a directory list"
         return $ERR_FATAL
     fi
@@ -354,9 +353,10 @@ depositfiles_list() {
 # check_form() > add_padding()
 add_padding() {
     local I STR
-    for ((I=0; I<3000; I++)); do
+    for (( I = 0 ; I < 750 ; I++ )); do
         STR="$STR "
     done
+    echo "$STR$STR$STR$STR"
 }
 
 # Probe a download URL
