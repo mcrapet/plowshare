@@ -31,6 +31,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_DELETE_OPTIONS=""
+MODULE_TURBOBIT_LIST_OPTIONS=""
 MODULE_TURBOBIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
@@ -122,7 +123,10 @@ turbobit_download() {
 
     PAGE=$(curl -c "$COOKIE_FILE" -b 'user_lang=en' "$URL") || return
 
-    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    # This document was not found in System
+    # File was not found. It could possibly be deleted.
+    # File not found. Probably it was deleted.
+    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
     # Download xyz. Free download without registration from TurboBit.net
@@ -306,6 +310,13 @@ turbobit_upload() {
 
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'user_lang=en' "$BASE_URL") || return
 
+    # Because of the irrational use of service resources , access to upload new
+    # files in your account is temporarily closed. When an increase temperature
+    # of your thermometer down to 0 degrees, access to upload will be opened.
+    if match '>Access to upload files closed</h2>' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     UP_URL=$(echo "$PAGE" | parse 'flashvars=' 'urlSite=\([^&"]\+\)') || return
     APP_TYPE=$(echo "$PAGE" | parse 'flashvars=' 'apptype=\([^&"]\+\)') || return
     MAX_SIZE=$(echo "$PAGE" | parse 'flashvars=' 'maxSize=\([[:digit:]]\+\)') || return
@@ -386,6 +397,42 @@ turbobit_delete() {
     match 'deleted successfully' "$PAGE" || return $ERR_FATAL
 }
 
+# List a turbobit.net folder
+# $1: turbobit.net folder link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+turbobit_list() {
+    local -r URL=$1
+    local PAGE QUERY_URL FOLDER_ID JSON LINKS NAMES
+
+    if ! match '/folder/' "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_debug 'recursive folder does not exist in turbobit.net'
+
+    PAGE=$(curl -L -b 'user_lang=en' "$URL") || return
+
+    QUERY_URL=$(echo "$PAGE" | parse '[[:space:]]url:' "'\(/[^']*\)")
+    FOLDER_ID=$(echo "$PAGE" | parse '[[:space:]]postData:' \
+      'id_folder:[[:space:]]\([[:digit:]]\+\)') || return
+
+    JSON=$(curl --get  -b 'user_lang=en' \
+        -d "id_folder=$FOLDER_ID" -d 'rows=400' \
+        "http://turbobit.net$QUERY_URL") || return
+
+    LINKS=$(parse_json 'id' 'split' <<<"$JSON")
+
+    # Not very classy! sed makes one link per line.
+    NAMES=$(parse_all . '_blank.>\([^<]*\)<\\/a>",' <\
+        <(sed -e 's/]/]\n/g' <<<"$JSON"))
+
+    test "$LINKS" || return $ERR_LINK_DEAD
+
+    list_submit "$LINKS" "$NAMES" 'http://turbobit.net/' '.html' || return
+}
+
 # Probe a download URL
 # $1: cookie file (unused here)
 # $2: Turbobit url
@@ -398,7 +445,10 @@ turbobit_probe() {
 
     PAGE=$(curl -b 'user_lang=en' "$URL") || return
 
-    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    # This document was not found in System
+    # File was not found. It could possibly be deleted.
+    # File not found. Probably it was deleted.
+    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then

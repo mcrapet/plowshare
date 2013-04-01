@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEPOST_REGEXP_URL="https\?://\(www\.\)\?filepost\.com/"
+MODULE_FILEPOST_REGEXP_URL="https\?://\(fp\.io\|\(www\.\)\?filepost\.com\)/"
 
 MODULE_FILEPOST_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
@@ -34,6 +34,7 @@ MODULE_FILEPOST_DELETE_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 
 MODULE_FILEPOST_LIST_OPTIONS=""
+MODULE_FILEPOST_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
 # $1: authentication
@@ -131,15 +132,18 @@ filepost_switch_lang() {
 # stdout: real file download link
 filepost_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$2
     local -r BASE_URL='https://filepost.com'
-    local PAGE SID FILE_NAME JSON SID CODE FILE_PASS TID JS_URL WAIT ROLE
+    local URL PAGE SID FILE_NAME JSON SID CODE FILE_PASS TID JS_URL WAIT ROLE
+
+    # Site redirects all possible urls of a file to the canonical one
+    URL=$(curl --head --location "$2" | grep_http_header_location_quiet) || return
+    [ -n "$URL" ] || URL=$2
 
     filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
     SID=$(parse_cookie 'SID' < "$COOKIE_FILE") || return
 
     if [ -n "$AUTH" ]; then
-        ROLE=filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID" || return
+        ROLE=$(filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID") || return
     fi
 
     PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
@@ -359,4 +363,42 @@ filepost_list_rec() {
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file
+# $2: Filepost url
+# $3: requested capability list
+# stdout: 1 capability per line
+filepost_probe() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local -r BASE_URL='https://filepost.com'
+    local PAGE REQ_OUT FILE_SIZE
+
+    filepost_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" --data-urlencode "urls=$URL" \
+        "$BASE_URL/files/checker/?JsHttpRequest=$(date +%s0000)-xml") || return
+
+    match 'Active' "$PAGE" || return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    # Get rid of escaping
+    PAGE=$(echo "$PAGE" | replace '\' '')
+
+    if [[ $REQ_IN = *f* ]]; then
+        # Parse file name from full URL (Note the trailing slash!)
+        #   https://filepost.com/files/123/xyz/
+        echo "$PAGE" | parse '' 'files/[^/]\+/\([^/]\+\)/' | uri_decode &&
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '' \
+            '<td>\([[:digit:].]\+[[:space:]][KMG]\?B\)\(ytes\)\?</td>') &&
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+    echo $REQ_OUT
 }

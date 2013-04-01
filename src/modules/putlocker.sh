@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # putlocker.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -29,6 +29,8 @@ MODULE_PUTLOCKER_DOWNLOAD_SUCCESSIVE_INTERVAL=
 MODULE_PUTLOCKER_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
 MODULE_PUTLOCKER_UPLOAD_REMOTE_SUPPORT=no
+
+MODULE_PUTLOCKER_PROBE_OPTIONS=""
 
 # Output a putlocker file download URL
 # $1: cookie file
@@ -174,4 +176,38 @@ putlocker_upload() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: putlocker url
+# $3: requested capability list
+# stdout: 1 capability per line
+putlocker_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl "$URL") || return
+
+    # If link is dead, site sends a 302 redirect header to ../?404
+    # so the page body is empty:
+    if [ -z "$PAGE" ]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse '=.site-content' '<h1>\([^<]*\)' 2 <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '=.site-content' \
+            '<strong>(\([^<)]*\))<' 2) && translate_size "$FILE_SIZE" && \
+                REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

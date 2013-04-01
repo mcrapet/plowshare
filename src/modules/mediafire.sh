@@ -74,16 +74,13 @@ mediafire_login() {
 
 # Extract file/folder ID from download link
 # $1: Mediafire download URL
+# - http://www.mediafire.com/download.php?xyz
+# - http://www.mediafire.com/?xyz
+# $2: probe mode if non empty argument (quiet parsing)
 # stdout: file/folder ID
 mediafire_extract_id() {
-    local ID
-
-    # Extract file/folder ID from all possible link formats
-    #   http://www.mediafire.com/download.php?xyz
-    #   http://www.mediafire.com/?xyz
-    ID=$(echo "$1" | parse . '?\([[:alnum:]]\+\)$') || return
+    parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1" || return
     log_debug "File/Folder ID: '$ID'"
-    echo "$ID"
 }
 
 # Check whether a given ID is a file ID (and not a folder ID)
@@ -484,7 +481,17 @@ mediafire_list() {
         fi
         FOLDER_KEY=$(mediafire_extract_id "$LOCATION") || return
     else
-        FOLDER_KEY=$(mediafire_extract_id "$URL") || return
+        FOLDER_KEY=$(mediafire_extract_id "$URL" 1)
+
+        # http://www.mediafire.com/username
+        if [ -z "$FOLDER_KEY" ]; then
+            #local PAGE
+            #PAGE=$(curl -L "$URL") || return
+
+            # FIXME: obfuscated js..
+            log_error "Sorry, this folder url is not handled yet"
+            return $ERR_FATAL
+        fi
     fi
 
     if mediafire_is_file_id "$FOLDER_KEY"; then

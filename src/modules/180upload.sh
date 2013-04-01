@@ -32,6 +32,8 @@ DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_180UPLOAD_PROBE_OPTIONS=""
+
 # Output a 180upload.com file download URL
 # $1: cookie file (account only)
 # $2: 180upload.com url
@@ -74,6 +76,11 @@ MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
     # <div class="err">Skipped countdown</div>
     if match '<div class="err"' "$PAGE"; then
         ERR=$(echo "$PAGE" | parse_tag 'class="err"' div)
+        if match 'Skipped countdown' "$ERR"; then
+            # Can do a retry
+            log_debug "Remote error: $ERR"
+            return $ERR_NETWORK
+        fi
         log_error "Remote error: $ERR"
     else
         FILE_NAME=$(echo "$PAGE" | parse_tag '"style1"' span) || return
@@ -168,4 +175,31 @@ MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
 
     log_error "Unexpected status: $FORM2_ST"
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: 180upload url
+# $3: requested capability list
+# stdout: 1 capability per line
+180upload_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl -L -b 'lang=english' "$URL") || return
+
+    # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
+    if match 'File Not Found' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_tag 'center nowrap' b <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    echo $REQ_OUT
 }

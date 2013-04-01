@@ -249,14 +249,14 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Extract file ID from URL
-    FILE_ID=$(echo "$URL" | parse . \
-        'rapidgator\.net/file/\([[:digit:]]\+\)') || return
+    # Extract file ID
+    FILE_ID=$(echo "$HTML" | parse 'var fid' \
+        '=[[:space:]]\+\([[:digit:]]\+\)') || return
     log_debug "File ID: $FILE_ID"
 
     # Parse wait time from page
-    WAIT_TIME=$(echo "$HTML" | \
-        parse 'var secs' '=[[:space:]]\+\([[:digit:]]\+\)') || return
+    WAIT_TIME=$(echo "$HTML" | parse 'var secs' \
+        '=[[:space:]]\+\([[:digit:]]\+\)') || return
 
     # Request download session
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
@@ -360,7 +360,7 @@ rapidgator_download() {
     log_debug 'Correct captcha'
 
     # Extract + output download link
-    echo "$HTML" | parse 'location.href' "'\(.\+\)'" || return
+    echo "$HTML" | parse 'function getUrl' "'\(.\+\)'" 2 || return
     echo "$FILE_NAME"
 }
 

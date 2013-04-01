@@ -46,7 +46,8 @@ zippyshare_download() {
     PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
 
     # File does not exist on this server
-    if match 'File does not exist' "$PAGE"; then
+    # File has expired and does not exist anymore on this server
+    if match 'File does not exist\|File has expired' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -258,7 +259,8 @@ zippyshare_probe() {
     PAGE=$(curl -L -b 'ziplocale=en' "$URL") || return
 
     # File does not exist on this server
-    if match 'File does not exist' "$PAGE"; then
+    # File has expired and does not exist anymore on this server
+    if match 'File does not exist\|File has expired' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 

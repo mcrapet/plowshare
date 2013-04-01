@@ -36,7 +36,7 @@ TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_1FICHIER_DELETE_OPTIONS=""
-
+MODULE_1FICHIER_LIST_OPTIONS=""
 MODULE_1FICHIER_PROBE_OPTIONS=""
 
 # Output a 1fichier file download URL
@@ -48,25 +48,25 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME
+    local PAGE FILE_URL FILE_NAME REDIR
 
     PAGE=$(curl "$URL") || return
 
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match "Le fichier demand√© n'existe pas." "$PAGE"; then
+    elif match "Le fichier demand√© n'existe pas.\|file has been deleted" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
-
     # notice typo in 'telechargement'
-    if match "entre 2 t√©l√©charger\?ments" "$PAGE"; then
-        log_error "No parallel download allowed"
+    if match 'entre 2 t√©l√©charger\?ments' "$PAGE"; then
+        log_error 'No parallel download allowed.'
         return $ERR_LINK_TEMP_UNAVAILABLE
+
     # Please wait until the file has been scanned by our anti-virus
     elif match 'Please wait until the file has been scanned' "$PAGE"; then
+        log_error 'File is scanned for viruses.'
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
@@ -87,8 +87,26 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return 0
     fi
 
-    FILE_URL=$(curl -i -d 'a=1' "$URL" | \
-        grep_http_header_location_quiet) || return
+    PAGE=$(curl --include -d 'a=1' "$URL") || return
+
+    # En tÈlÈchargement standard, [...] et vous devez attendre au moins 5 minutes entre chaque tÈlÈchargement.
+    if match 'vous devez attendre au moins 5 minutes' "$PAGE"; then
+        log_error 'Forced delay between downloads.'
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
+    FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
+
+    # Note: Some files only show up as unavailable at this point :-/
+    PAGE=$(curl --head "$FILE_URL") || return
+    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+
+    if [[ "$REDIR" = *FILENOTFOUND474 ]]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    test "$CHECK_LINK" && return 0
 
     if [ -z "$FILE_URL" ]; then
         echo 300
@@ -175,6 +193,31 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         log_debug "unexpected result, site updated?"
         return $ERR_FATAL
     fi
+}
+
+# List a 1fichier folder
+# $1: 1fichier folder link
+# $2: recurse subfolders (null string means not selected)
+# stdout: list of links
+1fichier_list() {
+    local -r URL=$1
+    local PAGE LINKS NAMES
+
+    if ! match '/dir/' "$URL"; then
+        log_error "This is not a directory list"
+        return $ERR_FATAL
+    fi
+
+    test "$2" && log_debug 'recursive folder does not exist in 1fichier.com'
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'T.l.chargement de' href)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'T.l.chargement de' a)
+
+    test "$LINKS" || return $ERR_LINK_DEAD
+
+    list_submit "$LINKS" "$NAMES" || return
 }
 
 # Probe a download URL

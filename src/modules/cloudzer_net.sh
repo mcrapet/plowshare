@@ -141,12 +141,12 @@ cloudzer_net_download() {
 # $3: requested capability list
 cloudzer_net_probe() {
     local -r REQ_IN=$3
-    local URL FILEID RESPONSE FILE_NAME FILE_SIZE REQ_OUT
+    local URL FILE_ID RESPONSE FILE_NAME FILE_SIZE REQ_OUT
 
     URL=$(echo "$2" | replace '//clz.to' '//cloudzer.net/file')
-    FILEID=$(echo "$URL" | parse . 'file/\(.*\)$')
+    FILE_ID=$(echo "$URL" | parse . 'file/\([[:alnum:]]\+\)')
 
-    RESPONSE=$(curl "http://cloudzer.net/file/${FILEID}/status") || return
+    RESPONSE=$(curl "http://cloudzer.net/file/${FILE_ID}/status") || return
     { read FILE_NAME; read FILE_SIZE; } <<< "$RESPONSE"
 
     test -z "$RESPONSE" && return $ERR_LINK_DEAD
