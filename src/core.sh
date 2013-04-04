@@ -648,8 +648,8 @@ strip_html_comments() {
 parse_all_tag() {
     local -r T=${2:-"$1"}
     local -r D=$'\001'
-    local STRING=$(sed -ne "\\${D}$1${D}s${D}</$T>.*${D}${D}p" | \
-                   sed -e "s/^.*<$T\(>\|[[:space:]][^>]*>\)//")
+    local STRING=$(sed -ne \
+        "\\${D}$1${D}"'!b; s/<\/'"$T>.*//; s/^.*<$T\(>\|[[:space:]][^>]*>\)//p")
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
@@ -666,9 +666,21 @@ parse_all_tag_quiet() {
     return 0
 }
 
-# Like parse_all_tag, but get only first match
+# Parse single named HTML marker content (first match only)
+# See parse_all_tag() for documentation.
 parse_tag() {
-    parse_all_tag "$@" | head -n1
+    local -r T=${2:-"$1"}
+    local -r D=$'\001'
+    local STRING=$(sed -ne \
+        "\\${D}$1${D}"'!b; s/<\/'"$T>.*//; s/^.*<$T\(>\|[[:space:]][^>]*>\)//;ta;b;:a;p;q;")
+
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
+        log_notice_stack
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Like parse_tag, but hide possible error
