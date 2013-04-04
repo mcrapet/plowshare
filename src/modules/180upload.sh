@@ -84,7 +84,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
         log_error "Remote error: $ERR"
     else
         FILE_NAME=$(echo "$PAGE" | parse_tag '"style1"' span) || return
-        FILE_URL=$(echo "$PAGE" | parse_attr '/d/' href) || return
+        FILE_URL=$(echo "$PAGE" | parse_attr '[[:digit:]]/d/' href) || return
 
         echo "$FILE_URL"
         echo "$FILE_NAME"
