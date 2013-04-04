@@ -1198,10 +1198,8 @@ captcha_process() {
     # 1) Probe for X11/Xorg viewers
     if [[ "$METHOD_VIEW" = *view-x* ]]; then
         if test -z "$DISPLAY"; then
-            log_notice 'DISPLAY variable not exported!'
-        fi
-
-        if check_exec 'display'; then
+            log_notice 'DISPLAY variable not exported! Skip X11 viewers probing.'
+        elif check_exec 'display'; then
             METHOD_VIEW=X-display
         elif check_exec 'feh'; then
             METHOD_VIEW=X-feh
@@ -1217,10 +1215,8 @@ captcha_process() {
     # 2) Probe for framebuffer viewers
     if [[ "$METHOD_VIEW" = *view-fb* ]]; then
         if ! test -c '/dev/fb0'; then
-            log_notice '/dev/fb0 not found'
-        fi
-
-        if check_exec 'fim'; then
+            log_notice '/dev/fb0 not found! Skip FB viewers probing.'
+        elif check_exec 'fim'; then
             METHOD_VIEW=fb-fim
         else
             log_notice 'No FB image viewer found to display captcha image'
