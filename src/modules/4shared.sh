@@ -129,7 +129,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
         return 0
     fi
 
-    WAIT_URL=$(echo "$PAGE" | parse_attr '4shared\.com/get/' href) || return
+    WAIT_URL=$(parse_attr '4shared\.com/get/' href <<< "$PAGE") || return
 
     test "$CHECK_LINK" && return 0
 
