@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Delete a file from file sharing servers
+# Delete files from file sharing websites
 # Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.

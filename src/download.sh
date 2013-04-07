@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 #
-# Download files from file sharing servers
+# Download files from file sharing websites
 # Copyright (c) 2010-2013 Plowshare team
-#
-# Output filenames are printed on standard output (one per line).
 #
 # This file is part of Plowshare.
 #

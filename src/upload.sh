@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 #
-# Upload a file to file sharing servers
+# Upload files to file sharing websites
 # Copyright (c) 2010-2013 Plowshare team
-#
-# Output URL to standard output.
 #
 # This file is part of Plowshare.
 #
