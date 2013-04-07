@@ -3,8 +3,6 @@
 # Retrieve list of links from a shared-folder (sharing site) url
 # Copyright (c) 2010-2013 Plowshare team
 #
-# Output links (one per line) on standard output.
-#
 # This file is part of Plowshare.
 #
 # Plowshare is free software: you can redistribute it and/or modify
