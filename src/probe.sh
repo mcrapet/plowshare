@@ -354,6 +354,19 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
         if [ $PRETVAL -ne 0 ]; then
             log_error "Skip: no module for URL ($(basename_url "$URL")/)"
+
+            # Check if plowlist can handle $URL
+            if [ -z "$MODULES_LIST" ]; then
+                MODULES_LIST=$(grep_list_modules 'list' 'probe') || true
+                for MODULE in $MODULES_LIST; do
+                    source "$LIBDIR/modules/$MODULE.sh"
+                done
+            fi
+            MODULE=$(get_module "$URL" "$MODULES_LIST") || true
+            if [ -n "$MODULE" ]; then
+                log_notice "Note: This URL ($MODULE) is supported by plowlist"
+            fi
+
             RETVALS+=($PRETVAL)
         elif test "$GET_MODULE"; then
             RETVALS+=(0)
