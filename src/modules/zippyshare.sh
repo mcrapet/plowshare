@@ -101,7 +101,7 @@ zippyshare_download() {
     elif  match 'class=.movie-share.' "$PAGE"; then
       N=-5
     else
-      N=-2
+      N=-3
     fi
 
     JS=$(grep_script_by_order "$PAGE" $N)
