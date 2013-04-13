@@ -130,7 +130,7 @@ megashares_download() {
 
     BASEURL=$(basename_url "$URL")
 
-    # Two kind of URL:
+    # Two kinds of URL:
     # http://d01.megashares.com/?d01=8Ptv172
     # http://d01.megashares.com/dl/2eb56b0/Filename.rar
     FID=$(echo "$2" | parse_quiet '/dl/' 'dl/\([^/]*\)')
@@ -141,7 +141,7 @@ megashares_download() {
     PAGE=$(curl "$URL") || return
 
     # Check for dead link
-    if matchi 'file does not exist\|link is invalid' "$PAGE"; then
+    if matchi 'file does not exist\|link was removed due to' "$PAGE"; then
         return $ERR_LINK_DEAD
     # All download slots for this link are currently filled.
     # Please try again momentarily.
@@ -401,7 +401,7 @@ megashares_probe() {
     local -r REQ_IN=$3
     local URL PAGE REQ_OUT FILE_SIZE
 
-    PAGE=$(curl "$URL") || return
+    PAGE=$(curl -L "$URL") || return
 
     # Site won't show any info if no download slot is available :-(
     if match 'try again momentarily' "$PAGE"; then
@@ -409,7 +409,7 @@ megashares_probe() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    match 'file does not exist' "$PAGE" && return $ERR_LINK_DEAD
+    matchi 'file does not exist\|link was removed due to' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
