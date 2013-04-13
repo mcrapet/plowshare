@@ -47,7 +47,7 @@ zippyshare_download() {
 
     # File does not exist on this server
     # File has expired and does not exist anymore on this server
-    if match 'File does not exist\|File has expired' "$PAGE"; then
+    if match 'File does not exist\|File has expired\|HTTP Status 404' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -260,7 +260,7 @@ zippyshare_probe() {
 
     # File does not exist on this server
     # File has expired and does not exist anymore on this server
-    if match 'File does not exist\|File has expired' "$PAGE"; then
+    if match 'File does not exist\|File has expired\|HTTP Status 404' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
