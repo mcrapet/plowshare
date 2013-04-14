@@ -37,15 +37,17 @@ INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
-CAPTCHA_PROGRAM,,captchaprogram,s=SCRIPT,Call external script for captcha solving.
+CAPTCHA_PROGRAM,,captchaprogram,s=COMMAND,Call external script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies,s=FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
-PRINTF_FORMAT,,printf,s=FORMAT,Don't process final link, print results in a given format (for each link)
-EXEC_COMMAND,,exec,s=COMMAND,Don't process final link, execute command (for each link)
+PRE_COMMAND,,run-before,s=COMMAND,Call external script before new link processing
+POST_COMMAND,,run-after,s=COMMAND,Call external script after link being successfully processed
+SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
@@ -191,9 +193,9 @@ module_null_download() {
     echo "$2"
 }
 
-# Note: Global options $CHECK_LINK, $MARK_DOWN, $NOOVERWRITE,
+# Note: Global options $INDEX, $CHECK_LINK, $MARK_DOWN, $NOOVERWRITE,
 # $TIMEOUT, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
-# $EXEC_COMMAND, $TEMP_RENAME are accessed directly.
+# $SKIP_FINAL, $PRE_COMMAND, $POST_COMMAND, $TEMP_RENAME are accessed directly.
 download() {
     local MODULE=$1
     local URL_RAW=$2
@@ -204,7 +206,7 @@ download() {
     local MAX_RETRIES=$7
     local LAST_HOST=$8
 
-    local DRETVAL AWAIT CODE FILENAME FILE_URL
+    local DRETVAL AWAIT CODE FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
 
@@ -212,7 +214,7 @@ download() {
     timeout_init $TIMEOUT
 
     AWAIT=$(module_config_wait "$MODULE")
-    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* && -z "$CHECK_LINK" ]]; then
+    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* && -z "$CHECK_LINK" && -z "$SKIP_FINAL" ]]; then
         log_notice "Same previous hoster, forced wait requested"
         wait $AWAIT || {
             log_error "Delay limit reached (${FUNCTION})";
@@ -221,11 +223,25 @@ download() {
     fi
 
     while :; do
-        local DCOOKIE=$(create_tempfile)
+        COOKIE_FILE=$(create_tempfile)
 
         # Use provided cookie
         if [ -s "$GLOBAL_COOKIES" ]; then
-            cat "$GLOBAL_COOKIES" > "$DCOOKIE"
+            cat "$GLOBAL_COOKIES" > "$COOKIE_FILE"
+        fi
+
+        # Pre-processing script
+        if [ -n "$PRE_COMMAND" ]; then
+            DRETVAL=0
+            $(exec $PRE_COMMAND "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" >/dev/null) || DRETVAL=$?
+
+            if [ $DRETVAL -eq $ERR_NOMODULE ]; then
+                log_notice "Skipping link (as requested): $URL_ENCODED"
+                rm -f "$COOKIE_FILE"
+                return $ERR_NOMODULE
+            elif [ $DRETVAL -ne 0 ]; then
+                log_error "Pre-processing script exited with status $DRETVAL, continue anyway"
+            fi
         fi
 
         if test -z "$CHECK_LINK"; then
@@ -234,7 +250,7 @@ download() {
 
             while :; do
                 DRETVAL=0
-                $FUNCTION "$DCOOKIE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
+                $FUNCTION "$COOKIE_FILE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <"$DRESULT"
@@ -264,12 +280,17 @@ download() {
             done
 
             if [ $DRETVAL -eq 0 ]; then
-                { read FILE_URL; read FILENAME; } <"$DRESULT" || true
+                { read FILE_URL; read FILE_NAME; } <"$DRESULT" || true
             fi
-            rm -f "$DRESULT"
+
+            # Important: keep cookies in a variable and not in a file
+            COOKIE_JAR=$(cat "$COOKIE_FILE")
+            rm -f "$DRESULT" "$COOKIE_FILE"
         else
+            # This code will be removed soon. Use plowprobe instead.
             DRETVAL=0
-            $FUNCTION "$DCOOKIE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
+            $FUNCTION "$COOKIE_FILE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
+            rm -f "$COOKIE_FILE"
 
             if [ $DRETVAL -eq 0 -o \
                     $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE -o \
@@ -277,8 +298,7 @@ download() {
                     $DRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
                 log_notice "Link active: $URL_ENCODED"
                 echo "$URL_ENCODED"
-                rm -f "$DCOOKIE"
-                break
+                return 0
             fi
         fi
 
@@ -287,65 +307,53 @@ download() {
                 ;;
             $ERR_LOGIN_FAILED)
                 log_error "Login process failed. Bad username/password or unexpected content"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_TEMP_UNAVAILABLE)
                 log_error "File link is alive but not currently available, try later"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
                 log_error "You must provide a valid password"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" PASSWORD
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
                 log_error "Insufficient permissions (private/premium link)"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" NOPERM
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_SIZE_LIMIT_EXCEEDED)
                 log_error "Insufficient permissions (file size limit exceeded)"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_LINK_DEAD)
                 log_error "Link is not alive: file not found"
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" NOTFOUND
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_MAX_WAIT_REACHED)
                 log_error "Delay limit reached (${FUNCTION})"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_MAX_TRIES_REACHED)
                 log_error "Retry limit reached (max=$MAX_RETRIES)"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_CAPTCHA)
                 log_error "Error decoding captcha (${FUNCTION})"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_SYSTEM)
                 log_error "System failure (${FUNCTION})"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             $ERR_BAD_COMMAND_LINE)
                 log_error "Wrong module option, check your command line"
-                rm -f "$DCOOKIE"
                 return $DRETVAL
                 ;;
             *)
                 log_error "Failed inside ${FUNCTION}() [$DRETVAL]"
-                rm -f "$DCOOKIE"
                 return $ERR_FATAL
                 ;;
         esac
@@ -353,29 +361,27 @@ download() {
         # Sanity check
         if test -z "$FILE_URL"; then
             log_error "Output URL expected"
-            rm -f "$DCOOKIE"
             return $ERR_FATAL
         fi
 
         # Sanity check 2 (no relative url)
         if [[ $FILE_URL = /* ]]; then
             log_error "Output URL is not valid"
-            rm -f "$DCOOKIE"
             return $ERR_FATAL
         fi
 
         # Sanity check 3
-        if [ "$FILE_URL" = "$FILENAME" ]; then
+        if [ "$FILE_URL" = "$FILE_NAME" ]; then
             log_error "Output filename is wrong, check module download function"
-            FILENAME=""
+            FILE_NAME=""
         fi
 
-        if test -z "$FILENAME"; then
+        if test -z "$FILE_NAME"; then
             if [[ $FILE_URL = */ ]]; then
                 log_notice "Output filename not specified, module download function might be wrong"
-                FILENAME="dummy-$$"
+                FILE_NAME="dummy-$$"
             else
-                FILENAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
+                FILE_NAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
                     html_to_utf8 | uri_decode)
             fi
         fi
@@ -383,47 +389,46 @@ download() {
         # Sanity check 4
         if [[ $FILENAME = *$'\r'* ]]; then
             log_debug "filename contains \r, remove it"
-            FILENAME=${FILENAME//$'\r'}
+            FILE_NAME=${FILE_NAME//$'\r'}
         fi
 
         # On most filesystems, maximum filename length is 255
         # http://en.wikipedia.org/wiki/Comparison_of_file_systems
-        if [ "${#FILENAME}" -ge 255 ]; then
-            FILENAME="${FILENAME:0:254}"
+        if [ "${#FILE_NAME}" -ge 255 ]; then
+            FILE_NAME="${FILE_NAME:0:254}"
             log_debug "filename is too long, truncating it"
         fi
 
         # Sanity check 5
         if [ "${FILENAME#*/}" != "$FILENAME" ]; then
             log_debug "filename contains slashes, translate to underscore"
-            FILENAME=${FILENAME//\//_}
+            FILE_NAME=${FILE_NAME//\//_}
         fi
 
-        log_notice "File URL: $FILE_URL"
-        log_notice "Filename: $FILENAME"
+        FILE_URL=$(uri_encode <<< "$FILE_URL")
 
-        # Process "final download link"
-        # First (usual) way: invoke curl
-        if [ -z "$PRINTF_FORMAT" -a -z "$EXEC_COMMAND" ]; then
+        log_notice "File URL: $FILE_URL"
+        log_notice "Filename: $FILE_NAME"
+
+        # Process "final download link" here
+        if [ -z "$SKIP_FINAL" ]; then
             local FILENAME_TMP FILENAME_OUT
             local -a CURL_ARGS=()
 
-            FILE_URL=$(uri_encode <<< "$FILE_URL")
-
             # Temporary download filename (with full path)
             if test "$TMP_DIR"; then
-                FILENAME_TMP="$TMP_DIR/$FILENAME"
+                FILENAME_TMP="$TMP_DIR/$FILE_NAME"
             elif test "$OUT_DIR"; then
-                FILENAME_TMP="$OUT_DIR/$FILENAME"
+                FILENAME_TMP="$OUT_DIR/$FILE_NAME"
             else
-                FILENAME_TMP=$FILENAME
+                FILENAME_TMP=$FILE_NAME
             fi
 
             # Final filename (with full path)
             if test "$OUT_DIR"; then
-                FILENAME_OUT="$OUT_DIR/$FILENAME"
+                FILENAME_OUT="$OUT_DIR/$FILE_NAME"
             else
-                FILENAME_OUT=$FILENAME
+                FILENAME_OUT=$FILE_NAME
             fi
 
             if [ -n "$NOOVERWRITE" -a -f "$FILENAME_OUT" ]; then
@@ -433,6 +438,7 @@ download() {
                 else
                     FILENAME_OUT=$(create_alt_filename "$FILENAME_OUT")
                 fi
+                FILE_NAME=$(basename_file "$FILENAME_OUT")
             fi
 
             if test "$TEMP_RENAME"; then
@@ -446,7 +452,6 @@ download() {
                         module_config_resume "$MODULE" && \
                             log_error "error: no write permission, cannot resume final file ($FILENAME_OUT)" || \
                             log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
-                        rm -f "$DCOOKIE"
                         return $ERR_SYSTEM
                     fi
 
@@ -460,7 +465,6 @@ download() {
                     # Can we overwrite destination file?
                     if [ ! -w "$FILENAME_OUT" ]; then
                         log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
-                        rm -f "$DCOOKIE"
                         return $ERR_SYSTEM
                     fi
                     log_notice "warning: final file will be overwritten ($FILENAME_OUT)"
@@ -472,7 +476,6 @@ download() {
                         module_config_resume "$MODULE" && \
                             log_error "error: no write permission, cannot resume tmp/part file ($FILENAME_TMP)" || \
                             log_error "error: no write permission, cannot overwrite tmp/part file ($FILENAME_TMP)"
-                        rm -f "$DCOOKIE"
                         return $ERR_SYSTEM
                     fi
 
@@ -483,11 +486,15 @@ download() {
                 fi
             fi
 
-            module_config_need_cookie "$MODULE" && \
-                CURL_ARGS=("${CURL_ARGS[@]}" -b "$DCOOKIE")
-
             # Reuse previously created temporary file
             :> "$DRESULT"
+
+            if module_config_need_cookie "$MODULE"; then
+                if COOKIE_FILE=$(create_tempfile); then
+                    echo "$COOKIE_JAR" > "$COOKIE_FILE"
+                    CURL_ARGS=("${CURL_ARGS[@]}" -b "$COOKIE_FILE")
+                fi
+            fi
 
             DRETVAL=0
             curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
@@ -495,10 +502,13 @@ download() {
 
             if [ -f "$DRESULT" ]; then
                 read CODE < "$DRESULT"
-                rm -f "$DCOOKIE" "$DRESULT"
+                rm -f "$DRESULT"
             else
                 CODE=-1
-                rm -f "$DCOOKIE"
+            fi
+
+            if module_config_need_cookie "$MODULE"; then
+                rm -f "$COOKIE_FILE"
             fi
 
             if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
@@ -547,48 +557,39 @@ download() {
                     log_notice "Moving file to output directory: ${OUT_DIR:-.}"
                 mv -f "$FILENAME_TMP" "$FILENAME_OUT"
             fi
-
-            # Echo downloaded file (local) path
-            echo "$FILENAME_OUT"
-
-        # Second (custom) way: pretty print and/or external command
-        else
-            log_debug "don't use regular curl command to download final link"
-            local DATA=("$MODULE" "$FILENAME" "$OUT_DIR" "$DCOOKIE" \
-                        "$URL_ENCODED" "$FILE_URL")
-
-            # Pretty print requested
-            if test "$PRINTF_FORMAT"; then
-                pretty_print DATA[@] "$PRINTF_FORMAT"
-            fi
-
-            # External download requested
-            if test "$EXEC_COMMAND"; then
-                local CMD=$(pretty_print DATA[@] "$EXEC_COMMAND")
-
-                DRETVAL=0
-                eval "$CMD" || DRETVAL=$?
-
-                if [ $DRETVAL -ne 0 ]; then
-                    log_error "Command exited with retcode: $DRETVAL"
-                    rm -f "$DCOOKIE"
-                    return $ERR_FATAL
-                fi
-            fi
-
-            rm -f "$DCOOKIE"
         fi
 
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" OK "$FILENAME_OUT"
-        break
+
+        # Post-processing script
+        if [ -n "$POST_COMMAND" ]; then
+            COOKIE_FILE=$(create_tempfile) && echo "$COOKIE_JAR" > "$COOKIE_FILE"
+            DRETVAL=0
+            $(exec $POST_COMMAND "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" \
+                "$FILE_URL" "$FILE_NAME" >/dev/null) || DRETVAL=$?
+
+            test -f "$COOKIE_FILE" && rm -f "$COOKIE_FILE"
+
+            if [ $DRETVAL -ne 0 ]; then
+                log_error "Post-processing script exited with status $DRETVAL, continue anyway"
+            fi
+        fi
+
+        # Pretty print results
+        local -a DATA=("$MODULE" "$FILE_NAME" "$OUT_DIR" "$COOKIE_JAR" \
+                    "$URL_ENCODED" "$FILE_URL")
+        pretty_print $INDEX DATA[@] "${PRINTF_FORMAT:-%F}"
+
+        return 0
     done
-    return 0
+
+    return $ERR_SYSTEM
 }
 
 # Plowdown printf format
 # ---
 # Interpreted sequences are:
-# %c: final cookie file (with full path)
+# %c: final cookie filename (with output directory)
 # %C: %c or empty string if module does not require it
 # %d: download (final) url
 # %f: destination (local) filename
@@ -614,12 +615,13 @@ pretty_check() {
     fi
 }
 
-# Note: don't use printf (coreutils).
-# $1: array[@] (module, dfile, ddir, cfile, dls, dlf)
-# $2: format string
+# $1: unique number
+# $2: array[@] (module, dfile, ddir, cdata, dls, dlf)
+# $3: format string
 pretty_print() {
-    local -a A=("${!1}")
-    local FMT=$2
+    local -r N=$(printf %04d $1)
+    local -ar A=("${!2}")
+    local FMT=$3
     local COOKIE_FILE
 
     test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
@@ -638,16 +640,24 @@ pretty_print() {
 
     # Note: Drop "HttpOnly" attribute, as it is not covered in the RFCs
     if test "${FMT#*%c}" != "$FMT"; then
-        COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file "$0").cookies.$$.txt"
-        sed -e 's/^#HttpOnly_//' "${A[3]}" > "$COOKIE_FILE"
-        FMT=$(replace '%c' "$COOKIE_FILE" <<< "$FMT")
+        if test "${A[2]}"; then
+            COOKIE_FILE="${A[2]}/plowdown-cookies-$N.txt"
+        else
+            COOKIE_FILE="plowdown-cookies-$N.txt"
+        fi
+        sed -e 's/^#HttpOnly_//' <<< "${A[3]}" > "$COOKIE_FILE"
+        FMT=$(replace '%c' "${COOKIE_FILE#./}" <<< "$FMT")
     fi
     if test "${FMT#*%C}" != "$FMT"; then
         if module_config_need_cookie "${A[0]}"; then
-            COOKIE_FILE="$(dirname "${A[3]}")/$(basename_file "$0").cookies.$$.txt"
-            sed -e 's/^#HttpOnly_//' "${A[3]}" > "$COOKIE_FILE"
+            if test "${A[2]}"; then
+                COOKIE_FILE="${A[2]}/plowdown-cookies-$N.txt"
+            else
+                COOKIE_FILE="plowdown-cookies-$N.txt"
+            fi
+            sed -e 's/^#HttpOnly_//' <<< "${A[3]}" > "$COOKIE_FILE"
         else
-            COOKIE_FILE=""
+            COOKIE_FILE=''
         fi
         FMT=$(replace '%C' "$COOKIE_FILE" <<< "$FMT")
     fi
@@ -735,9 +745,6 @@ fi
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
-if [ -n "$EXEC_COMMAND" ]; then
-    pretty_check "$EXEC_COMMAND" || exit
-fi
 
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
@@ -795,6 +802,9 @@ set_exit_trap
 # Remember last host because hosters may require waiting between
 # sucessive downloads.
 PREVIOUS_HOST=none
+
+# Count downloads (1-based index)
+declare -i INDEX=1
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
     OLD_IFS=$IFS
@@ -871,8 +881,16 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 "${TEMP_DIR%/}" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
             "${MODULE}_vars_unset"
 
-            PREVIOUS_HOST=$(basename_url "$URL")
+            # Link explicitly skipped
+            if [ -n "$PRE_COMMAND" -a $MRETVAL -eq $ERR_NOMODULE ]; then
+                PREVIOUS_HOST=none
+                MRETVAL=0
+            else
+                PREVIOUS_HOST=$(basename_url "$URL")
+            fi
+
             RETVALS=(${RETVALS[@]} $MRETVAL)
+            (( ++INDEX ))
         fi
     done
 done

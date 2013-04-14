@@ -107,15 +107,7 @@ $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 8. Filter alive links in a text file
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
 
-9. Advanced use. Use a different download manager for the final link download.
-   File URL, file name and cookie file are available through interpolations.
-$ plowdown --exec 'wget -O "%f" %d' http://www.mediafire.com/?k10t0egmhi23f
-$ plowdown --exec 'wget --load-cookies %c -O "%f" %d' http://uploading.com/files/39267me4/foo.zip/
-  For premium users, use 2 connections:
-$ plowdown -a 'myuser:mypassword' --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
-$ plowdown -a 'myuser:mypassword' --printf "Module  : %m" --exec 'aria2c -x2 %d' http://depositfiles.com/files/fv2u9xqya
-
-10. Avoid never-ending downloads: limit the wait delays & number of retries
+9. Avoid never-ending downloads: limit the wait delays & number of retries
     This is valid for each link.
 $ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 
