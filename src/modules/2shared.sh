@@ -143,7 +143,7 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL$COMPLETE") || return
-    DL_URL=$(echo "$PAGE" | parse_attr '/\(file\|photo\|audio\|video\)/' action) || return
+    DL_URL=$(echo "$PAGE" | parse_attr '/\(file\|document\|photo\|audio\|video\)/' action) || return
     AD_URL=$(echo "$PAGE" | parse_attr '/fadmin/' action)
 
     echo "$DL_URL"
