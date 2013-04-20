@@ -190,7 +190,7 @@ uploaded_net_extract_file_id() {
 
 # Output an Uploaded.net file download URL
 # $1: cookie file
-# $2: upload.net url
+# $2: uploaded.net url
 # stdout: real file download link
 uploaded_net_download() {
     local -r COOKIE_FILE=$1
@@ -243,7 +243,7 @@ uploaded_net_download() {
         fi
     fi
 
-    if [ "$ACCOUNT" = "premium" ]; then
+    if [ "$ACCOUNT" = 'premium' ]; then
         # Premium users can resume downloads
         MODULE_UPLOADED_NET_DOWNLOAD_RESUME=yes
 
@@ -254,7 +254,7 @@ uploaded_net_download() {
         FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
 
         if [ -z "$FILE_URL" ]; then
-            FILE_URL=$(echo "$PAGE" | parse_attr 'stor' 'action') || return
+            FILE_URL=$(echo "$PAGE" | parse_attr 'stor[[:digit:]]\+\.' 'action') || return
         fi
 
         FILE_NAME=$(curl -I -b "$COOKIE_FILE" "$FILE_URL" | \
