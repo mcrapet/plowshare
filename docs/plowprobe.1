@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "April 13, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowprobe" "1" "April 21, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowprobe \- Gather information from file-sharing download links
@@ -62,7 +62,7 @@ Get module(s) for URL(s) and quit. Faster than \fI--prinft=%m\fR.
 If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 .TP
 .BI "   " " " --printf "=FORMAT"
-Print results in a given format (for each non-dead link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
+Print results (on stdout) in a given format (for each non-dead link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR

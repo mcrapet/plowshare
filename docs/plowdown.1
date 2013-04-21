@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "March 12, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowdown" "1" "April 21, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowdown \- Simple download manager for file-sharing websites
@@ -58,11 +58,11 @@ Mark downloaded links in (regular) file arguments.
 Directory where files will be saved. Default is current directory.
 .TP
 .BI -r, " " --max-retries "=N"
-Set maximum retries for download failures. Apply on module exit value: \fB3\fR (network error), \fB7\fR (captcha error).
+Set maximum retries for download failures. Apply on module exit status: \fB3\fR (network error), \fB7\fR (captcha error).
 Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
 .TP
 .BI -t, " " --timeout "=SECS"
-Cancel download after \fISECS\fR seconds of waits. Apply on module exit value: \fB10\fR (temporary unavailable error).
+Cancel download after \fISECS\fR seconds of waits. Apply on module exit status: \fB10\fR (temporary unavailable error).
 This error can be returned in various cases: unallowed parallel download, daily downloads limit reached, remote hoster overloaded.
 Default option value is disabled (no timeout, infinite) and applies for one single URL download.
 .TP
@@ -104,7 +104,7 @@ Force specific captcha solving method. Available values:
 \fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
 .RE
 .TP
-.BI "   " " " --captchaprogram "=SCRIPT"
+.BI "   " " " --captchaprogram "=COMMAND"
 Call external program (or script) for solving captchas.
 
 Three arguments are given:
@@ -120,10 +120,10 @@ image filename (with full path).
 \fB$3\fR
 hint or captcha type (string). For example: \fIrecaptcha\fR, \fIsolvemedia\fR or \fIdigits-4\fR.
 
-Return value and exit status:
+Return value (on stdout) and exit status:
 .RE
 .RS
-\fB0\fR : solving success. Result must be printed on stdout.
+\fB0\fR : solving success. Captcha Word(s) must be echo'ed.
 .RE
 .RS
 \fB2\fR : external solver is not able to solve requested captcha. Let plowdown continue solving it normally (will consider \fI--captchamethod\fP if specified).
@@ -157,15 +157,78 @@ Directory where files are temporarily downloaded.
 .B "   " --temp-rename
 Append .part suffix to filename while file is being downloaded. Download resume will not work with this option.
 .TP
+.B "   " --skip-final
+Don't process final link (returned by module download function), just skip it. This is applied for each input URL.
+If you are using this option, you should need \fI--run-after\fP or \fI--printf\fP too.
+.TP
+.BI "   " " " --run-before "=COMMAND"
+Call external script before new link processing. Messages can be sent to stderr, stdout is trashed.
+
+Three arguments are given:
+.RS
+\fB$1\fR
+module name (lowercase). For example: \fImediafire\fR.
+.RE
+.RS
+\fB$2\fR
+download URL.
+.RE
+.RS
+\fB$3\fR
+cookie (empty) file given to download module function.
+
+Exit status:
+.RE
+.RS
+\fB0\fR : script success. Plowdown continue normally.
+.RE
+.RS
+\fB2\fR : script explicitily requests skipping current link.
+
+Note: Any other script exit status like \fB1\fR (fatal) or \fB3\fR (network) will be ignored (an error message will be reported).
+.RE
+.TP
+.BI "   " " " --run-after "=COMMAND"
+Call external script after final link successful download. Messages can be sent to stderr, stdout is trashed.
+
+Five arguments are given:
+.RS
+\fB$1\fR
+module name (lowercase). For example: \fImediafire\fR.
+.RE
+.RS
+\fB$2\fR
+download URL.
+.RE
+.RS
+\fB$3\fR
+cookie file fulfilled by download module function.
+.RE
+.RS
+\fB$4\fR
+final URL.
+.RE
+.RS
+\fB$5\fR
+final filename.
+
+Exit status:
+.RE
+.RS
+\fB0\fR : script success. Plowdown continue normally.
+
+Note: Any other (non zero) exit status will be ignored (an error message will be reported).
+.RE
+.TP
 .BI "   " " " --printf "=FORMAT"
-Don't process final link, print results in a given format (for each link). This can be useful for wrappers. Interpreted sequences are:
+Print results (on stdout) in a given format (for each successful download). Default string is: \fI"%F"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
 raw % character
 .TP
 \fI%c\fR
-final cookie file (with full path)
+final cookie filename (with output directory if specified). Name template is \fIplowdown-cookies-NNNN.txt\fR.
 .TP
 \fI%C\fR
 %c or empty string if module does not require it
@@ -177,7 +240,7 @@ download (final) url
 destination (local) filename
 .TP
 \fI%F\fR
-destination (local) filename (with output directory)
+destination (local) filename (with output directory if specified)
 .TP
 \fI%m\fR
 module name
@@ -191,12 +254,6 @@ tabulation character
 \fI%u\fR
 download (source) url
 .RE
-.TP
-.BI "   " " " --exec "=COMMAND"
-Don't process final link, execute command (for each link). This can be useful to run external download manager (like wget).
-Interpreted sequences are the same used by \fI--printf\fP option.
-
-If this option is used several times, the last one will be used.
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
@@ -223,7 +280,7 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .TP
 .BI "   " " " --cookies "=FILE"
 Use provided cookie file for HTTP requests. This can be used to bypass login process on registered (premium) accounts.
-This is not implemented by all modules.
+This is not handled by all modules.
 .TP
 .B "   " --fallback
 If no module is found for link, simply download it (HTTP GET).
@@ -317,9 +374,10 @@ $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 .nf
 $ plowdown \-c file_with_links.txt > file_with_active_links.txt
 .fi
-.SS 6) Use an alternatice web retriever for the final file download
+.SS 6) Don't download file but only display final download URL (alternative HTTP retriever can be used).
 .nf
-$ plowdown \-\-exec 'wget \-\-load\-cookies %c \-O "%f" %d' http://uploading.com/files/39267me4/foo.zip/
+# Depending hosters, cookie file might be required.
+$ plowdown \-v1 \-\-skip-final \-\-printf "# %f%n%d"  http://uploading.com/files/39267me4/foo.zip/
 .fi
 .SS 7) Safe download. Each URL will be limited in the number of tries and wait delays.
 .nf
