@@ -235,7 +235,7 @@ download() {
             if [ $DRETVAL -eq $ERR_NOMODULE ]; then
                 log_notice "Skipping link (as requested): $URL_ENCODED"
                 rm -f "$COOKIE_FILE"
-                return 0
+                return $ERR_NOMODULE
             elif [ $DRETVAL -ne 0 ]; then
                 log_error "Pre-processing script exited with status $DRETVAL, continue anyway"
             fi
@@ -887,7 +887,14 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 "${TEMP_DIR%/}" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
             "${MODULE}_vars_unset"
 
-            PREVIOUS_HOST=$(basename_url "$URL")
+            # Link explicitly skipped
+            if [ -n "$PRE_COMMAND" -a $MRETVAL -eq $ERR_NOMODULE ]; then
+                PREVIOUS_HOST=none
+                MRETVAL=0
+            else
+                PREVIOUS_HOST=$(basename_url "$URL")
+            fi
+
             RETVALS+=($MRETVAL)
             (( ++INDEX ))
         fi
