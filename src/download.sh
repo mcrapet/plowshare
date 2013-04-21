@@ -237,9 +237,7 @@ download() {
                 rm -f "$COOKIE_FILE"
                 return 0
             elif [ $DRETVAL -ne 0 ]; then
-                log_error "Pre-processing script returned error code $DRETVAL"
-                rm -f "$COOKIE_FILE"
-                return $ERR_FATALL
+                log_error "Pre-processing script exited with status $DRETVAL, continue anyway"
             fi
         fi
 
@@ -570,8 +568,7 @@ download() {
             test -f "$COOKIE_FILE" && rm -f "$COOKIE_FILE"
 
             if [ $DRETVAL -ne 0 ]; then
-                log_error "Post-processing script returned error code $DRETVAL"
-                return $ERR_FATAL
+                log_error "Post-processing script exited with status $DRETVAL, continue anyway"
             fi
         fi
 
