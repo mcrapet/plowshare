@@ -85,7 +85,7 @@ captcha_ayl_process() {
         curl -b "ayl_tid=$TOKEN_ID" -o "$FILENAME" \
             "${AYL_SERVER}resource?token=${TOKEN}&env=$ENV" || return
 
-        WORDS=$(captcha_process "$FILENAME" prompt) || return
+        WORDS=$(captcha_process "$FILENAME" ayl) || return
         rm -f "$FILENAME"
 
         { read RESPONSE; read TID; } <<<"$WORDS"
