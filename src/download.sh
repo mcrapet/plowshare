@@ -194,14 +194,14 @@ module_null_download() {
 # $TIMEOUT, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
 # $SKIP_FINAL, $PRE_COMMAND, $POST_COMMAND, $TEMP_RENAME are accessed directly.
 download() {
-    local MODULE=$1
-    local URL_RAW=$2
-    local TYPE=$3
-    local ITEM=$4
-    local OUT_DIR=$5
-    local TMP_DIR=$6
-    local MAX_RETRIES=$7
-    local LAST_HOST=$8
+    local -r MODULE=$1
+    local -r URL_RAW=$2
+    local -r TYPE=$3
+    local -r ITEM=$4
+    local -r OUT_DIR=$5
+    local -r TMP_DIR=$6
+    local -r MAX_RETRIES=$7
+    local -r LAST_HOST=$8
 
     local DRETVAL AWAIT CODE FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
@@ -243,7 +243,7 @@ download() {
 
         if test -z "$CHECK_LINK"; then
             local DRESULT=$(create_tempfile)
-            local TRY=0
+            local -i TRY=0
 
             while :; do
                 DRETVAL=0
@@ -517,10 +517,8 @@ download() {
                 DRETVAL=$ERR_NETWORK
 
             elif [ "$DRETVAL" -eq $ERR_NETWORK ]; then
-                if [ "$CODE" = 503 ]; then
-                    log_error "Unexpected HTTP code ${CODE}, retry after a safety wait"
-                    wait 120 seconds || return
-                    continue
+                if [ -n "$CODE" ]; then
+                    log_error "Unexpected HTTP code $CODE"
                 fi
             fi
 
@@ -545,8 +543,8 @@ download() {
                     continue
                 fi
             elif [ "${CODE:0:2}" != 20 ]; then
-                log_error "Unexpected HTTP code ${CODE}, restart download"
-                continue
+                log_error "Unexpected HTTP code $CODE, module outdated or upstream updated?"
+                return $ERR_NETWORK
             fi
 
             if [ "$FILENAME_TMP" != "$FILENAME_OUT" ]; then
