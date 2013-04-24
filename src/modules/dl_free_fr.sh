@@ -62,24 +62,35 @@ captcha_ayl_process() {
         WORDS=$(echo "$VARS" | parse_json_quiet 'instructions_visual' | tr -d '\302')
         TOKEN=$(echo "$VARS" | parse_json 'token') || return
         TOKEN_ID=$(echo "$VARS" | parse_json 'tid') || return
-        TYPE=$(echo "$VARS" | parse_json 'medium_type' | replace '/' '_') || return
+        TYPE=$(echo "$VARS" | parse_json 'medium_type') || return
 
-        log_debug "Adyoulike challenge: $TOKEN"
+        log_debug "Adyoulike challenge: '$TOKEN'"
+        log_debug "Adyoulike type: '$TYPE'"
 
         # Easy case, captcha answer is written plain text :)
         # UTF-8 characters: « (\uC2AB), » (\uC2BB)
-        if [ -n "$WORDS" -a "$TYPE" = 'image_adyoulike' ]; then
-            # FIXME: Don't use \xHH in basic POSIX regexp
-            RESPONSE=$(echo "$WORDS" | parse_quiet . '\xAB \([^ ]*\) \xBB')
+        if [ $TYPE = 'image/adyoulike' ]; then
+            if [ -z "$WORDS" ]; then
+                log_error "$FUNCNAME: instructions_visual empty, skipping"
+            fi
+
+            RESPONSE=$(parse_quiet . '"\([^"]\+\)"' <<< "$WORDS")
+            if [ -z "$RESPONSE" ]; then
+                # FIXME: Don't use \xHH in basic POSIX regexp
+                RESPONSE=$(parse_quiet . '\xAB \([^[:space:]]*\) \xBB' <<< "$WORDS")
+            fi
+
             [ -n "$RESPONSE" ] && break
 
-        #elif [ "$TYPE" = 'video_youtube' ];
+            log_debug "Adyoulike instr: '$WORDS'"
+
+        #elif [ "$TYPE" = 'video/youtube' ];
         else
             log_error "$FUNCNAME: $TYPE not handled, skipping"
         fi
 
         # Maybe we'll need this later?
-        # curl -b "ayl_tid=$TOKEN_ID" "${AYL_SERVER}iframe?iframe_type=${TYPE}&token=${TOKEN}&env=$ENV"
+        # curl -b "ayl_tid=$TOKEN_ID" "${AYL_SERVER}iframe?iframe_type=${TYPE//\//_}&token=${TOKEN}&env=$ENV"
 
         FILENAME=$(create_tempfile '.ayl.jpg') || return
         curl -b "ayl_tid=$TOKEN_ID" -o "$FILENAME" \
