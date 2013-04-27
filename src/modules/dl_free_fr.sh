@@ -78,6 +78,10 @@ captcha_ayl_process() {
             if [ -z "$RESPONSE" ]; then
                 # FIXME: Don't use \xHH in basic POSIX regexp
                 RESPONSE=$(parse_quiet . '\xAB \([^[:space:]]*\) \xBB' <<< "$WORDS")
+                if [ -z "$RESPONSE" ]; then
+                    matchi 'Cliquez sur la publicit. puis validez' "$WORDS" && \
+                        RESPONSE='[passthroughtoken]'
+                fi
             fi
 
             [ -n "$RESPONSE" ] && break
