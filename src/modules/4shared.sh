@@ -26,7 +26,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files
 TORRENT,,torrent,,Get torrent link (instead of direct download link)"
 MODULE_4SHARED_DOWNLOAD_RESUME=yes
 MODULE_4SHARED_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
-MODULE_4SHARED_DOWNLOAD_SUCCESSIVE_INTERVAL=
+MODULE_4SHARED_DOWNLOAD_SUCCESSIVE_INTERVAL=5
 
 MODULE_4SHARED_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
@@ -290,9 +290,10 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 4shared_list_rec() {
     local REC=$1
     local URL=$2
-    local COOKIE_FILE=$3
+    local -r COOKIE_FILE=$3
+    local -r BASE_URL='http://www.4shared.com'
 
-    local PAGE LINKS NAMES RET LINE SID
+    local PAGE LINKS NAMES RET LINE SID DIR_ID JSON
 
     RET=$ERR_LINK_DEAD
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b '4langcookie=en' \
@@ -323,25 +324,30 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 
     # Sanity chech
     if match 'src="/images/spacer.gif" class="warn"' "$PAGE"; then
-        log_error "Site updated ?"
+        log_error 'Site updated ?'
         return $ERR_FATAL
     fi
 
     if test "$DIRECT_LINKS"; then
-        log_debug "Note: provided links are temporary! Use 'curl -J -O' on it."
+        log_debug 'Note: provided links are temporary! Use "curl -J -O" on it.'
         LINKS=$(echo "$PAGE" | \
             parse_all_attr_quiet 'class="icon16 download"' href)
         list_submit "$LINKS" && RET=0
     else
-        LINKS=$(echo "$PAGE" | parse_all_quiet "openNewWindow('" "('\([^']*\)")
-        NAMES=$(echo "$PAGE" | parse_all_attr_quiet 'data-name')
-        list_submit "$LINKS" "$NAMES" && RET=0
+        DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' \
+            "=[[:space:]]*'\([^']\+\)") || return
+        JSON=$(curl -b "$COOKIE_FILE" -b '4langcookie=en' -d "dirId=$DIR_ID" \
+            "$BASE_URL/web/accountActions/changeDir") || return
+
+        LINKS=$(parse_json 'id' split <<<"$JSON")
+        NAMES=$(parse_json 'name' split <<<"$JSON")
+        list_submit "$LINKS" "$NAMES" "$BASE_URL/file/" '/' && RET=0
     fi
 
     # Are there any subfolders?
     if test "$REC"; then
-        LINKS=$(echo "$PAGE" | parse_all_quiet ':changeDir(' '(\([[:digit:]]\+\)')
-        SID=$(echo "$PAGE" | parse_form_input_by_name 'sId') || return
+        LINKS=$(parse_all_quiet ':changeDir(' '(\([[:digit:]]\+\)' <<< "$PAGE")
+        SID=$(parse_form_input_by_name 'sId' <<< "$PAGE") || return
         while read LINE; do
             test "$LINE" || continue
             URL="http://www.4shared.com/account/changedir.jsp?sId=$SID&ajax=false&changedir=$LINE&random=0"
