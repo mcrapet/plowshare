@@ -465,7 +465,7 @@ parse_json() {
     if [ "$2" = 'join' ]; then
         PRE="tr -d '\n\r'"
     elif [ "$2" = 'split' ]; then
-        PRE=sed\ -e\ 's/,[[:space:]]*"/\n"/g'
+        PRE=sed\ -e\ 's/,[[:space:]]*\(["{]\)/\n\1/g'
     else
         PRE='cat'
     fi
