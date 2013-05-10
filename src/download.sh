@@ -206,7 +206,8 @@ download() {
     local -r MAX_RETRIES=$7
     local -r LAST_HOST=$8
 
-    local DRETVAL AWAIT CODE FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR
+    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR
+    local -i STATUS
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
 
@@ -245,8 +246,8 @@ download() {
         fi
 
         if test -z "$CHECK_LINK"; then
-            local DRESULT=$(create_tempfile)
             local -i TRY=0
+            DRESULT=$(create_tempfile) || return
 
             while :; do
                 DRETVAL=0
@@ -366,7 +367,7 @@ download() {
 
         # Sanity check 2 (no relative url)
         if [[ $FILE_URL = /* ]]; then
-            log_error "Output URL is not valid"
+            log_error "Output URL is not valid: $FILE_URL"
             return $ERR_FATAL
         fi
 
@@ -374,6 +375,12 @@ download() {
         if [ "$FILE_URL" = "$FILE_NAME" ]; then
             log_error "Output filename is wrong, check module download function"
             FILE_NAME=""
+        fi
+
+        # Sanity check 4
+        if [[ $FILE_URL = $(basename_url "$FILE_URL") ]]; then
+            log_error "Output URL is not valid: $FILE_URL"
+            return $ERR_FATAL
         fi
 
         if test -z "$FILE_NAME"; then
@@ -386,7 +393,7 @@ download() {
             fi
         fi
 
-        # Sanity check 4
+        # Sanity check 5
         if [[ $FILENAME = *$'\r'* ]]; then
             log_debug "filename contains \r, remove it"
             FILE_NAME=${FILE_NAME//$'\r'}
@@ -399,7 +406,7 @@ download() {
             log_debug "filename is too long, truncating it"
         fi
 
-        # Sanity check 5
+        # Sanity check 6
         if [ "${FILENAME#*/}" != "$FILENAME" ]; then
             log_debug "filename contains slashes, translate to underscore"
             FILE_NAME=${FILE_NAME//\//_}
@@ -500,12 +507,8 @@ download() {
             curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
                 -o "$FILENAME_TMP" "$FILE_URL" >"$DRESULT" || DRETVAL=$?
 
-            if [ -f "$DRESULT" ]; then
-                read CODE < "$DRESULT"
-                rm -f "$DRESULT"
-            else
-                CODE=-1
-            fi
+            read STATUS < "$DRESULT"
+            rm -f "$DRESULT"
 
             if module_config_need_cookie "$MODULE"; then
                 rm -f "$COOKIE_FILE"
@@ -520,8 +523,8 @@ download() {
                 DRETVAL=$ERR_NETWORK
 
             elif [ "$DRETVAL" -eq $ERR_NETWORK ]; then
-                if [ -n "$CODE" ]; then
-                    log_error "Unexpected HTTP code $CODE"
+                if [[ $STATUS -gt 0 ]]; then
+                    log_error "Unexpected HTTP code $STATUS"
                 fi
             fi
 
@@ -533,7 +536,7 @@ download() {
                 log_notice "delete temporary file: ${FILE_URL:7}"
                 rm -f "${FILE_URL:7}"
 
-            elif [ "$CODE" = 416 ]; then
+            elif [[ $STATUS -eq 416 ]]; then
                 # If module can resume transfer, we assume here that this error
                 # means that file have already been downloaded earlier.
                 # We should do a HTTP HEAD request to check file length but
@@ -545,8 +548,8 @@ download() {
                     rm -f "$FILENAME_TMP"
                     continue
                 fi
-            elif [ "${CODE:0:2}" != 20 ]; then
-                log_error "Unexpected HTTP code $CODE, module outdated or upstream updated?"
+            elif [ "${STATUS:0:2}" != 20 ]; then
+                log_error "Unexpected HTTP code $STATUS, module outdated or upstream updated?"
                 return $ERR_NETWORK
             fi
 
