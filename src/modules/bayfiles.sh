@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# bayfiles.com module
+# bayfiles.net module
 # Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_BAYFILES_REGEXP_URL="https\?://\(www\.\)\?bayfiles\.com/"
+MODULE_BAYFILES_REGEXP_URL="https\?://\(www\.\)\?bayfiles\.net/"
 
 MODULE_BAYFILES_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -34,7 +34,7 @@ MODULE_BAYFILES_DELETE_OPTIONS=""
 MODULE_BAYFILES_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
-# Uses official API: http://bayfiles.com/api
+# Uses official API: http://bayfiles.net/api
 bayfiles_login() {
     local AUTH=$1
     local API_URL=$2
@@ -57,15 +57,15 @@ bayfiles_login() {
     return 0
 }
 
-# Output a bayfiles.com file download URL
+# Output a bayfiles.net file download URL
 # $1: cookie file (for account only)
 # $2: bayfiles url
 # stdout: real file download link
 bayfiles_download() {
     local COOKIE_FILE=$1
     local URL=$2
-    local API_URL='http://api.bayfiles.com/v1'
-    local AJAX_URL='http://bayfiles.com/ajax_download'
+    local API_URL='http://api.bayfiles.net/v1'
+    local AJAX_URL='http://bayfiles.net/ajax_download'
     local PAGE FILE_URL FILENAME SESSION OPT_SESSION
 
     if [ -n "$AUTH" ]; then
@@ -129,7 +129,7 @@ bayfiles_download() {
     echo "$FILENAME"
 }
 
-# Upload a file to bayfiles.com
+# Upload a file to bayfiles.net
 # $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3: remote filename
@@ -137,7 +137,7 @@ bayfiles_download() {
 bayfiles_upload() {
     local FILE=$2
     local DESTFILE=$3
-    local API_URL='http://api.bayfiles.com/v1'
+    local API_URL='http://api.bayfiles.net/v1'
     local SESSION_GET JSON UPLOAD_URL FILE_URL DELETE_URL ADMIN_URL
 
     # Account users (free or premium) have a session id
