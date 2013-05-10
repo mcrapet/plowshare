@@ -55,6 +55,7 @@ zippyshare_download() {
 
     # <meta property="og:title" content="... "
     FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content) || return
+    test "$FILE_NAME" = 'Private file' && FILE_NAME=''
 
     if match 'var[[:space:]]*submitCaptcha' "$PAGE"; then
         local PART1 PART2
@@ -120,7 +121,7 @@ zippyshare_download() {
 
         FILE_URL="$(basename_url "$URL")$PART_URL"
     else
-        log_error "Unexpected content, site updated?"
+        log_error 'Unexpected content, site updated?'
         return $ERR_FATAL
     fi
 
