@@ -121,11 +121,11 @@ hotfile_download() {
     FORM_HTML=$(grep_form_by_name "$WAIT_HTML" 'f') || return
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'action')
-    FORM_TM=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'tm')
-    FORM_TMHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'tmhash')
+    FORM_TM=$(echo "$FORM_HTML" | parse_form_input_by_name 'tm')
+    FORM_TMHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'tmhash')
     FORM_WAIT=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'wait')
-    FORM_WAITHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'waithash')
-    FORM_UPIDHASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'upidhash')
+    FORM_WAITHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'waithash')
+    FORM_UPIDHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'upidhash')
 
     wait $((WAIT_TIME / 1000)) seconds || return
 
