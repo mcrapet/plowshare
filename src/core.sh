@@ -738,8 +738,9 @@ parse_attr() {
     local -r A=${2:-"$1"}
     local -r D=$'\001'
     local STRING=$(sed \
-        -ne "\\${D}$1${D}{s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\2${D}p;q;}" \
-        -ne "\\${D}$1${D}{s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\2${D}p;q;}")
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*[\"']\([^\"'>]*\).*${D}\2${D}p;ta" \
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\2${D}p;ta" \
+        -ne 'b;:a;q;')
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
