@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # dl.free.fr module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -230,6 +230,12 @@ dl_free_fr_upload() {
     rm -f "$HEADERS"
 
     log_debug "Monitoring page: $MON_PL"
+
+    # http://dl.free.fr/fo.html
+    if ! match '=' "$MON_PL"; then
+        log_debug 'Monitoring page seems wrong, abort'
+        return $ERR_FATAL
+    fi
 
     WAIT_TIME=5
     while [ $WAIT_TIME -lt 320 ] ; do
