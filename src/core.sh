@@ -246,13 +246,6 @@ replace() {
     echo "${S//$FROM/$2}"
 }
 
-# Delete leading and trailing whitespace.
-# stdin: input string (can be multiline)
-# stdout: result string
-strip() {
-    sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
-}
-
 # Return uppercase string
 # $*: input string(s)
 uppercase() {
@@ -2109,6 +2102,14 @@ translate_size() {
 ## Miscellaneous functions that can be called from core:
 ## download.sh, upload.sh, delete.sh, list.sh
 ##
+
+# Delete leading and trailing whitespaces.
+# Equivalent for sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+# stdin: input string (must be single line)
+# stdout: result string
+strip() {
+    IFS= read -r && echo "$REPLY"
+}
 
 # Remove all temporal files created by the script
 # (with create_tempfile)
