@@ -80,6 +80,163 @@ letitbit_login() {
     echo "$TYPE"
 }
 
+# Decode the PNG image that contains the obfuscation password
+# $1: image file
+# stdout: decoded password
+letitbit_decode_png() {
+    local -r IMAGE_FILE=$1
+    local PASS
+
+    # ASCII values of the password chars are stored as the red channel values
+    # of all pixels in the PNG
+    if check_exec 'pngtopnm'; then
+        log_debug 'Using pngtopnm...'
+        PASS=$(pngtopnm "$IMAGE_FILE" | last_line)
+
+    elif check_exec 'convert'; then
+        local ASCII CHAR VAL
+        log_debug 'Using convert...'
+
+        ASCII=$(convert "$IMAGE_FILE" txt:- | \
+            parse_all '^[[:digit:]]' 'rgb(\([[:digit:]]\{1,3\}\),') || return
+
+        # convert ASCII values to regular string
+        # Source: http://mywiki.wooledge.org/BashFAQ/071
+        for VAL in $ASCII; do
+            printf -v CHAR \\$(($VAL/64*100 + $VAL%64/8*10 + $VAL%8))
+            PASS="$PASS$CHAR"
+        done
+
+    else
+        log_error 'No suitable program found to decode PNG image. Aborting...'
+        log_error 'Please install "convert" (ImageMagick) or "pngtopnm" (Netpbm).'
+        return $ERR_SYSTEM
+    fi
+
+    echo "$PASS"
+}
+
+# Decode an obfuscated HTML form
+# $1: original form content (including obfuscation script)
+# $2: cookie file
+# $3: base url
+# stdout: decoded input fields of the form
+letitbit_decode_form() {
+    local -r CRYPT_FORM=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local INPUTS IDS VALUES CC LINE RET
+    local SCRIPT DEF_SCRIPT PROTO_SCRIPT DEC_SCRIPT DEC_SCRIPT2
+    local PREPARE CODE IMAGE_FILE PASS
+    local -a ID_ARR VAL_ARR
+
+    detect_javascript || return
+
+    # extract all encrypted form fields (id + value)
+    INPUTS=$(echo "$CRYPT_FORM" | break_html_lines_alt | \
+        parse_all '<input.*[iI][dD]' '^\(.*\)$') || return
+    IDS=$(echo "$INPUTS" | parse_all_attr 'input.*[iI][dD]=' '[iI][dD]') || return
+    VALUES=$(echo "$INPUTS" | parse_all_attr 'input.*[iI][dD]=' '[vV][aA][lL][uU][eE]') || return
+
+    # create arrays so we can match id-value pairs
+    # Note: taken from 'list_submit' of Plowshare3
+    CC=0
+    while IFS= read -r LINE; do ID_ARR[CC++]=$LINE; done <<< "$IDS"
+    CC=0
+    while IFS= read -r LINE; do VAL_ARR[CC++]=$LINE; done <<< "$VALUES"
+
+    if [ ${#ID_ARR[@]} -ne ${#VAL_ARR[@]} ]; then
+        log_error 'Error parsing input fields.'
+        return $ERR_FATAL
+    fi
+
+    # build a JS hashmap for later use: input['id'] = 'value'
+    INPUTS="var input = new Object();"
+    for CC in "${!ID_ARR[@]}"; do
+        INPUTS="$INPUTS input['${ID_ARR[$CC]}'] = '${VAL_ARR[$CC]}';"
+    done
+
+    # extract the form decryption script
+    SCRIPT=$(echo "$CRYPT_FORM" | tr -d '\n\r' | parse_tag script) || return
+
+    # split up script into general definition part and decrypting part
+    DEF_SCRIPT=${SCRIPT%%;;eval(jspid*}
+    DEC_SCRIPT=${SCRIPT:$(( ${#DEF_SCRIPT} + 2))}
+
+    # optimize to improve compatibility + save time and computing power
+    # first part of DEF_SCRIPT is (hopefully) static and decodes to PROTO_SCRIPT
+    DEF_SCRIPT="var jspid${DEF_SCRIPT#*;;var jspid}"
+    PROTO_SCRIPT='String.prototype.sort=function(){return this.split("").sort().join("")};
+String.prototype.ord=function(){return this.charCodeAt(0)};
+var EOL=function(){return (1).chr()};
+String.prototype.str_split=function(a){var b=[],pos=0,len=this.length;while(pos<len){b.push(this.slice(pos,pos+=a))}return b};
+Number.prototype.chr=function(){return String.fromCharCode(this)};'
+
+    # only part 2 (of 2) from decrypt script is really needed
+    DEC_SCRIPT=${DEC_SCRIPT#*;}
+    DEC_SCRIPT=${DEC_SCRIPT/eval/print}
+
+    # deobfuscate the second part/decryption script
+    DEC_SCRIPT2=$(echo "var window = new Object(); window.__jsp_list = new Array(); $PROTO_SCRIPT ; $DEF_SCRIPT ; $DEC_SCRIPT ;" | javascript | tr -d '\n\r' | parse . '\(var .\+);\)}') || return
+
+    CODE=$(echo "$DEC_SCRIPT2" | parse . ", '\([[:alnum:]]\+\)', 'jsprotect") || return
+    log_debug "Code: '$CODE'"
+
+    # get image file that encodes the password
+    IMAGE_FILE=$(create_tempfile '.png') || return
+    RET=''
+    curl -b "$COOKIE_FILE" -b 'lang=en' -o "$IMAGE_FILE" --get -d "n=$CODE" \
+        -d "r=$(random js)" "$BASE_URL/jspimggen.php" || RET=$?
+
+    if [ -n "$RET" ]; then
+        rm -f "$IMAGE_FILE"
+        return $RET
+    fi
+
+    # extract the password from the image
+    PASS=$(letitbit_decode_png "$IMAGE_FILE") || RET=$?
+    log_debug "Pass: '$PASS'"
+    rm -f "$IMAGE_FILE"
+    [ -n "$RET" ] && return $RET
+
+    # acknowledge password at server
+    curl -b "$COOKIE_FILE" -b 'lang=en' --get -d 'stat=1' -d 'text=' \
+        -d "r=$(random js)" "$BASE_URL/jspimggen.php" || return
+
+    # obfuscated strings are hidden within the 'value' attributes of the 'input'
+    # tags and unscrambled by (hopefully!) static JS code - a simplified version
+    # of which is used here
+    PREPARE="var pass = '$PASS';
+function explainJSPForm(dummy1, dummy2, dummy3, list, pass, decoder) {
+    var get_value = function (id) {
+        try       { return input[id]; }
+        catch (e) { return null; }
+    };
+
+    var get_values = function (ids) {
+        var r = [];
+        for (var i = 0; i < ids.length; ++i) {
+            r.push(get_value(ids[i]));
+        }
+        return r.join('');
+    };
+
+    list = list.split(';');
+    for (var i = 0; i < list.length; ++i) {
+        var item = list[i].split('=');
+        if (item.length == 1) { item[1] = ''; }
+        var k = get_values(item[0].split(','));
+        var v = get_values(item[1].split(','));
+        k = decoder(k, pass);
+        v = decoder(v, pass);
+        print('<input name=\"' + k + '\" value=\"' + v + '\" />');
+    }
+}"
+
+    # finally, decrypt the form and return the plain version
+    echo "$PROTO_SCRIPT ; $DEF_SCRIPT ; $INPUTS ; $PREPARE ; $DEC_SCRIPT2 ;" | javascript
+}
+
 # Output a file URL to download from Letitbit.net
 # $1: cookie file
 # $2: letitbit url
@@ -89,18 +246,18 @@ letitbit_download() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL='http://letitbit.net'
     local PAGE URL ACCOUNT SERVER WAIT CONTROL FILE_NAME
-    local FORM_HTML FORM_REDIR FORM_UID5 FORM_UID FORM_ID FORM_LIVE FORM_SEO
+    local FORM FORM_REDIR FORM_UID5 FORM_UID FORM_ID FORM_LIVE FORM_SEO
     local FORM_NAME FORM_PIN FORM_REAL_UID FORM_REAL_NAME FORM_HOST FORM_SERVER
     local FORM_SIZE FORM_FILE_ID FORM_INDEX FORM_DIR FORM_ODIR FORM_DESC
     local FORM_LSA FORM_PAGE FORM_SKYMONK FORM_MD5 FORM_REAL_UID_FREE
-    local FORM_SHASH FORM_SPIN
+    local FORM_SHASH FORM_SPIN FORM_CHECK
 
     # server redirects "simple links" to real download server
     #
     # simple: http://letitbit.net/download/...
     #         http://www.letitbit.net/download/...
     # real:   http://u29043481.letitbit.net/download/...
-    URL=$(curl --head "$2" | grep_http_header_location_quiet "PAGE")
+    URL=$(curl --head "$2" | grep_http_header_location_quiet)
     [ -n "$URL" ] || URL=$2
     LINK_BASE_URL=${URL%%/download/*}
 
@@ -109,7 +266,7 @@ letitbit_download() {
     fi
 
     # Note: Premium users are redirected to a download page
-    PAGE=$(curl --location -b "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    PAGE=$(curl --location -b "$COOKIE_FILE" -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
 
     if match 'File not found\|страница не существует' "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -136,34 +293,41 @@ letitbit_download() {
     fi
 
     # anon/free account download
-    FORM_HTML=$(grep_form_by_id "$PAGE" 'ifree_form') || return
-    FORM_REDIR=$(echo "$FORM_HTML" | parse_form_input_by_name 'redirect_to_pin') || return
-    FORM_UID5=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid5') || return
-    FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'uid') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
-    FORM_LIVE=$(echo "$FORM_HTML" | parse_form_input_by_name 'live') || return
-    FORM_SEO=$(echo "$FORM_HTML" | parse_form_input_by_name 'seo_name') || return
-    FORM_NAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'name') || return
-    FORM_PIN=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin') || return
-    FORM_REAL_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'realuid') || return
-    FORM_REAL_NAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'realname') || return
-    FORM_HOST=$(echo "$FORM_HTML" | parse_form_input_by_name 'host') || return
-    FORM_SERVER=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'ssserver')
-    FORM_SIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'sssize') || return
-    FORM_FILE_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'file_id') || return
-    FORM_INDEX=$(echo "$FORM_HTML" | parse_form_input_by_name 'index') || return
-    FORM_DIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'dir')
-    FORM_ODIR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'optiondir')
-    FORM_DESC=$(echo "$FORM_HTML" | parse_form_input_by_name 'desc') || return
-    FORM_LSA=$(echo "$FORM_HTML" | parse_form_input_by_name 'lsarrserverra') || return
-    FORM_PAGE=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'page')
-    FORM_SKYMONK=$(echo "$FORM_HTML" | parse_form_input_by_name 'is_skymonk') || return
-    FORM_MD5=$(echo "$FORM_HTML" | parse_form_input_by_name 'md5crypt') || return
-    FORM_REAL_UID_FREE=$(echo "$FORM_HTML" | parse_form_input_by_name 'realuid_free') || return
-    FORM_SHASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'slider_hash') || return
-    FORM_SPIN=$(echo "$FORM_HTML" | parse_form_input_by_name 'slider_pin') || return
+    FORM=$(grep_form_by_id "$PAGE" 'ifree_form') || return
+    FORM=$(letitbit_decode_form "$FORM" "$COOKIE_FILE" "$LINK_BASE_URL") || return
+    log_debug "Plain form: $FORM"
 
+    FORM_REDIR=$(parse_form_input_by_name 'redirect_to_pin' <<< "$FORM") || return
+    FORM_UID5=$(parse_form_input_by_name 'uid5' <<< "$FORM") || return
+    FORM_UID=$(parse_form_input_by_name 'uid' <<< "$FORM") || return
+    FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM") || return
+    FORM_LIVE=$(parse_form_input_by_name 'live' <<< "$FORM") || return
+    FORM_SEO=$(parse_form_input_by_name 'seo_name' <<< "$FORM") || return
+    FORM_NAME=$(parse_form_input_by_name 'name' <<< "$FORM") || return
+    FORM_PIN=$(parse_form_input_by_name 'pin' <<< "$FORM") || return
+    FORM_REAL_UID=$(parse_form_input_by_name 'realuid' <<< "$FORM") || return
+    FORM_REAL_NAME=$(parse_form_input_by_name 'realname' <<< "$FORM") || return
+    FORM_HOST=$(parse_form_input_by_name 'host' <<< "$FORM") || return
+    FORM_SERVER=$(parse_form_input_by_name_quiet 'ssserver' <<< "$FORM")
+    FORM_SIZE=$(parse_form_input_by_name 'sssize' <<< "$FORM") || return
+    FORM_FILE_ID=$(parse_form_input_by_name 'file_id' <<< "$FORM") || return
+    FORM_INDEX=$(parse_form_input_by_name 'index' <<< "$FORM") || return
+    FORM_DIR=$(parse_form_input_by_name_quiet 'dir' <<< "$FORM")
+    FORM_ODIR=$(parse_form_input_by_name_quiet 'optiondir' <<< "$FORM")
+    FORM_DESC=$(parse_form_input_by_name 'desc' <<< "$FORM") || return
+    FORM_LSA=$(parse_form_input_by_name 'lsarrserverra' <<< "$FORM") || return
+    FORM_PAGE=$(parse_form_input_by_name_quiet 'page' <<< "$FORM")
+    FORM_SKYMONK=$(parse_form_input_by_name 'is_skymonk' <<< "$FORM") || return
+    FORM_MD5=$(parse_form_input_by_name 'md5crypt' <<< "$FORM") || return
+    FORM_REAL_UID_FREE=$(parse_form_input_by_name 'realuid_free' <<< "$FORM") || return
+    FORM_SPIN=$(parse_form_input_by_name 'slider_pin' <<< "$FORM") || return
+    FORM_SHASH=$(parse_form_input_by_name 'slider_hash' <<< "$FORM") || return
+    FORM_CHECK=$(parse_form_input_by_name '__jspcheck' <<< "$FORM") || return
+
+    # 1) get advertising page
+    # Note: Only needed to update cookies.
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -c "$COOKIE_FILE"               \
+        --referer "$URL"        -d 'tpl_d4=d4_plain' -d 'tpl_d3=d3_skymonk'    \
         -d "redirect_to_pin=$FORM_REDIR" -d "uid5=$FORM_UID5"                  \
         -d "uid=$FORM_UID"      -d "id=$FORM_ID"     -d "live=$FORM_LIVE"      \
         -d "seo_name=$FORM_SEO" -d "name=$FORM_NAME" -d "pin=$FORM_PIN"        \
@@ -174,19 +338,34 @@ letitbit_download() {
         -d "desc=$FORM_DESC"             -d "lsarrserverra=$FORM_LSA"          \
         -d "page=$FORM_PAGE"             -d "is_skymonk=$FORM_SKYMONK"         \
         -d "md5crypt=$FORM_MD5"          -d "realuid_free=$FORM_REAL_UID_FREE" \
-        -d "slider_hash=$FORM_SHASH"     -d "slider_pin=$FORM_SPIN"            \
-        "$LINK_BASE_URL/download3.php") || return
+        -d "slider_pin=$FORM_SPIN"       -d "slider_hash=$FORM_SHASH"          \
+        -d "__jspcheck=$FORM_CHECK" "$LINK_BASE_URL/born_iframe.php") || return
 
-    # Note: Site adds an additional "control field" to the usual ReCaptcha stuff
-    CONTROL=$(echo "$PAGE" | parse 'var[[:space:]]\+recaptcha_control_field' \
-        "=[[:space:]]\+'\([^']\+\)';") || return
+    # 2) get download request page
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -c "$COOKIE_FILE"               \
+        --referer "$LINK_BASE_URL/born_iframe.php"                             \
+        -d 'tpl_d4=d4_plain'    -d 'tpl_d3=d3_skymonk'                         \
+        -d "redirect_to_pin=$FORM_REDIR" -d "uid5=$FORM_UID5"                  \
+        -d "uid=$FORM_UID"      -d "id=$FORM_ID"     -d "live=$FORM_LIVE"      \
+        -d "seo_name=$FORM_SEO" -d "name=$FORM_NAME" -d "pin=$FORM_PIN"        \
+        -d "realuid=$FORM_REAL_UID"      -d "realname=$FORM_REAL_NAME"         \
+        -d "host=$FORM_HOST"             -d "ssserver=$FORM_SERVER"            \
+        -d "sssize=$FORM_SIZE"           -d "file_id=$FORM_FILE_ID"            \
+        -d "index=$FORM_INDEX"  -d "dir=$FORM_DIR"   -d "optiondir=$FORM_ODIR" \
+        -d "desc=$FORM_DESC"             -d "lsarrserverra=$FORM_LSA"          \
+        -d "page=$FORM_PAGE"             -d "is_skymonk=$FORM_SKYMONK"         \
+        -d "md5crypt=$FORM_MD5"          -d "realuid_free=$FORM_REAL_UID_FREE" \
+        -d "slider_pin=$FORM_SPIN"       -d "slider_hash=$FORM_SHASH"          \
+        -d "__jspcheck=$FORM_CHECK" "$LINK_BASE_URL/download3.php") || return
 
+    # 3) parse wait time and wait
     WAIT=$(echo "$PAGE" | parse_tag 'Wait for Your turn' 'span') || return
     wait $((WAIT + 1)) || return
 
-    # dummy "-d" to force a POST request
+    # 4) check download (Note: dummy '-d" to force a POST request)
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -d '' \
-        -H 'X-Requested-With: XMLHttpRequest' \
+        -H 'X-Requested-With: XMLHttpRequest'        \
+        --referer "$LINK_BASE_URL/download3.php"     \
         "$LINK_BASE_URL/ajax/download3.php") || return
 
     if [ "$PAGE" != '1' ]; then
@@ -194,6 +373,26 @@ letitbit_download() {
         log_error "Unexpected response: $PAGE"
         return $ERR_FATAL
     fi
+
+    # 5) confirm free download
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -c "$COOKIE_FILE"               \
+        -d 'tpl_d3=d3_skymonk'                                                 \
+        -d "redirect_to_pin=$FORM_REDIR" -d "uid5=$FORM_UID5"                  \
+        -d "uid=$FORM_UID"      -d "id=$FORM_ID"     -d "live=$FORM_LIVE"      \
+        -d "seo_name=$FORM_SEO" -d "name=$FORM_NAME" -d "pin=$FORM_PIN"        \
+        -d "realuid=$FORM_REAL_UID"      -d "realname=$FORM_REAL_NAME"         \
+        -d "host=$FORM_HOST"             -d "ssserver=$FORM_SERVER"            \
+        -d "sssize=$FORM_SIZE"           -d "file_id=$FORM_FILE_ID"            \
+        -d "index=$FORM_INDEX"  -d "dir=$FORM_DIR"   -d "optiondir=$FORM_ODIR" \
+        -d "desc=$FORM_DESC"             -d "lsarrserverra=$FORM_LSA"          \
+        -d "page=$FORM_PAGE"             -d "is_skymonk=$FORM_SKYMONK"         \
+        -d "md5crypt=$FORM_MD5"          -d "realuid_free=$FORM_REAL_UID_FREE" \
+        -d "slider_pin=$FORM_SPIN"       -d "slider_hash=$FORM_SHASH"          \
+        -d "__jspcheck=$FORM_CHECK" "$LINK_BASE_URL/download3.php") || return
+
+    # Note: Site adds an additional "control field" to the usual ReCaptcha stuff
+    CONTROL=$(echo "$PAGE" | parse 'var[[:space:]]\+recaptcha_control_field' \
+        "=[[:space:]]\+'\([^']\+\)';") || return
 
     # Solve recaptcha
     local PUBKEY WCI CHALLENGE WORD CONTROL ID
