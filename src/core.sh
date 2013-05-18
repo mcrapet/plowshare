@@ -1331,10 +1331,12 @@ captcha_process() {
         9kweu)
             log_notice 'Using 9kw.eu captcha recognition system'
 
-            # Note for later: extra params can be supplied: min_len & max_len & phrase & numeric
+            # Note for later: extra params can be supplied:
+            # min_len & max_len & phrase & numeric & prio & captchaperhour & confirm
             RESPONSE=$(curl -F 'method=post' \
                 -F 'action=usercaptchaupload' \
                 -F "apikey=$CAPTCHA_9KWEU" \
+                -F 'source=plowshare' \
                 -F "file-upload-01=@$FILENAME;filename=file.jpg" \
                 'http://www.9kw.eu/index.cgi') || return
 
@@ -1351,11 +1353,13 @@ captcha_process() {
 
             TID=$RESPONSE
 
-            for I in 10 6 6 7 7 8 8 9 9 10 10 20 20 20; do
+            for I in 10 6 6 7 7 8 8 9 9 10 10 20 20 20 30 30; do
                 wait $I seconds
                 RESPONSE=$(curl --get --data 'action=usercaptchacorrectdata' \
-                    --data "apikey=$CAPTCHA_9KWEU" --data "id=$TID" \
-                    --data 'info=1' 'http://www.9kw.eu/index.cgi') || return
+                    --data "apikey=$CAPTCHA_9KWEU" \
+                    --data "id=$TID" \
+                    --data 'source=plowshare' --data 'info=1' \
+                    'http://www.9kw.eu/index.cgi') || return
 
                 if [ 'NO DATA' = "$RESPONSE" ]; then
                     continue
