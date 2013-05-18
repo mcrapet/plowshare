@@ -89,8 +89,9 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     PAGE=$(curl --include -d 'a=1' "$URL") || return
 
-    # En téléchargement standard, [...] et vous devez attendre au moins 5 minutes entre chaque téléchargement.
-    if match 'vous devez attendre au moins 5 minutes' "$PAGE"; then
+    # Attention ! En téléchargement standard, vous ne pouvez télécharger qu'un seul fichier
+    # à la fois et vous devez attendre jusqu'à 5 minutes entre chaque téléchargement.
+    if match 'vous devez attendre .* 5 minutes' "$PAGE"; then
         log_error 'Forced delay between downloads.'
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # dl.free.fr module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -62,30 +62,45 @@ captcha_ayl_process() {
         WORDS=$(echo "$VARS" | parse_json_quiet 'instructions_visual' | tr -d '\302')
         TOKEN=$(echo "$VARS" | parse_json 'token') || return
         TOKEN_ID=$(echo "$VARS" | parse_json 'tid') || return
-        TYPE=$(echo "$VARS" | parse_json 'medium_type' | replace '/' '_') || return
+        TYPE=$(echo "$VARS" | parse_json 'medium_type') || return
 
-        log_debug "Adyoulike challenge: $TOKEN"
+        log_debug "Adyoulike challenge: '$TOKEN'"
+        log_debug "Adyoulike type: '$TYPE'"
 
         # Easy case, captcha answer is written plain text :)
         # UTF-8 characters: « (\uC2AB), » (\uC2BB)
-        if [ -n "$WORDS" -a "$TYPE" = 'image_adyoulike' ]; then
-            # FIXME: Don't use \xHH in basic POSIX regexp
-            RESPONSE=$(echo "$WORDS" | parse_quiet . '\xAB \([^ ]*\) \xBB')
+        if [ $TYPE = 'image/adyoulike' ]; then
+            if [ -z "$WORDS" ]; then
+                log_error "$FUNCNAME: instructions_visual empty, skipping"
+            fi
+
+            RESPONSE=$(parse_quiet . '"\([^"]\+\)"' <<< "$WORDS")
+            if [ -z "$RESPONSE" ]; then
+                # FIXME: Don't use \xHH in basic POSIX regexp
+                RESPONSE=$(parse_quiet . '\xAB \([^[:space:]]*\) \xBB' <<< "$WORDS")
+                if [ -z "$RESPONSE" ]; then
+                    matchi 'Cliquez sur la publicit. puis validez' "$WORDS" && \
+                        RESPONSE='[passthroughtoken]'
+                fi
+            fi
+
             [ -n "$RESPONSE" ] && break
 
-        #elif [ "$TYPE" = 'video_youtube' ];
+            log_debug "Adyoulike instr: '$WORDS'"
+
+        #elif [ "$TYPE" = 'video/youtube' ];
         else
             log_error "$FUNCNAME: $TYPE not handled, skipping"
         fi
 
         # Maybe we'll need this later?
-        # curl -b "ayl_tid=$TOKEN_ID" "${AYL_SERVER}iframe?iframe_type=${TYPE}&token=${TOKEN}&env=$ENV"
+        # curl -b "ayl_tid=$TOKEN_ID" "${AYL_SERVER}iframe?iframe_type=${TYPE//\//_}&token=${TOKEN}&env=$ENV"
 
         FILENAME=$(create_tempfile '.ayl.jpg') || return
         curl -b "ayl_tid=$TOKEN_ID" -o "$FILENAME" \
             "${AYL_SERVER}resource?token=${TOKEN}&env=$ENV" || return
 
-        WORDS=$(captcha_process "$FILENAME" prompt) || return
+        WORDS=$(captcha_process "$FILENAME" ayl) || return
         rm -f "$FILENAME"
 
         { read RESPONSE; read TID; } <<<"$WORDS"
@@ -215,6 +230,12 @@ dl_free_fr_upload() {
     rm -f "$HEADERS"
 
     log_debug "Monitoring page: $MON_PL"
+
+    # http://dl.free.fr/fo.html
+    if ! match '=' "$MON_PL"; then
+        log_debug 'Monitoring page seems wrong, abort'
+        return $ERR_FATAL
+    fi
 
     WAIT_TIME=5
     while [ $WAIT_TIME -lt 320 ] ; do

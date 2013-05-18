@@ -101,7 +101,7 @@ extabit_download() {
     fi
 
     # <h1>File not found</h1>
-    if match 'page_404_header' "$PAGE"; then
+    if match 'File not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -234,7 +234,7 @@ extabit_probe() {
     PAGE=$(curl -b 'language=en' "$URL") || return
 
     # <h1>File not found</h1>
-    if match 'page_404_header' "$PAGE"; then
+    if match 'File not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 

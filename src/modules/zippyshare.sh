@@ -47,7 +47,7 @@ zippyshare_download() {
 
     # File does not exist on this server
     # File has expired and does not exist anymore on this server
-    if match 'File does not exist\|File has expired' "$PAGE"; then
+    if match 'File does not exist\|File has expired\|HTTP Status 404' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -55,6 +55,7 @@ zippyshare_download() {
 
     # <meta property="og:title" content="... "
     FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content) || return
+    test "$FILE_NAME" = 'Private file' && FILE_NAME=''
 
     if match 'var[[:space:]]*submitCaptcha' "$PAGE"; then
         local PART1 PART2
@@ -101,7 +102,7 @@ zippyshare_download() {
     elif  match 'class=.movie-share.' "$PAGE"; then
       N=-5
     else
-      N=-2
+      N=-3
     fi
 
     JS=$(grep_script_by_order "$PAGE" $N)
@@ -120,7 +121,7 @@ zippyshare_download() {
 
         FILE_URL="$(basename_url "$URL")$PART_URL"
     else
-        log_error "Unexpected content, site updated?"
+        log_error 'Unexpected content, site updated?'
         return $ERR_FATAL
     fi
 
@@ -260,7 +261,7 @@ zippyshare_probe() {
 
     # File does not exist on this server
     # File has expired and does not exist anymore on this server
-    if match 'File does not exist\|File has expired' "$PAGE"; then
+    if match 'File does not exist\|File has expired\|HTTP Status 404' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
