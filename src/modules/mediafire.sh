@@ -79,8 +79,9 @@ mediafire_login() {
 # $2: probe mode if non empty argument (quiet parsing)
 # stdout: file/folder ID
 mediafire_extract_id() {
-    parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1" || return
+    ID=$(parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1") || return
     log_debug "File/Folder ID: '$ID'"
+    echo "$ID"
 }
 
 # Check whether a given ID is a file ID (and not a folder ID)
@@ -204,6 +205,9 @@ mediafire_download() {
         '')
             URL="$BASE_URL/?$FILE_ID"
             ;;
+        /download/*)
+            URL="$BASE_URL$URL"
+            ;;
         http://*)
             log_debug 'Direct download'
             echo "$URL"
@@ -227,7 +231,7 @@ mediafire_download() {
     [ -n "$CHECK_LINK" ] && return 0
 
     # handle captcha (reCaptcha or SolveMedia) if there is one
-    if match 'form_captcha' "$PAGE"; then
+    if match '<form[^>]*form_captcha' "$PAGE"; then
         local FORM_CAPTCHA PUBKEY CHALLENGE ID RESP CAPTCHA_DATA
 
         FORM_CAPTCHA=$(grep_form_by_name "$PAGE" 'form_captcha') || return
