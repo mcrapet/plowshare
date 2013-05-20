@@ -413,7 +413,7 @@ letitbit_list() {
 # stdout: 1 capability per line
 letitbit_probe() {
     local -r REQ_IN=$3
-    local PAGE REQ_OUT FORM_HTML
+    local PAGE REQ_OUT INFOS RET
 
     # Letitbit redirects all possible urls of a file to the canonical one
     PAGE=$(curl --location -b 'lang=en' "$2") || return
@@ -421,21 +421,31 @@ letitbit_probe() {
     match 'File not found\|страница не существует' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
-    FORM_HTML=$(grep_form_by_id "$PAGE" 'ifree_form') || return
+    INFOS=$(echo "$PAGE" | parse 'file-info-title' '^\(.\+\)$' | \
+        break_html_lines) || return
 
+    # <span class="file-info-name">xyz&nbsp;</span>
     if [[ $REQ_IN = *f* ]]; then
-        echo "$FORM_HTML" | parse_form_input_by_name 'name' && \
+        local NAME
+
+        if NAME=$(echo "$INFOS" | parse_tag 'file-info-name' 'span'); then
+            # trim trailing '&nbsp;'
+            echo "${NAME%&nbsp;}"
             REQ_OUT="${REQ_OUT}f"
+        fi
     fi
 
+    # <span class="file-info-size">[42 b]</span>
     if [[ $REQ_IN = *s* ]]; then
-        echo "$FORM_HTML" | parse_form_input_by_name 'sssize' && \
-            REQ_OUT="${REQ_OUT}s"
-    fi
+        local SIZE
 
-    if [[ $REQ_IN = *h* ]]; then
-        echo "$FORM_HTML" | parse_form_input_by_name 'index' && \
-            REQ_OUT="${REQ_OUT}h"
+        if SIZE=$(echo "$INFOS" | parse_tag 'file-info-size' 'span'); then
+            # strip enclosing brackets + use 'B' instead of 'b'
+            SIZE=${SIZE#[}
+            SIZE=${SIZE%]}
+            translate_size "${SIZE/%b/B}" && REQ_OUT="${REQ_OUT}s"
+            REQ_OUT="${REQ_OUT}s"
+        fi
     fi
 
     echo $REQ_OUT
