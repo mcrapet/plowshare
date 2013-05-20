@@ -2115,11 +2115,10 @@ translate_size() {
 ##
 
 # Delete leading and trailing whitespaces.
-# Equivalent for sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
-# stdin: input string (must be single line)
+# stdin: input string (can be multiline)
 # stdout: result string
 strip() {
-    IFS= read -r && echo "$REPLY"
+    sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # Remove all temporal files created by the script
