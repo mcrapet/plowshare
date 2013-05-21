@@ -292,7 +292,7 @@ mediafire_download() {
 
     # extract + output download link + file name
     mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href || return
-    echo "$PAGE" | parse_tag 'title' || return
+    parse_tag 'title' <<< "$PAGE" || return
 }
 
 # Upload a file to mediafire
