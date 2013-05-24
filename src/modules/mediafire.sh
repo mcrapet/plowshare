@@ -262,7 +262,7 @@ mediafire_download() {
 
         log_debug "Captcha data: $CAPTCHA_DATA"
 
-        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
+        PAGE=$(curl --location -b "$COOKIE_FILE" --referer "$URL" \
             $CAPTCHA_DATA "$URL") || return
 
         # Your entry was incorrect, please try again!
