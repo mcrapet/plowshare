@@ -120,14 +120,16 @@ letitbit_download() {
     if [ "$ACCOUNT" = 'premium' ]; then
         local FILE_LINKS
 
-        FILE_NAME=$(echo "$PAGE" | parse_tag 'File:' 'a') || return
-        FILE_LINKS=$(echo "$PAGE" | \
-            parse_all_attr 'Link to the file download' 'href') || return
+        FILE_NAME=$(parse_tag_quiet 'File:' 'a' <<< "$PAGE") || return
+        FILE_LINKS=$(parse_all_attr_quiet 'Link to the file download' 'href' <<< "$PAGE") || return
 
-        # Note: The page performs some kind of verification on all links, but
-        #       we try to do without this for now and just use the 1st link.
-        log_debug "All Links: $FILE_LINKS"
+        if [ -z "$FILE_NAME" -o -z "$FILE_LINKS" ]; then
+            log_error 'Could not retrieve premium link. Do you have enough points?'
+            return $ERR_FATAL
+        fi
 
+        # Note: The page performs some kind of verification on all links,
+        # but we try to do without this for now and just use the 1st link.
         echo "$FILE_LINKS" | first_line
         echo "$FILE_NAME"
         return 0
