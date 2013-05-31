@@ -270,7 +270,7 @@ go4up_list() {
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    PAGE=$(curl -L "$URL") || return
+    PAGE=$(curl -L "$URL" | break_html_lines) || return
 
     if match 'The file is being uploaded on mirror websites' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -278,13 +278,15 @@ go4up_list() {
         return $ERR_LINK_DEAD
     fi
 
-    LINKS=$(echo "$PAGE" | parse_all_tag_quiet 'class="dl"' a) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl"' href) || return
     if [ -z "$LINKS" ]; then
         log_error 'No links found. Site updated?'
         return $ERR_FATAL
     fi
 
     while read SITE_URL; do
+        [[ "$SITE_URL" = */premium ]] && continue
+
         PAGE=$(curl "$SITE_URL") || return
         NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
 
@@ -296,7 +298,7 @@ go4up_list() {
         if [ -z "$URL" ]; then
             URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
             if [ -z "$URL" ]; then
-                log_error 'Remote error. Site maintenance?'
+                log_error "Remote error. Site maintenance? ($SITE_URL)"
                 return $ERR_FATAL
             fi
         fi
