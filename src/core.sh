@@ -1337,15 +1337,16 @@ captcha_process() {
                 -F 'action=usercaptchaupload' \
                 -F "apikey=$CAPTCHA_9KWEU" \
                 -F 'source=plowshare' \
+                -F 'maxtimeout=200' \
                 -F "file-upload-01=@$FILENAME;filename=file.jpg" \
                 'http://www.9kw.eu/index.cgi') || return
 
             if [ -z "$RESPONSE" ]; then
-                log_error "9kw.eu empty answer"
+                log_error '9kw.eu empty answer'
                 rm -f "$FILENAME"
                 return $ERR_NETWORK
-            # Error range: 0001..0015. German language.
-            elif [[ $RESPONSE = 00[01][[:digit:]][[:space:]]* ]]; then
+            # Error range: 0001..0023. German language.
+            elif [[ $RESPONSE = 00[012][[:digit:]][[:space:]]* ]]; then
                 log_error "9kw.eu error: ${RESPONSE:5}"
                 rm -f "$FILENAME"
                 return $ERR_FATAL
@@ -1376,7 +1377,7 @@ captcha_process() {
             done
 
             if [ -z "$WORD" ]; then
-                log_error "9kw.eu error: service not unavailable"
+                log_error '9kw.eu error: service not unavailable'
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
