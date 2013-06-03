@@ -168,7 +168,7 @@ rapidshare_download() {
     else
         echo "http:$BASE_URL"
     fi
-    echo "$FILENAME"
+    uri_decode <<< "$FILENAME"
 }
 
 # Upload a file to rapidshare using rsapi - http://images.rapidshare.com/apidoc.txt
