@@ -25,6 +25,7 @@ MODULE_UPSTORE_DOWNLOAD_RESUME=no
 MODULE_UPSTORE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_UPSTORE_DOWNLOAD_SUCCESSIVE_INTERVAL=900
 
+MODULE_UPSTORE_PROBE_OPTIONS=""
 
 # Output a file URL to download from Upsto.re
 # $1: cookie file (not used here)
@@ -149,4 +150,33 @@ upstore_download() {
     # extract + output download link + file name
     echo "$PAGE" | parse_attr '<b>Download file</b>' 'href' || return
     echo "$PAGE" | parse_tag '^[[:space:]]*Download file <b>' 'b' | html_to_utf8 || return
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: Upstore url
+# $3: requested capability list
+# stdout: 1 capability per line
+upstore_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl --location -b 'lang=en' "$URL") || return
+
+    match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse '<div.*Download file' '>\([^<]\+\)<' 1 | \
+            html_to_utf8 && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '<div.*Download file' \
+            '^[[:blank:]]*\([[:digit:]]\+\(.[[:digit:]]\+\)\?[[:space:]][KMG]\?B\)' 3) &&
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

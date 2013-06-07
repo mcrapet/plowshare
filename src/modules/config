@@ -44,7 +44,7 @@ turbobit        | download | upload | delete | list | probe |
 uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
-upstore         | download |        |        |      |       |
+upstore         | download |        |        |      | probe |
 uptobox         | download | upload |        |      | probe |
 zalaa           | download | upload |        | list | probe |
 zippyshare      | download | upload |        | list | probe |
