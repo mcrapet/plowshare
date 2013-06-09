@@ -827,7 +827,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 log_debug "No module found, try simple redirection"
 
                 URL_ENCODED=$(uri_encode <<< "$URL")
-                HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
+                HEADERS=$(curl --user-agent '' --head "$URL_ENCODED") || true
                 URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
 
                 if [ -n "$URL_TEMP" ]; then
