@@ -452,6 +452,13 @@ uploaded_net_upload() {
         -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         -F 'Upload=Submit Query' \
         "${SERVER}upload?admincode=$ADMIN_CODE$AUTH_DATA") || return
+
+    if match '<title>504 Gateway Time-out</title>' "$PAGE"; then
+        log_error 'Remote server error, maybe due to overload.'
+        echo 120 # arbitrary time
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     FILE_ID="${PAGE%%,*}"
 
     # Do we need to edit the file? (change visibility, set password)
