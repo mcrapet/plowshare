@@ -551,6 +551,8 @@ download() {
                 return $ERR_NETWORK
             fi
 
+            chmod 644 "$FILENAME_TMP" || log_error "chmod failed: $FILENAME_TMP"
+
             if [ "$FILENAME_TMP" != "$FILENAME_OUT" ]; then
                 test "$TEMP_RENAME" || \
                     log_notice "Moving file to output directory: ${OUT_DIR:-.}"
@@ -617,6 +619,7 @@ pretty_check() {
 # $1: unique number
 # $2: array[@] (module, dfile, ddir, cdata, dls, dlf)
 # $3: format string
+# Note: Don't chmod cookie file (keep strict permissions)
 pretty_print() {
     local -r N=$(printf %04d $1)
     local -ar A=("${!2}")
@@ -807,6 +810,10 @@ done
 
 set_exit_trap
 
+# Save umask
+declare -r UMASK=$(umask)
+test "$UMASK" && umask 0066
+
 # Remember last host because hosters may require waiting between
 # sucessive downloads.
 PREVIOUS_HOST=none
@@ -902,6 +909,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         fi
     done
 done
+
+# Restore umask
+test "$UMASK" && umask $UMASK
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
     exit 0
