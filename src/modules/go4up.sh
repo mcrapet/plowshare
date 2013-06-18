@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # go4up.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -287,19 +287,22 @@ go4up_list() {
     while read SITE_URL; do
         [[ "$SITE_URL" = */premium ]] && continue
 
-        PAGE=$(curl "$SITE_URL") || return
+        PAGE=$(curl --include "$SITE_URL") || return
         NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
+        URL=$(grep_http_header_location_quiet <<< "$PAGE")
 
         # window.location = "http://... " <= extra space at the end
-        URL=$(echo "$PAGE" | parse_quiet 'window\.location' '=[[:space:]]*"\([^"]*\)')
-        URL=${URL% }
-
-        # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
         if [ -z "$URL" ]; then
-            URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+            URL=$(echo "$PAGE" | parse_quiet 'window\.location' '=[[:space:]]*"\([^"]*\)')
+            URL=${URL% }
+
+            # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
             if [ -z "$URL" ]; then
-                log_error "Remote error. Site maintenance? ($SITE_URL)"
-                return $ERR_FATAL
+                URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+                if [ -z "$URL" ]; then
+                    log_error "Remote error. Site maintenance? ($SITE_URL)"
+                    return $ERR_FATAL
+                fi
             fi
         fi
 
