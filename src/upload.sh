@@ -389,7 +389,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     timeout_init $TIMEOUT
 
     TRY=0
-    "${MODULE}_vars_set"
+    ${MODULE}_vars_set
 
     while :; do
         :> "$UCOOKIE"
@@ -422,7 +422,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         log_notice "Starting upload ($MODULE): retry $TRY/$MAXRETRIES"
     done
 
-    "${MODULE}_vars_unset"
+    ${MODULE}_vars_unset
 
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true

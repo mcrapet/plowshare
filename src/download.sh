@@ -891,10 +891,10 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             eval "$(process_module_options "$MODULE" DOWNLOAD \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-            "${MODULE}_vars_set"
+            ${MODULE}_vars_set
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
                 "${TEMP_DIR%/}" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
-            "${MODULE}_vars_unset"
+            ${MODULE}_vars_unset
 
             # Link explicitly skipped
             if [ -n "$PRE_COMMAND" -a $MRETVAL -eq $ERR_NOMODULE ]; then

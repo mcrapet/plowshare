@@ -379,9 +379,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             eval "$(process_module_options "$MODULE" PROBE \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-            "${MODULE}_vars_set"
+            ${MODULE}_vars_set
             probe "$MODULE" "$URL" "$ITEM" || PRETVAL=$?
-            "${MODULE}_vars_unset"
+            ${MODULE}_vars_unset
 
             RETVALS+=($PRETVAL)
         fi
