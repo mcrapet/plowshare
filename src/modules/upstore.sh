@@ -152,6 +152,42 @@ upstore_download() {
     echo "$PAGE" | parse_tag '^[[:space:]]*Download file <b>' 'b' | html_to_utf8 || return
 }
 
+# Upload a file to Upstore.net
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+upstore_upload() {
+    local -r FILE=$2
+    local -r DEST_FILE=$3
+    local -r BASE_URL='http://upstore.net'
+    local PAGE JSON UP_URL FILE_SIZE MAX_SIZE HASH
+
+    PAGE=$(curl -b 'lang=en' "$BASE_URL") || return
+    UP_URL=$(echo "$PAGE" | parse 'script' "'\([^']\+\)',") || return
+    MAX_SIZE=$(echo "$PAGE" | parse 'sizeLimit' \
+        '[[:blank:]]\([[:digit:]]\+\),') || return
+
+    log_debug "URL: '$UP_URL'"
+    log_debug "Max size: '$MAX_SIZE'"
+
+    # Check file size
+    SIZE=$(get_filesize "$FILE") || return
+    if [ $SIZE -gt $MAX_SIZE ]; then
+        log_debug "File is bigger than $MAX_SIZE"
+        return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    # Note: Uses SWF variant of Uploadify v2.1.4 (jquery.uploadify)
+    JSON=$(curl_with_log --user-agent 'Shockwave Flash' -b 'lang=en' \
+        -F "Filename=$DEST_FILE" -F 'fileext=*.*' -F 'fileext=/'     \
+        -F "file=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
+        -F 'Upload=Submit Query' \
+        "$UP_URL") || return
+
+    HASH=$(echo "$JSON" | parse_json 'hash') || return
+    echo "$BASE_URL/$HASH"
+}
+
 # Probe a download URL
 # $1: cookie file (unused here)
 # $2: Upstore url
