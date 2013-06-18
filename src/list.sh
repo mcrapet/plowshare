@@ -265,10 +265,10 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
 
-    "${MODULE}_vars_set"
+    ${MODULE}_vars_set
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
         pretty_print "${PRINTF_FORMAT:-%F%u}" "$MODULE" || LRETVAL=$?
-    "${MODULE}_vars_unset"
+    ${MODULE}_vars_unset
 
     if [ $LRETVAL -eq 0 ]; then
         : # everything went fine

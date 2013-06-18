@@ -160,9 +160,9 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     :> "$DCOOKIE"
 
-    "${MODULE}_vars_set"
+    ${MODULE}_vars_set
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
-    "${MODULE}_vars_unset"
+    ${MODULE}_vars_unset
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice "File removed successfully"
