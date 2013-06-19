@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "April 23, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowprobe" "1" "June 19, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowprobe \- Gather information from file-sharing download links
@@ -143,6 +143,8 @@ There is none yet!
 .SS 1) Filter alive links in a text file 
 .nf
 $ plowprobe file_with_links.txt > file_with_active_links.txt
+# Or
+$ cat file_with_links.txt | plowprobe - > file_with_active_links.txt
 .fi
 .SS 2) Custom results format
 .nf
