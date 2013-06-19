@@ -317,6 +317,19 @@ done
 set_exit_trap
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
+
+    # Read links from stdin
+    if [ "$ITEM" = '-' ]; then
+        if [[ -t 0 || -S /dev/stdin ]]; then
+            log_notice 'Wait links from stdin...'
+        fi
+        ITEM=$(create_tempfile '.stdin') || {
+           log_error 'Cannot create temporary file';
+           continue;
+        }
+        cat > "$ITEM"
+    fi
+
     OLD_IFS=$IFS
     IFS=$'\n'
     ELEMENTS=( $(process_item "$ITEM") )

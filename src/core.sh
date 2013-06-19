@@ -2744,7 +2744,8 @@ process_options() {
 
         if [ $STEP -eq 0 ]; then
             if [ -z "$FOUND" ]; then
-                if [[ ${ARG:0:1} = '-' ]]; then
+                # Note: accepts '-' argument
+                if [[ $ARG = -?* ]]; then
                     log_error "$NAME: unknown command-line option: $ARG"
                     echo false
                     return $ERR_BAD_COMMAND_LINE
