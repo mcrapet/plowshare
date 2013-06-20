@@ -614,39 +614,54 @@ letitbit_list() {
 # stdout: 1 capability per line
 letitbit_probe() {
     local -r REQ_IN=$3
-    local PAGE REQ_OUT INFOS RET
+    local -r AUTH_CODE='dKvvqMCW8'
+    local -r BASE_URL='http://api.letitbit.net'
+    local URL QUERY JSON REQ_OUT
 
-    # Letitbit redirects all possible urls of a file to the canonical one
-    PAGE=$(curl --location -b 'lang=en' "$2") || return
+    # server redirects "simple links" to real download server
+    URL=$(curl --head "$2" | grep_http_header_location_quiet)
+    [ -n "$URL" ] || URL=$2
 
-    match 'File not found\|страница не существует' "$PAGE" && return $ERR_LINK_DEAD
+    # Using official API (http://api.letitbit.net/reg/static/api.pdf)
+    printf -v QUERY 'r=["%s",["download/info",{"link":"%s"}]]' "$AUTH_CODE" "$URL"
+    JSON=$(curl -d "$QUERY" "$BASE_URL/json") || return
+
+    # Check for API errors
+    case $(parse_json 'status' <<< "$JSON") in
+        'OK')
+            ;; # NOP
+        'FAIL')
+            log_error "Error: $(parse_json 'data' <<< "$JSON")"
+            return $ERR_FATAL
+            ;;
+        *)
+            log_error "Unexpected status: $JSON"
+            return $ERR_FATAL
+            ;;
+    esac
+
+    # Check for deleted files (API sends empty reply)
+    case "$JSON" in
+        *'"data":[[]]'*)
+            return $ERR_LINK_DEAD
+            ;;
+    esac
+
     REQ_OUT=c
 
-    INFOS=$(echo "$PAGE" | parse 'file-info-title' '^\(.\+\)$' | \
-        break_html_lines) || return
-
-    # <span class="file-info-name">xyz&nbsp;</span>
     if [[ $REQ_IN = *f* ]]; then
-        local NAME
-
-        if NAME=$(echo "$INFOS" | parse_tag 'file-info-name' 'span'); then
-            # trim trailing '&nbsp;'
-            echo "${NAME%&nbsp;}"
-            REQ_OUT="${REQ_OUT}f"
-        fi
+        parse_json 'name' <<< "$JSON"
+        REQ_OUT="${REQ_OUT}f"
     fi
 
-    # <span class="file-info-size">[42 b]</span>
     if [[ $REQ_IN = *s* ]]; then
-        local SIZE
+        parse_json 'size' <<< "$JSON"
+        REQ_OUT="${REQ_OUT}s"
+    fi
 
-        if SIZE=$(echo "$INFOS" | parse_tag 'file-info-size' 'span'); then
-            # strip enclosing brackets + use 'B' instead of 'b'
-            SIZE=${SIZE#[}
-            SIZE=${SIZE%]}
-            translate_size "${SIZE/%b/B}" && REQ_OUT="${REQ_OUT}s"
-            REQ_OUT="${REQ_OUT}s"
-        fi
+    if [[ $REQ_IN = *h* ]]; then
+        parse_json 'md5' <<< "$JSON"
+        REQ_OUT="${REQ_OUT}h"
     fi
 
     echo $REQ_OUT
