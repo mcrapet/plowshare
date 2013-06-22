@@ -103,7 +103,7 @@ letitbit_decode_png() {
         # convert ASCII values to regular string
         # Source: http://mywiki.wooledge.org/BashFAQ/071
         for VAL in $ASCII; do
-            printf -v CHAR \\$(($VAL/64*100 + $VAL%64/8*10 + $VAL%8))
+            CHAR=$(printf \\$(($VAL/64*100 + $VAL%64/8*10 + $VAL%8)))
             PASS="$PASS$CHAR"
         done
 
@@ -623,7 +623,7 @@ letitbit_probe() {
     [ -n "$URL" ] || URL=$2
 
     # Using official API (http://api.letitbit.net/reg/static/api.pdf)
-    printf -v QUERY 'r=["%s",["download/info",{"link":"%s"}]]' "$AUTH_CODE" "$URL"
+    QUERY=$(printf 'r=["%s",["download/info",{"link":"%s"}]]' "$AUTH_CODE" "$URL")
     JSON=$(curl -d "$QUERY" "$BASE_URL/json") || return
 
     # Check for API errors
@@ -641,11 +641,9 @@ letitbit_probe() {
     esac
 
     # Check for deleted files (API sends empty reply)
-    case "$JSON" in
-        *'"data":[[]]'*)
-            return $ERR_LINK_DEAD
-            ;;
-    esac
+    if [[ $JSON = *'"data":[[]]'* ]]; then
+        return $ERR_LINK_DEAD
+    fi
 
     REQ_OUT=c
 
