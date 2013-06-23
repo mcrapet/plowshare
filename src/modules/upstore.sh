@@ -20,19 +20,57 @@
 
 MODULE_UPSTORE_REGEXP_URL="https\?://\(www\.\)\?upsto\(\.re\|re\.net\)/"
 
-MODULE_UPSTORE_DOWNLOAD_OPTIONS=""
+MODULE_UPSTORE_DOWNLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
 MODULE_UPSTORE_DOWNLOAD_RESUME=no
 MODULE_UPSTORE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_UPSTORE_DOWNLOAD_SUCCESSIVE_INTERVAL=900
 
+MODULE_UPSTORE_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
+MODULE_UPSTORE_UPLOAD_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_UPSTORE_PROBE_OPTIONS=""
 
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base url
+# stdout: account type (only "free" for now) on success
+upstore_login() {
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA PAGE STATUS NAME
+
+    LOGIN_DATA='email=$USER&password=$PASSWORD&send=Login'
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/account/login/" -b 'lang=en' --location) || return
+
+    STATUS=$(parse_cookie_quiet 'usid' < "$COOKIE_FILE")
+    [ -n "$STATUS" ] || return $ERR_LOGIN_FAILED
+
+    # Determine account type and user name
+    NAME=$(echo "$PAGE" | parse_tag '"/account/"' 'a') || return
+
+    log_debug "Successfully logged in as member '$NAME'"
+    echo 'free'
+}
+
+# Switch language to english
+# $1: cookie file
+# $2: base URL
+upstore_switch_lang() {
+    curl -c "$1" -o /dev/null "$2/?lang=en" || return
+}
+
 # Output a file URL to download from Upsto.re
-# $1: cookie file (not used here)
+# $1: cookie file
 # $2: upstore url
 # stdout: real file download link
 #         file name
 upstore_download() {
+    local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://upstore.net'
     local PAGE HASH ERR WAIT
@@ -43,7 +81,13 @@ upstore_download() {
     HASH=$(echo "$URL" | parse '' 'upsto[^/]\+/\([[:alnum:]]\+\)') || return
     log_debug "File ID: '$HASH'"
 
-    PAGE=$(curl -b 'lang=en' "$BASE_URL/$HASH") || return
+    upstore_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        upstore_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL/$HASH") || return
     ERR=$(echo "$PAGE" | parse_tag_quiet 'span class="error"' span) || return
 
     if [ -n "$ERR" ]; then
@@ -153,16 +197,23 @@ upstore_download() {
 }
 
 # Upload a file to Upstore.net
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 upstore_upload() {
+    local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://upstore.net'
-    local PAGE JSON UP_URL FILE_SIZE MAX_SIZE HASH
+    local PAGE JSON UP_URL FILE_SIZE MAX_SIZE HASH OPT_USER
 
-    PAGE=$(curl -b 'lang=en' "$BASE_URL") || return
+    upstore_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+
+    if [ -n "$AUTH_FREE" ]; then
+        upstore_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+    fi
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
     UP_URL=$(echo "$PAGE" | parse 'script' "'\([^']\+\)',") || return
     MAX_SIZE=$(echo "$PAGE" | parse 'sizeLimit' \
         '[[:blank:]]\([[:digit:]]\+\),') || return
@@ -177,9 +228,20 @@ upstore_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
+    if [ -n "$AUTH_FREE" ]; then
+        local USER_ID
+
+        USER_ID=$(echo "$PAGE" | parse 'usid' ":[[:blank:]]'\([^']\+\)'") || return
+        log_debug "User ID: '$USER_ID'"
+        OPT_USER="-F usid=$USER_ID"
+    fi
+
     # Note: Uses SWF variant of Uploadify v2.1.4 (jquery.uploadify)
-    JSON=$(curl_with_log --user-agent 'Shockwave Flash' -b 'lang=en' \
-        -F "Filename=$DEST_FILE" -F 'fileext=*.*' -F 'fileext=/'     \
+    JSON=$(curl_with_log --user-agent 'Shockwave Flash' -b "$COOKIE_FILE"  \
+        -F "Filename=$DEST_FILE" \
+        -F 'folder=/'            \
+        $OPT_USER                \
+        -F 'fileext=*.*'         \
         -F "file=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         -F 'Upload=Submit Query' \
         "$UP_URL") || return
