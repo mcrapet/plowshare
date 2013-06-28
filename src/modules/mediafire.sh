@@ -74,12 +74,14 @@ mediafire_login() {
 
 # Extract file/folder ID from download link
 # $1: Mediafire download URL
-# - http://www.mediafire.com/download.php?xyz
 # - http://www.mediafire.com/?xyz
+# - http://www.mediafire.com/download.php?xyz
+# - http://www.mediafire.com/download/xyz/filename...
 # $2: probe mode if non empty argument (quiet parsing)
 # stdout: file/folder ID
 mediafire_extract_id() {
-    ID=$(parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1") || return
+    ID=$(parse${2:+_quiet} . '/download/\([[:alnum:]]\+\)' <<< "$1") || \
+        ID=$(parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1") || return
     log_debug "File/Folder ID: '$ID'"
     echo "$ID"
 }
@@ -226,7 +228,7 @@ mediafire_download() {
 
     PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL" | break_html_lines) || return
 
-    #<h3 class="error_msg_title">Invalid or Deleted File.</h3>
+    # <h3 class="error_msg_title">Invalid or Deleted File.</h3>
     match 'Invalid or Deleted File' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
@@ -475,7 +477,7 @@ mediafire_list() {
     local RET=$ERR_LINK_DEAD
     local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NAMES LINKS
 
-    if [[ "$URL" = */?sharekey=* ]]; then
+    if [[ $URL = */?sharekey=* ]]; then
         local LOCATION
 
         LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
