@@ -366,7 +366,8 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         fi
 
         if [ $PRETVAL -ne 0 ]; then
-            log_error "Skip: no module for URL ($(basename_url "$URL")/)"
+            match_remote_url "$URL" && \
+                log_error "Skip: no module for URL ($(basename_url "$URL")/)"
 
             # Check if plowlist can handle $URL
             if [ -z "$MODULES_LIST" ]; then
