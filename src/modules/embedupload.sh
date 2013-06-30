@@ -33,7 +33,7 @@ embedupload_list() {
     local -r NOT_AUTHORIZED_PATTERN='not authorized'
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 
@@ -50,7 +50,7 @@ embedupload_list() {
         LINKS=$URL
         NAME=$(parse_quiet . '?\(..\)=' <<< "$URL")
     else
-        log_error "Bad link format"
+        log_error 'Bad link format'
         return $ERR_FATAL
     fi
 
