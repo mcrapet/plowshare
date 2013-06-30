@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # pastebin.com module
-# Copyright (c) 2011-2013 Plowshare team
+# Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -20,29 +20,71 @@
 
 MODULE_PASTEBIN_REGEXP_URL="http://\(www\.\)\?pastebin\.com/"
 
-MODULE_PASTEBIN_LIST_OPTIONS=""
+MODULE_PASTEBIN_LIST_OPTIONS="
+COUNT,,count,n=COUNT,Take COUNT pastes when listing user folder. Default is 100 (first web page)."
 
-# List all links in pastebin file
-# $1: pastebin url (http://pastebin.com/..., http://pastebin.com/raw.php?i=...)
-# stdout: decrypted link
-pastebin_list() {
+# Static function. Process a single note
+# $1: pastebin url
+pastebin_single_list() {
     local URL=$1
-    test "$2" && log_debug "recursive flag is not supported"
+    local PAGE LINKS
 
-    local SOURCE PASTE LINKS
-
-    if ! matchi 'raw.php?i=' "$URL"; then
-        URL=$(echo "$URL" | replace "pastebin.com/" "pastebin.com/raw.php?i=")
+    if [ "${URL:0:1}" = '/' ]; then
+        URL="http://pastebin.com/raw.php?i=${URL#/}"
+    elif match '/[[:alnum:]]\+$' "$URL"; then
+        URL=$(echo "$URL" | replace 'pastebin.com/' 'pastebin.com/raw.php?i=')
+    elif ! match 'raw\.php?i=' "$URL"; then
+        log_error 'Bad link format'
+        return $ERR_FATAL
     fi
 
-    SOURCE=$(curl "$URL") || return
-    LINKS=$(echo "$SOURCE" | parse_all '.' '\(https\?://[a-zA-Z0-9\-\.]\+\.[a-zA-Z]\{2,3\}\(\/[^[:space:]]*\)\?\)') || return
+    PAGE=$(curl "$URL") || return
+    LINKS=$(parse_all . '\(https\?://[^[:space:]]\+\)' <<< "$PAGE") || return
 
-    for link in $LINKS; do
-        echo "$link"
-        echo
-    done
+    # TODO: filter crappy links (length <15 chars, ...)
 
-    return 0
+    list_submit "$LINKS"
 }
 
+# List all links in a pastebin note
+# $1: pastebin url
+# stdout: list of links
+pastebin_list() {
+    local -r URL=${1%/}
+    local PASTES PASTE
+
+    test "$2" && log_debug 'recursive folder does not exist in pastebin.com'
+
+    # User folder:
+    # - http://pastebin.com/u/username
+    if match '/u/[[:alnum:]]\+$' "$URL"; then
+        local HTML
+        HTML=$(curl "$URL") || return
+
+        if [ -n "$COUNT" ]; then
+            if (( $COUNT > 100 )); then
+                COUNT=100
+                log_error "Bad integer value for --count, set it to $COUNT"
+            elif (( $COUNT < 1 )); then
+                COUNT=1
+                log_error "Bad integer value for --count, set it to $COUNT"
+            fi
+        else
+            COUNT=100
+        fi
+
+        log_debug "user folder: listing first $COUNT items (if available)"
+        PASTES=$(parse_all_attr 'title=.Public paste' href <<< "$HTML" | \
+            first_line $COUNT) || return
+    else
+        PASTES=$URL
+    fi
+
+    # Accepted link format
+    # - /xyz
+    # - http://pastebin.com/xyz
+    # - http://pastebin.com/raw.php?i=xyz
+    while IFS= read -r PASTE; do
+        pastebin_single_list "$PASTE" || continue
+    done <<< "$PASTES"
+}
