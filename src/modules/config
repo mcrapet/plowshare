@@ -32,6 +32,7 @@ mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiupload     |          | upload |        | list |       |
 netload_in      | download | upload |        | list | probe |
+pastebin        |          |        |        | list |       |
 putlocker       | download | upload |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |

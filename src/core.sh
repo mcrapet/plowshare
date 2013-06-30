@@ -259,17 +259,31 @@ lowercase() {
 }
 
 # Grep first line of a text
+# $1: (optional) How many head lines to take (default is 1)
 # stdin: input string (multiline)
 first_line() {
-    # equivalent to `sed -ne 1p` or `sed -e q` or `sed -e 1q`
-    head -n1
+    local -r N=${1:-1}
+
+    if (( N < 1 )); then
+        return $ERR_FATAL
+    fi
+
+    # equivalent to `sed -ne 1p` or `sed -e q` or `sed -e 1q` (N=1 here)
+    head -n$((N))
 }
 
 # Grep last line of a text
+# $1: (optional) How many tail lines to take (default is 1)
 # stdin: input string (multiline)
 last_line() {
-    # equivalent to `sed -ne '$p'` or `sed -e '$!d'`
-    tail -n1
+    local -r N=${1:-1}
+
+    if (( N < 1 )); then
+        return $ERR_FATAL
+    fi
+
+    # equivalent to `sed -ne '$p'` or `sed -e '$!d'` (N=1 here)
+    tail -n$((N))
 }
 
 # Grep nth line of a text
