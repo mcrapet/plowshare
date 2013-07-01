@@ -62,12 +62,9 @@ pastebin_list() {
         HTML=$(curl "$URL") || return
 
         if [ -n "$COUNT" ]; then
-            if (( $COUNT > 100 )); then
+            if (( COUNT > 100 )); then
                 COUNT=100
-                log_error "Bad integer value for --count, set it to $COUNT"
-            elif (( $COUNT < 1 )); then
-                COUNT=1
-                log_error "Bad integer value for --count, set it to $COUNT"
+                log_error "Too big integer value for --count, set it to $COUNT"
             fi
         else
             COUNT=100

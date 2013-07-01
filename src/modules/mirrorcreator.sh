@@ -24,7 +24,7 @@ MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
-COUNT,,count,n=COUNT,Take COUNT hosters from the available list. Default is 5."
+COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 5, maximum is 9."
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MIRRORCREATOR_LIST_OPTIONS=""
@@ -76,13 +76,9 @@ mirrorcreator_upload() {
     fi
 
     if [ -n "$COUNT" ]; then
-        if [[ $((COUNT)) -eq 0 ]]; then
-            COUNT=5
-            log_error "Bad integer value for --count, set it to $COUNT"
-        fi
-
-        if [ "$COUNT" -gt 9 ]; then
-            log_error "Only a maximum of 9 mirrors are allowed"
+        if (( COUNT > 9 )); then
+            COUNT=9
+            log_error "Too big integer value for --count, set it to $COUNT"
         fi
 
         for SITE in $SITES_ALL; do
