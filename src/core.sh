@@ -1354,7 +1354,7 @@ captcha_process() {
                 log_error '9kw.eu empty answer'
                 rm -f "$FILENAME"
                 return $ERR_NETWORK
-            # Error range: 0001..0023. German language.
+            # Error range: 0001..0028. German language.
             elif [[ $RESPONSE = 00[012][[:digit:]][[:space:]]* ]]; then
                 log_error "9kw.eu error: ${RESPONSE:5}"
                 rm -f "$FILENAME"
@@ -1747,7 +1747,7 @@ captcha_ack() {
             log_error "$FUNCNAME failed: 9kweu missing captcha key"
         fi
 
-    elif [[ "$M" != [abd] ]]; then
+    elif [[ $M != [abd] ]]; then
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
 }
@@ -2882,16 +2882,21 @@ service_9kweu_ready() {
         return $ERR_NETWORK
     }
 
-    # 0011 Balance insufficient
-    if [ "${AMOUNT:0:5}" = '0011 ' ]; then
-        log_notice "9kw.eu: no more credits"
-        return $ERR_FATAL
-    elif [[ $AMOUNT = 00[01][[:digit:]][[:space:]]* ]]; then
-        log_error "9kw.eu remote error: ${AMOUNT:5}"
-        return $ERR_FATAL
+    if [[ $AMOUNT = 00[012][[:digit:]][[:space:]]* ]]; then
+        # 0011 Balance insufficient
+        if [ "${AMOUNT:0:5}" = '0011 ' ]; then
+            log_notice '9kw.eu: no more credits'
+        else
+            log_error "9kw.eu remote error: ${AMOUNT:5}"
+        fi
+    elif (( AMOUNT < 5 )); then
+        log_notice '9kw.eu: insufficient credits'
     else
         log_debug "9kw.eu credits: $AMOUNT"
+        return 0
     fi
+
+    return $ERR_FATAL
 }
 
 # Verify balance (antigate)
