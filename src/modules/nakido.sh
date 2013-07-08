@@ -21,7 +21,7 @@
 MODULE_NAKIDO_REGEXP_URL="https\?://\(www\.\)\?nakido\.com/"
 
 MODULE_NAKIDO_DOWNLOAD_OPTIONS=""
-MODULE_NAKIDO_DOWNLOAD_RESUME=yes
+MODULE_NAKIDO_DOWNLOAD_RESUME=no
 MODULE_NAKIDO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_NAKIDO_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
@@ -48,7 +48,7 @@ nakido_download() {
     local -r COOKIE_FILE=$1
     local URL=$2
     local -r BASE_URL='http://www.nakido.com'
-    local PAGE FILE_KEY FILE_NAME FILE_URL HASH I
+    local PAGE FILE_KEY FILE_NAME FILE_NAME2 FILE_URL HASH I
 
     FILE_KEY=$(nakido_extract_key "$URL") || return
 
@@ -60,6 +60,7 @@ nakido_download() {
     # URL encoded (%xx)
     FILE_NAME=$(parse 'Nakido\.downloads\[' \
         "^Nakido\.downloads\['${FILE_KEY}f'\]='\([^']\+\)" <<< "$PAGE") || return
+    FILE_NAME2=$(parse_tag 'class=.link.' a <<< "$PAGE")
 
     HASH=$(parse 'Nakido\.downloads\[' \
         "\]='\([[:xdigit:]]\+\)';[[:cntrl:]]$" <<< "$PAGE") || return
@@ -89,5 +90,5 @@ nakido_download() {
     FILE_URL=$(grep_http_header_location <<< "$PAGE") || return
 
     echo "$FILE_URL"
-    echo "$FILE_NAME"
+    echo "$FILE_NAME2"
 }
