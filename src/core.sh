@@ -833,7 +833,7 @@ parse_cookie_quiet() {
 #
 # $1: URL
 basename_url() {
-    if [[ $1 =~ https?://[^/?#]* ]]; then
+    if [[ $1 =~ (https?|ftps?|file)://[^/?#]* ]]; then
         echo "${BASH_REMATCH[0]}"
     else
         echo "$1"
