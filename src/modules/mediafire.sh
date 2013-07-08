@@ -80,10 +80,29 @@ mediafire_login() {
 # $2: probe mode if non empty argument (quiet parsing)
 # stdout: file/folder ID
 mediafire_extract_id() {
-    local ID=$(parse_quiet . '/download/\([[:alnum:]]\+\)' <<< "$1")
-    if [ -z "$ID" ]; then
-        ID=$(parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1") || return
+    local -r URL=$1
+    local -r PROBE=$2
+    local ID
+
+    case "$URL" in
+        */download/*)
+            ID=$(parse . '/download/\([[:alnum:]]\+\)' <<< "$URL") || return
+            ;;
+
+        */folder/*)
+            ID=$(parse . '/folder/\([[:alnum:]]\+\)' <<< "$URL") || return
+            ;;
+
+        *\?*)
+            ID=$(parse . '?\([[:alnum:]]\+\)$' <<< "$URL") || return
+            ;;
+    esac
+
+    if [ -z "$ID" -a -z "$PROBE" ]; then
+        log_error 'Could not parse file/folder ID.'
+        return $ERR_FATAL
     fi
+
     log_debug "File/Folder ID: '$ID'"
     echo "$ID"
 }
