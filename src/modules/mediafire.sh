@@ -476,8 +476,9 @@ mediafire_list() {
     local URL=$1
     local REC=$2
     local -r BASE_URL='http://www.mediafire.com'
+    local -r CHUNK_SIZE=100 # default chunk size
     local RET=$ERR_LINK_DEAD
-    local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NAMES LINKS
+    local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NUM_CHUNKS CHUNK NAMES LINKS
 
     if [[ $URL = */?sharekey=* ]]; then
         local LOCATION
@@ -523,29 +524,39 @@ mediafire_list() {
     NUM_FOLDERS=$(echo "$XML" | parse_tag 'folder_count') || return
     log_debug "There is/are $NUM_FILES file(s) and $NUM_FOLDERS sub folder(s)"
 
-    # Handle files
-    if [ "$NUM_FILES" -gt 0 ]; then
+    # Handle files (NUM_CHUNKS = ceil(NUM_FILES / CHUNK_SIZE))
+    NUM_CHUNKS=$(( (NUM_FILES + CHUNK_SIZE - 1) / CHUNK_SIZE ));
+    CHUNK=0
+
+    while (( ++CHUNK <= NUM_CHUNKS )); do
         XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=files' \
-            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+            -d "chunk=$CHUNK" "$BASE_URL/api/folder/get_content.php"   \
+            | break_html_lines) || return
 
         NAMES=$(echo "$XML" | parse_all_tag_quiet 'filename')
         LINKS=$(echo "$XML" | parse_all_tag_quiet 'quickkey')
 
         list_submit "$LINKS" "$NAMES" "$BASE_URL/?" && RET=0
-    fi
+    done
 
     # Handle folders
-    if [ -n "$REC" -a "$NUM_FOLDERS" -gt 0 ]; then
+    if [ -n "$REC" ]; then
         local LINK
 
-        XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=folders' \
-            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+        NUM_CHUNKS=$(( (NUM_FOLDERS + CHUNK_SIZE - 1) / CHUNK_SIZE ));
+        CHUNK=0
 
-        LINKS=$(echo "$XML" | parse_all_tag 'folderkey') || return
+        while (( ++CHUNK <= NUM_CHUNKS )); do
+            XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=folders' \
+                -d "chunk=$CHUNK" "$BASE_URL/api/folder/get_content.php"     \
+                | break_html_lines) || return
 
-        for LINK in $LINKS; do
-            log_debug "Entering sub folder: $LINK"
-            mediafire_list "$BASE_URL/?$LINK" "$REC" && RET=0
+            LINKS=$(echo "$XML" | parse_all_tag 'folderkey') || return
+
+            for LINK in $LINKS; do
+                log_debug "Entering sub folder: $LINK"
+                mediafire_list "$BASE_URL/?$LINK" "$REC" && RET=0
+            done
         done
     fi
 
