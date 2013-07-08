@@ -842,7 +842,7 @@ parse_cookie_quiet() {
 #
 # $1: URL
 basename_url() {
-    sed -e 's=\(https\?://[^/?#]*\).*=\1=' <<< "$1"
+    sed -e 's=\(\(https\?\|ftps\?\|file\)://[^/?#]*\).*=\1=' <<< "$1"
 }
 
 # Return basename of file path
