@@ -66,14 +66,16 @@ See INSTALL file for details.
 Usage examples
 ==============
 
-All four scripts share the same verbose options:
+All five scripts share the same verbose options:
 > '-v0' (alias: '-q'),
 > '-v1' (errors only),
 > '-v2' (infos message; default),
 > '-v3' (show all messages),
 > '-v4' (show all messages, HTML pages and cookies, use this for bug report).
 
-'--help' switch will detail all specific (per modules) options.
+Getting help:
+> '--help'
+> '--longhelp' (plowdown & plowup only, prints modules command-line options)
 
 Plowdown
 --------
@@ -108,7 +110,7 @@ $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 $ plowdown -c file_with_links.txt > file_with_active_links.txt
 
 9. Avoid never-ending downloads: limit the wait delays & number of retries
-    This is valid for each link.
+   (limitations apply for each link)
 $ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 
 Plowup
@@ -180,8 +182,11 @@ Plowprobe
 1. Filter alive links in a text file
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 
-2) Custom results format : print filename and size (as shell comment)
-$ plowprobe --printf "#%f (%s)\\n%u" http://www.sendspace.com/file/5njdw7
+2. Custom results format : print filename and size (as shell comment)
+$ plowprobe --printf "#%f (%s)%n%u" http://www.sendspace.com/file/5njdw7
+
+3. Use '-' argument to read from stdin
+$ plowlist http://pastebin.com/1d82F5sd | plowprobe - > filtered_list.txt
 
 
 Implement your own modules
@@ -197,7 +202,7 @@ http://code.google.com/p/plowshare/wiki/NewModules
 API list is here:
 http://code.google.com/p/plowshare/wiki/NewModules2
 
-A common approch is also to study existing modules.
+A common approach is also to study existing modules.
 
 
 Feedback
