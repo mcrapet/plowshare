@@ -32,7 +32,7 @@ megashares      | download | upload | delete |      | probe |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiupload     |          | upload |        | list |       |
-nakido          | download |        |        |      |       |
+nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 pastebin        |          |        |        | list |       |
 putlocker       | download | upload |        |      | probe |

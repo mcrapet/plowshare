@@ -25,6 +25,8 @@ MODULE_NAKIDO_DOWNLOAD_RESUME=no
 MODULE_NAKIDO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_NAKIDO_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
+MODULE_NAKIDO_PROBE_OPTIONS=""
+
 # Static function. Extract file key from download link.
 # $1: Nakido download URL
 # - http://www.nakido.com/HHHH...
@@ -91,4 +93,30 @@ nakido_download() {
 
     echo "$FILE_URL"
     echo "$FILE_NAME2"
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: nakido url
+# $3: requested capability list
+# stdout: 1 capability per line
+nakido_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl -L -b 'lang=en-us' "$URL") || return
+
+    # <div id="notification">The page you have requested is not exists
+    if match ' page you have requested is not exist' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_tag h1 <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    echo $REQ_OUT
 }
