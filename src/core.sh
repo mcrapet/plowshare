@@ -2016,6 +2016,26 @@ md5() {
     fi
 }
 
+# Calculate SHA-1 hash (160-bit) of a string.
+# See FIPS PUB 180-1.
+#
+# $1: input string
+# stdout: message-digest fingerprint (40-digit hexadecimal number, lowercase letters)
+# $? zero for success or $ERR_SYSTEM
+sha1() {
+    # GNU coreutils
+    if check_exec sha1sum; then
+        echo -n "$1" | sha1sum -b 2>/dev/null | cut -d' ' -f1
+    # OpenSSL
+    elif check_exec openssl; then
+        echo -n "$1" | openssl dgst -sha1 | cut -d' ' -f2
+    # FIXME: use javascript if requested
+    else
+        log_error "$FUNCNAME: cannot find sha1 calculator"
+        return $ERR_SYSTEM
+    fi
+}
+
 # Calculate MD5 hash (128-bit) of a file.
 # $1: input file
 # stdout: message-digest fingerprint (32-digit hexadecimal number, lowercase letters)
