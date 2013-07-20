@@ -361,7 +361,7 @@ parse_all() {
 
     [ '^' = "${PARSE:0:1}" ] || PARSE="^.*$PARSE"
     [ '$' = "${PARSE:(-1):1}" ] || PARSE="$PARSE.*$"
-    PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p;
+    PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p
 
     if [ $N -eq 0 ]; then
         # STRING=$(sed -ne "/$1/ s/$2/\1/p")
@@ -369,7 +369,7 @@ parse_all() {
 
     elif [ $N -eq 1 ]; then
         # Note: Loop (with label) is required for consecutive matches
-        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;b a;}")
+        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;ba;}")
         STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;ba;}")
 
     elif [ $N -eq -1 ]; then
@@ -434,7 +434,76 @@ parse_all_quiet() {
 
 # Like parse_all, but get only first match
 parse() {
-    parse_all "$@" | head -n1
+    local PARSE=$2
+    local -i N=${3:-0}
+    local -r D=$'\001' # Change sed separator to allow '/' characters in regexp
+    local STRING FILTER
+
+    if [ -n "$1" -a "$1" != '.' ]; then
+        FILTER="\\${D}$1${D}" # /$1/
+    else
+        [ $N -eq 0 ] || return $ERR_FATAL
+    fi
+
+    [ '^' = "${PARSE:0:1}" ] || PARSE="^.*$PARSE"
+    [ '$' = "${PARSE:(-1):1}" ] || PARSE="$PARSE.*$"
+    PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p
+
+    if [ $N -eq 0 ]; then
+        # Note: This requires GNU sed (which is assumed by Plowshare4)
+        #STRING=$(sed -ne "$FILTER {$PARSE;ta;b;:a;q;}")
+        STRING=$(sed -ne "$FILTER {$PARSE;T;q;}")
+
+    elif [ $N -eq 1 ]; then
+        #STRING=$(sed -ne ":a $FILTER {n;h;$PARSE;tb;ba;:b;q;}")
+        STRING=$(sed -ne ":a $FILTER {n;$PARSE;Ta;q;}")
+
+    elif [ $N -eq -1 ]; then
+        #STRING=$(sed -ne "$FILTER {g;$PARSE;ta;b;:a;q;}" -e 'h')
+        STRING=$(sed -ne "$FILTER {g;$PARSE;T;q;}" -e 'h')
+
+    else
+        local -r FIRST_LINE='^\([^\n]*\).*$'
+        local -r LAST_LINE='^.*\n\(.*\)$'
+        local N_ABS=$(( N < 0 ? -N : N ))
+        local I=$(( N_ABS - 2 ))
+        local LINES='.*'
+        local INIT='N'
+        local FILTER_LINE PARSE_LINE
+
+        [ $N_ABS -gt 10 ] &&
+            log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
+
+        while (( I-- )); do
+            INIT="$INIT;N"
+        done
+
+        while (( N_ABS-- )); do
+            LINES="$LINES\\n.*"
+        done
+
+        if [ $N -gt 0 ]; then
+            FILTER_LINE=$FIRST_LINE
+            PARSE_LINE=$LAST_LINE
+        else
+            FILTER_LINE=$LAST_LINE
+            PARSE_LINE=$FIRST_LINE
+        fi
+
+        # Note: Need to "clean" conditionnal flag after s/$PARSE_LINE/\1/
+        STRING=$(sed -ne "1 {$INIT;h;n}" \
+            -e "H;g;s/^.*\\n\\($LINES\)$/\\1/;h" \
+            -e "s/$FILTER_LINE/\1/" \
+            -e "$FILTER {g;s/$PARSE_LINE/\1/;ta;:a;$PARSE;T;q;}")
+    fi
+
+    if [ -z "$STRING" ]; then
+        log_error "$FUNCNAME failed (sed): \"/$1/ ${PARSE//$D//}\" (skip $N)"
+        log_notice_stack
+        return $ERR_FATAL
+    fi
+
+    echo "$STRING"
 }
 
 # Like parse, but hide possible error
