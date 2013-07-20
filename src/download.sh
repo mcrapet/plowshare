@@ -179,6 +179,14 @@ module_config_need_cookie() {
     test "${!VAR}" = 'yes'
 }
 
+# Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(-F "key=value")
+# $1: module name
+# stdout: variable array name (not content)
+module_config_need_extra() {
+    local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
+    test -z "${!VAR}" || echo "${VAR}"
+}
+
 # Example: "MODULE_RYUSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=10"
 # $1: module name
 module_config_wait() {
@@ -207,7 +215,7 @@ download() {
     local -r MAX_RETRIES=$7
     local -r LAST_HOST=$8
 
-    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR
+    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME
     local -i STATUS
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
@@ -496,6 +504,17 @@ download() {
 
             # Reuse previously created temporary file
             :> "$DRESULT"
+
+            # Give extra parameters to curl (custom HTTP headers, ...)
+            ANAME=$(module_config_need_extra "$MODULE")
+            if test -n "$ANAME"; then
+                local -a CURL_EXTRA="$ANAME[@]"
+                local OPTION
+                for OPTION in "${!CURL_EXTRA}"; do
+                    log_debug "adding extra curl options: '$OPTION'"
+                    CURL_ARGS=("${CURL_ARGS[@]}" "$OPTION")
+                done
+            fi
 
             if module_config_need_cookie "$MODULE"; then
                 if COOKIE_FILE=$(create_tempfile); then
