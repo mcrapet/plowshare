@@ -22,6 +22,7 @@ filebox         | download | upload | delete |      |       |
 filemates       | download | upload | delete | list |       |
 fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
+filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
 hotfile         | download | upload |        | list | probe |
