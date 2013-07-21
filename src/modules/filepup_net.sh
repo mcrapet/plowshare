@@ -72,7 +72,7 @@ filepup_net_login() {
 # stdout: real file download link
 filepup_net_download() {
     local -r COOKIE_FILE=$1
-    local URL=$2
+    local URL=$(replace '/info/' '/files/' <<<"$2")
     local -r BASE_URL='http://www.filepup.net'
     local PAGE FILE_URL FILE_NAME ACCOUNT FORM_HTML FORM_TASK WAIT_TIME ERR
 
@@ -152,7 +152,7 @@ filepup_net_download() {
 # $3: requested capability list
 # stdout: 1 capability per line
 filepup_net_probe() {
-    local -r URL=$2
+    local -r URL=$(replace '/info/' '/files/' <<<"$2")
     local -r REQ_IN=$3
     local ID PAGE REQ_OUT
 
