@@ -92,9 +92,9 @@ filepup_net_download() {
     fi
 
     if [ "$ACCOUNT" = 'premium' ]; then
-        URL=$(echo "$PAGE" | parse '=.premium_btn' "location='\([^']\+\)") || return
+        URL=$(echo "$PAGE" | parse '=.premium_btn' "location='\([^']\+\)" | uri_encode) || return
     else
-        URL=$(echo "$PAGE" | parse 'id=.dlbutton' "location='\([^']\+\)") || return
+        URL=$(echo "$PAGE" | parse 'id=.dlbutton' "location='\([^']\+\)" | uri_encode) || return
 
         FILE_NAME=$(echo "$PAGE" | parse 'filenameid' '<strong>\(.*\)</strong>' 1 | strip_html_comments)
         FILE_NAME=${FILE_NAME#[[:space:]]}
