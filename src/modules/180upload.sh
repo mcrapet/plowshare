@@ -63,15 +63,37 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
     FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
-        -F 'referer=' \
-        -F "op=$FORM_OP" \
-        -F "id=$FORM_ID" \
-        -F "rand=$FORM_RAND" \
-        -F "down_direct=$FORM_DD" \
-        -F "method_free=$FORM_METHOD_F" \
-        -F "method_premium=$FORM_METHOD_P" \
-        "$URL") || return
+    if match 'api\.solvemedia\.com' "$FORM_HTML"; then
+        log_debug 'Solve Media CAPTCHA found'
+
+        local PUBKEY RESP CHALLENGE ID
+
+        PUBKEY='MIqUIMADf7KbDRf0ANI-9wLP.8iJSG9N'
+        RESP=$(solvemedia_captcha_process $PUBKEY) || return
+        { read CHALLENGE; read ID; } <<< "$RESP"
+
+        # Okay, duplicated code..
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
+            -F 'referer=' \
+            -F "op=$FORM_OP" \
+            -F "id=$FORM_ID" \
+            -F "rand=$FORM_RAND" \
+            -F "down_direct=$FORM_DD" \
+            -F "method_free=$FORM_METHOD_F" \
+            -F "method_premium=$FORM_METHOD_P" \
+            -F 'adcopy_response=none' -F "adcopy_challenge=$CHALLENGE" \
+            "$URL") || return
+    else
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
+            -F 'referer=' \
+            -F "op=$FORM_OP" \
+            -F "id=$FORM_ID" \
+            -F "rand=$FORM_RAND" \
+            -F "down_direct=$FORM_DD" \
+            -F "method_free=$FORM_METHOD_F" \
+            -F "method_premium=$FORM_METHOD_P" \
+            "$URL") || return
+    fi
 
     # <div class="err">Skipped countdown</div>
     if match '<div class="err"' "$PAGE"; then

@@ -202,7 +202,7 @@ rapidgator_download() {
     fi
 
     # Parse file name from page title
-    FILE_NAME=$(echo "$HTML" | parse_tag 'title') || return
+    FILE_NAME=$(parse_tag 'title' <<< "$HTML") || return
     FILE_NAME=${FILE_NAME#Download file }
 
     # If this is a premium download, we already have the download link
@@ -378,19 +378,9 @@ rapidgator_upload() {
     local HTML URL LINK DEL_LINK
 
     # Sanity checks
-    if [ -z "$AUTH" -a -n "$FOLDER" ]; then
-        log_error 'Folders only available for accounts.'
-        return $ERR_BAD_COMMAND_LINE
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
-    elif [ -z "$AUTH" -a -n "$CLEAR" ]; then
-        log_error 'Remote upload list only available for accounts.'
-        return $ERR_BAD_COMMAND_LINE
-
-    elif [ -z "$AUTH" ] && match_remote_url "$FILE"; then
-        log_error 'Remote upload only available for accounts.'
-        return $ERR_LINK_NEED_PERMISSIONS
-
-    elif [ -n "$FOLDER" ] && match_remote_url "$FILE"; then
+    if [ -n "$FOLDER" ] && match_remote_url "$FILE"; then
         log_error 'Folder selection only available for local uploads.'
         return $ERR_BAD_COMMAND_LINE
 
@@ -406,10 +396,7 @@ rapidgator_upload() {
     rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     # Login (don't care for account type)
-    if [ -n "$AUTH" ]; then
-        rapidgator_login "$AUTH" "$COOKIE_FILE" \
-            "$BASE_URL" > /dev/null || return
-    fi
+    rapidgator_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
 
     # Clear link list?
     if [ -n "$CLEAR" ]; then

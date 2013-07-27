@@ -15,11 +15,14 @@ dataport_cz     | download | upload | delete |      |       |
 depositfiles    | download | upload | delete | list | probe |
 divshare        | download | upload | delete | list |       |
 dl_free_fr      | download | upload | delete |      | probe |
+embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 filebox         | download | upload | delete |      |       |
 filemates       | download | upload | delete | list |       |
+fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
+filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
 hotfile         | download | upload |        | list | probe |
@@ -30,7 +33,9 @@ megashares      | download | upload | delete |      | probe |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiupload     |          | upload |        | list |       |
+nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
+pastebin        |          |        |        | list |       |
 putlocker       | download | upload |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |
@@ -41,6 +46,7 @@ turbobit        | download | upload | delete | list | probe |
 uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
+upstore         | download | upload |        |      | probe |
 uptobox         | download | upload |        |      | probe |
 zalaa           | download | upload |        | list | probe |
 zippyshare      | download | upload |        | list | probe |

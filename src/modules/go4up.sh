@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # go4up.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -23,7 +23,7 @@ MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
 MODULE_GO4UP_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account
 INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
-COUNT,,count,n=COUNT,Take COUNT hosters from the available list. Default is 5.
+COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 5.
 API,,api,,Use public API (recommended)"
 MODULE_GO4UP_UPLOAD_REMOTE_SUPPORT=yes
 
@@ -159,10 +159,10 @@ go4up_upload() {
     log_debug "Available sites:" $SITES_ALL
 
     if [ -n "$COUNT" ]; then
-        if [[ $((COUNT)) -eq 0 ]]; then
-            COUNT=5
-            log_error "Bad integer value for --count, set it to $COUNT"
-        fi
+        #if (( COUNT > 10 )); then
+        #    COUNT=10
+        #    log_error "Too big integer value for --count, set it to $COUNT"
+        #fi
 
         for SITE in $SITES_ALL; do
             (( COUNT-- > 0 )) || break
@@ -270,7 +270,7 @@ go4up_list() {
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    PAGE=$(curl -L "$URL") || return
+    PAGE=$(curl -L "$URL" | break_html_lines) || return
 
     if match 'The file is being uploaded on mirror websites' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -278,26 +278,31 @@ go4up_list() {
         return $ERR_LINK_DEAD
     fi
 
-    LINKS=$(echo "$PAGE" | parse_all_tag_quiet 'class="dl"' a) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl"' href) || return
     if [ -z "$LINKS" ]; then
         log_error 'No links found. Site updated?'
         return $ERR_FATAL
     fi
 
     while read SITE_URL; do
-        PAGE=$(curl "$SITE_URL") || return
+        [[ "$SITE_URL" = */premium ]] && continue
+
+        PAGE=$(curl --include "$SITE_URL") || return
         NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
+        URL=$(grep_http_header_location_quiet <<< "$PAGE")
 
         # window.location = "http://... " <= extra space at the end
-        URL=$(echo "$PAGE" | parse_quiet 'window\.location' '=[[:space:]]*"\([^"]*\)')
-        URL=${URL% }
-
-        # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
         if [ -z "$URL" ]; then
-            URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+            URL=$(echo "$PAGE" | parse_quiet 'window\.location' '=[[:space:]]*"\([^"]*\)')
+            URL=${URL% }
+
+            # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
             if [ -z "$URL" ]; then
-                log_error 'Remote error. Site maintenance?'
-                return $ERR_FATAL
+                URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
+                if [ -z "$URL" ]; then
+                    log_error "Remote error. Site maintenance? ($SITE_URL)"
+                    return $ERR_FATAL
+                fi
             fi
         fi
 

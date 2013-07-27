@@ -21,13 +21,13 @@
 MODULE_SENDSPACE_REGEXP_URL="http://\(www\.\)\?sendspace\.com/\(file\|folder\|delete\)/"
 
 MODULE_SENDSPACE_DOWNLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_SENDSPACE_DOWNLOAD_RESUME=yes
 MODULE_SENDSPACE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 MODULE_SENDSPACE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_SENDSPACE_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+AUTH,a,auth,a=USER:PASSWORD,User account
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_SENDSPACE_UPLOAD_REMOTE_SUPPORT=no
 
@@ -40,14 +40,14 @@ MODULE_SENDSPACE_PROBE_OPTIONS=""
 # $2: cookie file
 # $3: base URL
 sendspace_login() {
-    local -r AUTH_FREE=$1
+    local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
     local LOGIN_DATA STATUS USER
 
     # Note: "remember=on" not needed
     LOGIN_DATA='action=login&submit=login&target=%2F&action_type=login&remember=1&username=$USER&password=$PASSWORD'
-    post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+    post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASE_URL/login.html" -o /dev/null || return
 
     STATUS=$(parse_cookie_quiet 'ssal' < "$COOKIE_FILE")
@@ -55,7 +55,7 @@ sendspace_login() {
         return $ERR_LOGIN_FAILED
     fi
 
-    split_auth "$AUTH_FREE" USER || return
+    split_auth "$AUTH" USER || return
     log_debug "Successfully logged in as member '$USER'"
 }
 
@@ -74,8 +74,8 @@ sendspace_download() {
         return $ERR_FATAL
     fi
 
-    if [ -n "$AUTH_FREE" ]; then
-        sendspace_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    if [ -n "$AUTH" ]; then
+        sendspace_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
@@ -112,8 +112,8 @@ sendspace_upload() {
     local PAGE SIZE MAXSIZE OPT_USER OPT_FOLDER
     local FORM_HTML FORM_URL FORM_PROG_URL FORM_DEST_DIR FORM_SIG FORM_MAIL
 
-    if [ -n "$AUTH_FREE" ]; then
-        sendspace_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    if [ -n "$AUTH" ]; then
+        sendspace_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
@@ -132,7 +132,7 @@ sendspace_upload() {
     FORM_PROG_URL=$(echo "$FORM_HTML" | parse_form_input_by_name 'PROGRESS_URL') || return
     FORM_SIG=$(echo "$FORM_HTML" | parse_form_input_by_name 'signature') || return
 
-    if [ -n "$AUTH_FREE" ]; then
+    if [ -n "$AUTH" ]; then
         local FORM_USER
         FORM_MAIL=$(echo "$FORM_HTML" | parse_form_input_by_name 'ownemail') || return
         FORM_USER=$(echo "$FORM_HTML" | parse_form_input_by_name 'userid') || return
@@ -161,7 +161,7 @@ sendspace_upload() {
         return $ERR_FATAL
     fi
 
-    # parse and output download and delete link
+    # Parse and output download and delete link
     echo "$PAGE" | parse_attr 'share link' 'href' || return
     echo "$PAGE" | parse_attr '/delete/' 'href' || return
 }
@@ -188,7 +188,7 @@ sendspace_delete() {
 
     # Error, the deletion code you provided is incorrect or incomplete. Please make sure to use the full link.
     else
-        log_error "bad deletion code"
+        log_error 'Bad deletion code'
         return $ERR_FATAL
     fi
 

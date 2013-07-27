@@ -51,47 +51,63 @@ netload_in_premium_login() {
     fi
 }
 
+# Static function. Retrieve file information using official API
+# $1: file id
+# $2: return md5 (0 or 1)
+netload_in_infos() {
+    # Plowshare Auth Code
+    local -r AUTH_CODE='ec3vfSuAXoHVQxA816hsKGdOCbQ6it9N'
+    curl -d "auth=$AUTH_CODE" -d "file_id=$1" -d "bz=1" -d "md5=$2" \
+        'https://api.netload.in/info.php'
+}
+
 # Output a netload.in file download URL
 # $1: cookie file
 # $2: netload.in url
 # stdout: real file download link
 netload_in_download() {
-    local COOKIEFILE=$1
+    local COOKIE_FILE=$1
     local URL=$(echo "$2" | replace 'www.' '')
     local BASE_URL='http://netload.in'
-    local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG FILENAME FILE_URL
+    local FILE_ID RESPONSE FILE_NAME
+    local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG FILE_URL
+
+    # Get filename using API
+    FILE_ID=$(echo "$URL" | parse . '/datei\([[:alnum:]]\+\)[/.]') || return
+    log_debug "File ID: '$FILE_ID'"
+
+    # file ID, filename, size, status
+    RESPONSE=$(netload_in_infos "$FILE_ID" 0) || return
+    FILE_NAME="${RESPONSE#*;}"
+    FILE_NAME="${FILE_NAME%%;*}"
 
     if [ -n "$AUTH" ]; then
-        netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
+        netload_in_premium_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
         MODULE_NETLOAD_IN_DOWNLOAD_RESUME=yes
 
-        PAGE=$(curl -i -b "$COOKIEFILE" "$URL") || return
+        PAGE=$(curl -i -b "$COOKIE_FILE" "$URL") || return
         FILE_URL=$(echo "$PAGE" | grep_http_header_location)
 
         # check for link redirection (HTTP error 301)
         if [ "${FILE_URL:0:1}" = '/' ]; then
-            PAGE=$(curl -i -b "$COOKIEFILE" "${BASE_URL}$FILE_URL") || return
+            PAGE=$(curl -i -b "$COOKIE_FILE" "${BASE_URL}$FILE_URL") || return
             FILE_URL=$(echo "$PAGE" | grep_http_header_location)
         fi
 
         # Account download method set to "Automatisch"
         # HTTP HEAD request discarded, can't read "Content-Disposition" header
         if [ -n "$FILE_URL" ]; then
-
-            # Only solution to get filename
-            PAGE=$(curl -L "$URL") || return
-
             echo "$FILE_URL"
-            echo "$PAGE" | parse 'dl_first_filename' '			\([^<]*\)' 1
+            echo "$FILE_NAME"
             return 0
         fi
 
         echo "$PAGE" | parse_attr 'Orange_Link' 'href'
-        echo "$PAGE" | parse '<h2>download:' ': \([^<]*\)'
+        echo "$FILE_NAME"
         return 0
     fi
 
-    PAGE=$(curl --location -c "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl --location -c "$COOKIE_FILE" "$URL") || return
 
     # This file can be only downloaded by Premium users in fact of its file size
     if match 'This file is only for Premium Users' "$PAGE"; then
@@ -104,7 +120,7 @@ netload_in_download() {
     test "$CHECK_LINK" && return 0
 
     WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-    WAIT_HTML=$(curl -b "$COOKIEFILE" --location --referer "$URL" "$WAIT_URL") || return
+    WAIT_HTML=$(curl -b "$COOKIE_FILE" --location --referer "$URL" "$WAIT_URL") || return
     WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
 
@@ -115,7 +131,7 @@ netload_in_download() {
     CAPTCHA_IMG=$(create_tempfile '.jpg') || return
 
     # Get new image captcha (cookie is mandatory)
-    curl -b "$COOKIEFILE" "$BASE_URL/$CAPTCHA_URL" -o "$CAPTCHA_IMG" || return
+    curl -b "$COOKIE_FILE" "$BASE_URL/$CAPTCHA_URL" -o "$CAPTCHA_IMG" || return
 
     local WI WORD ID
     WI=$(captcha_process "$CAPTCHA_IMG" digits 4) || return
@@ -138,7 +154,7 @@ netload_in_download() {
     FORM_URL=$(echo "$DOWNLOAD_FORM" | parse_form_action) || return
     FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
 
-    WAIT_HTML2=$(curl -b "$COOKIEFILE" \
+    WAIT_HTML2=$(curl -b "$COOKIE_FILE" \
         -d "start=" \
         -d "file_id=$FORM_FID" \
         -d "captcha_check=$CAPTCHA" \
@@ -167,23 +183,11 @@ netload_in_download() {
     # Suppress this wait will lead to a 400 http error (bad request)
     wait $((WAIT_TIME2 / 100)) seconds || return
 
-    FILENAME=$(echo "$WAIT_HTML2" | \
-        parse_quiet '<h2>[Dd]ownload:' '<h2>[Dd]ownload:[[:space:]]*\([^<]*\)')
-
-    # If filename is truncated, take the one from url
-    if [ "${#FILENAME}" -ge 57 -a '..' = "${FILENAME:(-2):2}" ]; then
-        if match '\.htm$' "$URL"; then
-            local FILENAME2=$(basename_file "$URL")
-            match '^datei' "$FILENAME2" || \
-                FILENAME=$(echo "${FILENAME2%.*}" | uri_decode)
-        fi
-    fi
-
     FILE_URL=$(echo "$WAIT_HTML2" | \
         parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
 
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to netload.in
@@ -195,18 +199,18 @@ netload_in_download() {
 # http://api.netload.in/index.php?id=3
 # Note: Password protected archives upload is not managed here.
 netload_in_upload() {
-    local COOKIEFILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local BASE_URL="http://netload.in"
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r BASE_URL="http://www.netload.in"
 
     local AUTH_CODE UPLOAD_SERVER EXTRA_PARAMS
 
     if test "$AUTH"; then
-        netload_in_premium_login "$AUTH" "$COOKIEFILE" "$BASE_URL" || return
-        curl -b "$COOKIEFILE" --data 'get=Get Auth Code' -o /dev/null 'http://www.netload.in/index.php?id=56'
+        netload_in_premium_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+        curl -b "$COOKIE_FILE" --data 'get=Get Auth Code' -o /dev/null "$BASE_URL/index.php?id=56"
 
-        AUTH_CODE=$(curl -b "$COOKIEFILE" 'http://www.netload.in/index.php?id=56' | \
+        AUTH_CODE=$(curl -b "$COOKIE_FILE" "$BASE_URL/index.php?id=56" | \
             parse 'Your Auth Code' ';">\([^<]*\)') || return
         log_debug "auth=$AUTH_CODE"
 
@@ -223,7 +227,7 @@ netload_in_upload() {
 
     PAGE=$(curl_with_log $EXTRA_PARAMS \
         --form-string "auth=$AUTH_CODE" \
-        -F "modus=file_upload" \
+        -F 'modus=file_upload' \
         -F "file_link=@$FILE;filename=$DESTFILE" \
         "$UPLOAD_SERVER") || return
 
@@ -297,8 +301,6 @@ netload_in_list() {
 netload_in_probe() {
     local -r URL=$2
     local -r REQ_IN=$3
-    local -r AUTH_CODE='1E6Nk8ZeaT23SpnzBPLRX7hrPiEEq01C'
-    local -r BASE_URL='https://api.netload.in/info.php'
     local RESPONSE REQ_OUT FILE_ID FILE_NAME FILE_SIZE FILE_HASH STATUS
 
     if [[ "$URL" = */folder* ]]; then
@@ -309,11 +311,10 @@ netload_in_probe() {
     FILE_ID=$(echo "$2" | parse . '/datei\([[:alnum:]]\+\)[/.]') || return
     log_debug "File ID: '$FILE_ID'"
 
-    RESPONSE=$(curl -d "auth=$AUTH_CODE" -d "file_id=$FILE_ID" \
-        -d 'bz=1' -d 'md5=1' "$BASE_URL") || return
+    RESPONSE=$(netload_in_infos "$FILE_ID" 1) || return
 
     if [ "$RESPONSE" = 'unknown_auth' ]; then
-        log_error "API key invalid. Please report this issue!"
+        log_error 'API key invalid. Please report this issue!'
         return $ERR_FATAL
     fi
 

@@ -74,13 +74,37 @@ mediafire_login() {
 
 # Extract file/folder ID from download link
 # $1: Mediafire download URL
-# - http://www.mediafire.com/download.php?xyz
 # - http://www.mediafire.com/?xyz
+# - http://www.mediafire.com/download.php?xyz
+# - http://www.mediafire.com/download/xyz/filename...
 # $2: probe mode if non empty argument (quiet parsing)
 # stdout: file/folder ID
 mediafire_extract_id() {
-    parse${2:+_quiet} . '?\([[:alnum:]]\+\)$' <<< "$1" || return
+    local -r URL=$1
+    local -r PROBE=$2
+    local ID
+
+    case "$URL" in
+        */download/*)
+            ID=$(parse . '/download/\([[:alnum:]]\+\)' <<< "$URL") || return
+            ;;
+
+        */folder/*)
+            ID=$(parse . '/folder/\([[:alnum:]]\+\)' <<< "$URL") || return
+            ;;
+
+        *\?*)
+            ID=$(parse . '?\([[:alnum:]]\+\)$' <<< "$URL") || return
+            ;;
+    esac
+
+    if [ -z "$ID" -a -z "$PROBE" ]; then
+        log_error 'Could not parse file/folder ID.'
+        return $ERR_FATAL
+    fi
+
     log_debug "File/Folder ID: '$ID'"
+    echo "$ID"
 }
 
 # Check whether a given ID is a file ID (and not a folder ID)
@@ -204,6 +228,9 @@ mediafire_download() {
         '')
             URL="$BASE_URL/?$FILE_ID"
             ;;
+        /download/*)
+            URL="$BASE_URL$URL"
+            ;;
         http://*)
             log_debug 'Direct download'
             echo "$URL"
@@ -222,12 +249,12 @@ mediafire_download() {
 
     PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL" | break_html_lines) || return
 
-    #<h3 class="error_msg_title">Invalid or Deleted File.</h3>
+    # <h3 class="error_msg_title">Invalid or Deleted File.</h3>
     match 'Invalid or Deleted File' "$PAGE" && return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
 
     # handle captcha (reCaptcha or SolveMedia) if there is one
-    if match 'form_captcha' "$PAGE"; then
+    if match '<form[^>]*form_captcha' "$PAGE"; then
         local FORM_CAPTCHA PUBKEY CHALLENGE ID RESP CAPTCHA_DATA
 
         FORM_CAPTCHA=$(grep_form_by_name "$PAGE" 'form_captcha') || return
@@ -258,8 +285,8 @@ mediafire_download() {
 
         log_debug "Captcha data: $CAPTCHA_DATA"
 
-        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
-            $CAPTCHA_DATA "$URL") || return
+        PAGE=$(curl --location -b "$COOKIE_FILE" --referer "$URL" \
+            $CAPTCHA_DATA "$BASE_URL/?$FILE_ID") || return
 
         # Your entry was incorrect, please try again!
         if match 'Your entry was incorrect' "$PAGE"; then
@@ -288,7 +315,7 @@ mediafire_download() {
 
     # extract + output download link + file name
     mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href || return
-    echo "$PAGE" | parse_tag 'title' || return
+    parse_tag 'title' <<< "$PAGE" || return
 }
 
 # Upload a file to mediafire
@@ -468,10 +495,11 @@ mediafire_list() {
     local URL=$1
     local REC=$2
     local -r BASE_URL='http://www.mediafire.com'
+    local -r CHUNK_SIZE=100 # default chunk size
     local RET=$ERR_LINK_DEAD
-    local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NAMES LINKS
+    local XML FOLDER_KEY ERR NUM_FILES NUM_FOLDERS NUM_CHUNKS CHUNK NAMES LINKS
 
-    if [[ "$URL" = */?sharekey=* ]]; then
+    if [[ $URL = */?sharekey=* ]]; then
         local LOCATION
 
         LOCATION=$(curl --head "$URL" | grep_http_header_location) || return
@@ -515,29 +543,39 @@ mediafire_list() {
     NUM_FOLDERS=$(echo "$XML" | parse_tag 'folder_count') || return
     log_debug "There is/are $NUM_FILES file(s) and $NUM_FOLDERS sub folder(s)"
 
-    # Handle files
-    if [ "$NUM_FILES" -gt 0 ]; then
+    # Handle files (NUM_CHUNKS = ceil(NUM_FILES / CHUNK_SIZE))
+    NUM_CHUNKS=$(( (NUM_FILES + CHUNK_SIZE - 1) / CHUNK_SIZE ));
+    CHUNK=0
+
+    while (( ++CHUNK <= NUM_CHUNKS )); do
         XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=files' \
-            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+            -d "chunk=$CHUNK" "$BASE_URL/api/folder/get_content.php"   \
+            | break_html_lines) || return
 
         NAMES=$(echo "$XML" | parse_all_tag_quiet 'filename')
         LINKS=$(echo "$XML" | parse_all_tag_quiet 'quickkey')
 
         list_submit "$LINKS" "$NAMES" "$BASE_URL/?" && RET=0
-    fi
+    done
 
     # Handle folders
-    if [ -n "$REC" -a "$NUM_FOLDERS" -gt 0 ]; then
+    if [ -n "$REC" ]; then
         local LINK
 
-        XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=folders' \
-            "$BASE_URL/api/folder/get_content.php" | break_html_lines) || return
+        NUM_CHUNKS=$(( (NUM_FOLDERS + CHUNK_SIZE - 1) / CHUNK_SIZE ));
+        CHUNK=0
 
-        LINKS=$(echo "$XML" | parse_all_tag 'folderkey') || return
+        while (( ++CHUNK <= NUM_CHUNKS )); do
+            XML=$(curl -d "folder_key=$FOLDER_KEY" -d 'content_type=folders' \
+                -d "chunk=$CHUNK" "$BASE_URL/api/folder/get_content.php"     \
+                | break_html_lines) || return
 
-        for LINK in $LINKS; do
-            log_debug "Entering sub folder: $LINK"
-            mediafire_list "$BASE_URL/?$LINK" "$REC" && RET=0
+            LINKS=$(echo "$XML" | parse_all_tag 'folderkey') || return
+
+            for LINK in $LINKS; do
+                log_debug "Entering sub folder: $LINK"
+                mediafire_list "$BASE_URL/?$LINK" "$REC" && RET=0
+            done
         done
     fi
 
