@@ -24,7 +24,7 @@ MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
-COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 5, maximum is 9."
+COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 3, maximum is 12."
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MIRRORCREATOR_LIST_OPTIONS=""
@@ -76,8 +76,8 @@ mirrorcreator_upload() {
     fi
 
     if [ -n "$COUNT" ]; then
-        if (( COUNT > 9 )); then
-            COUNT=9
+        if (( COUNT > 12 )); then
+            COUNT=12
             log_error "Too big integer value for --count, set it to $COUNT"
         fi
 
@@ -143,7 +143,7 @@ mirrorcreator_upload() {
 # stdout: list of links
 mirrorcreator_list() {
     local URL=$1
-    local PAGE STATUS ID LINKS NAMES REL_URL
+    local PAGE STATUS LINKS NAMES REL_URL
     local BASE_URL='http://www.mirrorcreator.com'
 
     if test "$2"; then
@@ -152,27 +152,31 @@ mirrorcreator_list() {
     fi
 
     PAGE=$(curl -L "$URL") || return
-    STATUS=$(echo "$PAGE" | parse_last 'status\.php' ',[[:space:]]"\([^"]*\)",') || return
-    ID=$(echo "$PAGE" | parse '/files/' '\.com/files/\([^/]*\)/') || return
 
+    # mstat.php
+    STATUS=$(echo "$PAGE" | parse 'mstat\.php' ',[[:space:]]"\([^"]*\)",') || return
     PAGE=$(curl -L "$BASE_URL$STATUS") || return
 
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/redirect\?/' href) || return
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'Success' href) || return
     if [ -z "$LINKS" ]; then
         return $ERR_LINK_DEAD
     fi
 
-    NAMES=( $(echo "$PAGE" | parse_all '/redirect\?/' '\.gif"[[:space:]]alt="\([^"]*\)') )
+    NAMES=( $(echo "$PAGE" | parse_all 'Success' '\.gif"[[:space:]]alt="\([^"]*\)') )
 
     while read REL_URL; do
         test "$REL_URL" || continue
 
-        # Referer mandatory here
-        PAGE=$(curl --referer "$BASE_URL/files/$ID/" "$BASE_URL$REL_URL") || return
+        PAGE=$(curl "$BASE_URL$REL_URL") || return
         URL=$(echo "$PAGE" | parse_tag 'redirecturl' div) || return
 
-        echo "$URL"
-        echo "${NAMES[0]}"
+        # Error : Selected hosting site is no longer available.
+        if ! match '^Error' "$URL"; then
+            echo "$URL"
+            echo "${NAMES[0]}"
+        else
+            log_debug "$URL (${NAMES[0]})"
+        fi
 
         # Drop first element
         NAMES=("${NAMES[@]:1}")
