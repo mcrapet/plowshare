@@ -102,7 +102,7 @@ elif [ "$1" = 'install' ]; then
         # sed: illegal option -- -
         # This is not GNU sed version 4.0
         *)
-            echo "Warning: sytem sed is not GNU sed"
+            echo 'Warning: system sed is not GNU sed!'
             for SED_PRG in gsed gnu-sed; do
                 SED_PATH=`command -v $SED_PRG 2>/dev/null` || true
                 if [ -n "$SED_PATH" ]; then
