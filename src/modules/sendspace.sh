@@ -78,7 +78,7 @@ sendspace_download() {
         sendspace_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
-    PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+    PAGE=$(curl -L -b "$COOKIE_FILE" "$URL") || return
 
     if match '<div class="msg error"' "$PAGE"; then
         local ERR=$(echo "$PAGE" | parse_tag 'class="msg error"' 'div') || return
@@ -229,7 +229,7 @@ sendspace_probe() {
     local -r REQ_IN=$3
     local PAGE REQ_OUT FILE_SIZE
 
-    PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
+    PAGE=$(curl -L -c "$COOKIE_FILE" "$URL") || return
 
     if match '<div class="msg error"' "$PAGE"; then
         return $ERR_LINK_DEAD
