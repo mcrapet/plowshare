@@ -1019,13 +1019,10 @@ s/%5D/\]/g'
 # $1: filename
 # stdout: file length (in bytes)
 get_filesize() {
-    local FILE_SIZE=$(stat -c %s "$1" 2>/dev/null)
+    local FILE_SIZE=$(ls -l "$1" 2>/dev/null | sed -e 's/[[:space:]]\+/ /g' | cut -d' ' -f5)
     if [ -z "$FILE_SIZE" ]; then
-        FILE_SIZE=$(ls -l "$1" 2>/dev/null | cut -d' ' -f5)
-        if [ -z "$FILE_SIZE" ]; then
-            log_error "$FUNCNAME: error accessing \`$1'"
-            return $ERR_SYSTEM
-        fi
+        log_error "$FUNCNAME: error accessing \`$1'"
+        return $ERR_SYSTEM
     fi
     echo "$FILE_SIZE"
 }
@@ -2421,8 +2418,9 @@ process_configfile_module_options() {
     CONFIG="$HOME/.config/plowshare/plowshare.conf"
     if [ -f "$CONFIG" ]; then
         if [ -O "$CONFIG" ]; then
-            local FILE_PERM=$(stat -c %A "$CONFIG")
-            test -z "$FILE_PERM" && FILE_PERM=$(ls -l "$CONFIG" | cut -b1-10)
+            # First 10 characters: access rights (human readable form)
+            local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
+
             if [[ ${FILE_PERM:4:6} != '------' ]]; then
                 log_notice "Warning (configuration file permissions): chmod 600 $CONFIG"
             fi
