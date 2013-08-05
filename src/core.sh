@@ -2234,7 +2234,7 @@ set_exit_trap() {
 # $1: Executable to check
 # $?: zero means not found
 check_exec() {
-    type -P $1 >/dev/null || return 1 && return 0
+    command -v "$1" >/dev/null 2>&1
 }
 
 # Related to -t/--timeout command line option
