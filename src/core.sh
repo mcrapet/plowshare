@@ -723,7 +723,7 @@ parse_all_attr() {
     local STRING=$(sed \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\"\([^\">]*\).*${D}\2${D}p" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*'\([^'>]*\).*${D}\2${D}p" \
-        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\2${D}p")
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"\`'<=>]\+\).*${D}\2${D}p")
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
@@ -748,7 +748,7 @@ parse_attr() {
     local STRING=$(sed \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\"\([^\">]*\).*${D}\2${D}p;ta" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*'\([^'>]*\).*${D}\2${D}p;ta" \
-        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"'<=>/]\+\).*${D}\2${D}p;ta" \
+        -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"\`'<=>]\+\).*${D}\2${D}p;ta" \
         -ne 'b;:a;q;')
 
     if [ -z "$STRING" ]; then
