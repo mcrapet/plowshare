@@ -90,7 +90,7 @@ process_item() {
         echo 'url'
         strip <<< "$ITEM"
     elif [ -f "$ITEM" ]; then
-        if [[ $ITEM =~ (zip|rar|tar|[7gx]z|bz2|mp[234]|avi|mkv)$ ]]; then
+        if [[ $ITEM =~ (zip|rar|tar|[7gx]z|bz2|mp[234g]|avi|mkv|jpg)$ ]]; then
             log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
         else
             # Discard empty lines and comments
