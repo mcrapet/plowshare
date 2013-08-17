@@ -2259,7 +2259,7 @@ process_core_options() {
     local -r NAME=$1
     local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
     shift 2
-    VERBOSE=2 process_options "$NAME" "$OPTIONS" -1 "$@" || return
+    VERBOSE=2 process_options "$NAME" "$OPTIONS" -1 "$@"
 }
 
 # $1: program name (used for error reporting only)
@@ -2269,7 +2269,7 @@ process_all_modules_options() {
     local -r NAME=$1
     local -r OPTIONS=$2
     shift 2
-    process_options "$NAME" "$OPTIONS" 0 "$@" || return
+    process_options "$NAME" "$OPTIONS" 0 "$@"
 }
 
 # $1: module name (used for error reporting only)
@@ -2279,7 +2279,7 @@ process_module_options() {
     local -r MODULE=$1
     local -r OPTIONS=$(get_module_options "$1" "$2")
     shift 2
-    process_options "$MODULE" "$OPTIONS" 1 "$@" || return
+    process_options "$MODULE" "$OPTIONS" 1 "$@"
 }
 
 # Get module list according to capability
@@ -2509,6 +2509,22 @@ quote_array() {
     echo ')'
 }
 
+# Translate $1 to absolute path (considering $PATH)
+# Example: "mysolver" => "/usr/bin/mysolver"
+translate_exec() {
+    if test -x "$1"; then
+        F="$PWD/$1"
+    else
+        F=$(type -P "$1" 2>/dev/null)
+    fi
+
+    if [ -z "$F" ]; then
+        log_error "$FUNCNAME: failed ($1)"
+    else
+        echo "$F"
+    fi
+}
+
 # Check for positive speed rate
 # Ki is kibi (2^10 = 1024). Alias: K
 # Mi is mebi (2^20 = 1024^2 = 1048576). Alias:m
@@ -2588,9 +2604,9 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, e, l, n, N, r, s, S, V)
-# $3: string
-# $4: option string (used for error reporting only)
+# $2: format (a, e, f, l, n, N, r, s, S, V)
+# $3: option value (string)
+# $4: option name (used for error reporting only)
 # $?: return 0 for success
 check_argument_type() {
     local -r NAME=$1
@@ -2601,52 +2617,90 @@ check_argument_type() {
 
     # a: Authentication string (user or user:password)
     if [[ $TYPE = 'a' && $VAL != *:* ]]; then
-        log_debug "$NAME: missing password for credentials ($OPT)"
+        log_debug "$NAME ($OPT): missing password for credentials"
         RET=0
     # n: Positive integer (>0)
     elif [[ $TYPE = 'n' && ( $VAL = *[![:digit:]]* || $VAL -le 0 ) ]]; then
-        log_error "$NAME: positive integer expected ($OPT)"
+        log_error "$NAME ($OPT): positive integer expected"
     # N: Positive integer or zero (>=0)
     elif [[ $TYPE = 'N' && ( $VAL = *[![:digit:]]* || $VAL = '' ) ]]; then
-        log_error "$NAME: positive or zero integer expected ($OPT)"
+        log_error "$NAME ($OPT): positive or zero integer expected"
     # s: Non empty string
     elif [[ $TYPE = 's' && $VAL = '' ]]; then
-        log_error "$NAME: empty string not expected ($OPT)"
+        log_error "$NAME ($OPT): empty string not expected"
     # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
     elif [ "$TYPE" = 'r' ] && ! check_transfer_speed "$VAL"; then
-        log_error "$NAME: positive transfer rate expected ($OPT)"
+        log_error "$NAME ($OPT): positive transfer rate expected"
     # e: E-mail string
     elif [[ $TYPE = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
-        log_error "$NAME: invalid email address ($OPT)"
+        log_error "$NAME ($OPT): invalid email address"
+    # f: file (with read access)
+    elif [ $TYPE = 'f' ]; then
+        if test -z "$VAL"; then
+            log_error "$NAME ($OPT): filename expected"
+        elif test -f "$VAL"; then
+            if test -r "$VAL"; then
+                RET=0
+            else
+                log_error "$NAME ($OPT): read permissions expected \`$VAL'"
+            fi
+        else
+            log_error "$NAME ($OPT): cannot access file \`$VAL'"
+        fi
+    # F: executable file (consider $PATH)
+    elif [ $TYPE = 'F' ]; then
+        if test -z "$VAL"; then
+            log_error "$NAME ($OPT): executable filename expected"
+        elif test -f "$VAL"; then
+            if test -x "$VAL"; then
+                RET=0
+            else
+                log_error "$NAME ($OPT): executable permissions expected \`$VAL'"
+            fi
+        elif check_exec "$VAL"; then
+            # Sanity check (file in $PATH has no x perms)
+            local F=$(type -P "$VAL" 2>/dev/null)
+            if test -x "$F"; then
+                RET=0
+            else
+                log_error "$NAME ($OPT): executable permissions expected \`$F'"
+            fi
+        else
+            log_error "$NAME ($OPT): cannot access file \`$VAL'"
+        fi
     # l: List (comma-separated values), non empty
     elif [[ $TYPE = 'l' && $VAL = '' ]]; then
-        log_error "$NAME: comma-separated list expected ($OPT)"
+        log_error "$NAME ($OPT): comma-separated list expected"
     # V: special type for verbosity (values={0,1,2,3,4})
     elif [[ $TYPE = 'V' && $VAL != [0-4] ]]; then
        log_error "$NAME: wrong verbose level \`$VAL'. Must be 0, 1, 2, 3 or 4."
 
     elif [[ "$TYPE" = [lsS] ]]; then
         RET=0
-    elif [[ "$TYPE" = [aenNrV] ]]; then
+    elif [[ "$TYPE" = [aefFnNrV] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
-            log_error "$NAME: missing parameter ($OPT)"
+            log_error "$NAME ($OPT): missing parameter"
         else
             RET=0
         fi
     else
-        log_error "$NAME: unknown argument type ($TYPE)"
+        log_error "$NAME: unknown argument type '$TYPE'"
     fi
 
-    test $RET && echo false
+    [ $RET -eq 0 ] || echo false
     return $RET
 }
 
 # Standalone argument parsing (don't use GNU getopt or builtin getopts Bash)
 # $1: program name (used for error reporting only)
 # $2: option list (one per line)
-# $3: step number (-1; 0 or 1)
+# $3: step number (-1, 0 or 1). Always declare UNUSED_ARGS & UNUSED_OPTS arrays.
+#     -1: check plow* args and declare readonly variables
+#      0: check all module args
+#      1: declare module_vars_set & module_vars_unset functions
 # $4..$n: arguments
 # stdout: variable=value (one per line). Content can be eval'ed.
+# Note: "--" (double dash) is handled.
 process_options() {
     local -r NAME=$1
     local -r OPTIONS=$2
@@ -2709,6 +2763,8 @@ process_options() {
                         FUNC=quote_array
                     elif [ "$TYPE" = 'r' ]; then
                         FUNC=translate_size
+                    elif [ "$TYPE" = 'F' ]; then
+                        FUNC=translate_exec
                     else
                         FUNC=quote
                     fi
@@ -2752,6 +2808,8 @@ process_options() {
                         FUNC=quote_array
                     elif [ "$TYPE" = 'r' ]; then
                         FUNC=translate_size
+                    elif [ "$TYPE" = 'F' ]; then
+                        FUNC=translate_exec
                     else
                         FUNC=quote
                     fi
@@ -2787,7 +2845,7 @@ process_options() {
             if [ -z "$FOUND" ]; then
                 # Note: accepts '-' argument
                 if [[ $ARG = -?* ]]; then
-                    log_error "$NAME: unknown command-line option: $ARG"
+                    log_error "$NAME: unknown command-line option $ARG"
                     echo false
                     return $ERR_BAD_COMMAND_LINE
                 fi
@@ -2802,6 +2860,7 @@ process_options() {
 
     # Declare core options as readonly
     if [ $STEP -lt 0 ]; then
+        # FIXME: Look for duplicates
         for ARG in "${RES[@]}"; do echo "declare -r $ARG"; done
 
     # Declare target module options: ${NAME}_vars_set/unset
