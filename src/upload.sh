@@ -273,7 +273,8 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 eval "$(process_all_modules_options 'plowup' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit
 
-COMMAND_LINE_ARGS=("${COMMAND_LINE_ARGS[@]}" "${UNUSED_ARGS[@]}")
+# Prepend here to keep command-line order
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}" "${COMMAND_LINE_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
 
 if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
@@ -284,7 +285,7 @@ fi
 
 # Check requested module
 MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
-    log_error "plowup: unsupported module ($1)";
+    log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})";
     exit $ERR_NOMODULE;
 }
 
