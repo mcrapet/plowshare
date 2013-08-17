@@ -104,8 +104,8 @@ Force specific captcha solving method. Available values:
 \fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
 .RE
 .TP
-.BI "   " " " --captchaprogram "=COMMAND"
-Call external program (or script) for solving captchas.
+.BI "   " " " --captchaprogram "=PROGRAM"
+Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
 
 Three arguments are given:
 .RS
@@ -161,8 +161,9 @@ Append .part suffix to filename while file is being downloaded. Download resume 
 Don't process final link (returned by module download function), just skip it. This is applied for each input URL.
 If you are using this option, you should need \fI--run-after\fP or \fI--printf\fP too.
 .TP
-.BI "   " " " --run-before "=COMMAND"
-Call external script before new link processing. Messages can be sent to stderr, stdout is trashed.
+.BI "   " " " --run-before "=PROGRAM"
+Call external program or script before new link processing. Provided executable can be located in PATH environment variable.
+Messages can be sent to stderr, stdout is trashed.
 
 Three arguments are given:
 .RS
@@ -188,8 +189,9 @@ Exit status:
 Note: Any other script exit status like \fB1\fR (fatal) or \fB3\fR (network) will be ignored (an error message will be reported).
 .RE
 .TP
-.BI "   " " " --run-after "=COMMAND"
-Call external script after final link successful download. Messages can be sent to stderr, stdout is trashed.
+.BI "   " " " --run-after "=PROGRAM"
+Call external program or script after final link successful download. Provided executable can be located in PATH environment variable.
+Messages can be sent to stderr, stdout is trashed.
 
 Five arguments are given:
 .RS
