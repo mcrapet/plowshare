@@ -37,15 +37,15 @@ INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
-CAPTCHA_PROGRAM,,captchaprogram,s=COMMAND,Call external script for captcha solving.
+CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
-GLOBAL_COOKIES,,cookies,s=FILE,Force using specified cookies file
+GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
 GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
-PRE_COMMAND,,run-before,s=COMMAND,Call external script before new link processing
-POST_COMMAND,,run-after,s=COMMAND,Call external script after link being successfully processed
+PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
+POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
@@ -240,7 +240,7 @@ download() {
         # Pre-processing script
         if [ -n "$PRE_COMMAND" ]; then
             DRETVAL=0
-            $(exec $PRE_COMMAND "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" >/dev/null) || DRETVAL=$?
+            $(exec "$PRE_COMMAND" "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" >/dev/null) || DRETVAL=$?
 
             if [ $DRETVAL -eq $ERR_NOMODULE ]; then
                 log_notice "Skipping link (as requested): $URL_ENCODED"
@@ -585,7 +585,7 @@ download() {
         if [ -n "$POST_COMMAND" ]; then
             COOKIE_FILE=$(create_tempfile) && echo "$COOKIE_JAR" > "$COOKIE_FILE"
             DRETVAL=0
-            $(exec $POST_COMMAND "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" \
+            $(exec "$POST_COMMAND" "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" \
                 "$FILE_URL" "$FILE_NAME" >/dev/null) || DRETVAL=$?
 
             test -f "$COOKIE_FILE" && rm -f "$COOKIE_FILE"
@@ -765,10 +765,6 @@ elif [ ! -w "$PWD" ]; then
 fi
 
 if [ -n "$GLOBAL_COOKIES" ]; then
-    if [ ! -f "$GLOBAL_COOKIES" ]; then
-        log_error "error: can't find cookies file"
-        exit $ERR_SYSTEM
-    fi
     log_notice "plowdown: using provided cookies file"
 fi
 
@@ -781,10 +777,6 @@ fi
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
     log_debug "plowdown: --captchaprogram selected"
-    if [ ! -x "$CAPTCHA_PROGRAM" ]; then
-        log_error "error: executable permissions expected"
-        exit $ERR_SYSTEM
-    fi
 fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then

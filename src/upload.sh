@@ -34,7 +34,7 @@ MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, n
 NAME_PREFIX,,name-prefix,s=STRING,Prepend argument to each destination filename
 NAME_SUFFIX,,name-suffix,s=STRING,Append argument to each destination filename
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
-CAPTCHA_PROGRAM,,captchaprogram,s=SCRIPT,Call external script for captcha solving.
+CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
@@ -248,10 +248,6 @@ fi
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
     log_debug "plowup: --captchaprogram selected"
-    if [ ! -x "$CAPTCHA_PROGRAM" ]; then
-        log_error "error: executable permissions expected"
-        exit $ERR_SYSTEM
-    fi
 fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then
