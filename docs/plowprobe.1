@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "August 11, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowprobe" "1" "August 18, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowprobe \- Gather information from file-sharing download links
@@ -48,18 +48,6 @@ Currently supported hosting sites list is available in README file.
 .TP
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
-.TP
-.B "   " --no-curlrc
-Do not use curl config file (~/.curlrc).
-.TP
-.B "   " --no-plowsharerc
-Do not use local or global config file (plowshare.conf).
-.TP
-.B "   " --get-module
-Get module(s) for URL(s) and quit. Faster than \fI--prinft=%m\fR.
-.TP
-.B "   " --follow
-If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 .TP
 .BI "   " " " --printf "=FORMAT"
 Print results (on stdout) in a given format (for each non-dead link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
@@ -116,6 +104,25 @@ Set output verbose level:
 .TP
 .B -q, --quiet
 Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Miscellaneous options
+.TP
+.B "   " --no-curlrc
+Do not use curl config file (~/.curlrc).
+.TP
+.B "   " --no-plowsharerc
+Do not consider any configuration file.
+.TP
+.BI "   " " " --plowsharerc "=FILE"
+Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
+This option has no effect when
+.I --no-plowsharerc
+is defined.
+.TP
+.B "   " --get-module
+Get module(s) for URL(s) and quit. Faster than \fI--prinft=%m\fR.
+.TP
+.B "   " --follow
+If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 .SS Generic program information
 .TP
 .B -h, --help

@@ -24,7 +24,8 @@ declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowup version
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
+EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
@@ -218,7 +219,7 @@ test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_options '[Pp]lowup' "$MAIN_OPTIONS"
+    process_configfile_options '[Pp]lowup' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
 
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
@@ -242,6 +243,14 @@ fi
 
 log_report_info
 log_report "plowup version $VERSION"
+
+if [ -n "$EXT_PLOWSHARERC" ]; then
+    if [ -n "$NO_PLOWSHARERC" ]; then
+        log_notice "plowup: --no-plowsharerc selected and prevails over --plowsharerc"
+    else
+        log_notice "plowup: using alternate configuration file"
+    fi
+fi
 
 if [ -n "$MAX_LIMIT_RATE" -a -n "$MIN_LIMIT_RATE" ]; then
   if (( MAX_LIMIT_RATE < MIN_LIMIT_RATE )); then
@@ -302,7 +311,7 @@ fi
 
 # Get configuration file module options
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_module_options '[Pp]lowup' "$MODULE" UPLOAD
+    process_configfile_module_options '[Pp]lowup' "$MODULE" UPLOAD "$EXT_PLOWSHARERC"
 
 eval "$(process_module_options "$MODULE" UPLOAD \
     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true

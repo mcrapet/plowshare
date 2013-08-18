@@ -23,7 +23,8 @@ declare -r VERSION='GIT-snapshot'
 declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
+EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
@@ -92,7 +93,7 @@ test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_options '[Pp]lowdel' "$MAIN_OPTIONS"
+    process_configfile_options '[Pp]lowdel' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
 
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
@@ -112,6 +113,14 @@ if [ $# -lt 1 ]; then
     log_error "plowdel: no URL specified!"
     log_error "plowdel: try \`plowdel --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
+fi
+
+if [ -n "$EXT_PLOWSHARERC" ]; then
+    if [ -n "$NO_PLOWSHARERC" ]; then
+        log_notice "plowdel: --no-plowsharerc selected and prevails over --plowsharerc"
+    else
+        log_notice "plowdel: using alternate configuration file"
+    fi
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
@@ -158,7 +167,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     # Get configuration file module options
     test -z "$NO_PLOWSHARERC" && \
-        process_configfile_module_options '[Pp]lowdel' "$MODULE" DELETE
+        process_configfile_module_options '[Pp]lowdel' "$MODULE" DELETE "$EXT_PLOWSHARERC"
 
     eval "$(process_module_options "$MODULE" DELETE \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true

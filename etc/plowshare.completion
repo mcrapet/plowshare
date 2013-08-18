@@ -26,13 +26,17 @@ _plowup()
             # argument required but no completion available
             return 0
             ;;
+        --plowsharerc)
+            _filedir
+            return 0
+            ;;
     esac
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
             -v -q -i -r -t \
             --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
-            --printf --no-curlrc --no-plowsharerc' -- $cur ) )
+            --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         local m list
         list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
@@ -84,7 +88,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
             return 0
             ;;
-        --cookies|--captchaprogram|--run-before|--run-after)
+        --cookies|--captchaprogram|--run-before|--run-after|--plowsharerc)
             _filedir
             return 0
             ;;
@@ -96,7 +100,7 @@ _plowdown()
             --max-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --fallback --cookies --9kweu --antigate --captchabhood --deathbycaptcha \
-            --captchamethod --captchaprogram --printf --run-before --run-after --no-curlrc --no-plowsharerc' -- $cur ) )
+            --captchamethod --captchaprogram --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         _filedir
     fi
@@ -125,11 +129,15 @@ _plowdel()
             _available_interfaces -a
             return 0
             ;;
+        --plowsharerc)
+            _filedir
+            return 0
+            ;;
     esac
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i --interface --no-plowsharerc' -- $cur ) )
+            -v -q -i --interface --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
@@ -159,11 +167,15 @@ _plowlist()
             _available_interfaces -a
             return 0
             ;;
+        --plowsharerc)
+            _filedir
+            return 0
+            ;;
     esac
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc' -- $cur ) )
+            -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
@@ -193,11 +205,15 @@ _plowprobe()
             _available_interfaces -a
             return 0
             ;;
+        --plowsharerc)
+            _filedir
+            return 0
+            ;;
     esac
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --version --quiet \
-            -v -q -i --get-module --interface --printf --follow --no-curlrc --no-plowsharerc' -- $cur ) )
+            -v -q -i --get-module --interface --printf --follow --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir

@@ -2370,13 +2370,17 @@ grep_list_modules() {
 
 # $1: section name in ini-style file ("General" will be considered too)
 # $2: command-line arguments list
+# $3 (optional): user specified configuration file
 # Note: VERBOSE (log_debug) not initialised yet
 process_configfile_options() {
     local CONFIG OPTIONS SECTION LINE NAME VALUE OPTION
 
-    CONFIG="$HOME/.config/plowshare/plowshare.conf"
-    test ! -f "$CONFIG" && CONFIG='/etc/plowshare.conf'
-    test -f "$CONFIG" || return 0
+    if [ -z "$3" ]; then
+        CONFIG="$HOME/.config/plowshare/plowshare.conf"
+        test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
+    else
+        CONFIG=$3
+    fi
 
     # Strip spaces in options
     OPTIONS=$(strip_and_drop_empty_lines "$2")
@@ -2412,24 +2416,29 @@ process_configfile_options() {
 # $1: section name in ini-style file ("General" will be considered too)
 # $2: module name
 # $3: option family name (string, example:DOWNLOAD)
+# $4 (optional): user specified configuration file
 process_configfile_module_options() {
     local CONFIG OPTIONS SECTION OPTION LINE VALUE
 
-    CONFIG="$HOME/.config/plowshare/plowshare.conf"
-    if [ -f "$CONFIG" ]; then
-        if [ -O "$CONFIG" ]; then
-            # First 10 characters: access rights (human readable form)
-            local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
+    if [ -z "$4" ]; then
+        CONFIG="$HOME/.config/plowshare/plowshare.conf"
+        if [ -f "$CONFIG" ]; then
+            if [ -O "$CONFIG" ]; then
+                # First 10 characters: access rights (human readable form)
+                local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
 
-            if [[ ${FILE_PERM:4:6} != '------' ]]; then
-                log_notice "Warning (configuration file permissions): chmod 600 $CONFIG"
+                if [[ ${FILE_PERM:4:6} != '------' ]]; then
+                    log_notice "Warning (configuration file permissions): chmod 600 $CONFIG"
+                fi
+            else
+                log_notice "Warning (configuration file ownership): chown $USERNAME $CONFIG"
             fi
         else
-            log_notice "Warning (configuration file ownership): chown $USERNAME $CONFIG"
+            CONFIG='/etc/plowshare.conf'
+            test -f "$CONFIG" || return 0
         fi
     else
-        CONFIG='/etc/plowshare.conf'
-        test -f "$CONFIG" || return 0
+        CONFIG=$4
     fi
 
     log_report "use $CONFIG"

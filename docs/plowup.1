@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "April 21, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowup" "1" "August 18, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowup \- Simple upload manager for file-sharing websites
@@ -216,7 +216,13 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 Do not use curl config file (~/.curlrc).
 .TP
 .B "   " --no-plowsharerc
-Do not use local or global config file (plowshare.conf).
+Do not consider any configuration file.
+.TP
+.BI "   " " " --plowsharerc "=FILE"
+Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
+This option has no effect when
+.I --no-plowsharerc
+is defined.
 .SS Generic program information
 .TP
 .B -h, --help
