@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-
 VERSION='GIT-snapshot'
 OPTIONS="
 HELP,h,help,,Show help info
@@ -41,8 +40,7 @@ CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u\".
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
 
 
 # This function is duplicated from download.sh

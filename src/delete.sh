@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-
 VERSION='GIT-snapshot'
 OPTIONS="
 HELP,h,help,,Show help info
@@ -26,8 +25,7 @@ GETVERSION,,version,,Return plowdel version
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
 
 
 # This function is duplicated from download.sh
@@ -85,7 +83,7 @@ done
 match '--no-plowsharerc' "$*" || \
     process_configfile_options '[Pp]lowdel' "$OPTIONS"
 
-# Process plowup options
+# Process plowdel options
 eval "$(process_core_options 'plowdel' "$OPTIONS" "$@")" || exit
 
 # Verify verbose level

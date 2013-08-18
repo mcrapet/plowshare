@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-
 VERSION='GIT-snapshot'
 OPTIONS="
 HELP,h,help,,Show help info
@@ -50,8 +49,7 @@ SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
 
 
 # Translate to absolute path (like GNU "readlink -f")

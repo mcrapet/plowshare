@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-
 VERSION='GIT-snapshot'
 OPTIONS="
 HELP,h,help,,Show help info
@@ -29,8 +28,7 @@ INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
 
 
 # This function is duplicated from download.sh
@@ -171,7 +169,7 @@ done
 match '--no-plowsharerc' "$*" || \
     process_configfile_options '[Pp]lowlist' "$OPTIONS"
 
-# Process plowup options
+# Process plowlist options
 eval "$(process_core_options 'plowlist' "$OPTIONS" "$@")" || exit
 
 # Verify verbose level
@@ -185,7 +183,7 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if [ $# -lt 1 ]; then
-    log_error "plowlist: no URL specified!"
+    log_error "plowlist: no folder URL specified!"
     log_error "plowlist: try \`plowlist --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -196,12 +194,6 @@ fi
 
 # Print chosen options
 [ -n "$RECURSE" ] && log_debug "plowlist: --recursive selected"
-
-if [ $# -lt 1 ]; then
-    log_error "plowlist: no folder URL specified!"
-    log_error "plowlist: try \`plowlist --help' for more information."
-    exit $ERR_BAD_COMMAND_LINE
-fi
 
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 
