@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 2share.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -32,6 +32,8 @@ MODULE_2SHARED_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_2SHARED_DELETE_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
+
+MODULE_2SHARED_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -182,4 +184,34 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
         -d 'resultMode=2&password=&description=&publisher=' \
         "$URL" || return
     # Can't parse for success, we get redirected to main page
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: 2shared.com url
+# $3: requested capability list
+2shared_probe() {
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT FILE_SIZE
+
+    PAGE=$(curl --location "$URL") || return
+
+    # The file link that you requested is not valid.
+    if match "file link that you requested is not valid" "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        echo "$PAGE" | parse_tag h1 | html_to_utf8 && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(echo "$PAGE" | parse '>File size' \
+            '^[[:blank:]]*\([[:digit:]]\+\(.[[:digit:]]\+\)\?[[:space:]][KMG]\?B\)' 1) &&
+            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }
