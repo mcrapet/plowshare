@@ -18,12 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
+declare -r VERSION='GIT-snapshot'
 
-VERSION='GIT-snapshot'
-OPTIONS="
+declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowup version
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
+
+declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
@@ -40,9 +43,7 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u\".
-NO_CURLRC,,no-curlrc,,Do not use curlrc config file
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
 # This function is duplicated from download.sh
@@ -69,7 +70,7 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Print usage
+# Print usage (on stdout)
 # Note: $MODULES is a multi-line list
 usage() {
     echo 'Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] URL|FILE[:DESTNAME]...'
@@ -79,7 +80,7 @@ usage() {
     echo
     echo 'Global options:'
     echo
-    print_options "$OPTIONS"
+    print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
     test -z "$1" || print_module_options "$MODULES" UPLOAD
 }
 
@@ -208,12 +209,23 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options. Command-line is not parsed yet.
-match '--no-plowsharerc' "$*" || \
-    process_configfile_options '[Pp]lowup' "$OPTIONS"
+# Process command-line (plowup early options)
+eval "$(process_core_options 'plowup' "$EARLY_OPTIONS" "$@")" || exit
 
-# Process plowup options
-eval "$(process_core_options 'plowup' "$OPTIONS" "$@")" || exit
+test "$HELPFULL" && { usage 1; exit 0; }
+test "$HELP" && { usage; exit 0; }
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+
+# Get configuration file options. Command-line is partially parsed.
+test -z "$NO_PLOWSHARERC" && \
+    process_configfile_options '[Pp]lowup' "$MAIN_OPTIONS"
+
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process command-line (plowup options).
+# Note: Ignore returned UNUSED_ARGS[@], it will be empty.
+eval "$(process_core_options 'plowup' "$MAIN_OPTIONS" "${UNUSED_OPTS[@]}")" || exit
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -221,10 +233,6 @@ if [ -n "$QUIET" ]; then
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
 fi
-
-test "$HELPFULL" && { usage 1; exit 0; }
-test "$HELP" && { usage; exit 0; }
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if [ $# -lt 1 ]; then
     log_error "plowup: no module specified!"
@@ -264,12 +272,9 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug "using local ~/.curlrc"
 fi
 
-declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
-
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
-COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
-# Process modules options
+# Process command-line (all module options)
 eval "$(process_all_modules_options 'plowup' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit
 

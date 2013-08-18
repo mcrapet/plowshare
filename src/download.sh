@@ -18,12 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
+declare -r VERSION='GIT-snapshot'
 
-VERSION='GIT-snapshot'
-OPTIONS="
+declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowdown version
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
+
+declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,Check if a link exists and return
@@ -49,9 +52,7 @@ POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being 
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
-NO_CURLRC,,no-curlrc,,Do not use curlrc config file
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
 # Translate to absolute path (like GNU "readlink -f")
@@ -102,7 +103,7 @@ process_item() {
     fi
 }
 
-# Print usage
+# Print usage (on stdout)
 # Note: $MODULES is a multi-line list
 usage() {
     echo 'Usage: plowdown [OPTIONS] [MODULE_OPTIONS] URL|FILE [URL|FILE ...]'
@@ -112,7 +113,7 @@ usage() {
     echo
     echo 'Global options:'
     echo
-    print_options "$OPTIONS"
+    print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
     test -z "$1" || print_module_options "$MODULES" DOWNLOAD
 }
 
@@ -717,12 +718,23 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options. Command-line is not parsed yet.
-match '--no-plowsharerc' "$*" || \
-    process_configfile_options '[Pp]lowdown' "$OPTIONS"
+# Process command-line (plowdown early options)
+eval "$(process_core_options 'plowdown' "$EARLY_OPTIONS" "$@")" || exit
 
-# Process plowdown options
-eval "$(process_core_options 'plowdown' "$OPTIONS" "$@")" || exit
+test "$HELPFULL" && { usage 1; exit 0; }
+test "$HELP" && { usage; exit 0; }
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+
+# Get configuration file options. Command-line is partially parsed.
+test -z "$NO_PLOWSHARERC" && \
+    process_configfile_options '[Pp]lowdown' "$MAIN_OPTIONS"
+
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process command-line (plowdown options).
+# Note: Ignore returned UNUSED_ARGS[@], it will be empty.
+eval "$(process_core_options 'plowdown' "$MAIN_OPTIONS" "${UNUSED_OPTS[@]}")" || exit
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -730,10 +742,6 @@ if [ -n "$QUIET" ]; then
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
 fi
-
-test "$HELPFULL" && { usage 1; exit 0; }
-test "$HELP" && { usage; exit 0; }
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if [ $# -lt 1 ]; then
     log_error "plowdown: no URL specified!"
@@ -793,12 +801,9 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug "using local ~/.curlrc"
 fi
 
-declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
-
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
-COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
-# Process modules options
+# Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdown' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit
 

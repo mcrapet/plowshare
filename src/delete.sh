@@ -18,16 +18,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
+declare -r VERSION='GIT-snapshot'
 
-VERSION='GIT-snapshot'
-OPTIONS="
+declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info
 GETVERSION,,version,,Return plowdel version
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file"
+
+declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-INTERFACE,i,interface,s=IFACE,Force IFACE network interface
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use plowshare.conf config file
-"
+INTERFACE,i,interface,s=IFACE,Force IFACE network interface"
 
 
 # This function is duplicated from download.sh
@@ -54,7 +55,7 @@ absolute_path() {
     echo "$TARGET"
 }
 
-# Print usage
+# Print usage (on stdout)
 # Note: $MODULES is a multi-line list
 usage() {
     echo 'Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL...'
@@ -64,7 +65,7 @@ usage() {
     echo
     echo 'Global options:'
     echo
-    print_options "$OPTIONS"
+    print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
     print_module_options "$MODULES" DELETE
 }
 
@@ -83,12 +84,22 @@ for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
-# Get configuration file options. Command-line is not parsed yet.
-match '--no-plowsharerc' "$*" || \
-    process_configfile_options '[Pp]lowdel' "$OPTIONS"
+# Process command-line (plowdel early options)
+eval "$(process_core_options 'plowdel' "$EARLY_OPTIONS" "$@")" || exit
 
-# Process plowup options
-eval "$(process_core_options 'plowdel' "$OPTIONS" "$@")" || exit
+test "$HELP" && { usage; exit 0; }
+test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+
+# Get configuration file options. Command-line is partially parsed.
+test -z "$NO_PLOWSHARERC" && \
+    process_configfile_options '[Pp]lowdel' "$MAIN_OPTIONS"
+
+declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
+COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
+
+# Process command-line (plowdel options).
+# Note: Ignore returned UNUSED_ARGS[@], it will be empty.
+eval "$(process_core_options 'plowdel' "$MAIN_OPTIONS" "${UNUSED_OPTS[@]}")" || exit
 
 # Verify verbose level
 if [ -n "$QUIET" ]; then
@@ -97,21 +108,15 @@ elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
 fi
 
-test "$HELP" && { usage; exit 0; }
-test "$GETVERSION" && { echo "$VERSION"; exit 0; }
-
 if [ $# -lt 1 ]; then
     log_error "plowdel: no URL specified!"
     log_error "plowdel: try \`plowdel --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
-
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
-COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
 
-# Process modules options
+# Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdel' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit
 
