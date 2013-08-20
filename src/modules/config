@@ -26,7 +26,7 @@ filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
 hotfile         | download | upload |        | list | probe |
-jheberg         |          | upload |        | list |       |
+jheberg         |          | upload |        | list | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
