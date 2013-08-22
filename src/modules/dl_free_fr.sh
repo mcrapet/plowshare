@@ -137,6 +137,11 @@ dl_free_fr_download() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
+    # Bad link
+    if match '^HTTP/1.1 404' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
     # Free is your ISP, this is direct download
     if match '^HTTP/1.1 206' "$PAGE"; then
         test "$CHECK_LINK" && return 0
