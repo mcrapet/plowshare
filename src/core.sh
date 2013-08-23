@@ -2675,7 +2675,7 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, e, f, l, n, N, r, s, S, V)
+# $2: format (a, e, f, F, l, n, N, r, s, S, V)
 # $3: option value (string)
 # $4: option name (used for error reporting only)
 # $?: return 0 for success
