@@ -22,6 +22,7 @@ declare -r VERSION='GIT-snapshot'
 
 declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info
+HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowlist version
 EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
@@ -70,7 +71,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
-    print_module_options "$MODULES" LIST
+    test -z "$1" || print_module_options "$MODULES" LIST
 }
 
 # Plowlist printf format
@@ -174,6 +175,7 @@ done
 # Process command-line (plowlist early options)
 eval "$(process_core_options 'plowlist' "$EARLY_OPTIONS" "$@")" || exit
 
+test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
