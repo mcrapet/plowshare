@@ -37,8 +37,8 @@ It acts like a web browser, retrieving pages and filling HTML forms.
 
 Currently supported hosting sites list is available in README file.
 
-Some sites may require authentication for deleting files.
-See specific module options below.
+Some sites may require authentication (login) for deleting files. See specific module options below.
+Login process may sometimes require captcha solving.
 
 .\" ****************************************************************************
 .\" * Options                                                                  *
@@ -49,6 +49,70 @@ See specific module options below.
 .TP
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
+.SS Captcha options
+.TP
+.BI "   " " " --9kweu "=KEY"
+Use 9kw.eu service to solve captchas.
+.TP
+.BI "   " " " --antigate "=KEY"
+Use Antigate.com service to solve captchas.
+.TP
+.BI "   " " " --captchabhood "=USER:PASSWORD"
+Use Captcha Brotherhood service to solve captchas.
+.TP
+.BI "   " " " --deathbycaptcha "=USER:PASSWORD"
+Use Death by Captcha service to solve captchas.
+.TP
+.BI "   " " " --captchamethod "=METHOD"
+Force specific captcha solving method. Available values:
+.RS
+\fBimgur\fR : upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
+.RE
+.RS
+\fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
+.RE
+.RS
+\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+.RE
+.RS
+\fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for FB viewer: fim.
+.RE
+.RS
+\fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
+.RE
+.RS
+\fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
+.RE
+.TP
+.BI "   " " " --captchaprogram "=PROGRAM"
+Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
+
+Three arguments are given:
+.RS
+\fB$1\fR
+module name (lowercase). For example: \fImediafire\fR.
+.RE
+.RS
+\fB$2\fR
+image filename (with full path).
+.RE
+.RS
+\fB$3\fR
+hint or captcha type (string). For example: \fIrecaptcha\fR, \fIsolvemedia\fR or \fIdigits-4\fR.
+
+Return value and exit status:
+.RE
+.RS
+\fB0\fR : solving success. Result must be printed on stdout.
+.RE
+.RS
+\fB2\fR : external solver is not able to solve requested captcha. Let plowdel continue solving it normally (will consider \fI--captchamethod\fP if specified).
+.RE
+.RS
+\fB7\fR : external solver failed.
+
+Note: plowdel legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
+.RE
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"

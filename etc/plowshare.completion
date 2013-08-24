@@ -121,7 +121,7 @@ _plowdel()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|--auth|--auth-free)
+        -a|-b|--auth|--auth-free|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
@@ -129,7 +129,11 @@ _plowdel()
             _available_interfaces -a
             return 0
             ;;
-        --plowsharerc)
+        --captchamethod)
+            COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
+            return 0
+            ;;
+        --captchaprogram|--plowsharerc)
             _filedir
             return 0
             ;;
@@ -137,6 +141,7 @@ _plowdel()
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
+            --9kweu --antigate --captchabhood --deathbycaptcha --captchamethod --captchaprogram \
             -v -q -i --interface --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected

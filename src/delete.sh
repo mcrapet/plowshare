@@ -30,7 +30,13 @@ NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-INTERFACE,i,interface,s=IFACE,Force IFACE network interface"
+INTERFACE,i,interface,s=IFACE,Force IFACE network interface
+CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
+CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
+CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
+CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
+CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
+CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account"
 
 
 # This function is duplicated from download.sh
@@ -123,6 +129,20 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     else
         log_notice "plowdel: using alternate configuration file"
     fi
+fi
+
+if [ -n "$CAPTCHA_PROGRAM" ]; then
+    log_debug "plowdel: --captchaprogram selected"
+fi
+
+if [ -n "$CAPTCHA_METHOD" ]; then
+    captcha_method_translate "$CAPTCHA_METHOD" || exit
+    log_notice "plowdel: force captcha method ($CAPTCHA_METHOD)"
+else
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowdel: --9kweu selected"
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdel: --antigate selected"
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowdel: --captchabhood selected"
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdel: --deathbycaptcha selected"
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
