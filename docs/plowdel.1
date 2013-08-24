@@ -49,9 +49,6 @@ See specific module options below.
 .TP
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
-.TP
-.B "   " --no-plowsharerc
-Do not use local or global config file (plowshare.conf).
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
@@ -74,6 +71,10 @@ Set output verbose level:
 .TP
 .B -q, --quiet
 Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Miscellaneous options
+.TP
+.B "   " --no-plowsharerc
+Do not consider any configuration file.
 .SS Generic program information
 .TP
 .B -h, --help
