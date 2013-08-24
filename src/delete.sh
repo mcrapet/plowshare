@@ -21,6 +21,7 @@
 VERSION='GIT-snapshot'
 OPTIONS="
 HELP,h,help,,Show help info
+HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowdel version
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
@@ -63,7 +64,7 @@ usage() {
     echo 'Global options:'
     echo
     print_options "$OPTIONS"
-    print_module_options "$MODULES" DELETE
+    test -z "$1" || print_module_options "$MODULES" DELETE
 }
 
 #
@@ -93,6 +94,7 @@ elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
 fi
 
+test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
