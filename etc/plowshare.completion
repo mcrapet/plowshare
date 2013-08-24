@@ -29,7 +29,7 @@ _plowup()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
             -v -q -i -r -t \
             --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
             --printf --no-curlrc --no-plowsharerc' -- $cur ) )
@@ -91,7 +91,7 @@ _plowdown()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
             -v -q -i -o -m -r -t -x \
             --max-rate --interface --check-link --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
@@ -128,7 +128,7 @@ _plowdel()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
             -v -q -i --interface --no-plowsharerc' -- $cur ) )
     else
         # URL pattern expected
@@ -162,7 +162,7 @@ _plowlist()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
             -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc' -- $cur ) )
     else
         # URL pattern expected
@@ -196,7 +196,7 @@ _plowprobe()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
             -v -q -i --get-module --interface --printf --follow --no-curlrc --no-plowsharerc' -- $cur ) )
     else
         # URL pattern expected
