@@ -105,7 +105,7 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if [ $# -lt 1 ]; then
-    log_error "plowdel: no URL specified!"
+    log_error 'plowdel: no URL specified!'
     log_error "plowdel: try \`plowdel --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -113,17 +113,17 @@ fi
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
-    log_debug "plowdel: --captchaprogram selected"
+    log_debug 'plowdel: --captchaprogram selected'
 fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then
     captcha_method_translate "$CAPTCHA_METHOD" || exit
     log_notice "plowdel: force captcha method ($CAPTCHA_METHOD)"
 else
-    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowdel: --9kweu selected"
-    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdel: --antigate selected"
-    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowdel: --captchabhood selected"
-    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdel: --deathbycaptcha selected"
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug 'plowdel: --9kweu selected'
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug 'plowdel: --antigate selected'
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug 'plowdel: --captchabhood selected'
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
@@ -138,7 +138,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}" "${COMMAND_LINE_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
 
 if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
-    log_error "plowdel: no URL specified!"
+    log_error 'plowdel: no URL specified!'
     log_error "plowdel: try \`plowdel --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -186,13 +186,13 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     ${MODULE}_vars_unset
 
     if [ $DRETVAL -eq 0 ]; then
-        log_notice "File removed successfully"
+        log_notice 'File removed successfully'
     elif [ $DRETVAL -eq $ERR_LINK_NEED_PERMISSIONS ]; then
-        log_error "Anonymous users cannot delete links"
+        log_error 'Anonymous users cannot delete links'
     elif [ $DRETVAL -eq $ERR_LINK_DEAD ]; then
-        log_error "Not found or already deleted"
+        log_error 'Not found or already deleted'
     elif [ $DRETVAL -eq $ERR_LOGIN_FAILED ]; then
-        log_error "Login process failed. Bad username/password or unexpected content"
+        log_error 'Login process failed. Bad username/password or unexpected content'
     else
         log_error "Failed inside ${FUNCTION}() [$DRETVAL]"
     fi

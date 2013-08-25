@@ -223,7 +223,7 @@ download() {
 
     AWAIT=$(module_config_wait "$MODULE")
     if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* && -z "$CHECK_LINK" && -z "$SKIP_FINAL" ]]; then
-        log_notice "Same previous hoster, forced wait requested"
+        log_notice 'Same previous hoster, forced wait requested'
         wait $AWAIT || {
             log_error "Delay limit reached (${FUNCTION})";
             return $ERR_MAX_WAIT_REACHED;
@@ -263,9 +263,9 @@ download() {
                 if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                     read AWAIT <"$DRESULT"
                     if [ -z "$AWAIT" ]; then
-                        log_debug "arbitrary wait"
+                        log_debug 'arbitrary wait'
                     else
-                        log_debug "arbitrary wait (from module)"
+                        log_debug 'arbitrary wait (from module)'
                     fi
                     wait ${AWAIT:-60} || { DRETVAL=$?; break; }
                     continue
@@ -277,7 +277,7 @@ download() {
                 # Special case
                 elif [ $DRETVAL -eq $ERR_CAPTCHA -a \
                         "$CAPTCHA_METHOD" = 'none' ]; then
-                    log_debug "captcha method set to none, abort"
+                    log_debug 'captcha method set to none, abort'
                     break
                 elif (( MAX_RETRIES < ++TRY )); then
                     DRETVAL=$ERR_MAX_TRIES_REACHED
@@ -314,29 +314,29 @@ download() {
             0)
                 ;;
             $ERR_LOGIN_FAILED)
-                log_error "Login process failed. Bad username/password or unexpected content"
+                log_error 'Login process failed. Bad username/password or unexpected content'
                 return $DRETVAL
                 ;;
             $ERR_LINK_TEMP_UNAVAILABLE)
-                log_error "File link is alive but not currently available, try later"
+                log_error 'File link is alive but not currently available, try later'
                 return $DRETVAL
                 ;;
             $ERR_LINK_PASSWORD_REQUIRED)
-                log_error "You must provide a valid password"
+                log_error 'You must provide a valid password'
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" PASSWORD
                 return $DRETVAL
                 ;;
             $ERR_LINK_NEED_PERMISSIONS)
-                log_error "Insufficient permissions (private/premium link)"
+                log_error 'Insufficient permissions (private/premium link)'
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" NOPERM
                 return $DRETVAL
                 ;;
             $ERR_SIZE_LIMIT_EXCEEDED)
-                log_error "Insufficient permissions (file size limit exceeded)"
+                log_error 'Insufficient permissions (file size limit exceeded)'
                 return $DRETVAL
                 ;;
             $ERR_LINK_DEAD)
-                log_error "Link is not alive: file not found"
+                log_error 'Link is not alive: file not found'
                 mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" NOTFOUND
                 return $DRETVAL
                 ;;
@@ -357,7 +357,7 @@ download() {
                 return $DRETVAL
                 ;;
             $ERR_BAD_COMMAND_LINE)
-                log_error "Wrong module option, check your command line"
+                log_error 'Wrong module option, check your command line'
                 return $DRETVAL
                 ;;
             *)
@@ -368,7 +368,7 @@ download() {
 
         # Sanity check
         if test -z "$FILE_URL"; then
-            log_error "Output URL expected"
+            log_error 'Output URL expected'
             return $ERR_FATAL
         fi
 
@@ -380,7 +380,7 @@ download() {
 
         # Sanity check 3
         if [ "$FILE_URL" = "$FILE_NAME" ]; then
-            log_error "Output filename is wrong, check module download function"
+            log_error 'Output filename is wrong, check module download function'
             FILE_NAME=""
         fi
 
@@ -392,7 +392,7 @@ download() {
 
         if test -z "$FILE_NAME"; then
             if [[ $FILE_URL = */ ]]; then
-                log_notice "Output filename not specified, module download function might be wrong"
+                log_notice 'Output filename not specified, module download function might be wrong'
                 FILE_NAME="dummy-$$"
             else
                 FILE_NAME=$(basename_file "${FILE_URL%%\?*}" | tr -d '\r\n' | \
@@ -402,7 +402,7 @@ download() {
 
         # Sanity check 5
         if [[ $FILENAME = *$'\r'* ]]; then
-            log_debug "filename contains \r, remove it"
+            log_debug 'filename contains \r, remove it'
             FILE_NAME=${FILE_NAME//$'\r'}
         fi
 
@@ -410,12 +410,12 @@ download() {
         # http://en.wikipedia.org/wiki/Comparison_of_file_systems
         if [ "${#FILE_NAME}" -ge 255 ]; then
             FILE_NAME="${FILE_NAME:0:254}"
-            log_debug "filename is too long, truncating it"
+            log_debug 'filename is too long, truncating it'
         fi
 
         # Sanity check 6
         if [ "${FILENAME#*/}" != "$FILENAME" ]; then
-            log_debug "filename contains slashes, translate to underscore"
+            log_debug 'filename contains slashes, translate to underscore'
             FILE_NAME=${FILE_NAME//\//_}
         fi
 
@@ -535,7 +535,7 @@ download() {
             if [ "$DRETVAL" -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                 # Obtained HTTP return status are 200 and 206
                 if module_config_resume "$MODULE"; then
-                    log_notice "Partial content downloaded, recall download function"
+                    log_notice 'Partial content downloaded, recall download function'
                     continue
                 fi
                 DRETVAL=$ERR_NETWORK
@@ -560,9 +560,9 @@ download() {
                 # We should do a HTTP HEAD request to check file length but
                 # a lot of hosters do not allow it.
                 if module_config_resume "$MODULE"; then
-                    log_error "Resume error (bad range), skip download"
+                    log_error 'Resume error (bad range), skip download'
                 else
-                    log_error "Resume error (bad range), restart download"
+                    log_error 'Resume error (bad range), restart download'
                     rm -f "$FILENAME_TMP"
                     continue
                 fi
@@ -725,7 +725,7 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if [ $# -lt 1 ]; then
-    log_error "plowdown: no URL specified!"
+    log_error 'plowdown: no URL specified!'
     log_error "plowdown: try \`plowdown --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -737,7 +737,7 @@ if [ -n "$TEMP_DIR" ]; then
     log_notice "Temporary directory: ${TEMP_DIR%/}"
     mkdir -p "$TEMP_DIR"
     if [ ! -w "$TEMP_DIR" ]; then
-        log_error "error: no write permission"
+        log_error 'error: no write permission'
         exit $ERR_SYSTEM
     fi
 fi
@@ -746,15 +746,15 @@ if [ -n "$OUTPUT_DIR" ]; then
     log_notice "Output directory: ${OUTPUT_DIR%/}"
     mkdir -p "$OUTPUT_DIR"
     if [ ! -w "$OUTPUT_DIR" ]; then
-        log_error "error: no write permission"
+        log_error 'error: no write permission'
         exit $ERR_SYSTEM
     fi
 elif [ ! -w "$PWD" ]; then
-    test "$CHECK_LINK" || log_notice "Warning: Current directory is not writable!"
+    test "$CHECK_LINK" || log_notice 'Warning: Current directory is not writable!'
 fi
 
 if [ -n "$GLOBAL_COOKIES" ]; then
-    log_notice "plowdown: using provided cookies file"
+    log_notice 'plowdown: using provided cookies file'
 fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
@@ -762,24 +762,24 @@ if [ -n "$PRINTF_FORMAT" ]; then
 fi
 
 # Print chosen options
-[ -n "$NOOVERWRITE" ] && log_debug "plowdown: --no-overwrite selected"
+[ -n "$NOOVERWRITE" ] && log_debug 'plowdown: --no-overwrite selected'
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
-    log_debug "plowdown: --captchaprogram selected"
+    log_debug 'plowdown: --captchaprogram selected'
 fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then
     captcha_method_translate "$CAPTCHA_METHOD" || exit
     log_notice "plowdown: force captcha method ($CAPTCHA_METHOD)"
 else
-    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowdown: --9kweu selected"
-    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdown: --antigate selected"
-    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowdown: --captchabhood selected"
-    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdown: --deathbycaptcha selected"
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug 'plowdown: --9kweu selected'
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug 'plowdown: --antigate selected'
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug 'plowdown: --captchabhood selected'
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdown: --deathbycaptcha selected'
 fi
 
 if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
-    log_debug "using local ~/.curlrc"
+    log_debug 'using local ~/.curlrc'
 fi
 
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
@@ -796,7 +796,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}" "${COMMAND_LINE_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
 
 if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
-    log_error "plowdown: no URL specified!"
+    log_error 'plowdown: no URL specified!'
     log_error "plowdown: try \`plowdown --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -835,7 +835,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             if match_remote_url "$URL"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
-                log_debug "No module found, try simple redirection"
+                log_debug 'No module found, try simple redirection'
 
                 URL_ENCODED=$(uri_encode <<< "$URL")
                 HEADERS=$(curl --user-agent '' --head "$URL_ENCODED") || true
@@ -845,7 +845,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                     MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
                     test "$MODULE" && URL="$URL_TEMP"
                 elif test "$NO_MODULE_FALLBACK"; then
-                    log_notice "No module found, do a simple HTTP GET as requested"
+                    log_notice 'No module found, do a simple HTTP GET as requested'
                     MODULE='module_null'
                 else
                     match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \

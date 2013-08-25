@@ -236,7 +236,7 @@ if [ -n "$PRINTF_FORMAT" ]; then
 fi
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
-    log_debug "plowup: --captchaprogram selected"
+    log_debug 'plowup: --captchaprogram selected'
 fi
 
 if [ -n "$CAPTCHA_METHOD" ]; then
@@ -267,7 +267,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}" "${COMMAND_LINE_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
 
 if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
-    log_error "plowup: no module specified!"
+    log_error 'plowup: no module specified!'
     log_error "plowup: try \`plowup --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -279,7 +279,7 @@ MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
 }
 
 if [ ${#COMMAND_LINE_ARGS[@]} -lt 2 ]; then
-    log_error "plowup: you must specify a filename."
+    log_error 'plowup: you must specify a filename.'
     log_error "plowup: try \`plowup --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -386,9 +386,9 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         if [ $URETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
             read AWAIT <"$URESULT" || true
             if [ -z "$AWAIT" ]; then
-                log_debug "arbitrary wait"
+                log_debug 'arbitrary wait'
             else
-                log_debug "arbitrary wait (from module)"
+                log_debug 'arbitrary wait (from module)'
             fi
             wait ${AWAIT:-60} || { URETVAL=$?; break; }
         elif [[ $MAXRETRIES -eq 0 ]]; then
@@ -398,7 +398,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
             break
         # Special case
         elif [ $URETVAL -eq $ERR_CAPTCHA -a "$CAPTCHA_METHOD" = 'none' ]; then
-            log_debug "captcha method set to none, abort"
+            log_debug 'captcha method set to none, abort'
             break
         elif (( MAXRETRIES < ++TRY )); then
             URETVAL=$ERR_MAX_TRIES_REACHED
@@ -424,21 +424,21 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
                   "$DL_URL" "$DEL_URL" "$ADMIN_URL_OR_CODE")
             pretty_print DATA[@] "${PRINTF_FORMAT:-%D%A%u}"
         else
-            log_error "Output URL expected"
+            log_error 'Output URL expected'
             URETVAL=$ERR_FATAL
         fi
     elif [ $URETVAL -eq $ERR_LINK_NEED_PERMISSIONS ]; then
-        log_error "Insufficient permissions. Anonymous users cannot upload files?"
+        log_error 'Insufficient permissions. Anonymous users cannot upload files?'
     elif [ $URETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
-        log_error "Upload feature seems disabled from upstream now"
+        log_error 'Upload feature seems disabled from upstream now'
     elif [ $URETVAL -eq $ERR_LOGIN_FAILED ]; then
-        log_error "Login process failed. Bad username/password or unexpected content"
+        log_error 'Login process failed. Bad username/password or unexpected content'
     elif [ $URETVAL -eq $ERR_SIZE_LIMIT_EXCEEDED ]; then
-        log_error "Insufficient permissions (file size limit exceeded)"
+        log_error 'Insufficient permissions (file size limit exceeded)'
     elif [ $URETVAL -eq $ERR_MAX_TRIES_REACHED ]; then
         log_error "Retry limit reached (max=$MAXRETRIES)"
     elif [ $URETVAL -eq $ERR_BAD_COMMAND_LINE ]; then
-        log_error "Wrong module option, check your command line"
+        log_error 'Wrong module option, check your command line'
     else
         log_error "Failed inside ${FUNCTION}() [$URETVAL]"
     fi
