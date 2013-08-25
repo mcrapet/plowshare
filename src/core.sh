@@ -2491,8 +2491,7 @@ stderr() {
 
 # This function shell-quotes the argument ($1)
 # Note: Taken from /etc/bash_completion
-quote()
-{
+quote() {
     echo \'${1//\'/\'\\\'\'}\' #'# Help vim syntax highlighting
 }
 
