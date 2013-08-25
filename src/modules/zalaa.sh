@@ -118,7 +118,7 @@ zalaa_upload() {
 
     # Sanity check. Avoid failure after effective upload
     if match '>404 Not Found<' "$PAGE"; then
-        log_error "upstream error (404)"
+        log_error 'upstream error (404)'
         return $ERR_FATAL
     fi
 
@@ -171,7 +171,7 @@ zalaa_list() {
 
     # check whether it looks like a folder link
     if ! match "${MODULE_ZALAA_REGEXP_URL}users/" "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

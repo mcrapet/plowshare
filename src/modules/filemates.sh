@@ -118,7 +118,7 @@ filemate_check_folder() {
     FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
         replace '&nbsp;' '') || return
     if [ -z "$FOLDERS" ]; then
-        log_error "No folder found, site updated?"
+        log_error 'No folder found, site updated?'
         return $ERR_FATAL
     fi
 

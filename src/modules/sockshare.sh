@@ -490,7 +490,7 @@ sockshare_upload_form() {
                 "$UP_SCRIPT") || return
 
         if [ "$PAGE" != 'cool story bro' ]; then
-            log_error "Unexpected response"
+            log_error 'Unexpected response'
             return $ERR_FATAL
         fi
 

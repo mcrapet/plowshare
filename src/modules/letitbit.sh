@@ -591,7 +591,7 @@ letitbit_list() {
 
     # check whether it looks like a folder link
     if ! match "${MODULE_LETITBIT_REGEXP_URL}folder/" "$URL"; then
-        log_error "This is not a directory list."
+        log_error 'This is not a directory list.'
         return $ERR_FATAL
     fi
 

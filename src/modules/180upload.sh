@@ -159,7 +159,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 
     # Sanity check. Avoid failure after effective upload
     if match '>404 Not Found<' "$PAGE"; then
-        log_error "upstream error (404)"
+        log_error 'upstream error (404)'
         return $ERR_FATAL
     fi
 

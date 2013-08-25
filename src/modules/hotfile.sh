@@ -48,7 +48,7 @@ hotfile_download() {
     local FILE_URL ROLE WAIT_HTML WAIT_HTML2 WAIT_TIME PAGE LINK
 
     if match 'hotfile\.com/list/' "$URL"; then
-        log_error "This is a directory list, use plowlist!"
+        log_error 'This is a directory list, use plowlist!'
         return $ERR_FATAL
     fi
 
@@ -169,14 +169,14 @@ hotfile_download() {
 
         if match 'Wrong Code. Please try again.' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         LINK=$(echo "$PAGE" | parse_attr 'click_download' 'href')
         if [ -n "$LINK" ]; then
             captcha_ack $ID
-            log_debug "correct captcha"
+            log_debug 'correct captcha'
 
             FILE_URL=$(curl -b "$COOKIE_FILE" --include "$LINK" | grep_http_header_location)
             echo "$FILE_URL"
@@ -184,7 +184,7 @@ hotfile_download() {
         fi
     fi
 
-    log_error "Unknown state, give up!"
+    log_error 'Unknown state, give up!'
     return $ERR_FATAL
 }
 
@@ -252,7 +252,7 @@ hotfile_list() {
     local PAGE NUM LINKS NAMES
 
     if ! match 'hotfile\.com/list/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

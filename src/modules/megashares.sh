@@ -172,7 +172,7 @@ megashares_download() {
 
         if [ "${#WORD}" -lt 4 ]; then
             captcha_nack $ID
-            log_debug "captcha length invalid"
+            log_debug 'captcha length invalid'
             return $ERR_CAPTCHA
         elif [ "${#WORD}" -gt 4 ]; then
             WORD="${WORD:0:4}"
@@ -194,12 +194,12 @@ megashares_download() {
 
         if ! match 'Thank you for reactivating your passport' "$VALIDATE_PASSPORT"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
     fi
 
     QUOTA_LEFT=`parse_kilobytes $(echo "$PAGE" | grep '[KMG]B' | last_line)`
@@ -207,7 +207,7 @@ megashares_download() {
 
     # This link's filesize is larger than what you have left on your Passport.
     if [ "$QUOTA_LEFT" -lt "$FILE_SIZE" ]; then
-        log_error "Cannot retrieve file entirely, but start anyway"
+        log_error 'Cannot retrieve file entirely, but start anyway'
         log_debug "quota left: $QUOTA_LEFT (required: $FILE_SIZE)"
     fi
 
@@ -256,7 +256,7 @@ megashares_upload() {
         CAT_ALL=$(echo "$PAGE" | parse_all_attr option value) || return
 
         if [ -z "$CAT_ALL" ]; then
-            log_error "No categories found, site updated?"
+            log_error 'No categories found, site updated?'
             return $ERR_FATAL
         fi
 
@@ -377,7 +377,7 @@ megashares_delete() {
     if matchi 'already been deleted\|link not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     elif ! match 'id="deleteConfirm"' "$PAGE"; then
-        log_error "This is not a delete link"
+        log_error 'This is not a delete link'
         return $ERR_FATAL
     fi
 

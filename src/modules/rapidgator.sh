@@ -110,7 +110,7 @@ rapidgator_check_folder() {
     # <option value="ID">NAME</option>
     FOLDERS=$(echo "$HTML" | parse_all_tag option) || return
     if [ -z "$FOLDERS" ]; then
-        log_error "No folder found, site updated?"
+        log_error 'No folder found, site updated?'
         return $ERR_FATAL
     fi
 
@@ -295,7 +295,7 @@ rapidgator_download() {
         log_error "Remote error: $(echo "$JSON" | parse_json 'code')"
         return $ERR_FATAL
     elif [ "$STATE" != 'done' ]; then
-        log_error "Unexpected state. Site updated?"
+        log_error 'Unexpected state. Site updated?'
         return $ERR_FATAL
     fi
 
@@ -633,7 +633,7 @@ rapidgator_list() {
     local PAGE LINKS NAMES
 
     if ! match "${MODULE_RAPIDGATOR_REGEXP_URL}folder/" "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

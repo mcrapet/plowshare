@@ -281,7 +281,7 @@ elif [ -z "$VERBOSE" ]; then
 fi
 
 if [ $# -lt 1 ]; then
-    log_error "plowprobe: no URL specified!"
+    log_error 'plowprobe: no URL specified!'
     log_error "plowprobe: try \`plowprobe --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -291,9 +291,9 @@ log_report "plowprobe version $VERSION"
 
 if [ -n "$EXT_PLOWSHARERC" ]; then
     if [ -n "$NO_PLOWSHARERC" ]; then
-        log_notice "plowprobe: --no-plowsharerc selected and prevails over --plowsharerc"
+        log_notice 'plowprobe: --no-plowsharerc selected and prevails over --plowsharerc'
     else
-        log_notice "plowprobe: using alternate configuration file"
+        log_notice 'plowprobe: using alternate configuration file'
     fi
 fi
 
@@ -302,7 +302,7 @@ if [ -n "$PRINTF_FORMAT" ]; then
 fi
 
 if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
-    log_debug "using local ~/.curlrc"
+    log_debug 'using local ~/.curlrc'
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" PROBE)
@@ -316,7 +316,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}" "${COMMAND_LINE_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
 
 if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
-    log_error "plowprobe: no URL specified!"
+    log_error 'plowprobe: no URL specified!'
     log_error "plowprobe: try \`plowprobe --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -358,7 +358,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             if match_remote_url "$URL" && test "$TRY_REDIRECTION"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
-                log_debug "No module found, try simple redirection"
+                log_debug 'No module found, try simple redirection'
 
                 URL_ENCODED=$(uri_encode <<< "$URL")
                 HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true

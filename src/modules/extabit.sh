@@ -147,7 +147,7 @@ extabit_download() {
 
     # Sanity check
     [ -z "$JSON" ] && \
-        log_error "Bad state. Empty answer"
+        log_error 'Bad state. Empty answer'
 
     #{"err":"Entered digits are incorrect."}
     #{"ok":true,"href":"?af"}
@@ -156,12 +156,12 @@ extabit_download() {
         test "$ERR" && log_error "Remote error: $ERR"
 
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'correct captcha'
 
     QUERY=$(echo "$JSON" | parse_json href) || return
     PAGE=$(curl --get -b "$COOKIE_FILE" -b 'language=en' \

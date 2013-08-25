@@ -233,7 +233,7 @@ rapidshare_delete() {
     fi
 
     if [ -z "$FILEID" ]; then
-        log_error "cannot parse fileid from URL"
+        log_error 'cannot parse fileid from URL'
         return $ERR_FATAL
     fi
 

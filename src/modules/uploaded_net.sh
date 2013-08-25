@@ -529,7 +529,7 @@ uploaded_net_list() {
 
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADED_NET_REGEXP_URL}f\(older\)\?/" "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

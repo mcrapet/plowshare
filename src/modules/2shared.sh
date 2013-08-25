@@ -140,7 +140,7 @@ MODULE_2SHARED_PROBE_OPTIONS=""
 
     # Your upload has successfully completed!
     if ! match "upload has successfully completed" "$PAGE"; then
-        log_error "upload failure"
+        log_error 'upload failure'
         return $ERR_FATAL
     fi
 

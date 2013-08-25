@@ -115,7 +115,7 @@ cramit_download() {
 
     # Check for password protected link
     if match '"password"' "$PAGE"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
@@ -148,12 +148,12 @@ cramit_download() {
 
         if match 'File location :' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
 
     elif match '<p class="err">' "$PAGE"; then
         # You have to wait X minutes before your next download
@@ -187,7 +187,7 @@ cramit_download() {
             "$URL" | break_html_lines_alt) || return
 
     else
-        log_error "Unexpected content, site updated?"
+        log_error 'Unexpected content, site updated?'
         return $ERR_FATAL
     fi
 
@@ -280,7 +280,7 @@ cramit_list() {
     local RET=0
 
     if ! match '/user/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

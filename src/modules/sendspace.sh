@@ -204,7 +204,7 @@ sendspace_list() {
     local PAGE LINKS NAMES
 
     if ! match 'sendspace\.com/folder/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

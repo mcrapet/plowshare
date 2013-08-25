@@ -77,7 +77,7 @@ jheberg_list() {
     local JSON NAMES DL_ID URL2 HOSTER
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 

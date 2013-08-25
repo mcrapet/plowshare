@@ -49,7 +49,7 @@ mirorii_upload() {
     SITES_ALL_ID=$(echo "$FORM_HTML" | parse_all_attr '[[:space:]]name=.site.[[:space:]]' id)
 
     if [ -z "$SITES_ALL_ID" ]; then
-        log_error "Empty list, site updated?"
+        log_error 'Empty list, site updated?'
         return $ERR_FATAL
     else
         log_debug "Available sites:" $SITES_ALL_ID
@@ -60,7 +60,7 @@ mirorii_upload() {
     SITES_SEL_ID=$(echo "$FORM_HTML" | parse_all_attr '[[:space:]]checked[[:space:]]' id)
 
     if [ -z "$SITES_SEL_ID" ]; then
-        log_debug "Empty site selection. Nowhere to upload!"
+        log_debug 'Empty site selection. Nowhere to upload!'
         return $ERR_FATAL
     fi
 
@@ -89,7 +89,7 @@ mirorii_list() {
     local PAGE LINKS LINK
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 

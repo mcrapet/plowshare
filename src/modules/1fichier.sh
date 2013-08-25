@@ -159,7 +159,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         'tenvoi.com' 'dl4free.com' )
 
     if [[ $DOMAIN_ID -gt 10 || $DOMAIN_ID -lt 0 ]]; then
-        log_error "Bad domain ID response, maybe API updated?"
+        log_error 'Bad domain ID response, maybe API updated?'
         return $ERR_FATAL
     fi
 
@@ -191,7 +191,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     # <div style="width:250px;margin:25px;padding:25px">The file has been destroyed</div>
     if ! match 'file has been' "$PAGE"; then
-        log_debug "unexpected result, site updated?"
+        log_debug 'unexpected result, site updated?'
         return $ERR_FATAL
     fi
 }
@@ -205,7 +205,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     local PAGE LINKS NAMES
 
     if ! match '/dir/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

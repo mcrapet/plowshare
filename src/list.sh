@@ -198,16 +198,16 @@ elif [ -z "$VERBOSE" ]; then
 fi
 
 if [ $# -lt 1 ]; then
-    log_error "plowlist: no folder URL specified!"
+    log_error 'plowlist: no folder URL specified!'
     log_error "plowlist: try \`plowlist --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
 
 if [ -n "$EXT_PLOWSHARERC" ]; then
     if [ -n "$NO_PLOWSHARERC" ]; then
-        log_notice "plowlist: --no-plowsharerc selected and prevails over --plowsharerc"
+        log_notice 'plowlist: --no-plowsharerc selected and prevails over --plowsharerc'
     else
-        log_notice "plowlist: using alternate configuration file"
+        log_notice 'plowlist: using alternate configuration file'
     fi
 fi
 
@@ -216,7 +216,7 @@ if [ -n "$PRINTF_FORMAT" ]; then
 fi
 
 # Print chosen options
-[ -n "$RECURSE" ] && log_debug "plowlist: --recursive selected"
+[ -n "$RECURSE" ] && log_debug 'plowlist: --recursive selected'
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
 
@@ -229,7 +229,7 @@ COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}" "${COMMAND_LINE_ARGS[@]}")
 COMMAND_LINE_MODULE_OPTS=("${UNUSED_OPTS[@]}")
 
 if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
-    log_error "plowlist: no folder URL specified!"
+    log_error 'plowlist: no folder URL specified!'
     log_error "plowlist: try \`plowlist --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
@@ -258,7 +258,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
             RETVALS=(${RETVALS[@]} $LRETVAL)
             continue
         elif test "$NO_MODULE_FALLBACK"; then
-            log_notice "No module found, list URLs in page as requested"
+            log_notice 'No module found, list URLs in page as requested'
             MODULE='module_null'
             LRETVAL=0
         else
@@ -286,13 +286,13 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     if [ $LRETVAL -eq 0 ]; then
         : # everything went fine
     elif [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
-        log_error "Non existing or empty folder"
+        log_error 'Non existing or empty folder'
         [ -z "$RECURSE" -a -z "$NO_MODULE_FALLBACK" ] && \
-            log_notice "Try adding -R/--recursive option to look into sub folders"
+            log_notice 'Try adding -R/--recursive option to look into sub folders'
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
-        log_error "You must provide a valid password"
+        log_error 'You must provide a valid password'
     elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
-        log_error "Links are temporarily unavailable. Maybe uploads are still being processed"
+        log_error 'Links are temporarily unavailable. Maybe uploads are still being processed'
     else
         log_error "Failed inside ${FUNCTION}() [$LRETVAL]"
     fi

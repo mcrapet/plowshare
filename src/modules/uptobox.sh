@@ -207,7 +207,7 @@ uptobox_download() {
         fi
     fi
 
-    log_error "Unexpected content, site updated?"
+    log_error 'Unexpected content, site updated?'
     return $ERR_FATAL
 }
 

@@ -155,9 +155,9 @@ curl() {
         "$CURL_PRG" --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
-        log_report "=== CURL BEGIN ==="
+        log_report '=== CURL BEGIN ==='
         logcat_report "$TEMPCURL"
-        log_report "=== CURL END ==="
+        log_report '=== CURL END ==='
         cat "$TEMPCURL"
         rm -f "$TEMPCURL"
     fi
@@ -937,7 +937,7 @@ html_to_utf8() {
             cat;
         }
     else
-        log_notice "recode binary not found, pass-through"
+        log_notice 'recode binary not found, pass-through'
         cat
     fi
 }
@@ -1045,7 +1045,7 @@ create_tempfile() {
 prompt_for_password() {
     local PASSWORD
 
-    log_notice "No password specified, enter it now"
+    log_notice 'No password specified, enter it now'
 
     # Unset IFS to consider trailing and leading spaces
     IFS= read -s -r -p 'Enter password: ' PASSWORD
@@ -1107,9 +1107,9 @@ post_login() {
         return $ERR_LOGIN_FAILED
     fi
 
-    log_report "=== COOKIE BEGIN ==="
+    log_report '=== COOKIE BEGIN ==='
     logcat_report "$COOKIE"
-    log_report "=== COOKIE END ==="
+    log_report '=== COOKIE END ==='
 
     if ! find_in_array CURL_ARGS[@] '-o' '--output'; then
         echo "$RESULT"
@@ -1122,7 +1122,7 @@ post_login() {
 # stdout: path of executable (if $1 is a non empty string)
 detect_javascript() {
     if ! check_exec 'js'; then
-        log_notice "Javascript interpreter not found"
+        log_notice 'Javascript interpreter not found'
         return $ERR_SYSTEM
     fi
     test -n "$1" && type -P 'js'
@@ -1142,9 +1142,9 @@ javascript() {
     cat > "$TEMPSCRIPT"
 
     log_report "interpreter:$JS_PRG"
-    log_report "=== JAVASCRIPT BEGIN ==="
+    log_report '=== JAVASCRIPT BEGIN ==='
     logcat_report "$TEMPSCRIPT"
-    log_report "=== JAVASCRIPT END ==="
+    log_report '=== JAVASCRIPT END ==='
 
     $JS_PRG "$TEMPSCRIPT"
     rm -f "$TEMPSCRIPT"
@@ -1162,7 +1162,7 @@ wait() {
     local UNIT_STR TOTAL_SECS
 
     if test "$VALUE" = '0'; then
-        log_debug "wait called with null duration"
+        log_debug 'wait called with null duration'
         return 0
     fi
 
@@ -1464,7 +1464,7 @@ captcha_process() {
             echo "9$TID"
             ;;
         antigate)
-            log_notice "Using antigate captcha recognition system"
+            log_notice 'Using antigate captcha recognition system'
 
             # Note for later: extra params can be supplied: min_len & max_len
             RESPONSE=$(curl -F 'method=post' \
@@ -1474,19 +1474,19 @@ captcha_process() {
                 'http://antigate.com/in.php') || return
 
             if [ -z "$RESPONSE" ]; then
-                log_error "antigate empty answer"
+                log_error 'antigate empty answer'
                 rm -f "$FILENAME"
                 return $ERR_NETWORK
             elif [ 'ERROR_IP_NOT_ALLOWED' = "$RESPONSE" ]; then
-                log_error "antigate error: IP not allowed"
+                log_error 'antigate error: IP not allowed'
                 rm -f "$FILENAME"
                 return $ERR_FATAL
             elif [ 'ERROR_ZERO_BALANCE' = "$RESPONSE" ]; then
-                log_error "antigate error: no credits"
+                log_error 'antigate error: no credits'
                 rm -f "$FILENAME"
                 return $ERR_FATAL
             elif [ 'ERROR_NO_SLOT_AVAILABLE' = "$RESPONSE" ]; then
-                log_error "antigate error: no slot available"
+                log_error 'antigate error: no slot available'
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             elif match 'ERROR_' "$RESPONSE"; then
@@ -1516,7 +1516,7 @@ captcha_process() {
             done
 
             if [ -z "$WORD" ]; then
-                log_error "antigate error: service not unavailable"
+                log_error 'antigate error: service not unavailable'
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
@@ -1588,7 +1588,7 @@ captcha_process() {
                 'http://api.dbcapi.me/api/captcha') || return
 
             if [ -z "$RESPONSE" ]; then
-                log_error "DeathByCaptcha empty answer"
+                log_error 'DeathByCaptcha empty answer'
                 rm -f "$FILENAME"
                 return $ERR_NETWORK
             fi
@@ -1620,7 +1620,7 @@ captcha_process() {
                         return $ERR_CAPTCHA
                     fi
                 done
-                log_error "DeathByCaptcha timeout: give up!"
+                log_error 'DeathByCaptcha timeout: give up!'
             else
                 log_error "DeathByCaptcha wrong http answer ($HTTP_CODE)"
             fi
@@ -1705,7 +1705,7 @@ recaptcha_process() {
         [ -n "$WORDS" ] && break
 
         # Reload image
-        log_debug "empty, request another image"
+        log_debug 'empty, request another image'
 
         # Result: Recaptcha.finish_reload('...', 'image');
         VARS=$(curl "${SERVER}reload?k=${1}&c=${CHALLENGE}&reason=r&type=image&lang=en") || return
@@ -1755,7 +1755,7 @@ solvemedia_captcha_process() {
 
         # Reload image?
         if [ -z "$WORDS" ]; then
-            log_debug "empty, request another image"
+            log_debug 'empty, request another image'
             XY='-d t_img.x=23 -d t_img.y=7'
         fi
 
@@ -3068,7 +3068,7 @@ service_antigate_ready() {
 
     AMOUNT=$(curl --get --data "key=${CAPTCHA_ANTIGATE}&action=getbalance" \
         'http://antigate.com/res.php') || { \
-        log_notice "antigate: site seems to be down"
+        log_notice 'antigate: site seems to be down'
         return $ERR_NETWORK
     }
 
@@ -3154,7 +3154,7 @@ service_captchadeathby_ready() {
     JSON=$(curl -F "username=$USER" -F "password=$2" \
             --header 'Accept: application/json' \
             'http://api.dbcapi.me/api/user') || { \
-        log_notice "DeathByCaptcha: site seems to be down"
+        log_notice 'DeathByCaptcha: site seems to be down'
         return $ERR_NETWORK
     }
 
@@ -3194,7 +3194,7 @@ image_upload_imgur() {
     local -r BASE_API='http://api.imgur.com/2'
     local RESPONSE DIRECT_URL SITE_URL DEL_HASH
 
-    log_debug "uploading image to Imgur.com"
+    log_debug 'uploading image to Imgur.com'
 
     # Plowshare API key for Imgur
     RESPONSE=$(curl -F "image=@$IMG" -H 'Expect: ' \
@@ -3231,7 +3231,7 @@ image_delete_imgur() {
     local -r BASE_API='http://api.imgur.com/2'
     local RESPONSE MSG
 
-    log_debug "deleting image from Imgur.com"
+    log_debug 'deleting image from Imgur.com'
     RESPONSE=$(curl "$BASE_API/delete/$HID.json") || return
     MSG=$(echo "$RESPONSE" | parse_json_quiet message)
     if [ "$MSG" != 'Success' ]; then

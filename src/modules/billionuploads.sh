@@ -65,7 +65,7 @@ billionuploads_download() {
     FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
     # TODO extract exact time to wait to not trigger Skipped countdown error
-    log_debug "Waiting 3 seconds to not trigger Skipped countdown error."
+    log_debug 'Waiting 3 seconds to not trigger Skipped countdown error.'
     wait 3 seconds
 
     PAGE=$(curl -b "$COOKIE_FILE" \
@@ -139,7 +139,7 @@ billionuploads_upload() {
 
     # Sanity check. Avoid failure after effective upload
     if match '>404 Not Found<' "$PAGE"; then
-        log_error "upstream error (404)"
+        log_error 'upstream error (404)'
         return $ERR_FATAL
     fi
 

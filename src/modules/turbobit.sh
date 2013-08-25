@@ -382,7 +382,7 @@ turbobit_delete() {
 
     # You can't remove this file - code is incorrect
     if match 'code is incorrect' "$PAGE"; then
-        log_error "bad deletion code"
+        log_error 'bad deletion code'
         return $ERR_FATAL
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
@@ -406,7 +406,7 @@ turbobit_list() {
     local PAGE QUERY_URL FOLDER_ID JSON LINKS NAMES
 
     if ! match '/folder/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

@@ -68,7 +68,7 @@ ziddu_download() {
     local FORM_FID FORM_TID FORM_FNAME
 
     if ! match '^http://www\.ziddu\.com/download/\([[:digit:]]\+\)/' "$URL"; then
-        log_error "Bad url"
+        log_error 'Bad url'
         return $ERR_LINK_DEAD
     fi
 

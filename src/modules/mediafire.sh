@@ -377,7 +377,7 @@ mediafire_upload() {
 
     SESSION_KEY=$(mediafire_extract_session_key "$COOKIE_FILE" "$BASE_URL") || return
 
-    log_debug "Get uploader configuration"
+    log_debug 'Get uploader configuration'
     XML=$(curl -b "$COOKIE_FILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | \
         break_html_lines) || return
 
@@ -517,7 +517,7 @@ mediafire_list() {
             #PAGE=$(curl -L "$URL") || return
 
             # FIXME: obfuscated js..
-            log_error "Sorry, this folder url is not handled yet"
+            log_error 'Sorry, this folder url is not handled yet'
             return $ERR_FATAL
         fi
     fi
