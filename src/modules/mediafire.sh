@@ -27,11 +27,13 @@ MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_MEDIAFIRE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
+AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
-FOLDER,,folder,s=FOLDER,Folder to upload files into
+FOLDER,,folder,s=FOLDER,Folder to upload files into. Leaf name, no hierarchy.
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
-PRIVATE_FILE,,private,,Do not show file in folder view"
+PRIVATE_FILE,,private,,Do not show file in folder view
+UNIQUE_FILE,,unique,,Do not allow duplicated filename"
+
 MODULE_MEDIAFIRE_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_MEDIAFIRE_LIST_OPTIONS=""
@@ -136,7 +138,7 @@ mediafire_extract_session_key() {
 # When multiple folders wear the same name, first one is taken.
 # $1: session key
 # $2: base URL
-# $3: folder name selected by user
+# $3: (leaf) folder name. No hierarchy.
 # stdout: folder key
 mediafire_check_folder() {
     local -r SESSION_KEY=$1
@@ -318,8 +320,43 @@ mediafire_download() {
     parse_tag 'title' <<< "$PAGE" || return
 }
 
-# Upload a file to mediafire
-# $1: cookie file
+# Static function. Proceed with login using official API
+# $1: authentication
+# $2: base url
+# stdout: account type ("free" or "premium") on success
+mediafire_api_get_session_token() {
+    local -r AUTH=$1
+    local -r BASE_URL=$2
+    local EMAIL PASSWORD HASH JSON RES ERR
+
+    # Plowshare App ID & API key
+    local -r APP_ID=36434
+    local -r KEY='mqio689reumyxs7p2xjd18asj388lle2h6hpx6m5'
+
+    split_auth "$AUTH" EMAIL PASSWORD || return
+    HASH=$(sha1 "$EMAIL$PASSWORD$APP_ID$KEY") || return
+
+    JSON=$(curl -d "email=$EMAIL" \
+        -d "password=$(echo "$PASSWORD" | uri_encode_strict)" \
+        -d "application_id=$APP_ID" \
+        -d "signature=$HASH" \
+        -d 'version=1' -d 'response_format=json' \
+        "$BASE_URL/api/user/get_session_token.php") || return
+
+    RES=$(echo "$JSON" | parse_json 'result' 'split') || return
+
+    if [ "$RES" != 'Success' ]; then
+        ERR=$(echo "$JSON" | parse_json 'error' 'split') || return
+        log_error "Remote error: '$ERR'"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    echo "$JSON" | parse_json 'session_token' 'split' || return
+}
+
+# Upload a file to mediafire using official API.
+# http://developerswiki.mediafire.com/index.php/REST_API#Upload_API
+# $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: mediafire.com download link
@@ -327,9 +364,8 @@ mediafire_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://www.mediafire.com'
-    local XML UKEY USER SESSION_KEY FOLDER_KEY MFUL_CONFIG UPLOAD_KEY QUICK_KEY
-    local N SIZE MAX_SIZE
+    local -r BASE_URL='https://www.mediafire.com'
+    local SESSION_TOKEN JSON RES UPLOAD_KEY FILE_SIZE QUICK_KEY FOLDER_KEY
 
     # Sanity checks
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
@@ -341,147 +377,136 @@ mediafire_upload() {
         fi
     fi
 
-    mediafire_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    SESSION_TOKEN=$(mediafire_api_get_session_token "$AUTH_FREE" "$BASE_URL") || return
+    log_debug "Session Token: '$SESSION_TOKEN'"
 
     # Add Mediashare file to account
     if match_remote_url "$FILE"; then
-        local FILE_ID PAGE CODE MESSAGE
-
-        FILE_ID=$(mediafire_extract_id "$FILE") || return
-
-        if ! mediafire_is_file_id "$FILE_ID"; then
-            log_error 'This is a folder link. Please use plowlist!'
-            return $ERR_FATAL
-        fi
-
-        PAGE=$(curl -b "$COOKIE_FILE" --referer "$FILE" --get -d "qk=$FILE_ID" \
-            "$BASE_URL/dynamic/savefile.php") || return
-        CODE=$(echo "$PAGE" | parse 'var et' 'var et= \(-\?[[:digit:]]\+\);') || return
-
-        # Check for errors
-        # Note: All error codes are explained in page returned by server.
-        if [ $CODE -eq 15 ]; then
-            log_error 'File added. Check your account for link.'
-            echo '#'
-            return 0
-        fi
-
-        # Extract error message
-        #  case-14:parent.aH(0,"This file is already...");break;
-        MESSAGE=$(echo "$PAGE" | parse_quiet 'case' \
-            "case$CODE[^\"]*\"\([^\"]\+\)\"") || return
-
-        log_error "Remote error: ${CODE} (${MESSAGE:-n/a})"
+        log_error 'NOT IMPLEMENTED YET'
         return $ERR_FATAL
     fi
 
-    SESSION_KEY=$(mediafire_extract_session_key "$COOKIE_FILE" "$BASE_URL") || return
-
-    log_debug 'Get uploader configuration'
-    XML=$(curl -b "$COOKIE_FILE" "$BASE_URL/basicapi/uploaderconfiguration.php?$$" | \
-        break_html_lines) || return
-
-    MAX_SIZE=$(echo "$XML" | parse_tag 'max_file_size') || return
-
-    # Check file size
-    SIZE=$(get_filesize "$FILE")
-    if [ $SIZE -gt $MAX_SIZE ]; then
-        log_debug "File is bigger than $MAX_SIZE"
-        return $ERR_SIZE_LIMIT_EXCEEDED
+    # API bug
+    if [ "${#DEST_FILE}" -lt 3 ]; then
+        log_error 'Filenames less than 3 characters cannot be uploaded. Mediafire API bug? This is not a plowshare bug!'
     fi
 
     if [ -n "$FOLDER" ]; then
-        FOLDER_KEY=$(mediafire_check_folder "$SESSION_KEY" "$BASE_URL" "$FOLDER") || return
-    else
-        FOLDER_KEY=$(echo "$XML" | parse_tag folderkey) || return
+        FOLDER_KEY=$(mediafire_check_folder "$SESSION_TOKEN" "$BASE_URL" "$FOLDER") || return
     fi
 
-    UKEY=$(echo "$XML" | parse_tag ukey) || return
-    USER=$(echo "$XML" | parse_tag user) || return
-    MFUL_CONFIG=$(echo "$XML" | parse_tag MFULConfig) || return
+    # Check for duplicate name
+    JSON=$(curl --get -d "session_token=$SESSION_TOKEN" -d "filename=$DEST_FILE" \
+        -d 'response_format=json' \
+        -d 'action_on_duplicate=keep' \
+         ${FOLDER:+-d "upload_folder_key=$FOLDER_KEY"} \
+        "$BASE_URL/api/upload/pre_upload.php") || return
 
-    log_debug "Folder Key: $FOLDER_KEY"
-    log_debug "UKey: $UKEY"
-    log_debug "MFULConfig: $MFUL_CONFIG"
-
-    # HTTP header "Expect: 100-continue" seems to confuse server
-    # Note: -b "$COOKIE_FILE" is not required here
-    XML=$(curl_with_log -0 \
-        -F "Filename=$DESTFILE" \
-        -F "Upload=Submit Query" \
-        -F "Filedata=@$FILE;filename=$DESTFILE" \
-        --user-agent 'Shockwave Flash' \
-        --referer "$BASE_URL/basicapi/uploaderconfiguration.php?$$" \
-        "$BASE_URL/douploadtoapi/?type=basic&ukey=$UKEY&user=$USER&uploadkey=$FOLDER_KEY&upload=0") || return
-
-    # Example of answer:
-    # <?xml version="1.0" encoding="iso-8859-1"?>
-    # <response>
-    #  <doupload>
-    #   <result>0</result>
-    #   <key>sf22seu6p7d</key>
-    #  </doupload>
-    # </response>
-    UPLOAD_KEY=$(echo "$XML" | parse_tag_quiet key)
-
-    # Get error code (<result>)
-    if [ -z "$UPLOAD_KEY" ]; then
-        local ERR_CODE=$(echo "$XML" | parse_tag_quiet result)
-        log_error "Unexpected remote error: ${ERR_CODE:-n/a}"
+    RES=$(parse_json result <<<"$JSON") || return
+    if [ "$RES" != 'Success' ]; then
+        local NUM MSG
+        NUM=$(parse_json_quiet error <<<"$JSON")
+        MSG=$(parse_json_quiet message <<<"$JSON")
+        log_error "Unexpected remote error (pre_upload): $NUM, '$MSG'"
         return $ERR_FATAL
     fi
 
+    # "duplicate_name":"yes","duplicate_quickkey":"2xrys3f97a9t9ce"
+    # Note: "duplicate_name" is not always returned ???
+    QUICK_KEY=$(parse_json_quiet 'duplicate_quickkey' <<<"$JSON") || return
+    if [ -n "$QUICK_KEY" ]; then
+        if [ -n "$UNIQUE_FILE" ]; then
+            log_error 'Duplicated filename. Return original quickkey.'
+            echo "$BASE_URL/?$QUICK_KEY"
+            return 0
+        else
+            log_debug 'a file with the same filename already exists. File will be renamed.'
+        fi
+    fi
+
+    # "used_storage_size":"10438024","storage_limit":"53687091200","storage_limit_exceeded":"no"
+    RES=$(parse_json storage_limit_exceeded <<<"$JSON") || return
+    if [ "$RES" = 'yes' ]; then
+       log_error 'Storage limit exceeded. Abort.'
+       return $ERR_SIZE_LIMIT_EXCEEDED
+    fi
+
+    FILE_SIZE=$(get_filesize "$FILE")
+
+    JSON=$(curl_with_log -F "Filedata=@$FILE;filename=$DESTFILE" \
+        --header "x-filename: $DEST_FILE" \
+        --header "x-size: $FILE_SIZE" \
+        "$BASE_URL/api/upload/upload.php?session_token=$SESSION_TOKEN&action_on_duplicate=keep&response_format=json${FOLDER:+"&uploadkey=$FOLDER_KEY"}") || return
+
+    # Take second occurrence (last) of "result"
+    RES=$(parse_json result <<<"$JSON") || return
+    if [ "$RES" != 'Success' ]; then
+        local NUM MSG
+        NUM=$(parse_json_quiet error <<<"$JSON")
+        MSG=$(parse_json_quiet message <<<"$JSON")
+        log_error "Unexpected remote error (upload): $NUM, '$MSG'"
+        return $ERR_FATAL
+    fi
+
+    # {"response":{"action":"upload\/upload.php","doupload":{"result":"0","key":"fugt9k5nb2f"},"result":"Success","current_api_version":"2.13"}}
+    UPLOAD_KEY=$(parse_json key <<<"$JSON") || return
+
     log_debug "polling for status update (with key $UPLOAD_KEY)"
 
-    for N in 4 3 3 2 2 2; do
+    QUICK_KEY=''
+    for N in 3 3 2 2 2; do
         wait $N seconds || return
 
-        XML=$(curl --get -d "key=$UPLOAD_KEY" -d "MFULConfig=$MFUL_CONFIG" \
-            "$BASE_URL/basicapi/pollupload.php") || return
+        JSON=$(curl --get -d "session_token=$SESSION_TOKEN" -d 'response_format=json' \
+            -d "key=$UPLOAD_KEY" "$BASE_URL/api/upload/poll_upload.php") || return
 
-        # <description>Verifying File</description>
-        if match '<description>No more requests for this key</description>' "$XML"; then
-            QUICK_KEY=$(echo "$XML" | parse_tag_quiet quickkey)
+        RES=$(parse_json result <<<"$JSON") || return
+        if [ "$RES" != 'Success' ]; then
+            log_error "FIXME '$JSON'"
+            return $ERR_FATAL
+        fi
+
+        # No more requests for this key
+        RES=$(parse_json status <<<"$JSON") || return
+        if [ "$RES" = '99' ]; then
+            QUICK_KEY=$(parse_json quickkey <<<"$JSON") || return
             break
         fi
     done
 
     if [ -z "$QUICK_KEY" ]; then
-        local ERR
-
-        ERR=$(echo "$XML" | parse_tag_quiet fileerror)
-
-        case "$ERR" in
-        13)
-            log_error 'File already uploaded.'
-            ;;
-        *)
-            log_error "Unexpected remote error: $ERR"
-        esac
-
+        local MSG ERR
+        MSG=$(parse_json_quiet description <<<"$JSON")
+        ERR=$(parse_json_quiet fileerror <<<"$JSON")
+        log_error "Bad status $RES: '$MSG'"
+        log_debug "fileerror: '$ERR'"
         return $ERR_FATAL
     fi
 
     if [ -n "$DESCRIPTION" -o -n "$PRIVATE_FILE" ]; then
-        XML=$(curl -d "session_token=$SESSION_KEY" \
-            -d "quick_key=$QUICK_KEY" \
+        JSON=$(curl -d "session_token=$SESSION_TOKEN" \
+            -d "quick_key=$QUICK_KEY" -d 'response_format=json' \
             ${DESCRIPTION:+-d "description=$DESCRIPTION"} \
             ${PRIVATE_FILE:+-d 'privacy=private'} \
             "$BASE_URL/api/file/update.php") || return
 
-        [ $(echo "$XML" | parse_tag_quiet 'result') = 'Success' ] || \
+        RES=$(parse_json result <<<"$JSON")
+        if [ "$RES" != 'Success' ]; then
             log_error 'Could not set description/hide file.'
+        fi
     fi
 
     # Note: Making a file private removes its password...
     if [ -n "$LINK_PASSWORD" ]; then
-        XML=$(curl -d "session_token=$SESSION_KEY" \
-            -d "quick_key=$QUICK_KEY" \
+        JSON=$(curl -d "session_token=$SESSION_TOKEN" \
+            -d "quick_key=$QUICK_KEY" -d 'response_format=json' \
             -d "password=$LINK_PASSWORD" \
             "$BASE_URL/api/file/update_password.php") || return
 
-        [ $(echo "$XML" | parse_tag_quiet 'result') = 'Success' ] || \
+        RES=$(parse_json result <<<"$JSON")
+        if [ "$RES" != 'Success' ]; then
             log_error 'Could not set password.'
+        fi
     fi
 
     echo "$BASE_URL/?$QUICK_KEY"
