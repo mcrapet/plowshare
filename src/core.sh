@@ -64,9 +64,9 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #
 # Logs are sent to stderr stream.
 # Policies:
-# - error: modules errors (when return 1), lastest plowdown curl call
-# - notice: core messages (wait, timeout, retries), lastest plowdown curl call
-# - debug: modules messages, curl (intermediate) calls
+# - error: core/modules error messages, lastest curl call (plowdown, plowup)
+# - notice: core messages (wait, timeout, retries), lastest curl call (plowdown, plowup)
+# - debug: all core/modules messages, curl calls
 # - report: debug plus curl content (html pages, cookies)
 
 # log_report for a file
