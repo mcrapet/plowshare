@@ -512,11 +512,6 @@ parse_quiet() {
     return 0
 }
 
-# Like parse_all, but get only last match
-parse_last() {
-    parse_all "$@" | tail -n1
-}
-
 # Simple and limited JSON parsing
 #
 # Notes:
