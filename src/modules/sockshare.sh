@@ -39,6 +39,26 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_SOCKSHARE_LIST_OPTIONS=""
 MODULE_SOCKSHARE_PROBE_OPTIONS=""
 
+# Failsafe curl wrapper to make frequent overload errors less lethal
+sockshare_curl_failsafe() {
+    local PAGE TRY
+
+    for TRY in 1 2 3 4 5; do
+        PAGE=$(curl "$@") || return
+        
+        if ! match 'Request could not be processed' "$PAGE"; then
+            echo "$PAGE"
+            return 0
+        fi
+
+        log_debug "Server cannot process the request, maybe due to overload. Retrying... [$TRY]"
+        wait 10 || return
+    done
+
+    log_error 'Server cannot process the request, maybe due to overload.'
+    return $ERR_LINK_TEMP_UNAVAILABLE
+}
+
 # Static function. Proceed with login.
 sockshare_login() {
     local -r AUTH=$1
@@ -46,7 +66,7 @@ sockshare_login() {
     local -r BASE_URL=$3
     local PAGE LOGIN_DATA LOGIN_RESULT LOCATION CAPTCHA_URL CAPTCHA_IMG
 
-    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -i \
+    PAGE=$(sockshare_curl_failsafe -c "$COOKIE_FILE" -b "$COOKIE_FILE" \
         "$BASE_URL/authenticate.php?login") || return
 
     CAPTCHA_URL=$(echo "$PAGE" | parse_attr '/include/captcha.php' src) || return
@@ -65,6 +85,11 @@ sockshare_login() {
         "$BASE_URL/authenticate.php?login" \
         -i -b "$COOKIE_FILE" \
         -e "$BASE_URL/authenticate.php?login") || return
+    
+    if match 'Request could not be processed' "$LOGIN_RESULT"; then
+        log_error 'Server cannot process the request, maybe due to overload.'
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     LOCATION=$(echo "$LOGIN_RESULT" | grep_http_header_location_quiet)
 
@@ -96,7 +121,7 @@ sockshare_download() {
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    PAGE=$(curl -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
+    PAGE=$(sockshare_curl_failsafe -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
 
@@ -117,17 +142,17 @@ sockshare_download() {
     FORM_HASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'hash') || return
     FORM_CONFIRM=$(echo "$FORM_HTML" | parse_form_input_by_name 'confirm') || return
 
-    PAGE=$(curl -e "$URL" -b "$COOKIE_FILE" \
+    PAGE=$(sockshare_curl_failsafe -e "$URL" -b "$COOKIE_FILE" \
         -d "hash=$FORM_HASH" \
         -d "confirm=$FORM_CONFIRM" \
         "$URL") || return
 
     if match 'This file requires a password. Please enter it.' "$PAGE"; then
         if [ -z $LINK_PASSWORD ]; then
-            return $ERR_LINK_PASSWORD_REQUIRED
+            LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
-        PAGE=$(curl -i -e "$URL" -b "$COOKIE_FILE" \
+        PAGE=$(sockshare_curl_failsafe -i -e "$URL" -b "$COOKIE_FILE" \
             -d "file_password=$LINK_PASSWORD" \
             "$URL") || return
 
@@ -140,7 +165,7 @@ sockshare_download() {
 
     GET_FILE_URL=$(echo "$PAGE" | parse_attr 'get_file\.php' href) || return
 
-    PAGE=$(curl -i -e "$URL" -b "$COOKIE_FILE" "$BASE_URL$GET_FILE_URL") || return
+    PAGE=$(sockshare_curl_failsafe -i -e "$URL" -b "$COOKIE_FILE" "$BASE_URL$GET_FILE_URL") || return
 
     FILE_URL=$(echo "$PAGE" | grep_http_header_location) || return
     FILENAME=$(echo "$FILE_URL" | parse . '&f=\(.*\)$' | replace '+' ' ' | uri_decode) || return
@@ -155,11 +180,14 @@ sockshare_download() {
 sockshare_check_remote_uploads() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
-    local PAGE
+    local PAGE LAST_UPLOAD_STATUS
+        
+    PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" "$BASE_URL/cp.php?action=external_upload") || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/cp.php?action=external_upload") || return
+    # <div class="status"><span class=upload_status>Status_Info</span></div>
+    LAST_UPLOAD_STATUS=$(echo "$PAGE" | parse_tag 'class="status"' div | parse_attr class) || return
 
-    match 'dq_status_transfering' "$PAGE"
+    [ "$LAST_UPLOAD_STATUS" = 'dq_status_transfering' ]
 }
 
 # Check if specified folder name is valid.
@@ -177,14 +205,14 @@ sockshare_check_folder() {
 
     log_debug 'Getting folder data'
 
-    PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/cp.php") || return
+    PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" "$BASE_URL/cp.php") || return
 
     # Create folder if not exist
     # <a ... class="folder_link">Name</a>
     if ! match "class=\"folder_link\">$NAME<" "$PAGE"; then
         log_debug "Creating folder: '$NAME'"
 
-        PAGE=$(curl -b "$COOKIE_FILE" -L \
+        PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" -L \
             -d "new_folder_name=$NAME" \
             -d "new_folder_desc=" \
             -d "new_folder_parent=0" \
@@ -311,9 +339,14 @@ sockshare_upload_api() {
             -F "file=@$FILE;filename=$DESTFILE" \
             -F "user=$USER" \
             -F "password=$PASSWORD" \
-            -F "convert=0" \
+            -F "convert=1" \
             -F "folder=$FOLDER" \
             'http://upload.sockshare.com/uploadapi.php') || return
+    
+    if match 'Request could not be processed' "$PAGE"; then
+        log_error 'Server cannot process the request, maybe due to overload.'
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     RES_MESSAGE=$(echo "$PAGE" | parse_tag message) || return
 
@@ -354,21 +387,14 @@ sockshare_upload_form() {
     if match_remote_url "$FILE"; then
         local TRY UP_REMOTE_STATUS FILE_ID
 
-        # During synchronous remote uploads no other remote transfer
-        # must run (Note: This will ease parsing considerably later on.)
-        if [ -z "$ASYNC" ]; then
-            if sockshare_check_remote_uploads "$COOKIE_FILE" "$BASE_URL"; then
-                log_error 'You have active remote downloads.'
-                return $ERR_LINK_TEMP_UNAVAILABLE
-            fi
-        fi
-
-        if ! match '^http://' "$FILE" && ! match '^ftp://' "$FILE"; then
+        if ! match '^https\?://' "$FILE" && ! match '^ftp://' "$FILE"; then
             log_error 'Unsupported protocol for remote upload.'
             return $ERR_BAD_COMMAND_LINE
         fi
 
-        PAGE=$(curl -b "$COOKIE_FILE" -L \
+        # current_folder option doesen't work
+        PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" -L \
+            -e "$BASE_URL/cp.php?action=external_upload" \
             -d "external_url=$FILE" \
             -d "current_folder=0" \
             -d "download_external=Download File" \
@@ -401,7 +427,7 @@ sockshare_upload_form() {
         done
 
         # Check last finished upload status
-        PAGE=$(curl --get -b "$COOKIE_FILE" -d 'action=external_upload' \
+        PAGE=$(sockshare_curl_failsafe --get -b "$COOKIE_FILE" -d 'action=external_upload' \
             "$BASE_URL/cp.php") || return
 
         UP_REMOTE_STATUS=$(echo "$PAGE" | parse_tag '<div class="status">' span) || return
@@ -412,7 +438,7 @@ sockshare_upload_form() {
         fi
 
         # Find link
-        PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/cp.php") || return
+        PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" "$BASE_URL/cp.php") || return
 
         LINK_DL=$(echo "$PAGE" | parse_attr "href=.$BASE_URL/file/" href) || return
         FILE_ID=$(parse . '^.*/\(.*\)$' <<< "$LINK_DL")
@@ -421,7 +447,8 @@ sockshare_upload_form() {
         if [ "$DEST_FILE" != 'dummy' ]; then
             log_debug 'Renaming file'
 
-            PAGE=$(curl -b "$COOKIE_FILE" -L \
+            PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" -L \
+                -e "$BASE_URL/cp.php" \
                 -d "edit_filename=$DEST_FILE" \
                 -d "edit_alias=$FILE_ID" \
                 -d "save_edit_file=Save Changes" \
@@ -443,7 +470,8 @@ sockshare_upload_form() {
         if [ -n "$FOLDER" ]; then
             log_debug 'Moving file'
 
-            PAGE=$(curl -b "$COOKIE_FILE" -L -G \
+            PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" -L -G \
+                -e "$BASE_URL/cp.php" \
                 -d "file=$FILE_ID" \
                 -d "moveto=$FOLDER_HASH" \
                 "$BASE_URL/cp.php") || return
@@ -464,7 +492,7 @@ sockshare_upload_form() {
     else
         local UP_SCRIPT UP_AUTH_HASH UP_SESSION UP_RESULT_ID UP_FOLDER_OPT
 
-        PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" \
+        PAGE=$(sockshare_curl_failsafe -c "$COOKIE_FILE" -b "$COOKIE_FILE" \
             -e "$BASE_URL/index.php" \
             "$BASE_URL/upload_form.php") || return
 
@@ -483,11 +511,17 @@ sockshare_upload_form() {
                 $UP_FOLDER_OPT \
                 -F "session=$UP_SESSION" \
                 -F "folder=/" \
+                -F "do_convert=1" \
                 -F "auth_hash=$UP_AUTH_HASH" \
                 -F "fileext=*" \
                 -F "Filedata=@$FILE;filename=$DESTFILE" \
                 -F "Upload=Submit Query" \
                 "$UP_SCRIPT") || return
+        
+        if match 'Request could not be processed' "$PAGE"; then
+            log_error 'Server cannot process the request, maybe due to overload.'
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
 
         if [ "$PAGE" != 'cool story bro' ]; then
             log_error 'Unexpected response'
@@ -504,7 +538,8 @@ sockshare_upload_form() {
     if [ -n "$LINK_PASSWORD" ]; then
         log_debug 'Setting password'
 
-        PAGE=$(curl -b "$COOKIE_FILE" -L \
+        PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" -L \
+            -e "$BASE_URL/cp.php" \
             -d "file_password=$LINK_PASSWORD" \
             -d "file_id=$FILE_ID" \
             -d "make_private=Set Password" \
@@ -545,9 +580,9 @@ sockshare_delete() {
 
     sockshare_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" -L -G \
-        -d "delete=$FILE_ID" \
+    PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" -L -G \
         -e "$BASE_URL/cp.php" \
+        -d "delete=$FILE_ID" \
         "$BASE_URL/cp.php") || return
 
     RES_MESSAGE=$(echo "$PAGE" | parse_tag_quiet "class='message t_" div)
@@ -569,8 +604,9 @@ sockshare_delete() {
 # stdout: list of links
 sockshare_list() {
     local -r URL=$1
+    local -r BASE_URL='http://www.sockshare.com'
     local RET=0
-    local PAGE LOCATION NAMES LINKS
+    local PAGE LOCATION NAMES LINKS FOLDER_HASH LAST_PAGE PAGE_NUMBER
 
     if ! match '/public/' "$URL"; then
         log_error 'Invalid URL format'
@@ -579,19 +615,40 @@ sockshare_list() {
 
     test "$2" && log_debug 'recursive folder does not exist in sockshare.com'
 
-    PAGE=$(curl -i "$URL") || return
+    PAGE=$(sockshare_curl_failsafe -i "$URL") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
 
-    if [ -n "$LOCATION" ]; then
-        return $ERR_LINK_DEAD
-    fi
-
-    PAGE=$(echo "$PAGE" | parse_all_quiet '<strong><a' '\(<a href=.*</a>\)')
+    [ -n "$LOCATION" ] && return $ERR_LINK_DEAD
+        
+    FOLDER_HASH=$(parse . '^.*/\(.*\)$' <<< "$URL")
+    
+    LAST_PAGE=$(echo "$PAGE" | parse_all_quiet "folder_pub=" 'page=\([0-9]\+\)' | last_line)
+    
+    PAGE=$(echo "$PAGE" | parse_all_quiet "<a href=\"$BASE_URL/file/" '\(<a href=.*</a>\)')
     [ -z "$PAGE" ] && return $ERR_LINK_DEAD
 
-    NAMES=$(echo "$PAGE" | parse_all_tag a)
+    # Generic pattern to parse both streaming and non streaming folder content
+    # Streaming: <a href="file_URL"><img src="thumb_URL"><br>file_name</a>
+    # Binary: <a href="file_URL">file_name</a>
+    NAMES=$(echo "$PAGE" | parse_all . '>\([^<]\+\)<')
     LINKS=$(echo "$PAGE" | parse_all_attr href)
+    
+    if [ -n "$LAST_PAGE" ]; then
+        for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do
+            log_debug "Listing page #$PAGE_NUMBER"
+
+            PAGE=$(sockshare_curl_failsafe -G \
+                -d "folder_pub=$FOLDER_HASH" \
+                -d "page=$PAGE_NUMBER" \
+                "$URL") || return
+
+            PAGE=$(echo "$PAGE" | parse_all_quiet "<a href=\"$BASE_URL/file/" '\(<a href=.*</a>\)')
+
+            NAMES=$NAMES$'\n'$(echo "$PAGE" | parse_all . '>\([^<]\+\)<')
+            LINKS=$LINKS$'\n'$(echo "$PAGE" | parse_all_attr href)
+        done
+    fi
 
     list_submit "$LINKS" "$NAMES" || return
 }
@@ -611,7 +668,7 @@ sockshare_probe() {
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    PAGE=$(curl -i "$URL") || return
+    PAGE=$(sockshare_curl_failsafe -i "$URL") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
 
