@@ -201,7 +201,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 1fichier_list() {
-    local -r URL=$1
+    local URL=$1
     local PAGE LINKS NAMES
 
     if ! match '/dir/' "$URL"; then
@@ -211,8 +211,14 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     test "$2" && log_debug 'recursive folder does not exist in 1fichier.com'
 
-    PAGE=$(curl -L "$URL") || return
+    if match '/../dir/' "$URL"; then
+        local BASE_URL DIR_ID
+        BASE_URL=$(basename_url "$URL")
+        DIR_ID=${URL##*/}
+        URL="$BASE_URL/dir/$DIR_ID"
+    fi
 
+    PAGE=$(curl -L "$URL") || return
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'T.l.chargement de' href)
     NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'T.l.chargement de' a)
 
