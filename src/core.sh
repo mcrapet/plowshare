@@ -2161,7 +2161,7 @@ set_exit_trap() {
     trap remove_tempfiles EXIT
 }
 
-# Check existance of executable in path
+# Check existance of executable in $PATH
 # Better than "which" (external) executable
 #
 # $1: Executable to check
@@ -2416,7 +2416,7 @@ log_report_info() {
             log_report '[curl] not found!'
         fi
         check_exec 'gsed' && G=g
-        log_report "[sed ] $("$(type -P ${G}sed)" --version | sed -ne '/version/p')"
+        log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
         log_report '=== SYSTEM INFO END ==='
     fi
 }
