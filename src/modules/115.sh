@@ -50,7 +50,7 @@ MODULE_115_DOWNLOAD_SUCCESSIVE_INTERVAL=
         return $ERR_LINK_DEAD
     fi
 
-    U1=$(echo "$PAGE" | parse_last 'url:' "'\(/?ct=download[^']*\)") || return
+    U1=$(echo "$PAGE" | parse_all 'url:' "'\(/?ct=download[^']*\)" | last_line) || return
     U2=$(echo "$PAGE" | parse 'GetMyDownloadAddress(' "('\([^']*\)") || return
 
     test "$CHECK_LINK" && return 0
