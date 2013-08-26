@@ -44,20 +44,21 @@ declare -r ERR_SIZE_LIMIT_EXCEEDED=14     # plowdown: Can't download link becaus
 declare -r ERR_BAD_COMMAND_LINE=15        # Unknown command line parameter or incompatible options
 declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code (when multiple arguments)
 
-# Global variables used (defined in other .sh)
+# Global variables used (defined in plow* scripts):
 #   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
 #   - LIBDIR           Absolute path to plowshare's libdir
 #   - INTERFACE        Network interface (used by curl)
 #   - MAX_LIMIT_RATE   Network maximum speed (used by curl)
 #   - MIN_LIMIT_RATE   Network minimum speed (used by curl)
 #   - NO_CURLRC        Do not read of use curlrc config
-#   - CAPTCHA_METHOD   (plowdown, plowup) User-specified captcha method
-#   - CAPTCHA_ANTIGATE (plowdown, plowup) Antigate.com captcha key
-#   - CAPTCHA_9KWEU    (plowdown, plowup) 9kw.eu captcha key
-#   - CAPTCHA_BHOOD    (plowdown, plowup) Captcha Brotherhood account
-#   - CAPTCHA_DEATHBY  (plowdown, plowup) DeathByCaptcha account
-#   - CAPTCHA_PROGRAM  (plowdown, plowup) External solver program/script
+#   - CAPTCHA_METHOD   User-specified captcha method
+#   - CAPTCHA_ANTIGATE Antigate.com captcha key
+#   - CAPTCHA_9KWEU    9kw.eu captcha key
+#   - CAPTCHA_BHOOD    Captcha Brotherhood account
+#   - CAPTCHA_DEATHBY  DeathByCaptcha account
+#   - CAPTCHA_PROGRAM  External solver program/script
 #   - MODULE           Module name (don't include .sh)
+# Note: captchas are handled in plowdown, plowup, plowdel.
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       (plowdown, plowup) Timeout (in seconds) for one item
