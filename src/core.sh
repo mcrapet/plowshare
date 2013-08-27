@@ -2504,20 +2504,28 @@ quote_array() {
     echo ')'
 }
 
-# Translate $1 to absolute path (considering $PATH)
-# Example: "mysolver" => "/usr/bin/mysolver"
+# Get filepath from name (consider $PATH).
+# $1: executable name (with or without path)
+# $?: return 0 for success
+# stdout: result
+# Example: "mysolver" => "/usr/bin/mysolver"
+# Note: We don't need absolute or canonical path, only a valid one.
 translate_exec() {
-    if test -x "$1"; then
-        F="$PWD/$1"
+    local F=$1
+    #local F=${1/#\~\//$HOME/}
+
+    if test -x "$F"; then
+        [[ $F = /* ]] || F="$PWD/$F"
     else
-        F=$(type -P "$1" 2>/dev/null)
+        F=$(type -P "$F" 2>/dev/null)
     fi
 
     if [ -z "$F" ]; then
         log_error "$FUNCNAME: failed ($1)"
-    else
-        echo "$F"
+        return $ERR_FATAL
     fi
+
+    echo "$F"
 }
 
 # Check for positive speed rate
