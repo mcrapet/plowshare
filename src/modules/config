@@ -25,6 +25,7 @@ filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
+hipfile         | download | upload | delete | list | probe |
 hotfile         | download | upload |        | list | probe |
 jheberg         |          | upload |        | list | probe |
 letitbit        | download | upload | delete | list | probe |
