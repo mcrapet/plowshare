@@ -279,8 +279,8 @@ ryushare_upload() {
         -F "file_0=@$FILE;filename=$DESTFILE" \
         -F "file_0_descr=" \
         -F "file_1=@/dev/null;filename=" \
-        -F "link_rcpt=$TOEMAIL" \
-        -F "link_pass=$LINK_PASSWORD" \
+        --form-string "link_rcpt=$TOEMAIL" \
+        --form-string "link_pass=$LINK_PASSWORD" \
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
         break_html_lines) || return
 
