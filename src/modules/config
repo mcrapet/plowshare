@@ -19,7 +19,6 @@ embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 filebox         | download | upload | delete |      |       |
-filemates       | download | upload | delete | list |       |
 fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
