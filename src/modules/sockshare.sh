@@ -34,9 +34,12 @@ ASYNC,,async,,Asynchronous remote upload (only start upload, don't wait for link
 METHOD,,method,s=METHOD,Upload method (API or form, default: API)"
 MODULE_SOCKSHARE_UPLOAD_REMOTE_SUPPORT=yes
 
+MODULE_SOCKSHARE_LIST_OPTIONS=""
+MODULE_SOCKSHARE_LIST_HAS_SUBFOLDERS=no
+
 MODULE_SOCKSHARE_DELETE_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
-MODULE_SOCKSHARE_LIST_OPTIONS=""
+
 MODULE_SOCKSHARE_PROBE_OPTIONS=""
 
 # Failsafe curl wrapper to make frequent overload errors less lethal
@@ -45,7 +48,7 @@ sockshare_curl_failsafe() {
 
     for TRY in 1 2 3 4 5; do
         PAGE=$(curl "$@") || return
-        
+
         if ! match 'Request could not be processed' "$PAGE"; then
             echo "$PAGE"
             return 0
@@ -85,7 +88,7 @@ sockshare_login() {
         "$BASE_URL/authenticate.php?login" \
         -i -b "$COOKIE_FILE" \
         -e "$BASE_URL/authenticate.php?login") || return
-    
+
     if match 'Request could not be processed' "$LOGIN_RESULT"; then
         log_error 'Server cannot process the request, maybe due to overload.'
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -181,7 +184,7 @@ sockshare_check_remote_uploads() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE LAST_UPLOAD_STATUS
-        
+
     PAGE=$(sockshare_curl_failsafe -b "$COOKIE_FILE" "$BASE_URL/cp.php?action=external_upload") || return
 
     # <div class="status"><span class=upload_status>Status_Info</span></div>
@@ -342,7 +345,7 @@ sockshare_upload_api() {
             -F "convert=1" \
             -F "folder=$FOLDER" \
             'http://upload.sockshare.com/uploadapi.php') || return
-    
+
     if match 'Request could not be processed' "$PAGE"; then
         log_error 'Server cannot process the request, maybe due to overload.'
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -517,7 +520,7 @@ sockshare_upload_form() {
                 -F "Filedata=@$FILE;filename=$DESTFILE" \
                 -F "Upload=Submit Query" \
                 "$UP_SCRIPT") || return
-        
+
         if match 'Request could not be processed' "$PAGE"; then
             log_error 'Server cannot process the request, maybe due to overload.'
             return $ERR_LINK_TEMP_UNAVAILABLE
@@ -613,18 +616,16 @@ sockshare_list() {
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    test "$2" && log_debug 'recursive folder does not exist in sockshare.com'
-
     PAGE=$(sockshare_curl_failsafe -i "$URL") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
 
     [ -n "$LOCATION" ] && return $ERR_LINK_DEAD
-        
+
     FOLDER_HASH=$(parse . '^.*/\(.*\)$' <<< "$URL")
-    
+
     LAST_PAGE=$(echo "$PAGE" | parse_all_quiet "folder_pub=" 'page=\([0-9]\+\)' | last_line)
-    
+
     PAGE=$(echo "$PAGE" | parse_all_quiet "<a href=\"$BASE_URL/file/" '\(<a href=.*</a>\)')
     [ -z "$PAGE" ] && return $ERR_LINK_DEAD
 
@@ -633,7 +634,7 @@ sockshare_list() {
     # Binary: <a href="file_URL">file_name</a>
     NAMES=$(echo "$PAGE" | parse_all . '>\([^<]\+\)<')
     LINKS=$(echo "$PAGE" | parse_all_attr href)
-    
+
     if [ -n "$LAST_PAGE" ]; then
         for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do
             log_debug "Listing page #$PAGE_NUMBER"

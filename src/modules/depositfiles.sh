@@ -31,8 +31,10 @@ AUTH,a,auth,a=USER:PASSWORD,User account
 API,,api,,Use new upload method/non-public API"
 MODULE_DEPOSITFILES_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_DEPOSITFILES_DELETE_OPTIONS=""
 MODULE_DEPOSITFILES_LIST_OPTIONS=""
+MODULE_DEPOSITFILES_LIST_HAS_SUBFOLDERS=no
+
+MODULE_DEPOSITFILES_DELETE_OPTIONS=""
 MODULE_DEPOSITFILES_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free & gold account)
@@ -326,7 +328,7 @@ depositfiles_delete() {
 
 # List a depositfiles shared file folder URL
 # $1: depositfiles.com link
-# $2: recurse subfolders (null string means not selected)
+# $2: recurse subfolders (ignored here)
 # stdout: list of links
 depositfiles_list() {
     local URL=$1
@@ -336,8 +338,6 @@ depositfiles_list() {
         log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
-
-    test "$2" && log_debug "recursive folder does not exist in depositfiles"
 
     PAGE=$(curl -L "$URL") || return
     PAGE=$(echo "$PAGE" | parse_all 'target="_blank"' \

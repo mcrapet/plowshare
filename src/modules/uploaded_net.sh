@@ -39,6 +39,8 @@ MODULE_UPLOADED_NET_DELETE_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 
 MODULE_UPLOADED_NET_LIST_OPTIONS=""
+MODULE_UPLOADED_NET_LIST_HAS_SUBFOLDERS=no
+
 MODULE_UPLOADED_NET_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
@@ -348,7 +350,7 @@ uploaded_net_download() {
         elif match 'exceeds the max. filesize' "$ERR"; then
             return $ERR_SIZE_LIMIT_EXCEEDED
 
-        # We\'re sorry but all of our available download slots are busy currently
+        # We're sorry but all of our available download slots are busy currently
         elif match 'all of our available download slots are busy' "$ERR"; then
             log_error 'No free download slots available'
             echo 300 # wait some arbitrary time
@@ -532,8 +534,6 @@ uploaded_net_list() {
         log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
-
-    test "$2" && log_debug "recursive folder does not exist in uploaded.net"
 
     PAGE=$(curl -L "$URL") || return
 

@@ -22,6 +22,7 @@ MODULE_PASTEBIN_REGEXP_URL='http://\(www\.\)\?pastebin\.com/'
 
 MODULE_PASTEBIN_LIST_OPTIONS="
 COUNT,,count,n=COUNT,Take COUNT pastes when listing user folder. Default is 100 (first web page)."
+MODULE_PASTEBIN_LIST_HAS_SUBFOLDERS=no
 
 # Static function. Process a single note
 # $1: pastebin url
@@ -52,8 +53,6 @@ pastebin_single_list() {
 pastebin_list() {
     local -r URL=${1%/}
     local PASTES PASTE
-
-    test "$2" && log_debug 'recursive folder does not exist in pastebin.com'
 
     # User folder:
     # - http://pastebin.com/u/username

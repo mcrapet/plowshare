@@ -74,6 +74,13 @@ usage() {
     test -z "$1" || print_module_options "$MODULES" LIST
 }
 
+# Example: "MODULE_4SHARED_LIST_HAS_SUBFOLDERS=no"
+# $1: module name
+module_config_has_subfolders() {
+    local -u VAR="MODULE_${1}_LIST_HAS_SUBFOLDERS"
+    test "${!VAR}" = 'yes'
+}
+
 # Plowlist printf format
 # ---
 # Interpreted sequences are:
@@ -278,6 +285,10 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
 
+    if ! module_config_has_subfolders "$MODULE" && test -n "$RECURSE"; then
+        log_notice 'recursive flag has no sense here, ignoring'
+    fi
+
     ${MODULE}_vars_set
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
         pretty_print "${PRINTF_FORMAT:-%F%u}" "$MODULE" || LRETVAL=$?
@@ -288,6 +299,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     elif [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
         log_error 'Non existing or empty folder'
         [ -z "$RECURSE" -a -z "$NO_MODULE_FALLBACK" ] && \
+            module_config_has_subfolders "$MODULE" && \
             log_notice 'Try adding -R/--recursive option to look into sub folders'
     elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
         log_error 'You must provide a valid password'

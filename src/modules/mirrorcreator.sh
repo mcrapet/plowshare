@@ -28,6 +28,7 @@ COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Defau
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MIRRORCREATOR_LIST_OPTIONS=""
+MODULE_MIRRORCREATOR_LIST_HAS_SUBFOLDERS=no
 
 # Upload a file to mirrorcreator.com
 # $1: cookie file (for account only)
@@ -145,11 +146,6 @@ mirrorcreator_list() {
     local URL=$1
     local PAGE STATUS LINKS NAMES REL_URL
     local BASE_URL='http://www.mirrorcreator.com'
-
-    if test "$2"; then
-        log_error 'Recursive flag has no sense here, abort'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     PAGE=$(curl -L "$URL") || return
 

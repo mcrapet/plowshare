@@ -21,6 +21,8 @@
 MODULE_MULTIUP_ORG_REGEXP_URL='https\?://\(www\.\)\?multiup\.org/'
 
 MODULE_MULTIUP_ORG_LIST_OPTIONS=""
+MODULE_MULTIUP_ORG_LIST_HAS_SUBFOLDERS=no
+
 MODULE_MULTIUP_ORG_PROBE_OPTIONS=""
 
 # List links from a multiup.org link
@@ -31,11 +33,6 @@ multiup_org_list() {
     local -r URL=$(replace '/miror/' '/download/' <<<"$1")
     local -r BASE_URL='http://www.multiup.org'
     local COOKIE_FILE PAGE LINK LINKS NAMES
-
-    if test "$2"; then
-        log_error 'Recursive flag has no sense here, abort'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     # Set-Cookie: PHPSESSID=...; yooclick=true; ...
     COOKIE_FILE=$(create_tempfile) || return

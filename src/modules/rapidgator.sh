@@ -33,8 +33,10 @@ ASYNC,,async,,Asynchronous remote upload (only start upload, don't wait for link
 CLEAR,,clear,,Clear list of remote uploads"
 MODULE_RAPIDGATOR_UPLOAD_REMOTE_SUPPORT=yes
 
-MODULE_RAPIDGATOR_DELETE_OPTIONS=""
 MODULE_RAPIDGATOR_LIST_OPTIONS=""
+MODULE_RAPIDGATOR_LIST_HAS_SUBFOLDERS=no
+
+MODULE_RAPIDGATOR_DELETE_OPTIONS=""
 MODULE_RAPIDGATOR_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free)
@@ -636,8 +638,6 @@ rapidgator_list() {
         log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
-
-    test "$2" && log_debug "recursive folder does not exist in depositfiles"
 
     PAGE=$(curl -L "$URL") || return
     PAGE=$(echo "$PAGE" | parse_all_quiet '=.td-for-select' '\(<a href=.*\)$')

@@ -31,6 +31,7 @@ MODULE_GO4UP_DELETE_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 
 MODULE_GO4UP_LIST_OPTIONS=""
+MODULE_GO4UP_LIST_HAS_SUBFOLDERS=no
 
 # Static function. Proceed with login
 # $1: authentication
@@ -264,11 +265,6 @@ go4up_upload() {
 go4up_list() {
     local URL=$1
     local PAGE LINKS NAME SITE_URL
-
-    if test "$2"; then
-        log_error 'Recursive flag has no sense here, abort'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     PAGE=$(curl -L "$URL" | break_html_lines) || return
 

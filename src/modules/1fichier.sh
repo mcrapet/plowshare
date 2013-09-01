@@ -35,8 +35,10 @@ DOMAIN,,domain,N=ID,You can set domain ID to upload (ID can be found at http://w
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_1FICHIER_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_1FICHIER_DELETE_OPTIONS=""
 MODULE_1FICHIER_LIST_OPTIONS=""
+MODULE_1FICHIER_LIST_HAS_SUBFOLDERS=no
+
+MODULE_1FICHIER_DELETE_OPTIONS=""
 MODULE_1FICHIER_PROBE_OPTIONS=""
 
 # Output a 1fichier file download URL
@@ -208,8 +210,6 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
-
-    test "$2" && log_debug 'recursive folder does not exist in 1fichier.com'
 
     if match '/../dir/' "$URL"; then
         local BASE_URL DIR_ID

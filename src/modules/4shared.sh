@@ -36,6 +36,7 @@ MODULE_4SHARED_LIST_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
+MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
 
 # Static function. Proceed with login (tested on free-membership)
 4shared_login() {

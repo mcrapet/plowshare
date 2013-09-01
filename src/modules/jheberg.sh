@@ -25,6 +25,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_JHEBERG_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_JHEBERG_LIST_OPTIONS=""
+MODULE_JHEBERG_LIST_HAS_SUBFOLDERS=no
 
 # Upload a file to Jheberg.net
 # $1: cookie file (for account only)
@@ -75,11 +76,6 @@ jheberg_list() {
     local -r URL=${1/\/captcha\///download/}
     local -r BASE_URL='http://jheberg.net'
     local JSON NAMES DL_ID URL2 HOSTER
-
-    if test "$2"; then
-        log_error 'Recursive flag has no sense here, abort'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     JSON=$(curl --get --data "id=$(uri_encode_strict <<< "$URL")" \
         "$BASE_URL/api/verify/file/") || return

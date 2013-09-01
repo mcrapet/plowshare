@@ -36,9 +36,11 @@ PREMIUM,,premium,,Make file inaccessible to non-premium users
 PRIVATE_FILE,,private,,Do not make file visible in folder view"
 MODULE_HIPFILE_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_HIPFILE_LIST_OPTIONS=""
+MODULE_HIPFILE_LIST_HAS_SUBFOLDERS=yes
+
 MODULE_HIPFILE_DELETE_OPTIONS=""
 MODULE_HIPFILE_PROBE_OPTIONS=""
-MODULE_HIPFILE_LIST_OPTIONS=""
 
 # Static function. Proceed with login.
 # $1: authentication
@@ -82,13 +84,13 @@ hipfile_check_freespace() {
     SPACE_USED=$(echo "$PAGE" | parse 'Used space' \
         ' \([0-9.]\+[[:space:]]*[KMGBb]\+\) of ') || return
     SPACE_USED=$(translate_size "$(uppercase "$SPACE_USED")")
-    
+
     SPACE_LIMIT=$(echo "$PAGE" | parse 'Used space' \
         'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)') || return
     SPACE_LIMIT=$(translate_size "$(uppercase "$SPACE_LIMIT")")
-        
+
     log_debug "Space: $SPACE_USED / $SPACE_LIMIT"
-    
+
     # Check space limit
     if (( ( "$SPACE_LIMIT" - "$SPACE_USED" ) < "$FILE_SIZE" )); then
         log_error 'Not enough space in account folder.'
@@ -125,7 +127,7 @@ hipfile_check_folder() {
     #       - Second entry is root folder "/"
     FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
         replace '&nbsp;' '') || return
-    
+
     if ! match "^$NAME$" "$FOLDERS"; then
         log_debug 'Creating folder.'
         PAGE=$(curl -b "$COOKIE_FILE" -L \
@@ -133,7 +135,7 @@ hipfile_check_folder() {
             -d 'fld_id=0' \
             -d "create_new_folder=$NAME" \
             "$BASE_URL") || return
-        
+
         FORM=$(grep_form_by_name "$PAGE" 'F1') || return
 
         FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
@@ -142,19 +144,19 @@ hipfile_check_folder() {
             log_error 'No folder found. Site updated?'
             return $ERR_FATAL
         fi
-        
+
         if ! match "^$NAME$" "$FOLDERS"; then
             log_error "Could not create folder"
             return $ERR_FATAL
         fi
     fi
-    
+
     FOL_ID=$(echo "$FORM" | parse_attr "<option.*$NAME</option>" 'value')
     if [ -z "$FOL_ID" ]; then
         log_error "Could not get folder ID."
         return $ERR_FATAL
     fi
-    
+
     echo "$FOL_ID"
 }
 
@@ -175,7 +177,7 @@ hipfile_download() {
     fi
 
     test "$CHECK_LINK" && return 0
-    
+
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_REFERER FORM_RAND FORM_METHOD_F
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
@@ -196,7 +198,7 @@ hipfile_download() {
     if match 'This file is available for Premium Users only' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
     fi
-    
+
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
     FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
@@ -223,7 +225,7 @@ hipfile_download() {
             fi
         fi
     fi
-    
+
     if [ -n "$WAIT_TIME" ]; then
         wait $WAIT_TIME || return
     fi
@@ -237,7 +239,7 @@ hipfile_download() {
         -d 'down_direct=1' \
         -d "password=$LINK_PASSWORD" \
         "$URL") || return
-    
+
     ERROR=$(echo "$PAGE" | parse_tag_quiet 'class="err"' 'p')
     if [ "$ERROR" = 'Wrong password' ]; then
         return $ERR_LINK_PASSWORD_REQUIRED
@@ -248,7 +250,7 @@ hipfile_download() {
     elif [ -n "$ERROR" ]; then
         log_error "Remote error: $ERROR"
     fi
-    
+
     FILE_URL=$(echo "$PAGE" | parse_attr '/d/' 'href')
     if match_remote_url "$FILE_URL"; then
         echo "$FILE_URL"
@@ -271,7 +273,7 @@ hipfile_upload() {
     local -r BASE_URL='http://hipfile.com'
     local PAGE FILE_SIZE MAX_SIZE DEL_CODE FILE_ID UPLOAD_ID USER_TYPE
     local PUBLIC_FLAG=0
-        
+
     if [ -z "$AUTH" ]; then
         if [ -n "$FOLDER" ]; then
             log_error 'You must be registered to use folders.'
@@ -298,21 +300,21 @@ hipfile_upload() {
 
     if [ -n "$AUTH" ]; then
         hipfile_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
-        
+
         hipfile_check_freespace "$FILE_SIZE" "$COOKIE_FILE" "$BASE_URL" || return
-        
+
         if [ -n "$FOLDER" ]; then
             FOLDER_ID=$(hipfile_check_folder "$FOLDER" "$COOKIE_FILE" "$BASE_URL") || return
             log_debug "Folder ID: '$FOLDER_ID'"
         fi
-        
+
         USER_TYPE='reg'
     else
         USER_TYPE='anon'
     fi
-    
+
     [ -z "$PRIVATE_FILE" ] && PUBLIC_FLAG=1
-    
+
     PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=english' -b "$COOKIE_FILE" "$BASE_URL") || return
 
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
@@ -344,7 +346,7 @@ hipfile_upload() {
         -F 'submit_btn=' \
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
         break_html_lines) || return
-    
+
     local OP FILE_CODE STATE
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
@@ -383,7 +385,7 @@ hipfile_upload() {
 
     DEL_CODE=$(echo "$PAGE" | parse 'killcode=' 'killcode=\([[:alnum:]]\+\)') || return
     FILE_ID=$(echo "$PAGE" | parse 'id="ic0-' 'id="ic0-\([0-9]\+\)') || return
-    
+
     log_debug "File ID: '$FILE_ID'"
 
     LINK="$BASE_URL/$FILE_CODE"
@@ -405,22 +407,22 @@ hipfile_upload() {
         PAGE=$(echo "$PAGE" | grep_http_header_location_quiet)
         match '?op=my_files' "$PAGE" || log_error 'Could not move file. Site update?'
     fi
-    
+
     # Set premium only flag
     if [ -n "$PREMIUM" ]; then
         log_debug 'Setting premium flag...'
-        
+
         PAGE=$(curl -b "$COOKIE_FILE" -G \
             -d 'op=my_files' \
             -d "file_id=$FILE_ID" \
             -d 'set_premium_only=true' \
             -d 'rnd='$(random js) \
             "$BASE_URL") || return
-        
+
         [ "$PAGE" != "\$\$('tpo$FILE_ID').className='pub';" ] && \
             log_error 'Could not set premium only flag. Site update?'
     fi
-    
+
     echo "$LINK"
     echo "$DEL_LINK"
 }
@@ -470,11 +472,11 @@ hipfile_probe() {
     local PAGE FILE_SIZE REQ_OUT
 
     PAGE=$(curl -b 'lang=english' "$URL") || return
-    
+
     if match 'File Not Found\|file was removed' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-    
+
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_REFERER FORM_RAND FORM_METHOD_F
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
@@ -527,7 +529,7 @@ hipfile_list() {
     local PAGE LINKS NAMES ERROR PAGE_NUMBER LAST_PAGE
 
     PAGE=$(curl -b 'lang=english' "$URL") || return
-    
+
     ERROR=$(echo "$PAGE" | parse_tag_quiet 'class="err"' 'font')
     if [ "$ERROR" = 'No such user exist' ]; then
         return $ERR_LINK_DEAD
@@ -535,21 +537,21 @@ hipfile_list() {
         log_error "Remote error: $ERROR"
         return $ERR_FATAL
     fi
-    
+
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="link"' 'href')
     NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'class="link"' 'a')
-    
+
     # Parse page buttons panel if exist
     LAST_PAGE=$(echo "$PAGE" | parse_tag_quiet 'class="paging"' 'div' | break_html_lines | \
         parse_all_quiet . 'page=\([0-9]\+\)')
-    
+
     if [ -n "$LAST_PAGE" ];then
         # The last button is 'Next', last page button right before
         LAST_PAGE=$(echo "$LAST_PAGE" | delete_last_line | last_line)
-        
+
         for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do
             log_debug "Listing page #$PAGE_NUMBER"
-            
+
             PAGE=$(curl -G \
                 -d "page=$PAGE_NUMBER" \
                 "$URL") || return

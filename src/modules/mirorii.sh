@@ -25,6 +25,7 @@ DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_MIRORII_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MIRORII_LIST_OPTIONS=""
+MODULE_MIRORII_LIST_HAS_SUBFOLDERS=no
 
 # Upload a file to Mirorii
 # $1: cookie file (unused here)
@@ -87,11 +88,6 @@ mirorii_upload() {
 mirorii_list() {
     local -r URL=$1
     local PAGE LINKS LINK
-
-    if test "$2"; then
-        log_error 'Recursive flag has no sense here, abort'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     PAGE=$(curl "$URL") || return
     LINKS=$(echo "$PAGE" | parse_all_tag 'www\.mirorii\.com/.*_blank' a)
