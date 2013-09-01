@@ -25,7 +25,7 @@ HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowdown version
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-CHECK_LINK,c,check-link,,Check if a link exists and return
+CHECK_LINK,c,check-link,,DEPRECATED option, use plowprobe
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o,output-directory,s=DIR,Directory where files will be saved
