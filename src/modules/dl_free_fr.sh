@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
+MODULE_DL_FREE_FR_REGEXP_URL="http://dl\.free\.fr/"
 
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
