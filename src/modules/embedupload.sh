@@ -21,6 +21,7 @@
 MODULE_EMBEDUPLOAD_REGEXP_URL='http://\(www\.\)\?embedupload\.com/'
 
 MODULE_EMBEDUPLOAD_LIST_OPTIONS=""
+MODULE_EMBEDUPLOAD_LIST_HAS_SUBFOLDERS=no
 
 # List links from an embedupload link
 # $1: embedupload link
@@ -31,11 +32,6 @@ embedupload_list() {
     local PAGE LINKS LINK NAME
 
     local -r NOT_AUTHORIZED_PATTERN='not authorized'
-
-    if test "$2"; then
-        log_error 'Recursive flag has no sense here, abort'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     if matchi 'embedupload.com/?d=' "$URL"; then
         # Handle folders: get all URLs in there and resolve them

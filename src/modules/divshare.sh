@@ -37,6 +37,7 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 
 MODULE_DIVSHARE_LIST_OPTIONS="
 DIRECT,,direct,,Output direct (HTTP) links for images in a gallery"
+MODULE_DIVSHARE_LIST_HAS_SUBFOLDERS=yes
 
 # Static function. Proceed with login
 # $1: authentication

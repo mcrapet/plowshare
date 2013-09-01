@@ -34,6 +34,8 @@ MODULE_FILEPOST_DELETE_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
 
 MODULE_FILEPOST_LIST_OPTIONS=""
+MODULE_FILEPOST_LIST_HAS_SUBFOLDERS=yes
+
 MODULE_FILEPOST_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)

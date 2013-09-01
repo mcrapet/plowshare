@@ -33,6 +33,7 @@ NOMD5,,nomd5,,Disable md5 authentication (use plain text)"
 MODULE_HOTFILE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_HOTFILE_LIST_OPTIONS=""
+MODULE_HOTFILE_LIST_HAS_SUBFOLDERS=no
 
 MODULE_HOTFILE_PROBE_OPTIONS=""
 
@@ -245,7 +246,7 @@ hotfile_upload() {
 
 # List a hotfile shared file folder URL
 # $1: hotfile folder url
-# $2: recurse subfolders (null string means not selected)
+# $2: recurse subfolders (ignored here)
 # stdout: list of links
 hotfile_list() {
     local URL=$1
@@ -255,8 +256,6 @@ hotfile_list() {
         log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
-
-    test "$2" && log_debug "recursive folder does not exist in hotfile"
 
     PAGE=$(curl "$URL") || return
     NUM=$(echo "$PAGE" | parse ' files)' '(\([[:digit:]]*\) files')

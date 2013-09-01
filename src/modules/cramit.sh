@@ -35,10 +35,10 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_CRAMIT_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_CRAMIT_DELETE_OPTIONS=""
-
 MODULE_CRAMIT_LIST_OPTIONS=""
+MODULE_CRAMIT_LIST_HAS_SUBFOLDERS=yes
 
+MODULE_CRAMIT_DELETE_OPTIONS=""
 MODULE_CRAMIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)

@@ -30,8 +30,10 @@ MODULE_TURBOBIT_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_TURBOBIT_DELETE_OPTIONS=""
 MODULE_TURBOBIT_LIST_OPTIONS=""
+MODULE_TURBOBIT_LIST_HAS_SUBFOLDERS=no
+
+MODULE_TURBOBIT_DELETE_OPTIONS=""
 MODULE_TURBOBIT_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (free or premium)
@@ -409,8 +411,6 @@ turbobit_list() {
         log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
-
-    test "$2" && log_debug 'recursive folder does not exist in turbobit.net'
 
     PAGE=$(curl -L -b 'user_lang=en' "$URL") || return
 
