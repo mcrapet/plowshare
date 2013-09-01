@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare\.com/"
+MODULE_DIVSHARE_REGEXP_URL='http://\(www\.\)\?divshare\.com/'
 
 MODULE_DIVSHARE_DOWNLOAD_OPTIONS=""
 MODULE_DIVSHARE_DOWNLOAD_RESUME=no

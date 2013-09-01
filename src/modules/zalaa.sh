@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to ryushare.
 
-MODULE_ZALAA_REGEXP_URL="https\?://\(www\.\)\?zalaa\.com/"
+MODULE_ZALAA_REGEXP_URL='https\?://\(www\.\)\?zalaa\.com/'
 
 MODULE_ZALAA_DOWNLOAD_OPTIONS=""
 MODULE_ZALAA_DOWNLOAD_RESUME=yes

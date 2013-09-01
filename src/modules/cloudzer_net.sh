@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_CLOUDZER_NET_REGEXP_URL="http://\(cloudzer\.net/file\|clz\.to\)/"
+MODULE_CLOUDZER_NET_REGEXP_URL='http://\(cloudzer\.net/file\|clz\.to\)/'
 
 MODULE_CLOUDZER_NET_DOWNLOAD_OPTIONS=""
 MODULE_CLOUDZER_NET_DOWNLOAD_RESUME=no

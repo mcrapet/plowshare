@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_EUROSHARE_EU_REGEXP_URL="http://\(www\.\)\?euroshare\.eu/"
+MODULE_EUROSHARE_EU_REGEXP_URL='http://\(www\.\)\?euroshare\.eu/'
 
 MODULE_EUROSHARE_EU_DOWNLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"

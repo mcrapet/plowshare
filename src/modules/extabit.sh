@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_EXTABIT_REGEXP_URL="http://\(www\.\)\?extabit\.com/file/"
+MODULE_EXTABIT_REGEXP_URL='http://\(www\.\)\?extabit\.com/file/'
 
 MODULE_EXTABIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"

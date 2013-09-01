@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MULTIUP_ORG_REGEXP_URL="https\?://\(www\.\)\?multiup\.org/"
+MODULE_MULTIUP_ORG_REGEXP_URL='https\?://\(www\.\)\?multiup\.org/'
 
 MODULE_MULTIUP_ORG_LIST_OPTIONS=""
 MODULE_MULTIUP_ORG_PROBE_OPTIONS=""

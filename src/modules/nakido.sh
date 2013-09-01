@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_NAKIDO_REGEXP_URL="https\?://\(www\.\)\?nakido\.com/"
+MODULE_NAKIDO_REGEXP_URL='https\?://\(www\.\)\?nakido\.com/'
 
 MODULE_NAKIDO_DOWNLOAD_OPTIONS=""
 MODULE_NAKIDO_DOWNLOAD_RESUME=no

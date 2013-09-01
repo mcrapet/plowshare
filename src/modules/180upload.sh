@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to filebox and zalaa (for upload)
 
-MODULE_180UPLOAD_REGEXP_URL="https\?://\(www\.\)\?180upload\.com/"
+MODULE_180UPLOAD_REGEXP_URL='https\?://\(www\.\)\?180upload\.com/'
 
 MODULE_180UPLOAD_DOWNLOAD_OPTIONS=""
 MODULE_180UPLOAD_DOWNLOAD_RESUME=yes

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DATAPORT_CZ_REGEXP_URL="http://\(www\.\)\?dataport\.cz/"
+MODULE_DATAPORT_CZ_REGEXP_URL='http://\(www\.\)\?dataport\.cz/'
 
 MODULE_DATAPORT_CZ_DOWNLOAD_OPTIONS=""
 MODULE_DATAPORT_CZ_DOWNLOAD_RESUME=yes

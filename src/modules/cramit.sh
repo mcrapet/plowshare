@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to uptobox and oron.
 
-MODULE_CRAMIT_REGEXP_URL="https\?://\(www\.\)\?\(cramit\.in\|cramitin\.\(net\|us\|eu\)\)/"
+MODULE_CRAMIT_REGEXP_URL='https\?://\(www\.\)\?\(cramit\.in\|cramitin\.\(net\|us\|eu\)\)/'
 
 MODULE_CRAMIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account

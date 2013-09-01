@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ZIDDU_REGEXP_URL="https\?://\(www\.\)\?ziddu\.com/"
+MODULE_ZIDDU_REGEXP_URL='https\?://\(www\.\)\?ziddu\.com/'
 
 MODULE_ZIDDU_DOWNLOAD_OPTIONS=""
 MODULE_ZIDDU_DOWNLOAD_RESUME=no

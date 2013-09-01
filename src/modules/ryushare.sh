@@ -20,7 +20,7 @@
 #
 # Note: This module is a clone of uptobox.
 
-MODULE_RYUSHARE_REGEXP_URL="https\?://\(www\.\)\?ryushare\.com/"
+MODULE_RYUSHARE_REGEXP_URL='https\?://\(www\.\)\?ryushare\.com/'
 
 MODULE_RYUSHARE_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account

@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to 180upload
 
-MODULE_BILLIONUPLOADS_REGEXP_URL="https\?://\(www\.\)\?[Bb]illion[Uu]ploads\.com/"
+MODULE_BILLIONUPLOADS_REGEXP_URL='https\?://\(www\.\)\?[Bb]illion[Uu]ploads\.com/'
 
 MODULE_BILLIONUPLOADS_DOWNLOAD_OPTIONS=""
 MODULE_BILLIONUPLOADS_DOWNLOAD_RESUME=yes

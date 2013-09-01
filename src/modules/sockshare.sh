@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_SOCKSHARE_REGEXP_URL="http://\(www\.\)\?sockshare\.com/\(file\|public\)/[[:alnum:]]\+"
+MODULE_SOCKSHARE_REGEXP_URL='http://\(www\.\)\?sockshare\.com/\(file\|public\)/[[:alnum:]]\+'
 
 MODULE_SOCKSHARE_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"

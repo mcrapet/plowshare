@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ZIPPYSHARE_REGEXP_URL="https\?://\([[:alnum:]]\+\.\)\?zippyshare\.com/"
+MODULE_ZIPPYSHARE_REGEXP_URL='https\?://\([[:alnum:]]\+\.\)\?zippyshare\.com/'
 
 MODULE_ZIPPYSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZIPPYSHARE_DOWNLOAD_RESUME=no

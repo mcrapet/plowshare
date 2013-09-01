@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MEGASHARES_REGEXP_URL="http://\(www\.\)\?d01\.megashares\.com/"
+MODULE_MEGASHARES_REGEXP_URL='http://\(www\.\)\?d01\.megashares\.com/'
 
 MODULE_MEGASHARES_DOWNLOAD_OPTIONS=""
 MODULE_MEGASHARES_DOWNLOAD_RESUME=yes
