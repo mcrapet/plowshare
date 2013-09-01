@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ZIPPYSHARE_REGEXP_URL="https\?://\([[:alnum:]]\+\.\)\?zippyshare\.com/"
+MODULE_ZIPPYSHARE_REGEXP_URL='https\?://\([[:alnum:]]\+\.\)\?zippyshare\.com/'
 
 MODULE_ZIPPYSHARE_DOWNLOAD_OPTIONS=""
 MODULE_ZIPPYSHARE_DOWNLOAD_RESUME=no
@@ -81,12 +81,12 @@ zippyshare_download() {
         # Returns "true" or "false"
         if [ "$PAGE" != 'true' ]; then
             captcha_nack $ID
-            log_debug "reCaptcha error"
+            log_debug 'reCaptcha error'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
 
         echo "$BASE_URL$PART2"
         echo "${FILE_NAME% }"
@@ -142,7 +142,7 @@ zippyshare_upload() {
 
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt 209715200 ]; then
-        log_debug "file is bigger than 200MB"
+        log_debug 'file is bigger than 200MB'
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 

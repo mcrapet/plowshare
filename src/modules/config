@@ -2,7 +2,7 @@
 115             | download |        |        |      |       |
 180upload       | download | upload |        |      | probe |
 1fichier        | download | upload | delete | list | probe |
-2shared         | download | upload | delete |      |       |
+2shared         | download | upload | delete |      | probe |
 4shared         | download | upload |        | list |       |
 anonfiles       | download | upload |        |      |       |
 bayfiles        | download | upload | delete |      | probe |
@@ -19,19 +19,20 @@ embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 filebox         | download | upload | delete |      |       |
-filemates       | download | upload | delete | list |       |
 fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
+hipfile         | download | upload | delete | list | probe |
 hotfile         | download | upload |        | list | probe |
-jheberg         |          | upload |        | list |       |
+jheberg         |          | upload |        | list | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
+multiup_org     |          |        |        | list | probe |
 multiupload     |          | upload |        | list |       |
 nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
@@ -41,7 +42,9 @@ rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |
 ryushare        | download | upload |        |      | probe |
 sendspace       | download | upload | delete | list | probe |
+sharebeast      | download | upload | delete |      | probe |
 shareonline_biz | download | upload |        |      | probe |
+sockshare       | download | upload | delete | list | probe |
 turbobit        | download | upload | delete | list | probe |
 uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
@@ -49,4 +52,5 @@ uploaded_net    | download | upload | delete | list | probe |
 upstore         | download | upload |        |      | probe |
 uptobox         | download | upload |        |      | probe |
 zalaa           | download | upload |        | list | probe |
+ziddu           | download | upload | delete |      | probe |
 zippyshare      | download | upload |        | list | probe |

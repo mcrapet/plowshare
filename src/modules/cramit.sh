@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to uptobox and oron.
 
-MODULE_CRAMIT_REGEXP_URL="https\?://\(www\.\)\?\(cramit\.in\|cramitin\.\(net\|us\|eu\)\)/"
+MODULE_CRAMIT_REGEXP_URL='https\?://\(www\.\)\?\(cramit\.in\|cramitin\.\(net\|us\|eu\)\)/'
 
 MODULE_CRAMIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -115,7 +115,7 @@ cramit_download() {
 
     # Check for password protected link
     if match '"password"' "$PAGE"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
@@ -148,12 +148,12 @@ cramit_download() {
 
         if match 'File location :' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
 
     elif match '<p class="err">' "$PAGE"; then
         # You have to wait X minutes before your next download
@@ -187,7 +187,7 @@ cramit_download() {
             "$URL" | break_html_lines_alt) || return
 
     else
-        log_error "Unexpected content, site updated?"
+        log_error 'Unexpected content, site updated?'
         return $ERR_FATAL
     fi
 
@@ -242,8 +242,8 @@ cramit_upload() {
         -F "sess_id=$FORM_SESS" \
         -F "srv_tmp_url=$FORM_TMP_SRV" \
         -F "file_0=@$FILE;filename=$DESTFILE" \
-        -F "link_rcpt=$TOEMAIL" \
-        -F "link_pass=$LINK_PASSWORD" \
+        --form-string "link_rcpt=$TOEMAIL" \
+        --form-string "link_pass=$LINK_PASSWORD" \
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
          break_html_lines) || return
 
@@ -280,7 +280,7 @@ cramit_list() {
     local RET=0
 
     if ! match '/user/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_1FICHIER_REGEXP_URL="http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)"
+MODULE_1FICHIER_REGEXP_URL='http://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)'
 
 MODULE_1FICHIER_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
@@ -159,7 +159,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         'tenvoi.com' 'dl4free.com' )
 
     if [[ $DOMAIN_ID -gt 10 || $DOMAIN_ID -lt 0 ]]; then
-        log_error "Bad domain ID response, maybe API updated?"
+        log_error 'Bad domain ID response, maybe API updated?'
         return $ERR_FATAL
     fi
 
@@ -191,7 +191,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     # <div style="width:250px;margin:25px;padding:25px">The file has been destroyed</div>
     if ! match 'file has been' "$PAGE"; then
-        log_debug "unexpected result, site updated?"
+        log_debug 'unexpected result, site updated?'
         return $ERR_FATAL
     fi
 }
@@ -201,18 +201,24 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links
 1fichier_list() {
-    local -r URL=$1
+    local URL=$1
     local PAGE LINKS NAMES
 
     if ! match '/dir/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 
     test "$2" && log_debug 'recursive folder does not exist in 1fichier.com'
 
-    PAGE=$(curl -L "$URL") || return
+    if match '/../dir/' "$URL"; then
+        local BASE_URL DIR_ID
+        BASE_URL=$(basename_url "$URL")
+        DIR_ID=${URL##*/}
+        URL="$BASE_URL/dir/$DIR_ID"
+    fi
 
+    PAGE=$(curl -L "$URL") || return
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'T.l.chargement de' href)
     NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'T.l.chargement de' a)
 

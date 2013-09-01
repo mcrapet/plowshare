@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DL_FREE_FR_REGEXP_URL="http://dl.free.fr/"
+MODULE_DL_FREE_FR_REGEXP_URL='http://dl\.free\.fr/'
 
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
@@ -108,7 +108,7 @@ captcha_ayl_process() {
         [ -n "$RESPONSE" ] && break
 
         # Reload image
-        log_debug "empty, request another image"
+        log_debug 'empty, request another image'
     done
 
     echo "$RESPONSE"
@@ -135,6 +135,11 @@ dl_free_fr_download() {
     if match '^HTTP/1.1 401' "$PAGE"; then
         #PAGE=$(curl --basic --user ":password" -L -i -r 0-1024 "$URL") || return
         return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    # Bad link
+    if match '^HTTP/1.1 404' "$PAGE"; then
+        return $ERR_LINK_DEAD
     fi
 
     # Free is your ISP, this is direct download
@@ -189,7 +194,7 @@ dl_free_fr_download() {
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'correct captcha'
 
     echo "$URL"
     echo "$FILE_NAME"
@@ -242,16 +247,16 @@ dl_free_fr_upload() {
         PAGE=$(curl "$MON_PL") || return
 
         if match 'En attente de traitement...' "$PAGE"; then
-            log_debug "please wait"
+            log_debug 'please wait'
             ((WAIT_TIME += 4))
         elif match 'Test antivirus...' "$PAGE"; then
-            log_debug "antivirus test"
+            log_debug 'antivirus test'
             WAIT_TIME=3
         elif match 'Mise en ligne du fichier...' "$PAGE"; then
-            log_debug "nearly online!"
+            log_debug 'nearly online!'
             WAIT_TIME=2
         elif match 'Erreur de traitement...' "$PAGE"; then
-            log_error "process failed, you may try again"
+            log_error 'process failed, you may try again'
             break
         # Fichier "foo" en ligne, procédure terminée avec succès...
         elif match 'Le fichier sera accessible' "$PAGE"; then
@@ -264,7 +269,7 @@ dl_free_fr_upload() {
             echo "$DEL_URL"
             return 0
         else
-            log_error "unknown state, abort"
+            log_error 'unknown state, abort'
             break
         fi
 

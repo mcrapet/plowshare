@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_115_REGEXP_URL="http://\([[:alnum:]]\+\.\)\?115\.com/file/"
+MODULE_115_REGEXP_URL='http://\([[:alnum:]]\+\.\)\?115\.com/file/'
 
 MODULE_115_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
@@ -36,7 +36,7 @@ MODULE_115_DOWNLOAD_SUCCESSIVE_INTERVAL=
     local PAGE JSON LINKS HEADERS DIRECT FILENAME U1 U2
 
     if [ -z "$AUTH" ]; then
-        log_error "Anonymous users cannot download links"
+        log_error 'Anonymous users cannot download links'
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
@@ -50,7 +50,7 @@ MODULE_115_DOWNLOAD_SUCCESSIVE_INTERVAL=
         return $ERR_LINK_DEAD
     fi
 
-    U1=$(echo "$PAGE" | parse_last 'url:' "'\(/?ct=download[^']*\)") || return
+    U1=$(echo "$PAGE" | parse_all 'url:' "'\(/?ct=download[^']*\)" | last_line) || return
     U2=$(echo "$PAGE" | parse 'GetMyDownloadAddress(' "('\([^']*\)") || return
 
     test "$CHECK_LINK" && return 0
@@ -59,7 +59,7 @@ MODULE_115_DOWNLOAD_SUCCESSIVE_INTERVAL=
     JSON=$(curl -b "$COOKIEFILE" "http://115.com$U1$U2") || return
 
     if ! match_json_true state "$JSON"; then
-        log_error "Bad state. Site updated?"
+        log_error 'Bad state. Site updated?'
         return $ERR_FATAL
     fi
 
@@ -83,6 +83,6 @@ MODULE_115_DOWNLOAD_SUCCESSIVE_INTERVAL=
         fi
     done <<< "$LINKS"
 
-    log_debug "all mirrors are dead"
+    log_debug 'all mirrors are dead'
     return $ERR_FATAL
 }

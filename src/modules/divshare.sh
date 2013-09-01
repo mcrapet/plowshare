@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DIVSHARE_REGEXP_URL="http://\(www\.\)\?divshare\.com/"
+MODULE_DIVSHARE_REGEXP_URL='http://\(www\.\)\?divshare\.com/'
 
 MODULE_DIVSHARE_DOWNLOAD_OPTIONS=""
 MODULE_DIVSHARE_DOWNLOAD_RESUME=no
@@ -79,7 +79,7 @@ divshare_check_folder() {
     # <option value="ID">NAME</option>
     FOLDERS=$(echo "$LINES" | parse_all_tag option) || return
     if [ -z "$FOLDERS" ]; then
-        log_error "No folder found, site updated?"
+        log_error 'No folder found, site updated?'
         return $ERR_FATAL
     fi
 
@@ -129,7 +129,7 @@ divshare_download() {
 
     # Uploader can disable audio/video download (only streaming is available)
     REDIR_URL=$(echo "$PAGE" | parse_attr_quiet 'btn_download_new' 'href') || {
-        log_error "content download not allowed";
+        log_error 'content download not allowed';
         return $ERR_LINK_DEAD;
     }
 
@@ -307,7 +307,7 @@ divshare_list() {
     local PAGE LINK_DIVS LINKS NAMES
 
     if ! match "$BASE_URL/\(folder\|gallery\)/" "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

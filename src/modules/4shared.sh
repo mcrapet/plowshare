@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_4SHARED_REGEXP_URL="https\?://\(www\.\)\?4shared\.com/"
+MODULE_4SHARED_REGEXP_URL='https\?://\(www\.\)\?4shared\.com/'
 
 MODULE_4SHARED_DOWNLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
@@ -67,7 +67,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     local REAL_URL URL PAGE WAIT_URL FILE_URL FILE_NAME
 
     if [ -z "$AUTH_FREE" ]; then
-        log_error "4shared does not allow anonymous file download. Add --auth-free option."
+        log_error '4shared does not allow anonymous file download. Add --auth-free option.'
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
@@ -85,7 +85,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     fi
 
     if match '4shared\.com/dir/' "$URL"; then
-        log_error "This is a directory list, use plowlist!"
+        log_error 'This is a directory list, use plowlist!'
         return $ERR_FATAL
     elif match 'The file link that you requested is not valid.' "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -93,7 +93,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 
     # You must enter a password to access this file.
     if match 'enter a password to access' "$PAGE"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
@@ -248,7 +248,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     log_debug "JSON:$JSON"
     # {"status":true}
     #if ! match_json_true 'status' "$JSON"; then
-    #    log_error "bad answer, file moved to Incompleted folder"
+    #    log_error 'bad answer, file moved to Incompleted folder'
     #    return $ERR_FATAL
     #fi
 
@@ -268,7 +268,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
     # - Simple view link (URL with /folder/)
     # - Advanced view link (URL with /dir/)
     if ! match '4shared\.com/dir/' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 
@@ -301,7 +301,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 
     # Please enter a password to access this folder
     if match 'enter a password to access' "$PAGE"; then
-        log_debug "Folder is password protected"
+        log_debug 'Folder is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi

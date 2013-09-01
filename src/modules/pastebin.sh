@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_PASTEBIN_REGEXP_URL="http://\(www\.\)\?pastebin\.com/"
+MODULE_PASTEBIN_REGEXP_URL='http://\(www\.\)\?pastebin\.com/'
 
 MODULE_PASTEBIN_LIST_OPTIONS="
 COUNT,,count,n=COUNT,Take COUNT pastes when listing user folder. Default is 100 (first web page)."

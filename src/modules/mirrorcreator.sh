@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MIRRORCREATOR_REGEXP_URL="http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/"
+MODULE_MIRRORCREATOR_REGEXP_URL='http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/'
 
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
@@ -44,7 +44,7 @@ mirrorcreator_upload() {
 
     # File size limit check (warning message only)
     if [ "$SZ" -gt 419430400 ]; then
-        log_debug "file is bigger than 400MB, some site may not support it"
+        log_debug 'file is bigger than 400MB, some site may not support it'
     fi
 
     if [ -n "$AUTH_FREE" ]; then
@@ -69,7 +69,7 @@ mirrorcreator_upload() {
     SITES_ALL=$(echo "$FORM" | grep 'checkbox' | parse_all_attr 'id=' value)
 
     if [ -z "$SITES_ALL" ]; then
-        log_error "Empty list, site updated?"
+        log_error 'Empty list, site updated?'
         return $ERR_FATAL
     else
         log_debug "Available sites:" $SITES_ALL
@@ -100,7 +100,7 @@ mirrorcreator_upload() {
     fi
 
     if [ -z "$SITES_SEL" ]; then
-        log_debug "Empty site selection. Nowhere to upload!"
+        log_debug 'Empty site selection. Nowhere to upload!'
         return $ERR_FATAL
     fi
 
@@ -147,7 +147,7 @@ mirrorcreator_list() {
     local BASE_URL='http://www.mirrorcreator.com'
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 

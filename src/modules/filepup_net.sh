@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEPUP_NET_REGEXP_URL="https\?://\(www\.\|sp[[:digit:]]\.\)\?filepup\.net/"
+MODULE_FILEPUP_NET_REGEXP_URL='https\?://\(www\.\|sp[[:digit:]]\.\)\?filepup\.net/'
 
 MODULE_FILEPUP_NET_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"

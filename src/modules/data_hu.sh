@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DATA_HU_REGEXP_URL="http://\(www\.\)\?data.hu/"
+MODULE_DATA_HU_REGEXP_URL='http://\(www\.\)\?data.hu/'
 
 MODULE_DATA_HU_DOWNLOAD_OPTIONS=""
 MODULE_DATA_HU_DOWNLOAD_RESUME=yes

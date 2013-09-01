@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_CLOUDZER_NET_REGEXP_URL="http://\(cloudzer\.net/file\|clz\.to\)/"
+MODULE_CLOUDZER_NET_REGEXP_URL='http://\(cloudzer\.net/file\|clz\.to\)/'
 
 MODULE_CLOUDZER_NET_DOWNLOAD_OPTIONS=""
 MODULE_CLOUDZER_NET_DOWNLOAD_RESUME=no
@@ -54,15 +54,15 @@ cloudzer_net_download() {
     log_debug "FileID: '$FILEID'"
 
     if match 'No connection to database' "$PAGE"; then
-        log_debug "server error"
+        log_debug 'server error'
         echo 600 # arbitrary time
         return $ERR_LINK_TEMP_UNAVAILABLE
     elif match 'All of our free-download capacities are exhausted currently|The free download is currently not available' "$PAGE"; then
-        log_debug "no free download slot available"
+        log_debug 'no free download slot available'
         echo 600 # arbitrary time
         return $ERR_LINK_TEMP_UNAVAILABLE
     elif match 're already downloading' "$PAGE"; then
-        log_debug "a download is already running"
+        log_debug 'a download is already running'
         echo 600 # arbitrary time
         return $ERR_LINK_TEMP_UNAVAILABLE
     elif match 'Only Premiumusers are allowed to download files' "$PAGE"; then
@@ -107,12 +107,12 @@ cloudzer_net_download() {
     # Handle server (JSON) response
     if match '"captcha"' "$RESPONSE"; then
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug "captcha_correct"
+    log_debug 'captcha_correct'
 
     if match '"type":"download"' "$RESPONSE"; then
         FILE_URL=$(echo "$RESPONSE" | parse_json url) || return
@@ -121,12 +121,12 @@ cloudzer_net_download() {
         return 0
 
     elif match 'You have reached the max. number of possible free downloads for this hour' "$RESPONSE"; then
-        log_debug "you have reached the max. number of possible free downloads for this hour"
+        log_debug 'you have reached the max. number of possible free downloads for this hour'
         echo 600 # arbitary time
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     elif match 'parallel' "$RESPONSE"; then
-        log_debug "a download is already running"
+        log_debug 'a download is already running'
         echo 600 # arbitary time
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi

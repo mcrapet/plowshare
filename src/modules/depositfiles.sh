@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DEPOSITFILES_REGEXP_URL="https\?://\(www\.\)\?\(depositfiles\.\(com\|org\)\)\|\(dfiles\.\(eu\|ru\)\)/"
+MODULE_DEPOSITFILES_REGEXP_URL='https\?://\(www\.\)\?\(depositfiles\.\(com\|org\)\)\|\(dfiles\.\(eu\|ru\)\)/'
 
 MODULE_DEPOSITFILES_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -48,7 +48,7 @@ depositfiles_login() {
         "$BASE_URL/login.php" -b 'lang_current=en') || return
 
     if match 'recaptcha' "$LOGIN_RESULT"; then
-        log_debug "recaptcha solving required for login"
+        log_debug 'recaptcha solving required for login'
 
         local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6LdRTL8SAAAAAE9UOdWZ4d0Ky-aeA7XfSqyWDM2m'
@@ -63,12 +63,12 @@ depositfiles_login() {
         # <div class="error_message">Security code not valid.</div>
         if match 'code not valid' "$LOGIN_RESULT"; then
             captcha_nack $ID
-            log_debug "reCaptcha error"
+            log_debug 'reCaptcha error'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
     fi
 
     # <div class="error_message">Your password or login is incorrect</div>
@@ -103,7 +103,7 @@ depositfiles_download() {
             return $ERR_LINK_TEMP_UNAVAILABLE
         # Attention! You have exceeded the 20 GB 24-hour limit.
         elif match 'html_download_api-gold_traffic_limit' "$START"; then
-            log_error "Traffic limit exceeded (20 GB)"
+            log_error 'Traffic limit exceeded (20 GB)'
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
 
@@ -190,14 +190,14 @@ depositfiles_download() {
 
         if match '=.downloader_file_form' "$DATA"; then
             captcha_ack $ID
-            log_debug "correct captcha"
+            log_debug 'correct captcha'
 
             echo "$DATA" | parse_form_action
             return 0
         fi
 
         captcha_nack $ID
-        log_debug "reCaptcha error"
+        log_debug 'reCaptcha error'
         return $ERR_CAPTCHA
     fi
 
@@ -291,7 +291,7 @@ depositfiles_upload() {
 
         # Invalid local or global uploads dirs configuration
         if match 'Invalid local or global' "$DATA"; then
-            log_error "upload failure, rename file and/or extension and retry"
+            log_error 'upload failure, rename file and/or extension and retry'
             return $ERR_FATAL
         fi
 
@@ -319,7 +319,7 @@ depositfiles_delete() {
 
     # No such downlodable file or incorrect removal code.
     else
-        log_error "bad deletion code"
+        log_error 'bad deletion code'
         return $ERR_FATAL
     fi
 }
@@ -333,7 +333,7 @@ depositfiles_list() {
     local PAGE LINKS NAMES
 
     if ! match "${MODULE_DEPOSITFILES_REGEXP_URL}folders" "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

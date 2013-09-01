@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_NETLOAD_IN_REGEXP_URL="https\?://\(www\.\)\?net\(load\|folder\)\.in/"
+MODULE_NETLOAD_IN_REGEXP_URL='https\?://\(www\.\)\?net\(load\|folder\)\.in/'
 
 MODULE_NETLOAD_IN_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,Premium account"
@@ -46,7 +46,7 @@ netload_in_premium_login() {
     LOGIN_RESULT=$(post_login "$1" "$2" "$LOGIN_DATA" "$3/index.php" -L) || return
 
     if match 'InPage_Error\|lostpassword\.tpl' "$LOGIN_RESULT"; then
-        log_debug "bad login and/or password"
+        log_debug 'bad login and/or password'
         return $ERR_LOGIN_FAILED
     fi
 }
@@ -140,7 +140,7 @@ netload_in_download() {
 
     if [ "${#WORD}" -lt 4 ]; then
         captcha_nack $ID
-        log_debug "captcha length invalid"
+        log_debug 'captcha length invalid'
         return $ERR_CAPTCHA
     elif [ "${#WORD}" -gt 4 ]; then
         WORD="${WORD:0:4}"
@@ -162,12 +162,12 @@ netload_in_download() {
 
     if match 'class="InPage_Error"' "$WAIT_HTML2"; then
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'correct captcha'
 
     WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text/javascript">countdown' \
             "countdown(\([[:digit:]]*\),'change()')")
@@ -175,7 +175,7 @@ netload_in_download() {
     # <!--./share/templates/download_limit.tpl-->
     # <!--./share/templates/download_wait.tpl-->
     if [[ $WAIT_TIME2 -gt 10000 ]]; then
-        log_debug "Download limit reached!"
+        log_debug 'Download limit reached!'
         echo $((WAIT_TIME2 / 100))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
@@ -242,7 +242,7 @@ netload_in_upload() {
             return 0
             ;;
         rar_password)
-            log_error "Archive is password protected"
+            log_error 'Archive is password protected'
             ;;
         unknown_user_id|wrong_user_password|no_user_password)
             log_error "bad login and/or password ($RETCODE)"
@@ -265,7 +265,7 @@ netload_in_list() {
     local PAGE LINKS NAMES
 
     if ! match '/folder' "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 
@@ -273,7 +273,7 @@ netload_in_list() {
 
     # Folder can have a password
     if match '<div id="Password">' "$PAGE"; then
-        log_debug "Password-protected folder"
+        log_debug 'Password-protected folder'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
@@ -304,7 +304,7 @@ netload_in_probe() {
     local RESPONSE REQ_OUT FILE_ID FILE_NAME FILE_SIZE FILE_HASH STATUS
 
     if [[ "$URL" = */folder* ]]; then
-        log_error "This is a folder. Please use plowlist."
+        log_error 'This is a folder. Please use plowlist.'
         return $ERR_FATAL
     fi
 

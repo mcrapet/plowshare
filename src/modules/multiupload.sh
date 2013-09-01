@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MULTIUPLOAD_REGEXP_URL="http://\(www\.\)\?multiupload\.\(com\|nl\)/"
+MODULE_MULTIUPLOAD_REGEXP_URL='http://\(www\.\)\?multiupload\.\(com\|nl\)/'
 
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
@@ -110,7 +110,7 @@ multiupload_list() {
     local PAGE LINKS FILE_NAME SITE_URL
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 

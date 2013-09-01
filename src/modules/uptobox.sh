@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPTOBOX_REGEXP_URL="https\?://\(www\.\)\?uptobox\.com/"
+MODULE_UPTOBOX_REGEXP_URL='https\?://\(www\.\)\?uptobox\.com/'
 
 MODULE_UPTOBOX_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -207,7 +207,7 @@ uptobox_download() {
         fi
     fi
 
-    log_error "Unexpected content, site updated?"
+    log_error 'Unexpected content, site updated?'
     return $ERR_FATAL
 }
 

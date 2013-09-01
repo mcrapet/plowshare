@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_GO4UP_REGEXP_URL="http://\(www\.\)\?go4up\.com"
+MODULE_GO4UP_REGEXP_URL='http://\(www\.\)\?go4up\.com'
 
 MODULE_GO4UP_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account
@@ -74,7 +74,7 @@ go4up_upload() {
     local SITE HOST SITES_ALL SITES_SEL SITES_FORM SITES_MULTI
 
     if [ -n "$API" ]; then
-        log_debug "using public API"
+        log_debug 'using public API'
 
         # Check if API can handle this upload
         if [ -z "$AUTH_FREE" ]; then
@@ -152,7 +152,7 @@ go4up_upload() {
 
     # Code copied from mirrorcreator module
     if [ -z "$SITES_ALL" ]; then
-        log_error "Empty list, site updated?"
+        log_error 'Empty list, site updated?'
         return $ERR_FATAL
     fi
 
@@ -183,7 +183,7 @@ go4up_upload() {
     fi
 
     if [ -z "$SITES_SEL" ]; then
-        log_debug "Empty site selection. Nowhere to upload!"
+        log_debug 'Empty site selection. Nowhere to upload!'
         return $ERR_FATAL
     fi
     # End of code copy
@@ -266,7 +266,7 @@ go4up_list() {
     local PAGE LINKS NAME SITE_URL
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 

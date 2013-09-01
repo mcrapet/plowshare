@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPSTORE_REGEXP_URL="https\?://\(www\.\)\?upsto\(\.re\|re\.net\)/"
+MODULE_UPSTORE_REGEXP_URL='https\?://\(www\.\)\?upsto\(\.re\|re\.net\)/'
 
 MODULE_UPSTORE_DOWNLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"

@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to 180upload
 
-MODULE_BILLIONUPLOADS_REGEXP_URL="https\?://\(www\.\)\?[Bb]illion[Uu]ploads\.com/"
+MODULE_BILLIONUPLOADS_REGEXP_URL='https\?://\(www\.\)\?[Bb]illion[Uu]ploads\.com/'
 
 MODULE_BILLIONUPLOADS_DOWNLOAD_OPTIONS=""
 MODULE_BILLIONUPLOADS_DOWNLOAD_RESUME=yes
@@ -65,7 +65,7 @@ billionuploads_download() {
     FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
     # TODO extract exact time to wait to not trigger Skipped countdown error
-    log_debug "Waiting 3 seconds to not trigger Skipped countdown error."
+    log_debug 'Waiting 3 seconds to not trigger Skipped countdown error.'
     wait 3 seconds
 
     PAGE=$(curl -b "$COOKIE_FILE" \
@@ -139,7 +139,7 @@ billionuploads_upload() {
 
     # Sanity check. Avoid failure after effective upload
     if match '>404 Not Found<' "$PAGE"; then
-        log_error "upstream error (404)"
+        log_error 'upstream error (404)'
         return $ERR_FATAL
     fi
 
@@ -151,8 +151,8 @@ billionuploads_upload() {
         --form-string "file_0_descr=$DESCRIPTION" \
         -F "file_1=@/dev/null;filename=" \
         -F 'tos=1' \
-        -F "link_rcpt=$TOEMAIL" \
-        -F "link_pass=$LINK_PASSWORD" \
+        --form-string "link_rcpt=$TOEMAIL" \
+        --form-string "link_pass=$LINK_PASSWORD" \
         -F 'submit_btn= Upload! ' \
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
         break_html_lines) || return

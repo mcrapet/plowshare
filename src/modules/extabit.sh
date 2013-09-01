@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_EXTABIT_REGEXP_URL="http://\(www\.\)\?extabit\.com/file/"
+MODULE_EXTABIT_REGEXP_URL='http://\(www\.\)\?extabit\.com/file/'
 
 MODULE_EXTABIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
@@ -147,7 +147,7 @@ extabit_download() {
 
     # Sanity check
     [ -z "$JSON" ] && \
-        log_error "Bad state. Empty answer"
+        log_error 'Bad state. Empty answer'
 
     #{"err":"Entered digits are incorrect."}
     #{"ok":true,"href":"?af"}
@@ -156,12 +156,12 @@ extabit_download() {
         test "$ERR" && log_error "Remote error: $ERR"
 
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'correct captcha'
 
     QUERY=$(echo "$JSON" | parse_json href) || return
     PAGE=$(curl --get -b "$COOKIE_FILE" -b 'language=en' \

@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEPOST_REGEXP_URL="https\?://\(fp\.io\|\(www\.\)\?filepost\.com\)/"
+MODULE_FILEPOST_REGEXP_URL='https\?://\(fp\.io\|\(www\.\)\?filepost\.com\)/'
 
 MODULE_FILEPOST_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
@@ -64,7 +64,7 @@ filepost_login() {
     # Sometimes prompts for reCaptcha (like depositfiles)
     # {"id":"1234","js":{"answer":{"captcha":true}},"text":""}
     elif match_json_true 'captcha' "$PAGE"; then
-        log_debug "Captcha solving required for login"
+        log_debug 'Captcha solving required for login'
 
         local PUBKEY WCI CHALLENGE WORD ID
         PUBKEY='6Leu6cMSAAAAAFOynB3meLLnc9-JYi-4l94A6cIE'
@@ -293,7 +293,7 @@ filepost_delete() {
     local PAGE FILE_ID SID
 
     if ! match '/files/edit/' "$URL"; then
-        log_error "This is not a delete link"
+        log_error 'This is not a delete link'
         return $ERR_FATAL
     fi
 
@@ -329,7 +329,7 @@ filepost_delete() {
 # stdout: list of links
 filepost_list() {
     if ! match 'filepost\.com/folder/' "$1"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

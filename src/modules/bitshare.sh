@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_BITSHARE_REGEXP_URL="http://\(www\.\)\?bitshare\.com/"
+MODULE_BITSHARE_REGEXP_URL='http://\(www\.\)\?bitshare\.com/'
 
 MODULE_BITSHARE_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -51,7 +51,7 @@ bitshare_login() {
     if test -z "$LOGIN"; then
         return $ERR_LOGIN_FAILED
     else
-        log_debug "successfully logged in"
+        log_debug 'successfully logged in'
     fi
 }
 
@@ -108,7 +108,7 @@ bitshare_download() {
     # Premium account direct download
     FILE_URL=$(echo "$RESPONSE" | grep_http_header_location_quiet) || return
     if [ "$FILE_URL" ]; then
-        log_debug "using premium direct download"
+        log_debug 'using premium direct download'
         echo "$FILE_URL"
         echo "$FILENAME"
         return
@@ -137,9 +137,9 @@ bitshare_download() {
     NEED_RECAPTCHA=$(echo "$RESPONSE" | parse ':' ':\([^:]\+\)$') || return
 
     if [ "$NEED_RECAPTCHA" -eq 1 ]; then
-        log_debug "need recaptcha"
+        log_debug 'need recaptcha'
     else
-        log_debug "no recaptcha needed"
+        log_debug 'no recaptcha needed'
     fi
 
     wait $WAIT seconds || return
@@ -162,7 +162,7 @@ bitshare_download() {
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
     fi
 
     # Get file url
@@ -191,7 +191,7 @@ bitshare_upload() {
     if [ -z "$METHOD" -o "$METHOD" = 'openapi' ]; then
         if [ -n "$HASHKEY" ]; then
             [ -z "$AUTH" ] || \
-                log_error "Both --hashkey & --auth_free are defined. Taking hashkey."
+                log_error 'Both --hashkey & --auth_free are defined. Taking hashkey.'
         elif [ -n "$AUTH" ]; then
             # Login to openapi
             local USER PASSWORD PASSWORD_HASH RESPONSE HASHKEY
@@ -211,13 +211,13 @@ bitshare_upload() {
 
     elif [ "$METHOD" = form ]; then
         if match_remote_url "$2"; then
-            log_error "Remote upload is not supported with this method. Use openapi method."
+            log_error 'Remote upload is not supported with this method. Use openapi method.'
             return $ERR_FATAL
         fi
         bitshare_upload_form "$AUTH" "$1" "$2" "$3" || return
 
     else
-        log_error "Unknow method (check --method parameter)"
+        log_error 'Unknow method (check --method parameter)'
         return $ERR_FATAL
     fi
 }
@@ -237,7 +237,7 @@ bitshare_upload_openapi() {
 
     if match_remote_url "$FILE"; then
         if [ -z "$HASHKEY" ]; then
-            log_error "Remote upload requires an account"
+            log_error 'Remote upload requires an account'
             return $ERR_LINK_NEED_PERMISSIONS
         fi
 

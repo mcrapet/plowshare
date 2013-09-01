@@ -20,7 +20,7 @@
 #
 # Note: This module is similar to filebox and zalaa (for upload)
 
-MODULE_180UPLOAD_REGEXP_URL="https\?://\(www\.\)\?180upload\.com/"
+MODULE_180UPLOAD_REGEXP_URL='https\?://\(www\.\)\?180upload\.com/'
 
 MODULE_180UPLOAD_DOWNLOAD_OPTIONS=""
 MODULE_180UPLOAD_DOWNLOAD_RESUME=yes
@@ -159,7 +159,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 
     # Sanity check. Avoid failure after effective upload
     if match '>404 Not Found<' "$PAGE"; then
-        log_error "upstream error (404)"
+        log_error 'upstream error (404)'
         return $ERR_FATAL
     fi
 
@@ -171,7 +171,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
        --form-string "file_0_descr=$DESCRIPTION" \
        -F "file_1=@/dev/null;filename=" \
        -F 'tos=1' \
-       -F "link_rcpt=$TOEMAIL" \
+       --form-string "link_rcpt=$TOEMAIL" \
        -F 'submit_btn= Upload! ' \
        "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
        break_html_lines) || return

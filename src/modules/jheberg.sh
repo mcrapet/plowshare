@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_JHEBERG_REGEXP_URL="http://www\.jheberg\.net/"
+MODULE_JHEBERG_REGEXP_URL='http://\(www\.\)\?jheberg\.net/'
 
 MODULE_JHEBERG_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -40,8 +40,8 @@ jheberg_upload() {
 
     # Note: official API does not allow hoster selection (yet).
 
-    PAGE=$(curl "$API_URL/") || return
-    UPLOAD_URL=$(echo "$PAGE" | parse_tag 'apiUploadUrl' pre) || return
+    PAGE=$(curl "$API_URL/get/server/") || return
+    UPLOAD_URL="$(echo "$PAGE" | parse_json 'url')api/upload/" || return
     log_debug "Upload URL: $UPLOAD_URL"
 
     if [ -n "$AUTH" ]; then
@@ -72,54 +72,80 @@ jheberg_upload() {
 # $2: recurse subfolders (ignored here)
 # stdout: list of links
 jheberg_list() {
-    local -r URL=${1/\/captcha\//\/download\/}
-    local -r BASE_URL='http://www.jheberg.net'
-    local JSON PAGE URL2 LINKS NAMES REL_URL
+    local -r URL=${1/\/captcha\///download/}
+    local -r BASE_URL='http://jheberg.net'
+    local JSON NAMES DL_ID URL2 HOSTER
 
     if test "$2"; then
-        log_error "Recursive flag has no sense here, abort"
+        log_error 'Recursive flag has no sense here, abort'
         return $ERR_BAD_COMMAND_LINE
     fi
 
     JSON=$(curl --get --data "id=$(uri_encode_strict <<< "$URL")" \
-        "$BASE_URL/api/check-link") || return
+        "$BASE_URL/api/verify/file/") || return
 
-    if [ -z "$JSON" ]; then
+    if [ -z "$JSON" ] || match '^<!DOCTYPE[[:space:]]' "$JSON"; then
         return $ERR_LINK_DEAD
     fi
 
-    # The website redirects to a "captcha" site where currently no captcha
-    # is shown. Instead you just click "Download" and get back to the real
-    # download site. We just need a proper "referer" to skip this detour.
-    #
-    # DL site: http://www.jheberg.net/download/foobar
-    # Captcha site: http://www.jheberg.net/captcha/foobar
-    PAGE=$(curl --referer "${URL/download/captcha}" "$URL") || return
+    # FIXME. Fragile parsing...
+    JSON=$(sed -e 's/},/\n/g' <<< "$JSON" | \
+        sed -ne '/"hostOnline":[[:space:]]*true/p')
 
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/redirect/' href) || return
-    if [ -z "$LINKS" ]; then
+    NAMES=$(parse_json 'hostName' split <<< "$JSON")
+
+    # All mirrors have been deleted!
+    if [ -z "$NAMES" ]; then
         return $ERR_LINK_DEAD
     fi
 
-    NAMES=( $(echo "$PAGE" | parse_all_attr '/redirect/' id) )
+    DL_ID=$(parse . '^.*/\([^/]\+\)' <<< "$URL") || return
+    log_debug "slug: '$DL_ID'"
 
-    while read REL_URL; do
-        test "$REL_URL" || continue
+    while read HOSTER; do
+        URL2="${URL/\/mirrors\///redirect/}$HOSTER/"
 
-        IFS='/' read DL_ID HOSTER <<< "${REL_URL:10}"
-
-        JSON=$(curl --referer "$BASE_URL$REL_URL" \
+        JSON=$(curl --referer "$URL2" \
             -H 'X-Requested-With: XMLHttpRequest' \
-            -F "slug=$DL_ID" -F "host=$HOSTER"    \
-            "$BASE_URL/redirect-ajax/") || return
+            -d "slug=$DL_ID" -d "hoster=$HOSTER"    \
+            "$BASE_URL/get/link/") || return
 
         URL2=$(echo "$JSON" | parse_json_quiet url)
         if match_remote_url "$URL2"; then
             echo "$URL2"
-            echo "${NAMES[0]}"
+            echo "$HOSTER"
         fi
+    done <<< "$NAMES"
+}
 
-        # Drop first element
-        NAMES=("${NAMES[@]:1}")
-    done <<< "$LINKS"
+# Probe a download URL (using official API)
+# $1: cookie file (unused here)
+# $2: jheberg url
+# $3: requested capability list
+# stdout: 1 capability per line
+jheberg_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local JSON REQ_OUT FILE_SIZE
+
+    JSON=$(curl --get --data "id=$(uri_encode_strict <<< "$URL")" \
+        "http://jheberg.net/api/verify/file/") || return
+
+    if [ -z "$JSON" ] || match '^<!DOCTYPE[[:space:]]' "$JSON"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_json 'fileName' split <<< "$JSON" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        parse_json 'fileSize' split <<< "$JSON" && \
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    echo $REQ_OUT
 }

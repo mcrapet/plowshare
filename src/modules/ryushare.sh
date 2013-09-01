@@ -20,7 +20,7 @@
 #
 # Note: This module is a clone of uptobox.
 
-MODULE_RYUSHARE_REGEXP_URL="https\?://\(www\.\)\?ryushare\.com/"
+MODULE_RYUSHARE_REGEXP_URL='https\?://\(www\.\)\?ryushare\.com/'
 
 MODULE_RYUSHARE_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -140,7 +140,7 @@ ryushare_download() {
 
     # Check for password protected link
     if match '"password"' "$PAGE"; then
-        log_debug "File is password protected"
+        log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
@@ -231,7 +231,7 @@ ryushare_download() {
         fi
         log_error "Remote error: $ERR"
     else
-        log_error "Unexpected content, site updated?"
+        log_error 'Unexpected content, site updated?'
     fi
 
     return $ERR_FATAL
@@ -279,14 +279,14 @@ ryushare_upload() {
         -F "file_0=@$FILE;filename=$DESTFILE" \
         -F "file_0_descr=" \
         -F "file_1=@/dev/null;filename=" \
-        -F "link_rcpt=$TOEMAIL" \
-        -F "link_pass=$LINK_PASSWORD" \
+        --form-string "link_rcpt=$TOEMAIL" \
+        --form-string "link_pass=$LINK_PASSWORD" \
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
         break_html_lines) || return
 
     # Sanity check
     if match '>417 - Expectation Failed<' "$PAGE"; then
-        log_error "upstream error (417)"
+        log_error 'upstream error (417)'
         return $ERR_FATAL
     fi
 

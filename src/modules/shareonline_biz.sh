@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_SHAREONLINE_BIZ_REGEXP_URL="http://\(\www\.\)\?\(share\-online\.biz\|egoshare\.com\)/\(download\.php?id\=\|dl/\)\(\w\)"
+MODULE_SHAREONLINE_BIZ_REGEXP_URL='http://\(\www\.\)\?\(share\-online\.biz\|egoshare\.com\)/\(download\.php?id\=\|dl/\)\(\w\)'
 
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_OPTIONS=""
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_RESUME=no

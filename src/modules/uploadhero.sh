@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPLOADHERO_REGEXP_URL="http://\(www\.\)\?\(uploadhero\)\.com\?/"
+MODULE_UPLOADHERO_REGEXP_URL='http://\(www\.\)\?\(uploadhero\)\.com\?/'
 
 MODULE_UPLOADHERO_DOWNLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
@@ -110,7 +110,7 @@ uploadhero_download() {
 
     # Recognize folders
     if match 'uploadhero.com\?/f/' "$URL"; then
-        log_error "This is a directory list"
+        log_error 'This is a directory list'
         return $ERR_FATAL
     fi
 
@@ -180,17 +180,17 @@ uploadhero_download() {
 
     if ! match 'setTimeout' "$PAGE"; then
         captcha_nack $ID
-        log_error "Wrong captcha"
+        log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     elif match 'magicomfg' "$PAGE"; then
         FILE_URL=$(echo "$PAGE" | parse_attr 'magicomfg' 'href') || return
     else
-        log_error "No match. Site update?"
+        log_error 'No match. Site update?'
         return $ERR_FATAL
     fi
 
     captcha_ack $ID
-    log_debug "correct captcha"
+    log_debug 'correct captcha'
 
     # Wait 46 seconds (we should parse the javascript function setTimeout to extract 46000, but it is multiline...)
     wait 46 seconds || return
@@ -304,7 +304,7 @@ uploadhero_list() {
 
     # check whether it looks like a folder link
     if ! match "${MODULE_UPLOADHERO_REGEXP_URL}f/" "$URL"; then
-        log_error "This is not a directory list"
+        log_error 'This is not a directory list'
         return $ERR_FATAL
     fi
 

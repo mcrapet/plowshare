@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FREAKSHARE_REGEXP_URL="http://\(www\.\)\?freakshare\.com/"
+MODULE_FREAKSHARE_REGEXP_URL='http://\(www\.\)\?freakshare\.com/'
 
 MODULE_FREAKSHARE_DOWNLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
@@ -63,7 +63,7 @@ freakshare_download() {
     local WAIT_HTML SLEEP
 
     if match 'freakshare\.com/list/' "$URL"; then
-        log_error "This is a directory list, use plowlist!"
+        log_error 'This is a directory list, use plowlist!'
         return $ERR_FATAL
     fi
 
@@ -128,16 +128,16 @@ freakshare_download() {
 
         if match 'Wrong Captcha!' "$PAGE"; then
             captcha_nack $ID
-            log_error "Wrong captcha"
+            log_error 'Wrong captcha'
             return $ERR_CAPTCHA
         fi
 
         captcha_ack $ID
-        log_debug "correct captcha"
+        log_debug 'correct captcha'
 
         # Sorry, you cant download more then 1 files at time.
         if match 'download more then.*files at time.' "$PAGE"; then
-            log_error "No parallel download allowed"
+            log_error 'No parallel download allowed'
             echo 120
             return $ERR_LINK_TEMP_UNAVAILABLE
         fi
@@ -150,7 +150,7 @@ freakshare_download() {
         return 0
     fi
 
-    log_error "Unknown Status"
+    log_error 'Unknown Status'
     return $ERR_FATAL
 }
 

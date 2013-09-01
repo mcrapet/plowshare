@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_LETITBIT_REGEXP_URL="http://\(\(www\|u[[:digit:]]\+\)\.\)\?letitbit\.net/"
+MODULE_LETITBIT_REGEXP_URL='http://\(\(www\|u[[:digit:]]\+\)\.\)\?letitbit\.net/'
 
 MODULE_LETITBIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
@@ -591,7 +591,7 @@ letitbit_list() {
 
     # check whether it looks like a folder link
     if ! match "${MODULE_LETITBIT_REGEXP_URL}folder/" "$URL"; then
-        log_error "This is not a directory list."
+        log_error 'This is not a directory list.'
         return $ERR_FATAL
     fi
 
