@@ -70,6 +70,11 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # - debug: all core/modules messages, curl calls
 # - report: debug plus curl content (html pages, cookies)
 
+# Global variables (local to this file):
+# Note: prefer "type -P" rather than "type -p" to override local definitions (function, alias, ...).
+declare -r CURL_PRG=$(type -P curl)
+declare -r JS_PRG=$(type -P js)
+
 # log_report for a file
 # $1: filename
 logcat_report() {
@@ -115,7 +120,6 @@ log_error() {
 curl() {
     local -a CURL_ARGS=("$@")
     local -a OPTIONS=(--insecure --compressed --speed-time 600 --connect-timeout 240)
-    local -r CURL_PRG=$(type -P curl)
     local DRETVAL=0
 
     # Check if caller has specified a User-Agent, if so, don't put one
@@ -1113,16 +1117,12 @@ post_login() {
 }
 
 # Detect if a JavaScript interpreter is installed
-#
-# $1: (optional) Print flag
-# stdout: path of executable (if $1 is a non empty string)
+# $? is zero on success
 detect_javascript() {
-    if ! check_exec 'js'; then
-        log_notice 'Javascript interpreter not found'
+    if [ -z "$JS_PRG" ]; then
+        log_notice 'Javascript interpreter not found. Please install one!'
         return $ERR_SYSTEM
     fi
-    test -n "$1" && type -P 'js'
-    return 0
 }
 
 # Execute javascript code
@@ -1130,19 +1130,18 @@ detect_javascript() {
 # stdin: js script
 # stdout: script result
 javascript() {
-    local JS_PRG TEMPSCRIPT
+    local TEMPSCRIPT
 
-    JS_PRG=$(detect_javascript 1) || return
+    detect_javascript || return
     TEMPSCRIPT=$(create_tempfile '.js') || return
-
     cat > "$TEMPSCRIPT"
 
-    log_report "interpreter:$JS_PRG"
+    log_report "interpreter: '$JS_PRG'"
     log_report '=== JAVASCRIPT BEGIN ==='
     logcat_report "$TEMPSCRIPT"
     log_report '=== JAVASCRIPT END ==='
 
-    $JS_PRG "$TEMPSCRIPT"
+    "$JS_PRG" "$TEMPSCRIPT"
     rm -f "$TEMPSCRIPT"
     return 0
 }
@@ -2482,10 +2481,10 @@ log_report_info() {
         log_report "[mach] $(uname -a)"
         log_report "[bash] $BASH_VERSION"
         test "$http_proxy" && log_report "[env ] http_proxy=$http_proxy"
-        if check_exec 'curl'; then
-            log_report "[curl] $("$(type -P curl)" --version | first_line)"
-        else
+        if [ -z "$CURL_PRG" ]; then
             log_report '[curl] not found!'
+        else
+            log_report "[curl] $("$CURL_PRG" --version | first_line)"
         fi
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
