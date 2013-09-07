@@ -2414,6 +2414,7 @@ log_report_info() {
             log_report '[curl] not found!'
         else
             log_report "[curl] $("$CURL_PRG" --version | first_line)"
+            test -f "$HOME/.curlrc" && log_report '[curl] ~/.curlrc exists'
         fi
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
