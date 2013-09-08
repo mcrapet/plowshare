@@ -28,8 +28,8 @@ QUIET,q,quiet,,Alias for -v0
 CHECK_LINK,c,check-link,,DEPRECATED option, use plowprobe
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
-OUTPUT_DIR,o,output-directory,s=DIR,Directory where files will be saved
-TEMP_DIR,,temp-directory,s=DIR,Directory where files are temporarily downloaded
+OUTPUT_DIR,o,output-directory,D=DIR,Directory where files will be saved
+TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (final link download, cookies, images)
 TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
 MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
@@ -734,21 +734,12 @@ log_report_info
 log_report "plowdown version $VERSION"
 
 if [ -n "$TEMP_DIR" ]; then
-    log_notice "Temporary directory: ${TEMP_DIR%/}"
-    mkdir -p "$TEMP_DIR"
-    if [ ! -w "$TEMP_DIR" ]; then
-        log_error 'error: no write permission'
-        exit $ERR_SYSTEM
-    fi
+    TMPDIR=${TEMP_DIR%/}
+    log_notice "Temporary directory: $TMPDIR"
 fi
 
 if [ -n "$OUTPUT_DIR" ]; then
     log_notice "Output directory: ${OUTPUT_DIR%/}"
-    mkdir -p "$OUTPUT_DIR"
-    if [ ! -w "$OUTPUT_DIR" ]; then
-        log_error 'error: no write permission'
-        exit $ERR_SYSTEM
-    fi
 elif [ ! -w "$PWD" ]; then
     test "$CHECK_LINK" || log_notice 'Warning: Current directory is not writable!'
 fi
@@ -891,7 +882,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             ${MODULE}_vars_set
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
-                "${TEMP_DIR%/}" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
+                "$TMPDIR" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
             ${MODULE}_vars_unset
 
             # Link explicitly skipped
