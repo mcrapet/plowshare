@@ -44,6 +44,7 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u\".
+TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
@@ -257,6 +258,11 @@ if [ -n "$MAX_LIMIT_RATE" -a -n "$MIN_LIMIT_RATE" ]; then
       log_error "--min-rate ($MIN_LIMIT_RATE) is greater than --max-rate ($MAX_LIMIT_RATE)"
       exit $ERR_BAD_COMMAND_LINE
   fi
+fi
+
+if [ -n "$TEMP_DIR" ]; then
+    TMPDIR=${TEMP_DIR%/}
+    log_notice "Temporary directory: $TMPDIR"
 fi
 
 if [ -n "$PRINTF_FORMAT" ]; then

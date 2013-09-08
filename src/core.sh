@@ -2678,7 +2678,7 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, e, f, F, l, n, N, r, s, S, V)
+# $2: format (a, D, e, f, F, l, n, N, r, s, S, V)
 # $3: option value (string)
 # $4: option name (used for error reporting only)
 # $?: return 0 for success
@@ -2742,6 +2742,19 @@ check_argument_type() {
         else
             log_error "$NAME ($OPT): cannot access file \`$VAL'"
         fi
+    # D: directory (with write access)
+    elif [ $TYPE = 'D' ]; then
+        if test -z "$VAL"; then
+            log_error "$NAME ($OPT): directory expected"
+        elif test -d "$VAL"; then
+            if test -w "$VAL"; then
+                RET=0
+            else
+                log_error "$NAME ($OPT): write permissions expected \`$VAL'"
+            fi
+        else
+            log_error "$NAME ($OPT): cannot access directory \`$VAL'"
+        fi
     # l: List (comma-separated values), non empty
     elif [[ $TYPE = 'l' && $VAL = '' ]]; then
         log_error "$NAME ($OPT): comma-separated list expected"
@@ -2751,7 +2764,7 @@ check_argument_type() {
 
     elif [[ "$TYPE" = [lsS] ]]; then
         RET=0
-    elif [[ "$TYPE" = [aefFnNrV] ]]; then
+    elif [[ "$TYPE" = [aenNrV] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
             log_error "$NAME ($OPT): missing parameter"
         else
