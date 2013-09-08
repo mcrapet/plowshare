@@ -75,10 +75,9 @@ ryushare_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://ryushare.com'
-    local PAGE TYPE WAIT_TIME FILE_URL ERR CODE
-    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
+    local PAGE TYPE FILE_URL ERR
+    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD FORM_CODE
 
-    TYPE=anon
     if [ -n "$AUTH" ]; then
         TYPE=$(ryushare_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
     fi
@@ -152,31 +151,7 @@ ryushare_download() {
     FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
     FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
     FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct') || return
-
-    # Funny captcha, this is text (4 digits)!
-    # Copy/Paste from uptobox
-    if match 'Enter code below:' "$PAGE"; then
-        local CAPTCHA DIGIT XCOORD LINE
-
-        CAPTCHA=$(echo "$FORM_HTML" | parse_tag 'direction:ltr' div | \
-            sed -e 's/span>/span>\n/g') || return
-        CODE=0
-        while read LINE; do
-            DIGIT=$(echo "$LINE" | parse 'padding-' '>&#\([[:digit:]]\+\);<') || return
-            XCOORD=$(echo "$LINE" | parse 'padding-' '-left:\([[:digit:]]\+\)p') || return
-
-            # Depending x, guess digit rank
-            if (( XCOORD < 15 )); then
-                (( CODE = CODE + 1000 * (DIGIT-48) ))
-            elif (( XCOORD < 30 )); then
-                (( CODE = CODE + 100 * (DIGIT-48) ))
-            elif (( XCOORD < 50 )); then
-                (( CODE = CODE + 10 * (DIGIT-48) ))
-            else
-                (( CODE = CODE + (DIGIT-48) ))
-            fi
-        done <<< "$CAPTCHA"
-    fi
+    FORM_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name 'capcode') || return
 
     if [ "$TYPE" = 'premium' ]; then
         PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
@@ -191,21 +166,22 @@ ryushare_download() {
             -d "password=$LINK_PASSWORD" \
             "$URL") || return
     else
+        local RESP CHALL ID WAIT_TIME
+        local -r PUBKEY='iEXF7zf8za89u9WFCdGzF.noOv34.L8S'
+
+        RESP=$(solvemedia_captcha_process $PUBKEY) || return
+        { read CHALL; read ID; } <<< "$RESP"
+
         WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
         # Wait some more to avoid "Skipped countdown" error
         wait $((WAIT_TIME + 3)) || return
 
         PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
-            -d "op=$FORM_OP" \
-            -d "id=$FORM_ID" \
-            -d "rand=$FORM_RAND" \
-            -d "referer=$URL" \
-            -d "method_free=$FORM_METHOD" \
-            -d 'method_premium=' \
-            -d "down_direct=$FORM_DD" \
-            -d "password=$LINK_PASSWORD" \
-            -d "code=$CODE" \
-            "$URL") || return
+            -d "op=$FORM_OP"     -d "id=$FORM_ID" -d "rand=$FORM_RAND"      \
+            -d "referer=$URL"    -d "method_free=$FORM_METHOD"              \
+            -d 'method_premium=' --data-urlencode "adcopy_challenge=$CHALL" \
+            -d 'adcopy_response=manual_challenge' -d "capcode=$FORM_CODE"   \
+            -d "down_direct=$FORM_DD" "$URL") || return
     fi
 
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'here to download' href)
@@ -222,7 +198,7 @@ ryushare_download() {
         ERR=$(echo "$PAGE" | parse_tag 'class="err">' div)
         if match 'Wrong password' "$ERR"; then
             return $ERR_LINK_PASSWORD_REQUIRED
-        elif match 'Wrong captcha' "$ERR"; then
+        elif matchi 'Wrong captcha' "$ERR"; then
             return $ERR_CAPTCHA
         elif match 'Skipped countdown' "$ERR"; then
             # Can do a retry
