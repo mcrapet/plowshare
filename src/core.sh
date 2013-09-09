@@ -781,7 +781,7 @@ parse_form_action() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_name() {
-    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*name=[\"']\?$1[\"']\?[[:space:]/>]" 'value'
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*name[[:space:]]*=[[:space:]]*[\"']\?$1[\"']\?[[:space:]/>]" 'value'
 }
 
 # Like parse_form_input_by_name, but hide possible error
@@ -797,7 +797,7 @@ parse_form_input_by_name_quiet() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
-    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*type=[\"']\?$1[\"']\?" 'value'
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*type[[:space:]]*=[[:space:]]*[\"']\?$1[\"']\?" 'value'
 }
 
 # Like parse_form_input_by_type, but hide possible error
@@ -813,7 +813,7 @@ parse_form_input_by_type_quiet() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_id() {
-    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*id=[\"']\?$1[\"']\?[[:space:]/>]" 'value'
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*id[[:space:]]*=[[:space:]]*[\"']\?$1[\"']\?[[:space:]/>]" 'value'
 }
 
 # Like parse_form_input_by_id, but hide possible error
