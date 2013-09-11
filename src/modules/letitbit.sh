@@ -393,8 +393,8 @@ letitbit_download() {
         -d "__jspcheck=$FORM_CHECK" "$LINK_BASE_URL/download3.php") || return
 
     # Note: Site adds an additional "control field" to the usual ReCaptcha stuff
-    CONTROL=$(echo "$PAGE" | parse 'var[[:space:]]\+recaptcha_control_field' \
-        "=[[:space:]]\+'\([^']\+\)';") || return
+    CONTROL=$(parse 'var[[:space:]]\+recaptcha_control_field' \
+        "=[[:space:]]\+'\([^']\+\)';" <<< "$PAGE") || return
 
     # Solve recaptcha
     local PUBKEY WCI CHALLENGE WORD CONTROL ID
