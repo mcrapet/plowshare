@@ -52,6 +52,7 @@ POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being 
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F%n\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
+ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
@@ -757,6 +758,20 @@ if [ -n "$GLOBAL_COOKIES" ]; then
     log_notice 'plowdown: using provided cookies file'
 fi
 
+if [ -n "$ENGINE" ]; then
+    if [ "$ENGINE" = 'xfilesharing' ]; then
+        source "$LIBDIR/engine/$ENGINE.sh"
+        log_notice "plowdown: initialising $ENGINE engine"
+        if ! ${ENGINE}_init "$LIBDIR/engine"; then
+            log_error "$ENGINE initialisation error"
+            exit $ERR_FATAL
+        fi
+    else
+        log_error "Error: unknown engine name: $ENGINE"
+        exit $ERR_FATAL
+    fi
+fi
+
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
@@ -841,7 +856,14 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         MODULE=$(get_module "$URL" "$MODULES") || true
 
         if [ -z "$MODULE" ]; then
-            if match_remote_url "$URL"; then
+            if test "$ENGINE" && match_remote_url "$URL"; then
+                if ${ENGINE}_probe_module 'plowdown' "$URL"; then
+                    MODULE=$(${ENGINE}_get_module "$URL") || MRETVAL=$?
+                else
+                    MRETVAL=$ERR_NOMODULE
+                fi
+
+            elif match_remote_url "$URL"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
                 log_notice 'No module found, try simple redirection'
