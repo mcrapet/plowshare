@@ -1,6 +1,5 @@
 # Site list with capabilities
 115             | download |        |        |      |       |
-180upload       | download | upload |        |      | probe |
 1fichier        | download | upload | delete | list | probe |
 2shared         | download | upload | delete |      | probe |
 4share_vn       | download | upload |        | list | probe |
@@ -9,11 +8,9 @@ anonfiles       | download | upload |        |      | probe |
 anonymousdelivers|download | upload |        |      | probe |
 bayfiles        | download | upload | delete |      | probe |
 bayimg          | download | upload | delete |      | probe |
-billionuploads  | download | upload |        |      | probe |
 bitshare        | download | upload | delete |      | probe |
 chomikuj        | download | upload |        | list | probe |
 cloudzer_net    | download | upload | delete | list | probe |
-cramit          | download | upload | delete | list | probe |
 crocko          | download | upload |        | list | probe |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
@@ -26,7 +23,6 @@ euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 exoshare        |          | upload |        | list |       |
 filebin_ca      | download | upload |        |      | probe |
-filebox         | download | upload | delete |      | probe |
 filecloud       | download | upload |        | list | probe |
 filefactory     | download | upload |        | list | probe |
 filemonkey      |          | upload |        |      |       |
@@ -43,7 +39,6 @@ gamefront       | download | upload |        |      | probe |
 ge_tt           | download | upload |        | list | probe |
 gfile_ru        | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
-hipfile         | download | upload | delete | list | probe |
 jheberg         |          | upload |        | list | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
@@ -62,9 +57,7 @@ promptfile      | download |        |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |
 rghost          | download | upload |        |      | probe |
-ryushare        | download | upload |        |      | probe |
 sendspace       | download | upload | delete | list | probe |
-sharebeast      | download | upload | delete |      | probe |
 shareonline_biz | download | upload |        |      | probe |
 sockshare       | download | upload | delete | list | probe |
 solidfiles      | download | upload |        | list | probe |
@@ -74,8 +67,6 @@ uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
 upstore         | download | upload |        |      | probe |
-uptobox         | download | upload |        |      | probe |
-zalaa           | download | upload |        | list | probe |
 zalil_ru        | download | upload |        |      | probe |
 ziddu           | download | upload | delete |      | probe |
 zippyshare      | download | upload |        | list | probe |
