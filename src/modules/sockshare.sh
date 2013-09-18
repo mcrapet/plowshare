@@ -135,7 +135,7 @@ sockshare_download() {
         return $ERR_FATAL
     fi
 
-    WAIT_TIME=$(echo "$PAGE" | parse 'var countdownNum' '=[[:space:]]*\([0-9]\+\);') || return
+    WAIT_TIME=$(echo "$PAGE" | parse_all 'var wait_count ' '=[[:space:]]*\([0-9]\+\);' | last_line) || return
 
     if [ $WAIT_TIME -gt 1 ]; then
         wait $WAIT_TIME || return
