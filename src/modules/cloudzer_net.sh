@@ -18,12 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_CLOUDZER_NET_REGEXP_URL='http://\(cloudzer\.net/file\|clz\.to\)/'
+MODULE_CLOUDZER_NET_REGEXP_URL='http://\(cloudzer\.net/\(file\|f\|folder\)\|clz\.to\)/'
 
 MODULE_CLOUDZER_NET_DOWNLOAD_OPTIONS=""
 MODULE_CLOUDZER_NET_DOWNLOAD_RESUME=no
 MODULE_CLOUDZER_NET_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_CLOUDZER_NET_DOWNLOAD_SUCCESSIVE_INTERVAL=3600
+
+MODULE_CLOUDZER_NET_LIST_OPTIONS=""
+MODULE_CLOUDZER_NET_LIST_HAS_SUBFOLDERS=no
 
 MODULE_CLOUDZER_NET_PROBE_OPTIONS=""
 
@@ -133,6 +136,30 @@ cloudzer_net_download() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# List an Cloudzer.net shared file folder URL
+# $1: cloudzer.net url
+# $2: recurse subfolders (ignored here)
+# stdout: list of links
+cloudzer_net_list() {
+    local URL=$1
+    local PAGE LINKS NAMES
+
+    # check whether it looks like a folder link
+    if ! match "/f\(older\)\?/" "$URL"; then
+        log_error 'This is not a directory list'
+        return $ERR_FATAL
+    fi
+
+    PAGE=$(curl -L "$URL") || return
+
+    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'tr id="' id)
+    NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'onclick="visit($(this))' a)
+
+    test "$LINKS" || return $ERR_LINK_DEAD
+
+    list_submit "$LINKS" "$NAMES" 'http://cloudzer.net/file/'
 }
 
 # Probe a download URL
