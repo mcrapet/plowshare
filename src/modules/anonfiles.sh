@@ -65,7 +65,9 @@ anonfiles_upload() {
     local -r BASE_URL='https://anonfiles.com/api'
     local JSON DL_URL ERR MSG
 
-    # Note1: Accepted file typs is very restrictive!
+    # Note1: Accepted file types is very restrictive! According to site: jpg, jpeg, gif, png, pdf,
+    #        css, txt, avi, mpeg, mpg, mp3, doc, docx, odt, apk, 7z, rmvb, zip, rar, mkv, xls.
+
     # Note2: -F "file_publish=on" does not work!
     JSON=$(curl_with_log \
         -F "file=@$FILE;filename=$DESTFILE" "$BASE_URL") || return
