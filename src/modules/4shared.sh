@@ -135,7 +135,7 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
     test "$CHECK_LINK" && return 0
 
     # Note: There is a strange entry required in cookie file: efdcyqLAT_3Q=1
-    WAIT_HTML=$(curl -L -b "$COOKIEFILE" --referer "$URL" "$WAIT_URL") || return
+    WAIT_HTML=$(curl -L -b "$COOKIEFILE" -b '4langcookie=en' --referer "$URL" "$WAIT_URL") || return
 
     # Redirected in case of error
     if [ -z "$WAIT_HTML" ]; then
@@ -153,8 +153,13 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
     fi
 
     # <div class="sec" id='downloadDelayTimeSec'>20</div>
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag 'downloadDelayTimeSec' 'div')
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag_quiet 'downloadDelayTimeSec' 'div')
     test -z "$WAIT_TIME" && WAIT_TIME=20
+
+    # Sanity check
+    if match 'The file link that you requested is not valid\.' "$WAIT_HTML"; then
+        return $ERR_LINK_DEAD
+    fi
 
     if [ -z "$TORRENT" ]; then
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr_quiet 'linkShow' href)
