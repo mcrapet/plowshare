@@ -19,6 +19,9 @@ MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1 plowprobe.1
 MANPAGES5 = plowshare.conf.5
 DOCS      = README
 
+ENGINE_FILES    = $(wildcard src/engine/*.sh)
+XF_ENGINE_FILES = $(wildcard src/engine/xf/*.sh) src/engine/xf/config
+
 BASH_COMPL = scripts/plowshare.completion
 GIT_VERSION = scripts/version
 
@@ -44,10 +47,13 @@ install_files:
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)/modules
+	$(INSTALL) -d $(DESTDIR)$(DATADIR)/engine/xf
 	$(INSTALL) -d $(DESTDIR)$(DOCDIR)
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)5
 	$(INSTALL) -m 644 $(MODULE_FILES) $(DESTDIR)$(DATADIR)/modules
+	$(INSTALL) -m 644 $(ENGINE_FILES) $(DESTDIR)$(DATADIR)/engine
+	$(INSTALL) -m 644 $(XF_ENGINE_FILES) $(DESTDIR)$(DATADIR)/engine/xf
 	$(INSTALL) -m 755 $(addprefix src/,$(SRCS)) $(DESTDIR)$(DATADIR)
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES1)) $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES5)) $(DESTDIR)$(MANDIR)5
