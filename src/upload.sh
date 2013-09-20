@@ -45,6 +45,7 @@ CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u%n\".
 TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
+ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
@@ -306,6 +307,20 @@ if [ -n "$TEMP_DIR" ]; then
     log_notice "Temporary directory: $TMPDIR"
 fi
 
+if [ -n "$ENGINE" ]; then
+    if [ "$ENGINE" = 'xfilesharing' ]; then
+        source "$LIBDIR/engine/$ENGINE.sh"
+        log_notice "plowup: initialising $ENGINE engine"
+        if ! ${ENGINE}_init "$LIBDIR/engine"; then
+            log_error "$ENGINE initialisation error"
+            exit $ERR_FATAL
+        fi
+    else
+        log_error "Error: unknown engine name: $ENGINE"
+        exit $ERR_FATAL
+    fi
+fi
+
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
@@ -334,6 +349,10 @@ fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
 
+if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(get_module_options "$ENGINE" UPLOAD)
+fi
+
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowup' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit
@@ -349,10 +368,22 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
 fi
 
 # Check requested module
-MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
-    log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})";
-    exit $ERR_NOMODULE;
-}
+if [ -n "$ENGINE" ]; then
+    if ${ENGINE}_probe_module 'plowup' "${COMMAND_LINE_ARGS[0]}"; then
+        MODULE=$(${ENGINE}_get_module "${COMMAND_LINE_ARGS[0]}") || {
+            log_error "plowup: $ENGINE engine cannot provide base module (${COMMAND_LINE_ARGS[0]})";
+            exit $ERR_NOMODULE;
+        }
+    else
+        log_error "plowup: $ENGINE engine unsupported module (${COMMAND_LINE_ARGS[0]})";
+        exit $ERR_NOMODULE;
+    fi
+else
+    MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
+        log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})";
+        exit $ERR_NOMODULE;
+    }
+fi
 
 if [ ${#COMMAND_LINE_ARGS[@]} -lt 2 ]; then
     log_error 'plowup: you must specify a filename.'

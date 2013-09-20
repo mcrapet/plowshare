@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# filerio callbacks
+# backin callbacks
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,24 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA FILERIO_FUNCS
-FILERIO_FUNCS['dl_parse_final_link']='filerio_dl_parse_final_link'
+declare -gA BACKIN_FUNCS
+BACKIN_FUNCS['dl_parse_countdown']='backin_dl_parse_countdown'
 
-filerio_dl_parse_final_link() {
+backin_dl_parse_countdown () {
     local -r PAGE=$1
-    #local FILE_NAME=$2
-
-    local FILE_URL JS
-
-    detect_javascript || return
-
-    log_debug 'Decrypting final link...'
-
-    JS=$(echo "$PAGE" | parse '<script type="text/javascript">eval(unescape' ">\(.*\)<") || return
-
-    JS=$(xfilesharing_unpack_js "$JS") || return
-
-    FILE_URL=$(echo "$JS" | parse 'location.href=' 'location.href="\(.*\)"') || return
-
-    echo "$FILE_URL"
+    local WAIT_TIME
+    
+    WAIT_TIME=$(echo "$PAGE" | parse 'setTimeout("azz()"' 'setTimeout("azz()", \([0-9]\+\)\*1000);') || return
+    (( WAIT_TIME++ ))
+    
+    echo "$WAIT_TIME"
 }

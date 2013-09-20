@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# filerio callbacks
+# cramit callbacks
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,24 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA FILERIO_FUNCS
-FILERIO_FUNCS['dl_parse_final_link']='filerio_dl_parse_final_link'
+declare -gA CRAMIT_FUNCS
+CRAMIT_FUNCS['dl_parse_form1']='cramit_dl_parse_form1'
 
-filerio_dl_parse_final_link() {
-    local -r PAGE=$1
-    #local FILE_NAME=$2
-
-    local FILE_URL JS
-
-    detect_javascript || return
-
-    log_debug 'Decrypting final link...'
-
-    JS=$(echo "$PAGE" | parse '<script type="text/javascript">eval(unescape' ">\(.*\)<") || return
-
-    JS=$(xfilesharing_unpack_js "$JS") || return
-
-    FILE_URL=$(echo "$JS" | parse 'location.href=' 'location.href="\(.*\)"') || return
-
-    echo "$FILE_URL"
+cramit_dl_parse_form1() {
+    xfilesharing_dl_parse_form1_generic "$1" '' '' '' '' '' '' 'freemethod'
 }

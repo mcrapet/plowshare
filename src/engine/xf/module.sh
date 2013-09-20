@@ -29,14 +29,13 @@ MODULE_XFILESHARING_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_XFILESHARING_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
-HOSTING,,hosting,s=URL,Full base URL of xfileshare hosting
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 FOLDER,,folder,s=FOLDER,Folder to upload files into
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
 PREMIUM,,premium,,Make file inaccessible to non-premium users
 PRIVATE_FILE,,private,,Do not make file visible in folder view"
-MODULE_XFILESHARING_UPLOAD_REMOTE_SUPPORT=no
+MODULE_XFILESHARING_UPLOAD_REMOTE_SUPPORT=yes
 
 MODULE_XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=()
 
@@ -44,124 +43,47 @@ MODULE_XFILESHARING_DELETE_OPTIONS=""
 MODULE_XFILESHARING_PROBE_OPTIONS=""
 MODULE_XFILESHARING_LIST_OPTIONS=""
 
-# Static function. Proceed with login.
-# $1: authentication
-# $2: cookie file
-# $3: base URL
-xfilesharing_login() {
-    local -r AUTH=$1
-    local -r COOKIE_FILE=$2
-    local -r BASE_URL=$3
-    local LOGIN_DATA LOGIN_RESULT STATUS NAME
+# CloudFlare antiDDoS protection handler
+# $1: cooke file
+# $2: referer URL (usually main URL)
+# $3: (X)HTML page data
+# stdout: (X)HTML page data
+xfilesharing_check_cloudflare_antiddos() {
+    local -r COOKIE_FILE=$1
+    local -r REFERER=$2
+    local PAGE=$3
+    local -r BASE_URL=$(basename_url "$REFERER")
 
-    log_debug 'Logging in...'
+    if match 'DDoS protection by CloudFlare\|CloudFlare Ray ID' "$PAGE"; then
+        local FORM_DDOS FORM_DDOS_VC FORM_DDOS_ACTION DDOS_CHLNG DOMAIN
 
-    LOGIN_DATA='op=login&login=$USER&password=$PASSWORD&redirect='
-    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA$BASE_URL/?op=my_account" \
-        "$BASE_URL" -L -b 'lang=english') || return
+        log_debug "CloudFlare DDoS protection detected."
 
-    # If successful, two entries are added into cookie file: login and xfss
-    STATUS=$(parse_cookie_quiet 'xfss' < "$COOKIE_FILE")
-    if [ -z "$STATUS" ]; then
-        return $ERR_LOGIN_FAILED
-    fi
-
-    NAME=$(parse_cookie 'login' < "$COOKIE_FILE")
-    log_debug "Successfully logged in as $NAME member"
-}
-
-# Check if account has enough space to upload file
-# $1: upload file size
-# $2: cookie file (logged into account)
-# $3: base URL
-xfilesharing_check_freespace() {
-    local -r FILE_SIZE=$1
-    local -r COOKIE_FILE=$2
-    local -r BASE_URL=$3
-    local PAGE SPACE_USED SPACE_LIMIT
-
-    PAGE=$(curl -b 'lang=english' -b "$COOKIE_FILE" -G \
-        -d 'op=my_files' \
-        "$BASE_URL") || return
-
-    # XXX Kb of XXX GB
-    SPACE_USED=$(echo "$PAGE" | parse 'Used space' \
-        ' \([0-9.]\+[[:space:]]*[KMGBb]\+\) of ') || return
-    SPACE_USED=$(translate_size "$(uppercase "$SPACE_USED")")
-
-    SPACE_LIMIT=$(echo "$PAGE" | parse 'Used space' \
-        'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)') || return
-    SPACE_LIMIT=$(translate_size "$(uppercase "$SPACE_LIMIT")")
-
-    log_debug "Space: $SPACE_USED / $SPACE_LIMIT"
-
-    # Check space limit
-    if (( ( "$SPACE_LIMIT" - "$SPACE_USED" ) < "$FILE_SIZE" )); then
-        log_error 'Not enough space in account folder.'
-        return $ERR_SIZE_LIMIT_EXCEEDED
-    fi
-}
-
-# Check if specified folder name is valid.
-# When multiple folders wear the same name, first one is taken.
-# $1: folder name selected by user
-# $2: cookie file (logged into account)
-# $3: base URL
-# stdout: folder ID
-xfilesharing_check_folder() {
-    local -r NAME=$1
-    local -r COOKIE_FILE=$2
-    local -r BASE_URL=$3
-    local PAGE FORM FOLDERS FOL FOL_ID
-
-    # Special treatment for root folder (always uses ID "0")
-    if [ "$NAME" = '/' ]; then
-        echo 0
-        return 0
-    fi
-
-    PAGE=$(curl -b "$COOKIE_FILE" -G \
-        -d 'op=my_files' \
-        "$BASE_URL") || return
-    FORM=$(grep_form_by_name "$PAGE" 'F1') || return
-
-    # <option value="ID">&nbsp;NAME</option>
-    # Note: - Site uses "&nbsp;" to indent sub folders
-    #       - First entry is label "Move files to folder"
-    #       - Second entry is root folder "/"
-    FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
-        replace '&nbsp;' '') || return
-
-    if ! match "^$NAME$" "$FOLDERS"; then
-        log_debug 'Creating folder.'
-        PAGE=$(curl -b "$COOKIE_FILE" -L \
-            -d 'op=my_files' \
-            -d 'fld_id=0' \
-            -d "create_new_folder=$NAME" \
-            "$BASE_URL") || return
-
-        FORM=$(grep_form_by_name "$PAGE" 'F1') || return
-
-        FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
-            replace '&nbsp;' '') || return
-        if [ -z "$FOLDERS" ]; then
-            log_error 'No folder found. Site updated?'
-            return $ERR_FATAL
+        if match 'The web server reported a bad gateway error' "$PAGE"; then
+            log_error 'CloudFlare bad gateway. Try again later.'
+            return $ERR_LINK_TEMP_UNAVAILABLE
+            #return $ERR_FATAL
         fi
 
-        if ! match "^$NAME$" "$FOLDERS"; then
-            log_error "Could not create folder."
-            return $ERR_FATAL
-        fi
+        FORM_DDOS=$(grep_form_by_id "$PAGE" 'challenge-form') || return
+        FORM_DDOS_ACTION=$(echo "$PAGE" | parse_form_action) || return
+        FORM_DDOS_VC=$(echo "$FORM_DDOS" | parse_form_input_by_name 'jschl_vc') || return
+        DDOS_CHLNG=$(echo "$PAGE" | parse 'a.value = ' 'a.value = \([^;]\+\)') || return
+        DOMAIN=$(echo "$BASE_URL" | parse . '^https\?://\(.*\)$')
+        DDOS_CHLNG=$(( ($DDOS_CHLNG) + ${#DOMAIN} ))
+
+        wait 6 || return
+
+        PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' -G \
+            -e "$REFERER" \
+            -d "jschl_vc=$FORM_DDOS_VC" \
+            -d "jschl_answer=$DDOS_CHLNG" \
+            "$BASE_URL$FORM_DDOS_ACTION" | \
+            strip_html_comments) || return
     fi
 
-    FOL_ID=$(echo "$FORM" | parse_attr "<option.*$NAME</option>" 'value')
-    if [ -z "$FOL_ID" ]; then
-        log_error "Could not get folder ID."
-        return $ERR_FATAL
-    fi
-
-    echo "$FOL_ID"
+    echo "$PAGE"
+    return 0          
 }
 
 # Unpack packed(obfuscated) js code
@@ -196,364 +118,60 @@ xfilesharing_unpack_js() {
     echo "$PACKED_SCRIPT_CLEAN $UNPACK_SCRIPT print(unPack('$PACKED_SCRIPT'));" | javascript || return
 }
 
-# Search and handle streaming player scripts
-# $1: page
-# $2: url of page with player (required by some rtmp)
-# $2: filename (if known)
-# stdout: real file download link
-xfilesharing_parse_streaming () {
-    local PAGE=$1
-    local -r URL=$2
-    local -r FILE_NAME=$3
-    local JS_PLAYER_FOUND=0
-    local RE_PLAYER="jwplayer([\"']flvplayer[\"']).setup\|new SWFObject.*player\|DivXBrowserPlugin\|StrobeMediaPlayback.swf"
-
-    if match '<script[^>]*>eval(function(p,a,c,k,e,d)' "$PAGE"; then
-        log_debug 'Found some packed script (type 1)...'
-
-        detect_javascript || return
-
-        SCRIPTS=$(echo "$PAGE" | parse_all "<script[^>]*>eval(function(p,a,c,k,e,d)" "<script[^>]*>\(eval.*\)$")
-
-        while read -r JS; do
-            JS=$(xfilesharing_unpack_js "$JS")
-
-            if match "$RE_PLAYER" "$JS"; then
-                log_debug "Found some player code in packed script (type 1)."
-                JS_PLAYER_FOUND=1
-                PAGE="$JS"
-                break
-            fi
-
-            [ -z "$FILE_URL" ] && log_debug 'Checking another script...'
-        done <<< "$SCRIPTS"
-
-        [ -z JS_PLAYER_FOUND ] && log_debug 'Nothing found in packed script (type 1).'
-    fi
-
-    # www.zinwa.com special
-    if match 'function decodejs(instr,icount)' "$PAGE"; then
-        log_debug 'Found some packed script (type 2)...'
-
-        detect_javascript || return
-
-        SCRIPT_N=1
-        SCRIPTS=$(echo "$PAGE" | parse_all '<script' '^\(.*\)$' 1)
-
-        while read JS; do
-            if match 'function decodejs(instr,icount)' "$JS"; then
-                break
-            fi
-            (( SCRIPT_N++ ))
-        done <<< "$SCRIPTS"
-
-        JS=$(grep_script_by_order "$PAGE" $SCRIPT_N | delete_first_line | delete_last_line | replace $'\r' '' | replace $'\n' '')
-        JS=$(xfilesharing_unpack_js "$JS")
-
-        if matchi "$RE_PLAYER" "$JS"; then
-            log_debug "Found some player code in packed script (type 2)."
-            PAGE="$JS"
-        else
-            log_debug 'Nothing found in packed script (type 2).'
-        fi
-    fi
-
-    if matchi "jwplayer([\"']flvplayer[\"']).setup\|new SWFObject.*player" "$PAGE"; then
-        if match 'streamer.*rtmp' "$PAGE"; then
-            RTMP_BASE=$(echo "$PAGE" | parse 'streamer.*rtmp' "[\"']\?streamer[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(rtmp[^'^\"^)]\+\)")
-            RTMP_PLAYPATH=$(echo "$PAGE" | parse 'file' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\([^'^\"^)]\+\)")
-
-            FILE_URL="$RTMP_BASE playpath=$RTMP_PLAYPATH"
-
-        # videopremium.tv special
-        elif match 'file":"rtmp' "$PAGE"; then
-            RTMP_SRC=$(echo "$PAGE" | parse 'file":"rtmp' '"file":"\(rtmp[^"]\+\)')
-            RTMP_SWF=$(echo "$PAGE" | parse 'new swfobject.embedSWF("' 'new swfobject.embedSWF("\([^"]\+\)')
-
-            RTMP_PLAYPATH=$(echo "$RTMP_SRC" | parse . '^.*/\([^/]*\)$')
-            RTMP_BASE=$(echo "$RTMP_SRC" | parse . '^\(.*\)/[^/]*$')
-
-            FILE_URL="$RTMP_BASE pageUrl=$URL playpath=$RTMP_PLAYPATH swfUrl=$RTMP_SWF"
-        else
-            FILE_URL=$(echo "$PAGE" | parse 'file.*http' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(http[^'^\"^)]\+\)")
-        fi
-
-    # www.donevideo.com special
-    elif match '<object[^>]*DivXBrowserPlugin' "$PAGE"; then
-        FILE_URL=$(echo "$PAGE" | parse '<object[^>]*DivXBrowserPlugin' 'id="np_vid"[^>]*src="\([^"]\+\)')
-
-    # www.lovevideo.tv special
-    elif match 'StrobeMediaPlayback.swf' "$PAGE"; then
-        # rtmp://50.7.69.178/vod000027/ey5ozfhq448b.flv?e=1378429062&st=f-o_ItdghTPRSnILtjgnng
-        # "rtmp://50.7.69.178/vod000027 pageUrl=http://www.lovevideo.tv/4fnfwqtu1typ playpath=ey5ozfhq448b.flv?e=1378464032&st=Bg1WAlpO3wr9HRkteAy4ng"
-        RTMP_SRC=$(echo "$PAGE" | parse 'StrobeMediaPlayback.swf' "value='src=\(rtmp[^&]\+\)" | uri_decode | replace '%3F' '?')
-        RTMP_PLAYPATH=$(echo "$RTMP_SRC" | parse . '^.*/\([^/]*\)$')
-        RTMP_BASE=$(echo "$RTMP_SRC" | parse . '^\(.*\)/[^/]*$')
-
-        # Need to add some exception for rtmp links
-        FILE_URL="$RTMP_BASE pageUrl=$URL playpath=$RTMP_PLAYPATH"
-    fi
-
-    if [ -n "$FILE_URL" ]; then
-        echo "$FILE_URL"
-        [ -n "$FILE_NAME" ] && echo "$FILE_NAME"
-        return 0
-    fi
-
-    return 1
-}
-
-# Check and parse contdown timer
-# $1: page
-# stdout: time to wait
-xfilesharing_handle_countdown () {
-    local -r PAGE=$1
-    local WAIT_TIME PAGE_UNBREAK
-
-    if match '"countdown_str"' "$PAGE"; then
-        WAIT_TIME=$(echo "$PAGE" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\{6\}">[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
-            && log_debug "Seraching countdown timer... 1"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE" | parse_quiet '<span id="[[:alnum:]]\{6\}">' \
-            '<span id="[[:alnum:]]\{6\}">[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
-            && log_debug "Seraching countdown timer... 2"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE" | parse_quiet 'Wait.*second' \
-            'Wait.*>[[:space:]]*\([0-9]\+\)[[:space:]]*<.*second') \
-            && log_debug "Seraching countdown timer... 3"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\+"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
-            && log_debug "Seraching countdown timer... 4"
-
-        [ -z "$WAIT_TIME" ] && PAGE_UNBREAK=$(echo "$PAGE" | replace $'\n' '')
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE_UNBREAK" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\{6\}"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
-            && log_debug "Seraching countdown timer... 5"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE_UNBREAK" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\+"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
-            && log_debug "Seraching countdown timer... 6"
-
-        [ -z "$WAIT_TIME" ] && log_error "Cannot locate countdown timer." && return $ERR_FATAL
-
-        # Wait some more to avoid "Skipped countdown" error
-        [ -n "$WAIT_TIME" ] && ((WAIT_TIME++))
-
-        echo "$WAIT_TIME"
-    fi
-}
-
-# Check and parse captcha
-# $1: page
-# stdout: data for curl
-xfilesharing_handle_captcha() {
-    local -r PAGE=$1
-    local FORM_HTML=$2
-    local FORM_CODE ID
-
-    if match 'captchas\|code\|recaptcha\|solvemedia' "$PAGE"; then
-        log_debug 'CAPTCHA found?'
-
-        # Two default xfilesharing captchas - text and image
-        # Text captcha solver - Copy/Paste from uptobox
-        if match '/captchas/'  "$PAGE"; then
-            local WI WORD ID CAPTCHA_URL CAPTCHA_IMG
-
-            log_debug 'CAPTCHA: xfilesharing image'
-
-            CAPTCHA_URL=$(echo "$PAGE" | parse_attr '/captchas/' src) || return
-            CAPTCHA_IMG=$(create_tempfile '.jpg') || return
-
-            curl -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
-
-            WI=$(captcha_process "$CAPTCHA_IMG") || return
-            { read WORD; read ID; } <<<"$WI"
-            rm -f "$CAPTCHA_IMG"
-
-            FORM_CODE="-d code=$WORD"
-
-        elif match 'Enter code below:\|"captcha_code"' "$PAGE"; then
-            local CODE OFFSET DIGIT DIGIT_N XCOORD LINE
-
-            log_debug 'CAPTCHA: xfilesharing text'
-
-            # Need to filter for bad non-tf8 characters, parse with offset glitches on such pages
-            #  see enjoybox.in
-            FORM_HTML=$(echo "$FORM_HTML" | iconv -c -t UTF-8)
-
-            CODE=0
-            OFFSET=48
-            for (( DIGIT_N=1; DIGIT_N<=7; DIGIT_N+=2 )); do
-                # direction:ltr
-                DIGIT=$(echo "$FORM_HTML" | parse_quiet 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '^&#\([[:digit:]]\+\);<' DIGIT_N+1) || return
-                if [ -z $DIGIT ]; then
-                    DIGIT=$(echo "$FORM_HTML" | parse 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '^\([[:digit:]]\+\)<' DIGIT_N+1) || return
-                    OFFSET=0
-                fi
-                XCOORD=$(echo "$FORM_HTML" | parse 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '-left:\([[:digit:]]\+\)p' DIGIT_N) || return
-
-                # Depending x, guess digit rank
-                if (( XCOORD < 15 )); then
-                    (( CODE = CODE + 1000 * (DIGIT-OFFSET) ))
-                elif (( XCOORD < 30 )); then
-                    (( CODE = CODE + 100 * (DIGIT-OFFSET) ))
-                elif (( XCOORD < 50 )); then
-                    (( CODE = CODE + 10 * (DIGIT-OFFSET) ))
-                else
-                    (( CODE = CODE + (DIGIT-OFFSET) ))
-                fi
-            done
-
-            DIGIT_N="${#CODE}"
-            if [ "$DIGIT_N" -lt 4 ]; then
-                for (( ; DIGIT_N<4; DIGIT_N++ )); do
-                    CODE="0$CODE"
-                done
-            fi
-
-            FORM_CODE="-d code=$CODE"
-
-        elif match 'recaptcha.*?k=' "$PAGE"; then
-            local PUBKEY WCI CHALLENGE WORD ID
-
-            log_debug 'CAPTCHA: reCaptcha'
-
-            # http://www.google.com/recaptcha/api/challenge?k=
-            # http://api.recaptcha.net/challenge?k=
-            PUBKEY=$(echo "$PAGE" | parse 'recaptcha.*?k=' '?k=\([[:alnum:]_-.]\+\)') || return
-            WCI=$(recaptcha_process $PUBKEY) || return
-            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
-
-            FORM_CODE="-d recaptcha_challenge_field=$CHALLENGE -d recaptcha_response_field=$WORD"
-
-        elif match 'solvemedia\.com.*?k=' "$PAGE"; then
-            local PUBKEY RESP CHALLENGE ID
-
-            log_debug 'CAPTCHA: Solve Media'
-
-            # solvemedia.com/papi/challenge.script?k=
-            PUBKEY=$(echo "$PAGE" | parse 'solvemedia\.com.*?k=' '?k=\([[:alnum:]_-.]\+\)') || return
-            log_debug "Solvemedia pubkey: '$PUBKEY'"
-            RESP=$(solvemedia_captcha_process $PUBKEY) || return
-            { read CHALLENGE; read ID; } <<< "$RESP"
-
-            FORM_CODE="-d adcopy_response=manual_challenge --data-urlencode adcopy_challenge=$CHALLENGE"
-        fi
-
-        [ -z "$FORM_CODE" ] && log_debug 'False alarm.'
-        [ -n "$FORM_CODE" ] && log_debug "CAPTCHA data: $FORM_CODE"
-    fi
-
-    if [ -n "$FORM_CODE" ]; then
-        echo "$FORM_CODE"
-        echo "$ID"
-    fi
-
-    return 0
-}
-
 # Output a file download URL
 # $1: cookie file
 # $2: file hosting url
 # stdout: real file download link
 xfilesharing_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$2
-    local -r BASE_URL=$(basename_url "$URL")
-    local FORM_ACTION=$URL
-    local PAGE TYPE WAIT_TIME FILE_URL ERROR CODE TIME NEW_PAGE=1
-    local LOCATION EXTRA
+    local URL=$2
+
+    local BASE_URL=$(basename_url "$URL")
+    local PAGE LOCATION EXTRA FILE_URL WAIT_TIME TIME ERROR
     local FORM_DATA FORM_CAPTCHA FORM_PASSWORD
+    local NEW_PAGE=1
 
     if [ -n "$AUTH" ]; then
-        xfilesharing_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+        xfilesharing_login "$COOKIE_FILE" "$BASE_URL" "$AUTH" || return
     fi
 
-    for TRY in 1 2; do
-        PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL" | \
+    PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL" | \
             strip_html_comments) || return
 
-        # billionuploads, goonshare.net
-        if match 'DDoS protection by CloudFlare\|CloudFlare Ray ID' "$PAGE"; then
-            local FORM_DDOS FORM_DDOS_VC FORM_DDOS_ACTION DDOS_CHLNG DOMAIN
-
-            log_debug "CloudFlare DDoS protection detected."
-
-            if match 'The web server reported a bad gateway error' "$PAGE"; then
-                log_error 'CloudFlare bad gateway. Try again later.'
-                #return $ERR_LINK_TEMP_UNAVAILABLE
-                return $ERR_FATAL
-            fi
-
-            FORM_DDOS=$(grep_form_by_id "$PAGE" 'challenge-form') || return
-            FORM_DDOS_ACTION=$(echo "$PAGE" | parse_form_action) || return
-            FORM_DDOS_VC=$(echo "$FORM_DDOS" | parse_form_input_by_name 'jschl_vc') || return
-            DDOS_CHLNG=$(echo "$PAGE" | parse 'a.value = ' 'a.value = \([^;]\+\)') || return
-            DOMAIN=$(echo "$BASE_URL" | parse . '^https\?://\(.*\)$')
-            DDOS_CHLNG=$(( ($DDOS_CHLNG) + ${#DOMAIN} ))
-
-            wait 6 || return
-
-            PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' -G \
-                -e "$URL" \
-                -d "jschl_vc=$FORM_DDOS_VC" \
-                -d "jschl_answer=$DDOS_CHLNG" \
-                "$BASE_URL$FORM_DDOS_ACTION" | \
-                strip_html_comments) || return
-        else
-            break
-        fi
-    done
+    PAGE=$(xfilesharing_check_cloudflare_antiddos "$COOKIE_FILE" "$URL" "$PAGE") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
-    if [ -n "$LOCATION" ]; then
+    if [ -n "$LOCATION" ] && [ "$LOCATION" != "$URL" ]; then
         if [ $(basename_url "$LOCATION") = "$LOCATION" ]; then
-            FORM_ACTION="$BASE_URL/$LOCATION"
+            URL="$BASE_URL/$LOCATION"
         elif match 'op=login' "$LOCATION"; then
             log_error "You must be registered to download."
             return $ERR_LINK_NEED_PERMISSIONS
         else
-            FORM_ACTION="$LOCATION"
+            URL="$LOCATION"
         fi
-        log_debug "New form action: '$FORM_ACTION'"
-    fi
-    #MODULE_XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=( -e "$FORM_ACTION" )
-
-    # Parse imagehosting
-    RE_IMG="<img[^>]*src=[^>]*\(/files/\|/i/\)[^'\"[:space:]>]*\(t(_\|[^_])\|[^t]\)\."
-    if match "$RE_IMG" "$PAGE"; then
-        IMG_URL=$(echo "$PAGE" | parse_attr_quiet "$RE_IMG" 'src')
-        IMG_ALT=$(echo "$PAGE" | parse_attr_quiet "$IMG_URL" 'alt')
-        IMG_TITLE=$(echo "$PAGE" | parse_tag_quiet '<[Tt]itle>' '[Tt]itle')
-        IMG_ID=$(echo "$URL" | parse_quiet . '[^/]/\([[:alnum:]]\{12\}\)\(/\|$\)')
-        # Ignore video thumbnails
-        if [ -n "$IMG_URL" ]; then
-            if ( [ -n "$IMG_ALT" ] && match "$IMG_ALT" "$IMG_TITLE" ) || \
-            match "$IMG_ID" "$IMG_URL"; then
-                log_debug 'Image hosting detected'
-
-                echo "$IMG_URL"
-                [ -n "$IMG_ALT" ] && echo "$IMG_ALT"
-                return 0
-            fi
-        fi
+        log_debug "New form action: '$URL'"
     fi
 
-    xfilesharing_parse_error "$PAGE" || return
+    xfilesharing_dl_parse_error "$PAGE" || return
+
+    xfilesharing_dl_parse_imagehosting "$PAGE" && return 0
 
     # Streaming sites like to pack player scripts and place them where they like
-    xfilesharing_parse_streaming "$PAGE" "$FORM_ACTION" && return 0
+    xfilesharing_dl_parse_streaming "$PAGE" "$URL" && return 0
 
     # First form sometimes absent
-    FORM_DATA=$(xfilesharing_parse_form1 "$PAGE") || return
+    FORM_DATA=$(xfilesharing_dl_parse_form1 "$PAGE") || return
     if [ -n "$FORM_DATA" ]; then
         { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
         [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
 
-        WAIT_TIME=$(xfilesharing_handle_countdown "$PAGE") || return
+        WAIT_TIME=$(xfilesharing_dl_parse_countdown "$PAGE") || return
         if [ -n "$WAIT_TIME" ]; then
             wait $WAIT_TIME || return
         fi
 
-        PAGE=$(xfilesharing_commit_step1 "$PAGE" "$COOKIE_FILE" "$FORM_ACTION" "$FORM_DATA") || return
+        PAGE=$(xfilesharing_dl_commit_step1 "$COOKIE_FILE" "$URL" "$FORM_DATA") || return
 
         # To avoid double check for errors or streaming if page not updated
         NEW_PAGE=1
@@ -562,30 +180,22 @@ xfilesharing_download() {
     fi
 
     if [ $NEW_PAGE = 1 ]; then
-        xfilesharing_parse_error "$PAGE" || return
-        xfilesharing_parse_streaming "$PAGE" "$FORM_ACTION" "$FILE_NAME" && return 0
+        xfilesharing_dl_parse_error "$PAGE" || return
+        xfilesharing_dl_parse_streaming "$PAGE" "$URL" "$FILE_NAME" && return 0
         NEW_PAGE=0
     fi
 
-    FORM_DATA=$(xfilesharing_parse_form2 "$PAGE") || return
+    FORM_DATA=$(xfilesharing_dl_parse_form2 "$PAGE") || return
     if [ -n "$FORM_DATA" ]; then
         { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
         [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
 
-        WAIT_TIME=$(xfilesharing_handle_countdown "$PAGE") || return
+        WAIT_TIME=$(xfilesharing_dl_parse_countdown "$PAGE") || return
 
         # If password or captcha is too long :)
         [ -n "$WAIT_TIME" ] && TIME=$(date +%s)
 
-        if match '"password"' "$FORM_DATA"; then
-            log_debug 'File is password protected'
-            if [ -z "$LINK_PASSWORD" ]; then
-                LINK_PASSWORD=$(prompt_for_password) || return
-                FORM_PASSWORD="-d password=$LINK_PASSWORD"
-            fi
-        fi
-
-        CAPTCHA_DATA=$(xfilesharing_handle_captcha "$PAGE" "$FORM_DATA") || return
+        CAPTCHA_DATA=$(xfilesharing_handle_captcha "$PAGE") || return
         { read FORM_CAPTCHA; read CAPTCHA_ID; } <<<"$CAPTCHA_DATA"
 
         if [ -n "$WAIT_TIME" ]; then
@@ -596,8 +206,8 @@ xfilesharing_download() {
             fi
         fi
 
-        PAGE=$(xfilesharing_commit_step2 "$PAGE" "$COOKIE_FILE" "$FORM_ACTION" "$FORM_DATA" \
-            "$FORM_PASSWORD" "$FORM_CAPTCHA") || return
+        PAGE=$(xfilesharing_dl_commit_step2 "$COOKIE_FILE" "$URL" "$FORM_DATA" \
+            "$FORM_CAPTCHA") || return
 
         # In case of download-after-post system or some complicated link parsing
         #  that requires additional data and page rquests (like uploadc or up.lds.net)
@@ -614,28 +224,27 @@ xfilesharing_download() {
 
     if [ -z "$FILE_URL" ]; then
         if [ $NEW_PAGE = 1 ]; then
-            xfilesharing_parse_error "$PAGE" "$CAPTCHA_ID" || return
-            xfilesharing_parse_streaming "$PAGE" "$FORM_ACTION" "$FILE_NAME" && return 0
+            xfilesharing_dl_parse_error "$PAGE" || ERROR=$?
+            if [ "$ERROR" = "$ERR_CAPTCHA" ]; then
+                log_debug 'Wrong captcha'
+                [ -n "$CAPTCHA_ID" ] && captcha_nack $CAPTCHA_ID
+            fi
+            [ -n "$ERROR" ] && return $ERROR
+            xfilesharing_dl_parse_streaming "$PAGE" "$URL" "$FILE_NAME" && return 0
         fi
 
         # I think it would be correct to use parse fucntion to parse only,
         #  but not make any additional requests
-        FILE_DATA=$(xfilesharing_parse_final_link "$PAGE" "$FILE_NAME") || return
+        FILE_DATA=$(xfilesharing_dl_parse_final_link "$PAGE" "$FILE_NAME") || return
         { read FILE_URL; read FILE_NAME_TMP; read EXTRA; } <<<"$FILE_DATA"
         [ -n "$FILE_NAME_TMP" ] && FILE_NAME="$FILE_NAME_TMP"
         [ -n "$EXTRA" ] && eval "$EXTRA"
     fi
 
     if match_remote_url "$FILE_URL"; then
-        if [ -n "$FORM_CODE" -a -n "$CAPTCHA_ID" ]; then
+        if [ -n "$FORM_CAPTCHA" -a -n "$CAPTCHA_ID" ]; then
             log_debug 'Correct captcha'
             captcha_ack $CAPTCHA_ID
-        fi
-
-        # hulkload, queenshare adflying links
-        if match '^http://adf\.ly/.*http://' "$FILE_URL"; then
-            log_debug 'Aflyed link detected.'
-            FILE_URL=$(echo "$FILE_URL" | parse . '^http://adf\.ly/.*\(http://.*\)$')
         fi
 
         echo "$FILE_URL"
@@ -646,7 +255,7 @@ xfilesharing_download() {
     log_debug 'Link not found'
 
     # Can be wrong captcha, some sites (cramit.in) do not return any error message
-    if [ -n "$FORM_CODE" ]; then
+    if [ -n "$FORM_CAPTCHA" ]; then
         log_debug 'Wrong captcha'
         [ -n "$CAPTCHA_ID" ] && captcha_nack $CAPTCHA_ID
         return $ERR_CAPTCHA
@@ -666,9 +275,11 @@ xfilesharing_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL=$HOSTING
-    local PAGE FILE_SIZE MAX_SIZE DEL_CODE FILE_ID UPLOAD_ID USER_TYPE
-    local PUBLIC_FLAG=0
+    local -r BASE_URL=$(echo "$URL_UPLOAD" | parse . "^\(.*\)/")
+    local PAGE LOCATION STATE FILE_CODE DEL_CODE FILE_ID FORM_DATA RESULT_DATA
+    local FILE_NEED_EDIT=0
+
+    log_debug "Current: $URL_UPLOAD"
 
     if [ -z "$AUTH" ]; then
         if [ -n "$FOLDER" ]; then
@@ -681,156 +292,112 @@ xfilesharing_upload() {
         fi
     fi
 
-    if match_remote_url "$FILE"; then
-        # Remote upload requires registration
-        if test -z "$AUTH"; then
-            return $ERR_LINK_NEED_PERMISSIONS
-        fi
-    else
-        # 2000 MiB limit for account users
-        if test "$AUTH"; then
-            MAX_SIZE=1048576000 # 1000 MiB
-        else
-            MAX_SIZE=2097152000 # 2000 MiB
-        fi
-
-        FILE_SIZE=$(get_filesize "$FILE")
-        if [ "$FILE_SIZE" -gt "$MAX_SIZE" ]; then
-            log_debug "File is bigger than $MAX_SIZE"
-            return $ERR_SIZE_LIMIT_EXCEEDED
-        fi
-    fi
-
-    if test "$AUTH"; then
-        xfilesharing_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
+    if [ -n "$AUTH" ]; then
+        xfilesharing_login "$COOKIE_FILE" "$BASE_URL" "$AUTH" || return
 
         if ! match_remote_url "$FILE"; then
-            xfilesharing_check_freespace "$FILE_SIZE" "$COOKIE_FILE" "$BASE_URL" || return
-        fi
+            FILE_SIZE=$(get_filesize "$FILE")
+            #if [ "$FILE_SIZE" -gt "$MAX_SIZE" ]; then
+            #    log_debug "File is bigger than $MAX_SIZE"
+            #    return $ERR_SIZE_LIMIT_EXCEEDED
+            #fi
+
+            xfilesharing_ul_check_freespace "$COOKIE_FILE" "$BASE_URL" "$FILE_SIZE" || return
+        else
+            FILE_NEED_EDIT=1
+        fi            
 
         if [ -n "$FOLDER" ]; then
-            FOLDER_ID=$(xfilesharing_check_folder "$FOLDER" "$COOKIE_FILE" "$BASE_URL") || return
-            log_debug "Folder ID: '$FOLDER_ID'"
-        fi
+            FOLDER_DATA=$(xfilesharing_ul_get_folder_data "$COOKIE_FILE" "$BASE_URL" "$FOLDER") || return
 
-        USER_TYPE='reg'
-    else
-        USER_TYPE='anon'
+            if [ -z "$FOLDER_DATA" ]; then
+                xfilesharing_ul_create_folder "$COOKIE_FILE" "$BASE_URL" "$FOLDER" || return
+                FOLDER_DATA=$(xfilesharing_ul_get_folder_data "$COOKIE_FILE" "$BASE_URL" "$FOLDER") || return
+            elif [ "$FOLDER_DATA" = "0" ]; then
+                log_debug 'Folders not supported or broken for current submodule.'
+            fi
+        fi          
     fi
 
-    [ -z "$PRIVATE_FILE" ] && PUBLIC_FLAG=1
+    PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' \
+        "$URL_UPLOAD" | \
+        strip_html_comments) || return
 
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=english' -b "$COOKIE_FILE" "$BASE_URL") || return
+    PAGE=$(xfilesharing_check_cloudflare_antiddos "$COOKIE_FILE" "$URL_UPLOAD" "$PAGE") || return
 
-    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
-    FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url') || return
-    FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
-    # Will be empty on anon upload
-    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
-
-    # Initial js code:
-    # for (var i = 0; i < 12; i++) UID += '' + Math.floor(Math.random() * 10);
-    # form_action = form_action.split('?')[0] + '?upload_id=' + UID + '&js_on=1' + '&utype=' + utype + '&upload_type=' + upload_type;
-    # upload_type: file, url
-    # utype: anon, reg
-    UPLOAD_ID=$(random d 12)
-
-    PAGE=$(curl_with_log -b "$COOKIE_FILE" \
-        -H 'Expect: ' \
-        -F 'upload_type=file' \
-        -F "sess_id=$FORM_SESS" \
-        -F "srv_tmp_url=$FORM_TMP_SRV" \
-        -F "file_0=@$FILE;filename=$DESTFILE" \
-        -F "file_1=@/dev/null;filename=" \
-        --form-string "file_0_descr=$DESCRIPTION" \
-        -F "file_0_public=$PUBLIC_FLAG" \
-        --form-string "link_rcpt=$TOEMAIL" \
-        --form-string "link_pass=$LINK_PASSWORD" \
-        -F 'tos=1' \
-        -F 'submit_btn=' \
-        "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
-        break_html_lines) || return
-
-    local OP FILE_CODE STATE
-    FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-
-    OP=$(echo "$FORM_HTML" | parse_tag 'op' 'textarea')
-    FILE_CODE=$(echo "$FORM_HTML" | parse_tag 'fn' 'textarea')
-    STATE=$(echo "$FORM_HTML" | parse_tag 'st' 'textarea')
-
-    log_debug "File Code: '$FILE_CODE'"
-    log_debug "State: '$STATE'"
-
-    if [ "$STATE" = 'OK' ]; then
-        log_debug 'Upload successfull.'
-    elif [ "$STATE" = 'unallowed extension' ]; then
-        log_error 'File extension is forbidden.'
-        return $ERR_FATAL
-    elif [ "$STATE" = 'file is too big' ]; then
-        log_error 'Uploaded file is too big.'
-        return $ERR_SIZE_LIMIT_EXCEEDED
-    elif [ "$STATE" = 'not enough disk space on your account' ]; then
-        log_error 'Account space exceeded.'
-        return $ERR_SIZE_LIMIT_EXCEEDED
-    else
-        log_error "Unknown upload state: $STATE"
-        return $ERR_FATAL
+    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    if match 'op=login' "$LOCATION"; then
+        log_error 'Anonymous upload not allowed.'
+        return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    # Get killcode, file_id and generate links
-    # Note: At this point we know the upload state is "OK" due to "if" above
-    PAGE=$(curl -b "$COOKIE_FILE" \
-        -F "fn=$FILE_CODE" \
-        -F "st=$STATE" \
-        -F "op=$OP" \
-        --form-string "link_rcpt=$TOEMAIL" \
-        "$BASE_URL") || return
+    FORM_DATA=$(xfilesharing_ul_parse_data "$PAGE") || return
 
-    DEL_CODE=$(echo "$PAGE" | parse 'killcode=' 'killcode=\([[:alnum:]]\+\)') || return
-    FILE_ID=$(echo "$PAGE" | parse 'id="ic[0-9]-' 'id="ic[0-9]-\([0-9]\+\)') || return
+    PAGE=$(xfilesharing_ul_commit "$COOKIE_FILE" "$BASE_URL" "$FILE" "$DEST_FILE" "$FORM_DATA") || return
 
-    log_debug "File ID: '$FILE_ID'"
+    RESULT_DATA=$(xfilesharing_ul_parse_result "$PAGE") || return
+    { read STATE; read FILE_CODE; read DEL_CODE; read FILE_NAME; } <<<"$RESULT_DATA"
 
-    LINK="$BASE_URL/$FILE_CODE"
-    DEL_LINK="$BASE_URL/$FILE_CODE?killcode=$DEL_CODE"
+    if [ -z "$FILE_NAME" ] && [ "$DEST_FILE" != 'dummy' ]; then
+        FILE_NAME="$DEST_FILE"
+    fi    
+
+    if [ "$STATE" = 'EDIT' ]; then
+        STATE='OK'
+        FILE_NEED_EDIT=1
+    fi
+
+    xfilesharing_ul_handle_state "$STATE" || return
+
+    PAGE=$(xfilesharing_ul_commit_result "$COOKIE_FILE" "$BASE_URL" "$RESULT_DATA") || return
+
+    if [ -z "$DEL_CODE" -a -n "$PAGE" ]; then
+        DEL_CODE=$(xfilesharing_ul_parse_del_code "$PAGE")
+    fi
+
+    if [ -n "$AUTH" ]; then
+        FILE_ID=$(xfilesharing_ul_parse_file_id "$PAGE")
+
+        [ -z "$FILE_ID" ] && FILE_ID=$(xfilesharing_ul_get_file_id "$COOKIE_FILE" "$BASE_URL")
+
+        [ -n "$FILE_ID" ] && log_debug "File ID: '$FILE_ID'"
+    fi
 
     # Move file to a folder?
-    if [ -n "$FOLDER" ]; then
-        log_debug 'Moving file...'
-
-        # Source folder ("fld_id") is always root ("0") for newly uploaded files
-        PAGE=$(curl -b "$COOKIE_FILE" -i \
-            -F 'op=my_files' \
-            -F 'fld_id=0' \
-            -F "file_id=$FILE_ID" \
-            -F "to_folder=$FOLDER_ID" \
-            -F 'to_folder_move=Move files' \
-            "$BASE_URL") || return
-
-        PAGE=$(echo "$PAGE" | grep_http_header_location_quiet)
-        match '?op=my_files' "$PAGE" || log_error 'Could not move file. Site update?'
+    if [ -n "$FOLDER" -a -z "$FILE_ID" ]; then
+        log_error 'Cannot move file without file ID.'
+    elif [ -n "$FOLDER" ] && [ "$FOLDER_DATA" = "0" ]; then
+        log_error 'Skipping move file.'
+    elif [ -n "$FOLDER" ]; then
+        xfilesharing_ul_move_file "$COOKIE_FILE" "$BASE_URL" "$FILE_ID" "$FOLDER_DATA" || return
     fi
 
-    # Set premium only flag
-    if [ -n "$PREMIUM" ]; then
-        log_debug 'Setting premium flag...'
+    # Edit file if could not set some options during upload
+    if [ "$FILE_NEED_EDIT" = 1 ] && \
+        [ "$DEST_FILE" != 'dummy' \
+        -o -n "$DESCRIPTION" \
+        -o -n "$LINK_PASSWORD" ] ; then
+        log_debug 'Editing file parameters for remote upload...'
 
-        PAGE=$(curl -b "$COOKIE_FILE" -G \
-            -d 'op=my_files' \
-            -d "file_id=$FILE_ID" \
-            -d 'set_premium_only=true' \
-            -d 'rnd='$(random js) \
-            "$BASE_URL") || return
+        xfilesharing_ul_edit_file "$COOKIE_FILE" "$BASE_URL" "$FILE_CODE" "$DEST_FILE" || return
 
-        [ "$PAGE" != "\$\$('tpo$FILE_ID').className='pub';" ] && \
-            log_error 'Could not set premium only flag. Site update?'
+    else
+        # Set premium only flag
+        if [ -n "$PREMIUM" -a -z "$FILE_ID" ]; then
+            log_error 'Cannot set premium flag without file ID.'
+        elif [ -n "$PREMIUM" ]; then
+            xfilesharing_ul_set_flag_premium "$COOKIE_FILE" "$BASE_URL" "$FILE_ID" || return
+        fi
+
+        # Ensure that correct public flag set on remote upload
+        if [ "$FILE_NEED_EDIT" = 1 ] && [ -z "$FILE_ID" ]; then
+            log_error 'Cannot set public flag without file ID.'
+        elif [ "$FILE_NEED_EDIT" = 1 ]; then
+            xfilesharing_ul_set_flag_public "$COOKIE_FILE" "$BASE_URL" "$FILE_ID" || return
+        fi
     fi
 
-    echo "$LINK"
-    echo "$DEL_LINK"
+    xfilesharing_ul_generate_links "$BASE_URL" "$FILE_CODE" "$DEL_CODE" "$FILE_NAME"
 }
 
 # Delete a file uploaded to file hosting

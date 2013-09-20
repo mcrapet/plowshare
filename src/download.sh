@@ -799,6 +799,10 @@ fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
 
+if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(get_module_options "$ENGINE" DOWNLOAD)
+fi
+
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdown' "$MODULE_OPTIONS" \
     "${UNUSED_OPTS[@]}")" || exit

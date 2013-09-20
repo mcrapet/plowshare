@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# filerio callbacks
+# filedwon callbacks
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,24 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA FILERIO_FUNCS
-FILERIO_FUNCS['dl_parse_final_link']='filerio_dl_parse_final_link'
+declare -gA FILEDWON_FUNCS
+FILEDWON_FUNCS['dl_parse_form2']='filedwon_dl_parse_form2'
 
-filerio_dl_parse_final_link() {
-    local -r PAGE=$1
-    #local FILE_NAME=$2
+filedwon_dl_parse_form2() {
+    local PAGE=$1
 
-    local FILE_URL JS
+    # Remove all paypal form tails from main form (which end is '</Form>')
+    # password input is placed below those paypal forms
+    PAGE="${PAGE//<\/form>/}"
 
-    detect_javascript || return
-
-    log_debug 'Decrypting final link...'
-
-    JS=$(echo "$PAGE" | parse '<script type="text/javascript">eval(unescape' ">\(.*\)<") || return
-
-    JS=$(xfilesharing_unpack_js "$JS") || return
-
-    FILE_URL=$(echo "$JS" | parse 'location.href=' 'location.href="\(.*\)"') || return
-
-    echo "$FILE_URL"
+    xfilesharing_dl_parse_form2_generic "$PAGE"
 }

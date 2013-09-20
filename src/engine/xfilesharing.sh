@@ -22,35 +22,110 @@
 declare ENGINE_DIR
 declare SUBMODULE
 
+declare URL_UPLOAD
+
+# Get module property
+# $1: module name
+# $2: property name to get
+# stdout: requested property
+xfilesharing_get_submodule_property() {
+    local -r CONFIG="$ENGINE_DIR/xf/config"
+
+    if [ ! -f "$CONFIG" ]; then
+        stderr "can't find config file"
+        return $ERR_SYSTEM
+    fi
+
+    while IFS=',' read -r MODULE URL_REGEX \
+        URL_UPLOAD; do
+        if [ "$MODULE" = "$1" ]; then
+            case "$2" in
+            'URL_UPLOAD')
+                #echo "$URL_UPLOAD"
+                URL_UPLOAD="$URL_UPLOAD"
+                ;;
+            esac
+
+            unset IFS
+            return 0
+        fi
+    done < "$CONFIG"
+    unset IFS
+
+    return 1
+}
+
+# Get module name by URL
+# $1: URL
+# stdout: module name
+xfilesharing_get_submodule() {
+    local -r CONFIG="$ENGINE_DIR/xf/config"
+
+    if [ ! -f "$CONFIG" ]; then
+        stderr "can't find config file"
+        return $ERR_SYSTEM
+    fi
+
+    while IFS=',' read -r MODULE URL_REGEX \
+        URL_UPLOAD; do
+        if match "$URL_REGEX" "$1"; then
+            #echo "$MODULE"
+            SUBMODULE="$MODULE"
+
+            unset IFS
+            return 0
+        fi
+    done < "$CONFIG"
+    unset IFS
+
+    return 1
+}
+
 # Engine initialisation. No subshell.
 # $1: plowshare engine directory
 xfilesharing_init() {
     ENGINE_DIR=$1
     source "$1/xf/module.sh"
     source "$1/xf/generic.sh"
+
+    for FUNC_NAME in "${!GENERIC_FUNCS[@]}"
+    do
+        eval "xfilesharing_$FUNC_NAME() {
+            local -u VAR=\${SUBMODULE}_FUNCS
+            FUNC=\${VAR}[$FUNC_NAME]
+            FUNC=\${!FUNC}
+            test \"\$FUNC\" || FUNC=\${GENERIC_FUNCS[$FUNC_NAME]}
+            \$FUNC \"\$@\"
+            }"
+    done
 }
 
-# Check if we accept to kind of url. No subshell.
+# Check if we accept to kind of url. No subshell.
 # This is used by plowdown and plowprobe.
 # $1: caller (plowdown, plowup, ...)
-# $2: URL to probe
+# $2: URL or module to probe
 # $?: 0 for success
 xfilesharing_probe_module() {
     local -r NAME=$1
-    local -r URL=$2
-    local -i RET=$ERR_NOMODULE
+    local -r MODULE_DATA=$2
+    local -i RET=0
 
-    if [[ $URL =~ http://(www\.)?filerio\.in/[[:alnum:]]{12} ]]; then
-        SUBMODULE=filerio
-        RET=0
-    elif [[ $URL =~ https?://(www\.)?180upload\.com/ ]]; then
-        SUBMODULE=180upload
-        RET=0
+    if [ "$NAME" = 'plowdown' ]; then
+        #SUBMODULE=$(xfilesharing_get_submodule "$MODULE_DATA") || RET=$ERR_NOMODULE
+        xfilesharing_get_submodule "$MODULE_DATA" || RET=$ERR_NOMODULE
+    elif [ "$NAME" = 'plowup' ]; then
+        #URL_UPLOAD=$(xfilesharing_get_submodule_property "$MODULE_DATA" 'URL_UPLOAD' ) || RET=$ERR_NOMODULE
+        xfilesharing_get_submodule_property "$MODULE_DATA" 'URL_UPLOAD' || RET=$ERR_NOMODULE
+        SUBMODULE="$MODULE_DATA"
     fi
 
     if [ $RET -eq 0 ]; then
-        source "$ENGINE_DIR/xf/$SUBMODULE.sh"
-        log_debug "submodule: '$SUBMODULE'"
+        if [ -f "$ENGINE_DIR/xf/$SUBMODULE.sh" ]; then
+            log_debug "submodule: '$SUBMODULE' (custom)"
+            source "$ENGINE_DIR/xf/$SUBMODULE.sh"
+        else
+            log_debug "submodule: '$SUBMODULE' (generic)"
+        fi
     fi
 
     return $RET
@@ -62,64 +137,4 @@ xfilesharing_probe_module() {
 xfilesharing_get_module() {
     test "$SUBMODULE" || return $ERR_NOMODULE
     echo 'xfilesharing'
-}
-
-# Availables wrappers:
-# - parse_error
-# - parse_form1
-# - parse_form2
-# - parse_final_link
-# - commit_step1
-# - commit_step2
-
-# Check and parse any errors
-# $1: page
-xfilesharing_parse_error() {
-    local -u VAR=${SUBMODULE}_FUNCS
-    FUNC=${!VAR[parse_error]}
-    test "$FUNC" || FUNC=${GENERIC_FUNCS[parse_error]}
-    $FUNC "$@"
-}
-
-xfilesharing_parse_form1() {
-    local -u VAR=${SUBMODULE}_FUNCS
-    FUNC=${!VAR[parse_form1]}
-    test "$FUNC" || FUNC=${GENERIC_FUNCS[parse_form1]}
-    $FUNC "$@"
-}
-
-# Parse second form
-# $1: (X)HTML page data
-# $2: (optional) form name
-# stdout: form_html and form inputs
-xfilesharing_parse_form2() {
-    local -u VAR=${SUBMODULE}_FUNCS
-    FUNC=${!VAR[parse_form2]}
-    test "$FUNC" || FUNC=${GENERIC_FUNCS[parse_form2]}
-    $FUNC "$@"
-}
-
-# Parse final link
-# $1: (X)HTML page data
-# $2: (optional) file name
-# stdout: final download link
-xfilesharing_parse_final_link() {
-    local -u VAR=${SUBMODULE}_FUNCS
-    FUNC=${!VAR[parse_final_link]}
-    test "$FUNC" || FUNC=${GENERIC_FUNCS[parse_final_link]}
-    $FUNC "$@"
-}
-
-xfilesharing_commit_step1() {
-    local -u VAR=${SUBMODULE}_FUNCS
-    FUNC=${!VAR[commit_step1]}
-    test "$FUNC" || FUNC=${GENERIC_FUNCS[commit_step1]}
-    $FUNC "$@"
-}
-
-xfilesharing_commit_step2() {
-    local -u VAR=${SUBMODULE}_FUNCS
-    FUNC=${!VAR[commit_step2]}
-    test "$FUNC" || FUNC=${GENERIC_FUNCS[commit_step2]}
-    $FUNC "$@"
 }
