@@ -192,8 +192,8 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/account/home.jsp") || return
 
-    DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' \
-            "=[[:space:]]*'\([^']\+\)") || return
+    DIR_ID=$(parse 'AjaxFacade\.rootDirId' \
+            "=[[:space:]]*'\([^']\+\)" <<< "$PAGE") || return
 
     # Not required. Example: {"freeSpace":16102203291}
     JSON=$(curl -b "$COOKIE_FILE" "$BASE_URL/rest/account/freeSpace?dirId=$DIR_ID") || return
@@ -246,7 +246,7 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
         -H "x-cookie: Login=$LOGIN_ID; Password=$PASS_HASH;" \
         "$BASE_URL/rest/sharedFileUpload/finish?fileId=$FILE_ID") || return
 
-    log_debug "JSON:$JSON"
+    log_debug "JSON: '$JSON'"
     # {"status":true}
     #if ! match_json_true 'status' "$JSON"; then
     #    log_error 'bad answer, file moved to Incompleted folder'
