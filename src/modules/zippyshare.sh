@@ -110,11 +110,18 @@ zippyshare_download() {
 
     if [ -n "$JS" ]; then
         JS=$(echo "$JS" | delete_first_line | delete_last_line)
+        N=$(parse_attr 'id="omg"' 'class' <<< "$PAGE") || return
 
         PART_URL=$(echo "var elt = {};
+            var omg = {
+              getAttribute: function(attr) {
+                return $N;
+              }
+            };
             var document = {
               getElementById: function(id) {
-                return elt;
+                if(id == 'dlbutton') return elt;
+                if(id == 'omg') return omg;
               }
             };
             $JS
