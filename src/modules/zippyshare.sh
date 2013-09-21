@@ -41,7 +41,7 @@ MODULE_ZIPPYSHARE_PROBE_OPTIONS=""
 zippyshare_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME PART_URL JS N
+    local PAGE FILE_URL FILE_NAME PART_URL CONTENT JS N
 
     # JSESSIONID required
     PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
@@ -53,6 +53,7 @@ zippyshare_download() {
     fi
 
     test "$CHECK_LINK" && return 0
+    detect_javascript || return
 
     # <meta property="og:title" content="... "
     FILE_NAME=$(echo "$PAGE" | parse_attr '=.og:title.' content) || return
@@ -94,44 +95,46 @@ zippyshare_download() {
         return 0
     fi
 
-    detect_javascript || return
+    # Detect type of content
+    # <meta property="og:type" content="..." />
     PAGE=$(strip_html_comments <<< "$PAGE")
+    CONTENT=$(parse_attr_quiet '=.og:type.' 'content' <<< "$PAGE")
 
-    # Detect audio/video content
-    if match 'Audio Player' "$PAGE"; then
-      N=-8
-    elif  match 'class=.movie-share.' "$PAGE"; then
-      N=-5
-    else
-      N=-5
-    fi
+    case "$CONTENT" in
+        'music.song')
+            N=-8
+            ;;
+        'image')
+            N=-4
+            ;;
+        '')
+            N=-5
+            ;;
+        *)
+            log_error "Unexpected content ('$CONTENT'), site updated?"
+            return $ERR_FATAL
+    esac
 
-    JS=$(grep_script_by_order "$PAGE" $N)
+    JS=$(grep_script_by_order "$PAGE" $N) || return
+    JS=$(echo "$JS" | delete_first_line | delete_last_line)
+    N=$(parse_attr 'id="omg"' 'class' <<< "$PAGE") || return
 
-    if [ -n "$JS" ]; then
-        JS=$(echo "$JS" | delete_first_line | delete_last_line)
-        N=$(parse_attr 'id="omg"' 'class' <<< "$PAGE") || return
+    PART_URL=$(echo "var elt = {};
+        var omg = {
+          getAttribute: function(attr) {
+            return $N;
+          }
+        };
+        var document = {
+          getElementById: function(id) {
+            if(id == 'dlbutton') return elt;
+            if(id == 'omg') return omg;
+          }
+        };
+        $JS
+        print(elt.href);" | javascript) || return
 
-        PART_URL=$(echo "var elt = {};
-            var omg = {
-              getAttribute: function(attr) {
-                return $N;
-              }
-            };
-            var document = {
-              getElementById: function(id) {
-                if(id == 'dlbutton') return elt;
-                if(id == 'omg') return omg;
-              }
-            };
-            $JS
-            print(elt.href);" | javascript) || return
-
-        FILE_URL="$(basename_url "$URL")$PART_URL"
-    else
-        log_error 'Unexpected content, site updated?'
-        return $ERR_FATAL
-    fi
+    FILE_URL="$(basename_url "$URL")$PART_URL"
 
     echo "$FILE_URL"
     echo "${FILE_NAME% }"
