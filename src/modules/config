@@ -41,6 +41,7 @@ pastebin        |          |        |        | list |       |
 putlocker       | download | upload |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |
+rghost          | download | upload |        |      | probe |
 ryushare        | download | upload |        |      | probe |
 sendspace       | download | upload | delete | list | probe |
 sharebeast      | download | upload | delete |      | probe |
