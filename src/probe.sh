@@ -149,6 +149,8 @@ probe() {
                     ;;
             esac
         done
+    else
+        log_debug "$FUNCTION returned no data"
     fi
 
     # Don't process dead links
@@ -157,7 +159,13 @@ probe() {
         $CHECK_LINK -eq $ERR_LINK_NEED_PERMISSIONS -o \
         $CHECK_LINK -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
 
-        log_debug "Link active: $URL_ENCODED"
+        if [ $CHECK_LINK -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
+            log_debug "Link active (with password): $URL_ENCODED"
+        elif [ $CHECK_LINK -eq $ERR_LINK_NEED_PERMISSIONS ]; then
+            log_debug "Link active (with permissions): $URL_ENCODED"
+        else
+            log_debug "Link active: $URL_ENCODED"
+        fi
 
         DATA=("$MODULE" "$URL_RAW" "$CHECK_LINK" "$FILE_NAME" "$FILE_SIZE" "$FILE_HASH")
         pretty_print DATA[@] "${PRINTF_FORMAT:-%F%u}"
