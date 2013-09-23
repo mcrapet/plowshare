@@ -43,7 +43,7 @@ billionuploads_download() {
     local -r COOKIEFILE=$1
     local -r URL=$2
     local PAGE FILE_NAME FILE_URL ERR
-    local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P
+    local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P CRYPT
 
     PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
 
@@ -64,10 +64,6 @@ billionuploads_download() {
     FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
     FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
-    # TODO extract exact time to wait to not trigger Skipped countdown error
-    log_debug 'Waiting 3 seconds to not trigger Skipped countdown error.'
-    wait 3 seconds
-
     PAGE=$(curl -b "$COOKIE_FILE" \
         -F "referer=" \
         -F "op=$FORM_OP" \
@@ -76,6 +72,7 @@ billionuploads_download() {
         -F "down_direct=$FORM_DD" \
         -F "method_free=$FORM_METHOD_F" \
         -F "method_premium=$FORM_METHOD_P" \
+        -F "geekref=yeahman" \
         "$URL"  | break_html_lines ) || return
 
     # Catch the error "the file is temporary unavailable".
@@ -90,10 +87,15 @@ billionuploads_download() {
         return $ERR_FATAL
     fi
 
-    FILE_NAME=$(echo "$PAGE" | parse_tag '<nobr>Filename:' b) || return
-    FILE_URL=$(echo "$PAGE" | parse '<span id="link"' 'href="\([^"]\+\)"' 1) || return
+    CRYPT=$(echo "$PAGE" | parse 'subway="metro"' 'subway="metro">[^<]*XXX\([^<]\+\)XXX[^<]*') || return
+    if ! match '^[[:alnum:]=]\+$' "$CRYPT"; then
+        log_error "Something wrong with encoded message."
+        return $ERR_FATAL
+    fi
+
+    FILE_URL=$(echo "$CRYPT" | base64 -d | base64 -d)
+
     echo "$FILE_URL"
-    echo "$FILE_NAME"
 }
 
 # Upload a file to billionuploads
@@ -107,7 +109,7 @@ billionuploads_upload() {
     local -r BASE_URL='http://billionuploads.com/'
     local -r MAX_SIZE=2147483648 # 2GiB
     local PAGE UPLOAD_ID USER_TYPE DL_URL DEL_URL
-    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
+    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV FILE_CODE STATE
 
     # Check for forbidden file extensions
     case ${DEST_FILE##*.} in
@@ -157,26 +159,15 @@ billionuploads_upload() {
         "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
         break_html_lines) || return
 
-    local FORM2_ACTION FORM2_FN FORM2_ST FORM2_OP FORM2_RCPT
-    FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
-    FORM2_FN=$(echo "$PAGE" | parse_tag 'fn.>' textarea)
-    FORM2_ST=$(echo "$PAGE" | parse_tag 'st.>' textarea)
-    FORM2_OP=$(echo "$PAGE" | parse_tag 'op.>' textarea)
-    FORM2_RCPT=$(echo "$PAGE" | parse_tag_quiet 'link_rcpt.>' textarea)
+    FILE_CODE=$(echo "$PAGE" | parse 'fc-X-x-' 'fc-X-x-\([^"]\+\)')
+    STATE=$(echo "$PAGE" | parse 'st-X-x-' 'st-X-x-\([^"]\+\)')
 
-    if [ "$FORM2_ST" = 'OK' ]; then
-        PAGE=$(curl -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
-            -d "link_rcpt=$FORM2_RCPT" "$FORM2_ACTION") || return
-
-        DL_URL=$(echo "$PAGE" | parse 'Long link' '\(http[^<]\+\)<' 1) || return
-        DEL_URL=$(echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1)
-
-        echo "$DL_URL"
-        echo "$DEL_URL"
+    if [ "$STATE" = 'OK' ]; then
+        echo "$BASE_URL$FILE_CODE"
         return 0
     fi
 
-    log_error "Unexpected status: $FORM2_ST"
+    log_error "Unexpected status: $STATE"
     return $ERR_FATAL
 }
 
@@ -198,12 +189,12 @@ billionuploads_probe() {
 
     # Filename can be truncated
     if [[ $REQ_IN = *f* ]]; then
-        FILE_NAME=$(echo "$PAGE" | parse_quiet '>Filename:<' 'b>\([^<]*\)')
+        FILE_NAME=$(echo "$PAGE" | parse_quiet '>File Name:<' 'class="dofir"[^>]*>\([^<]*\)' 1)
         test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(echo "$PAGE" | parse_quiet '>Size:<' 'b>\([^<]*\)')
+        FILE_SIZE=$(echo "$PAGE" | parse_quiet '>File Size:<' 'class="dofir"[^>]*>\([^<]*\)' 1)
         test "$FILE_SIZE" && translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 
