@@ -338,8 +338,29 @@ matchi() {
 # Check if URL is suitable for remote upload
 #
 # $1: string (URL or anything)
+# $3..$n: additional URI scheme names to match. For example: "ftp"
+# $?: 0 for success
 match_remote_url() {
-    [[ $1 =~ ^[[:space:]]*https?:// ]]
+    local -r URL=$1
+    local RET=$ERR_FATAL
+
+    [[ $URL =~ ^[[:space:]]*[Hh][Tt][Tt][Pp][Ss]?:// ]] && return 0
+
+    shopt -s nocasematch
+    while [[ $# -gt 1 ]]; do
+            shift
+        if [[ $1 =~ ^[[:alpha:]][-.+[:alnum:]]*$ ]]; then
+            if [[ $URL =~ ^[[:space:]]*$1:// ]]; then
+                RET=0
+                break
+            fi
+        else
+            log_error "$FUNCNAME: invalid scheme \`$1'"
+            break
+        fi
+    done
+    shopt -u nocasematch
+    return $RET
 }
 
 # Get lines that match filter+parse regular expressions and extract string from it.
@@ -902,9 +923,9 @@ parse_cookie_quiet() {
 # - http://www.host.com?sid=123 => http://www.host.com
 # Note: Don't use `expr` (GNU coreutils) for portability purposes.
 #
-# $1: URL
+# $1: string (URL)
 basename_url() {
-    if [[ $1 =~ (https?|ftps?|file)://[^/?#]* ]]; then
+    if [[ $1 =~ ([Hh][Tt][Tt][Pp][Ss]?|[Ff][Tt][Pp][Ss]?|[Ff][Ii][Ll][Ee])://[^/?#]* ]]; then
         echo "${BASH_REMATCH[0]}"
     else
         echo "$1"
