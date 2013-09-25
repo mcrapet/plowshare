@@ -7,6 +7,7 @@
 anonfiles       | download | upload |        |      |       |
 anonymousdelivers|download | upload |        |      |       |
 bayfiles        | download | upload | delete |      | probe |
+bayimg          | download | upload | delete |      | probe |
 billionuploads  | download | upload |        |      | probe |
 bitshare        | download | upload | delete |      | probe |
 cloudzer_net    | download |        |        | list | probe |
