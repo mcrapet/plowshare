@@ -1023,7 +1023,7 @@ post_login() {
     fi
 
     # Seem faster than
-    # IFS=":" read USER PASSWORD <<< "$AUTH"
+    # IFS=":" read -r USER PASSWORD <<< "$AUTH"
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
     PASSWORD=$(echo "${AUTH#*:}" | uri_encode_strict)
 
@@ -2185,7 +2185,7 @@ print_options() {
 
     while read -r; do
         test "$REPLY" || continue
-        IFS="," read VAR SHORT LONG TYPE MSG <<< "$REPLY"
+        IFS="," read -r VAR SHORT LONG TYPE MSG <<< "$REPLY"
         if [ -n "$SHORT" ]; then
             if test "$TYPE"; then
                 STR="-${SHORT} ${TYPE#*=}"
@@ -2305,7 +2305,7 @@ grep_list_modules() {
 # $2: command-line arguments list
 # Note: VERBOSE (log_debug) not initialised yet
 process_configfile_options() {
-    local CONFIG OPTIONS SECTION LINE NAME VALUE OPTION
+    local CONFIG OPTIONS SECTION NAME VALUE OPTION
 
     CONFIG="$HOME/.config/plowshare/plowshare.conf"
     test ! -f "$CONFIG" && CONFIG='/etc/plowshare.conf'
@@ -2319,9 +2319,9 @@ process_configfile_options() {
         "$CONFIG" | sed -e '/^\(#\|\[\|[[:space:]]*$\)/d') || true
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
-        while read -r LINE; do
-            NAME=$(strip <<< "${LINE%%=*}")
-            VALUE=$(strip <<< "${LINE#*=}")
+        while read -r; do
+            NAME=$(strip <<< "${REPLY%%=*}")
+            VALUE=$(strip <<< "${REPLY#*=}")
 
             # If NAME contain a '/' character, this is a module option, skip it
             [[ $NAME = */* ]] && continue
@@ -2379,7 +2379,7 @@ process_configfile_module_options() {
         # For example:
         # AUTH,a,auth,a=USER:PASSWORD,User account
         while read -r; do
-            IFS="," read VAR SHORT LONG TYPE_HELP <<< "$REPLY"
+            IFS="," read -r VAR SHORT LONG TYPE_HELP <<< "$REPLY"
 
             # Look for 'module/option_name' (short or long) in section list
             LINE=$(sed -ne "/^[[:space:]]*$M\/\($SHORT\|$LONG\)[[:space:]]*=/{p;q}" <<< "$SECTION") || true
@@ -2737,8 +2737,8 @@ process_options() {
         fi
     else
         # Populate OPTS_* vars
-        while read ARG; do
-            IFS="," read VAR SHORT LONG TYPE HELP <<< "$ARG"
+        while read -r ARG; do
+            IFS="," read -r VAR SHORT LONG TYPE HELP <<< "$ARG"
             if [ -n "$LONG" ]; then
                 OPTS_VAR_LONG[${#OPTS_VAR_LONG[@]}]=$VAR
                 OPTS_NAME_LONG[${#OPTS_NAME_LONG[@]}]="--$LONG"
