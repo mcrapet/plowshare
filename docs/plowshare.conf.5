@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "January 25, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowshare.conf" "5" "September 25, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -77,7 +77,7 @@ Blank lines or lines beginning with a hash character ('#') are treated as commen
 .IP .
 Whitespace before and after a \fItoken\fP or \fIvalue\fP is ignored (although a \fIvalue\fP can contain whitespace within).
 .IP .
-Double quoting \fIvalue\fP is optional.
+Double quoting \fIvalue\fP is optional. Use them to preserve leading and trailing whitespace.
 .PP
 Valid tokens are always lowercase.
 Names are long-option command-line arguments of plowshare. For example: \fItemp-directory\fP for plowdown.
