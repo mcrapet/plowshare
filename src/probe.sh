@@ -150,7 +150,7 @@ probe() {
                     ;;
             esac
         done
-    else
+    elif [ $CHECK_LINK -ne $ERR_LINK_DEAD ]; then
         log_debug "$FUNCTION returned no data"
     fi
 
