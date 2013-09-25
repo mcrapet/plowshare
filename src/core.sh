@@ -1066,10 +1066,10 @@ create_tempfile() {
 prompt_for_password() {
     local PASSWORD
 
-    log_notice 'No password specified, enter it now'
+    log_notice 'No password specified, enter it now (1 hour timeout)'
 
     # Unset IFS to consider trailing and leading spaces
-    IFS= read -s -r -p 'Enter password: ' PASSWORD
+    IFS= read -s -r -t 3600 -p 'Enter password: ' PASSWORD
 
     # Add missing trailing newline (see read -p)
     stderr
