@@ -338,7 +338,7 @@ matchi() {
 # Check if URL is suitable for remote upload
 #
 # $1: string (URL or anything)
-# $3..$n: additional URI scheme names to match. For example: "ftp"
+# $2..$n: additional URI scheme names to match. For example: "ftp"
 # $?: 0 for success
 match_remote_url() {
     local -r URL=$1
