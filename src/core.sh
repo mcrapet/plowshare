@@ -347,8 +347,27 @@ matchi() {
 # Check if URL is suitable for remote upload
 #
 # $1: string (URL or anything)
+# $2..$n: additional URI scheme names to match. For example: "ftp"
+# $?: 0 for success
 match_remote_url() {
-    matchi '^[[:space:]]*https\?://' "$1"
+    local -r URL=$1
+    local RET=$ERR_FATAL
+
+    matchi '^[[:space:]]*https\?://' "$URL" && return 0
+
+    while [[ $# -gt 1 ]]; do
+            shift
+        if matchi '^[[:alpha:]][-.+[:alnum:]]*$' "$1"; then
+            if matchi "^[[:space:]]*$1://" "$URL"; then
+                RET=0
+                break
+            fi
+        else
+            log_error "$FUNCNAME: invalid scheme \`$1'"
+            break
+        fi
+    done
+    return $RET
 }
 
 # Get lines that match filter+parse regular expressions and extract string from it.
@@ -842,9 +861,9 @@ parse_cookie_quiet() {
 # - http://www.host.com?sid=123 => http://www.host.com
 # Note: Don't use `expr` (GNU coreutils) for portability purposes.
 #
-# $1: URL
+# $1: string (URL)
 basename_url() {
-    sed -e 's=\(\(https\?\|ftps\?\|file\)://[^/?#]*\).*=\1=' <<< "$1"
+    sed -e 's=\(\([Hh][Tt][Tt][Pp][Ss]\?\|[Ff][Tt][Pp][Ss]\?\|[Ff][Ii][Ll][Ee]\)://[^/?#]*\).*=\1=' <<< "$1"
 }
 
 # Return basename of file path
