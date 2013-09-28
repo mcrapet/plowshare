@@ -26,6 +26,7 @@ MODULE_BAYIMG_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_BAYIMG_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_BAYIMG_UPLOAD_OPTIONS="
+ADMIN_CODE,,admin-code,s=ADMIN_CODE,Admin code (used for file deletion)
 TAGS,,tags,l=LIST,Provide list of tags (comma separated)"
 MODULE_BAYIMG_UPLOAD_REMOTE_SUPPORT=no
 
@@ -66,12 +67,17 @@ bayimg_download() {
 bayimg_upload() {
     local -r FILE=$2
     local -r DESTFILE=$3
-    local REMOVAL_CODE PAGE FILE_URL
+    local PAGE FILE_URL
 
-    REMOVAL_CODE=$(random a 8)
+    if [ -n "$ADMIN_CODE" ]; then
+        # No known restrictions (length limitation or forbidden characters)
+        :
+    else
+        ADMIN_CODE=$(random a 8)
+    fi
 
     PAGE=$(curl_with_log -F "tags=${TAGS[*]}" \
-        -F "code=$REMOVAL_CODE" \
+        -F "code=$ADMIN_CODE" \
         -F "file=@$FILE;filename=$DESTFILE" \
         'http://bayimg.com/upload') || return
 
@@ -79,7 +85,7 @@ bayimg_upload() {
 
     echo "http:$FILE_URL"
     echo
-    echo "$REMOVAL_CODE"
+    echo "$ADMIN_CODE"
 }
 
 # Delete a file on bayimg (requires an admin code)
