@@ -34,7 +34,9 @@ declare -r ERR_SYSTEM=8                   # System failure (missing executable, 
 declare -r ERR_LINK_TEMP_UNAVAILABLE=10   # plowdown: Link alive but temporarily unavailable
                                           # plowup: Feature (upload service) seems temporarily unavailable from upstream
                                           # plowlist: Links are temporarily unavailable. Upload still pending?
-declare -r ERR_LINK_PASSWORD_REQUIRED=11  # Link alive but requires a password
+declare -r ERR_LINK_PASSWORD_REQUIRED=11  # plowdown: Link alive but requires a password
+                                          # plowdel: Link requires an admin or removal code
+                                          # plowlist: Remote folder is password protected
 declare -r ERR_LINK_NEED_PERMISSIONS=12   # plowdown: Link alive but requires some authentication (private or premium link)
                                           # plowup, plowdel: Operation not allowed for anonymous users
 declare -r ERR_LINK_DEAD=13               # plowdel: File not found or previously deleted
