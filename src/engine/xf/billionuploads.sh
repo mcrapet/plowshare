@@ -25,12 +25,12 @@ BILLIONUPLOADS_FUNCS['dl_parse_final_link']='billionuploads_dl_parse_final_link'
 
 billionuploads_ul_parse_result() {
     local PAGE=$1
-    
+
     local STATE FILE_CODE
-    
+
     FILE_CODE=$(echo "$PAGE" | parse 'fc-X-x-' 'fc-X-x-\([^"]\+\)')
     STATE=$(echo "$PAGE" | parse 'st-X-x-' 'st-X-x-\([^"]\+\)')
-    
+
     echo "$STATE"
     echo "$FILE_CODE"
 }
@@ -45,7 +45,7 @@ billionuploads_dl_parse_final_link() {
     #local FILE_NAME=$2
 
     local FILE_URL
-    
+
     local CRYPT
 
     if ! match '<span subway="metro">' "$PAGE"; then
@@ -54,7 +54,7 @@ billionuploads_dl_parse_final_link() {
     fi
 
     log_debug 'Decoding final link...'
-    
+
     CRYPT=$(echo "$PAGE" | parse 'subway="metro"' 'subway="metro">[^<]*XXX\([^<]\+\)XXX[^<]*') || return
     if ! match '^[[:alnum:]=]\+$' "$CRYPT"; then
         log_error "Something wrong with encoded message."
@@ -62,6 +62,6 @@ billionuploads_dl_parse_final_link() {
     fi
 
     FILE_URL=$(echo "$CRYPT" | base64 -d | base64 -d)
-    
+
     echo "$FILE_URL"
 }

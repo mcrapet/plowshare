@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# xfilesharing template module
+# xfilesharing base module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -17,31 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
-
-MODULE_XFILESHARING_REGEXP_URL="https\?://"
-
-MODULE_XFILESHARING_DOWNLOAD_OPTIONS="
-AUTH,a,auth,a=USER:PASSWORD,User account
-LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
-MODULE_XFILESHARING_DOWNLOAD_RESUME=yes
-MODULE_XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
-MODULE_XFILESHARING_DOWNLOAD_SUCCESSIVE_INTERVAL=
-
-MODULE_XFILESHARING_UPLOAD_OPTIONS="
-AUTH,a,auth,a=USER:PASSWORD,User account
-LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
-FOLDER,,folder,s=FOLDER,Folder to upload files into
-DESCRIPTION,d,description,S=DESCRIPTION,Set file description
-TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
-PREMIUM,,premium,,Make file inaccessible to non-premium users
-PRIVATE_FILE,,private,,Do not make file visible in folder view"
-MODULE_XFILESHARING_UPLOAD_REMOTE_SUPPORT=yes
-
-MODULE_XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=()
-
-MODULE_XFILESHARING_DELETE_OPTIONS=""
-MODULE_XFILESHARING_PROBE_OPTIONS=""
-MODULE_XFILESHARING_LIST_OPTIONS=""
 
 # CloudFlare antiDDoS protection handler
 # $1: cooke file
@@ -83,7 +58,7 @@ xfilesharing_check_cloudflare_antiddos() {
     fi
 
     echo "$PAGE"
-    return 0          
+    return 0
 }
 
 # Unpack packed(obfuscated) js code
@@ -302,10 +277,29 @@ xfilesharing_upload() {
             #    return $ERR_SIZE_LIMIT_EXCEEDED
             #fi
 
-            xfilesharing_ul_check_freespace "$COOKIE_FILE" "$BASE_URL" "$FILE_SIZE" || return
+            SPACE_INFO=$(xfilesharing_ul_get_space_data "$COOKIE_FILE" "$BASE_URL") || return
+            { read -r SPACE_USED; read -r SPACE_LIMIT; } <<<"$SPACE_INFO"
+
+            if [ -n "$SPACE_INFO" ]; then
+                SPACE_INFO="Space: $SPACE_USED / $SPACE_LIMIT"
+
+                SPACE_USED=$(translate_size "${SPACE_USED/b/B}")
+                SPACE_LIMIT=$(translate_size "${SPACE_LIMIT/b/B}")
+            fi
+
+            if [ -z "$SPACE_LIMIT" ] || [ "$SPACE_LIMIT" = "0" ]; then
+                log_debug 'Space limit not set.'
+            else
+                log_debug "$SPACE_INFO"
+
+                if (( ( "$SPACE_LIMIT" - "$SPACE_USED" ) < "$FILE_SIZE" )); then
+                    log_error 'Not enough space in account folder.'
+                    return $ERR_SIZE_LIMIT_EXCEEDED
+                fi
+            fi
         else
             FILE_NEED_EDIT=1
-        fi            
+        fi
 
         if [ -n "$FOLDER" ]; then
             FOLDER_DATA=$(xfilesharing_ul_get_folder_data "$COOKIE_FILE" "$BASE_URL" "$FOLDER") || return
@@ -316,7 +310,7 @@ xfilesharing_upload() {
             elif [ "$FOLDER_DATA" = "0" ]; then
                 log_debug 'Folders not supported or broken for current submodule.'
             fi
-        fi          
+        fi
     fi
 
     PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' \
@@ -340,7 +334,7 @@ xfilesharing_upload() {
 
     if [ -z "$FILE_NAME" ] && [ "$DEST_FILE" != 'dummy' ]; then
         FILE_NAME="$DEST_FILE"
-    fi    
+    fi
 
     if [ "$STATE" = 'EDIT' ]; then
         STATE='OK'
@@ -405,27 +399,49 @@ xfilesharing_upload() {
 # $2: delete url
 xfilesharing_delete() {
     local -r URL=$2
-    local -r BASE_URL=$XF_BASE_URL
+    local BASE_URL
     local PAGE FILE_ID FILE_DEL_ID
 
-    if ! match 'killcode=[[:alnum:]]\+' "$URL"; then
-        log_error 'Invalid URL format'
+    if match 'killcode=[[:alnum:]]\+' "$URL"; then
+        BASE_URL=$(parse . "^\(https\?://.*\)/[[:alnum:]]\{12\}" <<< "$URL") || return
+
+        FILE_ID=$(parse . "^$BASE_URL/\([[:alnum:]]\{12\}\)" <<< "$URL") || return
+        FILE_DEL_ID=$(parse . 'killcode=\([[:alnum:]]\+\)' <<< "$URL") || return
+
+        PAGE=$(curl -b 'lang=english' -e "$URL" \
+            -d 'op=del_file' \
+            -d "id=$FILE_ID" \
+            -d "del_id=$FILE_DEL_ID" \
+            -d 'confirm=yes' \
+            "$BASE_URL/") || return
+    elif match '/del-[A-Z0-9]\+-[A-Z0-9]\+' "$URL"; then
+        BASE_URL=$(parse . "^\(https\?://.*\)/del-" <<< "$URL") || return
+
+        FILE_ID=$(parse . '/del-\([A-Z0-9]\+\)-[A-Z0-9]\+' <<< "$URL") || return
+        FILE_DEL_ID=$(parse . '/del-[A-Z0-9]\+-\([A-Z0-9]\+\)' <<< "$URL") || return
+
+        PAGE=$(curl -b 'lang=english' -e "$URL" -G \
+            -d "del=$FILE_ID-$FILE_DEL_ID" \
+            -d 'confirm=yes' \
+            "$BASE_URL/") || return
+    elif match '/[[:alnum:]]\+-del-[[:alnum:]]\+' "$URL"; then
+        BASE_URL=$(parse . "^\(https\?://.*\)/[[:alnum:]]\{12\}" <<< "$URL") || return
+
+        FILE_ID=$(parse . '/\([[:alnum:]]\+\)-del-[[:alnum:]]\+' <<< "$URL") || return
+        FILE_DEL_ID=$(parse . '/[[:alnum:]]\+-del-\([[:alnum:]]\+\)' <<< "$URL") || return
+
+        PAGE=$(curl -b 'lang=english' -e "$URL" -G \
+            -d "del=$FILE_ID-$FILE_DEL_ID" \
+            -d 'confirm=yes' \
+            "$BASE_URL/") || return
+    else
+        log_error 'Unknown URL format.'
         return $ERR_BAD_COMMAND_LINE
     fi
 
-    FILE_ID=$(parse . "^$BASE_URL/\([[:alnum:]]\+\)" <<< "$URL")
-    FILE_DEL_ID=$(parse . 'killcode=\([[:alnum:]]\+\)$' <<< "$URL")
-
-    PAGE=$(curl -b 'lang=english' -e "$URL" \
-        -d 'op=del_file' \
-        -d "id=$FILE_ID" \
-        -d "del_id=$FILE_DEL_ID" \
-        -d 'confirm=yes' \
-        "$BASE_URL/") || return
-
     if match 'File deleted successfully' "$PAGE"; then
         return 0
-    elif match 'No such file exist' "$PAGE"; then
+    elif match 'No such file' "$PAGE"; then
         return $ERR_LINK_DEAD
     elif match 'Wrong Delete ID' "$PAGE"; then
         log_error 'Wrong delete ID'
@@ -435,51 +451,82 @@ xfilesharing_delete() {
 }
 
 # Probe a download URL
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: file hosting url
 # $3: requested capability list
 # stdout: 1 capability per line
 xfilesharing_probe() {
-    local -r URL=$2
+    local -r COOKIE_FILE=$1
+    local URL=$2
     local -r REQ_IN=$3
-    local PAGE FILE_SIZE REQ_OUT
+    local BASE_URL=$(basename_url "$URL")
+    local PAGE FORM_DATA FILE_NAME FILE_NAME_TMP FILE_SIZE REQ_OUT
 
-    PAGE=$(curl -b 'lang=english' "$URL") || return
+    PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL" | \
+        strip_html_comments) || return
 
-    if match 'File Not Found\|file was removed' "$PAGE"; then
-        return $ERR_LINK_DEAD
+    PAGE=$(xfilesharing_check_cloudflare_antiddos "$COOKIE_FILE" "$URL" "$PAGE") || return
+
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
+    if [ -n "$LOCATION" ] && [ "$LOCATION" != "$URL" ]; then
+        if [ $(basename_url "$LOCATION") = "$LOCATION" ]; then
+            URL="$BASE_URL/$LOCATION"
+        elif match 'op=login' "$LOCATION"; then
+            log_error "You must be registered to download."
+            return $ERR_LINK_NEED_PERMISSIONS
+        else
+            URL="$LOCATION"
+        fi
+        log_debug "New form action: '$URL'"
     fi
 
-    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_REFERER FORM_METHOD_F
-    FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
-    FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname') || return
-    FORM_REFERER=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'referer')
-    FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+    # see xfilesharing_dl_parse_error_generic
+    if ! matchi 'No such file.*No such user exist.*File not found' "$PAGE" && \
+        matchi 'File Not Found\|file was removed\|No such file' "$PAGE"; then
+            return $ERR_LINK_DEAD
+    fi
 
-    PAGE=$(curl -b 'lang=english' \
-        -d "op=$FORM_OP" \
-        -d "usr_login=$FORM_USR" \
-        -d "id=$FORM_ID" \
-        --data-urlencode "fname=$FORM_FNAME" \
-        -d "referer=$FORM_REFERER" \
-        -d "method_free=$FORM_METHOD_F" \
-        "$URL") || return
+    FORM_DATA=$(xfilesharing_dl_parse_form1 "$PAGE" 2>/dev/null)
+    if [ -n "$FORM_DATA" ]; then
+        { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
+        [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(parse . '=\(.*\)$' <<<"$FILE_NAME_TMP")
+    else
+        log_debug 'Form 1 omitted.'
+    fi
+
+    if [ -z "$FORM_DATA" ] && [ -z "$FILE_NAME" ]; then
+        LINK_PASSWORD='dummy'
+        FORM_DATA_2=$(xfilesharing_dl_parse_form2 "$PAGE" 2>/dev/null)
+        if [ -n "$FORM_DATA_2" ]; then
+            { read -r FILE_NAME_TMP; } <<<"$FORM_DATA_2"
+            [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
+        fi
+    fi
 
     REQ_OUT=c
 
-    if [[ $REQ_IN = *f* ]]; then
-        echo "$FORM_FNAME" &&
-            REQ_OUT="${REQ_OUT}f"
-    fi
+    for TRY in 1 2; do
+        if [ "$TRY" = "2" ]; then
+            if [ -n "$FORM_DATA" ] && [ -z "$FILE_NAME" -o -z "$FILE_SIZE" ]; then
+                PAGE=$(xfilesharing_dl_commit_step1 "$COOKIE_FILE" "$URL" "$FORM_DATA") || return
+            else
+                break
+            fi
+        fi
 
-    if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(parse 'Size:' \
-            '<td>\(.*\)$' <<< "$PAGE") && \
-            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
-    fi
+        if [[ $REQ_IN = *f* ]] && [[ $REQ_OUT != *f* ]]; then
+            [ -z "$FILE_NAME" ] && FILE_NAME=$(xfilesharing_pr_parse_file_name "$PAGE")
+            [ -n "$FILE_NAME" ] && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+        fi
+
+        if [[ $REQ_IN = *s* ]] && [[ $REQ_OUT != *s* ]]; then
+            FILE_SIZE=$(xfilesharing_pr_parse_file_size "$PAGE" "$FILE_NAME")
+            [ -n "$FILE_SIZE" ] && translate_size "${FILE_SIZE/b/B}" && REQ_OUT="${REQ_OUT}s"
+        fi
+    done
+
+    [ -z "$FILE_NAME" ] && log_error 'Failed to parse file name.'
+    [ -z "$FILE_SIZE" ] && log_error 'Failed to parse size.'
 
     echo $REQ_OUT
 }

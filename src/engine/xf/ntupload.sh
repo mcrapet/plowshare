@@ -21,12 +21,13 @@
 declare -gA NTUPLOAD_FUNCS
 NTUPLOAD_FUNCS['dl_commit_step1']='ntupload_dl_commit_step1'
 NTUPLOAD_FUNCS['dl_parse_streaming']='ntupload_dl_parse_streaming'
+NTUPLOAD_FUNCS['pr_parse_file_size']='ntupload_pr_parse_file_size'
 
 ntupload_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
-    
+
     local PAGE FILE_ID
 
     # www.ntupload.to special, but can be used on some sites with embedded videos enabled
@@ -36,7 +37,7 @@ ntupload_dl_commit_step1() {
     #  why I placed this after first form parser.
     FILE_ID=$(echo "$FORM_ACTION" | parse . '/\([[:alnum:]]\{12\}\)')
     PAGE=$(curl "$BASE_URL/embed-$FILE_ID.html") || return
-    
+
     echo "$PAGE"
 }
 
@@ -44,13 +45,22 @@ ntupload_dl_parse_streaming() {
     local PAGE=$1
     local -r URL=$2
     local -r FILE_NAME=$3
-    
+
     local FILE_URL
-        
+
     [ -z $FILE_NAME ] && return 1
 
     FILE_URL=$(echo "$PAGE" | parse '^var urlvar' "urlvar='\([^']\+\)")
     echo "$FILE_URL"
     echo "$FILE_NAME"
     return 0
+}
+
+ntupload_pr_parse_file_size() {
+    local -r PAGE=$1
+    local FILE_SIZE
+
+    FILE_SIZE=$(parse_tag_quiet '^<p>[0-9.]\+[[:space:]]*[KMGBb]\+</p>$' 'p' <<< "$PAGE")
+
+    echo "$FILE_SIZE"
 }

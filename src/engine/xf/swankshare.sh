@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# backin callbacks
+# swankshare callbacks
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,35 +18,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA BACKIN_FUNCS
-BACKIN_FUNCS['dl_parse_countdown']='backin_dl_parse_countdown'
-BACKIN_FUNCS['pr_parse_file_name']='backin_pr_parse_file_name'
-BACKIN_FUNCS['pr_parse_file_size']='backin_pr_parse_file_size'
+declare -gA SWANKSHARE_FUNCS
+SWANKSHARE_FUNCS['pr_parse_file_name']='swankshare_pr_parse_file_name'
+SWANKSHARE_FUNCS['pr_parse_file_size']='swankshare_pr_parse_file_size'
 
-backin_dl_parse_countdown () {
-    local -r PAGE=$1
-    local WAIT_TIME
-
-    WAIT_TIME=$(echo "$PAGE" | parse 'setTimeout("azz()"' 'setTimeout("azz()", \([0-9]\+\)\*1000);') || return
-    (( WAIT_TIME++ ))
-
-    echo "$WAIT_TIME"
-}
-
-backin_pr_parse_file_name() {
+swankshare_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
-    FILE_NAME=$(parse_quiet '^<h2 class="textdown"> ' '> \(.*\)$' <<< "$PAGE")
+    FILE_NAME=$(parse_quiet 'Name:' '<b>\([^<]\+\)' 2 <<< "$PAGE")
 
     echo "$FILE_NAME"
 }
 
-backin_pr_parse_file_size() {
+swankshare_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 
-    FILE_SIZE=$(parse_quiet '^<span class="textdown">' '>\([^<]\+\)' <<< "$PAGE")
+    FILE_SIZE=$(parse_quiet 'Size:' '<b>\([^<]\+\)' 1 <<< "$PAGE")
 
     echo "$FILE_SIZE"
 }

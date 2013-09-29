@@ -32,7 +32,7 @@ declare -rgA 'GENERIC_FUNCS=(
     [dl_parse_streaming]=xfilesharing_dl_parse_streaming_generic
     [dl_parse_imagehosting]=xfilesharing_dl_parse_imagehosting_generic
     [dl_parse_countdown]=xfilesharing_dl_parse_countdown_generic
-    [ul_check_freespace]=xfilesharing_ul_check_freespace_generic
+    [ul_get_space_data]=xfilesharing_ul_get_space_data_generic
     [ul_get_folder_data]=xfilesharing_ul_get_folder_data_generic
     [ul_create_folder]=xfilesharing_ul_create_folder_generic
     [ul_get_file_id]=xfilesharing_ul_get_file_id_generic
@@ -47,7 +47,31 @@ declare -rgA 'GENERIC_FUNCS=(
     [ul_edit_file]=xfilesharing_ul_edit_file_generic
     [ul_set_flag_premium]=xfilesharing_ul_set_flag_premium_generic
     [ul_set_flag_public]=xfilesharing_ul_set_flag_public_generic
-    [ul_generate_links]=xfilesharing_ul_generate_links_generic)'
+    [ul_generate_links]=xfilesharing_ul_generate_links_generic
+    [pr_parse_file_name]=xfilesharing_pr_parse_file_name_generic
+    [pr_parse_file_size]=xfilesharing_pr_parse_file_size_generic)'
+
+declare -rgA 'GENERIC_OPTIONS=(
+    [DOWNLOAD_OPTIONS]="
+        AUTH,a,auth,a=USER:PASSWORD,User account
+        LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
+    [DOWNLOAD_RESUME]=yes
+    [DOWNLOAD_FINAL_LINK_NEEDS_COOKIE]=yes
+    [DOWNLOAD_FINAL_LINK_NEEDS_EXTRA]=
+    [DOWNLOAD_SUCCESSIVE_INTERVAL]=
+    [UPLOAD_OPTIONS]="
+        AUTH,a,auth,a=USER:PASSWORD,User account
+        LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+        FOLDER,,folder,s=FOLDER,Folder to upload files into
+        DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+        TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
+        PREMIUM,,premium,,Make file inaccessible to non-premium users
+        PRIVATE_FILE,,private,,Do not make file visible in folder view"
+    [UPLOAD_REMOTE_SUPPORT]=yes
+    [DELETE_OPTIONS]=""
+    [PROBE_OPTIONS]=""
+    [LIST_OPTIONS]=""
+    [LIST_HAS_SUBFOLDERS]=yes)'
 
 # Static function. Proceed with login.
 # $1: cookie file
@@ -85,7 +109,7 @@ xfilesharing_login_generic() {
     else
         log_debug "Successfully logged in as $NAME."
     fi
-    
+
     return 0
 }
 
@@ -123,7 +147,7 @@ xfilesharing_handle_captcha_generic() {
             RESP=$(solvemedia_captcha_process $PUBKEY) || return
             { read CHALLENGE; read ID; } <<< "$RESP"
 
-            FORM_CODE="-d adcopy_response=manual_challenge --data-urlencode adcopy_challenge=$CHALLENGE"  
+            FORM_CODE="-d adcopy_response=manual_challenge --data-urlencode adcopy_challenge=$CHALLENGE"
 
         # Two default xfilesharing captchas - image and text
         # Text captcha solver - Copy/Paste from uptobox
@@ -264,7 +288,7 @@ xfilesharing_dl_parse_error_generic() {
     elif match 'Video [Ii][sn] [Ee]ncoding' "$ERROR"; then
         log_error 'Video is encoding now. Try again later.'
         return $ERR_LINK_TEMP_UNAVAILABLE
-    
+
     # <Center><b>This file is available for Premium Users only.</b>
     elif match 'This file is available for Premium Users only' "$ERROR"; then
         return $ERR_LINK_NEED_PERMISSIONS
@@ -446,7 +470,7 @@ xfilesharing_dl_parse_form2_generic() {
     elif match 'down_script' "$FORM_HTML"; then
         FORM_DD='-d down_script=1'
     fi
-    
+
     if match "<input[^>]*name[[:space:]]*=[[:space:]]*['\"]\?password['\"]\?" "$FORM_HTML"; then
         log_debug 'File is password protected'
         if [ -z "$LINK_PASSWORD" ]; then
@@ -844,54 +868,18 @@ xfilesharing_dl_parse_countdown_generic () {
 # Check if account has enough space (upload)
 # $1: cookie file (logged into account)
 # $2: base URL
-# $3: upload file size
-# $?: error code if file is too big, 0 otherwise
-xfilesharing_ul_check_freespace_generic() {
+# stdout: space used (XXX Mb/Kb/Gb)
+#         space limit
+xfilesharing_ul_get_space_data_generic() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
-    local -r FILE_SIZE=$3
     local PAGE SPACE_USED SPACE_LIMIT
-
-    # Need custom handle. Used space info splitted.
-    if match 'dev\.upload\.ph\|sharebeast\.com' "$BASE_URL"; then
-        return 0
-    fi
-
-    # Need custom handle. Space not limited.
-    # <span style="color:#6f99aa; font-size:16px;"Used space</span> <span style="color:#699113; font-size:16px;">0.0 Kb of <!-- 0 GB -->Unlimited Mb</span>
-    if match 'hugefiles\.net' "$BASE_URL"; then
-        return 0
-    fi
-
-    # Need custom handle.
-    # Used space: <b>0.0 Kb</b> of <b>100 GB</b>  / <b>0 files</b>
-    if match 'nosupload\.com' "$BASE_URL"; then
-        return 0
-    fi
-
-    # Need custom handle. Sed cannot strip multiple comments on single line
-    # Storage: <b>400.2 Kb of <!--400.2 Kb--> <!--of--> 10 GB<!-- GB--></b><br />
-    if match 'cosmobox\.org' "$BASE_URL"; then
-        return 0
-    fi
-
-    # No top space limit & info line splitted
-    if match 'uploadc\.com' "$BASE_URL"; then
-        return 0
-    fi
-
-    # 'Used disk space'
-    if match 'failai\.lt' "$BASE_URL"; then
-        return 0
-    fi
 
     PAGE=$(curl -b 'lang=english' -b "$COOKIE_FILE" -G \
         -d 'op=my_files' \
         "$BASE_URL/" | strip_html_comments) || return
 
-    # Account usage - novafie
-    # Storage: <b> - cosmobox
-    if ! match 'Storage: <b>.*of\|Account usage:.*of\|Used space.*of\|[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*GB[[:space:]]*Used' "$PAGE"; then
+    if ! match 'Used space.*of\|[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*GB[[:space:]]*Used' "$PAGE"; then
         log_debug 'No space information found.'
         return 0
     fi
@@ -909,41 +897,26 @@ xfilesharing_ul_check_freespace_generic() {
             'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)') || return
     else
         # XXX Kb of XXX GB
-        SPACE_USED=$(echo "$PAGE" | parse_quiet 'Used space\|Account usage\|Storage: <b>' \
+        SPACE_USED=$(echo "$PAGE" | parse_quiet 'Used space' \
             '>\([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ')
         if [ -z "$SPACE_USED" ]; then
-            SPACE_USED=$(echo "$PAGE" | parse 'Used space\|Account usage\|Storage: <b>' \
+            SPACE_USED=$(echo "$PAGE" | parse 'Used space' \
                 ' \([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ') || return
         fi
 
-        SPACE_LIMIT=$(echo "$PAGE" | parse 'Used space\|Account usage\|Storage: <b>' \
+        SPACE_LIMIT=$(echo "$PAGE" | parse 'Used space' \
             'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)') || return
     fi
 
-    # played.to special
+    # played.to speedvid
     if match '^[0-9.]\+$' "$SPACE_USED"; then
         SPACE_MEASURE=$(echo "$SPACE_LIMIT" | parse . '[[:space:]]\([KMGBb]\+\)$') || return
         SPACE_USED="$SPACE_USED $SPACE_MEASURE"
         log_debug "Common space measure: '$SPACE_MEASURE'"
     fi
 
-    SPACE_INFO="Space: $SPACE_USED / $SPACE_LIMIT"
-
-    SPACE_USED=$(translate_size "${SPACE_USED/b/B}")
-    SPACE_LIMIT=$(translate_size "${SPACE_LIMIT/b/B}")
-
-    if [ -z "$SPACE_LIMIT" ] || [ "$SPACE_LIMIT" = "0" ]; then
-        log_debug 'Space limit not set.'
-        return 0
-    else
-        log_debug "$SPACE_INFO"
-    fi    
-
-    # Check space limit
-    if (( ( "$SPACE_LIMIT" - "$SPACE_USED" ) < "$FILE_SIZE" )); then
-        log_error 'Not enough space in account folder.'
-        return $ERR_SIZE_LIMIT_EXCEEDED
-    fi
+    echo "$SPACE_USED"
+    echo "$SPACE_LIMIT"
 }
 
 # Get folder data from account page (upload)
@@ -954,26 +927,26 @@ xfilesharing_ul_get_folder_data_generic() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r NAME=$3
-    
+
     local PAGE FORM FOLDERS FOLDER_ID TOKEN COMMAND
-    
+
     # Special treatment for root folder (always uses ID "0")
     #if [ "$NAME" = '/' ]; then
     #    echo 0
     #    return 0
     #fi
-    
+
     # exclusivefaile.com upcenter.com - move file broken
     # free-uploading.com - create folder glitch
     if match 'exclusivefaile\.com\|free-uploading\.com\|upcenter\.com' "$BASE_URL"; then
         echo 0
         return 0
     fi
-    
+
     PAGE=$(curl -b "$COOKIE_FILE" -G \
         -d 'op=my_files' \
         "$BASE_URL/") || return
-    
+
     # Some XF mod has broken folder functionality
     #  caiuaqui 1000shared up4s 4upe
     if match '<option value="|">New folder...</option>' "$PAGE"; then
@@ -981,16 +954,16 @@ xfilesharing_ul_get_folder_data_generic() {
         echo 0
         return 0
     fi
-    
+
     if match "<[Ss]elect[^>]*to_folder[^[:alnum:]_]" "$PAGE"; then
         SELECT_N=1
         SELECTS=$(echo "$PAGE" | parse_all '<[Ss]elect' '^\(.*\)$')
-        
+
         while read -r LINE; do
             match '<[Ss]elect[^>]*to_folder[^[:alnum:]_]' "$LINE" && break
             (( SELECT_N++ ))
         done <<< "$SELECTS"
-        
+
         # <option value="ID">&nbsp;Folder Name</option>
         # Note: - Site uses "&nbsp;" to indent sub folders
         FORM=$(grep_block_by_order '[Ss]elect' "$PAGE" "$SELECT_N" | \
@@ -998,12 +971,12 @@ xfilesharing_ul_get_folder_data_generic() {
             replace '<option' $'\n<option' | replace '</option>' $'</option>\n' | \
             replace '&nbsp;' '')
     fi
-    
+
     if match '<option' "$FORM"; then
         # Note: - First entry is label "Move files to folder"
         #       - Second entry is root folder "/"
         FOLDERS=$(echo "$FORM" | parse_all_tag 'option' | delete_first_line 2 | strip) || return
-        
+
         if match "^$NAME$" "$FOLDERS"; then
             FOLDER_ID=$(echo "$FORM" | parse_attr "<option[^>]*>[[:space:]]*$NAME[[:space:]]*</option>" 'value') || return
         fi
@@ -1019,15 +992,15 @@ xfilesharing_ul_get_folder_data_generic() {
         if match '>' "$FOLDERS"; then
             FOLDERS=$(echo "$FOLDERS" | parse_all_quiet . '>\([^<]\+\)' | strip)
         fi
-        
+
         if match "^$NAME$" "$FOLDERS"; then
             FOLDER_ID=$(echo "$FORM" | parse "<a[^>]*fld_id=.*>[[:space:]]*$NAME[[:space:]]*<" 'fld_id=\([0-9]\+\)') || return
         fi
     fi
-    
+
     if [ -n "$FOLDER_ID" ]; then
         TOKEN=$(echo "$PAGE" | parse_form_input_by_name_quiet 'token')
-        
+
         COMMAND=$(echo "$PAGE" | parse_form_input_by_name_quiet 'to_folder_move')
         if [ -z "$COMMAND" ]; then
             COMMAND=$(echo "$PAGE" | parse_form_input_by_name_quiet 'file_move')
@@ -1035,7 +1008,7 @@ xfilesharing_ul_get_folder_data_generic() {
         else
             COMMAND="to_folder_move=$COMMAND"
         fi
-        
+
         log_debug "Folder ID: '$FOLDER_ID'"
         [ -n "$TOKEN" ] && log_debug "Token: '$TOKEN'"
 
@@ -1043,7 +1016,7 @@ xfilesharing_ul_get_folder_data_generic() {
         echo "$TOKEN"
         echo "$COMMAND"
     fi
-    
+
     return 0
 }
 
@@ -1065,7 +1038,7 @@ xfilesharing_ul_create_folder_generic() {
         -d "fld_id=0" \
         -d "create_new_folder=$NAME" \
         "$BASE_URL/") || return
-    
+
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
     if match '?op=my_files' "$LOCATION"; then
         log_debug 'Folder created.'
@@ -1175,11 +1148,6 @@ xfilesharing_ul_parse_data_generic() {
         FORM_FILE_FIELD='file_0'
     else
         log_debug "File field: '$FORM_FILE_FIELD'"
-    fi
-
-    # imageported special, some imagehosting require thumbsize
-    if match 'imageporter\.com' "$BASE_URL"; then
-        FORM_ADD='-F thumb_size=190x190'
     fi
 
     if [ "$#" -gt 1 ]; then
@@ -1467,7 +1435,7 @@ xfilesharing_ul_handle_state_generic() {
         return $ERR_FATAL
     fi
 
-    return 0    
+    return 0
 }
 
 # Parse delete code from final page (upload)
@@ -1709,4 +1677,42 @@ xfilesharing_ul_generate_links_generic() {
     fi
 
     return 0
+}
+
+# Parse file name (probe)
+# $1: (X)HTML page data
+# stdout: file name
+xfilesharing_pr_parse_file_name_generic() {
+    local -r PAGE=$1
+    local FILE_NAME
+
+    FILE_NAME=$(parse_quiet "\[[Uu][Rr][Ll]=.*\].* [-|] [0-9.]\+[[:space:]]*[KMGBb]\+\[/[Uu][Rr][Ll]\]" "\[[Uu][Rr][Ll]=.*\]\(.*\) [-|] [0-9.]\+[[:space:]]*[KMGBb]\+\[/[Uu][Rr][Ll]\]" <<< "$PAGE")
+    [ -z "$FILE_NAME" ] && FILE_NAME=$(parse_quiet 'File[[:space:]]*[Nn]ame:' 'File[[:space:]]*[Nn]ame:.*>\([^<]\+\)<' <<< "$PAGE")
+    [ -z "$FILE_NAME" ] && FILE_NAME=$(parse_quiet 'File[[:space:]]*[Nn]ame[[:space:]]*:[[:space:]]*' 'File[[:space:]]*[Nn]ame[[:space:]]*:[[:space:]]*\([[:alnum:]._]\+\)' <<< "$PAGE")
+
+    if [ -z "$FILE_NAME" ]; then
+        IMAGE_DATA=$(xfilesharing_dl_parse_imagehosting_generic "$PAGE")
+        { read -r URL; read -r FILE_NAME; } <<<"$IMAGE_DATA"
+    fi
+
+    echo "$FILE_NAME"
+}
+
+# Parse file size (probe)
+# $1: (X)HTML page data
+# stdout: file size
+xfilesharing_pr_parse_file_size_generic() {
+    local -r PAGE=$1
+    local -r FILE_NAME=$2
+    local FILE_SIZE
+
+    FILE_SIZE=$(parse_quiet '([[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+[[:space:]]*)' '([[:space:]]*\([0-9.]\+[[:space:]]*[KMGBb]\+\?\)[[:space:]]*)' <<< "$PAGE")
+    [ -z "$FILE_SIZE" ] && FILE_SIZE=$(parse_quiet '([[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+[[:space:]]*)' '([[:space:]]*\([0-9.]\+[[:space:]]*[KMGBb]\+\?\)[[:space:]]*)' <<< "$PAGE")
+    [ -z "$FILE_SIZE" ] && FILE_SIZE=$(parse_quiet '([^>]*>[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+[[:space:]]*<[^)]*)' '([^>]*>[[:space:]]*\([0-9.]\+[[:space:]]*[KMGBb]\+\?\)[[:space:]]*<[^)]*)' <<< "$PAGE")
+    [ -z "$FILE_SIZE" ] && FILE_SIZE=$(parse_quiet "\[[Uu][Rr][Ll]=.*\].* [-|] [0-9.]\+[[:space:]]*[KMGBb]\+\[/[Uu][Rr][Ll]\]" "\[[Uu][Rr][Ll]=.*\].* [-|] \([0-9.]\+[[:space:]]*[KMGBb]\+\)\[/[Uu][Rr][Ll]\]" <<< "$PAGE")
+    [ -z "$FILE_SIZE" ] && FILE_SIZE=$(parse_quiet 'Size:' '[[:space:]>]\([0-9.]\+[[:space:]]*[KMGBb]\+\)[[:space:]<]' <<< "$PAGE")
+
+    [ -z "$FILE_SIZE" -a -n "$FILE_NAME" ] && FILE_SIZE=$(parse_quiet "$FILE_NAME" "$FILE_NAME.*[^[:alnum:]]\([0-9.]\+[[:space:]]*[KMGBb]\+\)[^[:alnum:]]" <<< "$PAGE")
+
+    echo "$FILE_SIZE"
 }

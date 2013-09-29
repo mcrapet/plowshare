@@ -34,7 +34,8 @@ QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
-NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page"
+NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page
+ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing."
 
 
 # This function is duplicated from download.sh
@@ -218,6 +219,20 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     fi
 fi
 
+if [ -n "$ENGINE" ]; then
+    if [ "$ENGINE" = 'xfilesharing' ]; then
+        source "$LIBDIR/engine/$ENGINE.sh"
+        log_notice "plowlist: initialising $ENGINE engine"
+        if ! ${ENGINE}_init "$LIBDIR/engine"; then
+            log_error "$ENGINE initialisation error"
+            exit $ERR_FATAL
+        fi
+    else
+        log_error "Error: unknown engine name: $ENGINE"
+        exit $ERR_FATAL
+    fi
+fi
+
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
@@ -226,6 +241,10 @@ fi
 [ -n "$RECURSE" ] && log_debug 'plowlist: --recursive selected'
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
+
+if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options LIST)
+fi
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowlist' "$MODULE_OPTIONS" \
@@ -255,6 +274,16 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     LRETVAL=0
 
     MODULE=$(get_module "$URL" "$MODULES") || LRETVAL=$?
+
+    if [ $LRETVAL -ne 0 ] && [ -n "$ENGINE" ] && match_remote_url "$URL"; then
+        LRETVAL=0
+        if ${ENGINE}_probe_module 'plowlist' "$URL"; then
+            MODULE=$(${ENGINE}_get_module "$URL") || LRETVAL=$?
+        else
+            LRETVAL=$ERR_NOMODULE
+        fi
+    fi
+
     if [ $LRETVAL -ne 0 ]; then
         if ! match_remote_url "$URL"; then
             if [[ -f "$URL" && "${URL##*.}" = [Dd][Ll][Cc] ]]; then

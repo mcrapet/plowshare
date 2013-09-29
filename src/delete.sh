@@ -37,7 +37,8 @@ CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captc
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
-CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account"
+CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
+ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing."
 
 
 # This function is duplicated from download.sh
@@ -134,6 +135,20 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     fi
 fi
 
+if [ -n "$ENGINE" ]; then
+    if [ "$ENGINE" = 'xfilesharing' ]; then
+        source "$LIBDIR/engine/$ENGINE.sh"
+        log_notice "plowdel: initialising $ENGINE engine"
+        if ! ${ENGINE}_init "$LIBDIR/engine"; then
+            log_error "$ENGINE initialisation error"
+            exit $ERR_FATAL
+        fi
+    else
+        log_error "Error: unknown engine name: $ENGINE"
+        exit $ERR_FATAL
+    fi
+fi
+
 if [ -n "$CAPTCHA_PROGRAM" ]; then
     log_debug 'plowdel: --captchaprogram selected'
 fi
@@ -149,6 +164,10 @@ else
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
+
+if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options DELETE)
+fi
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdel' "$MODULE_OPTIONS" \
@@ -180,6 +199,16 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     DRETVAL=0
 
     MODULE=$(get_module "$URL" "$MODULES") || DRETVAL=$?
+
+    if [ $DRETVAL -ne 0 ] && [ -n "$ENGINE" ] && match_remote_url "$URL"; then
+        DRETVAL=0
+        if ${ENGINE}_probe_module 'plowdel' "$URL"; then
+            MODULE=$(${ENGINE}_get_module "$URL") || DRETVAL=$?
+        else
+            DRETVAL=$ERR_NOMODULE
+        fi
+    fi
+
     if [ $DRETVAL -ne 0 ]; then
         if ! match_remote_url "$URL"; then
             log_error "Skip: not an URL ($URL)"

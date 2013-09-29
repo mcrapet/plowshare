@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# backin callbacks
+# megafiles callbacks
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,35 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA BACKIN_FUNCS
-BACKIN_FUNCS['dl_parse_countdown']='backin_dl_parse_countdown'
-BACKIN_FUNCS['pr_parse_file_name']='backin_pr_parse_file_name'
-BACKIN_FUNCS['pr_parse_file_size']='backin_pr_parse_file_size'
+declare -gA MEGAFILES_FUNCS
+MEGAFILES_FUNCS['pr_parse_file_name']='megafiles_pr_parse_file_name'
 
-backin_dl_parse_countdown () {
-    local -r PAGE=$1
-    local WAIT_TIME
-
-    WAIT_TIME=$(echo "$PAGE" | parse 'setTimeout("azz()"' 'setTimeout("azz()", \([0-9]\+\)\*1000);') || return
-    (( WAIT_TIME++ ))
-
-    echo "$WAIT_TIME"
-}
-
-backin_pr_parse_file_name() {
+megafiles_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
-    FILE_NAME=$(parse_quiet '^<h2 class="textdown"> ' '> \(.*\)$' <<< "$PAGE")
+    FILE_NAME=$(parse_quiet '^<div align="center" style="font-size:20px;">$' '^<b>\(.*\)</b>$' 1 <<< "$PAGE")
 
     echo "$FILE_NAME"
-}
-
-backin_pr_parse_file_size() {
-    local -r PAGE=$1
-    local FILE_SIZE
-
-    FILE_SIZE=$(parse_quiet '^<span class="textdown">' '>\([^<]\+\)' <<< "$PAGE")
-
-    echo "$FILE_SIZE"
 }

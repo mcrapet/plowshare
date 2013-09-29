@@ -35,7 +35,8 @@ GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --prinft=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
-NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file
+ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing."
 
 
 # This function is duplicated from download.sh
@@ -307,6 +308,20 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     fi
 fi
 
+if [ -n "$ENGINE" ]; then
+    if [ "$ENGINE" = 'xfilesharing' ]; then
+        source "$LIBDIR/engine/$ENGINE.sh"
+        log_notice "plowprobe: initialising $ENGINE engine"
+        if ! ${ENGINE}_init "$LIBDIR/engine"; then
+            log_error "$ENGINE initialisation error"
+            exit $ERR_FATAL
+        fi
+    else
+        log_error "Error: unknown engine name: $ENGINE"
+        exit $ERR_FATAL
+    fi
+fi
+
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
@@ -316,6 +331,10 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" PROBE)
+
+if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options PROBE)
+fi
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowprobe' "$MODULE_OPTIONS" \
@@ -365,7 +384,14 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         MODULE=$(get_module "$URL" "$MODULES") || true
 
         if [ -z "$MODULE" ]; then
-            if match_remote_url "$URL" && test "$TRY_REDIRECTION"; then
+            if test "$ENGINE" && match_remote_url "$URL"; then
+                if ${ENGINE}_probe_module 'plowprobe' "$URL"; then
+                    MODULE=$(${ENGINE}_get_module "$URL") || PRETVAL=$?
+                else
+                    PRETVAL=$ERR_NOMODULE
+                fi
+
+            elif match_remote_url "$URL" && test "$TRY_REDIRECTION"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
                 log_debug 'No module found, try simple redirection'
