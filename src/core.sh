@@ -550,6 +550,7 @@ match_json_true() {
 # - Location
 # - Content-Location
 # - Content-Type
+# - Content-Length
 #
 # Notes:
 # - This is using parse_all, so result can be multiline
@@ -572,6 +573,9 @@ grep_http_header_content_location() {
 }
 grep_http_header_content_type() {
     parse_all '^[Cc]ontent-[Tt]ype:' 'e:[[:space:]]\+\(.*\)[[:cntrl:]]$'
+}
+grep_http_header_content_length() {
+    parse_all '^[Cc]ontent-[Ll]ength:' 'h:[[:space:]]\+\(.*\)[[:cntrl:]]$'
 }
 
 # Grep "Content-Disposition" HTTP header
