@@ -868,8 +868,8 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                     log_notice 'No module found, do a simple HTTP GET as requested'
                     MODULE='module_null'
                 else
-                    match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
-                        "$URL" && log_notice "Raw IPv4 address not expected. Provide an URL with a DNS name."
+                    [[ $URL =~ [Hh][Tt][Tt][Pp][Ss]?://([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}/|$ ]] && \
+                        log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
                     test "$HEADERS" && \
                         log_debug "remote server reply: $(echo "$HEADERS" | first_line | tr -d '\r\n')"
                     MRETVAL=$ERR_NOMODULE
