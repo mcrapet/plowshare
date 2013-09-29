@@ -101,6 +101,11 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
 
+    if [ -z "$FILE_URL" ]; then
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     # Note: Some files only show up as unavailable at this point :-/
     PAGE=$(curl --head "$FILE_URL") || return
     REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
@@ -110,11 +115,6 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     fi
 
     test "$CHECK_LINK" && return 0
-
-    if [ -z "$FILE_URL" ]; then
-        echo 300
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -189,7 +189,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_DEAD
     fi
 
-    PAGE=$(curl "$URL" -F "force=1") || return
+    PAGE=$(curl "$URL" -F 'force=1') || return
 
     # <div style="width:250px;margin:25px;padding:25px">The file has been destroyed</div>
     if ! match 'file has been' "$PAGE"; then
@@ -249,7 +249,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     fi
 
     # url;filename;filesize
-    IFS=';' read URL FILE_NAME FILE_SIZE <<< "$RESPONSE"
+    IFS=';' read -r URL FILE_NAME FILE_SIZE <<< "$RESPONSE"
 
     REQ_OUT=c
 
