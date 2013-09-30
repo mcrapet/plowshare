@@ -29,22 +29,28 @@ MODULE_ANONYMOUSDELIVERS_UPLOAD_OPTIONS="
 PRIVATE_FILE,,private,,Add checksum in final link"
 MODULE_ANONYMOUSDELIVERS_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_ANONYMOUSDELIVERS_PROBE_OPTIONS=""
+
 # Output an anonymousdelivers.us file download URL
 # $1: cookie file (unsued here)
 # $2: anonymousdelivers.us url
 # stdout: real file download link
 anonymousdelivers_download() {
     local -r URL=$2
-    local PAGE FILE_URL FILENAME
+    local PAGE FILE_URL FILE_NAME
 
     PAGE=$(curl "$URL") || return
 
+    if [ -z "$PAGE" ]; then
+        return $ERR_LINK_DEAD
+    fi
+
     FILE_URL=$(parse_attr 'download_image' href <<< "$PAGE") || return
-    FILENAME=$(parse 'Name[[:space:]]*</td>' \
+    FILE_NAME=$(parse 'Name[[:space:]]*</td>' \
         '^[[:space:]]*\(.*\)[[:space:]]*</td>' 2 <<< "$PAGE")
 
     echo "http://anonymousdelivers.us$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to anonymousdelivers.us
@@ -62,4 +68,32 @@ anonymousdelivers_upload() {
         "$BASE_URL") || return
 
     parse 'class=.link.>' '[[:space:]]*\(http://[^[:space:]<]\+\)' 1 <<< "$PAGE"
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: anonymousdelivers.us url
+# $3: requested capability list
+# stdout: 1 capability per line
+anonymousdelivers_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl "$URL") || return
+
+    # HTTP/1.1 302 Moved Temporarily
+    # Location: http://anonymousdelivers.us/
+    if [ -z "$PAGE" ]; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse 'Name[[:space:]]*</td>' '^[[:space:]]*\(.*\)[[:space:]]*</td>' \
+            2 <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    echo $REQ_OUT
 }

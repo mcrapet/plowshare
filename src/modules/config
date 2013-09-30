@@ -5,7 +5,7 @@
 2shared         | download | upload | delete |      | probe |
 4shared         | download | upload |        | list |       |
 anonfiles       | download | upload |        |      | probe |
-anonymousdelivers|download | upload |        |      |       |
+anonymousdelivers|download | upload |        |      | probe |
 bayfiles        | download | upload | delete |      | probe |
 bayimg          | download | upload | delete |      | probe |
 billionuploads  | download | upload |        |      | probe |
