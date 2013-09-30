@@ -21,7 +21,7 @@ embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 filebin_ca      | download | upload |        |      | probe |
-filebox         | download | upload | delete |      |       |
+filebox         | download | upload | delete |      | probe |
 fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
