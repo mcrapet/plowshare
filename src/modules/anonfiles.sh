@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # anonfiles.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -23,10 +23,13 @@ MODULE_ANONFILES_REGEXP_URL='https\?://\([[:alnum:]]\+\.\)\?anonfiles\.com/'
 MODULE_ANONFILES_DOWNLOAD_OPTIONS=""
 MODULE_ANONFILES_DOWNLOAD_RESUME=yes
 MODULE_ANONFILES_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_ANONFILES_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=()
 MODULE_ANONFILES_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_ANONFILES_UPLOAD_OPTIONS=""
 MODULE_ANONFILES_UPLOAD_REMOTE_SUPPORT=no
+
+MODULE_ANONFILES_PROBE_OPTIONS=""
 
 # Output an AnonFiles.com file download URL
 # $1: cookie file (unsued here)
@@ -38,6 +41,10 @@ anonfiles_download() {
 
     PAGE=$(curl "$URL") || return
 
+    if match '404 - File Not Found<\|>File does not exist\.<' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
     FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'download_button' href)
 
     if [ -z "$FILE_URL" ]; then
@@ -48,6 +55,9 @@ anonfiles_download() {
     test "$CHECK_LINK" && return 0
 
     FILENAME=$(echo "$PAGE" | parse_tag '<legend' b)
+
+    # Mandatory!
+    MODULE_ANONFILES_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(--referer "$URL")
 
     echo "$FILE_URL"
     echo "$FILENAME"
@@ -82,4 +92,29 @@ anonfiles_upload() {
     MSG=$(echo "$JSON" | parse_json msg)
     log_error "Unexpected status ($ERR): $MSG"
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: AnonFiles.com url
+# $3: requested capability list
+# stdout: 1 capability per line
+anonfiles_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl "$URL") || return
+
+    if match '404 - File Not Found<\|>File does not exist\.<' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_tag '<legend' b <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    echo $REQ_OUT
 }
