@@ -149,6 +149,8 @@ probe() {
                     ;;
             esac
         done
+    elif [ $CHECK_LINK -eq 0 ]; then
+        log_notice "$FUNCTION returned no data, module probe function might be wrong"
     elif [ $CHECK_LINK -ne $ERR_LINK_DEAD ]; then
         log_debug "$FUNCTION returned no data"
     fi
