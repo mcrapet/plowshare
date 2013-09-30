@@ -35,6 +35,13 @@ MODULE_BILLIONUPLOADS_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_BILLIONUPLOADS_PROBE_OPTIONS=""
 
+# Full urldecode
+# $1: url encoded string
+# stdout: decoded string
+billionuploads_urldecode(){
+  echo -e "$(sed 's/+/ /g;s/%\(..\)/\\x\1/g;')"
+}
+
 # Output a billionuploads.com file download URL and NAME
 # $1: cookie file
 # $2: billionuploads.com url
@@ -43,7 +50,7 @@ billionuploads_download() {
     local -r COOKIEFILE=$1
     local -r URL=$2
     local PAGE FILE_NAME FILE_URL ERR
-    local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P CRYPT
+    local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P FORM_ADD_TMP FORM_ADD CRYPT
 
     PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
 
@@ -64,6 +71,9 @@ billionuploads_download() {
     FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
     FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
+    FORM_ADD_TMP=$(echo "$PAGE" | parse "document.getElementById('gizzz')" 'decodeURIComponent("\([^"]\+\)' | billionuploads_urldecode)
+    FORM_ADD=$(echo "$FORM_ADD_TMP" | parse_attr 'name')'='$(echo "$FORM_ADD_TMP" | parse_attr 'value')
+
     PAGE=$(curl -b "$COOKIE_FILE" \
         -F "referer=" \
         -F "op=$FORM_OP" \
@@ -72,7 +82,7 @@ billionuploads_download() {
         -F "down_direct=$FORM_DD" \
         -F "method_free=$FORM_METHOD_F" \
         -F "method_premium=$FORM_METHOD_P" \
-        -F "geekref=yeahman" \
+        -F "$FORM_ADD" \
         "$URL"  | break_html_lines ) || return
 
     # Catch the error "the file is temporary unavailable".
