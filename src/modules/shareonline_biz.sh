@@ -249,11 +249,11 @@ shareonline_biz_upload() {
     local -r REQUEST_URL='http://www.share-online.biz/upv3_session.php'
     local DATA USER PASSWORD ERR UP_URL SESSION_ID SIZE SIZE_SRV LINK MD5
 
-    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
     # We use the public upload API (http://www.share-online.biz/uploadapi/)
 
-    split_auth "$AUTH_FREE" USER PASSWORD || return
+    split_auth "$AUTH" USER PASSWORD || return
 
     # Create upload session
     DATA=$(curl -F "username=$USER" -F "password=$PASSWORD" "$REQUEST_URL") || return
