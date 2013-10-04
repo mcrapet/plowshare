@@ -511,7 +511,7 @@ uploaded_net_delete() {
         return $ERR_LINK_DEAD
     fi
 
-    uploaded_net_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    uploaded_net_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
 
     FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
     PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
