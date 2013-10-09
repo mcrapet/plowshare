@@ -20,28 +20,82 @@
 
 MODULE_SHAREONLINE_BIZ_REGEXP_URL='http://\(\www\.\)\?\(share\-online\.biz\|egoshare\.com\)/\(download\.php?id\=\|dl/\)\(\w\)'
 
-MODULE_SHAREONLINE_BIZ_DOWNLOAD_OPTIONS=""
+MODULE_SHAREONLINE_BIZ_DOWNLOAD_OPTIONS="
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_RESUME=no
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_SHAREONLINE_BIZ_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_SHAREONLINE_BIZ_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
+AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 MODULE_SHAREONLINE_BIZ_UPLOAD_REMOTE_SUPPORT=no
 
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+# stdout: account type ("free" or "premium") on success
+shareonline_biz_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=${3/#http/https}
+    local LOGIN_DATA PAGE ID TYPE ERR
+
+    LOGIN_DATA='user=$USER&pass=$PASSWORD'
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/user/login" -b "$COOKIE_FILE") || return
+
+    # Successful login just redirects and returns an empty page
+    if [ -n "$PAGE" ]; then
+        ERR=$(parse_tag 'h2' <<< "$PAGE") || return
+        log_debug "Remote error: $ERR"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    # Determine account type
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'page_language=english' \
+        "$BASE_URL/user/profile") || return
+    ID=$(parse_tag 'Logged in as' 'a' <<<  "$PAGE") || return
+    TYPE=$(parse 'Your Account-Type' '^\([[:alpha:]]\+\)' 3 <<<  "$PAGE") || return
+
+    case "$TYPE" in
+        'Sammler')
+            TYPE='free'
+            ;;
+        'Premium')
+            TYPE='premium'
+            ;;
+        *)
+            log_error 'Could not determine account type. Site updated?'
+            return $ERR_FATAL
+            ;;
+    esac
+
+    log_debug "Successfully logged in as $TYPE member '$ID'"
+    echo "$TYPE"
+}
+
+# Switch language to english
+# $1: cookie file
+# $2: base URL
+shareonline_biz_switch_lang() {
+    # Note: Language is associated with session, faking the cookie is not enough
+    curl -c "$1" -o /dev/null "$2/lang/set/english" || return
+}
+
 # Output an shareonline.biz file download URL
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: shareonline.biz url
 # stdout: real file download link
 shareonline_biz_download() {
     local -r BASE_URL='http://www.share-online.biz'
-    local URL FILE_ID PAGE REDIR BASE64LINK FILE_URL
+    local URL FILE_ID PAGE ACCOUNT REDIR BASE64LINK
     local API_FILE_ID FILE_STATUS FILE_NAME SIZE
     local CAP_ID URL_ID WAIT
 
     if ! check_exec 'base64'; then
         log_error "'base64' is required but was not found in path."
-        return $ERR_FATAL
+        return $ERR_SYSTEM
     fi
 
     # Extract file ID from all possible URL formats
@@ -61,7 +115,7 @@ shareonline_biz_download() {
     fi
 
     FILE_ID=$(uppercase "$FILE_ID")
-	URL="$BASE_URL/dl/$FILE_ID/free/"
+    URL="$BASE_URL/dl/$FILE_ID/free/"
     log_debug "File ID: '$FILE_ID'"
 
     # Get data from shareonline API
@@ -80,6 +134,22 @@ shareonline_biz_download() {
     # The requested file isn't available anymore!
     [ "$FILE_STATUS" = 'OK' ] || return $ERR_LINK_DEAD
     [ -n "$CHECK_LINK" ] && return 0
+
+    if [ -n "$AUTH" ]; then
+        shareonline_biz_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
+        ACCOUNT=$(shareonline_biz_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
+    fi
+
+    # Handle premium download
+    if [ "$ACCOUNT" = 'premium' ]; then
+        PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+        BASE64LINK=$(parse 'var[[:space:]]dl=' \
+            '[[:space:]]dl="\([^"]\+\)"' <<< "$PAGE") || return
+
+        echo $(base64 --decode <<< "$BASE64LINK") || return
+        echo "$FILE_NAME"
+        return 0
+    fi
 
     # Load second page
     PAGE=$(curl --include -d 'dl_free=1' -d 'choice=free' "$URL" ) || return
@@ -125,7 +195,7 @@ shareonline_biz_download() {
 
     CAP_ID=$(echo "$PAGE" | parse 'var[[:space:]]\+dl=' \
         '[[:space:]]dl="\([^"]*\)') || return
-    CAP_ID=$(base64 -d <<< "$CAP_ID")
+    CAP_ID=$(base64 -d <<< "$CAP_ID") || return
     URL_ID=$(echo "$PAGE" | parse '///' '///\([[:digit:]]\+\)') || return
     log_debug "Captcha: '$CAP_ID'"
     log_debug "URL ID: $URL_ID"
@@ -147,26 +217,24 @@ shareonline_biz_download() {
         -d "recaptcha_response_field=$WORD" \
         "${URL}captcha/$URL_ID") || return
 
-    if [ "$BASE64LINK" = '0' ]; then
-        captcha_nack $ID
-        log_error 'Wrong captcha'
-        return $ERR_CAPTCHA
-    fi
+    case "$BASE64LINK" in
+        '')
+            log_error 'File URL not found. Site updated?'
+            return $ERR_FATAL
+            ;;
+        '0')
+            captcha_nack $ID
+            log_error 'Wrong captcha'
+            return $ERR_CAPTCHA
+            ;;
+    esac
 
     captcha_ack $ID
     log_debug 'Correct captcha'
 
-    FILE_URL=$(echo "$BASE64LINK" | base64 --decode) || return $ERR_SYSTEM
-
-    # Sanity check
-    if [ -z "$FILE_URL" ]; then
-        log_error 'File URL not found. Site updated?'
-        return $ERR_FATAL
-    fi
-
     wait $(( $WAIT + 1 )) || return
 
-    echo "$FILE_URL"
+    echo $(base64 --decode <<< "$BASE64LINK") || return
     echo "$FILE_NAME"
 }
 
@@ -181,11 +249,11 @@ shareonline_biz_upload() {
     local -r REQUEST_URL='http://www.share-online.biz/upv3_session.php'
     local DATA USER PASSWORD ERR UP_URL SESSION_ID SIZE SIZE_SRV LINK MD5
 
-    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
     # We use the public upload API (http://www.share-online.biz/uploadapi/)
 
-    split_auth "$AUTH_FREE" USER PASSWORD || return
+    split_auth "$AUTH" USER PASSWORD || return
 
     # Create upload session
     DATA=$(curl -F "username=$USER" -F "password=$PASSWORD" "$REQUEST_URL") || return

@@ -135,7 +135,7 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
     test "$CHECK_LINK" && return 0
 
     # Note: There is a strange entry required in cookie file: efdcyqLAT_3Q=1
-    WAIT_HTML=$(curl -L -b "$COOKIEFILE" --referer "$URL" "$WAIT_URL") || return
+    WAIT_HTML=$(curl -L -b "$COOKIEFILE" -b '4langcookie=en' --referer "$URL" "$WAIT_URL") || return
 
     # Redirected in case of error
     if [ -z "$WAIT_HTML" ]; then
@@ -153,8 +153,13 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
     fi
 
     # <div class="sec" id='downloadDelayTimeSec'>20</div>
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag 'downloadDelayTimeSec' 'div')
+    WAIT_TIME=$(echo "$WAIT_HTML" | parse_tag_quiet 'downloadDelayTimeSec' 'div')
     test -z "$WAIT_TIME" && WAIT_TIME=20
+
+    # Sanity check
+    if match 'The file link that you requested is not valid\.' "$WAIT_HTML"; then
+        return $ERR_LINK_DEAD
+    fi
 
     if [ -z "$TORRENT" ]; then
         FILE_URL=$(echo "$WAIT_HTML" | parse_attr_quiet 'linkShow' href)
@@ -192,8 +197,8 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/account/home.jsp") || return
 
-    DIR_ID=$(echo "$PAGE" | parse 'AjaxFacade\.rootDirId' \
-            "=[[:space:]]*'\([^']\+\)") || return
+    DIR_ID=$(parse 'AjaxFacade\.rootDirId' \
+            "=[[:space:]]*'\([^']\+\)" <<< "$PAGE") || return
 
     # Not required. Example: {"freeSpace":16102203291}
     JSON=$(curl -b "$COOKIE_FILE" "$BASE_URL/rest/account/freeSpace?dirId=$DIR_ID") || return
@@ -246,7 +251,7 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
         -H "x-cookie: Login=$LOGIN_ID; Password=$PASS_HASH;" \
         "$BASE_URL/rest/sharedFileUpload/finish?fileId=$FILE_ID") || return
 
-    log_debug "JSON:$JSON"
+    log_debug "JSON: '$JSON'"
     # {"status":true}
     #if ! match_json_true 'status' "$JSON"; then
     #    log_error 'bad answer, file moved to Incompleted folder'

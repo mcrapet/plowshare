@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # netload.in module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -103,7 +103,7 @@ netload_in_download() {
             return 0
         fi
 
-        echo "$PAGE" | parse_attr 'Orange_Link' 'href'
+        parse_attr 'Orange_Link' 'href' <<< "$PAGE" || return
         echo "$FILE_NAME"
         return 0
     fi

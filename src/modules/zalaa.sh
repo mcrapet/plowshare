@@ -106,7 +106,7 @@ zalaa_upload() {
     PAGE=$(curl -L -b 'lang=english' "$BASE_URL") || return
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
     FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
     FORM_UHOST=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_host')
     FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')

@@ -4,11 +4,13 @@
 1fichier        | download | upload | delete | list | probe |
 2shared         | download | upload | delete |      | probe |
 4shared         | download | upload |        | list |       |
-anonfiles       | download | upload |        |      |       |
+anonfiles       | download | upload |        |      | probe |
+anonymousdelivers|download | upload |        |      | probe |
 bayfiles        | download | upload | delete |      | probe |
+bayimg          | download | upload | delete |      | probe |
 billionuploads  | download | upload |        |      | probe |
 bitshare        | download | upload | delete |      | probe |
-cloudzer_net    | download |        |        |      | probe |
+cloudzer_net    | download | upload | delete | list | probe |
 cramit          | download | upload | delete | list | probe |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
@@ -18,7 +20,8 @@ dl_free_fr      | download | upload | delete |      | probe |
 embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
-filebox         | download | upload | delete |      |       |
+filebin_ca      | download | upload |        |      | probe |
+filebox         | download | upload | delete |      | probe |
 fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
@@ -40,6 +43,7 @@ pastebin        |          |        |        | list |       |
 putlocker       | download | upload |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
 rapidshare      | download | upload | delete |      | probe |
+rghost          | download | upload |        |      | probe |
 ryushare        | download | upload |        |      | probe |
 sendspace       | download | upload | delete | list | probe |
 sharebeast      | download | upload | delete |      | probe |

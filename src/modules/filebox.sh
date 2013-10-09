@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # filebox.com module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_FILEBOX_REGEXP_URL='https\?://\(www\.\)\?filebox\.com'
+MODULE_FILEBOX_REGEXP_URL='https\?://\(www\.\)\?filebox\.com/'
 
 MODULE_FILEBOX_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -31,6 +31,7 @@ AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_FILEBOX_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_FILEBOX_DELETE_OPTIONS=""
+MODULE_FILEBOX_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: $AUTH argument string
@@ -229,4 +230,24 @@ filebox_delete() {
 
     log_error 'Unexpected content. Site updated?'
     return $ERR_FATAL
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: filebox url
+# $3: requested capability list
+# stdout: 1 capability per line
+filebox_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE
+
+    PAGE=$(curl -b 'lang=english' "$URL") || return
+
+    if match '>File Not Found<' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    # Filename not available :(
+    echo c
 }

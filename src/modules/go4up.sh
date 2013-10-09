@@ -130,14 +130,14 @@ go4up_upload() {
     if match_remote_url "$FILE"; then
         PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
             "$BASE_URL/remote.php") || return
-        FORM=$(grep_form_by_id "$PAGE" 'form_upload') || return
+        FORM=$(grep_form_by_id "$PAGE" 'form_upload' | break_html_lines) || return
         UPLOAD_BASE_URL=$(echo "$FORM" | parse_form_action) || return
     else
         PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
             "$BASE_URL") || return
         UPLOAD_BASE_URL=$(echo "$PAGE" | parse_attr iframe src) || return
         PAGE=$(curl "$UPLOAD_BASE_URL") || return
-        FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form') || return
+        FORM=$(grep_form_by_id "$PAGE" 'ubr_upload_form' | break_html_lines) || return
     fi
 
     UPLOAD_BASE_URL=$(basename_url "$UPLOAD_BASE_URL") || return
@@ -248,9 +248,9 @@ go4up_upload() {
 
         # parent.UberUpload.redirectAfterUpload('../../uploaded.php?upload_id=9f07...
         UPLOAD_URL1=$(echo "$PAGE" | \
-            parse 'redirectAfter' "'\.\./\.\.\([^']\+\)'") || return
+            parse 'redirectAfter' "('\([^']\+\)'") || return
 
-        PAGE=$(curl -b "$COOKIE_FILE" "$UPLOAD_BASE_URL$UPLOAD_URL1") || return
+        PAGE=$(curl -b "$COOKIE_FILE" "$UPLOAD_URL1") || return
 
         LINK=$(echo "$PAGE" | parse_attr '/dl/' href) || return
     fi
@@ -284,7 +284,6 @@ go4up_list() {
         [[ "$SITE_URL" = */premium ]] && continue
 
         PAGE=$(curl --include "$SITE_URL") || return
-        NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
         URL=$(grep_http_header_location_quiet <<< "$PAGE")
 
         # window.location = "http://... " <= extra space at the end
@@ -296,11 +295,13 @@ go4up_list() {
             if [ -z "$URL" ]; then
                 URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
                 if [ -z "$URL" ]; then
-                    log_error "Remote error. Site maintenance? ($SITE_URL)"
-                    return $ERR_FATAL
+                    log_debug "remote error: link error? Ingore $SITE_URL"
+                    continue
                 fi
             fi
         fi
+
+        NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
 
         echo "$URL"
         echo "$NAME"
