@@ -319,7 +319,9 @@ mediafire_download() {
 
     # extract + output download link + file name
     mediafire_get_ofuscated_link "$JS_VAR" | parse_attr href || return
-    parse_tag 'title' <<< "$PAGE" || return
+    if ! parse_attr 'og:title' 'content' <<< "$PAGE"; then
+        parse_tag 'title' <<< "$PAGE" || return
+    fi
 }
 
 # Static function. Proceed with login using official API
