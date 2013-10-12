@@ -855,7 +855,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             if match_remote_url "$URL"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
-                log_debug 'No module found, try simple redirection'
+                log_notice 'No module found, try simple redirection'
 
                 URL_ENCODED=$(uri_encode <<< "$URL")
                 HEADERS=$(curl --user-agent '' --head "$URL_ENCODED") || true
