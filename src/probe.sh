@@ -111,12 +111,19 @@ probe() {
 
     # Capabilities:
     # - c: check link (module function return value)
-    # - f: filename
+    # - f: filename (can be empty string if not available)
+    # - h: filehash (can be empty string if not available)
     # - s: filesize (in bytes). This can be approximative
     CHECK_LINK=0
-    CAPS=cf
 
-    test "$PRINTF_FORMAT" && CAPS=cfhs
+    if test "$PRINTF_FORMAT"; then
+        CAPS=c
+        [[ $PRINTF_FORMAT = *%f* ]] && CAPS+=f
+        [[ $PRINTF_FORMAT = *%h* ]] && CAPS+=h
+        [[ $PRINTF_FORMAT = *%s* ]] && CAPS+=s
+    else
+        CAPS=cf
+    fi
 
     $FUNCTION "$PCOOKIE" "$URL_ENCODED" "$CAPS" >"$PRESULT" || CHECK_LINK=$?
 
@@ -211,7 +218,6 @@ pretty_check() {
     fi
 }
 
-# Note: don't use printf (coreutils).
 # $1: array[@] (module, dl_url, check_link, file_name, file_size, file_hash)
 # $2: format string
 pretty_print() {
