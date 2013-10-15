@@ -361,27 +361,29 @@ add_padding() {
 
 # Probe a download URL
 # $1: cookie file (unused here)
-# $2: Depositfiles url
+# $2: depositfiles url
 # $3: requested capability list
 # stdout: 1 capability per line
 depositfiles_probe() {
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT
+    local PAGE REQ_OUT FILE_NAME FILE_SIZE
 
     PAGE=$(curl --location -b 'lang_current=en' "$URL") || return
 
     match 'This file does not exist' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
-    if [[ $REQ_IN = *f* ]]; then
-        echo "$PAGE" | parse 'var filename' "'\([^']\+\)'" &&
-            REQ_OUT="${REQ_OUT}f"
+    if [[ $REQ_IN = *f* ]] && detect_javascript; then
+        FILE_NAME=$(parse '=.file_size' '\(unescape([^)]\+)\)' -1 <<< "$PAGE")
+        PAGE=$(echo "print($FILE_NAME);" | javascript)
+        FILE_NAME=$(parse_tag '=.file_name' b <<< "$PAGE")
+        test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        echo "$PAGE" | parse 'var filesize' "'\([^']\+\)'" &&
-            REQ_OUT="${REQ_OUT}s"
+        FILE_SIZE=$(parse_tag '=.file_size' b  <<< "$PAGE" | replace '&nbsp;' '')
+        test "$FILE_SIZE" && translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 
     echo $REQ_OUT
