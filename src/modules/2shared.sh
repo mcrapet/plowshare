@@ -68,7 +68,7 @@ MODULE_2SHARED_PROBE_OPTIONS=""
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://www.2shared.com'
-    local PAGE FILE_URL FILENAME WAIT_LINE WAIT_TIME
+    local PAGE FILE_URL FILE_NAME WAIT_LINE WAIT_TIME
 
     # .htm are redirected to .html
     if [ -n "$AUTH_FREE" ]; then
@@ -78,7 +78,7 @@ MODULE_2SHARED_PROBE_OPTIONS=""
         PAGE=$(curl -L "$URL") || return
     fi
 
-    if match "file link that you requested is not valid" "$PAGE"; then
+    if match 'file link that you requested is not valid' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -98,15 +98,15 @@ MODULE_2SHARED_PROBE_OPTIONS=""
         FILE_URL=$(curl "$BASE_URL$FILE_URL") || return
 
     else
-        FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
+        FILE_URL=$(parse_form_input_by_name 'd3link' <<< "$PAGE") || return
     fi
 
     test "$CHECK_LINK" && return 0
 
-    FILENAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) download - 2shared$')
+    FILE_NAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) download - 2shared$')
 
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Upload a file to 2shared.com
@@ -139,7 +139,7 @@ MODULE_2SHARED_PROBE_OPTIONS=""
         "$FORM_ACTION") || return
 
     # Your upload has successfully completed!
-    if ! match "upload has successfully completed" "$PAGE"; then
+    if ! match 'upload has successfully completed' "$PAGE"; then
         log_error 'upload failure'
         return $ERR_FATAL
     fi
@@ -197,7 +197,7 @@ MODULE_2SHARED_PROBE_OPTIONS=""
     PAGE=$(curl --location "$URL") || return
 
     # The file link that you requested is not valid.
-    if match "file link that you requested is not valid" "$PAGE"; then
+    if match 'file link that you requested is not valid' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -210,7 +210,11 @@ MODULE_2SHARED_PROBE_OPTIONS=""
     if [[ $REQ_IN = *s* ]]; then
         FILE_SIZE=$(echo "$PAGE" | parse '>File size' \
             '^[[:blank:]]*\([[:digit:]]\+\(.[[:digit:]]\+\)\?[[:space:]][KMG]\?B\)' 1) &&
-            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+            translate_size "${FILE_SIZE/,/}" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *i* ]]; then
+        parse 'action=' '"/complete/\([^/]\+\)' <<< "$PAGE" && REQ_OUT="${REQ_OUT}i"
     fi
 
     echo $REQ_OUT
