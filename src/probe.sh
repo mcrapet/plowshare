@@ -101,7 +101,7 @@ probe() {
 
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_probe
-    local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH
+    local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH FILE_ID
 
     log_debug "Starting probing ($MODULE): $URL_ENCODED"
 
@@ -113,14 +113,15 @@ probe() {
     # - c: check link (module function return value)
     # - f: filename (can be empty string if not available)
     # - h: filehash (can be empty string if not available)
-    # - s: filesize (in bytes). This can be approximative
+    # - i: fileid (can be empty string if not available)
+    # - s: filesize (in bytes). This can be approximative.
     CHECK_LINK=0
 
     if test "$PRINTF_FORMAT"; then
         CAPS=c
-        [[ $PRINTF_FORMAT = *%f* ]] && CAPS+=f
-        [[ $PRINTF_FORMAT = *%h* ]] && CAPS+=h
-        [[ $PRINTF_FORMAT = *%s* ]] && CAPS+=s
+        for I in f h i s; do
+            [[ $PRINTF_FORMAT = *%$I* ]] && CAPS+=$I
+        done
     else
         CAPS=cf
     fi
@@ -147,6 +148,9 @@ probe() {
                     ;;
                 h)
                     FILE_HASH=${DATA[$I]}
+                    ;;
+                i)
+                    FILE_ID=${DATA[$I]}
                     ;;
                 s)
                     FILE_SIZE=${DATA[$I]}
@@ -176,7 +180,7 @@ probe() {
             log_debug "Link active: $URL_ENCODED"
         fi
 
-        DATA=("$MODULE" "$URL_RAW" "$CHECK_LINK" "$FILE_NAME" "$FILE_SIZE" "$FILE_HASH")
+        DATA=("$MODULE" "$URL_RAW" "$CHECK_LINK" "$FILE_NAME" "$FILE_SIZE" "$FILE_HASH" "$FILE_ID")
         pretty_print DATA[@] "${PRINTF_FORMAT:-%F%u}"
 
     elif [ $CHECK_LINK -eq $ERR_LINK_DEAD ]; then
@@ -195,6 +199,7 @@ probe() {
 # %f: filename or empty string (if not available)
 # %F: alias for "# %f%n" or empty string if %f is empty
 # %h: filehash or empty string (if not available)
+# %i: fileid, link identifier or empty string (if not available)
 # %m: module name
 # %s: filesize (in bytes) or empty string (if not available).
 #     Note: it's often approximative.
@@ -210,7 +215,7 @@ probe() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[cfFhmsunt%]}
+    S=${1//%[cfFhimsunt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -218,7 +223,7 @@ pretty_check() {
     fi
 }
 
-# $1: array[@] (module, dl_url, check_link, file_name, file_size, file_hash)
+# $1: array[@] (module, dl_url, check_link, file_name, file_size, file_hash, file_id)
 # $2: format string
 pretty_print() {
     local -a A=("${!1}")
@@ -239,6 +244,7 @@ pretty_print() {
 
     test "${FMT#*%s}" != "$FMT" && FMT=$(replace '%s' "${A[4]}" <<< "$FMT")
     test "${FMT#*%h}" != "$FMT" && FMT=$(replace '%h' "${A[5]}" <<< "$FMT")
+    test "${FMT#*%i}" != "$FMT" && FMT=$(replace '%i' "${A[6]}" <<< "$FMT")
 
     # Don't lose trailing newlines
     if test "${FMT#*%[nF]}" != "$FMT"; then

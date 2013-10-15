@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "October 13, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowprobe" "1" "October 15, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowprobe \- Gather information from file-sharing download links
@@ -80,6 +80,9 @@ empty if %f is empty, or alias to \fB"# %f%n"\fR.
 \fI%h\fR
 filehash (can be empty string if not available). Usually MD5 or SHA1. If hoster supports several algorithms, the longest digest is used.
 .TP
+\fI%i\fR
+file identifier (can be empty string if not available). Usually included in input URL.
+.TP
 \fI%m\fR
 module name
 .TP
@@ -94,6 +97,9 @@ tabulation character
 .TP
 \fI%u\fR
 download (source) url
+.P
+Note: Metadata are often not fully available from hosters nor implemented by all
+modules.
 .SS Logging options
 .TP
 .BI -v, " " --verbose "=LEVEL"
