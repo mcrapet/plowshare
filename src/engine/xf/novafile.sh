@@ -23,9 +23,148 @@ NOVAFILE_FUNCS['ul_parse_file_id']='novafile_ul_parse_file_id'
 NOVAFILE_FUNCS['login']='novafile_login'
 NOVAFILE_FUNCS['ul_get_folder_id']='novafile_ul_get_folder_id'
 NOVAFILE_FUNCS['ul_move_file']='novafile_ul_move_file'
+NOVAFILE_FUNCS['ul_parse_data']='novafile_ul_parse_data'
+NOVAFILE_FUNCS['ul_commit']='novafile_ul_commit'
 NOVAFILE_FUNCS['ul_parse_result']='novafile_ul_parse_result'
 NOVAFILE_FUNCS['pr_parse_file_size']='novafile_pr_parse_file_size'
 NOVAFILE_FUNCS['ul_get_space_data']='novafile_ul_get_space_data'
+
+novafile_ul_parse_data() {
+    local -r PAGE=$1
+
+    local FORM_UTYPE FORM_SESS
+    local FORM_HTML FORM_ACTION FORM_TMP_SRV FORM_SRV_ID
+    local FORM_HTML_REMOTE FORM_ACTION_REMOTE FORM_TMP_SRV_REMOTE FORM_SRV_ID_REMOTE
+
+    FORM_HTML=$(grep_form_by_name "$PAGE" 'file' 2>/dev/null)
+    FORM_HTML_REMOTE=$(grep_form_by_name "$PAGE" 'url' 2>/dev/null)
+
+    if [ -z "$FORM_HTML" ]; then
+        log_error 'Wrong upload page or anonymous uploads not allowed.'
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION_REMOTE=$(echo "$FORM_HTML_REMOTE" | parse_form_action) || return
+
+    FORM_USER_TYPE=$(echo "$FORM_HTML_REMOTE" | parse_form_input_by_name 'utype') || return
+
+    if [ -n "$FORM_USER_TYPE" ]; then
+        log_debug "User type: '$FORM_USER_TYPE'"
+    fi
+
+    # Will be empty on anon upload
+    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
+    [ -n "$FORM_SESS" ] && FORM_SESS="-F sess_id=$FORM_SESS"
+
+    FORM_SRV_TMP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'srv_tmp_url')
+    [ -n "$FORM_SRV_TMP" ] && FORM_SRV_TMP="-F srv_tmp_url=$FORM_SRV_TMP"
+
+    FORM_SRV_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'srv_id')
+    [ -n "$FORM_SRV_ID" ] && FORM_SRV_ID="-F srv_id=$FORM_SRV_ID"
+
+    FORM_SRV_TMP_REMOTE=$(echo "$FORM_HTML_REMOTE" | parse_form_input_by_name_quiet 'srv_tmp_url')
+    [ -n "$FORM_SRV_TMP_REMOTE" ] && FORM_SRV_TMP_REMOTE="-F srv_tmp_url=$FORM_SRV_TMP_REMOTE"
+
+    FORM_SRV_ID_REMOTE=$(echo "$FORM_HTML_REMOTE" | parse_form_input_by_name_quiet 'srv_id')
+    [ -n "$FORM_SRV_ID_REMOTE" ] && FORM_SRV_ID_REMOTE="-F srv_id=$FORM_SRV_ID_REMOTE"
+
+    FORM_FILE_FIELD='file_0'
+    FORM_REMOTE_URL_FIELD="url_mass"
+
+    echo "$FORM_USER_TYPE"
+    echo "$FORM_SESS"
+    echo "$FORM_ACTION"
+    echo "$FORM_SRV_TMP"
+    echo "$FORM_SRV_ID"
+    echo "$FORM_ACTION_REMOTE"
+    echo "$FORM_SRV_TMP_REMOTE"
+    echo "$FORM_SRV_ID_REMOTE"
+    echo "$FORM_FILE_FIELD"
+    echo "$FORM_REMOTE_URL_FIELD"
+}
+
+novafile_ul_commit() {
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL=$(basename_url "$2")
+    local -r FILE=$3
+    local -r DEST_FILE=$4
+    local -r FORM_DATA=$5
+
+    local FORM_HTML FORM_SESS FORM_SRV_TMP FORM_SRV_ID FORM_DISK_ID FORM_DISK_ID_URL FORM_SUBMIT_BTN FILE_FIELD FORM_REMOTE_URL_FIELD FORM_ADD
+
+    IFS=
+    {
+    read -r FORM_USER_TYPE
+    read -r FORM_SESS
+    read -r FORM_ACTION
+    read -r FORM_SRV_TMP
+    read -r FORM_SRV_ID
+    read -r FORM_ACTION_REMOTE
+    read -r FORM_SRV_TMP_REMOTE
+    read -r FORM_SRV_ID_REMOTE
+    read -r FORM_FILE_FIELD
+    read -r FORM_REMOTE_URL_FIELD
+    } <<<"$FORM_DATA"
+    unset IFS
+
+    if [ -z "$PRIVATE_FILE" ]; then
+        PUBLIC_FLAG=1
+    else
+        PUBLIC_FLAG=0
+    fi
+
+    # Initial js code:
+    # for (var i = 0; i < 12; i++) UID += '' + Math.floor(Math.random() * 10);
+    # form_action = form_action.split('?')[0] + '?upload_id=' + UID + '&js_on=1' + '&utype=' + utype + '&upload_type=' + upload_type;
+    # upload_type: file, url
+    # utype: anon, reg
+    UPLOAD_ID=$(random d 12)
+
+    # Upload remote file
+    if match_remote_url "$FILE"; then
+        # url_proxy	- http proxy
+        PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+            -i \
+            -H 'Expect: ' \
+            -F "upload_type=url" \
+            $FORM_SESS \
+            $FORM_SRV_TMP_REMOTE \
+            $FORM_SRV_ID_REMOTE \
+            -F "${FORM_REMOTE_URL_FIELD}=$FILE" \
+            $FORM_TOEMAIL \
+            $FORM_PASSWORD \
+            -F "utype=$FORM_USER_TYPE" \
+            -F "tos=1" \
+            -F "submit_btn=" \
+            -F "mass_upload=1" \
+            "${FORM_ACTION_REMOTE}/?X-Progress-ID=${UPLOAD_ID}0" | \
+            break_html_lines) || return
+
+    # Upload local file
+    else
+        PAGE=$(curl_with_log -b "$COOKIE_FILE" \
+            -i \
+            -H 'Expect: ' \
+            -F 'upload_type=file' \
+            $FORM_SESS \
+            $FORM_SRV_TMP \
+            $FORM_SRV_ID \
+            $FORM_DISK_ID \
+            -F "${FORM_FILE_FIELD}=@$FILE;filename=$DESTFILE" \
+            --form-string "${FORM_FILE_FIELD}_descr=$DESCRIPTION" \
+            -F "${FORM_FILE_FIELD}_public=$PUBLIC_FLAG" \
+            --form-string "link_rcpt=$TOEMAIL" \
+            --form-string "link_pass=$LINK_PASSWORD" \
+            -F 'tos=1' \
+            -F "submit_btn=" \
+            $FORM_ADD \
+            "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${FORM_USER_TYPE}&upload_type=file$FORM_DISK_ID_URL" | \
+            break_html_lines) || return
+    fi
+
+    echo "$PAGE"
+}
 
 novafile_ul_parse_result() {
     local PAGE=$1
@@ -33,14 +172,15 @@ novafile_ul_parse_result() {
     local STATE OP FORM_LINK_RCPT FILE_CODE DEL_CODE
     local FORM_HTML ERROR FORM_ACTION
 
-    FORM_HTML=$(grep_form_by_name "$PAGE" 'F1' 2>/dev/null | break_html_lines_alt)
+    FORM_HTML=$(grep_form_by_name "$PAGE" 'F1' 2>/dev/null | \
+        replace '<input' $'\n<input' | replace '<textarea' $'\n<textarea')
 
     if [ -z "$FORM_HTML" ]; then
         ERROR=$(echo "$PAGE" | parse_quiet '[Ee][Rr][Rr][Oo][Rr]:' "[Ee][Rr][Rr][Oo][Rr]:[[:space:]]*\(.*\)')")
         if [ -n "$ERROR" ]; then
             log_error "Remote error: '$ERROR'"
         else
-            log_error 'Unexpected content.'
+            log_error 'Upload failed. Unexpected content.'
         fi
 
         return $ERR_FATAL
@@ -48,11 +188,26 @@ novafile_ul_parse_result() {
 
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
 
-    OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FILE_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name 'fn') || return
-    STATE=$(echo "$FORM_HTML" | parse_form_input_by_name 'st') || return
-    FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'link_rcpt')
-    [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
+    if match "<input[^>]*name='op'" "$FORM_HTML"; then
+        OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
+        FILE_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name 'fn') || return
+        STATE=$(echo "$FORM_HTML" | parse_form_input_by_name 'st') || return
+
+        FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'link_rcpt')
+        [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
+
+    elif match "<textarea name='op'>" "$FORM_HTML"; then
+        OP=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?op[\"']\?" 'textarea') || return
+        FILE_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?fn[\"']\?" 'textarea') || return
+        STATE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?st[\"']\?" 'textarea') || return
+
+        FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?link_rcpt[\"']\?" 'textarea')
+        [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
+
+    else
+        log_error 'Upload failed. Unexpected content.'
+        return $ERR_FATAL
+    fi
 
     echo "$STATE"
     echo "$FILE_CODE"

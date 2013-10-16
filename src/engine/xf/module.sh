@@ -325,28 +325,68 @@ xfilesharing_upload() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    FORM_DATA=$(xfilesharing_ul_parse_data "$PAGE") || return
+    REMOTE_UPLOAD_QUEUE_OP=$(xfilesharing_ul_remote_queue_test "$PAGE") || return
 
-    PAGE=$(xfilesharing_ul_commit "$COOKIE_FILE" "$BASE_URL" "$FILE" "$DEST_FILE" "$FORM_DATA") || return
+    if match_remote_url "$FILE" && [ -n "$REMOTE_UPLOAD_QUEUE_OP" ]; then
+        log_debug "Remote upload queue support detected. $REMOTE_UPLOAD_QUEUE_OP."
 
-    RESULT_DATA=$(xfilesharing_ul_parse_result "$PAGE") || return
-    { read STATE; read FILE_CODE; read DEL_CODE; read FILE_NAME; } <<<"$RESULT_DATA"
+        xfilesharing_ul_remote_queue_check "$COOKIE_FILE" "$BASE_URL" "$REMOTE_UPLOAD_QUEUE_OP"
+        if [ "$?" != "0" ] && [ -z "$ASYNC" ]; then
+            log_error 'Upload queue is not empty. Use asynchronous mode to upload multiple files simultaneously.'
+            return $ERR_FATAL
+        fi
 
-    if [ -z "$FILE_NAME" ] && [ "$DEST_FILE" != 'dummy' ]; then
-        FILE_NAME="$DEST_FILE"
-    fi
+        xfilesharing_ul_remote_queue_add "$COOKIE_FILE" "$BASE_URL" "$FILE" "$REMOTE_UPLOAD_QUEUE_OP" || return
 
-    if [ "$STATE" = 'EDIT' ]; then
-        STATE='OK'
-        FILE_NEED_EDIT=1
-    fi
+        # If this is an async upload, we are done
+        # FIXME: fake output, maybe introduce a new exit code?
+        if [ -n "$ASYNC" ]; then
+            log_error 'Async remote upload, check your account for link.'
+            echo '#'
+            return 0
+        fi
 
-    xfilesharing_ul_handle_state "$STATE" || return
+        # Keep checking progress
+        TRY=1
+        ERROR=$(xfilesharing_ul_remote_queue_check "$COOKIE_FILE" "$BASE_URL" "$REMOTE_UPLOAD_QUEUE_OP")
+        while [ "$?" = "1" ]; do
+            log_debug "Wait for server to download the file... [$((TRY++))]"
+            wait 15 || return # arbitrary, short wait time
+            ERROR=$(xfilesharing_ul_remote_queue_check "$COOKIE_FILE" "$BASE_URL" "$REMOTE_UPLOAD_QUEUE_OP")
+        done
 
-    PAGE=$(xfilesharing_ul_commit_result "$COOKIE_FILE" "$BASE_URL" "$RESULT_DATA") || return
+        if [ -n "$ERROR" ]; then
+            log_error "Remote upload error: '$ERROR'"
+            xfilesharing_ul_remote_queue_del "$COOKIE_FILE" "$BASE_URL" "$REMOTE_UPLOAD_QUEUE_OP" || return
+            return $ERR_FATAL
+        fi
 
-    if [ -z "$DEL_CODE" -a -n "$PAGE" ]; then
-        DEL_CODE=$(xfilesharing_ul_parse_del_code "$PAGE")
+        FILE_CODE=$(xfilesharing_ul_get_file_code "$COOKIE_FILE" "$BASE_URL") || return
+
+    else
+        FORM_DATA=$(xfilesharing_ul_parse_data "$PAGE") || return
+
+        PAGE=$(xfilesharing_ul_commit "$COOKIE_FILE" "$BASE_URL" "$FILE" "$DEST_FILE" "$FORM_DATA") || return
+
+        RESULT_DATA=$(xfilesharing_ul_parse_result "$PAGE") || return
+        { read STATE; read FILE_CODE; read DEL_CODE; read FILE_NAME; } <<<"$RESULT_DATA"
+
+        if [ -z "$FILE_NAME" ] && [ "$DEST_FILE" != 'dummy' ]; then
+            FILE_NAME="$DEST_FILE"
+        fi
+
+        if [ "$STATE" = 'EDIT' ]; then
+            STATE='OK'
+            FILE_NEED_EDIT=1
+        fi
+
+        xfilesharing_ul_handle_state "$STATE" || return
+
+        PAGE=$(xfilesharing_ul_commit_result "$COOKIE_FILE" "$BASE_URL" "$RESULT_DATA") || return
+
+        if [ -z "$DEL_CODE" -a -n "$PAGE" ]; then
+            DEL_CODE=$(xfilesharing_ul_parse_del_code "$PAGE")
+        fi
     fi
 
     if [ -n "$AUTH" ]; then
@@ -539,29 +579,27 @@ xfilesharing_list() {
     local -r URL=$1
     local -r REC=$2
     local RET=$ERR_LINK_DEAD
-    local PAGE LINKS NAMES ERROR PAGE_NUMBER LAST_PAGE
+    local PAGE LINKS NAMES PAGE_NUMBER LAST_PAGE
 
-    PAGE=$(curl -b 'lang=english' "$URL") || return
+    PAGE=$(curl -b 'lang=english' "$URL" | strip_html_comments) || return
 
-    ERROR=$(echo "$PAGE" | parse_tag_quiet 'class="err"' 'font')
-    if [ "$ERROR" = 'No such user exist' ]; then
-        return $ERR_LINK_DEAD
-    elif [ -n "$ERROR" ]; then
-        log_error "Remote error: $ERROR"
-        return $ERR_FATAL
+    # see xfilesharing_dl_parse_error_generic
+    if ! matchi 'No such file.*No such user exist.*File not found' "$PAGE"; then
+        if match 'File Not Found' "$PAGE"; then
+            log_error 'Folders are disabled for this hosting.'
+            return $ERR_LINK_DEAD
+        elif match 'No such user exist'; then
+            return $ERR_LINK_DEAD
+        fi
     fi
 
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="link"' 'href')
-    NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'class="link"' 'a')
+    LINKS=$(xfilesharing_ls_parse_links "$PAGE")
+    NAMES=$(xfilesharing_ls_parse_names "$PAGE")
 
     # Parse page buttons panel if exist
-    LAST_PAGE=$(echo "$PAGE" | parse_tag_quiet 'class="paging"' 'div' | break_html_lines | \
-        parse_all_quiet . 'page=\([0-9]\+\)')
+    LAST_PAGE=$(xfilesharing_ls_parse_last_page "$PAGE")
 
     if [ -n "$LAST_PAGE" ];then
-        # The last button is 'Next', last page button right before
-        LAST_PAGE=$(echo "$LAST_PAGE" | delete_last_line | last_line)
-
         for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do
             log_debug "Listing page #$PAGE_NUMBER"
 
@@ -569,8 +607,8 @@ xfilesharing_list() {
                 -d "page=$PAGE_NUMBER" \
                 "$URL") || return
 
-            LINKS=$LINKS$'\n'$(echo "$PAGE" | parse_all_attr_quiet 'class="link"' 'href')
-            NAMES=$NAMES$'\n'$(echo "$PAGE" | parse_all_tag_quiet 'class="link"' 'a')
+            LINKS=$LINKS$'\n'$(xfilesharing_ls_parse_links "$PAGE")
+            NAMES=$NAMES$'\n'$(xfilesharing_ls_parse_names "$PAGE")
         done
     fi
 
@@ -580,11 +618,7 @@ xfilesharing_list() {
     if [ -n "$REC" ]; then
         local FOLDERS FOLDER
 
-        FOLDERS=$(echo "$PAGE" | parse_all_attr_quiet 'folder2.gif' 'href') || return
-
-        # First folder can be parent folder (". .") - drop it to avoid infinite loops
-        FOLDER=$(echo "$PAGE" | parse_tag_quiet 'folder2.gif' 'b') || return
-        [ "$FOLDER" = '. .' ] && FOLDERS=$(echo "$FOLDERS" | delete_first_line)
+        FOLDERS=$(xfilesharing_ls_parse_folders "$PAGE") || return
 
         while read FOLDER; do
             [ -z "$FOLDER" ] && continue

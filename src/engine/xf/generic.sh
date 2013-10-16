@@ -48,8 +48,17 @@ declare -rgA 'GENERIC_FUNCS=(
     [ul_set_flag_premium]=xfilesharing_ul_set_flag_premium_generic
     [ul_set_flag_public]=xfilesharing_ul_set_flag_public_generic
     [ul_generate_links]=xfilesharing_ul_generate_links_generic
+    [ul_remote_queue_test]=xfilesharing_ul_remote_queue_test_generic
+    [ul_remote_queue_check]=xfilesharing_ul_remote_queue_check_generic
+    [ul_remote_queue_add]=xfilesharing_ul_remote_queue_add_generic
+    [ul_remote_queue_del]=xfilesharing_ul_remote_queue_del_generic
+    [ul_get_file_code]=xfilesharing_ul_get_file_code_generic
     [pr_parse_file_name]=xfilesharing_pr_parse_file_name_generic
-    [pr_parse_file_size]=xfilesharing_pr_parse_file_size_generic)'
+    [pr_parse_file_size]=xfilesharing_pr_parse_file_size_generic
+    [ls_parse_links]=xfilesharing_ls_parse_links_generic
+    [ls_parse_names]=xfilesharing_ls_parse_names_generic
+    [ls_parse_last_page]=xfilesharing_ls_parse_last_page_generic
+    [ls_parse_folders]=xfilesharing_ls_parse_folders_generic)'
 
 declare -rgA 'GENERIC_OPTIONS=(
     [DOWNLOAD_OPTIONS]="
@@ -66,7 +75,8 @@ declare -rgA 'GENERIC_OPTIONS=(
         DESCRIPTION,d,description,S=DESCRIPTION,Set file description
         TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
         PREMIUM,,premium,,Make file inaccessible to non-premium users
-        PRIVATE_FILE,,private,,Do not make file visible in folder view"
+        PRIVATE_FILE,,private,,Do not make file visible in folder view
+        ASYNC,,async,,Asynchronous remote upload"
     [UPLOAD_REMOTE_SUPPORT]=yes
     [DELETE_OPTIONS]=""
     [PROBE_OPTIONS]=""
@@ -1062,9 +1072,9 @@ xfilesharing_ul_get_file_id_generic() {
 
     PAGE=$(curl -b "$COOKIE_FILE" -G \
         -d 'op=my_files' \
-        "$BASE_URL/") || return
+        "$BASE_URL/" | break_html_lines) || return
 
-    FILE_ID=$(echo "$PAGE" | parse_form_input_by_name_quiet 'file_id')
+    FILE_ID=$(parse_form_input_by_name_quiet 'file_id' <<< "$PAGE")
     if [ -z "$FILE_ID" ]; then
         log_error 'Cannot get file ID from user page.'
         return $ERR_FATAL
@@ -1081,6 +1091,11 @@ xfilesharing_ul_parse_data_generic() {
     local -r PAGE=$1
 
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
+
+    if match 'no servers available for upload at the moment' "$PAGE"; then
+        log_error 'No servers available for upload at the moment. Try again later.'
+        return $ERR_FATAL
+    fi
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file' 2>/dev/null | break_html_lines_alt)
     if [ -z "$FORM_HTML" ]; then
@@ -1150,6 +1165,12 @@ xfilesharing_ul_parse_data_generic() {
         log_debug "File field: '$FORM_FILE_FIELD'"
     fi
 
+    if match "<input[^>]*name[[:space:]]*=[[:space:]]*['\"]\?url_1['\"]\?" "$PAGE"; then
+        FORM_REMOTE_URL_FIELD="url_1"
+    else
+        FORM_REMOTE_URL_FIELD="url_mass"
+    fi
+
     if [ "$#" -gt 1 ]; then
         for ADD in "${@:2}"; do
             if ! match '=' "$ADD"; then
@@ -1169,6 +1190,7 @@ xfilesharing_ul_parse_data_generic() {
     echo "$FORM_DISK_ID_URL"
     echo "$FORM_SUBMIT_BTN"
     echo "$FORM_FILE_FIELD"
+    echo "$FORM_REMOTE_URL_FIELD"
     echo "$FORM_ADD"
 }
 
@@ -1186,7 +1208,7 @@ xfilesharing_ul_commit_generic() {
     local -r DEST_FILE=$4
     local -r FORM_DATA=$5
 
-    local FORM_HTML FORM_SESS FORM_SRV_TMP FORM_SRV_ID FORM_DISK_ID FORM_DISK_ID_URL FORM_SUBMIT_BTN FILE_FIELD FORM_ADD
+    local FORM_HTML FORM_SESS FORM_SRV_TMP FORM_SRV_ID FORM_DISK_ID FORM_DISK_ID_URL FORM_SUBMIT_BTN FILE_FIELD FORM_REMOTE_URL_FIELD FORM_ADD
 
     if match 'up_flash.cgi' "$FORM_DATA"; then
         if match_remote_url "$FILE"; then
@@ -1234,6 +1256,7 @@ xfilesharing_ul_commit_generic() {
     read -r FORM_DISK_ID_URL
     read -r FORM_SUBMIT_BTN
     read -r FORM_FILE_FIELD
+    read -r FORM_REMOTE_URL_FIELD
     read -r FORM_ADD
     } <<<"$FORM_DATA"
     unset IFS
@@ -1266,11 +1289,12 @@ xfilesharing_ul_commit_generic() {
             $FORM_SRV_TMP \
             $FORM_SRV_ID \
             $FORM_DISK_ID \
-            -F "url_mass=$FILE" \
+            -F "${FORM_REMOTE_URL_FIELD}=$FILE" \
             $FORM_TOEMAIL \
             $FORM_PASSWORD \
             -F "tos=1" \
             -F "submit_btn=$FORM_SUBMIT_BTN" \
+            $FORM_ADD \
             "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${FORM_USER_TYPE}&upload_type=url$FORM_DISK_ID_URL" | \
             break_html_lines) || return
 
@@ -1309,15 +1333,21 @@ xfilesharing_ul_parse_result_generic() {
     local FORM_HTML RESPONSE ERROR FORM_ACTION
 
     RESPONSE=$(echo "$PAGE" | first_line)
-    if match '^HTTP.*500' "$RESPONSE"; then
+    if match '^HTTP.*50[0-9]' "$RESPONSE"; then
         log_error 'Server Issues.'
+        return $ERR_FATAL
+    fi
+
+    RESPONSE=$(echo "$PAGE" | last_line)
+    if match '^<HTML></HTML>$' "$RESPONSE"; then
+        log_error 'Server Issues. Empty response.'
         return $ERR_FATAL
     fi
 
     # Flash uploader result
     #  fp2hijbaodrx:fp2hijbaodrx:00002:file.rar:file_type
     #  or bad result status as single string
-    RESPONSE=$(echo "$PAGE" | last_line)
+
     PAGE_BODY="${PAGE#$'HTTP*\n\n'}"
     if match '^[[:alnum:]]\+:' "$RESPONSE"; then
         FILE_CODE=$(echo "$RESPONSE" | parse . '^\([[:alnum:]]\+\)')
@@ -1336,7 +1366,12 @@ xfilesharing_ul_parse_result_generic() {
     if [ -z "$FORM_HTML" ]; then
         ERROR=$(echo "$PAGE" | parse_quiet '[Ee][Rr][Rr][Oo][Rr]:' "[Ee][Rr][Rr][Oo][Rr]:[[:space:]]*\(.*\)')")
         if [ -n "$ERROR" ]; then
-            log_error "Remote error: '$ERROR'"
+            if [ "$ERROR" = "You can\'t use remote URL upload" ]; then
+                log_error "Remote uploads disabled or limited for your account type."
+                return $ERR_LINK_NEED_PERMISSIONS
+            else
+                log_error "Remote error: '$ERROR'"
+            fi
         else
             log_error 'Unexpected content.'
         fi
@@ -1347,19 +1382,28 @@ xfilesharing_ul_parse_result_generic() {
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
 
     # download-after-post mod special
-    if match "<textarea name='status'>" "$FORM_HTML"; then
-        FILE_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?filename[\"']\?" 'textarea')
-        STATE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?status[\"']\?" 'textarea')
+    if match "<textarea name='url_mass'>" "$FORM_HTML"; then
+        log_error 'This hosting does not support remote uploads.'
+        return $ERR_FATAL
+    elif match "<textarea name='status'>" "$FORM_HTML"; then
+        FILE_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?filename[\"']\?" 'textarea') || return
+        STATE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?status[\"']\?" 'textarea') || return
 
-        DEL_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?del_id[\"']\?" 'textarea')
-        FILE_NAME=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?filename_original[\"']\?" 'textarea')
+        DEL_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?del_id[\"']\?" 'textarea') || return
+        FILE_NAME=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?filename_original[\"']\?" 'textarea') || return
 
     else
         OP=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?op[\"']\?" 'textarea') || return
-        FILE_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?fn[\"']\?" 'textarea') || return
-        STATE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?st[\"']\?" 'textarea') || return
+        FILE_CODE=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?fn[\"']\?" 'textarea')
+        STATE=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?st[\"']\?" 'textarea')
+
         FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?link_rcpt[\"']\?" 'textarea')
         [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
+
+        if [ -z "$FILE_CODE" ]; then
+            log_error 'Upload failed. No file code received.'
+            return $ERR_FATAL
+        fi
     fi
 
     echo "$STATE"
@@ -1553,23 +1597,30 @@ xfilesharing_ul_edit_file_generic() {
         -H 'Expect: ' \
         -d 'op=file_edit' \
         -d "file_code=$FILE_CODE" \
-        "$BASE_URL/") || return
+        "$BASE_URL/" | break_html_lines) || return
 
-    EDIT_FILE_NAME=$(echo "$PAGE" | parse_form_input_by_name 'file_name') || return
+    EDIT_FILE_NAME=$(echo "$PAGE" | parse_form_input_by_name_quiet 'file_name')
+
+    if [ -n "$EDIT_FILE_NAME" ]; then
+        if [ "$DEST_FILE" != 'dummy' ]; then
+            EDIT_FILE_NAME="-F file_name=$DEST_FILE"
+        else
+            EDIT_FILE_NAME="-F file_name=$EDIT_FILE_NAME"
+        fi
+    elif [ "$DEST_FILE" != 'dummy' ]; then
+        log_debug 'Cannot rename file on this hosting.'
+    fi
 
     if match '<input[^>]*file_premium_only' "$PAGE"; then
         PREMIUM_OPT="-F file_premium_only=$PREMIUM_FLAG"
     fi
-    #else
-    #    EDIT_FILE_NAME="$DEST_FILE"
-    #fi
 
     PAGE=$(curl -b "$COOKIE_FILE" -i \
         -H 'Expect: ' \
         -e "$BASE_URL/?op=file_edit&file_code=$FILE_CODE" \
         -F 'op=file_edit' \
         -F "file_code=$FILE_CODE" \
-        -F "file_name=$EDIT_FILE_NAME" \
+        $EDIT_FILE_NAME \
         -F "file_descr=$DESCRIPTION" \
         -F "file_password=$LINK_PASSWORD" \
         -F "file_public=$PUBLIC_FLAG" \
@@ -1578,7 +1629,7 @@ xfilesharing_ul_edit_file_generic() {
         "$BASE_URL/?op=file_edit&file_code=$FILE_CODE") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
-    if match '?op=my_files' "$LOCATION"; then
+    if match '?op=my_files' "$LOCATION" || match '?op=file_edit' "$LOCATION"; then
         log_debug 'File edited.'
     else
         log_error 'Cannot edit file.'
@@ -1679,6 +1730,137 @@ xfilesharing_ul_generate_links_generic() {
     return 0
 }
 
+# Test for remote upload queue support (upload)
+# $1: (X)HTML page data
+# stdout: 1 if supported, 0 otherwise
+xfilesharing_ul_remote_queue_test_generic() {
+    local -r PAGE=$1
+
+    if match '?op=upload_url' "$PAGE"; then
+        echo "upload_url"
+    elif match '?op=url_upload' "$PAGE"; then
+        echo "url_upload"
+    fi
+}
+
+# Add url to remote upload queue (upload)
+# $1: cookie file
+# $2: base URL
+# $3: remote URL
+# $4: remote upload op
+xfilesharing_ul_remote_queue_add_generic() {
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL=$2
+    local -r FILE=$3
+    local -r REMOTE_UPLOAD_QUEUE_OP=$4
+
+    local PAGE
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -L \
+        -H 'Expect: ' \
+        -F "op=$REMOTE_UPLOAD_QUEUE_OP" \
+        -F "urls=$FILE" \
+        -F 'cat_id=0' \
+        -F 'tos=1' \
+        -F 'submit_btn=Add to upload queue' \
+        "$BASE_URL/") || return
+
+    #MSG=$(parse_cookie_quiet 'msg' < "$COOKIE_FILE")
+
+    if ! match '1 URLs were added to upload queue' "$PAGE"; then
+        log_error 'Failed to add new URL into queue.'
+        return $ERR_FATAL
+    fi
+
+    return 0
+}
+
+# Delete url from remote upload queue (upload)
+#  removes last URL from upload queue, used for errors
+# $1: cookie file
+# $2: base URL
+# $3: remote upload op
+xfilesharing_ul_remote_queue_del_generic() {
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL=$2
+    local -r REMOTE_UPLOAD_QUEUE_OP=$3
+
+    local PAGE DEL_ID LOCATION
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -G \
+        -d "op=$REMOTE_UPLOAD_QUEUE_OP" \
+        "$BASE_URL/") || return
+
+    DEL_ID=$(parse 'del_id=' 'del_id=\([0-9]\+\)' <<< "$PAGE") || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -i -G \
+        -d "op=$REMOTE_UPLOAD_QUEUE_OP" \
+        -d "del_id=$DEL_ID" \
+        "$BASE_URL/") || return
+
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
+    if match "?op=$REMOTE_UPLOAD_QUEUE_OP" "$LOCATION"; then
+        log_debug 'URL removed.'
+    else
+        log_error 'Cannot remove URL from queue.'
+    fi
+
+    return 0
+}
+
+# Check queue for active tasks (upload)
+# $1: cookie file
+# $2: base url
+# $3: remote upload op
+xfilesharing_ul_remote_queue_check_generic() {
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL=$2
+    local -r REMOTE_UPLOAD_QUEUE_OP=$3
+
+    local PAGE
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -G \
+        -d "op=$REMOTE_UPLOAD_QUEUE_OP" \
+        "$BASE_URL/") || return
+
+    if match '<TD>PENDING</TD>\|<TD>WORKING</TD>' "$PAGE"; then
+        log_debug "QUEUE: found working"
+        return 1
+    elif match 'Your Pending URL uploads' "$PAGE"; then
+        log_debug "QUEUE: found error"
+        parse_quiet '<TD>ERROR:' '<TD>ERROR:\([^<]\+\)' <<< "$PAGE"
+        return 2
+    else
+        log_debug "QUEUE: found nothing"
+        return 0
+    fi
+}
+
+# Get last uploaded file code from user page (upload)
+# $1: cookie file (logged into account)
+# $2: base URL
+# stdout: file code
+xfilesharing_ul_get_file_code_generic() {
+    local -r COOKIE_FILE=$1
+    local -r BASE_URL=$2
+    local PAGE FILE_CODE
+
+    log_debug 'Trying to get file code form user page...'
+
+    PAGE=$(curl -b "$COOKIE_FILE" -G \
+        -d 'op=my_files' \
+        "$BASE_URL/") || return
+
+    FILE_CODE=$(parse_quiet "<input[^>]*name=['\"]\?file_id['\"]\?" 'href="https\?://.*/\([[:alnum:]]\{12\}\)' 1 <<< "$PAGE")
+    if [ -z "$FILE_CODE" ]; then
+        log_error 'Cannot get file CODE from user page.'
+        return $ERR_FATAL
+    else
+        echo "$FILE_CODE"
+        return 0
+    fi
+}
+
 # Parse file name (probe)
 # $1: (X)HTML page data
 # stdout: file name
@@ -1715,4 +1897,73 @@ xfilesharing_pr_parse_file_size_generic() {
     [ -z "$FILE_SIZE" -a -n "$FILE_NAME" ] && FILE_SIZE=$(parse_quiet "$FILE_NAME" "$FILE_NAME.*[^[:alnum:]]\([0-9.]\+[[:space:]]*[KMGBb]\+\)[^[:alnum:]]" <<< "$PAGE")
 
     echo "$FILE_SIZE"
+}
+
+# Parse links (list)
+# $1: (X)HTML page data
+# stdout: links list
+xfilesharing_ls_parse_links_generic() {
+    local -r PAGE=$1
+    local LINKS
+
+    if match "<div class=[\"']\?link[\"']\?" "$PAGE"; then
+        LINKS=$(parse_all_attr_quiet "<div class=[\"']\?link[\"']\?" 'href' <<< "$PAGE")
+    elif match '<TD><b><a href="' "$PAGE"; then
+        LINKS=$(parse_all_attr_quiet '<TD><b><a href="' 'href' <<< "$PAGE")
+    fi
+
+    echo "$LINKS"
+}
+
+# Parse file names (list)
+# $1: (X)HTML page data
+# stdout: names list
+xfilesharing_ls_parse_names_generic() {
+    local -r PAGE=$1
+    local NAMES
+
+    if match "<div class=[\"']\?link[\"']\?" "$PAGE"; then
+        NAMES=$(parse_all_tag_quiet "<div class=[\"']\?link[\"']\?" 'a' <<< "$PAGE")
+    elif match '<TD><b><a href="' "$PAGE"; then
+        NAMES=$(parse_all_tag_quiet '<TD><b><a href="' 'a' <<< "$PAGE")
+    fi
+
+    echo "$NAMES"
+}
+
+# Parse last page number (list)
+#  for big folders
+# $1: (X)HTML page data
+# stdout: last page number
+xfilesharing_ls_parse_last_page_generic() {
+    local -r PAGE=$1
+    local LAST_PAGE
+
+    LAST_PAGE=$(echo "$PAGE" | parse_tag_quiet 'class="paging"' 'div' | break_html_lines | \
+        parse_all_quiet . 'page=\([0-9]\+\)')
+
+    if [ -n "$LAST_PAGE" ];then
+        # The last button is 'Next', last page button right before
+        LAST_PAGE=$(echo "$LAST_PAGE" | delete_last_line | last_line)
+    fi
+
+    echo "$LAST_PAGE"
+}
+
+# Parse folder names (list)
+# $1: (X)HTML page data
+# stdout: folders list
+xfilesharing_ls_parse_folders_generic() {
+    local -r PAGE=$1
+    local FOLDERS FOLDER
+
+    FOLDERS=$(parse_all_attr_quiet 'folder2.gif' 'href' <<< "$PAGE") || return
+
+    if [ -n "$FOLDERS" ]; then
+        # First folder can be parent folder (". .") - drop it to avoid infinite loops
+        FOLDER=$(parse_tag_quiet 'folder2.gif' 'b' <<< "$PAGE") || return
+        [ "$FOLDER" = '. .' ] && FOLDERS=$(delete_first_line <<< "$FOLDERS")
+    fi
+
+    echo "$FOLDERS"
 }

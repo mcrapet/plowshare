@@ -74,7 +74,7 @@ imgur,http://\(www\.\)\?imgur.pl/,http://imgur.pl/
 in_elite,http://\(www\.\)\?files.in-elite.com/,http://files.in-elite.com/
 inafile,http://\(www\.\)\?inafile.com/,http://inafile.com/
 iperupload,http://\(www\.\)\?iperupload.com/,http://iperupload.com/
-junocloud,http://\(www\.\)\?dl.junocloud.me/,http://dl.junocloud.me/
+junocloud,http://\(www\.\|dl\.\)\?junocloud.me/,http://dl.junocloud.me/
 jumbofiles,http://\(www\.\)\?jumbofiles.com/,http://jumbofiles.com/
 kamterter,http://\(www\.\)\?kamterter.com/KAMbox/,http://www.kamterter.com/KAMbox/
 killerleaks,http://\(www\.\)\?killerleaks.com/,http://www.killerleaks.com/
@@ -136,7 +136,7 @@ uploadc,http://\(www\.\)\?uploadc.com/,http://www.uploadc.com/
 uploadhunt,http://\(www\.\)\?uploadhunt.com/,http://www.uploadhunt.com/
 uploadinc,http://\(www\.\)\?uploadinc.com/,http://uploadinc.com/
 uploadscenter,http://\(www\.\)\?uploadscenter.com/,http://www.uploadscenter.com/
-uppit,http://\(www\.\)\?uppit.com/,http://uppit.com/
+uppit,http://\(www\.\)\?\(uppit.com\|.*\.up\.ht\)/,http://uppit.com/
 upshared,http://\(www\.\)\?upshared.com/,http://upshared.com/
 uptobox,http://\(www\.\)\?uptobox.com/,http://uptobox.com/
 usefile,http://\(www\.\)\?usefile.com/,http://usefile.com/

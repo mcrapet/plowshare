@@ -20,6 +20,9 @@
 
 declare -gA UPTOBOX_FUNCS
 UPTOBOX_FUNCS['ul_get_space_data']='uptobox_ul_get_space_data'
+UPTOBOX_FUNCS['ls_parse_links']='uptobox_ls_parse_links'
+UPTOBOX_FUNCS['ls_parse_names']='uptobox_ls_parse_names'
+UPTOBOX_FUNCS['ls_parse_folders']='uptobox_ls_parse_folders'
 
 uptobox_ul_get_space_data() {
     local -r COOKIE_FILE=$1
@@ -39,4 +42,35 @@ uptobox_ul_get_space_data() {
 
     echo "$SPACE_USED"
     echo "$SPACE_LIMIT"
+}
+
+uptobox_ls_parse_links() {
+    local PAGE=$1
+    local LINKS
+
+    LINKS=$(parse_all_attr_quiet '<TD align=left><a href="' 'href' <<< "$PAGE")
+
+    echo "$LINKS"
+}
+
+uptobox_ls_parse_names() {
+    local PAGE=$1
+    local NAMES
+
+    NAMES=$(parse_all_tag_quiet '<TD align=left><a href="' 'a' <<< "$PAGE")
+
+    echo "$NAMES"
+}
+
+uptobox_ls_parse_folders() {
+    local PAGE=$1
+    local FOLDERS USERNAME
+
+    USERNAME=$(parse_quiet '<title>Files of ' '<title>Files of \([^:]\+\)' <<< "$PAGE")
+    FOLDERS=$(parse_all_attr_quiet '<TD colspan=4>' 'href' <<< "$PAGE")
+
+    [ -n "$FOLDERS" ] && \
+        FOLDERS=$(replace '?op=my_files&amp;fld_id=' "http://uptobox.com/users/$USERNAME/" <<< "$FOLDERS")
+
+    echo "$FOLDERS"
 }
