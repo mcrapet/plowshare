@@ -214,7 +214,7 @@ download() {
     local -r LAST_HOST=$8
 
     local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME
-    local -i STATUS
+    local -i STATUS FILE_SIZE
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
 
@@ -522,10 +522,11 @@ download() {
             fi
 
             DRETVAL=0
-            curl_with_log "${CURL_ARGS[@]}" -w '%{http_code}' --fail --globoff \
+            curl_with_log "${CURL_ARGS[@]}" --fail --globoff \
+                -w '%{http_code}\t%{size_download}' \
                 -o "$FILENAME_TMP" "$FILE_URL" >"$DRESULT" || DRETVAL=$?
 
-            read STATUS < "$DRESULT"
+            IFS=$'\t' read -r STATUS FILE_SIZE < "$DRESULT"
             rm -f "$DRESULT"
 
             if module_config_need_cookie "$MODULE"; then
@@ -596,7 +597,7 @@ download() {
 
         # Pretty print results
         local -a DATA=("$MODULE" "$FILE_NAME" "$OUT_DIR" "$COOKIE_JAR" \
-                    "$URL_ENCODED" "$FILE_URL")
+                    "$URL_ENCODED" "$FILE_URL" "$FILE_SIZE")
         pretty_print $INDEX DATA[@] "${PRINTF_FORMAT:-%F}"
 
         return 0
@@ -614,6 +615,7 @@ download() {
 # %f: destination (local) filename
 # %F: destination (local) filename (with output directory)
 # %m: module name
+# %s: destination (local) file size (in bytes)
 # %u: download (source) url
 # and also:
 # %n: newline
@@ -626,7 +628,7 @@ download() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[cdfmuCFnt%]}
+    S=${1//%[cdfmsuCFnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -635,7 +637,7 @@ pretty_check() {
 }
 
 # $1: unique number
-# $2: array[@] (module, dfile, ddir, cdata, dls, dlf)
+# $2: array[@] (module, filename, out_dir, cookies, dl_url, final_url, filesize)
 # $3: format string
 pretty_print() {
     local -r N=$(printf %04d $1)
@@ -643,6 +645,7 @@ pretty_print() {
     local FMT=$3
     local COOKIE_FILE
 
+    test "${FMT#*%s}" != "$FMT" && FMT=$(replace '%s' "${A[6]}" <<< "$FMT")
     test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
     test "${FMT#*%f}" != "$FMT" && FMT=$(replace '%f' "${A[1]}" <<< "$FMT")
 
