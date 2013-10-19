@@ -179,9 +179,9 @@ module_config_need_cookie() {
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(-F "key=value")
 # $1: module name
-# stdout: variable array name (not content)
+# stdout: variable array name (not content)
 module_config_need_extra() {
-    local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
+    local VAR="MODULE_$(uppercase "$1")_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
     test -z "${!VAR}" || echo "${VAR}"
 }
 
@@ -503,7 +503,7 @@ download() {
             # Reuse previously created temporary file
             :> "$DRESULT"
 
-            # Give extra parameters to curl (custom HTTP headers, ...)
+            # Give extra parameters to curl (custom HTTP headers, ...)
             ANAME=$(module_config_need_extra "$MODULE")
             if test -n "$ANAME"; then
                 local -a CURL_EXTRA="$ANAME[@]"
