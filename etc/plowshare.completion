@@ -38,22 +38,22 @@ _plowup()
             --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
             --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
-        local m list
+        local m i list
         list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
             /usr/local/share/plowshare4/modules/config | cut -d'|' -f1)
 
         # check for already given module name
         # note: _get_first_arg is not accurate enough (option with argument)
         for m in $list; do
-            for (( i=0; i < ${#COMP_WORDS[@]}; i++ )); do
-                if [ "${COMP_WORDS[i]}" = $m ]; then
+            for (( i=1; i < ${#COMP_WORDS[@]}-1; i++ )); do
+                if [ "${COMP_WORDS[i]//./_}" = $m ]; then
                     _filedir
                     return 0
                 fi
             done
         done
 
-        COMPREPLY=( $(compgen -W "$list" -- $cur ) )
+        COMPREPLY=( $(compgen -W "$list" -- ${cur//./_} ) )
     fi
 } &&
 complete -F _plowup plowup
