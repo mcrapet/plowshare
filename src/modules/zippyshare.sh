@@ -172,7 +172,7 @@ zippyshare_upload() {
     fi
 
     # Upload progress: we don't need this!
-    # PAGE=$(curl -v "$BASE_URL/services/GetNewData?uploadId=$FORM_UID&server=$SERVER") || return
+    # PAGE=$(curl -v "$BASE_URL/services/GetNewData?uploadId=$FORM_UID&server=$SERVER") || return
 
     PAGE=$(curl_with_log -F "uploadId=$FORM_UID" \
         -F "file_0=@$FILE;filename=$DESTFILE" \

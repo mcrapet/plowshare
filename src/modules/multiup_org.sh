@@ -34,7 +34,7 @@ multiup_org_list() {
     local -r BASE_URL='http://www.multiup.org'
     local COOKIE_FILE PAGE LINK LINKS NAMES
 
-    # Set-Cookie: PHPSESSID=...; yooclick=true; ...
+    # Set-Cookie: PHPSESSID=...; yooclick=true; ...
     COOKIE_FILE=$(create_tempfile) || return
     PAGE=$(curl -L -c "$COOKIE_FILE" "$URL") || return
 

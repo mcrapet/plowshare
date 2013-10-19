@@ -63,7 +63,7 @@ fileover_download() {
     # <h3 class="waitline">Wait Time: <span class="wseconds">20</span>s</h3>
     WAIT=$(parse_tag '^[[:space:]]\+<h3.*waitline.>' span <<< "$PAGE") || return
 
-    # {"hash":"df65ff1c76bdacbe92816971651b91cd"}
+    # {"hash":"df65ff1c76bdacbe92816971651b91cd"}
     JSON=$(curl -H 'X-Requested-With: XMLHttpRequest' \
         --referer "$URL" "$BASE_URL/ax/timereq.flo?$FILE_ID") || return
 
