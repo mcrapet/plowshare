@@ -39,7 +39,7 @@ anonfiles_download() {
     local -r URL=$2
     local PAGE FILE_URL FILENAME
 
-    PAGE=$(curl "$URL") || return
+    PAGE=$(curl -L "$URL") || return
 
     if match '404 - File Not Found<\|>File does not exist\.<' "$PAGE"; then
         return $ERR_LINK_DEAD
@@ -104,7 +104,7 @@ anonfiles_probe() {
     local -r REQ_IN=$3
     local PAGE REQ_OUT
 
-    PAGE=$(curl "$URL") || return
+    PAGE=$(curl -L "$URL") || return
 
     if match '404 - File Not Found<\|>File does not exist\.<' "$PAGE"; then
         return $ERR_LINK_DEAD
