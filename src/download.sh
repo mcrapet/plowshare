@@ -239,10 +239,10 @@ download() {
             cat "$GLOBAL_COOKIES" > "$COOKIE_FILE"
         fi
 
-        # Pre-processing script
+        # Pre-processing script (executed in a subshell)
         if [ -n "$PRE_COMMAND" ]; then
             DRETVAL=0
-            $(exec "$PRE_COMMAND" "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" >/dev/null) || DRETVAL=$?
+            (exec "$PRE_COMMAND" "$MODULE" "$URL_ENCODED" "$COOKIE_FILE") >/dev/null || DRETVAL=$?
 
             if [ $DRETVAL -eq $ERR_NOMODULE ]; then
                 log_notice "Skipping link (as requested): $URL_ENCODED"
@@ -583,12 +583,12 @@ download() {
 
         mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" OK "$FILENAME_OUT"
 
-        # Post-processing script
+        # Post-processing script (executed in a subshell)
         if [ -n "$POST_COMMAND" ]; then
             COOKIE_FILE=$(create_tempfile) && echo "$COOKIE_JAR" > "$COOKIE_FILE"
             DRETVAL=0
-            $(exec "$POST_COMMAND" "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" \
-                "$FILE_URL" "$FILE_NAME" >/dev/null) || DRETVAL=$?
+            (exec "$POST_COMMAND" "$MODULE" "$URL_ENCODED" "$COOKIE_FILE" \
+                "$FILE_URL" "$FILE_NAME") >/dev/null || DRETVAL=$?
 
             test -f "$COOKIE_FILE" && rm -f "$COOKIE_FILE"
 
