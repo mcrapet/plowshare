@@ -580,9 +580,9 @@ download() {
                     log_notice "Moving file to output directory: ${OUT_DIR:-.}"
                 mv -f "$FILENAME_TMP" "$FILENAME_OUT"
             fi
-        fi
 
-        mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" OK "$FILENAME_OUT"
+            mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" OK "$FILENAME_OUT"
+        fi
 
         # Post-processing script (executed in a subshell)
         if [ -n "$POST_COMMAND" ]; then
