@@ -154,11 +154,10 @@ mark_queue() {
 # stdout: non existing filename
 create_alt_filename() {
     local -r FILENAME=$1
-    local -i COUNT=1
+    local -i COUNT=0
 
-    while (( COUNT < 100 )); do
+    while (( ++COUNT < 100 )); do
         [ -f "$FILENAME.$COUNT" ] || break
-        (( ++COUNT ))
     done
     echo "$FILENAME.$COUNT"
 }
