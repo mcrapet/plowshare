@@ -600,7 +600,7 @@ grep_http_header_content_disposition() {
 grep_form_by_name() {
     local -r A=${2:-'.*'}
     local STRING=$(sed -ne \
-        "/<[Ff][Oo][Rr][Mm][[:space:]].*name[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
+        "/<[Ff][Oo][Rr][Mm][[:space:]].*name[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?[[:space:]/>]/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"name=$A\""
@@ -623,7 +623,7 @@ grep_form_by_name() {
 grep_form_by_id() {
     local -r A=${2:-'.*'}
     local STRING=$(sed -ne \
-        "/<[Ff][Oo][Rr][Mm][[:space:]].*id[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
+        "/<[Ff][Oo][Rr][Mm][[:space:]].*id[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?[[:space:]/>]/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (sed): \"id=$A\""
@@ -822,7 +822,7 @@ parse_form_input_by_name_quiet() {
 # stdin: (X)HTML data
 # stdout: result (can be null string if <input> has no value attribute)
 parse_form_input_by_type() {
-    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*type[[:space:]]*=[[:space:]]*[\"']\?$1[\"']\?" 'value'
+    parse_attr "<[Ii][Nn][Pp][Uu][Tt][^>]*type[[:space:]]*=[[:space:]]*[\"']\?$1[\"']\?[[:space:]/>]" 'value'
 }
 
 # Like parse_form_input_by_type, but hide possible error
