@@ -127,6 +127,7 @@ letitbit_decode_form() {
     local -r CRYPT_FORM=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
+    local -r VARIABLE_PREFIX='jac' # look in site source 'eval(jac383("d2lu...'
     local INPUTS IDS VALUES CC LINE RET
     local SCRIPT DEF_SCRIPT PROTO_SCRIPT DEC_SCRIPT DEC_SCRIPT2
     local PREPARE CODE IMAGE_FILE PASS
@@ -162,12 +163,12 @@ letitbit_decode_form() {
     SCRIPT=$(echo "$CRYPT_FORM" | tr -d '\n\r' | parse_tag script) || return
 
     # split up script into general definition part and decrypting part
-    DEF_SCRIPT=${SCRIPT%%;;eval(jspid*}
+    DEF_SCRIPT=${SCRIPT%%;;eval(${VARIABLE_PREFIX}*}
     DEC_SCRIPT=${SCRIPT:$(( ${#DEF_SCRIPT} + 2))}
 
     # optimize to improve compatibility + save time and computing power
     # first part of DEF_SCRIPT is (hopefully) static and decodes to PROTO_SCRIPT
-    DEF_SCRIPT="var jspid${DEF_SCRIPT#*;;var jspid}"
+    DEF_SCRIPT="var ${VARIABLE_PREFIX}${DEF_SCRIPT#*;;var ${VARIABLE_PREFIX}}"
     PROTO_SCRIPT='String.prototype.sort=function(){return this.split("").sort().join("")};
 String.prototype.ord=function(){return this.charCodeAt(0)};
 var EOL=function(){return (1).chr()};
