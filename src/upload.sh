@@ -470,6 +470,8 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         log_error "Retry limit reached (max=$MAXRETRIES)"
     elif [ $URETVAL -eq $ERR_BAD_COMMAND_LINE ]; then
         log_error 'Wrong module option, check your command line'
+    elif [ $URETVAL -eq $ERR_ASYNC_REQUEST ]; then
+        log_error 'Asynchronous upload in progress'
     else
         log_error "Failed inside ${FUNCTION}() [$URETVAL]"
     fi

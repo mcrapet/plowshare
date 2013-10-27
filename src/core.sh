@@ -44,6 +44,7 @@ declare -r ERR_LINK_DEAD=13               # plowdel: File not found or previousl
 declare -r ERR_SIZE_LIMIT_EXCEEDED=14     # plowdown: Can't download link because file is too big (need permissions)
                                           # plowup: Can't upload too big file (need permissions)
 declare -r ERR_BAD_COMMAND_LINE=15        # Unknown command line parameter or incompatible options
+declare -r ERR_ASYNC_REQUEST=16           # plowup: Asynchronous remote upload started (can't predict final status)
 declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in plow* scripts):
