@@ -415,11 +415,9 @@ sockshare_upload_form() {
         fi
 
         # If this is an async upload, we are done
-        # FIXME: fake output, maybe introduce a new exit code?
         if [ -n "$ASYNC" ]; then
-            log_error 'Async remote upload, check your account for link.'
-            echo '#'
-            return 0
+            log_error 'Once remote upload completed, check your account for link.'
+            return $ERR_ASYNC_REQUEST
         fi
 
         # Keep checking progress
