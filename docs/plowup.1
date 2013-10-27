@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "April 21, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowup" "1" "October 23, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowup \- Simple upload manager for file-sharing websites
@@ -258,6 +258,13 @@ Protect your files with a password. May require premium account.
 .TP
 .BI "   " " " --email-to "=EMAIL"
 <To> field for notification email.
+.SS Advanced options
+.TP
+.B "   " --async
+Asynchronous remote upload (only start upload, don't wait for link).
+.TP
+.B "   " --private
+Do not allow others to download the file.
 .P
 All switches are not implemented nor required for all modules.
 See long help message for detailed modules option list.
@@ -287,10 +294,10 @@ URL fetching is rarely implemented by modules.
 
 .nf
 # Feature dedicated to premium members
-$ plowup \-a myuser:mypassword oron http://www.somewherefarbeyond.com/somefile
+$ plowup \-a myuser:mypassword rapidgator http://www.somewherefarbeyond.com/somefile
 .sp 1
 # Change destination filename
-$ plowup \-a myuser:mypassword oron http://www.somewherefarbeyond.com/somefile:anothername
+$ plowup \-a myuser:mypassword rapidgator http://www.somewherefarbeyond.com/somefile:anothername
 .fi
 
 .\" ****************************************************************************
@@ -339,6 +346,8 @@ Authentication required (example: anonymous users can't do remote upload).
 Can't upload too big file (hoster limitation or requires more permissions).
 .IP 15
 Unknown command line parameter or incompatible options.
+.IP 16
+Asynchronous remote upload started (can't predict final status).
 .PP
 If
 .B plowup
