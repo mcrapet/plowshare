@@ -184,7 +184,7 @@ xfilesharing_get_module() {
 # $1: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 xfilesharing_get_all_module_options() {
-    local -ur VAR_OPTIONS="${2}_OPTIONS"
+    local -ur VAR_OPTIONS="${1}_OPTIONS"
 
     strip_and_drop_empty_lines "${GENERIC_OPTIONS[$VAR_OPTIONS]}"
 
@@ -192,10 +192,9 @@ xfilesharing_get_all_module_options() {
 
     for MODULE in $MODULES; do
         local -u VAR=${MODULE}_OPTIONS
-        OPTIONS=${VAR}[$VAR_OPTIONS]
+        OPTIONS=${VAR}[${VAR_OPTIONS}]
         OPTIONS=${!OPTIONS}
-
-        [ -n "$OPTION" ] && strip_and_drop_empty_lines "$OPTION"
+        [ -n "$OPTIONS" ] && strip_and_drop_empty_lines "$OPTIONS"
     done
 
     return 0

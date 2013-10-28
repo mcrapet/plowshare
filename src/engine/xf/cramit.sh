@@ -30,7 +30,7 @@ CRAMIT_FUNCS['ul_remote_queue_check']='cramit_ul_remote_queue_check'
 CRAMIT_FUNCS['ul_get_file_code']='cramit_ul_get_file_code'
 
 cramit_dl_parse_form1() {
-    cramit_dl_parse_form1 "$1" '' '' '' '' '' '' 'freemethod'
+    xfilesharing_dl_parse_form1_generic "$1" '' '' '' '' '' '' 'freemethod'
 }
 
 cramit_ls_parse_links() {
