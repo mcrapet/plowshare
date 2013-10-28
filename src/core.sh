@@ -2401,6 +2401,7 @@ process_configfile_options() {
     if [ -z "$3" ]; then
         CONFIG="$HOME/.config/plowshare/plowshare.conf"
         test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
+        test -f "$CONFIG" || return 0
     else
         CONFIG=$3
     fi
