@@ -2334,7 +2334,7 @@ process_configfile_options() {
     local CONFIG OPTIONS SECTION NAME VALUE OPTION
 
     CONFIG="$HOME/.config/plowshare/plowshare.conf"
-    test ! -f "$CONFIG" && CONFIG='/etc/plowshare.conf'
+    test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
     test -f "$CONFIG" || return 0
 
     # Strip spaces in options
