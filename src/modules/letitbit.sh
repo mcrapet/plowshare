@@ -274,7 +274,6 @@ letitbit_download() {
         return $ERR_LINK_DEAD
     fi
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     if [ "$ACCOUNT" = 'premium' ]; then
         local FILE_LINKS

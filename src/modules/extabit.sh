@@ -105,7 +105,6 @@ extabit_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     # Next free download from your ip will be available in
     if match 'free download from your ip' "$PAGE"; then

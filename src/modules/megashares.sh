@@ -157,7 +157,6 @@ megashares_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    test "$CHECK_LINK" && return 0
 
     # Captcha must be validated
     if match 'Security Code' "$PAGE"; then

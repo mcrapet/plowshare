@@ -126,7 +126,6 @@ divshare_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     # Uploader can disable audio/video download (only streaming is available)
     REDIR_URL=$(echo "$PAGE" | parse_attr_quiet 'btn_download_new' 'href') || {

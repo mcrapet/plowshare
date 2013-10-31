@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "October 19, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
+.TH "plowdown" "1" "October 31, 2013" "GPL" "Plowshare for Bash 3, GIT-snapshot"
 
 .SH NAME
 plowdown \- Simple download manager for file-sharing websites
@@ -44,9 +44,6 @@ Currently supported hosting sites list is available in README file.
 .SH OPTIONS
 
 .SS Common options
-.TP
-.B -c, --check-link
-Check and write alive link(s) to standard output, files are not downloaded.
 .TP
 .BI -i, " " --interface "=IFACE"
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
@@ -376,16 +373,12 @@ $ export http_proxy=http://192.168.0.20:80
 .sp 0
 $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 .fi
-.SS 5) Filter alive links in a text file 
-.nf
-$ plowdown \-c file_with_links.txt > file_with_active_links.txt
-.fi
-.SS 6) Don't download file but only display final download URL (alternative HTTP retriever can be used).
+.SS 5) Don't download file but only display final download URL (alternative HTTP retriever can be used).
 .nf
 # Depending hosters, cookie file might be required.
 $ plowdown \-v1 \-\-skip-final \-\-printf "# %f%n%d"  http://uploading.com/files/39267me4/foo.zip/
 .fi
-.SS 7) Safe download. Each URL will be limited in the number of tries and wait delays.
+.SS 6) Safe download. Each URL will be limited in the number of tries and wait delays.
 .nf
 $ alias plowdown='plowdown \-\-no\-overwrite \-\-max\-retries=10 \-\-timeout=3600'
 .sp 0
@@ -413,7 +406,7 @@ The file format is described in
 
 Possible exit codes are: 
 .IP 0 
-Success. It also means that link is alive if plowdown is invoked with \fI-c/--check-link\fP command-line option.
+Success.
 .IP 1
 Fatal error. Upstream site updated or unexpected result.
 .IP 2

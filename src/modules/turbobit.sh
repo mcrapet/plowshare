@@ -129,7 +129,6 @@ turbobit_download() {
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
     matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
-    [ -n "$CHECK_LINK" ] && return 0
 
     # Download xyz. Free download without registration from TurboBit.net
     FILE_NAME=$(echo "$PAGE" | parse '<title>' \

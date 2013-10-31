@@ -132,7 +132,6 @@ uploadhero_download() {
 
     # Verify if link exists
     match '<div class="raison">' "$PAGE" && return $ERR_LINK_DEAD
-    [ -n "$CHECK_LINK" ] && return 0
 
     # Check limit (one file every 20 minutes)
     if match 'id="lightbox_block_dl"' "$PAGE"; then

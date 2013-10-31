@@ -114,7 +114,6 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     echo "$FILE_URL"
     echo "$FILE_NAME"

@@ -150,7 +150,6 @@ rapidshare_download() {
         return $ERR_FATAL
     fi
 
-    test "$CHECK_LINK" && return 0
 
     log_debug "File MD5: $CRC"
 

@@ -133,7 +133,6 @@ shareonline_biz_download() {
 
     # The requested file isn't available anymore!
     [ "$FILE_STATUS" = 'OK' ] || return $ERR_LINK_DEAD
-    [ -n "$CHECK_LINK" ] && return 0
 
     if [ -n "$AUTH" ]; then
         shareonline_biz_switch_lang "$COOKIE_FILE" "$BASE_URL" || return

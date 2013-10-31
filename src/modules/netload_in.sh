@@ -118,7 +118,6 @@ netload_in_download() {
     WAIT_URL=$(echo "$PAGE" | parse_attr_quiet '<div class="Free_dl">' 'href')
 
     test "$WAIT_URL" || return $ERR_LINK_DEAD
-    test "$CHECK_LINK" && return 0
 
     WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
     WAIT_HTML=$(curl -b "$COOKIE_FILE" --location --referer "$URL" "$WAIT_URL") || return

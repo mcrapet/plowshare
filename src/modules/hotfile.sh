@@ -115,7 +115,6 @@ hotfile_download() {
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'function[[:space:]]*starttimer' \
         '+\([[:digit:]]\+\);' 2) || return
 
-    test "$CHECK_LINK" && return 0
 
     # Send (post) form
     local FORM_HTML FORM_URL FORM_ACTION FORM_TM FORM_TMHASH FORM_WAIT FORM_WAITHASH FORM_UPIDHASH

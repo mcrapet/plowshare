@@ -101,7 +101,6 @@ MODULE_2SHARED_PROBE_OPTIONS=""
         FILE_URL=$(echo "$PAGE" | parse 'window.location' "='\([^']*\)") || return
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FILENAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) download - 2shared$')
 

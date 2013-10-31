@@ -25,7 +25,6 @@ HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Return plowdown version
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-CHECK_LINK,c,check-link,,DEPRECATED option, use plowprobe
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
 OUTPUT_DIR,o,output-directory,D=DIR,Directory where files will be saved
@@ -199,7 +198,7 @@ module_null_download() {
     echo "$2"
 }
 
-# Note: Global options $INDEX, $CHECK_LINK, $MARK_DOWN, $NOOVERWRITE,
+# Note: Global options $INDEX, $MARK_DOWN, $NOOVERWRITE,
 # $TIMEOUT, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
 # $SKIP_FINAL, $PRE_COMMAND, $POST_COMMAND, $TEMP_RENAME are accessed directly.
 download() {
@@ -221,7 +220,7 @@ download() {
     timeout_init $TIMEOUT
 
     AWAIT=$(module_config_wait "$MODULE")
-    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* && -z "$CHECK_LINK" && -z "$SKIP_FINAL" ]]; then
+    if [[ $AWAIT -gt 0 && $URL = $LAST_HOST* && -z "$SKIP_FINAL" ]]; then
         log_notice 'Same previous hoster, forced wait requested'
         wait $AWAIT || {
             log_error "Delay limit reached (${FUNCTION})";
@@ -251,63 +250,47 @@ download() {
             fi
         fi
 
-        if test -z "$CHECK_LINK"; then
-            local -i TRY=0
-            DRESULT=$(create_tempfile) || return
+        local -i TRY=0
+        DRESULT=$(create_tempfile) || return
 
-            while :; do
-                DRETVAL=0
-                $FUNCTION "$COOKIE_FILE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
-
-                if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
-                    read AWAIT <"$DRESULT"
-                    if [ -z "$AWAIT" ]; then
-                        log_debug 'arbitrary wait'
-                    else
-                        log_debug 'arbitrary wait (from module)'
-                    fi
-                    wait ${AWAIT:-60} || { DRETVAL=$?; break; }
-                    continue
-                elif [[ $MAX_RETRIES -eq 0 ]]; then
-                    break
-                elif [ $DRETVAL -ne $ERR_NETWORK -a \
-                       $DRETVAL -ne $ERR_CAPTCHA ]; then
-                    break
-                # Special case
-                elif [ $DRETVAL -eq $ERR_CAPTCHA -a \
-                        "$CAPTCHA_METHOD" = 'none' ]; then
-                    log_debug 'captcha method set to none, abort'
-                    break
-                elif (( MAX_RETRIES < ++TRY )); then
-                    DRETVAL=$ERR_MAX_TRIES_REACHED
-                    break
-                fi
-
-                log_notice "Starting download ($MODULE): retry $TRY/$MAX_RETRIES"
-            done
-
-            if [ $DRETVAL -eq 0 ]; then
-                { read FILE_URL; read FILE_NAME; } <"$DRESULT" || true
-            fi
-
-            # Important: keep cookies in a variable and not in a file
-            COOKIE_JAR=$(cat "$COOKIE_FILE")
-            rm -f "$DRESULT" "$COOKIE_FILE"
-        else
-            # This code will be removed soon. Use plowprobe instead.
+        while :; do
             DRETVAL=0
-            $FUNCTION "$COOKIE_FILE" "$URL_ENCODED" >/dev/null || DRETVAL=$?
-            rm -f "$COOKIE_FILE"
+            $FUNCTION "$COOKIE_FILE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
-            if [ $DRETVAL -eq 0 -o \
-                    $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE -o \
-                    $DRETVAL -eq $ERR_LINK_NEED_PERMISSIONS -o \
-                    $DRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
-                log_notice "Link active: $URL_ENCODED"
-                echo "$URL_ENCODED"
-                return 0
+            if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+                read AWAIT <"$DRESULT"
+                if [ -z "$AWAIT" ]; then
+                    log_debug 'arbitrary wait'
+                else
+                    log_debug 'arbitrary wait (from module)'
+                fi
+                wait ${AWAIT:-60} || { DRETVAL=$?; break; }
+                continue
+            elif [[ $MAX_RETRIES -eq 0 ]]; then
+                break
+            elif [ $DRETVAL -ne $ERR_NETWORK -a \
+                   $DRETVAL -ne $ERR_CAPTCHA ]; then
+                break
+            # Special case
+            elif [ $DRETVAL -eq $ERR_CAPTCHA -a \
+                    "$CAPTCHA_METHOD" = 'none' ]; then
+                log_debug 'captcha method set to none, abort'
+                break
+            elif (( MAX_RETRIES < ++TRY )); then
+                DRETVAL=$ERR_MAX_TRIES_REACHED
+                break
             fi
+
+            log_notice "Starting download ($MODULE): retry $TRY/$MAX_RETRIES"
+        done
+
+        if [ $DRETVAL -eq 0 ]; then
+            { read FILE_URL; read FILE_NAME; } <"$DRESULT" || true
         fi
+
+        # Important: keep cookies in a variable and not in a file
+        COOKIE_JAR=$(cat "$COOKIE_FILE")
+        rm -f "$DRESULT" "$COOKIE_FILE"
 
         case $DRETVAL in
             0)
@@ -743,7 +726,7 @@ fi
 if [ -n "$OUTPUT_DIR" ]; then
     log_notice "Output directory: ${OUTPUT_DIR%/}"
 elif [ ! -w "$PWD" ]; then
-    test "$CHECK_LINK" || log_notice 'Warning: Current directory is not writable!'
+    log_notice 'Warning: Current directory is not writable!'
 fi
 
 if [ -n "$GLOBAL_COOKIES" ]; then

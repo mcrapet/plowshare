@@ -176,7 +176,6 @@ hipfile_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_REFERER FORM_RAND FORM_METHOD_F
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return

@@ -100,7 +100,6 @@ cloudzer_net_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FILE_ID=$(echo "$PAGE" | parse_attr '"auth"' 'content') || return
     WAITTIME=$(echo "$PAGE" | parse_attr '"wait"' 'content') || return

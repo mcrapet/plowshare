@@ -90,7 +90,6 @@ ryushare_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     if [ "$TYPE" != 'premium' ]; then
         FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return

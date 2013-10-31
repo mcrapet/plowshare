@@ -153,7 +153,6 @@ filepost_download() {
     # <h1 title="">File not found</h1>
     match 'File not found' "$PAGE" && return $ERR_LINK_DEAD
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     # We are sorry, the server where this file is located is currently unavailable, but should be recovered soon. Please try to download this file later.
     if matchi 'is currently unavailable' "$PAGE"; then

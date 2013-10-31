@@ -112,7 +112,6 @@ depositfiles_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     if match "download_started()" "$START"; then
         FILE_URL=$(echo "$START" | parse_attr 'download_started()' 'href') || return

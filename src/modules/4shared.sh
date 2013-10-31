@@ -132,7 +132,6 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
 
     WAIT_URL=$(parse_attr '4shared\.com/get/' href <<< "$PAGE") || return
 
-    test "$CHECK_LINK" && return 0
 
     # Note: There is a strange entry required in cookie file: efdcyqLAT_3Q=1
     WAIT_HTML=$(curl -L -b "$COOKIEFILE" -b '4langcookie=en' --referer "$URL" "$WAIT_URL") || return

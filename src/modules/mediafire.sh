@@ -255,7 +255,6 @@ mediafire_download() {
 
     # <h3 class="error_msg_title">Invalid or Deleted File.</h3>
     match 'Invalid or Deleted File' "$PAGE" && return $ERR_LINK_DEAD
-    [ -n "$CHECK_LINK" ] && return 0
 
     # handle captcha (reCaptcha or SolveMedia) if there is one
     if match '<form[^>]*form_captcha' "$PAGE"; then

@@ -48,7 +48,6 @@ bayimg_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FILE_URL=$(parse_attr 'toggleResize(' src <<< "$PAGE") || return
 
