@@ -184,7 +184,6 @@ rapidgator_download() {
         return $ERR_LINK_DEAD
     fi
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     # [premium] You have reached daily quota of downloaded information for premium accounts. At the moment, the quota is 15 GB
     # [free, anon] You have reached your daily downloads limit. Please try again later.

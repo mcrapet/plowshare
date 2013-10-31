@@ -50,7 +50,6 @@ putlocker_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     HASH=$(parse_form_input_by_name 'hash' <<< "$PAGE") || return
 

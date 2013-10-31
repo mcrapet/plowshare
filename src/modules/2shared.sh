@@ -101,7 +101,6 @@ MODULE_2SHARED_PROBE_OPTIONS=""
         FILE_URL=$(parse_form_input_by_name 'd3link' <<< "$PAGE") || return
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FILE_NAME=$(echo "$PAGE" | parse_tag title | parse . '^\(.*\) download - 2shared$')
 

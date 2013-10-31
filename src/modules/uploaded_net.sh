@@ -216,7 +216,6 @@ uploaded_net_download() {
         return $ERR_LINK_DEAD
     fi
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     uploaded_net_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 

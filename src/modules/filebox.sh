@@ -93,7 +93,6 @@ filebox_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     if [ $WAIT_NEEDED -ne 0 ]; then
         WAIT_TIME=$(echo "$PAGE" | parse_tag 'countdown_str">' span) || return

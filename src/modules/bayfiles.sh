@@ -80,7 +80,6 @@ bayfiles_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     # <h3 class="comparison">What are the benefits for <strong>premium</strong> members?</h3>
     if match 'comparison\|benefits' "$PAGE"; then

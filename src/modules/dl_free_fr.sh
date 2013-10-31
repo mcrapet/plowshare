@@ -144,7 +144,6 @@ dl_free_fr_download() {
 
     # Free is your ISP, this is direct download
     if match '^HTTP/1.1 206' "$PAGE"; then
-        test "$CHECK_LINK" && return 0
 
         FILE_NAME=$(echo "$PAGE" | grep_http_header_content_disposition) || return
         echo "$URL"
@@ -160,7 +159,6 @@ dl_free_fr_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FILE_NAME=$(echo "$PAGE" | parse 'Fichier:' '">\([^<]*\)' 1) || return
 

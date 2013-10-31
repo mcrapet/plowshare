@@ -59,7 +59,6 @@ billionuploads_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return

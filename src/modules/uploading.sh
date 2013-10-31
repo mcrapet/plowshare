@@ -82,7 +82,6 @@ uploading_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     # <h2>Maximum File Size Limit</h2>
     # <h2>File access denied</h2>

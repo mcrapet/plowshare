@@ -77,7 +77,6 @@ data_hu_download() {
     PAGE=$(curl -b "$COOKIE_FILE" -L "$URL") || return
 
     match "/missing.php" "$PAGE" && return $ERR_LINK_DEAD
-    [ -n "$CHECK_LINK" ] && return 0
 
     # Extract + output download link and file name
     echo "$PAGE" | parse_attr 'download_box_button' 'href' || return

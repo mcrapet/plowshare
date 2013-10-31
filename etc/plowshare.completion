@@ -97,7 +97,7 @@ _plowdown()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
             -v -q -i -o -m -r -t -x \
-            --max-rate --interface --check-link --mark-downloaded --no-overwrite \
+            --max-rate --interface --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --fallback --cookies --9kweu --antigate --captchabhood --deathbycaptcha \
             --captchamethod --captchaprogram --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )

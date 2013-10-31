@@ -106,10 +106,7 @@ $ plowdown -a 'myuser:mypassword' http://hotfile.com/dl/68261330/2f2926f/
 7. Download a password-protected file from Mediafire:
 $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 
-8. Filter alive links in a text file
-$ plowdown -c file_with_links.txt > file_with_active_links.txt
-
-9. Avoid never-ending downloads: limit the wait delays & number of retries
+8. Avoid never-ending downloads: limit the wait delays & number of retries
    (limitations apply for each link)
 $ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 

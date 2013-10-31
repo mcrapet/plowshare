@@ -75,7 +75,6 @@ euroshare_eu_download() {
     PAGE=$(curl -c "$COOKI_FILE" "$URL") || return
 
     match 'Soubor nenalezen</h1>' "$PAGE" && return $ERR_LINK_DEAD
-    [ -n "$CHECK_LINK" ] && return 0
 
     if [ -n "$AUTH_FREE" ]; then
         euroshare_eu_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return

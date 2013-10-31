@@ -88,7 +88,6 @@ bitshare_download() {
     # Error - File not available
     ! match 'File not available' "$RESPONSE" || return $ERR_LINK_DEAD
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     # Download limit
     if match "You reached your hourly traffic limit\." "$RESPONSE"; then

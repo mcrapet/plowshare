@@ -55,7 +55,6 @@ zalaa_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     detect_javascript || return
 

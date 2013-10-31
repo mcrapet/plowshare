@@ -94,7 +94,6 @@ sendspace_download() {
         return $ERR_FATAL
     fi
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     # parse and output URL and file name
     echo "$PAGE" | parse_attr 'download_button' 'href' || return

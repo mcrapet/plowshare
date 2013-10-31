@@ -64,7 +64,6 @@ dataport_cz_download() {
         return $ERR_LINK_DEAD
     fi
 
-    test "$CHECK_LINK" && return 0
 
     # Returned HTML uses UTF-8 charset
     # <strong><span style="color:green">Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span></strong>

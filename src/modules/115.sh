@@ -53,7 +53,6 @@ MODULE_115_DOWNLOAD_SUCCESSIVE_INTERVAL=
     U1=$(echo "$PAGE" | parse_all 'url:' "'\(/?ct=download[^']*\)" | last_line) || return
     U2=$(echo "$PAGE" | parse 'GetMyDownloadAddress(' "('\([^']*\)") || return
 
-    test "$CHECK_LINK" && return 0
 
     # {"state":true,"urls":[{"client":1,"url":"http:\/\/119. ...
     JSON=$(curl -b "$COOKIEFILE" "http://115.com$U1$U2") || return

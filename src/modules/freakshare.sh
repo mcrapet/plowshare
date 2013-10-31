@@ -85,7 +85,6 @@ freakshare_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    test "$CHECK_LINK" && return 0
 
     SLEEP=$(echo "$WAIT_HTML" | parse 'time' '=\ \([[:digit:]]\+\)\.0;') || return
 

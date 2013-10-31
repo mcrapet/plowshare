@@ -92,7 +92,6 @@ upstore_download() {
 
     if [ -n "$ERR" ]; then
         [ "$ERR" = 'File not found' ] && return $ERR_LINK_DEAD
-        [ -n "$CHECK_LINK" ] && return 0
 
         #File size is larger than 1 GB. Unfortunately, it can be downloaded only with premium
         if [[ "$ERR" = 'File size is larger than'* ]]; then
@@ -103,7 +102,6 @@ upstore_download() {
         return $ERR_FATAL
     fi
 
-    [ -n "$CHECK_LINK" ] && return 0
 
     PAGE=$(curl -b 'lang=en' -d "hash=$HASH" \
         -d 'free=Slow download' "$BASE_URL/$HASH") || return

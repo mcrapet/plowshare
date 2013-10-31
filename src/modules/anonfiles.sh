@@ -52,7 +52,6 @@ anonfiles_download() {
             parse_attr_quiet 'image_preview' src) || return
     fi
 
-    test "$CHECK_LINK" && return 0
 
     FILENAME=$(echo "$PAGE" | parse_tag '<legend' b)
 
