@@ -2306,7 +2306,6 @@ print_module_options() {
         if test "$OPTIONS"; then
             echo
             echo "Options for module <$REPLY>:"
-            echo
             print_options "$OPTIONS"
         fi
     done <<< "$1"

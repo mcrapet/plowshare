@@ -67,12 +67,9 @@ absolute_path() {
 # Note: $MODULES is a multi-line list
 usage() {
     echo 'Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL...'
-    echo
-    echo '  Delete a file-link from a file sharing site.'
-    echo '  Available modules:' $MODULES
+    echo 'Delete files from file sharing websites links.'
     echo
     echo 'Global options:'
-    echo
     print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
     test -z "$1" || print_module_options "$MODULES" DELETE
 }

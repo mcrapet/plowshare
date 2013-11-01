@@ -76,12 +76,9 @@ absolute_path() {
 # Note: $MODULES is a multi-line list
 usage() {
     echo 'Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] URL|FILE[:DESTNAME]...'
-    echo
-    echo '  Upload file(s) to a file-sharing site.'
-    echo '  Available modules:' $MODULES
+    echo 'Upload files to file sharing websites.'
     echo
     echo 'Global options:'
-    echo
     print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
     test -z "$1" || print_module_options "$MODULES" UPLOAD
 }
