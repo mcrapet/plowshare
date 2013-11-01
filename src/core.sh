@@ -1437,7 +1437,7 @@ captcha_process() {
                 -F 'action=usercaptchaupload' \
                 -F "apikey=$CAPTCHA_9KWEU" \
                 -F 'source=plowshare' \
-                -F 'maxtimeout=200' \
+                -F 'maxtimeout=235' \
                 -F "file-upload-01=@$FILENAME;filename=file.jpg" \
                 'http://www.9kw.eu/index.cgi') || return
 
