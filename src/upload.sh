@@ -21,9 +21,9 @@
 declare -r VERSION='GIT-snapshot'
 
 declare -r EARLY_OPTIONS="
-HELP,h,help,,Show help info
+HELP,h,help,,Show help info and exit
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
-GETVERSION,,version,,Return plowup version
+GETVERSION,,version,,Output plowup version information and exit
 EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
