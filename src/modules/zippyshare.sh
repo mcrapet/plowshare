@@ -26,13 +26,41 @@ MODULE_ZIPPYSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_ZIPPYSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_ZIPPYSHARE_UPLOAD_OPTIONS="
-PRIVATE_FILE,,private,,Do not allow others to download the file"
+AUTH,a,auth,a=USER:PASSWORD,User account"
 MODULE_ZIPPYSHARE_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_ZIPPYSHARE_LIST_OPTIONS=""
 MODULE_ZIPPYSHARE_LIST_HAS_SUBFOLDERS=yes
 
 MODULE_ZIPPYSHARE_PROBE_OPTIONS=""
+
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base url
+zippyshare_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA PAGE NAME
+
+    LOGIN_DATA='login=$USER&pass=$PASSWORD'
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/services/login" -b 'ziplocale=en') || return
+
+    if [ -n "$PAGE" ]; then
+        log_debug "$FUNCNAME: non empty result. Site updated?"
+    fi
+
+    # If successful, 5 entries are added into cookie file:
+    # JSESSIONID, zipname, ziphash, manager-state, ZIPWEB
+    if NAME=$(parse_cookie 'zipname' < "$COOKIE_FILE"); then
+        log_debug "Successfully logged in as member '$NAME'"
+        return 0
+    fi
+
+    return $ERR_LOGIN_FAILED
+}
 
 # Output a zippyshare file download URL
 # $1: cookie file (unused here)
@@ -140,15 +168,16 @@ zippyshare_download() {
 }
 
 # Upload a file to zippyshare.com
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: zippyshare.com download link
 zippyshare_upload() {
+    local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DESTFILE=$3
     local -r BASE_URL='http://www.zippyshare.com'
-    local PAGE SERVER FORM_HTML FORM_ACTION FORM_UID FILE_URL FORM_DATA_PRIV
+    local PAGE SERVER FORM_HTML FORM_ACTION FORM_UID FILE_URL FORM_DATA_AUTH
 
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt 209715200 ]; then
@@ -156,7 +185,11 @@ zippyshare_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    PAGE=$(curl -L -b 'ziplocale=en' "$BASE_URL") || return
+    if [ -n "$AUTH" ]; then
+        zippyshare_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    PAGE=$(curl -L -b "$COOKIE_FILE" -b 'ziplocale=en' "$BASE_URL") || return
 
     SERVER=$(echo "$PAGE" | parse 'var[[:space:]]*server' "'\([^']*\)';")
     log_debug "Upload server $SERVER"
@@ -165,17 +198,17 @@ zippyshare_upload() {
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
     FORM_UID=$(echo "$FORM_HTML" | parse_form_input_by_name 'uploadId') || return
 
-    if [ -n "$PRIVATE_FILE" ]; then
-        FORM_DATA_PRIV='--form-string private=checkbox'
-        log_debug 'set as private file (as requested)'
+    if [ -n "$AUTH" ]; then
+        local NAME HASH
+        NAME=$(parse_cookie 'zipname' < "$COOKIE_FILE")
+        HASH=$(parse_cookie 'ziphash' < "$COOKIE_FILE")
+        FORM_DATA_AUTH="-F zipname=$NAME -F ziphash=$HASH"
     fi
 
-    # Upload progress: we don't need this!
-    # PAGE=$(curl -v "$BASE_URL/services/GetNewData?uploadId=$FORM_UID&server=$SERVER") || return
-
+    # Important: field order seems checked! zipname/ziphash go before Filedata!
     PAGE=$(curl_with_log -F "uploadId=$FORM_UID" \
-        -F "file_0=@$FILE;filename=$DESTFILE" \
-        --form-string 'x=51' --form-string 'y=20' $FORM_DATA_PRIV \
+        $FORM_DATA_AUTH \
+        -F "Filedata=@$FILE;filename=$DESTFILE" \
         "$FORM_ACTION") || return
 
     # Take first occurrence
