@@ -2444,6 +2444,7 @@ log_report_info() {
         fi
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
+        log_report "[lib ] '$LIBDIR'"
         log_report '=== SYSTEM INFO END ==='
     fi
 }
