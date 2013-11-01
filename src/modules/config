@@ -36,7 +36,7 @@ megashares      | download | upload | delete |      | probe |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiup_org     |          |        |        | list | probe |
-multiupload     |          | upload |        | list |       |
+multiupload     | download | upload |        | list |       |
 nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 pastebin        |          |        |        | list |       |
