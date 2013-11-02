@@ -60,12 +60,9 @@ absolute_path() {
 # Note: $MODULES is a multi-line list
 usage() {
     echo 'Usage: plowlist [OPTIONS] [MODULE_OPTIONS] URL...'
-    echo
-    echo '  Retrieve list of links from a shared-folder (sharing site) url.'
-    echo '  Available modules:' $MODULES
+    echo 'Retrieve list of links from folders (of file sharing websites).'
     echo
     echo 'Global options:'
-    echo
     print_options "$OPTIONS"
     test -z "$1" || print_module_options "$MODULES" LIST
 }
