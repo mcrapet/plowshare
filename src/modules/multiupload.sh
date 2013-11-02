@@ -26,6 +26,7 @@ MODULE_MULTIUPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
 MODULE_MULTIUPLOAD_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_MULTIUPLOAD_UPLOAD_OPTIONS="
+COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 9.
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 FROMEMAIL,,email-from,e=EMAIL,<From> field for notification email
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
@@ -99,10 +100,10 @@ multiupload_upload() {
     # service_25 : UB (UploadBoost)
     # service_26 : BF (Bayfiles)
     # service_29 : BS (Bitshare)
-    # service_30 : CO (Crocko)
+    # service_30 : CO (Crocko)
     # service_31 : UB (Uptobox)
     # service_34 : UI (UppIt)
-    # service_35 : FR (FileRIO)
+    # service_35 : FR (FileRIO)
     # service_36 : FS (FileSwap)
     #
     # Changes:
@@ -111,15 +112,32 @@ multiupload_upload() {
     # - 2012.05.25: DF, 2S, PL, OR, FF, FS, TB, UB, BF
     # - 2013.10.01: DF, PL, TB, BS, CO, UB, UI, FR, FS
 
-    # Keep default settings
-    SERVICES=$(echo "$FORM_HTML" | parse_all_attr 'checked>' name) || return
-    FORM_FIELDS=""
-    while read -r LINE; do
-        N=$(echo "$LINE" | parse_quiet . '^service_\([[:digit:]]\+\)')
-        if [ -n "$N" ]; then
-            FORM_FIELDS="$FORM_FIELDS -F service_$N=1 -F username_$N= -F password_$N= -F remember_$N="
+    FORM_FIELDS=''
+
+    if [ -n "$COUNT" ]; then
+        if (( COUNT > 9 )); then
+            COUNT=9
+            log_error "Too big integer value for --count, set it to $COUNT"
         fi
-    done <<< "$SERVICES"
+
+        SERVICES=$(echo "$FORM_HTML" | parse_all_attr '=.sradio_[[:digit:]]\+' name) || return
+        while read -r LINE; do
+            (( COUNT-- > 0 )) || break
+            N=$(echo "$LINE" | parse_quiet . '^service_\([[:digit:]]\+\)')
+            if [ -n "$N" ]; then
+                FORM_FIELDS="$FORM_FIELDS -F service_$N=1 -F username_$N= -F password_$N= -F remember_$N="
+            fi
+        done <<< "$SERVICES"
+    else
+        # Keep default settings
+        SERVICES=$(echo "$FORM_HTML" | parse_all_attr 'checked>' name) || return
+        while read -r LINE; do
+            N=$(echo "$LINE" | parse_quiet . '^service_\([[:digit:]]\+\)')
+            if [ -n "$N" ]; then
+                FORM_FIELDS="$FORM_FIELDS -F service_$N=1 -F username_$N= -F password_$N= -F remember_$N="
+            fi
+        done <<< "$SERVICES"
+    fi
 
     # Notes:
     # - file0 can go up to file9 (included)
