@@ -20,9 +20,9 @@
 
 VERSION='GIT-snapshot'
 OPTIONS="
-HELP,h,help,,Show help info
+HELP,h,help,,Show help info and exit
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
-GETVERSION,,version,,Return plowdel version
+GETVERSION,,version,,Output plowdel version information and exit
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface

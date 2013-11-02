@@ -20,9 +20,9 @@
 
 VERSION='GIT-snapshot'
 OPTIONS="
-HELP,h,help,,Show help info
+HELP,h,help,,Show help info and exit
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
-GETVERSION,,version,,Return plowdown version
+GETVERSION,,version,,Output plowdown version information and exit
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
@@ -41,7 +41,7 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
-GET_MODULE,,get-module,,Don't process initial link, echo module name only and return
+GET_MODULE,,get-module,,Don't process initial link, echo module name only and exit. Useful for wrappers.
 PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
