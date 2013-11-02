@@ -24,6 +24,7 @@ declare -r EARLY_OPTIONS="
 HELP,h,help,,Show help info and exit
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Output plowdown version information and exit
+ALLMODULES,,modules,,Output available modules (one per line) and exit. Useful for wrappers.
 EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
@@ -46,7 +47,6 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
-GET_MODULE,,get-module,,Don't process initial link, echo module name only and exit. Useful for wrappers.
 PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
@@ -708,6 +708,11 @@ test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
+if test "$ALLMODULES"; then
+    for MODULE in $MODULES; do echo "$MODULE"; done
+    exit 0
+fi
+
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_options '[Pp]lowdown' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
@@ -880,9 +885,6 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             RETVALS+=($MRETVAL)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" NOMODULE
-        elif test "$GET_MODULE"; then
-            RETVALS+=(0)
-            echo "$MODULE"
         else
             # Get configuration file module options
             test -z "$NO_PLOWSHARERC" && \

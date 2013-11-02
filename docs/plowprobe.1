@@ -123,8 +123,11 @@ This option has no effect when
 .I --no-plowsharerc
 is defined.
 .TP
+.B "   " --modules
+Display all supported module names (one per line) and exit. Useful for wrappers.
+.TP
 .B "   " --get-module
-Get module(s) for URL(s) and quit. Faster than \fI--prinft=%m\fR.
+Echo module name for each URL and exit. Faster than \fI--prinft=%m\fR. Useful for wrappers.
 .TP
 .B "   " --follow
 If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
