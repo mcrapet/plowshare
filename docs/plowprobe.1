@@ -111,6 +111,12 @@ Set output verbose level:
 Alias for \fB-v0\fR. Do not print any debug messages.
 .SS Miscellaneous options
 .TP
+.B "   " --follow
+If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
+.TP
+.B "   " --get-module
+Echo module name for each URL and exit. Faster than \fI--prinft=%m\fR. Useful for wrappers.
+.TP
 .B "   " --no-curlrc
 Do not use curl config file (~/.curlrc).
 .TP
@@ -125,12 +131,6 @@ is defined.
 .TP
 .B "   " --modules
 Display all supported module names (one per line) and exit. Useful for wrappers.
-.TP
-.B "   " --get-module
-Echo module name for each URL and exit. Faster than \fI--prinft=%m\fR. Useful for wrappers.
-.TP
-.B "   " --follow
-If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 .SS Generic program information
 .TP
 .B -h, --help
