@@ -156,10 +156,26 @@ pretty_print() {
 # $2: recurse subfolders (ignored here)
 # stdout: list of links
 module_null_list() {
-    local PAGE LINKS
+    local -r BASE_URL=$(basename_url "$1" | replace '/www.' '/')
+    local PAGE LINKS URL RE
+
     PAGE=$(curl -L "$1" | break_html_lines_alt) || return
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'https\?://' 'href\|src')
-    list_submit "$LINKS" || return
+    LINKS=$(parse_all_attr_quiet 'https\?://' 'href\|src' <<< "$PAGE")
+
+    # If domain has simply 'domain.tld' format, then also exlcude subdomains
+    if [[ $BASE_URL =~ \..*\. ]]; then
+        log_debug "exclude links from '${BASE_URL##*/}' domain"
+        RE="^[Hh][Tt][Tt][Pp][Ss]?:${BASE_URL#*:}"
+    else
+        log_debug "exclude links from '*.${BASE_URL##*/}' domain"
+        RE="^[Hh][Tt][Tt][Pp][Ss]?://(www\.)?${BASE_URL##*/}"
+    fi
+
+    while IFS= read -r URL; do
+        [[ $URL =~ $RE ]] && continue
+        echo "$URL"
+        echo
+    done <<< "$LINKS"
 }
 
 #
