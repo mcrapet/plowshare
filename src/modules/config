@@ -3,7 +3,7 @@
 180upload       | download | upload |        |      | probe |
 1fichier        | download | upload | delete | list | probe |
 2shared         | download | upload | delete |      | probe |
-4shared         | download | upload |        | list |       |
+4shared         | download | upload |        | list | probe |
 anonfiles       | download | upload |        |      | probe |
 anonymousdelivers|download | upload |        |      | probe |
 bayfiles        | download | upload | delete |      | probe |
@@ -36,7 +36,7 @@ megashares      | download | upload | delete |      | probe |
 mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiup_org     |          |        |        | list | probe |
-multiupload     |          | upload |        | list |       |
+multiupload     | download | upload |        | list |       |
 nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 pastebin        |          |        |        | list |       |

@@ -42,7 +42,7 @@ pastebin_single_list() {
     PAGE=$(curl "$URL") || return
     LINKS=$(parse_all . '\(https\?://[^[:space:]]\+\)' <<< "$PAGE") || return
 
-    # TODO: filter crappy links (length <15 chars, ...)
+    # TODO: filter crappy links (length <15 chars, ...)
 
     list_submit "$LINKS"
 }
@@ -55,7 +55,7 @@ pastebin_list() {
     local PASTES PASTE
 
     # User folder:
-    # - http://pastebin.com/u/username
+    # - http://pastebin.com/u/username
     if match '/u/[[:alnum:]]\+$' "$URL"; then
         local HTML
         HTML=$(curl "$URL") || return
@@ -78,7 +78,7 @@ pastebin_list() {
 
     # Accepted link format
     # - /xyz
-    # - http://pastebin.com/xyz
+    # - http://pastebin.com/xyz
     # - http://pastebin.com/raw.php?i=xyz
     while IFS= read -r PASTE; do
         pastebin_single_list "$PASTE" || continue

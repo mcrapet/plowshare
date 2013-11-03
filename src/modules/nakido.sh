@@ -54,12 +54,12 @@ nakido_download() {
 
     FILE_KEY=$(nakido_extract_key "$URL") || return
 
-    # Get 'session' cookie
+    # Get 'session' cookie
     PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=en-us' -b "$COOKIE_FILE" \
         --referer "$BASE_URL/$FILE_KEY" \
         "$BASE_URL/dl?filekey=$FILE_KEY&action=add") || return
 
-    # URL encoded (%xx)
+    # URL encoded (%xx)
     FILE_NAME=$(parse 'Nakido\.downloads\[' \
         "^Nakido\.downloads\['${FILE_KEY}f'\]='\([^']\+\)" <<< "$PAGE") || return
     FILE_NAME2=$(parse_tag 'class=.link.' a <<< "$PAGE")

@@ -58,7 +58,7 @@ netload_in_premium_login() {
 netload_in_infos() {
     # Plowshare Auth Code
     local -r AUTH_CODE='ec3vfSuAXoHVQxA816hsKGdOCbQ6it9N'
-    curl -d "auth=$AUTH_CODE" -d "file_id=$1" -d "bz=1" -d "md5=$2" \
+    curl -d "auth=$AUTH_CODE" -d "file_id=$1" -d 'bz=1' -d "md5=$2" \
         'https://api.netload.in/info.php'
 }
 
@@ -67,9 +67,9 @@ netload_in_infos() {
 # $2: netload.in url
 # stdout: real file download link
 netload_in_download() {
-    local COOKIE_FILE=$1
-    local URL=$(echo "$2" | replace 'www.' '')
-    local BASE_URL='http://netload.in'
+    local -r COOKIE_FILE=$1
+    local -r URL=$(echo "$2" | replace 'www.' '')
+    local -r BASE_URL='http://netload.in'
     local FILE_ID RESPONSE FILE_NAME
     local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG FILE_URL
 
@@ -79,8 +79,8 @@ netload_in_download() {
 
     # file ID, filename, size, status
     RESPONSE=$(netload_in_infos "$FILE_ID" 0) || return
-    FILE_NAME="${RESPONSE#*;}"
-    FILE_NAME="${FILE_NAME%%;*}"
+    FILE_NAME=${RESPONSE#*;}
+    FILE_NAME=${FILE_NAME%%;*}
 
     if [ -n "$AUTH" ]; then
         netload_in_premium_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
@@ -155,9 +155,9 @@ netload_in_download() {
     FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
 
     WAIT_HTML2=$(curl -b "$COOKIE_FILE" \
-        -d "start=" \
+        -d 'start=' \
         -d "file_id=$FORM_FID" \
-        -d "captcha_check=$CAPTCHA" \
+        -d "captcha_check=$WORD" \
         "$BASE_URL/$FORM_URL") || return
 
     if match 'class="InPage_Error"' "$WAIT_HTML2"; then

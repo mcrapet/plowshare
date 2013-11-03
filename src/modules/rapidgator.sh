@@ -478,11 +478,9 @@ rapidgator_upload() {
         fi
 
         # If this is an async upload, we are done
-        # FIXME: fake output, maybe introduce a new exit code?
         if [ -n "$ASYNC" ]; then
-            log_error 'Async remote upload, check your account for link.'
-            echo '#'
-            return 0
+            log_error 'Once remote upload completed, check your account for link.'
+            return $ERR_ASYNC_REQUEST
         fi
 
         # Keep checking progress
@@ -544,7 +542,7 @@ rapidgator_upload() {
         local FOLDER_ID=0
         local JSON SESSION_ID START_TIME STATE FOLDER_ID UP_URL PROG_URL
 
-        # If user chose a folder, check it now
+        # If user choose a folder, check it now
         if [ -n "$FOLDER" ]; then
             FOLDER_ID=$(rapidgator_check_folder "$HTML" "$FOLDER") || return
         fi

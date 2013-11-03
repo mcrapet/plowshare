@@ -115,8 +115,8 @@ shareonline_biz_download() {
     fi
 
     FILE_ID=$(uppercase "$FILE_ID")
-    URL="$BASE_URL/dl/$FILE_ID/free/"
     log_debug "File ID: '$FILE_ID'"
+    URL="$BASE_URL/dl/$FILE_ID/"
 
     # Get data from shareonline API
     # Note: API requires ID to be uppercase
@@ -141,7 +141,10 @@ shareonline_biz_download() {
 
     # Handle premium download
     if [ "$ACCOUNT" = 'premium' ]; then
-        PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
+        # Cookies need to be sent and an extra cookie ("a") is required
+        MODULE_SHAREONLINE_BIZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+        PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+
         BASE64LINK=$(parse 'var[[:space:]]dl=' \
             '[[:space:]]dl="\([^"]\+\)"' <<< "$PAGE") || return
 
@@ -150,12 +153,13 @@ shareonline_biz_download() {
         return 0
     fi
 
+    URL="${URL}free/"
+
     # Load second page
     PAGE=$(curl --include -d 'dl_free=1' -d 'choice=free' "$URL" ) || return
 
     # Handle errors/redirects
     REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
-
     if [ -n "$REDIR" ]; then
         local ERR=$(echo "$REDIR" | parse_quiet . 'failure/\([^/]\+\)')
 

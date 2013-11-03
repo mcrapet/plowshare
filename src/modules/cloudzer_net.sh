@@ -253,7 +253,7 @@ cloudzer_net_upload() {
         parse . '^\(&id=.\+&pw=.\+\)&cks=') || return
 
     PAGE=$(curl "$BASE_URL/js/script.js") || return
-    SERVER=$(echo "$PAGE" | parse 'uploadServer =' "[[:space:]]'\([^']*\)") || return
+    SERVER=$(parse 'uploadServer =' "[[:space:]]'\([^']*\)" <<< "$PAGE") || return
 
     log_debug "Upload server: $SERVER"
 

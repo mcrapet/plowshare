@@ -38,6 +38,8 @@ DIRECT_LINKS,,direct,,Show direct links (if available) instead of regular ones
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folder"
 MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
 
+MODULE_4SHARED_PROBE_OPTIONS=""
+
 # Static function. Proceed with login (tested on free-membership)
 4shared_login() {
     local AUTH=$1
@@ -362,4 +364,30 @@ MODULE_4SHARED_LIST_HAS_SUBFOLDERS=yes
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: 4shared.com url
+# $3: requested capability list
+# stdout: 1 capability per line
+4shared_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE REQ_OUT
+
+    PAGE=$(curl --location -b '4langcookie=en' "$URL") || return
+
+    if ! match '<meta[[:space:]]*property=.og:url' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse_attr_quiet 'og:title' 'content' <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
+
+    echo $REQ_OUT
 }

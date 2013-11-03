@@ -117,7 +117,7 @@ euroshare_eu_upload() {
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL")
 
-    # SWFUpload
+    # SWFUpload
     UPLOAD_URL=$(echo "$PAGE" | parse 'upload_url' ':[[:space:]]*"\([^"]*\)') || return
     USER_ID=$(echo "$PAGE" | parse 'post_params' "uID.[[:space:]]*:[[:space:]]*'\([^']*\)") || return
     FORM_PLAIN=$(echo "$PAGE" | parse 'post_params' "plain.[[:space:]]*:[[:space:]]*\([^}]*\)") || return
