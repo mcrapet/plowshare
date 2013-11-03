@@ -866,9 +866,10 @@ parse_cookie_quiet() {
 # - http://www.host.com => http://www.host.com
 # - http://www.host.com/a/b/c/d => http://www.host.com
 # - http://www.host.com?sid=123 => http://www.host.com
-# Note: Don't use `expr` (GNU coreutils) for portability purposes.
+# - ftp://hostme.net:1234/incoming/testfile.txt => ftp://hostme.net:1234
 #
 # $1: string (URL)
+# stdout: URL composed of scheme + authority. No ending slash character.
 basename_url() {
     sed -e 's=\(\([Hh][Tt][Tt][Pp][Ss]\?\|[Ff][Tt][Pp][Ss]\?\|[Ff][Ii][Ll][Ee]\)://[^/?#]*\).*=\1=' <<< "$1"
 }
