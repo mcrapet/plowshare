@@ -23,9 +23,10 @@ OPTIONS="
 HELP,h,help,,Show help info and exit
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Output plowprobe version information and exit
+ALLMODULES,,modules,,Output available modules (one per line) and exit. Useful for wrappers.
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-GET_MODULE,,get-module,,Retrieve module name. Faster than --prinft=%m
+GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --prinft=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\" (check link equivalent).
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
@@ -290,6 +291,11 @@ fi
 test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
+
+if test "$ALLMODULES"; then
+    for MODULE in $MODULES; do echo "$MODULE"; done
+    exit 0
+fi
 
 if [ $# -lt 1 ]; then
     log_error 'plowprobe: no URL specified!'

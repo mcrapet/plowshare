@@ -50,12 +50,6 @@ If your machine has several network interfaces, force using \fIIFACE\fR interfac
 .B -R, --recursive
 Recurse into sub folders.
 .TP
-.B "   " --fallback
-If no module is found for link, get page (HTTP GET) and simply grep all URLs contained inside.
-.TP
-.B "   " --no-plowsharerc
-Do not use local or global config file (plowshare.conf).
-.TP
 .BI "   " " " --printf "=FORMAT"
 Print results (on stdout) in a given format (for each non-dead link). Default string is: \fI"%F%u"\fR. Interpreted sequences are:
 .RS
@@ -102,6 +96,16 @@ Set output verbose level:
 .TP
 .B -q, --quiet
 Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Miscellaneous options
+.TP
+.B " " --fallback
+If no module is found for link, get page (HTTP GET) and simply grep all URLs contained inside.
+.TP
+.B " " --no-plowsharerc
+Do not consider any configuration file.
+.TP
+.B " " --modules
+Display all supported module names (one per line) and exit. Useful for wrappers.
 .SS Generic program information
 .TP
 .B -h, --help

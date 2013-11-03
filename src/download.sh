@@ -23,6 +23,7 @@ OPTIONS="
 HELP,h,help,,Show help info and exit
 HELPFULL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Output plowdown version information and exit
+ALLMODULES,,modules,,Output available modules (one per line) and exit. Useful for wrappers.
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
@@ -41,7 +42,6 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
-GET_MODULE,,get-module,,Don't process initial link, echo module name only and exit. Useful for wrappers.
 PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
@@ -706,6 +706,11 @@ test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
+if test "$ALLMODULES"; then
+    for MODULE in $MODULES; do echo "$MODULE"; done
+    exit 0
+fi
+
 if [ $# -lt 1 ]; then
     log_error 'plowdown: no URL specified!'
     log_error "plowdown: try \`plowdown --help' for more information."
@@ -851,9 +856,6 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             RETVALS=(${RETVALS[@]} $MRETVAL)
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL" NOMODULE
-        elif test "$GET_MODULE"; then
-            RETVALS=(${RETVALS[@]} 0)
-            echo "$MODULE"
         else
             # Get configuration file module options
             test -z "$NO_PLOWSHARERC" && \
