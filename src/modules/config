@@ -50,6 +50,7 @@ sendspace       | download | upload | delete | list | probe |
 sharebeast      | download | upload | delete |      | probe |
 shareonline_biz | download | upload |        |      | probe |
 sockshare       | download | upload | delete | list | probe |
+solidfiles      | download | upload |        | list | probe |
 turbobit        | download | upload | delete | list | probe |
 ultramegabit    | download | upload |        |      | probe |
 uploadhero      | download | upload | delete | list | probe |
