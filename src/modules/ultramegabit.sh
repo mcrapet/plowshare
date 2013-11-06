@@ -205,10 +205,7 @@ ultramegabit_upload() {
     local PAGE FOLDER_ID UP_BASE_URL
     local FORM_HTML FORM_CSRF_TOKEN FORM_FOLDER_ID FORM_USER_ID FORM_FOLDER_ID
 
-    if [ -z "$AUTH" ]; then
-        log_error 'Anonymous uploads not allowed.'
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
     if [ -n "$FOLDER" ]; then
         if ! match '^[[:alnum:] ]\+$' "$FOLDER"; then

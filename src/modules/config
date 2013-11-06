@@ -28,6 +28,7 @@ filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
 gamefront       | download | upload |        |      | probe |
+ge_tt           | download | upload |        | list | probe |
 go4up           |          | upload | delete | list |       |
 hipfile         | download | upload | delete | list | probe |
 hotfile         | download | upload |        | list | probe |

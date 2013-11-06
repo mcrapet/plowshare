@@ -259,10 +259,7 @@ filecloud_upload() {
 
     local PAGE UP_URL UKEY TAGS_ID STAT ERROR APIKEY_ENC
 
-    if [ -z "$AUTH" ]; then
-        log_error 'Anonymous uploads not allowed.'
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$MAX_SIZE" ]; then
