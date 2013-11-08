@@ -4,17 +4,11 @@
 have plowup &&
 _plowup()
 {
-    local cur prev arg
-    COMPREPLY=()
-
-    # fix colon separator issue. See item E13 at http://tiswww.case.edu/php/chet/bash/FAQ
-    COMP_WORDBREAKS=${COMP_WORDBREAKS//:}
-
-    cur=`_get_cword`
-    prev=`_get_pword`
+    local cur prev words cword split
+    _init_completion -s -n : || return
 
     case "$prev" in
-        -v)
+        -v|--verbose)
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
@@ -22,21 +16,30 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-b|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf)
+        -a|-b|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
-        --plowsharerc)
+        --captchaprogram|--plowsharerc)
             _filedir
+            return 0
+            ;;
+        --captchamethod)
+            COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
+            return 0
+            ;;
+        --temp-directory)
+            _filedir -d
             return 0
             ;;
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
-            -v -q -i -r -t \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
+            -v -q -i -t -r \
             --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
-            --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --deathbycaptcha \
+            --temp-directory --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         local m i list
         list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
@@ -61,14 +64,11 @@ complete -F _plowup plowup
 have plowdown &&
 _plowdown()
 {
-    local cur prev
-
-    COMPREPLY=()
-    cur=`_get_cword`
-    prev=`_get_pword`
+    local cur prev words cword split
+    _init_completion -s -n : || return
 
     case "$prev" in
-        -v)
+        -v|--verbose)
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
@@ -95,12 +95,12 @@ _plowdown()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -o -m -r -t -x \
-            --max-rate --interface --mark-downloaded --no-overwrite \
-            --output-directory --temp-directory --temp-rename --timeout --max-retries \
-            --fallback --cookies --9kweu --antigate --captchabhood --deathbycaptcha \
-            --captchamethod --captchaprogram --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --max-rate --interface --mark-downloaded --no-overwrite --output-directory \
+            --temp-directory --temp-rename --timeout --max-retries \
+            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --deathbycaptcha \
+            --fallback --cookies --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         _filedir
     fi
@@ -110,14 +110,11 @@ complete -F _plowdown plowdown
 have plowdel &&
 _plowdel()
 {
-    local cur prev
-
-    COMPREPLY=()
-    cur=`_get_cword`
-    prev=`_get_pword`
+    local cur prev words cword split
+    _init_completion -s -n : || return
 
     case "$prev" in
-        -v)
+        -v|--verbose)
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
@@ -140,7 +137,7 @@ _plowdel()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             --9kweu --antigate --captchabhood --deathbycaptcha --captchamethod --captchaprogram \
             -v -q -i --interface --no-plowsharerc --plowsharerc' -- $cur ) )
     else
@@ -153,14 +150,11 @@ complete -F _plowdel plowdel
 have plowlist &&
 _plowlist()
 {
-    local cur prev
-
-    COMPREPLY=()
-    cur=`_get_cword`
-    prev=`_get_pword`
+    local cur prev words cword split
+    _init_completion -s -n : || return
 
     case "$prev" in
-        -v)
+        -v|--verbose)
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
@@ -179,7 +173,7 @@ _plowlist()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
@@ -191,14 +185,11 @@ complete -F _plowlist plowlist
 have plowprobe &&
 _plowprobe()
 {
-    local cur prev
-
-    COMPREPLY=()
-    cur=`_get_cword`
-    prev=`_get_pword`
+    local cur prev words cword split
+    _init_completion -s -n : || return
 
     case "$prev" in
-        -v)
+        -v|--verbose)
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
@@ -217,7 +208,7 @@ _plowprobe()
     esac
 
     if [[ $cur = -* ]]; then
-        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet \
+        COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i --get-module --interface --printf --follow --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
