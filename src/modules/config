@@ -36,7 +36,6 @@ jheberg         |          | upload |        | list | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
-mirorii         |          | upload |        | list |       |
 mirrorcreator   |          | upload |        | list |       |
 multiup_org     |          |        |        | list | probe |
 multiupload     | download | upload |        | list |       |
