@@ -41,7 +41,7 @@ MODULE_FILECLOUD_LIST_HAS_SUBFOLDERS=no
 
 MODULE_FILECLOUD_PROBE_OPTIONS=""
 
-# curl warpper to handle all json requests
+# curl wrapper to handle all json requests
 # $@: curl arguments
 # stdout: JSON content
 filecloud_curl_json() {
@@ -80,7 +80,7 @@ filecloud_curl_json() {
 # stdout: apikey
 filecloud_api_fetch_apikey() {
     local -r AUTH=$1
-    local USER PASSWORD
+    local USER PASSWORD PAGE
 
     split_auth "$AUTH" USER PASSWORD || return
 
