@@ -3,6 +3,7 @@
 180upload       | download | upload |        |      | probe |
 1fichier        | download | upload | delete | list | probe |
 2shared         | download | upload | delete |      | probe |
+4share_vn       | download | upload |        | list | probe |
 4shared         | download | upload |        | list | probe |
 anonfiles       | download | upload |        |      | probe |
 anonymousdelivers|download | upload |        |      | probe |
@@ -28,6 +29,7 @@ fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
+fshare_vn       | download | upload |        | list | probe |
 gamefront       | download | upload |        |      | probe |
 ge_tt           | download | upload |        | list | probe |
 go4up           |          | upload | delete | list |       |
