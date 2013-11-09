@@ -44,7 +44,7 @@ ge_tt_urldecode(){
   echo -e "$(sed 's/+/ /g;s/%\(..\)/\\x\1/g;')"
 }
 
-# curl warpper to handle all json requests
+# curl wrapper to handle all json requests
 # $@: curl arguments
 # stdout: JSON content
 ge_tt_curl_json() {
@@ -134,7 +134,7 @@ ge_tt_upload() {
 
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$FREE_SPACE" ]; then
-        log_debug "File is bigger than $MAX_SIZE."
+        log_debug "File is bigger than $FREE_SPACE."
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
@@ -173,13 +173,13 @@ ge_tt_upload() {
 
     # Upload state check can be skipped actually, but it is more correct
     # if match 'computer says yes' "$PAGE"; then
-    #     PAGE=$(curl "https://open.ge.tt/1/files/$SHARE/$FILE_ID") || return
+    #     PAGE=$(curl "https://open.ge.tt/1/files/$SHARE_ID/$FILE_ID") || return
     #     FILE_URL=$(parse_json 'getturl' <<< "$PAGE") || return
     #     echo "$FILE_URL"
     #     return 0
     # fi
 
-    local TRY=1
+    TRY=1
     while [ "$FILE_STATE" != 'uploaded' ]; do
         PAGE=$(ge_tt_curl_json "$BASE_URL/1/files/$SHARE_ID/$FILE_ID") || return
 

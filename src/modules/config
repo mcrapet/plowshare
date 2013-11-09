@@ -23,6 +23,7 @@ extabit         | download | upload |        |      | probe |
 filebin_ca      | download | upload |        |      | probe |
 filebox         | download | upload | delete |      | probe |
 filecloud       | download | upload |        | list | probe |
+filefactory     | download | upload |        | list | probe |
 fileover        | download |        |        |      | probe |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
