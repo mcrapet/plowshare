@@ -163,14 +163,14 @@ create_alt_filename() {
 # $1: module name
 module_config_resume() {
     local -u VAR="MODULE_${1}_DOWNLOAD_RESUME"
-    test "${!VAR}" = 'yes'
+    [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
 # $1: module name
 module_config_need_cookie() {
     local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
-    test "${!VAR}" = 'yes'
+    [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(-F "key=value")
