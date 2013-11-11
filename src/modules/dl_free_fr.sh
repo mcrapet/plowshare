@@ -23,6 +23,7 @@ MODULE_DL_FREE_FR_REGEXP_URL='http://dl\.free\.fr/'
 MODULE_DL_FREE_FR_DOWNLOAD_OPTIONS=""
 MODULE_DL_FREE_FR_DOWNLOAD_RESUME=yes
 MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=()
 MODULE_DL_FREE_FR_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_DL_FREE_FR_UPLOAD_OPTIONS="
@@ -122,7 +123,7 @@ captcha_ayl_process() {
 # $2: dl.free.fr url
 # stdout: real file download link
 dl_free_fr_download() {
-    local COOKIE_FILE=$1
+    local -r COOKIE_FILE=$1
     local URL=$2
     local PAGE FORM_HTML FORM_ACTION FORM_FILE FORM_SUBM SESSID FILE_NAME
 
@@ -145,7 +146,17 @@ dl_free_fr_download() {
     # Free is your ISP, this is direct download
     if match '^HTTP/1.1 206' "$PAGE"; then
 
+        # <li>5 slots max / IP / machine</li>
+        if match '^Location:.*overload\.html' "$PAGE"; then
+            echo 600
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+        MODULE_DL_FREE_FR_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(--retry 2)
+
         FILE_NAME=$(echo "$PAGE" | grep_http_header_content_disposition) || return
+
         echo "$URL"
         echo "$FILE_NAME"
         return 0
@@ -153,12 +164,11 @@ dl_free_fr_download() {
 
     match 'Fichier inexistant\.' "$PAGE" && return $ERR_LINK_DEAD
 
-    local ERR1='erreur 500 - erreur interne du serveur'
-    local ERR2='erreur 404 - document non trouv.'
+    local -r ERR1='erreur 500 - erreur interne du serveur'
+    local -r ERR2='erreur 404 - document non trouv.'
     if matchi "$ERR1\|$ERR2" "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-
 
     FILE_NAME=$(echo "$PAGE" | parse 'Fichier:' '">\([^<]*\)' 1) || return
 
