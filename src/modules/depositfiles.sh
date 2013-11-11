@@ -381,7 +381,7 @@ depositfiles_probe() {
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(parse_tag '=.file_size' b  <<< "$PAGE" | replace '&nbsp;' '')
+        FILE_SIZE=$(parse_tag '=.file_size' b  <<< "$PAGE" | replace_all '&nbsp;' '')
         test "$FILE_SIZE" && translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 

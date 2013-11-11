@@ -109,9 +109,9 @@ pretty_print() {
     local -r CR=$'\n'
     local URL NAME S
 
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "$2" <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
+    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "$2" <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
 
     # Pair every two lines
     while IFS= read -r URL; do
@@ -119,7 +119,7 @@ pretty_print() {
 
         if test "${FMT#*%F}" != "$FMT"; then
             if test "$NAME"; then
-                S=$(replace '%F' "# %f%n" <<< "$FMT")
+                S=$(replace_all '%F' "# %f%n" <<< "$FMT")
             else
                 S=${FMT//%F/}
                 [ -z "$S" ] && continue
@@ -130,7 +130,7 @@ pretty_print() {
 
         # Don't lose trailing newlines
         if test "${FMT#*%[nF]}" != "$FMT"; then
-            S=$(replace '%n' "$CR" <<< "$S" ; echo -n x)
+            S=$(replace_all '%n' "$CR" <<< "$S" ; echo -n x)
         else
             S="${S}${CR}x"
         fi
@@ -140,8 +140,8 @@ pretty_print() {
             log_notice "$FUNCNAME: replacement error (%u not expected in name)"
             NAME=${NAME//%u/%(u)}
         fi
-        test "${FMT#*%[fF]}" != "$FMT" && S=$(replace '%f' "$NAME" <<< "$S")
-        test "${FMT#*%u}" != "$FMT" && S=$(replace '%u' "$URL" <<< "$S")
+        test "${FMT#*%[fF]}" != "$FMT" && S=$(replace_all '%f' "$NAME" <<< "$S")
+        test "${FMT#*%u}" != "$FMT" && S=$(replace_all '%u' "$URL" <<< "$S")
 
         echo -n "${S%x}"
     done

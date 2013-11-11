@@ -171,7 +171,7 @@ sockshare_download() {
     PAGE=$(sockshare_curl_failsafe -i -e "$URL" -b "$COOKIE_FILE" "$BASE_URL$GET_FILE_URL") || return
 
     FILE_URL=$(echo "$PAGE" | grep_http_header_location) || return
-    FILENAME=$(echo "$FILE_URL" | parse . '&f=\(.*\)$' | replace '+' ' ' | uri_decode) || return
+    FILENAME=$(echo "$FILE_URL" | parse . '&f=\(.*\)$' | replace_all '+' ' ' | uri_decode) || return
 
     echo "$FILE_URL"
     echo "$FILENAME"

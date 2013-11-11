@@ -573,7 +573,7 @@ uploaded_net_probe() {
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(last_line <<< "$PAGE" | replace '.' '' | replace ',' '.') \
+        FILE_SIZE=$(last_line <<< "$PAGE" | replace_all '.' '' | replace_all ',' '.') \
             && translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 

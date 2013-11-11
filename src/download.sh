@@ -624,20 +624,20 @@ pretty_print() {
     local FMT=$3
     local COOKIE_FILE
 
-    test "${FMT#*%s}" != "$FMT" && FMT=$(replace '%s' "${A[6]}" <<< "$FMT")
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
-    test "${FMT#*%f}" != "$FMT" && FMT=$(replace '%f' "${A[1]}" <<< "$FMT")
+    test "${FMT#*%s}" != "$FMT" && FMT=$(replace_all '%s' "${A[6]}" <<< "$FMT")
+    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "${A[0]}" <<< "$FMT")
+    test "${FMT#*%f}" != "$FMT" && FMT=$(replace_all '%f' "${A[1]}" <<< "$FMT")
 
     if test "${FMT#*%F}" != "$FMT"; then
         if test "${A[2]}"; then
-            FMT=$(replace '%F' "${A[2]}/${A[1]}" <<< "$FMT")
+            FMT=$(replace_all '%F' "${A[2]}/${A[1]}" <<< "$FMT")
         else
-            FMT=$(replace '%F' "${A[1]}" <<< "$FMT")
+            FMT=$(replace_all '%F' "${A[1]}" <<< "$FMT")
         fi
     fi
 
-    test "${FMT#*%u}" != "$FMT" && FMT=$(replace '%u' "${A[4]}" <<< "$FMT")
-    test "${FMT#*%d}" != "$FMT" && FMT=$(replace '%d' "${A[5]}" <<< "$FMT")
+    test "${FMT#*%u}" != "$FMT" && FMT=$(replace_all '%u' "${A[4]}" <<< "$FMT")
+    test "${FMT#*%d}" != "$FMT" && FMT=$(replace_all '%d' "${A[5]}" <<< "$FMT")
 
     # Note: Drop "HttpOnly" attribute, as it is not covered in the RFCs
     if test "${FMT#*%c}" != "$FMT"; then
@@ -647,7 +647,7 @@ pretty_print() {
             COOKIE_FILE="plowdown-cookies-$N.txt"
         fi
         sed -e 's/^#HttpOnly_//' <<< "${A[3]}" > "$COOKIE_FILE"
-        FMT=$(replace '%c' "${COOKIE_FILE#./}" <<< "$FMT")
+        FMT=$(replace_all '%c' "${COOKIE_FILE#./}" <<< "$FMT")
     fi
     if test "${FMT#*%C}" != "$FMT"; then
         if module_config_need_cookie "${A[0]}"; then
@@ -660,15 +660,15 @@ pretty_print() {
         else
             COOKIE_FILE=''
         fi
-        FMT=$(replace '%C' "$COOKIE_FILE" <<< "$FMT")
+        FMT=$(replace_all '%C' "$COOKIE_FILE" <<< "$FMT")
     fi
 
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
 
     if test "${FMT#*%n}" != "$FMT"; then
         # Don't lose trailing newlines
-        FMT=$(replace '%n' $'\n' <<< "$FMT" ; echo -n x)
+        FMT=$(replace_all '%n' $'\n' <<< "$FMT" ; echo -n x)
         echo -n "${FMT%x}"
     else
         echo "$FMT"

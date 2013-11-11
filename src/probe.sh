@@ -232,29 +232,29 @@ pretty_print() {
         if [ -z "${A[3]}" ]; then
             FMT=${FMT//%F/}
         else
-            FMT=$(replace '%F' "# %f%n" <<< "$FMT")
+            FMT=$(replace_all '%F' "# %f%n" <<< "$FMT")
         fi
     fi
 
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace '%m' "${A[0]}" <<< "$FMT")
-    test "${FMT#*%c}" != "$FMT" && FMT=$(replace '%c' "${A[2]}" <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace '%t' '	' <<< "$FMT")
+    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "${A[0]}" <<< "$FMT")
+    test "${FMT#*%c}" != "$FMT" && FMT=$(replace_all '%c' "${A[2]}" <<< "$FMT")
+    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
 
-    test "${FMT#*%s}" != "$FMT" && FMT=$(replace '%s' "${A[4]}" <<< "$FMT")
-    test "${FMT#*%h}" != "$FMT" && FMT=$(replace '%h' "${A[5]}" <<< "$FMT")
-    test "${FMT#*%i}" != "$FMT" && FMT=$(replace '%i' "${A[6]}" <<< "$FMT")
+    test "${FMT#*%s}" != "$FMT" && FMT=$(replace_all '%s' "${A[4]}" <<< "$FMT")
+    test "${FMT#*%h}" != "$FMT" && FMT=$(replace_all '%h' "${A[5]}" <<< "$FMT")
+    test "${FMT#*%i}" != "$FMT" && FMT=$(replace_all '%i' "${A[6]}" <<< "$FMT")
 
     # Don't lose trailing newlines
     if test "${FMT#*%[nF]}" != "$FMT"; then
-        FMT=$(replace '%n' "$CR" <<< "$FMT" ; echo -n x)
+        FMT=$(replace_all '%n' "$CR" <<< "$FMT" ; echo -n x)
     else
         FMT="${FMT}${CR}x"
     fi
 
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace '%%' '%' <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
 
-    test "${FMT#*%f}" != "$FMT" && FMT=$(replace '%f' "${A[3]}" <<< "$FMT")
-    test "${FMT#*%u}" != "$FMT" && FMT=$(replace '%u' "${A[1]}" <<< "$FMT")
+    test "${FMT#*%f}" != "$FMT" && FMT=$(replace_all '%f' "${A[3]}" <<< "$FMT")
+    test "${FMT#*%u}" != "$FMT" && FMT=$(replace_all '%u' "${A[1]}" <<< "$FMT")
 
     echo -n "${FMT%x}"
 }

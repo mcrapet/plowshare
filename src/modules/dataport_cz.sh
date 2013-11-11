@@ -114,7 +114,7 @@ dataport_cz_upload() {
     IURL=$(echo "$PAGE" | parse_attr '<iframe' 'src') || return
     PAGE=$(curl -L -b "$COOKIE_FILE" "$IURL") || return
 
-    FORM_ACTION=$(echo "$PAGE" | parse_form_action | replace '&amp;' '&') || return
+    FORM_ACTION=$(echo "$PAGE" | parse_form_action | replace_all '&amp;' '&') || return
     FORM_SUBMIT=$(echo "$PAGE" | parse_form_input_by_name 'uploadFormSubmit') || return
 
     PAGE=$(curl_with_log -L -b "$COOKIE_FILE" -e "$IURL" \
