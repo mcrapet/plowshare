@@ -146,7 +146,7 @@ uptobox_download() {
         # Funny captcha, this is text (4 digits)!
         # <span style='position:absolute;padding-left:64px;padding-top:3px;'>&#55;</span>
         CAPTCHA=$(echo "$FORM_HTML" | parse_tag 'direction:ltr' div | \
-            sed -e 's/span>/span>\n/g') || return
+            replace_all 'span>' $'span>\n') || return
         CODE=0
         while read LINE; do
             DIGIT=$(echo "$LINE" | parse 'padding-' '>&#\([[:digit:]]\+\);<') || return
