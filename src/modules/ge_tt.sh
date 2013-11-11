@@ -150,7 +150,7 @@ ge_tt_upload() {
 
             SHARE_ID=$(parse_json 'sharename' <<< "$PAGE") || return
         else
-            PAGE=$(replace '}' $'}\n' <<< "$PAGE")
+            PAGE=$(replace_all '}' $'}\n' <<< "$PAGE")
 
             SHARE_ID=$(parse "\"title\":\"$FOLDER\"" '"sharename":"\([^"]\+\)' <<< "$PAGE") || return
         fi

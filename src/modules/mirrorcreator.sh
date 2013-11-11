@@ -127,7 +127,7 @@ mirrorcreator_upload() {
     # > FilesNames +=value + '#0#' + filesCompletedSize[key]+ ';0;';
     # > submitData = filesNames + '@e@' + email + '#H#' + selectedHost +'#P#' + pass + '#SC#' + scanvirus;
     # Example: RFC-all.tar.gz#0#225280;0;@e@#H#turbobit;hotfile;#P#
-    DATA=$(echo "$SITES_SEL" | replace ' ' ';' | replace $'\n' ';')
+    DATA=$(echo "$SITES_SEL" | replace_all ' ' ';' | replace_all $'\n' ';')
 
     log_debug "sites=$DATA"
     DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA};#P#${LINK_PASSWORD}#SC#" | base64 --wrap=0)

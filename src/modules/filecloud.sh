@@ -215,7 +215,7 @@ filecloud_check_tag() {
     PAGE=$(curl -b "auth=$APIKEY" "$BASE_URL/tags-manager.html") || return
 
     TAGS_LIST=$(parse 'var __tagsQueue' "jQuery.parseJSON( '{\(.*\)}' );" <<< "$PAGE") || return
-    TAGS_LIST=$(replace '},' $'},\n' <<< "$TAGS_LIST")
+    TAGS_LIST=$(replace_all '},' $'},\n' <<< "$TAGS_LIST")
     TAGS=$(parse_json 'name' <<< "$TAGS_LIST") || return
 
     while read NAME; do
@@ -229,7 +229,7 @@ filecloud_check_tag() {
             PAGE=$(curl -b "auth=$APIKEY" "$BASE_URL/tags-manager.html") || return
 
             TAGS_LIST=$(parse 'var __tagsQueue' "jQuery.parseJSON( '{\(.*\)}' );" <<< "$PAGE") || return
-            TAGS_LIST=$(replace '},' $'},\n' <<< "$TAGS_LIST")
+            TAGS_LIST=$(replace_all '},' $'},\n' <<< "$TAGS_LIST")
             TAGS=$(parse_json 'name' <<< "$TAGS_LIST") || return
 
             if ! matchi "^$NAME$" "$TAGS"; then
@@ -272,7 +272,7 @@ filecloud_upload() {
     fi
 
     if [ -n "$TAGS" ]; then
-        TAGS=$(replace ',' $'\n' <<< "$TAGS")
+        TAGS=$(replace_all ',' $'\n' <<< "$TAGS")
         TAGS=$(strip_and_drop_empty_lines "$TAGS")
 
         TAGS_ID=$(filecloud_check_tag "$TAGS" "$APIKEY" "$BASE_URL") || return

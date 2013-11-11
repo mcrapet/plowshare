@@ -387,7 +387,7 @@ filepost_probe() {
     REQ_OUT=c
 
     # Get rid of escaping
-    PAGE=$(echo "$PAGE" | replace '\' '')
+    PAGE=$(echo "$PAGE" | replace_all '\' '')
 
     if [[ $REQ_IN = *f* ]]; then
         # Parse file name from full URL (Note the trailing slash!)

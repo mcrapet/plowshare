@@ -80,7 +80,7 @@ solidfiles_check_folder() {
 
     PAGE=$(curl -b "$COOKIE_FILE" \
         "$BASE_URL/manage/tree/") || return
-    PAGE=$(replace '<li' $'\n<li' <<< "$PAGE") || return
+    PAGE=$(replace_all '<li' $'\n<li' <<< "$PAGE") || return
 
     FOLDERS=$(parse_all '<li' '</ins>\([^<]\+\)' <<< "$PAGE") || return
 
@@ -102,7 +102,7 @@ solidfiles_check_folder() {
 
         PAGE=$(curl -b "$COOKIE_FILE" \
             "$BASE_URL/manage/tree/") || return
-        PAGE=$(replace '<li' $'\n<li' <<< "$PAGE") || return
+        PAGE=$(replace_all '<li' $'\n<li' <<< "$PAGE") || return
 
         FOLDERS=$(parse_all '<li' '</ins>\([^<]\+\)' <<< "$PAGE") || return
 

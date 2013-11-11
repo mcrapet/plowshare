@@ -246,12 +246,23 @@ curl_with_log() {
 # stdin: input string
 # $1: substring to find (this is not a regexp)
 # $2: replacement string (this is not a regexp)
-replace() {
+replace_all() {
     # Using $(< /dev/stdin) gives same results
     local S=$(cat)
     # We must escape '\' character
     local FROM=${1//\\/\\\\}
     echo "${S//$FROM/$2}"
+}
+
+# Substring replacement (replace first match)
+#
+# stdin: input string
+# $1: substring to find (this is not a regexp)
+# $2: replacement string (this is not a regexp)
+replace() {
+    local S=$(cat)
+    local FROM=${1//\\/\\\\}
+    echo "${S/$FROM/$2}"
 }
 
 # Return uppercase string

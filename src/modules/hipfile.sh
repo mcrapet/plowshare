@@ -126,7 +126,7 @@ hipfile_check_folder() {
     #       - First entry is label "Move files to folder"
     #       - Second entry is root folder "/"
     FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
-        replace '&nbsp;' '') || return
+        replace_all '&nbsp;' '') || return
 
     if ! match "^$NAME$" "$FOLDERS"; then
         log_debug 'Creating folder.'
@@ -139,7 +139,7 @@ hipfile_check_folder() {
         FORM=$(grep_form_by_name "$PAGE" 'F1') || return
 
         FOLDERS=$(echo "$FORM" | parse_all_tag option | delete_first_line 2 |
-            replace '&nbsp;' '') || return
+            replace_all '&nbsp;' '') || return
         if [ -z "$FOLDERS" ]; then
             log_error 'No folder found. Site updated?'
             return $ERR_FATAL

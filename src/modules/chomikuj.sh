@@ -100,7 +100,7 @@ chomikuj_check_folder() {
         -d "ChomikId=$USER_ID" \
         --data-urlencode "__RequestVerificationToken=$VERIF_TOKEN" \
         "$BASE_URL/action/tree/loadtree") || return
-    PAGE=$(replace '<td>' $'\n<td>' <<< "$PAGE") || return
+    PAGE=$(replace_all '<td>' $'\n<td>' <<< "$PAGE") || return
 
     FOLDERS=$(parse_all_attr 'id="Ta_' 'title' <<< "$PAGE") || return
 
@@ -128,7 +128,7 @@ chomikuj_check_folder() {
             -d "ChomikId=$USER_ID" \
             --data-urlencode "__RequestVerificationToken=$VERIF_TOKEN" \
             "$BASE_URL/action/tree/loadtree") || return
-        PAGE=$(replace '<td>' $'\n<td>' <<< "$PAGE") || return
+        PAGE=$(replace_all '<td>' $'\n<td>' <<< "$PAGE") || return
 
         FOLDERS=$(parse_all_attr 'id="Ta_' 'title' <<< "$PAGE") || return
 
@@ -171,7 +171,7 @@ chomikuj_download() {
         return $ERR_LINK_DEAD
     fi
 
-    PAGE=$(replace '<input' $'\n<input' <<< "$PAGE")
+    PAGE=$(replace_all '<input' $'\n<input' <<< "$PAGE")
 
     VERIF_TOKEN=$(parse_form_input_by_name '__RequestVerificationToken' <<< "$PAGE") || return
 
@@ -192,7 +192,7 @@ chomikuj_download() {
 
     FILE_URL=$(parse_json 'redirectUrl' <<< "$PAGE") || return
     # For backward compatibility, old versions of echo cannot convert \uXXXX
-    FILE_URL=$(replace '\u0026' '&' <<< "$FILE_URL")
+    FILE_URL=$(replace_all '\u0026' '&' <<< "$FILE_URL")
     #FILE_URL=$(echo -e "$FILE_URL")
 
     echo "$FILE_URL"
@@ -229,7 +229,7 @@ chomikuj_upload() {
         "$BASE_URL/action/Upload/GetUrl/") || return
 
     UP_URL=$(parse_json 'Url' <<< "$PAGE") || return
-    UP_URL=$(replace '\u0026' '&' <<< "$UP_URL")
+    UP_URL=$(replace_all '\u0026' '&' <<< "$UP_URL")
     #UP_URL=$(echo -e "$UP_URL")
 
     PAGE=$(curl_with_log \
@@ -367,8 +367,8 @@ chomikuj_list() {
         done
     fi
 
-    LINKS=$(replace 'href="' "$BASE_URL" <<< "$LINKS")
-    NAMES=$(replace '</span>' '' <<< "$NAMES")
+    LINKS=$(replace_all 'href="' "$BASE_URL" <<< "$LINKS")
+    NAMES=$(replace_all '</span>' '' <<< "$NAMES")
 
     list_submit "$LINKS" "$NAMES"
 
@@ -379,7 +379,7 @@ chomikuj_list() {
         FOLDERS=$(parse_all_quiet \
             '^[[:space:]]*<a href=".*" rel="[0-9]\+" title=".*">[[:space:]]*$' \
             '\(href="[^"]\+\)' <<< "$PAGE") || return
-        FOLDERS=$(replace 'href="' "$BASE_URL" <<< "$FOLDERS")
+        FOLDERS=$(replace_all 'href="' "$BASE_URL" <<< "$FOLDERS")
 
         while read FOLDER; do
             [ -z "$FOLDER" ] && continue
