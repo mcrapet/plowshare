@@ -219,6 +219,8 @@ chomikuj_upload() {
 
     if [ -n "$FOLDER" ]; then
         FOLDER_ID=$(chomikuj_check_folder "$FOLDER" "$COOKIE_FILE" "$BASE_URL" "$USER_DATA") || return
+    else
+        FOLDER_ID="0"
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" \
