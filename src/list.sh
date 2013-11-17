@@ -71,7 +71,7 @@ usage() {
 # Example: "MODULE_4SHARED_LIST_HAS_SUBFOLDERS=no"
 # $1: module name
 module_config_has_subfolders() {
-    local -u VAR="MODULE_${1}_LIST_HAS_SUBFOLDERS"
+    local VAR="MODULE_$(uppercase "$1")_LIST_HAS_SUBFOLDERS"
     test "${!VAR}" = 'yes'
 }
 
