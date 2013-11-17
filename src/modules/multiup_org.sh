@@ -23,7 +23,106 @@ MODULE_MULTIUP_ORG_REGEXP_URL='https\?://\(www\.\)\?multiup\.org/'
 MODULE_MULTIUP_ORG_LIST_OPTIONS=""
 MODULE_MULTIUP_ORG_LIST_HAS_SUBFOLDERS=no
 
+MODULE_MULTIUP_ORG_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)
+FAVORITES,,favorites,,Only upload to user's favorite hosts"
+MODULE_MULTIUP_ORG_UPLOAD_REMOTE_SUPPORT=no
+
 MODULE_MULTIUP_ORG_PROBE_OPTIONS=""
+
+# Static function. Proceed with login (free or premium)
+multiup_org_login() {
+    local -r BASE_URL=$3
+    local JSON ERR
+
+    JSON=$(curl -F "username=$1" -F "password=$2" \
+        "$BASE_URL/login") || return
+
+    # {"error":"success","login":"bob","user":123456}
+    # {"error":"bad username OR bad password"}
+    ERR=$(parse_json 'error' <<< "$JSON")
+
+    if [ "$ERR" = 'success' ]; then
+        parse_json 'user' <<< "$JSON" || return
+        return 0
+    elif match 'bad ' "$ERR"; then
+         return $ERR_LOGIN_FAILED
+    else
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
+    fi
+}
+
+# Upload a file to multiup.org
+# $1: cookie file (unused here)
+# $2: input file (with full path)
+# $3: remote filename
+# stdout: multiup.org download link
+multiup_org_upload() {
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r API_URL='http://www.multiup.org/api'
+    local USER PASSWORD USER_ID JSON ERR SERVER H FORM_FIELDS
+    local -a H1 H2
+
+    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    split_auth "$AUTH_FREE" USER PASSWORD || return
+
+    USER_ID=$(multiup_org_login "$USER" "$PASSWORD" "$API_URL") || return
+    log_debug "uid: '$USER_ID'"
+
+    # Get fastest server
+    JSON=$(curl "$API_URL/get-fastest-server") || return
+
+    ERR=$(parse_json 'error' <<< "$JSON")
+    if [ "$ERR" != 'success' ]; then
+        log_error "Remote error: $ERR"
+        return $ERR_FATAL
+    fi
+
+    SERVER=$(parse_json 'server' <<< "$JSON") || return
+    log_debug "server: '$SERVER'"
+
+    # Get list available hosts
+    # {"error":"success","hosts":{"1fichier.com":2048,"billionuploads.com":2048, ...},"disableHosts":["billionuploads.com","dfiles.eu"]}
+    JSON=$(curl -F "username=$USER" -F "password=$PASSWORD" \
+        "$API_URL/get-list-hosts") || return
+
+    ALL_HOSTS=$(parse_json hosts <<< "$JSON") || return
+    DIS_HOSTS=$(parse_json disableHosts <<< "$JSON") || return
+
+    # Att: Hoster names must not contain IFS chatacters..
+    IFS=',{}' read -r -a H1 <<< "$ALL_HOSTS"
+    IFS=',[]' read -r -a H2 <<< "$DIS_HOSTS"
+
+    H1=(${H1[@]/#\"})
+    H2=(${H2[@]/#\"})
+    H1=(${H1[@]/\"*})
+    H2=(${H2[@]/%\"})
+
+    log_debug "available hosters: ${H1[@]}"
+
+    if [ -n "$FAVORITES" ]; then
+        # Process H1 - H2
+        # Att: Hoster names must not be substring of each other
+        for H in "${H2[@]}"; do
+            H1=(${H1[@]/$H})
+        done
+        log_debug "favorites hosters: ${H1[@]}"
+    fi
+
+    for H in "${H1[@]}"; do
+        FORM_FIELDS="$FORM_FIELDS -F $H=true"
+    done
+
+    JSON=$(curl_with_log -F "user=$USER_ID" \
+        -F "files[]=@$FILE;filename=$DESTFILE" \
+        $FORM_FIELDS "$SERVER") || return
+
+    parse_json 'url' <<< "$JSON" || return
+    parse_json 'delete_url' <<< "$JSON"
+    return 0
+}
 
 # List links from a multiup.org link
 # $1: multiup.org url

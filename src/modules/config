@@ -42,7 +42,7 @@ letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
 mirrorcreator   |          | upload |        | list |       |
-multiup_org     |          |        |        | list | probe |
+multiup_org     |          | upload |        | list | probe |
 multiupload     | download | upload |        | list |       |
 nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
