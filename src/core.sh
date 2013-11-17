@@ -494,7 +494,7 @@ parse_quiet() {
 #
 # Notes:
 # - Single line parsing oriented (user should strip newlines first): no tree model
-# - Array and Object types: no support
+# - Array and Object types: basic poor support (depth 1 without complex types)
 # - String type: no support for escaped unicode characters (\uXXXX)
 # - No non standard C/C++ comments handling (like in JSONP)
 # - If several entries exist on same line: last occurrence is taken, but:
@@ -508,6 +508,7 @@ parse_quiet() {
 # stdin: JSON data
 # stdout: result
 parse_json() {
+    local -r NAME="\"$1\"[[:space:]]*:[[:space:]]*"
     local STRING PRE
     local -r END='\([,}[:space:]].*\)\?$'
 
@@ -519,10 +520,13 @@ parse_json() {
         PRE='cat'
     fi
 
+    # Note: "ta;:a" is a trick for cleaning conditionnal flag
     STRING=$($PRE | sed \
-        -ne "s/^.*\"$1\"[[:space:]]*:[[:space:]]*\(-\?\(0\|[1-9][[:digit:]]*\)\(\.[[:digit:]]\+\)\?\([eE][-+]\?[[:digit:]]\+\)\?\)$END/\1/p" \
-        -ne "s/^.*\"$1\"[[:space:]]*:[[:space:]]*\(true\|false\|null\)$END/\1/p" \
-        -ne "s/\\\\\"/\\\\q/g;s/^.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\"$END/\1/p")
+        -ne "/$NAME\[/{s/^.*$NAME\(\[[^]]*\]\).*$/\1/;ta;:a;s/^\[.*\[//;t;p;q;}" \
+        -ne "/$NAME{/{s/^.*$NAME\({[^}]*}\).*$/\1/;ta;:a;s/^{.*{//;t;p;q;}" \
+        -ne "s/^.*$NAME\(-\?\(0\|[1-9][[:digit:]]*\)\(\.[[:digit:]]\+\)\?\([eE][-+]\?[[:digit:]]\+\)\?\)$END/\1/p" \
+        -ne "s/^.*$NAME\(true\|false\|null\)$END/\1/p" \
+        -ne "s/\\\\\"/\\\\q/g;s/^.*$NAME\"\([^\"]*\)\"$END/\1/p")
 
     if [ -z "$STRING" ]; then
         log_error "$FUNCNAME failed (json): \"$1\""
