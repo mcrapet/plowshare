@@ -104,7 +104,7 @@ module_exist() {
 # $1: module name
 module_config_remote_upload() {
     local VAR="MODULE_$(uppercase "$1")_UPLOAD_REMOTE_SUPPORT"
-    test "${!VAR}" = 'yes'
+    [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
 # Plowup printf format

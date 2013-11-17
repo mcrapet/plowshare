@@ -72,7 +72,7 @@ usage() {
 # $1: module name
 module_config_has_subfolders() {
     local VAR="MODULE_$(uppercase "$1")_LIST_HAS_SUBFOLDERS"
-    test "${!VAR}" = 'yes'
+    [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
 # Plowlist printf format
