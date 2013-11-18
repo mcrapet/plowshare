@@ -126,6 +126,7 @@ zippyshare_download() {
     # <meta property="og:type" content="..." />
     PAGE=$(strip_html_comments <<< "$PAGE")
     CONTENT=$(parse_attr_quiet '=.og:type.' 'content' <<< "$PAGE")
+    log_debug "Content Type: '$CONTENT'"
 
     case "$CONTENT" in
         'music.song')
@@ -144,18 +145,11 @@ zippyshare_download() {
 
     JS=$(grep_script_by_order "$PAGE" $N) || return
     JS=$(echo "$JS" | delete_first_line | delete_last_line)
-    N=$(parse_attr 'id="omg"' 'class' <<< "$PAGE") || return
 
     PART_URL=$(echo "var elt = {};
-        var omg = {
-          getAttribute: function(attr) {
-            return $N;
-          }
-        };
         var document = {
           getElementById: function(id) {
             if(id == 'dlbutton') return elt;
-            if(id == 'omg') return omg;
           }
         };
         $JS
