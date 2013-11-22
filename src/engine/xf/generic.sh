@@ -295,7 +295,7 @@ xfilesharing_dl_parse_error_generic() {
     elif match 'You can download files up to .* only' "$PAGE"; then
         return $ERR_SIZE_LIMIT_EXCEEDED
 
-    elif match 'Video [Ii][sn] [Ee]ncoding' "$ERROR"; then
+    elif match '[Vv]ideo.*[Ii][sn] [Ee]ncoding' "$ERROR"; then
         log_error 'Video is encoding now. Try again later.'
         return $ERR_LINK_TEMP_UNAVAILABLE
 
@@ -710,7 +710,7 @@ xfilesharing_dl_parse_streaming_generic () {
     local -r URL=$2
     local -r FILE_NAME=$3
     local JS_PLAYER_FOUND=0
-    local RE_PLAYER="jwplayer([\"']flvplayer[\"']).setup\|new SWFObject.*player\|DivXBrowserPlugin\|StrobeMediaPlayback.swf"
+    local RE_PLAYER="jwplayer([\"'].*[\"']).setup\|new SWFObject.*player\|DivXBrowserPlugin\|StrobeMediaPlayback.swf"
 
     if match '<script[^>]*>eval(function(p,a,c,k,e,d)' "$PAGE"; then
         log_debug 'Found some packed script (type 1)...'
@@ -762,7 +762,7 @@ xfilesharing_dl_parse_streaming_generic () {
         fi
     fi
 
-    if matchi "jwplayer([\"']flvplayer[\"']).setup\|new SWFObject.*player" "$PAGE"; then
+    if match "jwplayer([\"'].*[\"']).setup\|new SWFObject.*player" "$PAGE"; then
         if match 'streamer.*rtmp' "$PAGE"; then
             RTMP_BASE=$(echo "$PAGE" | parse 'streamer.*rtmp' "[\"']\?streamer[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(rtmp[^'^\"^)]\+\)")
             RTMP_PLAYPATH=$(echo "$PAGE" | parse 'file' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\([^'^\"^)]\+\)")
