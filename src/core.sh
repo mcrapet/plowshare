@@ -336,17 +336,27 @@ delete_last_line() {
 # Check if a string ($2) matches a regexp ($1)
 # This is case sensitive.
 #
-# $? is zero on success
+# $?: 0 for success
 match() {
-    grep -q -- "$1" <<< "$2"
+    if [ -z "$2" ]; then
+        log_debug "$FUNCNAME: input buffer is empty"
+        return $ERR_FATAL
+    else
+        grep -q -- "$1" <<< "$2"
+    fi
 }
 
 # Check if a string ($2) matches a regexp ($1)
 # This is not case sensitive.
 #
-# $? is zero on success
+# $?: 0 for success
 matchi() {
-    grep -iq -- "$1" <<< "$2"
+    if [ -z "$2" ]; then
+        log_debug "$FUNCNAME: input buffer is empty"
+        return $ERR_FATAL
+    else
+        grep -iq -- "$1" <<< "$2"
+    fi
 }
 
 # Check if URL is suitable for remote upload
