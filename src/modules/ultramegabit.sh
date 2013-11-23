@@ -125,6 +125,8 @@ ultramegabit_download() {
         return $ERR_CAPTCHA
     fi
 
+    captcha_ack $ID
+
     FILE_URL=$(grep_http_header_location <<< "$PAGE") || return
 
     if match 'delay' "$FILE_URL"; then
@@ -137,11 +139,13 @@ ultramegabit_download() {
 
         echo $(( (WAIT_TIME) - TIME ))
         return $ERR_LINK_TEMP_UNAVAILABLE
+
+    # File size restriction
+    elif match 'alert/size' "$FILE_URL"; then
+        return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
     FILENAME=$(parse . 'filename=\([^&]\+\)' <<< "$FILE_URL") || return
-
-    [ -n "$ID" ] && captcha_ack $ID
 
     echo "$FILE_URL"
     echo "$FILENAME"
