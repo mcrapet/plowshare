@@ -81,11 +81,11 @@ filefactory_download() {
 
     LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
-    if match '/error.php?code=251' "$LOCATION" || \
-        match '/error.php?code=254' "$LOCATION"; then
+    if match '/error\.php?code=25[14]' "$LOCATION"; then
         return $ERR_LINK_DEAD
-
-    elif match '/error.php?code=' "$LOCATION"; then
+    elif match '/error\.php?code=258' "$LOCATION"; then
+        return $ERR_LINK_NEED_PERMISSIONS
+    elif match '/error\.php?code=' "$LOCATION"; then
         log_error "Remote error code: '${LOCATION:16}'"
         return $ERR_FATAL
     fi
