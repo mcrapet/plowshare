@@ -168,7 +168,12 @@ filecloud_download() {
         PAGE=$(curl $AUTH_COOKIE -b "$COOKIE_FILE" "$BASE_URL/download.html") || return
 
         while [ "$CAPTCHA" = 1 ]; do
-            [ -n "$ID" ] && captcha_nack $ID
+            # captcha=1 on second loop means that previous captcha was wrong
+            if [ -n "$ID" ]; then
+                captcha_nack $ID
+                log_error 'Wrong captcha'
+                return $ERR_CAPTCHA
+            fi
 
             local PUBKEY WCI CHALLENGE WORD ID
             PUBKEY=$(parse '__recaptcha_public' \
@@ -189,6 +194,7 @@ filecloud_download() {
             PAGE=$(curl $AUTH_COOKIE -b "$COOKIE_FILE" "$BASE_URL/download.html") || return
         done
 
+        # Captcha is optional sometimes
         [ -n "$ID" ] && captcha_ack $ID
 
         FILE_URL=$(parse_attr 'downloadBtn' 'href' <<< "$PAGE") || return
