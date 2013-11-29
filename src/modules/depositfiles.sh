@@ -373,10 +373,9 @@ depositfiles_probe() {
     match 'This file does not exist' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
-    if [[ $REQ_IN = *f* ]] && detect_javascript; then
-        FILE_NAME=$(parse '=.file_size' '\(unescape([^)]\+)\)' -1 <<< "$PAGE")
-        PAGE=$(echo "print($FILE_NAME);" | javascript)
-        FILE_NAME=$(parse_tag '=.file_name' b <<< "$PAGE")
+    if [[ $REQ_IN = *f* ]]; then
+        FILE_NAME=$(parse '=.file_size' '\(unescape([^)]\+)\)' -1 <<< "$PAGE" | replace_all '%' '\')
+        FILE_NAME=$(printf '%b' "$FILE_NAME" | parse_tag '=.file_name' b)
         test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
     fi
 
