@@ -125,15 +125,15 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 # $3: remote filename
 # stdout: download + del link
 1fichier_upload() {
-    local COOKIEFILE=$1
-    local FILE=$2
-    local DESTFILE=$3
-    local UPLOADURL='http://upload.1fichier.com'
+    local -r COOKIE_FILE=$1
+    local -r FILE=$2
+    local -r DESTFILE=$3
+    local -r UPLOADURL='http://upload.1fichier.com'
     local LOGIN_DATA S_ID RESPONSE DOWNLOAD_ID REMOVE_ID DOMAIN_ID
 
     if test "$AUTH"; then
         LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'
-        post_login "$AUTH" "$COOKIEFILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
+        post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
     fi
 
     # Initial js code:
@@ -141,7 +141,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     # for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);
     S_ID=$(random ll 5)
 
-    RESPONSE=$(curl_with_log -b "$COOKIEFILE" \
+    RESPONSE=$(curl_with_log -b "$COOKIE_FILE" \
         --form-string "message=$MESSAGE" \
         --form-string "mail=$TOEMAIL" \
         -F "dpass=$LINK_PASSWORD" \
@@ -149,7 +149,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         -F "file[]=@$FILE;filename=$DESTFILE" \
         "$UPLOADURL/upload.cgi?id=$S_ID") || return
 
-    RESPONSE=$(curl --header "EXPORT:1" "$UPLOADURL/end.pl?xid=$S_ID" | sed -e 's/;/\n/g')
+    RESPONSE=$(curl --header 'EXPORT:1' "$UPLOADURL/end.pl?xid=$S_ID" | replace_all ';' $'\n') || return
 
     DOWNLOAD_ID=$(echo "$RESPONSE" | nth_line 3)
     REMOVE_ID=$(echo "$RESPONSE" | nth_line 4)

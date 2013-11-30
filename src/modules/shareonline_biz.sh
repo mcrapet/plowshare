@@ -90,13 +90,8 @@ shareonline_biz_switch_lang() {
 shareonline_biz_download() {
     local -r BASE_URL='http://www.share-online.biz'
     local URL FILE_ID PAGE ACCOUNT REDIR BASE64LINK
-    local API_FILE_ID FILE_STATUS FILE_NAME SIZE
+    local API_FILE_ID FILE_STATUS FILE_NAME SIZE FILE_URL
     local CAP_ID URL_ID WAIT
-
-    if ! check_exec 'base64'; then
-        log_error "'base64' is required but was not found in path."
-        return $ERR_SYSTEM
-    fi
 
     # Extract file ID from all possible URL formats
     #  http://www.share-online.biz/download.php?id=xyz
@@ -141,16 +136,36 @@ shareonline_biz_download() {
 
     # Handle premium download
     if [ "$ACCOUNT" = 'premium' ]; then
-        # Cookies need to be sent and an extra cookie ("a") is required
+        # 'Direct download' may be active in which case the site redirects
+        # to the final URL immediately. Also, an extra cookie ('a') is
+        # required for premium downloads in any case.
+        PAGE=$(curl --include -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+        FILE_URL=$(grep_http_header_location_quiet <<< "$PAGE")
+
+        # No 'direct download', so get URL from the page
+        if [ -z "$FILE_URL" ]; then
+            if ! check_exec 'base64'; then
+                log_error "'base64' is required but was not found in path."  \
+                    "Alternatively you may activate the 'Direct Download'"   \
+                    "feature in your profile (use your browser to login and" \
+                    "open 'https://www.share-online.biz/user/config')."
+                return $ERR_SYSTEM
+            fi
+
+            BASE64LINK=$(parse 'var[[:space:]]dl=' \
+                '[[:space:]]dl="\([^"]\+\)"' <<< "$PAGE") || return
+            FILE_URL=$(base64 --decode <<< "$BASE64LINK") || return
+        fi
+
         MODULE_SHAREONLINE_BIZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
-        PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
-
-        BASE64LINK=$(parse 'var[[:space:]]dl=' \
-            '[[:space:]]dl="\([^"]\+\)"' <<< "$PAGE") || return
-
-        echo $(base64 --decode <<< "$BASE64LINK") || return
+        echo "$FILE_URL"
         echo "$FILE_NAME"
         return 0
+    fi
+
+    if ! check_exec 'base64'; then
+        log_error "'base64' is required but was not found in path."
+        return $ERR_SYSTEM
     fi
 
     URL="${URL}free/"
@@ -237,7 +252,8 @@ shareonline_biz_download() {
 
     wait $(( $WAIT + 1 )) || return
 
-    echo $(base64 --decode <<< "$BASE64LINK") || return
+    FILE_URL=$(base64 --decode <<< "$BASE64LINK") || return
+    echo "$FILE_URL"
     echo "$FILE_NAME"
 }
 

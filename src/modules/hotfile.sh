@@ -42,10 +42,10 @@ MODULE_HOTFILE_PROBE_OPTIONS=""
 # $2: hotfile.com url
 # stdout: real file download link
 hotfile_download() {
-    local COOKIE_FILE=$1
+    local -r COOKIE_FILE=$1
     local URL="${2}&lang=en"
-    local API_URL='http://api.hotfile.com'
-    local BASE_URL='http://hotfile.com'
+    local -r API_URL='http://api.hotfile.com'
+    local -r BASE_URL='http://hotfile.com'
     local FILE_URL ROLE WAIT_HTML WAIT_HTML2 WAIT_TIME PAGE LINK
 
     if match 'hotfile\.com/list/' "$URL"; then
@@ -98,7 +98,7 @@ hotfile_download() {
         fi
     fi
 
-    WAIT_HTML=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
+    WAIT_HTML=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
     # This file is either removed due to copyright claim or is deleted by the uploader.
     if match '\(404 - Not Found\|or is deleted\)' "$WAIT_HTML"; then
@@ -114,7 +114,6 @@ hotfile_download() {
 
     WAIT_TIME=$(echo "$WAIT_HTML" | parse 'function[[:space:]]*starttimer' \
         '+\([[:digit:]]\+\);' 2) || return
-
 
     # Send (post) form
     local FORM_HTML FORM_URL FORM_ACTION FORM_TM FORM_TMHASH FORM_WAIT FORM_WAITHASH FORM_UPIDHASH

@@ -70,7 +70,7 @@ billionuploads_download() {
     FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
     FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
 
-    FORM_ADD_TMP=$(echo "$PAGE" | parse "document.getElementById('gizzz')" 'decodeURIComponent("\([^"]\+\)' | billionuploads_urldecode)
+    FORM_ADD_TMP=$(echo "$PAGE" | parse "document.getElementById('.*').innerHTML=decodeURIComponent" 'decodeURIComponent("\([^"]\+\)' | billionuploads_urldecode)
     FORM_ADD=$(echo "$FORM_ADD_TMP" | parse_attr 'name')'='$(echo "$FORM_ADD_TMP" | parse_attr 'value')
 
     PAGE=$(curl -b "$COOKIE_FILE" \

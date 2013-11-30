@@ -53,7 +53,7 @@ sendspace_login() {
         "$BASE_URL/login.html" -o /dev/null || return
 
     STATUS=$(parse_cookie_quiet 'ssal' < "$COOKIE_FILE")
-    if [ -z "$STATUS" ]; then
+    if [ -z "$STATUS" -o "$STATUS" = 'deleted' ]; then
         return $ERR_LOGIN_FAILED
     fi
 

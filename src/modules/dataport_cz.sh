@@ -2,7 +2,7 @@
 #
 # dataport.cz module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -52,45 +52,77 @@ dataport_cz_login() {
 }
 
 # Output a dataport.cz file download URL
-# $1: cookie file (unused here)
+# $1: cookie file
 # $2: dataport.cz url
 # stdout: real file download link
 dataport_cz_download() {
-    local URL=$(uri_encode_file "$2")
-    local PAGE DL_URL FILENAME FILE_URL
+    local -r COOKIE_FILE=$1
+    local -r URL=$(uri_encode_file "$2")
+    local -r BASE_URL='http://www.dataport.cz'
+    local PAGE CAPTCHA_URL CAPTCHA_IMG FILE_URL FILE_NAME WAIT_TIME
+    local FORM_HTML FORM_URL FORM_FILE_ID FORM_CAPTCHA_ID FORM_CHECK
 
-    PAGE=$(curl --location "$URL") || return
-    if match '<h2>Soubor nebyl nalezen</h2>' "$PAGE"; then
+    PAGE=$(curl --location -c "$COOKIE_FILE" "$URL") || return
+
+    # <h2>Nahrát soubor <span class="h2sub">(max. 2GB / soubor)</span></h2>
+    if match '<h2>Nahrát soubor <' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
+    FORM_HTML=$(grep_form_by_id "$PAGE" 'free_download_form') || return
+    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_FILE_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'fileId') || return
+    FORM_CAPTCHA_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'captchaId')
+    FORM_CHECK=$(echo "$FORM_HTML" | parse_form_input_by_name 'check') || return
 
-    # Returned HTML uses UTF-8 charset
-    # <strong><span style="color:green">Volné sloty pro stažení zdarma jsou v tuto chvíli k dispozici.</span></strong>
-    # <strong><span style="color:red">Volné sloty pro stažení zdarma jsou v tuhle chvíli vyčerpány.</span></strong>
-    PAGE=$(curl --location "$URL") || return
+    FILE_NAME=$(parse_tag 'itemprop=.name' span <<< "$PAGE")
 
-    if ! match 'color:green">Volné sloty pro' "$PAGE"; then
-        echo 120
-        return $ERR_LINK_TEMP_UNAVAILABLE
+    CAPTCHA_URL=$(parse_attr '/captcha/' 'src' <<< "$PAGE") || return
+    CAPTCHA_IMG=$(create_tempfile '.png') || return
+
+    # Get new image captcha (cookie is mandatory)
+    curl -b "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$BASE_URL$CAPTCHA_URL" || return
+
+    # Počet volných slotů: <span class="darkblue">1</span><br />
+    WAIT_TIME=$(parse_tag 'volných slotů' span <<< "$PAGE") || return
+    wait $((WAIT_TIME + 1)) || return
+
+    local WI WORD ID
+    WI=$(captcha_process "$CAPTCHA_IMG") || return
+    { read WORD; read ID; } <<<"$WI"
+    rm -f "$CAPTCHA_IMG"
+
+    PAGE=$(curl -b "$COOKIE_FILE" -d 'freeDownloadFormSubmit=' \
+        -d "captchaCode=$WORD" \
+        -d "fileId=$FORM_FILE_ID" \
+        -d "captchaId=$FORM_CAPTCHA_ID" \
+        -d "check=$FORM_CHECK" "$BASE_URL$FORM_URL") || return
+
+    FILE_URL=$(parse_attr '<a' href <<< "$PAGE" | \
+        replace_all '&amp;' '&') || return
+
+    if match 'ticketId=' "$FILE_URL"; then
+        captcha_ack $ID
+        log_debug 'Correct captcha'
+
+        echo "$FILE_URL"
+        echo "$FILE_NAME"
+        return 0
+
+    else
+        PAGE=$(curl -b "$COOKIE_FILE" "$FILE_URL") || return
+
+        # Captcha can be good or not ..
+        #  Je nám líto, ale momentálně nejsou k dispozici žádné free download sloty, zkuste to později nebo si kupte premium
+        if match 'ale momentálně nejsou k dispozici' "$PAGE"; then
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        # Špatně opsaný kód z obrázu
+        captcha_nack $ID
+        log_error 'Wrong captcha'
+        return $ERR_CAPTCHA
     fi
-
-    FILENAME=$(echo "$PAGE" | parse_tag 'color: red' 'h2')
-
-    # Can't use parse_attr because there are 2 href on the same line
-    DL_URL=$(echo "$PAGE" | sed -e 's/<strong/\n<strong/g' | \
-        parse_attr 'ui-state-default' href) || return
-
-    # Is this required ?
-    DL_URL=$(uri_encode_file "$DL_URL")
-
-    FILE_URL=$(curl -I "$DL_URL" | grep_http_header_location) || return
-
-    # Is this required ?
-    FILE_URL=$(uri_encode_file "$FILE_URL")
-
-    echo "$FILE_URL"
-    echo "$FILENAME"
 }
 
 # Upload a file to dataport.cz

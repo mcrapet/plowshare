@@ -254,6 +254,13 @@ uploaded_net_download() {
         # Get download link, if this was a direct download
         FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
 
+        if match 'your Hybrid-Traffic is completely exhausted' "$PAGE"; then
+            WAIT=$(parse 'Hybrid-Traffic.*exhausted' \
+                'will be released in \([[:digit:]]\+\) minutes' <<< "$PAGE")
+            echo $(( ${WAIT:-60} * 60 ))
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
         if [ -z "$FILE_URL" ]; then
             FILE_URL=$(echo "$PAGE" | parse_attr 'stor[[:digit:]]\+\.' 'action') || return
         fi
@@ -460,7 +467,13 @@ uploaded_net_upload() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_ID="${PAGE%%,*}"
+    FILE_ID=${PAGE%%,*}
+
+    # Sanity check
+    if [ -z "$FILE_ID" ]; then
+        log_error "Upstream error: '$PAGE'"
+        return $ERR_FATAL
+    fi
 
     # Do we need to edit the file? (change visibility, set password)
     if [ -n "$PRIVATE_FILE" -o -n "$LINK_PASSWORD" ]; then

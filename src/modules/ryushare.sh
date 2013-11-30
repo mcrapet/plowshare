@@ -127,6 +127,11 @@ ryushare_download() {
             echo $(( MINS * 60 + SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
 
+        # You have reached the download-limit!
+        elif matchi 'You have reached the download.limit' "$ERR"; then
+            echo 3600
+            return $ERR_LINK_TEMP_UNAVAILABLE
+
         # You can download files up to 1024 Mb only.
         elif match 'You can download files up to .* only' "$ERR"; then
             return $ERR_SIZE_LIMIT_EXCEEDED
