@@ -467,7 +467,13 @@ uploaded_net_upload() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_ID="${PAGE%%,*}"
+    FILE_ID=${PAGE%%,*}
+
+    # Sanity check
+    if [ -z "$FILE_ID" ]; then
+        log_error "Upstream error: '$PAGE'"
+        return $ERR_FATAL
+    fi
 
     # Do we need to edit the file? (change visibility, set password)
     if [ -n "$PRIVATE_FILE" -o -n "$LINK_PASSWORD" ]; then
