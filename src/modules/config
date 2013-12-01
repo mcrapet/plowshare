@@ -46,6 +46,7 @@ multiup_org     |          | upload |        | list | probe |
 multiupload     | download | upload |        | list |       |
 nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
+nowdownload_co  | download | upload |        |      | probe |
 pastebin        |          |        |        | list |       |
 putlocker       | download | upload |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
