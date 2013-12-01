@@ -48,7 +48,6 @@ bayimg_download() {
         return $ERR_LINK_DEAD
     fi
 
-
     FILE_URL=$(parse_attr 'toggleResize(' src <<< "$PAGE") || return
 
     # Filename is not always displayed
