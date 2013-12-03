@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-ODULE_NOWDOWNLOAD_CO_REGEXP_URL='https\?://\(www\.\)\?nowdownload\.\(co\|ch\|eu\|sx\)/'
+MODULE_NOWDOWNLOAD_CO_REGEXP_URL='https\?://\(www\.\)\?nowdownload\.\(co\|ch\|eu\|sx\)/'
 
 MODULE_NOWDOWNLOAD_CO_DOWNLOAD_OPTIONS=""
 MODULE_NOWDOWNLOAD_CO_DOWNLOAD_RESUME=yes
@@ -213,7 +213,17 @@ nowdownload_co_probe() {
         return $ERR_LINK_DEAD
     fi
 
+    # <p class="alert alert-danger">The file is being transfered. Please wait!</p>
+    if match '>The file is being transfered. Please wait!<' "$PAGE"; then
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        parse 'alert-success"' '^.*>[[:space:]]\?\([^<[:space:]]\+\)' <<< "$PAGE" && \
+            REQ_OUT="${REQ_OUT}f"
+    fi
 
     echo $REQ_OUT
 }
