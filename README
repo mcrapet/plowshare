@@ -99,9 +99,9 @@ $ plowdown -m file_with_links.txt
 5. Limit the download rate (in bytes per second). Accepted prefixes are k, K, Ki, M, m, Mi.
 $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 
-6. Download a file from HotFile using an account (free or premium)
+6. Download a file from Rapidgator using an account (free or premium)
    (note ':' is used to separate user from password)
-$ plowdown -a 'myuser:mypassword' http://hotfile.com/dl/68261330/2f2926f/
+$ plowdown -a 'myuser:mypassword' http://rapidgator.net/file/49b1b874
 
 7. Download a password-protected file from Mediafire:
 $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
@@ -126,7 +126,7 @@ $ plowup mirrorcreator /path/myfile.txt:anothername.txt
 4. Upload a file to MegaShares (anonymously) + set description
 $ plowup -d "Important document" megashares /path/myfile.tex
 
-5. Upload a file to RapidShare with an account (premium or free)
+5. Upload a file to Rapidshare with an account (premium or free)
 $ plowup -a 'myuser:mypassword' rapidshare /path/xxx
 
 6. Upload a file to Oron anonymously with a proxy.
@@ -146,14 +146,14 @@ in their name, so make sure to rename them before using plowup.
 Plowdel
 -------
 
-1. Delete a file from Oron ("delete" link required)
-$ plowdel http://oron.com/hymvzwi4mkk7?killcode=cmh5cer4s6
+1. Delete a file from MegaShares ("delete" link required)
+$ plowdel http://d01.megashares.com/?dl=6EUeDtS
 
 2. Delete files (deletes are successive, not parallel)
-$ plowdel http://oron.com/hymvzwi4mkk7?killcode=cmh5cer4s6 \
+$ plowdel http://d01.megashares.com/?dl=6EUeDtS \
       http://depositfiles.com/rmv/1643181821669253
 
-3. Delete a file from RapidShare (account is required)
+3. Delete a file from Rapidshare (account is required)
 $ plowdel -a myuser:mypassword http://rapidshare.com/files/293672730/foo.rar
 
 Plowlist
