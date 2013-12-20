@@ -836,6 +836,14 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
     for URL in "${ELEMENTS[@]}"; do
         MRETVAL=0
+
+        # Detect (simple) redirection services
+        # http://8bbd5066.redir.com/url/http://www.hoster.com/file/921AFF48
+        if [[ $URL =~ ^[Hh][Tt][Tt][Pp][Ss]?://.+([Hh][Tt][Tt][Pp][Ss]?://.*)$ ]]; then
+            URL=${BASH_REMATCH[1]}
+            log_notice "This seems to be a redirection url. Trying with: '$URL'"
+        fi
+
         MODULE=$(get_module "$URL" "$MODULES") || true
 
         if [ -z "$MODULE" ]; then
