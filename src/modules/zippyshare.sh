@@ -136,7 +136,7 @@ zippyshare_download() {
             N=-4
             ;;
         '')
-            N=-5
+            N=-6
             ;;
         *)
             log_error "Unexpected content ('$CONTENT'), site updated?"
@@ -144,6 +144,17 @@ zippyshare_download() {
     esac
 
     JS=$(grep_script_by_order "$PAGE" $N) || return
+
+    # Sanity check
+    if match '<script[[:space:]][^>]\+></script>' "$JS"; then
+        log_error "Unexpected javascript content (N=$N)"
+        #JS=$(grep_script_by_order "$PAGE" $((N+1))) || return
+        #log_error "+1 [$JS]"
+        #JS=$(grep_script_by_order "$PAGE" $((N-1))) || return
+        #log_error "-1 [$JS]"
+        return $ERR_FATAL
+    fi
+
     JS=$(echo "$JS" | delete_first_line | delete_last_line)
 
     PART_URL=$(echo "var elt = {};
