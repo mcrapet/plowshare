@@ -76,10 +76,9 @@ bayfiles_download() {
         PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
     fi
 
-    if match 'The link is incorrect' "$PAGE"; then
+    if match 'The link is incorrect\|<title>404 - Not Found</title>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-
 
     # <h3 class="comparison">What are the benefits for <strong>premium</strong> members?</h3>
     if match 'comparison\|benefits' "$PAGE"; then
@@ -208,7 +207,7 @@ bayfiles_probe() {
 
     PAGE=$(curl -L "$URL") || return
 
-    if match 'The link is incorrect' "$PAGE"; then
+    if match 'The link is incorrect\|<title>404 - Not Found</title>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
