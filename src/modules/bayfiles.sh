@@ -121,7 +121,7 @@ bayfiles_download() {
     fi
 
     # Extract filename from $PAGE, work for both cases
-    FILENAME=$(echo "$PAGE" | parse_attr_quiet 'title="' 'title')
+    FILENAME=$(parse_attr 'title="' 'title' <<< "$PAGE" | html_to_utf8)
 
     echo "$FILE_URL"
     echo "$FILENAME"
@@ -214,7 +214,7 @@ bayfiles_probe() {
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse_attr 'title=' 'title' <<< "$PAGE" && \
+        parse_attr 'title=' 'title' <<< "$PAGE" | html_to_utf8 && \
             REQ_OUT="${REQ_OUT}f"
     fi
 
