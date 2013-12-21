@@ -854,19 +854,23 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
                 URL_ENCODED=$(uri_encode <<< "$URL")
                 HEADERS=$(curl --user-agent '' --head "$URL_ENCODED") || true
-                URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
 
-                if [ -n "$URL_TEMP" ]; then
-                    MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
-                    test "$MODULE" && URL="$URL_TEMP"
-                elif test "$NO_MODULE_FALLBACK"; then
-                    log_notice 'No module found, do a simple HTTP GET as requested'
-                    MODULE='module_null'
-                else
-                    [[ $URL =~ [Hh][Tt][Tt][Pp][Ss]?://([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}/|$ ]] && \
-                        log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
-                    test "$HEADERS" && \
+                if [ -n "$HEADERS" ]; then
+                    URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
+
+                    if [ -n "$URL_TEMP" ]; then
+                        MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
+                        test "$MODULE" && URL="$URL_TEMP"
+                    elif test "$NO_MODULE_FALLBACK"; then
+                        log_notice 'No module found, do a simple HTTP GET as requested'
+                        MODULE='module_null'
+                    else
+                        [[ $URL =~ [Hh][Tt][Tt][Pp][Ss]?://([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3} ]] && \
+                            log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
                         log_debug "remote server reply: $(echo "$HEADERS" | first_line | tr -d '\r\n')"
+                        MRETVAL=$ERR_NOMODULE
+                    fi
+                else
                     MRETVAL=$ERR_NOMODULE
                 fi
             else
