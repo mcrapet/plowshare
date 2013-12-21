@@ -125,13 +125,14 @@ mark_queue() {
     local -r FILE=$3
     local -r URL=$4
     local -r STATUS="#$5"
-    local -r FILENAME=${6:+"# $6"}
+    local FILENAME=${6:+"# $6"}
 
     if [ -n "$2" ]; then
         if [ 'file' = "$1" ]; then
             if test -w "$FILE"; then
                 local -r D=$'\001' # sed separator
-                sed -i -e "s$D^[[:space:]]*\(${URL//\\/\\\\/}[[:space:]]*\)\$$D${FILENAME//&/\\&}\n$STATUS \1$D" "$FILE" &&
+                test "$FILENAME" && FILENAME="${FILENAME//&/\\&}\n"
+                sed -i -e "s$D^[[:space:]]*\(${URL//\\/\\\\/}[[:space:]]*\)\$$D$FILENAME$STATUS \1$D" "$FILE" &&
                     log_notice "link marked in file \`$FILE' ($STATUS)" ||
                     log_error "failed marking link in file \`$FILE' ($STATUS)"
             else
