@@ -185,17 +185,14 @@ xfilesharing_get_module() {
 # stdout: options list (one per line)
 xfilesharing_get_all_modules_options() {
     local -ur VAR_OPTIONS="${1}_OPTIONS"
+    local OPTIONS
 
     strip_and_drop_empty_lines "${GENERIC_OPTIONS[$VAR_OPTIONS]}"
 
-    MODULES=$(grep_list_xfilesharing_modules)
-
-    for MODULE in $MODULES; do
-        local -u VAR=${MODULE}_OPTIONS
+    while read -r; do
+        local -u VAR=${REPLY}_OPTIONS
         OPTIONS=${VAR}[${VAR_OPTIONS}]
         OPTIONS=${!OPTIONS}
-        [ -n "$OPTIONS" ] && strip_and_drop_empty_lines "$OPTIONS"
-    done
-
-    return 0
+        [ -z "$OPTIONS" ] || strip_and_drop_empty_lines "$OPTIONS"
+    done < <(grep_list_xfilesharing_modules)
 }
