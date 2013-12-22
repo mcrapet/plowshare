@@ -40,7 +40,7 @@ grep_list_xfilesharing_modules() {
         "$CONFIG"
 }
 
-# Get module property
+# Static function. Get module property
 # $1: module name
 # $2: property name to get
 # stdout: requested property
@@ -70,7 +70,7 @@ xfilesharing_get_submodule_property() {
     return 1
 }
 
-# Get module name by URL
+# Static function. Get module name by URL
 # $1: URL
 # stdout: module name
 xfilesharing_get_submodule() {
@@ -123,8 +123,8 @@ xfilesharing_init() {
     #done
 }
 
-# Check if we accept to kind of url. No subshell.
-# This is used by plowdown and plowprobe.
+# Check if we accept this kind of url. No subshell.
+# This is used by plowdown and plowprobe.
 # $1: caller (plowdown, plowup, ...)
 # $2: URL or module to probe
 # $?: 0 for success
@@ -183,7 +183,7 @@ xfilesharing_get_module() {
 # Look for a configuration module variable
 # $1: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
-xfilesharing_get_all_module_options() {
+xfilesharing_get_all_modules_options() {
     local -ur VAR_OPTIONS="${1}_OPTIONS"
 
     strip_and_drop_empty_lines "${GENERIC_OPTIONS[$VAR_OPTIONS]}"

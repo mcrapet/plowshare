@@ -350,7 +350,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
 
 if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options UPLOAD)
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options UPLOAD)
 fi
 
 # Process command-line (all module options)

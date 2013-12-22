@@ -800,7 +800,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
 
 if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options DOWNLOAD)
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options DOWNLOAD)
 fi
 
 # Process command-line (all module options)

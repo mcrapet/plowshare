@@ -166,7 +166,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
 
 if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options DELETE)
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options DELETE)
 fi
 
 # Process command-line (all module options)

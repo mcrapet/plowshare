@@ -243,7 +243,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
 
 if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_module_options LIST)
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options LIST)
 fi
 
 # Process command-line (all module options)
