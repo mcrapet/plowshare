@@ -565,8 +565,13 @@ xfilesharing_probe() {
         fi
     done
 
-    [ -z "$FILE_NAME" ] && log_error 'Failed to parse file name.'
-    [ -z "$FILE_SIZE" ] && log_error 'Failed to parse size.'
+    if [[ $REQ_IN = *f* ]] && [ -z "$FILE_NAME" ]; then
+        log_error 'Failed to parse file name.'
+    fi
+
+    if [[ $REQ_IN = *s* ]] && [ -z "$FILE_SIZE" ]; then
+        log_error 'Failed to parse size.'
+    fi
 
     echo $REQ_OUT
 }
