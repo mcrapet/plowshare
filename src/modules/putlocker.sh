@@ -109,10 +109,12 @@ putlocker_download() {
 putlocker_upload() {
     local -r FILE=$2
     local -r DESTFILE=$3
-    local -r BASE_URL='http://upload.putlocker.com/uploadapi.php'
-    local DATA MSG USER PASSWORD DL_URL
+    local -r API_URL='http://upload.putlocker.com/uploadapi.php'
+    local -r UP_URL='http://www.putlocker.com/upload_form.php'
+    local PAGE SRV_CGI SIZE_LIMIT SESSION AUTH_HASH DONE_ID
 
     if [ -n "$AUTH_FREE" ]; then
+        local DATA MSG USER PASSWORD DL_URL
         split_auth "$AUTH_FREE" USER PASSWORD || return
 
         DATA=$(curl_with_log \
@@ -120,7 +122,14 @@ putlocker_upload() {
             -F "user=$USER" \
             -F "password=$PASSWORD" \
             -F 'convert=0' \
-            "$BASE_URL") || return
+            "$API_URL") || return
+
+        # Check for temporary errors
+        if [ "$DATA" = 'Uploading is current disabled' ]; then
+            log_error 'Remote server error, maybe due to overload.'
+            echo 180 # arbitrary time
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
 
         MSG=$(parse_tag message <<< "$DATA") || return
 
@@ -136,10 +145,16 @@ putlocker_upload() {
         return $ERR_FATAL
     fi
 
-    local PAGE SRV_CGI SIZE_LIMIT SESSION AUTH_HASH DONE_ID
-    local -r UP_URL='http://www.putlocker.com/upload_form.php'
-
     PAGE=$(curl "$UP_URL") || return
+
+    # Check for temporary errors
+    # Uploading is Currently Disabled for Maintenance.
+    if match 'uploading_disabled' "$PAGE"; then
+        log_error 'Remote server error, maybe due to overload.'
+        echo 180 # arbitrary time
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     SRV_CGI=$(echo "$PAGE" | parse "'script'" ":[[:space:]]*'\([^']\+\)") || return
     SIZE_LIMIT=$(echo "$PAGE" | parse "'sizeLimit'" ":[[:space:]]*\([^,]\+\)") || return
     SESSION=$(echo "$PAGE" | parse 'scriptData' "'session':[[:space:]]*'\([^']*\)") || return
