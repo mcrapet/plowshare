@@ -194,5 +194,5 @@ xfilesharing_get_all_modules_options() {
         OPTIONS=${VAR}[${VAR_OPTIONS}]
         OPTIONS=${!OPTIONS}
         [ -z "$OPTIONS" ] || strip_and_drop_empty_lines "$OPTIONS"
-    done < <(grep_list_xfilesharing_modules)
+    done <<< "$(grep_list_xfilesharing_modules)"
 }
