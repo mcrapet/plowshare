@@ -222,6 +222,8 @@ uptobox_upload() {
     local -r BASE_URL='http://uptobox.com'
 
     local PAGE URL UPLOAD_ID USER_TYPE DL_URL DEL_URL
+    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_TMP_SRV FORM_BUTTON FORM_SESS
+    local FORM_FN FORM_ST FORM_OP
 
     if [ -n "$AUTH" ]; then
         uptobox_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
@@ -230,43 +232,40 @@ uptobox_upload() {
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
 
     # "anon", "reg", "prem"
-    USER_TYPE=$(echo "$PAGE" | parse 'var utype' "='\([^']*\)") || return
+    USER_TYPE=$(parse 'var utype' "='\([^']*\)" <<< "$PAGE") || return
     log_debug "User type: '$USER_TYPE'"
 
-    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
-    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
-    FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url')
-
-    UPLOAD_ID=$(random dec 10)
+    FORM_ACTION=$(parse_form_action <<< "$PAGE") || return
+    FORM_UTYPE=$(parse_form_input_by_name 'upload_type' <<< "$PAGE") || return
+    FORM_TMP_SRV=$(parse_form_input_by_name 'srv_tmp_url' <<< "$PAGE") || return
+    FORM_BUTTON=$(parse_form_input_by_name 'submit_btn' <<< "$PAGE") || return
+    FORM_SESS=$(parse_form_input_by_name_quiet 'sess_id' <<< "$PAGE")
 
     # xupload.js
+    UPLOAD_ID=$(random dec 12) || return
     PAGE=$(curl_with_log \
         -F "upload_type=$FORM_UTYPE" \
         -F "sess_id=$FORM_SESS" \
         -F "srv_tmp_url=$FORM_TMP_SRV" \
-        -F "file_0=@$FILE;filename=$DESTFILE" \
-        "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
-         break_html_lines) || return
+        -F "file_1=@$FILE;type=application/octet-stream;filename=$DESTFILE" \
+        -F 'tos=1' \
+        -F "submit_btn=$FORM_BUTTON" \
+        "${FORM_ACTION%%\?*}?X-Progress-ID=${UPLOAD_ID}&upload_id=${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=${FORM_UTYPE}" | break_html_lines) || return
 
-    local FORM2_ACTION FORM2_FN FORM2_ST FORM2_OP
-    FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
-    FORM2_FN=$(echo "$PAGE" | parse_tag 'fn.>' textarea)
-    FORM2_ST=$(echo "$PAGE" | parse_tag 'st.>' textarea)
-    FORM2_OP=$(echo "$PAGE" | parse_tag 'op.>' textarea)
 
-    if [ "$FORM2_ST" = 'OK' ]; then
-        PAGE=$(curl -b 'lang=english' \
-            -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
-            "$FORM2_ACTION") || return
+    FORM_ACTION=$(parse_form_action <<< "$PAGE") || return
+    FORM_FN=$(parse_tag "name='fn'" textarea <<< "$PAGE") || return
+    FORM_ST=$(parse_tag "name='st'" textarea <<< "$PAGE") || return
+    FORM_OP=$(parse_tag "name='op'" textarea <<< "$PAGE") || return
 
-        DL_URL=$(echo "$PAGE" | parse 'Download Link' '">\([^<]*\)' 1) || return
-        DEL_URL=$(echo "$PAGE" | parse_tag 'killcode' textarea)
+    if [ "$FORM_ST" = 'OK' ]; then
+        PAGE=$(curl -b 'lang=english' -d "fn=$FORM_FN" -d "st=$FORM_ST" \
+            -d "op=$FORM_OP" "$FORM_ACTION") || return
 
-        echo "$DL_URL"
-        echo "$DEL_URL"
+        # Parse and output download + delete link
+        parse_attr 'Download File' 'value' <<< "$PAGE" || return
+        parse_attr 'killcode' 'value' <<< "$PAGE" || return
         return 0
     fi
 
