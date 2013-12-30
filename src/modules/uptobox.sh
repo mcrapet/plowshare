@@ -64,7 +64,8 @@ uptobox_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://uptobox.com'
-    local PAGE WAIT_TIME CAPTCHA CODE DIGIT XCOORD FILE_URL PREMIUM
+    local PAGE WAIT_TIME CODE PREMIUM FILE_URL
+    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
 
     if [ -n "$AUTH" ]; then
         uptobox_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
@@ -96,61 +97,72 @@ uptobox_download() {
         return $ERR_LINK_DEAD
     fi
 
-
     # Send (post) form
-    local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
-    FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
+    FORM_HTML=$(grep_form_by_order "$PAGE") || return
+    FORM_OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
+    FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM_HTML") || return
+    FORM_METHOD=$(parse_form_input_by_name_quiet 'method_free' <<< "$FORM_HTML")
 
+    # Handle premium downloads
     if [ "$PREMIUM" = '1' ]; then
-        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
-        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+        FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
 
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -d 'referer=' \
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
             -d "op=$FORM_OP" \
             -d "id=$FORM_ID" \
             -d "rand=$FORM_RAND" \
-            -d 'method_free=' -d 'down_direct=1' \
+            -d 'method_free=' \
+            -d 'down_direct=1' \
+            -d 'referer=' \
             -d "method_premium=$FORM_METHOD" "$URL") || return
 
         # Click here to start your download
-        FILE_URL=$(echo "$PAGE" | parse_attr '/d/' href)
+        FILE_URL=$(parse_attr '/d/' 'href' <<< "$FORM_HTML")
         if match_remote_url "$FILE_URL"; then
             echo "$FILE_URL"
             return 0
         fi
-    else
-        FORM_USR=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'usr_login')
-        FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name 'fname')
-        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
+    fi
 
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -F 'referer=' \
-            -F "op=$FORM_OP" \
-            -F "usr_login=$FORM_USR" \
-            -F "id=$FORM_ID" \
-            -F "fname=$FORM_FNAME" \
-            -F "method_free=$FORM_METHOD" "$URL") || return
+    FORM_USR=$(parse_form_input_by_name_quiet 'usr_login' <<< "$FORM_HTML")
+    FORM_FNAME=$(parse_form_input_by_name 'fname' <<< "$FORM_HTML") || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
+        -F "op=$FORM_OP" \
+        -F "usr_login=$FORM_USR" \
+        -F "id=$FORM_ID" \
+        -F "fname=$FORM_FNAME" \
+        -F 'referer=' \
+        -F "method_free=$FORM_METHOD" "$URL") || return
+
+    # Check for enforced download limits
+    if match '<p class="err">' "$PAGE"; then
+        # You have reached the download-limit: 1024 Mb for last 1 days</p>
+        if match 'reached the download.limit' "$PAGE"; then
+            echo 3600
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        # You have to wait X minutes, Y seconds till next download
+        elif matchi 'You have to wait' "$PAGE"; then
+            local MINS SECS
+            MINS=$(parse 'class="err">' '\([[:digit:]]\+\) minute' <<< "$PAGE") || return
+            SECS=$(parse 'class="err">' '\([[:digit:]]\+\) second' <<< "$PAGE") || return
+
+            echo $(( MINS * 60 + SECS ))
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
     fi
 
     if match 'Enter code below:' "$PAGE"; then
-        WAIT_TIME=$(echo "$PAGE" | parse_tag countdown_str span)
-
-        FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op')
-        FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id')
-        FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand')
-        FORM_METHOD=$(echo "$FORM_HTML" | parse_form_input_by_name 'method_free')
-        FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct')
+        local CAPTCHA DIGIT XCOORD
 
         # Funny captcha, this is text (4 digits)!
         # <span style='position:absolute;padding-left:64px;padding-top:3px;'>&#55;</span>
-        CAPTCHA=$(echo "$FORM_HTML" | parse_tag 'direction:ltr' div | \
-            replace_all 'span>' $'span>\n') || return
+        CAPTCHA=$(parse_tag 'direction:ltr' div | \
+            replace_all 'span>' $'span>\n' <<< "$FORM_HTML") || return
         CODE=0
         while read LINE; do
-            DIGIT=$(echo "$LINE" | parse 'padding-' '>&#\([[:digit:]]\+\);<') || return
-            XCOORD=$(echo "$LINE" | parse 'padding-' '-left:\([[:digit:]]\+\)p') || return
+            DIGIT=$(parse 'padding-' '>&#\([[:digit:]]\+\);<' <<< "$LINE") || return
+            XCOORD=$(parse 'padding-' '-left:\([[:digit:]]\+\)p' <<< "$LINE") || return
 
             # Depending x, guess digit rank
             if (( XCOORD < 15 )); then
@@ -163,51 +175,38 @@ uptobox_download() {
                 (( CODE = CODE + (DIGIT-48) ))
             fi
         done <<< "$CAPTCHA"
-
-        wait $((WAIT_TIME)) || return
-
-        # Didn't included -F 'method_premium='
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' -F "referer=$URL" \
-            -F "op=$FORM_OP" \
-            -F "usr_login=$FORM_USR" \
-            -F "id=$FORM_ID" \
-            -F "rand=$FORM_RAND" \
-            -F "method_free=$FORM_METHOD" \
-            -F "down_direct=$FORM_DD" \
-            -F "code=$CODE" "$URL") || return
-
-        FILE_URL=$(echo "$PAGE" | parse_attr_quiet 'start your download' href)
-        if match_remote_url "$FILE_URL"; then
-            echo "$FILE_URL"
-            echo "$FORM_FNAME"
-            return 0
-        fi
-
-        # <p class="err">Wrong captcha</p>
-        if match 'Wrong captcha' "$PAGE"; then
-            return $ERR_CAPTCHA
-        fi
-
-    elif match '<p class="err">' "$PAGE"; then
-        # You have reached the download-limit: 1024 Mb for last 1 days</p>
-        if match 'reached the download.limit' "$PAGE"; then
-            echo 3600
-            return $ERR_LINK_TEMP_UNAVAILABLE
-        # You have to wait X minutes, Y seconds till next download
-        elif matchi 'You have to wait' "$PAGE"; then
-            local MINS SECS
-            MINS=$(echo "$PAGE" | \
-                parse_quiet 'class="err">' 'wait \([[:digit:]]\+\) minute')
-            SECS=$(echo "$PAGE" | \
-                parse_quiet 'class="err">' ', \([[:digit:]]\+\) second')
-
-            echo $(( MINS * 60 + SECS ))
-            return $ERR_LINK_TEMP_UNAVAILABLE
-        fi
     fi
 
-    log_error 'Unexpected content, site updated?'
-    return $ERR_FATAL
+    FORM_HTML=$(grep_form_by_order "$PAGE") || return
+    FORM_OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
+    FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM_HTML") || return
+    FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
+    FORM_METHOD=$(parse_form_input_by_name 'method_free' <<< "$FORM_HTML") || return
+    FORM_DD=$(parse_form_input_by_name 'down_direct' <<< "$FORM_HTML") || return
+
+    WAIT_TIME=$(parse_tag 'Wait.*seconds' 'span' <<< "$FORM_HTML") || return
+    wait $((WAIT_TIME + 1)) || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
+        -F "op=$FORM_OP" \
+        -F "id=$FORM_ID" \
+        -F "rand=$FORM_RAND" \
+        ${FORM_USR:+"-F usr_login=$FORM_USR"} \
+        -F "referer=$URL" \
+        -F "method_free=$FORM_METHOD" \
+        -F 'method_premium=' \
+        -F "down_direct=$FORM_DD" \
+        ${CODE:+"-F code=$CODE"} \
+        "$URL") || return
+
+    # <p class="err">Wrong captcha</p>
+    if [ -n "$CODE" ] && match 'Wrong captcha' "$PAGE"; then
+        return $ERR_CAPTCHA
+    fi
+
+    FILE_URL=$(parse_attr 'start your download' 'href' <<< "$PAGE") || return
+    echo "$FILE_URL"
+    echo "$FORM_FNAME"
 }
 
 # Upload a file to uptobox.com
