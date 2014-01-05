@@ -215,7 +215,6 @@ uploaded_net_download() {
         return $ERR_LINK_DEAD
     fi
 
-
     uploaded_net_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     # Note: File owner never needs password and only owner may access private
@@ -243,6 +242,9 @@ uploaded_net_download() {
         fi
     fi
 
+    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
+    FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
+
     if [ "$ACCOUNT" = 'premium' ]; then
         # Premium users can resume downloads
         MODULE_UPLOADED_NET_DOWNLOAD_RESUME=yes
@@ -264,9 +266,6 @@ uploaded_net_download() {
             FILE_URL=$(parse_attr 'stor[[:digit:]]\+\.' 'action' <<< "$PAGE") || return
         fi
 
-        FILE_NAME=$(curl -I -b "$COOKIE_FILE" "$FILE_URL" | \
-            grep_http_header_content_disposition) || return
-
         echo "$FILE_URL"
         echo "$FILE_NAME"
         return 0
@@ -277,8 +276,6 @@ uploaded_net_download() {
         echo 300 # wait some arbitrary time
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
-
-    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
 
     # Request download (use dummy "-d" to force a POST request)
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
@@ -371,7 +368,6 @@ uploaded_net_download() {
     # {type:'download',url:'http://storXXXX.uploaded.net/dl/...'}
     # Note: This is no valid JSON due to the unquoted/single quoted strings
     FILE_URL=$(uploaded_net_parse_json_alt 'url' <<< "$JSON") || return
-    FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
