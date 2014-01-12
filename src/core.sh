@@ -2499,7 +2499,7 @@ process_configfile_module_options() {
         "$CONFIG" | sed -e '/^\(#\|\[\|[[:space:]]*$\)/d') || true
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
-        local -r M=$(lowercase "$2")
+        local -lr M=$2
 
         # For example:
         # AUTH,a,auth,a=USER:PASSWORD,User account
