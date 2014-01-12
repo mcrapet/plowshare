@@ -136,7 +136,7 @@ zippyshare_download() {
             N=-4
             ;;
         '')
-            N=-6
+            N=-5
             ;;
         *)
             log_error "Unexpected content ('$CONTENT'), site updated?"
