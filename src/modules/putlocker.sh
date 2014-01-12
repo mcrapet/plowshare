@@ -25,6 +25,7 @@ LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_PUTLOCKER_DOWNLOAD_RESUME=yes
 MODULE_PUTLOCKER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_PUTLOCKER_DOWNLOAD_SUCCESSIVE_INTERVAL=
+MODULE_PUTLOCKER_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(--location)
 
 MODULE_PUTLOCKER_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account (mandatory)"
@@ -213,7 +214,7 @@ putlocker_probe() {
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse '=.site-content' '<h1>\([^<]*\)' 2 <<< "$PAGE" && \
+        parse '=.site-content' '<h1>\([^<]*\)' 1 <<< "$PAGE" && \
             REQ_OUT="${REQ_OUT}f"
     fi
 
