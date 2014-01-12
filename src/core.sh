@@ -2544,6 +2544,14 @@ log_report_info() {
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
         log_report "[lib ] '$LIBDIR'"
+
+        if [ -d "$LIBDIR/../.git" ]; then
+            # Requires git 1.6.3+
+            local -r GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+            local -r GIT_REV=$(git rev-parse HEAD 2>/dev/null)
+            log_report "[git ] $GIT_BRANCH:$GIT_REV"
+        fi
+
         log_report '=== SYSTEM INFO END ==='
     fi
 }
