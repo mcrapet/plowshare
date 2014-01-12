@@ -42,6 +42,86 @@ billionuploads_urldecode(){
   echo -e "$(sed 's/+/ /g;s/%\(..\)/\\x\1/g;')"
 }
 
+# Handle anti-DDoS protection
+# $1: cookie file
+# $2: main URL
+# $3: (X)HTML page data
+# stdout: (X)HTML page data
+billionuploads_antiddos(){
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local PAGE=$3
+    local -r BASE_URL=$(basename_url "$URL")
+
+    local FORM_X FORM_Y FORM_CAPTCHA FORM_HTML FORM_ACTION REDIR HEX HEX_ESC HEX_CHAR
+
+    # Anti-DDoS protection handle
+    if match 'iframe src="/_Incapsula_Resource' "$PAGE" ||
+        match 'var z="";var b="' "$PAGE"; then
+        if match 'iframe src' "$PAGE"; then
+            REDIR=$(parse_attr 'iframe' 'src' <<< "$PAGE") || return
+
+            PAGE=$(curl -b "$COOKIEFILE" "$BASE_URL$REDIR") || return
+
+            local PUBKEY WCI CHALLENGE WORD ID
+            # http://www.google.com/recaptcha/api/challenge?k=
+            PUBKEY=$(parse 'recaptcha.*?k=' '?k=\([[:alnum:]_-.]\+\)' <<< "$PAGE") || return
+            WCI=$(recaptcha_process $PUBKEY) || return
+            { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
+
+            FORM_X=$(random dec 1)
+            FORM_Y=$(random dec 1)
+            FORM_CAPTCHA="-d recaptcha_challenge_field=$CHALLENGE -d recaptcha_response_field=$WORD -d x=$FORM_X -d y=$FORM_Y"
+
+            FORM_HTML=$(grep_form_by_order "$PAGE") || return
+            FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
+
+            PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$BASE_URL$FORM_ACTION" $FORM_CAPTCHA) || return
+
+        elif match 'var z="";var b="' "$PAGE"; then
+            HEX=$(parse 'var z="";var b="' 'var z="";var b="\([^"]\+\)' <<< "$PAGE") || return
+
+            while read -n 2 HEX_CHAR; do
+                HEX_ESC="$HEX_ESC\x$HEX_CHAR"
+            done <<< "$HEX"
+
+            HEX_ESC=$(echo -e "$HEX_ESC")
+
+            REDIR=$(parse . 'xhr.open("GET","\([^"]\+\)' <<< "$HEX_ESC") || return
+
+            PAGE=$(curl -b "$COOKIEFILE" -c "$COOKIEFILE" "$BASE_URL$REDIR") || return
+        fi
+
+        if ! match 'window\..*location\.reload(true);' "$PAGE"; then
+            if [ -n "$ID" ]; then
+                captcha_nack $ID
+                log_error 'Wrong captcha.'
+                return $ERR_CAPTCHA
+            else
+                return $ERR_FATAL
+            fi
+        fi
+
+        PAGE=$(curl -L -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
+    fi
+
+    if match 'iframe src="/_Incapsula_Resource' "$PAGE" ||
+        match 'var z="";var b="' "$PAGE"; then
+        if [ -n "$ID" ]; then
+            captcha_nack $ID
+            log_error 'Wrong captcha.'
+            return $ERR_CAPTCHA
+        else
+            return $ERR_FATAL
+        fi
+    fi
+
+    [ -n "$ID" ] && captcha_ack $ID
+
+    echo "$PAGE"
+    return 0
+}
+
 # Output a billionuploads.com file download URL and NAME
 # $1: cookie file
 # $2: billionuploads.com url
@@ -52,18 +132,21 @@ billionuploads_download() {
     local PAGE FILE_NAME FILE_URL ERR
     local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P FORM_ADD_TMP FORM_ADD CRYPT
 
-    PAGE=$(curl -L -b "$COOKIEFILE" "$URL") || return
+    PAGE=$(curl -L -b "$COOKIEFILE" -c "$COOKIEFILE" "$URL") || return
+
+    PAGE=$(billionuploads_antiddos "$COOKIEFILE" "$URL" "$PAGE") || return
 
     # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
     if match 'File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
     FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
-    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
+    #FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
+    FORM_RAND_NAME=$(parse "\$('form\[name=\"F1\"\]')" "attr('name','\([^']\+\)" <<< "$FORM_HTML")
+    FORM_RAND=$(parse_tag 'source="self"' 'textarea' <<< "$FORM_HTML") || return
     FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct') || return
 
     # Note: this is quiet parsing
@@ -77,7 +160,7 @@ billionuploads_download() {
         -F "referer=" \
         -F "op=$FORM_OP" \
         -F "id=$FORM_ID" \
-        -F "rand=$FORM_RAND" \
+        -F "$FORM_RAND_NAME=$FORM_RAND" \
         -F "down_direct=$FORM_DD" \
         -F "method_free=$FORM_METHOD_F" \
         -F "method_premium=$FORM_METHOD_P" \
@@ -113,6 +196,7 @@ billionuploads_download() {
 # $3: remote filename
 # stdout: download_url
 billionuploads_upload() {
+    local -r COOKIEFILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://billionuploads.com/'
@@ -134,7 +218,9 @@ billionuploads_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    PAGE=$(curl -L "$BASE_URL") || return
+    PAGE=$(curl -L -b "$COOKIEFILE" -c "$COOKIEFILE" "$BASE_URL") || return
+
+    PAGE=$(billionuploads_antiddos "$COOKIEFILE" "$BASE_URL" "$PAGE") || return
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return

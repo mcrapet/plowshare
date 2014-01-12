@@ -343,8 +343,8 @@ chomikuj_list() {
         LINKS=$(parse_all_quiet '<a class="downloadAction"' '\(href="[^"]\+\)' <<< "$PAGE")
         NAMES=$(parse_all_quiet '<a class="downloadAction"' '<span class="bold">\(.*\)</a>' <<< "$PAGE")
     else
-        LINKS=$(parse_all_quiet 'class="expanderHeader downloadAction"' '\(href="[^"]\+\)' <<< "$PAGE")
-        NAMES=$(parse_all_quiet 'class="expanderHeader downloadAction"' '<span class="bold">\(.*\)$' 1 <<< "$PAGE")
+        LINKS=$(parse_all_quiet 'expanderHeader downloadAction' '\(href="[^"]\+\)' <<< "$PAGE")
+        NAMES=$(parse_all_quiet 'expanderHeader downloadAction' '<span class="bold">\(.*\)$' 1 <<< "$PAGE")
     fi
 
     PAGES_BAR=$(parse_quiet 'paginator' '<div class="paginator[^>]*>\(.*\)$' <<< "$PAGE")
@@ -363,8 +363,8 @@ chomikuj_list() {
                 LINKS=$LINKS$'\n'$(parse_all_quiet '<a class="downloadAction"' '\(href="[^"]\+\)' <<< "$PAGE")
                 NAMES=$NAMES$'\n'$(parse_all_quiet '<a class="downloadAction"' '<span class="bold">\(.*\)</a>' <<< "$PAGE")
             else
-                LINKS=$LINKS$'\n'$(parse_all_quiet 'class="expanderHeader downloadAction"' '\(href="[^"]\+\)' <<< "$PAGE")
-                NAMES=$NAMES$'\n'$(parse_all_quiet 'class="expanderHeader downloadAction"' '<span class="bold">\(.*\)$' 1 <<< "$PAGE")
+                LINKS=$LINKS$'\n'$(parse_all_quiet 'expanderHeader downloadAction' '\(href="[^"]\+\)' <<< "$PAGE")
+                NAMES=$NAMES$'\n'$(parse_all_quiet 'expanderHeader downloadAction' '<span class="bold">\(.*\)$' 1 <<< "$PAGE")
             fi
         done
     fi

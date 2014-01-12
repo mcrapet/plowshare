@@ -59,7 +59,7 @@ uploaded_net_login() {
         "$BASE_URL/io/login") || return
 
     # Note: Cookies "login" + "auth" get set on successful login
-    ERR=$(echo "$PAGE" | parse_json_quiet err)
+    ERR=$(parse_json_quiet 'err' <<< "$PAGE")
 
     if [ -n "$ERR" ]; then
         log_error "Remote error: $ERR"
@@ -71,9 +71,9 @@ uploaded_net_login() {
 
     # Determine account type
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/me") || return
-    ID=$(echo "$PAGE" | parse 'ID:' '<em.*>\(.*\)</em>' 1) || return
-    TYPE=$(echo "$PAGE" | parse 'Status:' '<em>\(.*\)</em>' 1) || return
-    NAME=$(echo "$PAGE" | parse_quiet 'Alias:' '<b><b>\(.*\)</b></b>' 1)
+    ID=$(parse 'ID:' '<em.*>\(.*\)</em>' 1 <<< "$PAGE") || return
+    TYPE=$(parse 'Status:' '<em>\(.*\)</em>' 1 <<< "$PAGE") || return
+    NAME=$(parse_quiet 'Alias:' '<b><b>\(.*\)</b></b>' 1 <<< "$PAGE")
 
     if [ "$TYPE" = 'Free' ]; then
         TYPE='free'
@@ -164,15 +164,14 @@ uploaded_net_check_folder() {
     JSON=$(curl -b "$COOKIE_FILE" "$BASE_URL/api/folder/tree") || return
 
     # Find matching folder ID
-    FOL_ID=$(echo "$JSON" | parse_quiet . \
-        "{\"id\":\"\([[:alnum:]]\+\)\",\"name\":\"$NAME\"")
+    FOL_ID=$(parse_quiet . "{\"id\":\"\([[:alnum:]]\+\)\",\"name\":\"$NAME\"" <<< "$JSON")
 
     if [ -n "$FOL_ID" ]; then
         echo "$FOL_ID"
         return 0
     fi
 
-    FOLDERS=$(echo "$JSON" | parse_json 'name' 'split') || return
+    FOLDERS=$(parse_json 'name' 'split' <<< "$JSON") || return
     log_error 'Invalid folder, choose from:' $FOLDERS
     return $ERR_BAD_COMMAND_LINE
 }
@@ -184,7 +183,7 @@ uploaded_net_check_folder() {
 uploaded_net_extract_file_id() {
     local FILE_ID
 
-    FILE_ID=$(echo "$1" | parse . "$2/file/\([[:alnum:]]\+\)") || return
+    FILE_ID=$(parse . "$2/file/\([[:alnum:]]\+\)" <<< "$1") || return
     log_debug "File ID: '$FILE_ID'"
     echo "$FILE_ID"
 }
@@ -216,7 +215,6 @@ uploaded_net_download() {
         return $ERR_LINK_DEAD
     fi
 
-
     uploaded_net_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     # Note: File owner never needs password and only owner may access private
@@ -244,6 +242,9 @@ uploaded_net_download() {
         fi
     fi
 
+    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
+    FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
+
     if [ "$ACCOUNT" = 'premium' ]; then
         # Premium users can resume downloads
         MODULE_UPLOADED_NET_DOWNLOAD_RESUME=yes
@@ -252,7 +253,7 @@ uploaded_net_download() {
         MODULE_UPLOADED_NET_DOWNLOAD_SUCCESSIVE_INTERVAL=30
 
         # Get download link, if this was a direct download
-        FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
+        FILE_URL=$(grep_http_header_location_quiet <<< "$PAGE")
 
         if match 'your Hybrid-Traffic is completely exhausted' "$PAGE"; then
             WAIT=$(parse 'Hybrid-Traffic.*exhausted' \
@@ -262,11 +263,8 @@ uploaded_net_download() {
         fi
 
         if [ -z "$FILE_URL" ]; then
-            FILE_URL=$(echo "$PAGE" | parse_attr 'stor[[:digit:]]\+\.' 'action') || return
+            FILE_URL=$(parse_attr 'stor[[:digit:]]\+\.' 'action' <<< "$PAGE") || return
         fi
-
-        FILE_NAME=$(curl -I -b "$COOKIE_FILE" "$FILE_URL" | \
-            grep_http_header_content_disposition) || return
 
         echo "$FILE_URL"
         echo "$FILE_NAME"
@@ -279,15 +277,13 @@ uploaded_net_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_ID=$(uploaded_net_extract_file_id "$URL" "$BASE_URL") || return
-
     # Request download (use dummy "-d" to force a POST request)
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
         -H 'X-Requested-With: XMLHttpRequest' -d '' \
         "$BASE_URL/io/ticket/slot/$FILE_ID") || return
 
     if [ "$JSON" != '{succ:true}' ]; then
-        ERR=$(echo "$JSON" | parse_json_quiet 'err')
+        ERR=$(parse_json_quiet 'err' <<< "$JSON")
 
         # from 'http://uploaded.net/js/download.js' - 'function(limit)'
         if [ "$ERR" = 'limit-dl' ]; then
@@ -314,8 +310,8 @@ uploaded_net_download() {
     fi
 
     # <span>Current waiting period: <span>30</span> seconds</span>
-    WAIT=$(echo "$PAGE" | parse '<span>Current waiting period' \
-        'period: <span>\([[:digit:]]\+\)</span>') || return
+    WAIT=$(parse '<span>Current waiting period' \
+        'period: <span>\([[:digit:]]\+\)</span>' <<< "$PAGE") || return
     wait $((WAIT + 1)) || return
 
     # from 'http://uploaded.net/js/download.js' - 'Recaptcha.create'
@@ -330,7 +326,7 @@ uploaded_net_download() {
         -d "recaptcha_response_field=$WORD" \
         "$BASE_URL/io/ticket/captcha/$FILE_ID") || return
 
-    ERR=$(echo "$JSON" | parse_json_quiet 'err')
+    ERR=$(parse_json_quiet 'err' <<< "$JSON")
 
     if [ -n "$ERR" ]; then
         if [ "$ERR" = 'captcha' ]; then
@@ -371,8 +367,7 @@ uploaded_net_download() {
 
     # {type:'download',url:'http://storXXXX.uploaded.net/dl/...'}
     # Note: This is no valid JSON due to the unquoted/single quoted strings
-    FILE_URL=$(echo "$JSON" | uploaded_net_parse_json_alt 'url') || return
-    FILE_NAME=$(curl "$BASE_URL/file/$FILE_ID/status" | first_line) || return
+    FILE_URL=$(uploaded_net_parse_json_alt 'url' <<< "$JSON") || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -549,8 +544,8 @@ uploaded_net_list() {
 
     PAGE=$(curl -L "$URL") || return
 
-    LINKS=$(echo "$PAGE" | parse_all_attr 'tr id="' id)
-    NAMES=$(echo "$PAGE" | parse_all_tag_quiet 'onclick="visit($(this))' a)
+    LINKS=$(parse_all_attr 'tr id="' 'id' <<< "$PAGE") || return
+    NAMES=$(parse_all_tag_quiet 'onclick="visit($(this))' 'a' <<< "$PAGE")
 
     test "$LINKS" || return $ERR_LINK_DEAD
 
@@ -582,7 +577,7 @@ uploaded_net_probe() {
     PAGE=$(curl --location "$BASE_URL/file/$FILE_ID/status") || return
 
     if [[ $REQ_IN = *f* ]]; then
-        echo "$PAGE" | first_line && REQ_OUT="${REQ_OUT}f"
+        first_line <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then

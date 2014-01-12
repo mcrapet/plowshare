@@ -76,10 +76,9 @@ bayfiles_download() {
         PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
     fi
 
-    if match 'The link is incorrect' "$PAGE"; then
+    if match 'The link is incorrect\|<title>404 - Not Found</title>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-
 
     # <h3 class="comparison">What are the benefits for <strong>premium</strong> members?</h3>
     if match 'comparison\|benefits' "$PAGE"; then
@@ -122,7 +121,7 @@ bayfiles_download() {
     fi
 
     # Extract filename from $PAGE, work for both cases
-    FILENAME=$(echo "$PAGE" | parse_attr_quiet 'title="' 'title')
+    FILENAME=$(parse_attr 'title="' 'title' <<< "$PAGE" | html_to_utf8)
 
     echo "$FILE_URL"
     echo "$FILENAME"
@@ -208,14 +207,14 @@ bayfiles_probe() {
 
     PAGE=$(curl -L "$URL") || return
 
-    if match 'The link is incorrect' "$PAGE"; then
+    if match 'The link is incorrect\|<title>404 - Not Found</title>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse_attr 'title=' 'title' <<< "$PAGE" && \
+        parse_attr 'title=' 'title' <<< "$PAGE" | html_to_utf8 && \
             REQ_OUT="${REQ_OUT}f"
     fi
 

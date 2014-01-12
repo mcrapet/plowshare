@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ULTRAMEGABIT_REGEXP_URL='http://\(www\.\)\?ultramegabit\.com/file/details/'
+MODULE_ULTRAMEGABIT_REGEXP_URL='https\?://\(www\.\)\?ultramegabit\.com/file/details/'
 
 MODULE_ULTRAMEGABIT_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -66,7 +66,7 @@ ultramegabit_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
 
-    local PAGE FILE_URL FILENAME WAIT_TIME TIME
+    local PAGE FILE_URL FILE_NAME WAIT_TIME TIME LOCATION
     local FORM_HTML FORM_ACTION FORM_CSRF_TOKEN FORM_ENCODE FORM_CAPTCHA
 
     if [ -n "$AUTH" ]; then
@@ -74,6 +74,7 @@ ultramegabit_download() {
     fi
 
     PAGE=$(curl -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
+    FILE_NAME=$(parse '<h4><img' ' /> \(.*\) ([0-9\.]\+ [A-Z]\{2\})</h4>' <<< "$PAGE") || return
 
     LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     if match 'http://ultramegabit.com/folder/add' "$LOCATION" ||
@@ -85,7 +86,7 @@ ultramegabit_download() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    WAIT_TIME=$(echo "$PAGE" | parse_all 'dts = (Math.round(new Date().getTime()) + (1 \* ' '(1 \* \([0-9]\+\)' | last_line) || return
+    WAIT_TIME=$(parse_all 'dts = ' '(1 \* \([0-9]\+\)' <<< "$PAGE" | last_line) || return
 
     # If password or captcha is too long
     [ -n "$WAIT_TIME" ] && TIME=$(date +%s)
@@ -134,10 +135,9 @@ ultramegabit_download() {
 
         WAIT_TIME=$(parse '^[[:space:]]*ts' '^[[:space:]]*ts = (\(.*\)) \* 1000' <<< "$PAGE") || return
         TIME=$(date +%s)
-
         log_error 'Forced delay between downloads.'
 
-        echo $(( (WAIT_TIME) - TIME ))
+        echo $(( WAIT_TIME - TIME ))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     # File size restriction
@@ -145,10 +145,8 @@ ultramegabit_download() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    FILENAME=$(parse . 'filename=\([^&]\+\)' <<< "$FILE_URL") || return
-
     echo "$FILE_URL"
-    echo "$FILENAME"
+    echo "$FILE_NAME"
 }
 
 # Check if specified folder name is valid.

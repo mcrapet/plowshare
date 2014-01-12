@@ -27,6 +27,7 @@ MODULE_MEDIAFIRE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_MEDIAFIRE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_MEDIAFIRE_UPLOAD_OPTIONS="
+ASYNC,,async,,Asynchronous remote upload (only start upload, don't wait for link)
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 FOLDER,,folder,s=FOLDER,Folder to upload files into. Leaf name, no hierarchy.
@@ -358,7 +359,7 @@ mediafire_api_get_session_token() {
 }
 
 # Upload a file to mediafire using official API.
-# http://developerswiki.mediafire.com/index.php/REST_API#Upload_API
+# https://www.mediafire.com/developers/upload.php
 # $1: cookie file (unused here)
 # $2: input file (with full path)
 # $3: remote filename
@@ -368,26 +369,30 @@ mediafire_upload() {
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='https://www.mediafire.com'
-    local SESSION_TOKEN JSON RES UPLOAD_KEY FILE_SIZE QUICK_KEY FOLDER_KEY
+    local SESSION_TOKEN JSON RES KEY_ID UPLOAD_KEY QUICK_KEY FOLDER_KEY
 
     # Sanity checks
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
 
-    if match_remote_url "$FILE"; then
-        if ! match "$MODULE_MEDIAFIRE_REGEXP_URL" "$FILE"; then
-            log_error 'Can only copy files already hosted on Mediafire.'
-            return $ERR_FATAL
-        fi
+    if [ -n "$ASYNC" ] && ! match_remote_url "$FILE"; then
+        log_error 'Cannot upload local files asynchronously.'
+        return $ERR_BAD_COMMAND_LINE
+    fi
+
+    if [ -n "$ASYNC" -a \( -n "$DESCRIPTION" -o -n "$LINK_PASSWORD" -o \
+        -n "$PRIVATE_FILE" \) ] ; then
+        log_error 'Advanced options not available for asynchronously uploaded files.'
+        return $ERR_BAD_COMMAND_LINE
+    fi
+
+    # FIXME
+    if [ -z "$ASYNC" ] && match_remote_url "$FILE"; then
+        log_error 'Synchronous remote upload not implemented.'
+        return $ERR_BAD_COMMAND_LINE
     fi
 
     SESSION_TOKEN=$(mediafire_api_get_session_token "$AUTH_FREE" "$BASE_URL") || return
     log_debug "Session Token: '$SESSION_TOKEN'"
-
-    # Add Mediashare file to account
-    if match_remote_url "$FILE"; then
-        log_error 'NOT IMPLEMENTED YET'
-        return $ERR_FATAL
-    fi
 
     # API bug
     if [ "${#DEST_FILE}" -lt 3 ]; then
@@ -434,14 +439,29 @@ mediafire_upload() {
        return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    FILE_SIZE=$(get_filesize "$FILE")
+    # Start upload
+    if match_remote_url "$FILE"; then
+        JSON=$(curl -d "session_token=$SESSION_TOKEN" \
+            -d "filename=$DESTFILE"                   \
+            -d 'response_format=json'                 \
+            --data-urlencode "url=$FILE"              \
+            ${FOLDER:+"-d folder_key=$FOLDER_KEY"}    \
+            "$BASE_URL/api/upload/add_web_upload.php") || return
 
-    JSON=$(curl_with_log -F "Filedata=@$FILE;filename=$DESTFILE" \
-        --header "x-filename: $DEST_FILE" \
-        --header "x-size: $FILE_SIZE" \
-        "$BASE_URL/api/upload/upload.php?session_token=$SESSION_TOKEN&action_on_duplicate=keep&response_format=json${FOLDER:+"&uploadkey=$FOLDER_KEY"}") || return
+        KEY_ID='upload_key'
+    else
+        local FILE_SIZE
+        FILE_SIZE=$(get_filesize "$FILE") || return
 
-    # Take second occurrence (last) of "result"
+        JSON=$(curl_with_log -F "Filedata=@$FILE;filename=$DESTFILE" \
+            --header "x-filename: $DEST_FILE" \
+            --header "x-size: $FILE_SIZE" \
+            "$BASE_URL/api/upload/upload.php?session_token=$SESSION_TOKEN&action_on_duplicate=keep&response_format=json${FOLDER:+"&uploadkey=$FOLDER_KEY"}") || return
+
+        KEY_ID='key'
+    fi
+
+    # Check for errors
     RES=$(parse_json result <<<"$JSON") || return
     if [ "$RES" != 'Success' ]; then
         local NUM MSG
@@ -451,31 +471,35 @@ mediafire_upload() {
         return $ERR_FATAL
     fi
 
-    # {"response":{"action":"upload\/upload.php","doupload":{"result":"0","key":"fugt9k5nb2f"},"result":"Success","current_api_version":"2.13"}}
-    UPLOAD_KEY=$(parse_json key <<<"$JSON") || return
-
+    UPLOAD_KEY=$(parse_json "$KEY_ID" <<< "$JSON") || return
     log_debug "polling for status update (with key $UPLOAD_KEY)"
-
     QUICK_KEY=''
-    for N in 3 3 2 2 2; do
-        wait $N seconds || return
 
-        JSON=$(curl --get -d "session_token=$SESSION_TOKEN" -d 'response_format=json' \
-            -d "key=$UPLOAD_KEY" "$BASE_URL/api/upload/poll_upload.php") || return
+    # Wait for upload to finish
+    if match_remote_url "$FILE"; then
+        [ -n "$ASYNC" ] && return $ERR_ASYNC_REQUEST
+    else
+        for N in 3 3 2 2 2; do
+            wait $N seconds || return
 
-        RES=$(parse_json result <<<"$JSON") || return
-        if [ "$RES" != 'Success' ]; then
-            log_error "FIXME '$JSON'"
-            return $ERR_FATAL
-        fi
+            JSON=$(curl --get -d "session_token=$SESSION_TOKEN" \
+                -d 'response_format=json' -d "key=$UPLOAD_KEY"  \
+                "$BASE_URL/api/upload/poll_upload.php") || return
 
-        # No more requests for this key
-        RES=$(parse_json status <<<"$JSON") || return
-        if [ "$RES" = '99' ]; then
-            QUICK_KEY=$(parse_json quickkey <<<"$JSON") || return
-            break
-        fi
-    done
+            RES=$(parse_json result <<<"$JSON") || return
+            if [ "$RES" != 'Success' ]; then
+                log_error "FIXME '$JSON'"
+                return $ERR_FATAL
+            fi
+
+            # No more requests for this key
+            RES=$(parse_json status <<<"$JSON") || return
+            if [ "$RES" = '99' ]; then
+                QUICK_KEY=$(parse_json quickkey <<<"$JSON") || return
+                break
+            fi
+        done
+    fi
 
     if [ -z "$QUICK_KEY" ]; then
         local MSG ERR
