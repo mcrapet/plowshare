@@ -61,9 +61,8 @@ rapidgator_login() {
         local JS_CODE REDIR
 
         detect_javascript || return
-        JS_CODE=$(echo "$HTML" | \
-            parse . '<script language="JavaScript">\(.\+\)</script>') || return
-        REDIR=$(echo "var window={};window.location={}; $JS_CODE print(window.location.href);" | javascript) || return
+        JS_CODE=$(parse . '<script language="JavaScript">\(.\+\)</script>' <<< "$HTML") || return
+        REDIR=$(javascript <<< "var window={};window.location={}; $JS_CODE print(window.location.href);") || return
         HTML=$(curl -L -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$BASE_URL$REDIR") || return
     fi
 
@@ -89,8 +88,7 @@ rapidgator_login() {
 # $1: cookie file
 # $2: base URL
 rapidgator_switch_lang() {
-    curl -b "$1" -c "$1" -d 'lang=en' -o /dev/null \
-        "$2/site/lang" || return
+    curl -b "$1" -c "$1" -d 'lang=en' -o /dev/null "$2/site/lang" || return
 }
 
 # Check if specified folder name is valid.
@@ -110,7 +108,7 @@ rapidgator_check_folder() {
     fi
 
     # <option value="ID">NAME</option>
-    FOLDERS=$(echo "$HTML" | parse_all_tag option) || return
+    FOLDERS=$(parse_all_tag option <<< "$HTML") || return
     if [ -z "$FOLDERS" ]; then
         log_error 'No folder found, site updated?'
         return $ERR_FATAL
@@ -120,8 +118,7 @@ rapidgator_check_folder() {
 
     while IFS= read -r FOL; do
         if [ "$FOL" = "$NAME" ]; then
-            FOL_ID=$(echo "$HTML" | \
-                parse_attr "^<option.*>$FOL</option>" 'value') || return
+            FOL_ID=$(parse_attr "^<option.*>$FOL</option>" 'value' <<< "$HTML") || return
             echo "$FOL_ID"
             return 0
         fi
@@ -214,7 +211,7 @@ rapidgator_download() {
         fi
 
         # Extract + output download link
-        echo "$HTML" | parse 'premium_download_link' "'\(.\+\)'" || return
+        parse 'premium_download_link' "'\(.\+\)'" <<< "$HTML" || return
         echo "$FILE_NAME"
         return 0
     fi
@@ -242,8 +239,8 @@ rapidgator_download() {
     # Note: We cannot just look for the text by itself because it is
     #       always present as parts of the page's javascript code.
     elif match '^[[:space:]]\+Delay between downloads' "$HTML"; then
-        WAIT_TIME=$(echo "$HTML" | parse 'Delay between downloads' \
-            'not less than \([[:digit:]]\+\) min') || return
+        WAIT_TIME=$(parse 'Delay between downloads' \
+            'not less than \([[:digit:]]\+\) min' <<< "$HTML") || return
 
         log_error 'Forced delay between downloads.'
         echo $(( WAIT_TIME * 60 ))
@@ -251,13 +248,11 @@ rapidgator_download() {
     fi
 
     # Extract file ID
-    FILE_ID=$(echo "$HTML" | parse 'var fid' \
-        '=[[:space:]]\+\([[:digit:]]\+\)') || return
+    FILE_ID=$(parse 'var fid' '=[[:space:]]\+\([[:digit:]]\+\)' <<< "$HTML") || return
     log_debug "File ID: $FILE_ID"
 
     # Parse wait time from page
-    WAIT_TIME=$(echo "$HTML" | parse 'var secs' \
-        '=[[:space:]]\+\([[:digit:]]\+\)') || return
+    WAIT_TIME=$(parse 'var secs' '=[[:space:]]\+\([[:digit:]]\+\)' <<< "$HTML") || return
 
     # Request download session
     JSON=$(curl -b "$COOKIE_FILE" --referer "$URL" \
@@ -267,12 +262,12 @@ rapidgator_download() {
 
     # Check status
     # Note: from '$(".btn-free").click(function(){...'
-    STATE=$(echo "$JSON" | parse_json 'state') || return
+    STATE=$(parse_json 'state' <<< "$JSON") || return
 
     if [ "$STATE" = 'started' ]; then
-        SESSION_ID=$(echo "$JSON" | parse_json 'sid') || return
+        SESSION_ID=$(parse_json 'sid' <<< "$JSON") || return
     elif [ "$STATE" = 'error' ]; then
-        log_error "Remote error: $(echo "$JSON" | parse_json 'code')"
+        log_error "Remote error: $(parse_json 'code' <<< "$JSON")"
         return $ERR_FATAL
     else
         log_error 'Unexpected state. Site updated?'
@@ -290,10 +285,10 @@ rapidgator_download() {
 
     # Check status
     # Note: from 'function getDownloadLink() {...'
-    STATE=$(echo "$JSON" | parse_json 'state') || return
+    STATE=$(parse_json 'state' <<< "$JSON") || return
 
     if [ "$STATE" = 'error' ]; then
-        log_error "Remote error: $(echo "$JSON" | parse_json 'code')"
+        log_error "Remote error: $(parse_json 'code' <<< "$JSON")"
         return $ERR_FATAL
     elif [ "$STATE" != 'done' ]; then
         log_error 'Unexpected state. Site updated?'
@@ -327,7 +322,7 @@ rapidgator_download() {
         RESP=$(solvemedia_captcha_process 'oy3wKTaFP368dkJiGUqOVjBR2rOOR7GR') || return
         { read CHALL; read ID; } <<< "$RESP"
 
-        CAPTCHA_DATA="-d adcopy_challenge=$(echo "$CHALL" | uri_encode_strict) -d adcopy_response=manual_challenge"
+        CAPTCHA_DATA="-d adcopy_challenge=$(uri_encode_strict <<< "$CHALL") -d adcopy_response=manual_challenge"
 
     else
         log_error 'Unexpected content/captcha type. Site updated?'
@@ -361,7 +356,7 @@ rapidgator_download() {
     log_debug 'Correct captcha'
 
     # Extract + output download link
-    echo "$HTML" | parse 'function getUrl' "'\(.\+\)'" 2 || return
+    parse 'function getUrl' "'\(.\+\)'" 2  <<< "$HTML" || return
     echo "$FILE_NAME"
 }
 
@@ -438,16 +433,13 @@ rapidgator_upload() {
         fi
 
         # Scrape account details from site
-        ACC_ID=$(echo "$HTML" | parse 'user_id =' \
-            'id=\([[:digit:]]\+\)";') || return
-        QUEUE=$(echo "$HTML" | parse 'queue =' 'queue=\([^"]\+\)";') || return
+        ACC_ID=$(parse 'user_id =' 'id=\([[:digit:]]\+\)";' <<< "$HTML") || return
+        QUEUE=$(parse 'queue =' 'queue=\([^"]\+\)";' <<< "$HTML") || return
 
         if match '^http://' "$FILE"; then
-            TYPE=$(echo "$HTML" | parse_all_attr 'http://</option>' \
-                'value') || return
+            TYPE=$(parse_all_attr 'http://</option>' 'value' <<< "$HTML") || return
         elif match '^ftp://' "$FILE"; then
-            TYPE=$(echo "$HTML" | parse_all_attr 'ftp://</option>' \
-                'value') || return
+            TYPE=$(parse_all_attr 'ftp://</option>' 'value' <<< "$HTML") || return
         else
             log_error 'Unsupported protocol for remote upload.'
             return $ERR_BAD_COMMAND_LINE
@@ -498,7 +490,7 @@ rapidgator_upload() {
             -H 'X-Requested-With: XMLHttpRequest' \
             "$BASE_URL/remotedl/RefreshGridView?_=$(date +%s)000") || return
 
-        REM_LINKS=$(echo "$HTML" | parse_all_tag tr) || return
+        REM_LINKS=$(parse_all_tag tr <<< "$HTML") || return
 
         while IFS= read -r RL; do
             # Find the (first) line containing our URL
@@ -509,8 +501,7 @@ rapidgator_upload() {
                     return $ERR_FATAL
                 fi
 
-                FILE_ID=$(echo "$RL" | parse . \
-                    'getFileLink(\([[:digit:]]\+\),') || return
+                FILE_ID=$(parse . 'getFileLink(\([[:digit:]]\+\),' <<< "$RL") || return
                 break
             fi
         done <<< "$REM_LINKS"
@@ -548,9 +539,8 @@ rapidgator_upload() {
         fi
 
         # Scrape URLs from site (upload server changes each time)
-        UP_URL=$(echo "$HTML" | parse 'var form_url' '"\(.\+\)";') || return
-        PROG_URL=$(echo "$HTML" | parse 'var progress_url_srv' \
-            '"\(.\+\)";') || return
+        UP_URL=$(parse 'var form_url' '"\(.\+\)";' <<< "$HTML") || return
+        PROG_URL=$(parse 'var progress_url_srv' '"\(.\+\)";' <<< "$HTML") || return
 
         log_debug "Upload URL: '$UP_URL'"
         log_debug "Progress URL: '$PROG_URL'"
@@ -575,14 +565,14 @@ rapidgator_upload() {
             "$PROG_URL&data%5B0%5D%5Buuid%5D=$SESSION_ID&data%5B0%5D%5Bstart_time%5D=$START_TIME") || return
 
         # Check status
-        STATE=$(echo "$JSON" | parse_json 'state') || return
+        STATE=$(parse_json 'state' <<< "$JSON") || return
         if [ "$STATE" != 'done' ]; then
             log_error "Unexpected state: '$STATE'"
             return $ERR_FATAL
         fi
 
-        LINK=$(echo "$JSON" | parse_json 'download_url') || return
-        DEL_LINK=$(echo "$JSON" | parse_json 'remove_url') || return
+        LINK=$(parse_json 'download_url' <<< "$JSON") || return
+        DEL_LINK=$(parse_json 'remove_url' <<< "$JSON") || return
     fi
 
     echo "$LINK"
@@ -598,8 +588,8 @@ rapidgator_delete() {
     local -r BASE_URL='http://rapidgator.net'
     local HTML ID UP_ID
 
-    ID=$(echo "$URL" | parse . '/id/\([^/]\+\)/up_id/') || return
-    UP_ID=$(echo "$URL" | parse . '/up_id/\(.\+\)$') || return
+    ID=$(parse . '/id/\([^/]\+\)/up_id/' <<< "$URL") || return
+    UP_ID=$(parse . '/up_id/\(.\+\)$' <<< "$URL") || return
 
     log_debug "ID: '$ID'"
     log_debug "Up_ID: '$UP_ID'"
@@ -637,11 +627,11 @@ rapidgator_list() {
     fi
 
     PAGE=$(curl -L "$URL") || return
-    PAGE=$(echo "$PAGE" | parse_all_quiet '=.td-for-select' '\(<a href=.*\)$')
+    PAGE=$(parse_all_quiet '=.td-for-select' '\(<a href=.*\)$' <<< "$PAGE")
     [ -z "$PAGE" ] && return $ERR_LINK_DEAD
 
-    NAMES=$(echo "$PAGE" | parse_all . 'alt=..>[[:space:]]*\([^<]*\)')
-    LINKS=$(echo "$PAGE" | parse_all_attr href)
+    NAMES=$(parse_all . 'alt=..>[[:space:]]*\([^<]*\)' <<< "$PAGE")
+    LINKS=$(parse_all_attr href <<< "$PAGE")
 
     list_submit "$LINKS" "$NAMES" 'http://rapidgator.net' || return
 }
@@ -669,13 +659,13 @@ rapidgator_probe() {
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        FILE_NAME=$(echo "$PAGE" | parse_tag title)
+        FILE_NAME=$(parse_tag title <<< "$PAGE")
         FILE_NAME=${FILE_NAME#Download file }
         test "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(echo "$PAGE" | parse 'File size:' '<strong>\([^<]*\)' 1) && \
+        FILE_SIZE=$(parse 'File size:' '<strong>\([^<]*\)' 1 <<< "$PAGE") && \
             translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 
