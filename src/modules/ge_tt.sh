@@ -124,9 +124,9 @@ ge_tt_upload() {
 
         split_auth "$AUTH" USER PASSWORD || return
 
-        SESSION=$(ge_tt_curl_json -X POST -H "Content-type: application/json" \
+        SESSION=$(ge_tt_curl_json -X POST -H 'Content-type: application/json' \
             -d "{\"email\":\"$USER\",\"password\":\"$PASSWORD\"}" \
-            "http://ge.tt/u/login") || return
+            'http://ge.tt/u/login') || return
     fi
 
     ACC_TOKEN=$(parse_json 'accesstoken' <<< "$SESSION") || return
@@ -144,7 +144,7 @@ ge_tt_upload() {
         if ! match "\"title\":\"$FOLDER\"" "$PAGE"; then
             log_debug "Creating share with title '$FOLDER'..."
 
-            PAGE=$(ge_tt_curl_json -X POST -H "Content-type: application/json" \
+            PAGE=$(ge_tt_curl_json -X POST -H 'Content-type: application/json' \
                 -d "{\"title\":\"$FOLDER\"}" \
                 "$BASE_URL/1/shares/create?accesstoken=$ACC_TOKEN") || return
 
@@ -160,7 +160,7 @@ ge_tt_upload() {
         SHARE_ID=$(parse_json 'sharename' <<< "$PAGE") || return
     fi
 
-    PAGE=$(ge_tt_curl_json -X POST -H "Content-type: application/json" \
+    PAGE=$(ge_tt_curl_json -X POST -H 'Content-type: application/json' \
         -d "{\"filename\":\"$DEST_FILE\"}" \
         "$BASE_URL/1/files/$SHARE_ID/create?accesstoken=$ACC_TOKEN") || return
 

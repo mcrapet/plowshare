@@ -44,6 +44,7 @@ mirrorcreator   |          | upload |        | list |       |
 mirrorupload    |          | upload |        | list |       |
 multiup_org     |          | upload |        | list | probe |
 multiupload     | download | upload |        | list |       |
+myvdrive        | download | upload |        | list | probe |
 nakido          | download |        |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 nowdownload_co  | download | upload |        |      | probe |

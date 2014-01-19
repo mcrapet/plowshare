@@ -70,7 +70,7 @@ fshare_vn_login() {
 # stdout: real file download link
 fshare_vn_download() {
     local -r COOKIE_FILE=$1
-    local URL=$2
+    local -r URL=$(replace '://fshare' '://www.fshare' <<< "$2")
 
     local PAGE LOCATION FILE_URL WAIT_TIME
     local FORM_HTML FORM_ACTION FORM_FILE_ID FORM_SPECIAL FORM_PASSWORD
@@ -78,8 +78,6 @@ fshare_vn_download() {
     if [ -n "$AUTH" ]; then
         fshare_vn_login "$AUTH" "$COOKIE_FILE" 'https://www.fshare.vn' || return
     fi
-
-    URL=$(replace 'http://fshare.vn' 'http://www.fshare.vn' <<< "$URL")
 
     PAGE=$(curl -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
@@ -122,7 +120,7 @@ fshare_vn_download() {
     fi
 
     FILE_URL=$(parse_attr '<form' 'action' <<< "$PAGE") || return
-    FILE_URL=$(replace '#download' '' <<< "$FILE_URL")
+    FILE_URL=$(replace_all '#download' '' <<< "$FILE_URL")
 
     WAIT_TIME=$(parse 'var count = ' 'var count = \([0-9]\+\)' <<< "$PAGE") || return
     wait $WAIT_TIME || return
@@ -194,7 +192,7 @@ fshare_vn_upload() {
         FORM_TOEMAIL_OPT="--form-string emailto=$TOEMAIL"
 
     [ -z "$DESCRIPTION" ] && \
-        DESCRIPTION="null"
+        DESCRIPTION='null'
 
     FORM_SESSID=$(parse_cookie 'PHPSESSID' < "$COOKIE_FILE") || return
 
@@ -222,7 +220,7 @@ fshare_vn_upload() {
         PAGE=$(curl -b "$COOKIE_FILE" \
             "$BASE_URL/sendmail.php") || return
 
-        if [ "$PAGE" != "1" ]; then
+        if [ "$PAGE" != '1' ]; then
             log_error 'Could not send link.'
         fi
     fi
