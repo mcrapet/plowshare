@@ -17,6 +17,7 @@ cramit          | download | upload | delete | list | probe |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
 depositfiles    | download | upload | delete | list | probe |
+directmirror    |          | upload |        | list |       |
 divshare        | download | upload | delete | list |       |
 dl_free_fr      | download | upload | delete |      | probe |
 embedupload     |          |        |        | list |       |
