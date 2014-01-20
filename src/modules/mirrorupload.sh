@@ -22,7 +22,8 @@ MODULE_MIRRORUPLOAD_REGEXP_URL='https\?://\(www\.\)\?mirrorupload\.net/'
 
 MODULE_MIRRORUPLOAD_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
-INCLUDE,,include,l=LIST,Provide list of host site (comma separated)"
+INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
+API,,api,,Use API to upload file"
 MODULE_MIRRORUPLOAD_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_MIRRORUPLOAD_LIST_OPTIONS=""
@@ -34,8 +35,7 @@ MODULE_MIRRORUPLOAD_LIST_HAS_SUBFOLDERS=no
 # $3: remote filename
 # stdout: mirrorupload.net download link
 mirrorupload_upload() {
-    # API requires login and does not support custom mirrors selection
-    if [ -n "$AUTH" -a -z "$INCLUDE" ]; then
+    if [ -n "$API" ]; then
         mirrorupload_upload_api "$@"
     else
         mirrorupload_upload_regular "$@"
@@ -54,6 +54,16 @@ mirrorupload_upload_api() {
     local -r BASE_URL='http://www.mirrorupload.net'
 
     local PAGE RESULT REPLY UPLOAD_URL SESSION_ID USER PASSWORD
+
+    if [ -z "$AUTH" ]; then
+        log_error 'API does not allow anonymous uploads.'
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
+    if [ -n "$INCLUDE" ]; then
+        log_error 'API does not support --include option.'
+        return $ERR_BAD_COMMAND_LINE
+    fi
 
     PAGE=$(curl "$BASE_URL/api/server.html") || return
 
