@@ -14,6 +14,7 @@ bitshare        | download | upload | delete |      | probe |
 chomikuj        | download | upload |        | list | probe |
 cloudzer_net    | download | upload | delete | list | probe |
 cramit          | download | upload | delete | list | probe |
+crocko          | download | upload |        | list | probe |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
 depositfiles    | download | upload | delete | list | probe |
