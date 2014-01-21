@@ -110,6 +110,8 @@ netkups_upload() {
     local -r DEST_FILE=$3
     local -r BASE_URL='http://netkups.com'
 
+    local PAGE UPLOAD_ID UPLOAD_KEY UPLOAD_SERVER UPLOAD_PROCESS
+
     if [ -n "$AUTH" ]; then
         netkups_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     fi

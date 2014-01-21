@@ -39,8 +39,43 @@ MODULE_EXOSHARE_LIST_HAS_SUBFOLDERS=no
 # stdout: exoshare.com download link
 exoshare_upload() {
     if [ -n "$API" -o -n "$API_KEY" ]; then
+        if [ -z "$AUTH" -a -z "$API_KEY" ]; then
+            log_error 'API does not allow anonymous uploads.'
+            return $ERR_LINK_NEED_PERMISSIONS
+        fi
+
+        if [ -n "$AUTH" -a -n "$API_KEY" ]; then
+            log_error 'Cannot use --api-key and --auth at the same time.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
+        if [ -n "$COUNT" -o -n "$INCLUDE" ]; then
+            log_error 'API does not support --count and --include.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
+        if match_remote_url "$FILE"; then
+            log_error 'API does not support remote upload.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
         exoshare_upload_api "$@"
     else
+        local SITES_COUNT
+
+        if [ -n "$COUNT" -a -n "$INCLUDE" ]; then
+            log_error 'Cannot use --count and --include at the same time.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
+        [ -n "$COUNT" ] && SITES_COUNT="$COUNT"
+        [ -n "$INCLUDE" ] && SITES_COUNT="${#INCLUDE[@]}"
+
+        if [ "$SITES_COUNT" -gt 12 ]; then
+            log_error 'You must select 12 hosting sites or less.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
         exoshare_upload_regular "$@"
     fi
 }
@@ -57,26 +92,6 @@ exoshare_upload_api() {
     local -r BASE_URL='http://www.exoshare.com'
 
     local PAGE FILE_LINK
-
-    if [ -z "$AUTH" -a -z "$API_KEY" ]; then
-        log_error 'API does not allow anonymous uploads.'
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
-
-    if [ -n "$AUTH" -a -n "$API_KEY" ]; then
-        log_error 'Cannot use --api-key and --auth at the same time.'
-        return $ERR_BAD_COMMAND_LINE
-    fi
-
-    if [ -n "$COUNT" -o -n "$INCLUDE" ]; then
-        log_error 'API does not support --count and --include.'
-        return $ERR_BAD_COMMAND_LINE
-    fi
-
-    if match_remote_url "$FILE"; then
-        log_error 'API does not support remote upload.'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     if [ -n "$API_KEY" ]; then
         PAGE=$(curl_with_log \
@@ -132,19 +147,6 @@ exoshare_upload_regular() {
     local SITES_COUNT=0
 
     local PAGE FORM_HTML SITES_ALL SITES_SEL FORM_SITES_OPT SITE UPLOAD_RND UPLOAD_ID LINK_SCRIPT UPLOAD_SCRIPT
-
-    if [ -n "$COUNT" -a -n "$INCLUDE" ]; then
-        log_error 'Cannot use --count and --include at the same time.'
-        return $ERR_BAD_COMMAND_LINE
-    fi
-
-    [ -n "$COUNT" ] && SITES_COUNT="$COUNT"
-    [ -n "$INCLUDE" ] && SITES_COUNT="${#INCLUDE[@]}"
-
-    if [ "$SITES_COUNT" -gt 12 ]; then
-        log_error 'You must select 12 hosting sites or less.'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     if [ -n "$AUTH" ]; then
         local LOGIN_DATA LOGIN_RESULT LOCATION

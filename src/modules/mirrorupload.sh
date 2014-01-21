@@ -36,8 +36,23 @@ MODULE_MIRRORUPLOAD_LIST_HAS_SUBFOLDERS=no
 # stdout: mirrorupload.net download link
 mirrorupload_upload() {
     if [ -n "$API" ]; then
+        if [ -z "$AUTH" ]; then
+            log_error 'API does not allow anonymous uploads.'
+            return $ERR_LINK_NEED_PERMISSIONS
+        fi
+
+        if [ -n "$INCLUDE" ]; then
+            log_error 'API does not support --include option.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
         mirrorupload_upload_api "$@"
     else
+        if [ "${#INCLUDE[@]}" -gt 12 ]; then
+            log_error "You must select 12 hosting sites or less."
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
         mirrorupload_upload_regular "$@"
     fi
 }
@@ -54,16 +69,6 @@ mirrorupload_upload_api() {
     local -r BASE_URL='http://www.mirrorupload.net'
 
     local PAGE RESULT REPLY UPLOAD_URL SESSION_ID USER PASSWORD
-
-    if [ -z "$AUTH" ]; then
-        log_error 'API does not allow anonymous uploads.'
-        return $ERR_LINK_NEED_PERMISSIONS
-    fi
-
-    if [ -n "$INCLUDE" ]; then
-        log_error 'API does not support --include option.'
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     PAGE=$(curl "$BASE_URL/api/server.html") || return
 
@@ -122,11 +127,6 @@ mirrorupload_upload_regular() {
     local -r BASE_URL='http://www.mirrorupload.net'
 
     local PAGE
-
-    if [ "${#INCLUDE[@]}" -gt 12 ]; then
-        log_error "You must select 12 hosting sites or less."
-        return $ERR_BAD_COMMAND_LINE
-    fi
 
     if [ -n "$AUTH" ]; then
         local LOGIN_DATA LOGIN_RESULT LOCATION
