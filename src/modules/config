@@ -50,6 +50,7 @@ multiup_org     |          | upload |        | list | probe |
 multiupload     | download | upload |        | list |       |
 myvdrive        | download | upload |        | list | probe |
 nakido          | download |        |        |      | probe |
+netkups         | download | upload |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 nowdownload_co  | download | upload |        |      | probe |
 pastebin        |          |        |        | list |       |
