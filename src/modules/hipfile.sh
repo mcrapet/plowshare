@@ -316,10 +316,10 @@ hipfile_upload() {
 
     PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=english' -b "$COOKIE_FILE" "$BASE_URL") || return
 
-    local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
+    local FORM_HTML FORM_ACTION FORM_TMP_SRV FORM_UTYPE FORM_SESS
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
     FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url') || return
+    FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url') || return
     FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
     # Will be empty on anon upload
     FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')

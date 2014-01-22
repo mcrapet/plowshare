@@ -31,6 +31,7 @@ filecloud       | download | upload |        | list | probe |
 filefactory     | download | upload |        | list | probe |
 filemonkey      |          | upload |        |      |       |
 fileover        | download |        |        |      | probe |
+fileparadox     |          | upload |        |      |       |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
