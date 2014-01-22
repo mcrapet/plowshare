@@ -58,7 +58,7 @@ filemonkey_upload() {
     local -r FILE=$2
     local -r DESTFILE=$3
     local -r BASE_URL='https://www.filemonkey.in'
-    local PAGE API_KEY FID UPLOAD_URL JSON
+    local PAGE API_KEY FID UPLOAD_URL JSON STATUS
 
     # Sanity check
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
