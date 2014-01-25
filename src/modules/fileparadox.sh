@@ -98,7 +98,8 @@ fileparadox_upload() {
     FORM2_OP=$(echo "$PAGE" | parse_tag 'op.>' textarea)
 
     if [ "$FORM2_ST" = 'OK' ]; then
-        PAGE=$(curl -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
+        PAGE=$(curl -b 'lang=english' \
+            -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
             "$FORM2_ACTION" | break_html_lines) || return
 
         DL_URL=$(parse 'Download Link' '>\(.*\)$' 2 <<< "$PAGE") || return
