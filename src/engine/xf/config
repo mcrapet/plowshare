@@ -41,7 +41,7 @@ filedwon,http://\(www\.\)\?filedwon.info/,http://www.filedwon.info/
 fileking,http://\(www\.\)\?fileking.co/,http://fileking.co/
 filenuke,http://\(www\.\)\?filenuke.com/,http://filenuke.com/
 fileom,http://\(www\.\)\?fileom.com/,http://fileom.com/
-fileparadox,https://\(www\.\)\?fileparadox.in/,https://fileparadox.in/
+fileparadox,https\?://\(www\.\)\?fileparadox.in/,https://fileparadox.in/
 filerio,http://\(www\.\)\?filerio.in/,http://filerio.in/
 files2upload,http://\(www\.\)\?files2upload.net/,http://files2upload.net/
 filesabc,http://\(www\.\)\?filesabc.com/,http://filesabc.com/
