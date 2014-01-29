@@ -347,6 +347,12 @@ chomikuj_list() {
 
     LAST_PAGE=$(last_line <<< "$PAGES_BAR")
 
+    if [ "$LAST_PAGE" = '9 ...' ]; then
+        PAGE=$(curl -i "$URL,9999999") || return
+        LOCATION=$(grep_http_header_location <<< "$PAGE") || return
+        LAST_PAGE=$(parse . ',\([0-9]\+\)$' <<< "$LOCATION") || return
+    fi
+
     if [ -n "$LAST_PAGE" ];then
         for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do
             log_debug "Listing page #$PAGE_NUMBER"
