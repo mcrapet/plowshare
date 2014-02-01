@@ -98,7 +98,7 @@ uptobox_download() {
     fi
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    if matchi 'File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -292,21 +292,24 @@ uptobox_probe() {
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    if matchi 'File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse_form_input_by_name 'fname' <<< "$PAGE" && \
-            REQ_OUT="${REQ_OUT}f"
+        parse_form_input_by_name 'fname' <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(echo "$PAGE" | parse 'info-bar-grey.>' \
-            '[[:space:]](\([^)]*\)' 1) && translate_size "$FILE_SIZE" && \
-                REQ_OUT="${REQ_OUT}s"
+        FILE_SIZE=$(echo "$PAGE" | parse 'class="para_title"' \
+            '[[:space:]](\([^)]\+\)') && translate_size "$FILE_SIZE" && \
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *i* ]]; then
+        parse_form_input_by_name 'id' <<< "$PAGE" && REQ_OUT="${REQ_OUT}i"
     fi
 
     echo $REQ_OUT
