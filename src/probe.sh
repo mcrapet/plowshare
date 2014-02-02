@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Retrieve metadata from a download link (sharing site url)
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2013-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -116,9 +116,11 @@ probe() {
     CHECK_LINK=0
 
     if test "$PRINTF_FORMAT"; then
+        local FMT=$(lowercase "$PRINTF_FORMAT")
+
         CAPS=c
         for I in f h i s; do
-            [[ $PRINTF_FORMAT = *%$I* ]] && CAPS+=$I
+            [[ $FMT = *%$I* ]] && CAPS+=$I
         done
     else
         CAPS=cf
