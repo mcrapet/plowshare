@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "February 1, 2014" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowup" "1" "February 2, 2014" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -148,11 +148,38 @@ Suffixes are the same than \fB--max-rate\fR.
 .BI "   " " " --temp-directory "=DIRECTORY"
 Directory for temporary files: cookies, images, ...
 .TP
-.BI "   " " " --name-prefix "=STRING"
-Prepend argument to each destination filename.
+.BI "   " " " --name "=FORMAT"
+Format destination filename (applies on each file argument). Can be useful is you want to append or prepend a string to all your files.
+Default string is: \fI"%f"\fR. Interpreted sequences are:
+.RS
 .TP
-.BI "   " " " --name-suffix "=STRING"
-Append argument to each destination filename.
+\fI%%\fR
+raw % character
+.TP
+\fI%f\fR
+destination (remote) filename
+.TP
+\fI%g\fR
+destination (remote) filename (without extension)
+.TP
+\fI%G\fR
+destination (remote) filename (without extension, greedy)
+.TP
+\fI%h\fR
+MD5 hash (32-digit hexadecimal number, lowercase letters)
+.TP
+\fI%l\fR
+source (local) filename
+.TP
+\fI%m\fR
+module name
+.TP
+\fI%s\fR
+file size (in bytes)
+.TP
+\fI%x\fR
+extension (without dot character) of %f (not greedy)
+.RE
 .TP
 .BI "   " " " --printf "=FORMAT"
 Print results (on stdout) in a given format (for each successful upload). Default string is: \fI"%D%A%u%n"\fR. Interpreted sequences are:

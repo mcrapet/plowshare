@@ -16,7 +16,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-b|-d|-p|--auth|--description|--link-password|--name-prefix|--name-suffix|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
+        -a|-b|-d|-p|--auth|--description|--link-password|--name|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
@@ -37,7 +37,7 @@ _plowup()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -t -r \
-            --min-rate --max-rate --interface --max-retries --timeout --name-prefix --name-suffix \
+            --min-rate --max-rate --interface --max-retries --timeout --name \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --deathbycaptcha \
             --temp-directory --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else

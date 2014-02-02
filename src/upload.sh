@@ -36,8 +36,7 @@ MIN_LIMIT_RATE,,min-rate,r=SPEED,Limit minimum speed to bytes/sec (during 30 sec
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
-NAME_PREFIX,,name-prefix,s=STRING,Prepend argument to each destination filename
-NAME_SUFFIX,,name-suffix,s=STRING,Append argument to each destination filename
+NAME_FORMAT,,name,s=FORMAT,Format destination filename (applies on each file argument). Default string is: \"%f\".
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
 CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
@@ -175,6 +174,57 @@ pretty_print() {
         "%d,${A[4]}" "%a,${A[5]}"
 }
 
+# Filename (arguments) printf format
+# ---
+# %f: destination (remote) filename
+# %g: destination (remote) filename (without extension)
+# %G: destination (remote) filename (without extension, greedy)
+# %h: MD5 hash (32-digit hexadecimal number, lowercase letters)
+# %l: source (local) filename
+# %m: module name
+# %s: filesize (in bytes)
+# %x: extension (without dot character) of %f (not greedy)
+# and also:
+# %%: raw %
+# ---
+#
+# Check user given format
+# $1: format string
+pretty_name_check() {
+    # This must be non greedy!
+    local S TOKEN
+    S=${1//%[fgGhlmsx%]}
+    TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
+    if [ -n "$TOKEN" ]; then
+        log_error "Bad format string: unknown sequence << $TOKEN >>"
+        return $ERR_BAD_COMMAND_LINE
+    fi
+
+    S=$1
+    if test "${S#*%}" = "$S"; then
+        log_notice 'No pattern specified in --name. This is maybe not what you want.'
+    fi
+}
+
+# $1: array[@] (module, lfile, dfile)
+# $2: format string
+pretty_name_print() {
+    local -a A=("${!1}")
+    local FMT=$2
+
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
+
+    test "${FMT#*%s}" != "$FMT" && \
+        FMT=$(replace_all '%s' $(get_filesize "${A[1]}") <<< "$FMT")
+
+    test "${FMT#*%h}" != "$FMT" && \
+        FMT=$(replace_all '%h' $(md5_file "${A[1]}") <<< "$FMT")
+
+    handle_tokens "$FMT" '%raw,%' \
+        "%m,${A[0]}" "%l,${A[1]}" "%f,${A[2]}" \
+        "%x,${A[2]##*.}" "%g,${A[2]%.*}" "%G,${A[2]%%.*}"
+}
+
 #
 # Main
 #
@@ -258,6 +308,10 @@ fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
+fi
+
+if [ -n "$NAME_FORMAT" ]; then
+    pretty_name_check "$NAME_FORMAT" || exit
 fi
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
@@ -383,13 +437,15 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
     DESTFILE=$(basename_file "${DESTFILE:-$LOCALFILE}")
 
+    if test "$NAME_FORMAT"; then
+        DATA=("$MODULE" "$LOCALFILE" "$DESTFILE")
+        DESTFILE=$(pretty_name_print DATA[@] "$NAME_FORMAT")
+    fi
+
     if match '[;,]' "$DESTFILE"; then
         log_notice "Skipping ($LOCALFILE): curl can't upload filenames that contain , or ;"
         continue
     fi
-
-    test "$NAME_PREFIX" && DESTFILE="${NAME_PREFIX}${DESTFILE}"
-    test "$NAME_SUFFIX" && DESTFILE="${DESTFILE}${NAME_SUFFIX}"
 
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     log_notice "Destination file: $DESTFILE"
