@@ -33,7 +33,7 @@ VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (def
 QUIET,q,quiet,,Alias for -v0
 GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --prinft=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
-PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\" (check link equivalent).
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -180,7 +180,7 @@ probe() {
         fi
 
         DATA=("$MODULE" "$URL_RAW" "$CHECK_LINK" "$FILE_NAME" "$FILE_SIZE" "$FILE_HASH" "$FILE_ID")
-        pretty_print DATA[@] "${PRINTF_FORMAT:-%F%u}"
+        pretty_print DATA[@] "${PRINTF_FORMAT:-%F%u%n}"
 
     elif [ $CHECK_LINK -eq $ERR_LINK_DEAD ]; then
         log_notice "Link is not alive: $URL_ENCODED"
@@ -229,35 +229,20 @@ pretty_print() {
     local FMT=$2
     local -r CR=$'\n'
 
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
+
     if test "${FMT#*%F}" != "$FMT"; then
         if [ -z "${A[3]}" ]; then
             FMT=${FMT//%F/}
+            [ -z "$FMT" ] && return
         else
             FMT=$(replace_all '%F' "# %f%n" <<< "$FMT")
         fi
     fi
 
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "${A[0]}" <<< "$FMT")
-    test "${FMT#*%c}" != "$FMT" && FMT=$(replace_all '%c' "${A[2]}" <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
-
-    test "${FMT#*%s}" != "$FMT" && FMT=$(replace_all '%s' "${A[4]}" <<< "$FMT")
-    test "${FMT#*%h}" != "$FMT" && FMT=$(replace_all '%h' "${A[5]}" <<< "$FMT")
-    test "${FMT#*%i}" != "$FMT" && FMT=$(replace_all '%i' "${A[6]}" <<< "$FMT")
-
-    # Don't lose trailing newlines
-    if test "${FMT#*%[nF]}" != "$FMT"; then
-        FMT=$(replace_all '%n' "$CR" <<< "$FMT" ; echo -n x)
-    else
-        FMT="${FMT}${CR}x"
-    fi
-
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
-
-    test "${FMT#*%f}" != "$FMT" && FMT=$(replace_all '%f' "${A[3]}" <<< "$FMT")
-    test "${FMT#*%u}" != "$FMT" && FMT=$(replace_all '%u' "${A[1]}" <<< "$FMT")
-
-    echo -n "${FMT%x}"
+    handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
+        "%m,${A[0]}" "%u,${A[1]}" "%c,${A[2]}" "%f,${A[3]}" \
+        "%s,${A[4]}" "%h,${A[5]}" "%i,${A[6]}"
 }
 
 #

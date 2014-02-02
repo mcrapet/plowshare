@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Retrieve list of links from a shared-folder (sharing site) url
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -33,7 +33,7 @@ VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (def
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
-PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u\".
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page"
 
 
@@ -105,49 +105,30 @@ pretty_check() {
     fi
 }
 
-# Note: don't use printf (coreutils).
 # $1: format string
 # $2: module name
 pretty_print() {
     local FMT=$1
     local -r CR=$'\n'
-    local URL NAME S
+    local URL NAME
 
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "$2" <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
 
     # Pair every two lines
     while IFS= read -r URL; do
         IFS= read -r NAME
 
         if test "${FMT#*%F}" != "$FMT"; then
-            if test "$NAME"; then
-                S=$(replace_all '%F' "# %f%n" <<< "$FMT")
+            if [ -z "$NAME" ]; then
+                FMT=${FMT//%F/}
+                [ -z "$FMT" ] && continue
             else
-                S=${FMT//%F/}
-                [ -z "$S" ] && continue
+                FMT=$(replace_all '%F' "# %f%n" <<< "$FMT")
             fi
-        else
-            S=$FMT
         fi
 
-        # Don't lose trailing newlines
-        if test "${FMT#*%[nF]}" != "$FMT"; then
-            S=$(replace_all '%n' "$CR" <<< "$S" ; echo -n x)
-        else
-            S="${S}${CR}x"
-        fi
-
-        # Special case: $NAME contains '%u'
-        if [[ "$NAME" = *%u* ]]; then
-            log_notice "$FUNCNAME: replacement error (%u not expected in name)"
-            NAME=${NAME//%u/%(u)}
-        fi
-        test "${FMT#*%[fF]}" != "$FMT" && S=$(replace_all '%f' "$NAME" <<< "$S")
-        test "${FMT#*%u}" != "$FMT" && S=$(replace_all '%u' "$URL" <<< "$S")
-
-        echo -n "${S%x}"
+        handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
+            "%m,$2" "%u,$URL" "%f,$NAME"
     done
 }
 
@@ -310,7 +291,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     ${MODULE}_vars_set
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
-        pretty_print "${PRINTF_FORMAT:-%F%u}" "$MODULE" || LRETVAL=$?
+        pretty_print "${PRINTF_FORMAT:-%F%u%n}" "$MODULE" || LRETVAL=$?
     ${MODULE}_vars_unset
 
     if [ $LRETVAL -eq 0 ]; then

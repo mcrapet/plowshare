@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Download files from file sharing websites
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -50,7 +50,7 @@ GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
 PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
-PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F\".
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F%n\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -581,7 +581,7 @@ download() {
         # Pretty print results
         local -a DATA=("$MODULE" "$FILE_NAME" "$OUT_DIR" "$COOKIE_JAR" \
                     "$URL_ENCODED" "$FILE_URL" "$FILE_SIZE")
-        pretty_print $INDEX DATA[@] "${PRINTF_FORMAT:-%F}"
+        pretty_print $INDEX DATA[@] "${PRINTF_FORMAT:-%F%n}"
 
         return 0
     done
@@ -626,23 +626,20 @@ pretty_check() {
 pretty_print() {
     local -r N=$(printf %04d $1)
     local -ar A=("${!2}")
+    local -r CR=$'\n'
     local FMT=$3
     local COOKIE_FILE
 
-    test "${FMT#*%s}" != "$FMT" && FMT=$(replace_all '%s' "${A[6]}" <<< "$FMT")
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "${A[0]}" <<< "$FMT")
-    test "${FMT#*%f}" != "$FMT" && FMT=$(replace_all '%f' "${A[1]}" <<< "$FMT")
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
 
+    # FIXME: ${A[2]} could contain %? patterns
     if test "${FMT#*%F}" != "$FMT"; then
         if test "${A[2]}"; then
-            FMT=$(replace_all '%F' "${A[2]}/${A[1]}" <<< "$FMT")
+            FMT=$(replace_all '%F' "${A[2]}/%f" <<< "$FMT")
         else
-            FMT=$(replace_all '%F' "${A[1]}" <<< "$FMT")
+            FMT=$(replace_all '%F' '%f' <<< "$FMT")
         fi
     fi
-
-    test "${FMT#*%u}" != "$FMT" && FMT=$(replace_all '%u' "${A[4]}" <<< "$FMT")
-    test "${FMT#*%d}" != "$FMT" && FMT=$(replace_all '%d' "${A[5]}" <<< "$FMT")
 
     # Note: Drop "HttpOnly" attribute, as it is not covered in the RFCs
     if test "${FMT#*%c}" != "$FMT"; then
@@ -668,16 +665,9 @@ pretty_print() {
         FMT=$(replace_all '%C' "$COOKIE_FILE" <<< "$FMT")
     fi
 
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
-
-    if test "${FMT#*%n}" != "$FMT"; then
-        # Don't lose trailing newlines
-        FMT=$(replace_all '%n' $'\n' <<< "$FMT" ; echo -n x)
-        echo -n "${FMT%x}"
-    else
-        echo "$FMT"
-    fi
+    handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
+        "%m,${A[0]}" "%f,${A[1]}" "%u,${A[4]}" "%d,${A[5]}" \
+        "%s,${A[6]}"
 }
 
 #

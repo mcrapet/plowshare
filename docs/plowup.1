@@ -1,4 +1,4 @@
-.\" Copyright (c) 2010\-2013 Plowshare Team
+.\" Copyright (c) 2010\-2014 Plowshare Team
 .\"
 .\" This is free documentation; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License as
@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "November 1, 2013" "GPL" "Plowshare for Bash 4, GIT-snapshot"
+.TH "plowup" "1" "February 1, 2014" "GPL" "Plowshare for Bash 4, GIT-snapshot"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -155,7 +155,7 @@ Prepend argument to each destination filename.
 Append argument to each destination filename.
 .TP
 .BI "   " " " --printf "=FORMAT"
-Print results (on stdout) in a given format (for each successful upload). Default string is: \fI"%D%A%u"\fR. Interpreted sequences are:
+Print results (on stdout) in a given format (for each successful upload). Default string is: \fI"%D%A%u%n"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
@@ -175,6 +175,9 @@ empty if %d is empty, or alias to \fB"#DEL %d%n"\fR.
 .TP
 \fI%f\fR
 destination (remote) filename
+.TP
+\fI%l\fR
+source (local) filename
 .TP
 \fI%m\fR
 module name
@@ -368,7 +371,7 @@ is invoked with multiple files and one or several errors occur, the first error 
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2013 The Plowshare Team
+Plowshare is (C) 2010-2014 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowdown (1),
 .BR plowdel (1),

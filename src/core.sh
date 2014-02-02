@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -2256,7 +2256,7 @@ translate_size() {
 
 ##
 ## Miscellaneous functions that can be called from core:
-## download.sh, upload.sh, delete.sh, list.sh
+## download.sh, upload.sh, delete.sh, list.sh, probe.sh
 ##
 
 # Delete leading and trailing whitespaces.
@@ -2606,6 +2606,38 @@ captcha_method_translate() {
             ;;
     esac
     return 0
+}
+
+# $1: format string
+# $2..$n : list of "token,value" (comma is the separator character)
+# stdout: result string
+# Note: don't use printf (coreutils).
+handle_tokens() {
+    local S=$1
+    local -A FMT
+    local OUT K REGEX
+
+    shift
+
+    # Populate associative array
+    for K in "$@"; do
+        REGEX+="${K%%,*}|"
+        FMT[${K%%,*}]=${K#*,}
+    done
+    REGEX=${REGEX%|}
+
+    # Protect end-of-line (don't lose trailing newlines)
+    OUT='x'
+
+    # Parsing is greedy, so there must not be any "tail match": for example "%%i"
+    # Be careful about function arguments!
+    while [[ $S =~ ^(.*)($REGEX)(.*)$ ]]; do
+        S=${BASH_REMATCH[1]}
+        OUT="${FMT[${BASH_REMATCH[2]}]}${BASH_REMATCH[3]}$OUT"
+    done
+    OUT="$S$OUT"
+
+    echo -n "${OUT%x}"
 }
 
 ## ----------------------------------------------------------------------------

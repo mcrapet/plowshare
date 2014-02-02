@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Upload files to file sharing websites
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -44,7 +44,7 @@ CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
-PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u\".
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u%n\".
 TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -118,6 +118,7 @@ module_config_remote_upload() {
 # %u: download url
 # %d: delete url
 # %a: admin url/code
+# %l: source (local) filename
 # %m: module name
 # %s: filesize (in bytes)
 # %D: alias for "#DEL %d%n" or empty string (if %d is empty)
@@ -133,7 +134,7 @@ module_config_remote_upload() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[fudamsADnt%]}
+    S=${1//%[fudalmsADnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -141,13 +142,14 @@ pretty_check() {
     fi
 }
 
-# Note: don't use printf (coreutils).
 # $1: array[@] (module, lfile, dfile, dl, del, adm)
 # $2: format string
 pretty_print() {
     local -a A=("${!1}")
     local FMT=$2
     local -r CR=$'\n'
+
+    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
 
     if test "${FMT#*%D}" != "$FMT"; then
         if [ -z "${A[4]}" ]; then
@@ -165,26 +167,12 @@ pretty_print() {
         fi
     fi
 
-    test "${FMT#*%m}" != "$FMT" && FMT=$(replace_all '%m' "${A[0]}" <<< "$FMT")
-    test "${FMT#*%t}" != "$FMT" && FMT=$(replace_all '%t' '	' <<< "$FMT")
     test "${FMT#*%s}" != "$FMT" && \
         FMT=$(replace_all '%s' $(get_filesize "${A[1]}") <<< "$FMT")
 
-    # Don't lose trailing newlines
-    if test "${FMT#*%[nDA]}" != "$FMT"; then
-        FMT=$(replace_all '%n' "$CR" <<< "$FMT" ; echo -n x)
-    else
-        FMT="${FMT}${CR}x"
-    fi
-
-    test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' '%' <<< "$FMT")
-
-    test "${FMT#*%f}" != "$FMT" && FMT=$(replace_all '%f' "${A[2]}" <<< "$FMT")
-    test "${FMT#*%u}" != "$FMT" && FMT=$(replace_all '%u' "${A[3]}" <<< "$FMT")
-    test "${FMT#*%d}" != "$FMT" && FMT=$(replace_all '%d' "${A[4]}" <<< "$FMT")
-    test "${FMT#*%a}" != "$FMT" && FMT=$(replace_all '%a' "${A[5]}" <<< "$FMT")
-
-    echo -n "${FMT%x}"
+    handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
+        "%m,${A[0]}" "%l,${A[1]}" "%f,${A[2]}" "%u,${A[3]}" \
+        "%d,${A[4]}" "%a,${A[5]}"
 }
 
 #
@@ -456,7 +444,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
             DATA=("$MODULE" "$LOCALFILE" "$DESTFILE" \
                   "$DL_URL" "$DEL_URL" "$ADMIN_URL_OR_CODE")
-            pretty_print DATA[@] "${PRINTF_FORMAT:-%D%A%u}"
+            pretty_print DATA[@] "${PRINTF_FORMAT:-%D%A%u%n}"
         else
             log_error 'Output URL expected'
             URETVAL=$ERR_FATAL
