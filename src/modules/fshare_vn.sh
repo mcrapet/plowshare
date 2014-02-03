@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # fshare.vn module
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2013-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -199,7 +199,7 @@ fshare_vn_upload() {
     PAGE=$(curl_with_log \
         -F "Filename=$DEST_FILE" \
         $FORM_PASSWORD_OPT \
-        -F "desc=$DESCRIPTION" \
+        --form-string "desc=$DESCRIPTION" \
         -F "folderid=$FOLDER_ID" \
         -F 'secure=null' \
         -F "SESSID=$FORM_SESSID" \
