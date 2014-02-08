@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # uptobox.com module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -61,6 +61,40 @@ uptobox_login() {
     return $ERR_LOGIN_FAILED
 }
 
+# Check for and handle "heavy-user captcha"
+# $1: full content of initial page
+# $2: cookie file
+# $3: base url
+# stdout: full content of actual download page
+uptobox_cloudflare() {
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local PAGE=$1
+
+    # check for captcha
+    # <title>Attention Required! | CloudFlare</title>
+    if [[ $(parse_tag 'title' <<< "$PAGE") = *CloudFlare* ]]; then
+        local -r PUBKEY='6LeT6gcAAAAAAAZ_yDmTMqPH57dJQZdQcu6VFqog'
+        local WORD CHALLENGE ID RESP FORM FORM_ACTION FORM_ID
+        log_debug 'Cloudflare captcha found'
+
+        FORM=$(grep_form_by_id "$PAGE" 'challenge-form') || return
+        FORM_ACTION=$(parse_form_action "$FORM") || return
+        FORM_ID=$(parse_form_input_by_id 'id' <<< "$FORM") || return
+
+        RESP=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALLENGE; read ID; } <<< "$RESP"
+
+        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
+            -d "recaptcha_challenge_field=$CHALLENGE" \
+            -d "recaptcha_response_field=$WORD" \
+            -d 'message=' -d "id=$FORM_ID" \
+            "${BASE_URL}/${FORM_ACTION}") || return
+    fi
+
+    echo "$PAGE"
+}
+
 # Output a uptobox file download URL
 # $1: cookie file (account only)
 # $2: uptobox url
@@ -96,6 +130,8 @@ uptobox_download() {
     else
         PAGE=$(curl -b 'lang=english' "$URL") || return
     fi
+
+    PAGE=$(uptobox_cloudflare "$PAGE" "$COOKIE_FILE" "$BASE_URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
     if matchi 'File Not Found' "$PAGE"; then
@@ -290,6 +326,7 @@ uptobox_probe() {
     local PAGE REQ_OUT FILE_SIZE
 
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
+    PAGE=$(uptobox_cloudflare "$PAGE" "$COOKIE_FILE" "$BASE_URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
     if matchi 'File Not Found' "$PAGE"; then
