@@ -87,7 +87,7 @@ absolute_path() {
 process_item() {
     local -r ITEM=$1
 
-    if match_remote_url "$ITEM"; then
+    if match_remote_url "$ITEM" ftp ftps; then
         echo 'url'
         strip <<< "$ITEM"
     elif [ -f "$ITEM" ]; then
@@ -535,7 +535,10 @@ download() {
             if [[ "$FILE_URL" = file://* ]]; then
                 log_notice "delete temporary file: ${FILE_URL:7}"
                 rm -f "${FILE_URL:7}"
-
+            elif [[ $FILE_URL =~ ^[Ff][Tt][Pp][Ss]?:// ]]; then
+                # Transfer complete
+                [[ $STATUS -eq 226  ]] || \
+                    log_error "Unexpected FTP code $STATUS, module outdated or upstream updated?"
             elif [[ $STATUS -eq 416 ]]; then
                 # If module can resume transfer, we assume here that this error
                 # means that file have already been downloaded earlier.
@@ -862,6 +865,18 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                         MRETVAL=$ERR_NOMODULE
                     fi
                 else
+                    MRETVAL=$ERR_NOMODULE
+                fi
+
+            # Check for FTP
+            elif [[ $URL =~ ^[Ff][Tt][Pp][Ss]?:// ]]; then
+                if test "$NO_MODULE_FALLBACK"; then
+                    log_notice 'No module found, do a simple FTP GET as requested'
+                    MODULE='module_null'
+                else
+                    declare LIST
+                    [ "$TYPE" = 'file' ] && LIST=" (in $ITEM)"
+                    log_debug "Skip: '$URL'$LIST is a FTP link. You may use --fallback option."
                     MRETVAL=$ERR_NOMODULE
                 fi
             else
