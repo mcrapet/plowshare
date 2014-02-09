@@ -67,15 +67,13 @@ filefactory_login() {
 # stdout: real file download link
 filefactory_download() {
     local -r COOKIE_FILE=$1
-    local URL=$2
+    local -r URL=$(replace '://filefactory' '://www.filefactory' <<< "$2")
     local -r BASE_URL='http://www.filefactory.com'
     local PAGE LOCATION WAIT_TIME FILE_URL
 
     if [ -n "$AUTH" ]; then
         filefactory_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
     fi
-
-    URL=$(replace 'http://filefactory.com' 'http://www.filefactory.com' <<< "$URL")
 
     PAGE=$(curl -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
@@ -97,7 +95,7 @@ filefactory_download() {
 
             PAGE=$(curl -b "$COOKIE_FILE" -L \
                 -d "password=$LINK_PASSWORD" \
-                -d "Submit=Continue" \
+                -d 'Submit=Continue' \
                 "$URL") || return
 
             if match 'The Password entered was incorrect' "$PAGE"; then
@@ -145,7 +143,7 @@ filefactory_upload() {
     AUTH_COOKIE=$(uri_decode <<< "$AUTH_COOKIE") || return
 
     if [ -n "$FOLDER" ]; then
-        log_debug "Getting folder data..."
+        log_debug 'Getting folder data...'
 
         PAGE=$(curl -b "$COOKIE_FILE" -G \
             -d 'm=getFolders' \
@@ -238,7 +236,7 @@ filefactory_upload() {
             log_debug 'Renaming file...'
 
             PAGE=$(curl -b "$COOKIE_FILE" \
-                -d "m=editFile" \
+                -d 'm=editFile' \
                 -d "h=$FILE_CODE" \
                 -d "filename=$DEST_FILE" \
                 -d 'description=' \
@@ -297,7 +295,7 @@ filefactory_upload() {
         log_debug 'Sending link...'
 
         PAGE=$(curl -b "$COOKIE_FILE" \
-            -d "m=emailFile" \
+            -d 'm=emailFile' \
             -d "h=$FILE_CODE" \
             -d "r=$TOEMAIL" \
             -d 'message=' \
@@ -317,11 +315,9 @@ filefactory_upload() {
 # $3: requested capability list
 # stdout: 1 capability per line
 filefactory_probe() {
-    local URL=$2
+    local -r URL=$(replace '://filefactory' '://www.filefactory' <<< "$2")
     local -r REQ_IN=$3
     local PAGE LOCATION FILE_SIZE REQ_OUT
-
-    URL=$(replace 'http://filefactory.com' 'http://www.filefactory.com' <<< "$URL")
 
     PAGE=$(curl -i "$URL") || return
 
@@ -363,11 +359,9 @@ filefactory_probe() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links and file names (alternating)
 filefactory_list() {
-    local URL=$1
+    local -r URL=$(replace '://filefactory.com' '://www.filefactory' <<< "$1")
     local -r REC=$2
     local PAGE LOCATION LINKS NAMES
-
-    URL=$(replace 'http://filefactory.com' 'http://www.filefactory.com' <<< "$URL")
 
     PAGE=$(curl -i -G \
         -d 'export=1' \

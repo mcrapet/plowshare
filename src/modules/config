@@ -14,19 +14,24 @@ bitshare        | download | upload | delete |      | probe |
 chomikuj        | download | upload |        | list | probe |
 cloudzer_net    | download | upload | delete | list | probe |
 cramit          | download | upload | delete | list | probe |
+crocko          | download | upload |        | list | probe |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
 depositfiles    | download | upload | delete | list | probe |
+directmirror    |          | upload |        | list |       |
 divshare        | download | upload | delete | list |       |
 dl_free_fr      | download | upload | delete |      | probe |
 embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
+exoshare        |          | upload |        | list |       |
 filebin_ca      | download | upload |        |      | probe |
 filebox         | download | upload | delete |      | probe |
 filecloud       | download | upload |        | list | probe |
 filefactory     | download | upload |        | list | probe |
+filemonkey      |          | upload |        |      |       |
 fileover        | download |        |        |      | probe |
+fileparadox     |          | upload |        |      |       |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
 freakshare      | download | upload |        |      | probe |
@@ -41,9 +46,12 @@ letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
 mirrorcreator   |          | upload |        | list |       |
+mirrorupload    |          | upload |        | list |       |
 multiup_org     |          | upload |        | list | probe |
 multiupload     | download | upload |        | list |       |
+myvdrive        | download | upload |        | list | probe |
 nakido          | download |        |        |      | probe |
+netkups         | download | upload |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 nowdownload_co  | download | upload |        |      | probe |
 pastebin        |          |        |        | list |       |
@@ -65,5 +73,6 @@ uploaded_net    | download | upload | delete | list | probe |
 upstore         | download | upload |        |      | probe |
 uptobox         | download | upload |        |      | probe |
 zalaa           | download | upload |        | list | probe |
+zalil_ru        | download | upload |        |      | probe |
 ziddu           | download | upload | delete |      | probe |
 zippyshare      | download | upload |        | list | probe |

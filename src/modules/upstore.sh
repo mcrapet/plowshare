@@ -189,6 +189,8 @@ upstore_download() {
         return $ERR_FATAL
     fi
 
+    captcha_ack $ID
+
     # extract + output download link + file name
     echo "$PAGE" | parse_attr '<b>Download file</b>' 'href' || return
     echo "$PAGE" | parse_tag '^[[:space:]]*Download file <b>' 'b' | html_to_utf8 || return

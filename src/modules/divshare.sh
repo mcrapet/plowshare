@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # divshare.com module
-# Copyright (c) 2010-2012 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -246,7 +246,7 @@ divshare_upload() {
 
         FILE_ID=$(divshare_extract_file_id "$LINK") || return
         PAGE=$(curl -b "$COOKIE_FILE" -F "desc_id=$FILE_ID" \
-            -F "description=$DESCRIPTION" -F 'v3=true' \
+            --form-string "description=$DESCRIPTION" -F 'v3=true' \
             "$BASE_URL/scripts/ajax/description.php") || return
 
         match "$DESCRIPTION" "$PAGE" || \

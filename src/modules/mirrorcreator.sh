@@ -18,12 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MIRRORCREATOR_REGEXP_URL='http://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/'
+MODULE_MIRRORCREATOR_REGEXP_URL='https\?://\(www\.\)\?\(mirrorcreator\.com\|mir\.cr\)/'
 
 MODULE_MIRRORCREATOR_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
+SECURE,,secure,,Use HTTPS site version
+FULL_LINK,,full-link,,Parse full link on upload
 COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 3, maximum is 12."
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
@@ -40,7 +42,11 @@ mirrorcreator_upload() {
     local FILE=$2
     local DESTFILE=$3
     local SZ=$(get_filesize "$FILE")
-    local BASE_URL='http://www.mirrorcreator.com'
+    if [ -n "$SECURE" ]; then
+        local BASE_URL='https://www.mirrorcreator.com'
+    else
+        local BASE_URL='http://www.mirrorcreator.com'
+    fi
     local PAGE FORM SITES_SEL SITES_ALL SITE DATA
 
     # File size limit check (warning message only)
@@ -63,8 +69,10 @@ mirrorcreator_upload() {
         # get PHPSESSID entry in cookie file
     fi
 
-    PAGE=$(curl "$BASE_URL") || return
+    PAGE=$(curl "$BASE_URL" -b "$COOKIEFILE" -c "$COOKIEFILE") || return
     FORM=$(grep_form_by_id "$PAGE" 'uu_upload' | break_html_lines)
+
+    TOKEN=$(parse "token" ": '\([^']\+\)" <<< "$PAGE") || return
 
     # Retrieve complete hosting site list
     SITES_ALL=$(echo "$FORM" | grep 'checkbox' | parse_all_attr 'id=' value)
@@ -111,12 +119,18 @@ mirrorcreator_upload() {
     #PAGE=$(curl "$BASE_URL/fnvalidator.php?fn=${DESTFILE};&fid=upfile_123;")
 
     # -b "$COOKIEFILE" not needed here
-    PAGE=$(curl_with_log \
-        --user-agent "Shockwave Flash" \
-        -F "Filename=$DESTFILE" \
+    #PAGE=$(curl_with_log \
+    #    --user-agent "Shockwave Flash" \
+    #    -F "Filename=$DESTFILE" \
+    #    -F "Filedata=@$FILE;filename=$DESTFILE" \
+    #    -F 'folder=/uploads' -F 'Upload=Submit Query' \
+    #    "$BASE_URL/uploadify/uploadify.php") || return
+
+    PAGE=$(curl_with_log -b "$COOKIEFILE" \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
-        -F 'folder=/uploads' -F 'Upload=Submit Query' \
-        "$BASE_URL/uploadify/uploadify.php") || return
+        -F 'timestamp=' \
+        -F "token=$TOKEN" \
+        "$BASE_URL/uploadify/uploadifive.php") || return
 
     # Filename can be renamed if "slot" already taken!
     # {"fileName": "RFC-all.tar.gz"}
@@ -127,14 +141,19 @@ mirrorcreator_upload() {
     # > FilesNames +=value + '#0#' + filesCompletedSize[key]+ ';0;';
     # > submitData = filesNames + '@e@' + email + '#H#' + selectedHost +'#P#' + pass + '#SC#' + scanvirus;
     # Example: RFC-all.tar.gz#0#225280;0;@e@#H#turbobit;hotfile;#P#
-    DATA=$(echo "$SITES_SEL" | replace_all ' ' ';' | replace_all $'\n' ';')
+    DATA=$(echo "$SITES_SEL" | replace_all ' ' ';' | replace_all $'\r' '' | replace_all $'\n' ';')
 
     log_debug "sites=$DATA"
     DATA=$(echo "${DESTFILE}#0#${SZ};0;@e@#H#${DATA};#P#${LINK_PASSWORD}#SC#" | base64 --wrap=0)
     PAGE=$(curl -b "$COOKIEFILE" --referer "$BASE_URL" \
         "$BASE_URL/process.php?data=$DATA") || return
 
-    echo "$PAGE" | parse_attr 'getElementById("link2")' 'href' || return
+    if [ -n "$FULL_LINK" ]; then
+        echo "$PAGE" | parse_attr 'getElementById("link1")' 'href' || return
+    else
+        echo "$PAGE" | parse_attr 'getElementById("link2")' 'href' || return
+    fi
+
     return 0
 }
 
@@ -144,10 +163,17 @@ mirrorcreator_upload() {
 # stdout: list of links
 mirrorcreator_list() {
     local URL=$1
-    local PAGE STATUS LINKS NAMES REL_URL
-    local BASE_URL='http://www.mirrorcreator.com'
+    local PAGE STATUS LINKS NAME REL_URL
+    if match '^https' "$URL"; then
+        local BASE_URL='https://www.mirrorcreator.com'
+    else
+        local BASE_URL='http://www.mirrorcreator.com'
+    fi
 
     PAGE=$(curl -L "$URL") || return
+
+    #NAMES=( $(echo "$PAGE" | parse_all 'Success' '\.gif"[[:space:]]alt="\([^"]*\)') )
+    NAME=$(parse_tag 'h3' <<< "$PAGE") || return
 
     # mstat.php
     STATUS=$(echo "$PAGE" | parse 'mstat\.php' ',[[:space:]]"\([^"]*\)",') || return
@@ -158,8 +184,6 @@ mirrorcreator_list() {
         return $ERR_LINK_DEAD
     fi
 
-    NAMES=( $(echo "$PAGE" | parse_all 'Success' '\.gif"[[:space:]]alt="\([^"]*\)') )
-
     while read REL_URL; do
         test "$REL_URL" || continue
 
@@ -169,12 +193,9 @@ mirrorcreator_list() {
         # Error : Selected hosting site is no longer available.
         if ! match '^Error' "$URL"; then
             echo "$URL"
-            echo "${NAMES[0]}"
+            echo "$NAME"
         else
-            log_debug "$URL (${NAMES[0]})"
+            log_debug "$URL ($NAME)"
         fi
-
-        # Drop first element
-        NAMES=("${NAMES[@]:1}")
     done <<< "$LINKS"
 }

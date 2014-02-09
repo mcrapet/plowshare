@@ -96,7 +96,7 @@ chomikuj_check_folder() {
 
     PAGE=$(curl -b "$COOKIE_FILE" \
         -H 'X-Requested-With: XMLHttpRequest' \
-        -d "FolderId=0" \
+        -d 'FolderId=0' \
         -d "ChomikId=$USER_ID" \
         --data-urlencode "__RequestVerificationToken=$VERIF_TOKEN" \
         "$BASE_URL/action/tree/loadtree") || return
@@ -109,11 +109,11 @@ chomikuj_check_folder() {
 
         PAGE=$(curl -b "$COOKIE_FILE" \
             -H 'X-Requested-With: XMLHttpRequest' \
-            -d "FolderId=0" \
+            -d 'FolderId=0' \
             -d "ChomikId=$USER_ID" \
             -d "FolderName=$NAME" \
-            -d "AdultContent=false" \
-            -d "Password=" \
+            -d 'AdultContent=false' \
+            -d 'Password=' \
             --data-urlencode "__RequestVerificationToken=$VERIF_TOKEN" \
             "$BASE_URL/action/FolderOptions/NewFolderAction") || return
 
@@ -124,7 +124,7 @@ chomikuj_check_folder() {
 
         PAGE=$(curl -b "$COOKIE_FILE" \
             -H 'X-Requested-With: XMLHttpRequest' \
-            -d "FolderId=0" \
+            -d 'FolderId=0' \
             -d "ChomikId=$USER_ID" \
             --data-urlencode "__RequestVerificationToken=$VERIF_TOKEN" \
             "$BASE_URL/action/tree/loadtree") || return
@@ -133,7 +133,7 @@ chomikuj_check_folder() {
         FOLDERS=$(parse_all_attr 'id="Ta_' 'title' <<< "$PAGE") || return
 
         if ! match "^$NAME$" "$FOLDERS"; then
-            log_error "Could not create folder."
+            log_error 'Could not create folder.'
             return $ERR_FATAL
         fi
     fi
@@ -151,7 +151,7 @@ chomikuj_check_folder() {
 # stdout: real file download link
 chomikuj_download() {
     local -r COOKIE_FILE=$1
-    local URL=$2
+    local -r URL=$(replace '://www.' '://' <<< "$2")
     local -r BASE_URL='http://chomikuj.pl'
 
     local PAGE VERIF_TOKEN FILE_ID FILE_URL FILENAME
@@ -159,8 +159,6 @@ chomikuj_download() {
     if [ -n "$AUTH" ]; then
         chomikuj_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
     fi
-
-    URL=$(replace 'http://www.' 'http://' <<< "$URL")
 
     PAGE=$(curl -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
@@ -282,12 +280,10 @@ chomikuj_upload() {
 # $3: requested capability list
 # stdout: 1 capability per line
 chomikuj_probe() {
-    local URL=$2
+    local -r URL=$(replace '://www.' '://' <<< "$2")
     local -r REQ_IN=$3
 
     local PAGE FILE_URL FILE_SIZE REQ_OUT
-
-    URL=$(replace 'http://www.' 'http://' <<< "$URL")
 
     PAGE=$(curl -i "$URL") || return
 
@@ -318,13 +314,11 @@ chomikuj_probe() {
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links and file names (alternating)
 chomikuj_list() {
-    local URL=$1
+    local -r URL=$(replace '://www.' '://' <<< "$1")
     local -r REC=$2
     local -r BASE_URL='http://chomikuj.pl'
 
     local PAGE LOCATION LINKS NAMES PAGES_BAR LAST_PAGE PAGE_NUMBER
-
-    URL=$(replace 'http://www.' 'http://' <<< "$URL")
 
     PAGE=$(curl -i "$URL") || return
 
@@ -352,6 +346,12 @@ chomikuj_list() {
     PAGES_BAR=$(parse_all_attr_quiet 'title' <<< "$PAGES_BAR")
 
     LAST_PAGE=$(last_line <<< "$PAGES_BAR")
+
+    if [ "$LAST_PAGE" = '9 ...' ]; then
+        PAGE=$(curl -i "$URL,9999999") || return
+        LOCATION=$(grep_http_header_location <<< "$PAGE") || return
+        LAST_PAGE=$(parse . ',\([0-9]\+\)$' <<< "$LOCATION") || return
+    fi
 
     if [ -n "$LAST_PAGE" ];then
         for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do

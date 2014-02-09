@@ -41,10 +41,10 @@ uptobox_login() {
     local COOKIE_FILE=$2
     local BASE_URL=$3
 
-    local LOGIN_DATA LOGIN_RESULT NAME
+    local LOGIN_DATA LOGIN_RESULT NAME ERR
 
-    LOGIN_DATA='op=login&login=$USER&password=$PASSWORD&x=10&y=10&redirect='
-    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA$BASE_URL" "$BASE_URL") || return
+    LOGIN_DATA='op=login&redirect=&login=$USER&password=$PASSWORD'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" "$BASE_URL") || return
 
     # Set-Cookie: login xfss
     NAME=$(parse_cookie_quiet 'login' < "$COOKIE_FILE")
@@ -52,6 +52,11 @@ uptobox_login() {
         log_debug "Successfully logged in as $NAME member"
         return 0
     fi
+
+    # Try to parse error
+    ERR=$(parse_tag_quiet 'class="err"' 'font' <<< "$LOGIN_RESULT")
+    [ -n "$ERR" ] || ERR=$(parse_tag_quiet "class='err'" 'div' <<< "$LOGIN_RESULT")
+    [ -n "$ERR" ] && log_error "Unexpected remote error: $ERR"
 
     return $ERR_LOGIN_FAILED
 }
@@ -93,7 +98,7 @@ uptobox_download() {
     fi
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    if matchi 'File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -287,21 +292,24 @@ uptobox_probe() {
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if match 'File Not Found' "$PAGE"; then
+    if matchi 'File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse_form_input_by_name 'fname' <<< "$PAGE" && \
-            REQ_OUT="${REQ_OUT}f"
+        parse_form_input_by_name 'fname' <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(echo "$PAGE" | parse 'info-bar-grey.>' \
-            '[[:space:]](\([^)]*\)' 1) && translate_size "$FILE_SIZE" && \
-                REQ_OUT="${REQ_OUT}s"
+        FILE_SIZE=$(echo "$PAGE" | parse 'class="para_title"' \
+            '[[:space:]](\([^)]\+\)') && translate_size "$FILE_SIZE" && \
+            REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *i* ]]; then
+        parse_form_input_by_name 'id' <<< "$PAGE" && REQ_OUT="${REQ_OUT}i"
     fi
 
     echo $REQ_OUT
