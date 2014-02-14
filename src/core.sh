@@ -1437,7 +1437,7 @@ captcha_process() {
             done
 
             if [ -z "$WORD" ]; then
-                log_error '9kw.eu error: service not unavailable'
+                log_error '9kw.eu error: service not available'
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
@@ -1499,7 +1499,7 @@ captcha_process() {
             done
 
             if [ -z "$WORD" ]; then
-                log_error 'antigate error: service not unavailable'
+                log_error 'antigate error: service not available'
                 rm -f "$FILENAME"
                 return $ERR_CAPTCHA
             fi
