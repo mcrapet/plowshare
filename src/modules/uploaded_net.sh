@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # uploaded.net module
-# Copyright (c) 2011-2013 Plowshare team
+# Copyright (c) 2011-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -467,6 +467,9 @@ uploaded_net_upload() {
     # Sanity check
     if [ -z "$FILE_ID" ]; then
         log_error "Upstream error: '$PAGE'"
+        return $ERR_FATAL
+    elif [ "$FILE_ID" = 'forbidden' ]; then
+        log_error 'Upstream error: file hash was blacklisted or try with another file.'
         return $ERR_FATAL
     fi
 
