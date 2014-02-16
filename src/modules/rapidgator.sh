@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidgator.net module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -307,53 +307,50 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FORM=$(grep_form_by_id "$HTML" 'captchaform') || return
+    # emulate 'grep_form_by_id_quiet'
+    FORM=$(grep_form_by_id "$HTML" 'captchaform' 2>/dev/null)
 
     # Solve each type of captcha separately
-    if match 'api\.adscaptcha' "$FORM"; then
-        log_error 'AdsCaptcha not supported yet.'
-        log_error 'If you want to help, please send the following information to us:'
-        log_error "$FORM"
-        return $ERR_FATAL
+    if [ -n "$FORM" ]; then
+        if match 'api\.solvemedia' "$FORM"; then
+            log_debug 'Solve Media CAPTCHA found'
 
-    elif match 'api\.solvemedia' "$FORM"; then
-        log_debug 'Solve Media CAPTCHA found'
+            RESP=$(solvemedia_captcha_process 'oy3wKTaFP368dkJiGUqOVjBR2rOOR7GR') || return
+            { read CHALL; read ID; } <<< "$RESP"
 
-        RESP=$(solvemedia_captcha_process 'oy3wKTaFP368dkJiGUqOVjBR2rOOR7GR') || return
-        { read CHALL; read ID; } <<< "$RESP"
+            CAPTCHA_DATA="-d adcopy_challenge=$(uri_encode_strict <<< "$CHALL") -d adcopy_response=manual_challenge"
 
-        CAPTCHA_DATA="-d adcopy_challenge=$(uri_encode_strict <<< "$CHALL") -d adcopy_response=manual_challenge"
-
-    else
-        log_error 'Unexpected content/captcha type. Site updated?'
-        return $ERR_FATAL
-    fi
-
-    log_debug "Captcha data: $CAPTCHA_DATA"
-
-    # Get download link (Note: No quotes around $CAPTCHA_DATA!)
-    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
-        --referer "$BASE_URL$CAPTCHA_URL" \
-        -d 'DownloadCaptchaForm%5Bcaptcha%5D=' \
-        $CAPTCHA_DATA \
-        "$BASE_URL$CAPTCHA_URL") || return
-
-    if ! match 'Click here to download' "$HTML"; then
-        local FAIL_COOKIE
-        FAIL_COOKIE=$(parse_cookie_quiet 'failed_on_captcha' < "$COOKIE_FILE")
-
-        if match 'verification code is incorrect' "$HTML" || \
-            [ "$FAIL_COOKIE" -eq 1 ]; then
-            captcha_nack $ID
-            return $ERR_CAPTCHA
+        else
+            log_error "Unexpected content/captcha type: '$FORM'"
+            return $ERR_FATAL
         fi
 
-        log_error 'Unexpected content. Site updated?'
-        return $ERR_FATAL
-    fi
+        log_debug "Captcha data: $CAPTCHA_DATA"
 
-    captcha_ack $ID
-    log_debug 'Correct captcha'
+        # Get download link (Note: No quotes around $CAPTCHA_DATA!)
+        HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" \
+            --referer "$BASE_URL$CAPTCHA_URL" \
+            -d 'DownloadCaptchaForm%5Bcaptcha%5D=' \
+            $CAPTCHA_DATA \
+            "$BASE_URL$CAPTCHA_URL") || return
+
+        if ! match 'Click here to download' "$HTML"; then
+            local FAIL_COOKIE
+            FAIL_COOKIE=$(parse_cookie_quiet 'failed_on_captcha' < "$COOKIE_FILE")
+
+            if match 'verification code is incorrect' "$HTML" || \
+                [ "$FAIL_COOKIE" -eq 1 ]; then
+                captcha_nack $ID
+                return $ERR_CAPTCHA
+            fi
+
+            log_error 'Unexpected content. Site updated?'
+            return $ERR_FATAL
+        fi
+
+        captcha_ack $ID
+        log_debug 'Correct captcha'
+    fi
 
     # Extract + output download link
     parse 'function getUrl' "'\(.\+\)'" 2  <<< "$HTML" || return
