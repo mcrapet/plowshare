@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rapidshare.com module
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -35,31 +35,66 @@ AUTH,a,auth,a=USER:PASSWORD,User account (mandatory)"
 
 MODULE_RAPIDSHARE_PROBE_OPTIONS=""
 
+# Static function. Parse/Retrieve file ID and file name.
+# $1: URL
+# $2: base URL
+# $3: variable name (file ID)
+# $4: variable name (file name)
+rapidshare_parse_url() {
+    local -r URL=$1
+    local -r BASE_URL=$2
+    local I N
+
+    # Sanity checks left out for the sake of performance!
+    unset -v "$3" "$4"
+
+    # URL format:
+    # http://rapidshare.com/share/F82248B8748BECE0A9A78038E7717EE0
+    #
+    # And two deprecated versions:
+    #  http://rapidshare.com/files/429795114/arc02f.rar
+    #  http://rapidshare.com/#!download|774tl4|429794114|arc02f.rar|5249
+    if [[ "$URL" = */share/* ]]; then
+        # Only consider most basic shares, i.e. a single file
+        local -r SHARE_ID=${URL##*/share/}
+        local PAGE
+
+        PAGE=$(curl -d 'sub=sharelinkcontent' -d "share=$SHARE_ID" \
+            "$BASE_URL") || return
+
+        if [[ "$PAGE" = ERROR* ]]; then
+            [[ "$PAGE" = *'not found'* ]] && return $ERR_LINK_DEAD
+
+            log_error "Remote error: ${PAGE#ERROR: }"
+            return $ERR_FATAL
+        fi
+
+        eval $3=\$\(cut -d\',\' -f1 \<\<\< \"\${PAGE#file:}\"\)
+        eval $4=\$\(cut -d\',\' -f2 \<\<\< \"\${PAGE#file:}\"\)
+    elif [[ "$URL" = *'/#!download|'* ]]; then
+        eval $3=\$\(cut -d\'\|\' -f3 \<\<\< \"\$URL\"\)
+        eval $4=\$\(cut -d\'\|\' -f4 \<\<\< \"\$URL\"\)
+    else
+        eval $3=\$\(cut -d\'/\' -f5 \<\<\< \"\$URL\"\)
+        eval $4=\$\(cut -d\'/\' -f6 \<\<\< \"\$URL\"\)
+    fi
+
+    if [ -z "${!3}" -o -z "${!4}" ]; then
+        log_error "Cannot parse file ID/filename from URL: $URL"
+        return $ERR_FATAL
+    fi
+}
+
 # Output a rapidshare file download URL
 # $1: cookie file (unused here)
 # $2: rapidshare.com url
 # stdout: real file download link
 rapidshare_download() {
-    local URL=$2
     local BASE_URL='https://api.rapidshare.com/cgi-bin/rsapi.cgi'
     local FILEID FILENAME USER PASSWORD COOKIE PAGE ERROR WAIT
     local IS_PREMIUM=0
 
-    # Two possible URL format
-    # http://rapidshare.com/files/429795114/arc02f.rar
-    # http://rapidshare.com/#!download|774tl4|429794114|arc02f.rar|5249
-    if match '.*/#!download|' "$URL"; then
-        FILEID=$(echo "$URL" | cut -d'|' -f3)
-        FILENAME=$(echo "$URL" | cut -d'|' -f4)
-    else
-        FILEID=$(echo "$URL" | cut -d'/' -f5)
-        FILENAME=$(echo "$URL" | cut -d'/' -f6)
-    fi
-
-    if [ -z "$FILEID" -o -z "$FILENAME" ]; then
-        log_error "Cannot parse file ID/filename from URL: $URL"
-        return $ERR_FATAL
-    fi
+    rapidshare_parse_url "$2" "$BASE_URL" FILEID FILENAME || return
 
     if test "$AUTH"; then
         local DETAILS CUR_DATE END_DATE
@@ -256,18 +291,11 @@ rapidshare_delete() {
 # $3: requested capability list
 # stdout: 1 capability per line
 rapidshare_probe() {
-    local -r URL=$2
     local -r REQ_IN=$3
     local BASE_URL='https://api.rapidshare.com/cgi-bin/rsapi.cgi'
     local RESPONSE REQ_OUT FILE_ID FILE_NAME FILE_SIZE FILE_HASH STATUS DUMMY
 
-    if [[ "$URL" = */#!download\|* ]]; then
-        FILE_ID=$(echo "$URL" | cut -d'|' -f3)
-        FILE_NAME=$(echo "$URL" | cut -d'|' -f4)
-    else
-        FILE_ID=$(echo "$URL" | cut -d'/' -f5)
-        FILE_NAME=$(echo "$URL" | cut -d'/' -f6)
-    fi
+    rapidshare_parse_url "$2" "$BASE_URL" FILE_ID FILE_NAME || return
 
     RESPONSE=$(curl -d 'sub=checkfiles' -d "files=$FILE_ID" \
         -d "filenames=$FILE_NAME" "$BASE_URL") || return
