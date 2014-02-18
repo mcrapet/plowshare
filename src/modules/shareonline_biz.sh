@@ -56,13 +56,13 @@ shareonline_biz_login() {
     PAGE=$(curl -b "$COOKIE_FILE" -b 'page_language=english' \
         "$BASE_URL/user/profile") || return
     ID=$(parse_tag 'Logged in as' 'a' <<<  "$PAGE") || return
-    TYPE=$(parse 'Your Account-Type' '^\([[:alpha:]]\+\)' 3 <<<  "$PAGE") || return
+    TYPE=$(parse 'Your Account-Type' '^\([[:alpha:]-]\+\)' 3 <<<  "$PAGE") || return
 
     case "$TYPE" in
         'Sammler')
             TYPE='free'
             ;;
-        'Premium')
+        'Premium'|'VIP-Special')
             TYPE='premium'
             ;;
         *)
@@ -158,6 +158,7 @@ shareonline_biz_download() {
         fi
 
         MODULE_SHAREONLINE_BIZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
+
         echo "$FILE_URL"
         echo "$FILE_NAME"
         return 0
