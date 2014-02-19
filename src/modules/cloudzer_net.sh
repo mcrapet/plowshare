@@ -164,7 +164,7 @@ cloudzer_net_download() {
     fi
 
     captcha_ack $ID
-    log_debug 'captcha_correct'
+    log_debug 'correct captcha'
 
     if match '"type":"download"' "$RESPONSE"; then
         FILE_URL=$(echo "$RESPONSE" | parse_json url) || return
