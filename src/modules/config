@@ -34,6 +34,7 @@ fileover        | download |        |        |      | probe |
 fileparadox     |          | upload |        |      |       |
 filepost        | download | upload | delete | list | probe |
 filepup_net     | download |        |        |      | probe |
+filer_net       | download |        |        | list | probe |
 freakshare      | download | upload |        |      | probe |
 fshare_vn       | download | upload |        | list | probe |
 gamefront       | download | upload |        |      | probe |
