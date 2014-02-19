@@ -187,8 +187,8 @@ uptobox_download() {
             local MINS SECS
             MINS=$(parse 'class="err">' \
                 '[[:space:]]\([[:digit:]]\+\) minute' <<< "$PAGE") || return
-            SECS=$(parse 'class="err">' \
-                '[[:space:]]\([[:digit:]]\+\) second' <<< "$PAGE") || return
+            SECS=$(parse_quiet 'class="err">' \
+                '[[:space:]]\([[:digit:]]\+\) second' <<< "$PAGE") || SECS=0
 
             echo $(( MINS * 60 + SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
