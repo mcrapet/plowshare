@@ -2528,7 +2528,7 @@ process_configfile_module_options() {
 
 # Get system information
 log_report_info() {
-    local G
+    local G GIT_DIR
 
     if test $VERBOSE -ge 4; then
         log_report '=== SYSTEM INFO BEGIN ==='
@@ -2545,10 +2545,11 @@ log_report_info() {
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
         log_report "[lib ] '$LIBDIR'"
 
-        if [ -d "$LIBDIR/../.git" ]; then
-            # Requires git 1.6.3+
-            local -r GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-            local -r GIT_REV=$(git rev-parse HEAD 2>/dev/null)
+        GIT_DIR=$(cd "$LIBDIR" && git rev-parse --git-dir 2>/dev/null) || true
+        if [ -d "$GIT_DIR" ]; then
+            local -r GIT_BRANCH=$(git --git-dir=$GIT_DIR rev-parse --abbrev-ref HEAD 2>/dev/null)
+            local -r GIT_REV=$(git --git-dir=$GIT_DIR describe 2>/dev/null || \
+                echo 'g'$(git --git-dir=$GIT_DIR rev-parse --short HEAD))
             log_report "[git ] $GIT_BRANCH:$GIT_REV"
         fi
 
