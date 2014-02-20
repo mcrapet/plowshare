@@ -21,6 +21,9 @@
 # Make pipes fail on the first failed command (requires Bash 3+)
 set -o pipefail
 
+# Each time an API is updated, this value will be increased
+declare -r PLOWSHARE_API_VERSION=0
+
 # Global error codes
 # 0 means success or link alive
 declare -r ERR_FATAL=1                    # Unexpected result (upstream site updated, etc)
