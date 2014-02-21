@@ -210,7 +210,7 @@ zippyshare_upload() {
         FORM_DATA_AUTH="-F zipname=$NAME -F ziphash=$HASH"
     fi
 
-    #Â Important: field order seems checked! zipname/ziphash go before Filedata!
+    # Important: field order seems checked! zipname/ziphash go before Filedata!
     PAGE=$(curl_with_log -F "uploadId=$FORM_UID" \
         $FORM_DATA_AUTH \
         -F "Filedata=@$FILE;filename=$DESTFILE" \
