@@ -106,15 +106,6 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Note: Some files only show up as unavailable at this point :-/
-    PAGE=$(curl --head "$FILE_URL") || return
-    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
-
-    if [[ "$REDIR" = *FILENOTFOUND474 ]]; then
-        return $ERR_LINK_DEAD
-    fi
-
-
     echo "$FILE_URL"
     echo "$FILE_NAME"
 }
