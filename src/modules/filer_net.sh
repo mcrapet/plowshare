@@ -95,14 +95,14 @@ filer_net_download() {
     # - free download limit reached
     elif match 'Free Download Limit erreicht' "$PAGE"; then
         log_error 'Free Download Limit reached'
-        WAITTIME=$(echo "$PAGE" | grep "Wartezeiten" | tr -cd '0-9\n')
-        echo "$WAITTIME" # arbitrary time
+        WAIT=$(parse_tag 'id=.time.>' span <<< "$PAGE")
+        echo $((WAIT))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     TOKEN=$(echo "$PAGE" | parse 'token' 'value="\([[:alnum:]]\+\)') || return
-    log_debug "token: $TOKEN"
-    WAIT=$(echo "$PAGE" | parse 'Waiting time' 'id=\"time\">\([[:digit:]]\+\)') || return
+    log_debug "token: '$TOKEN'"
+    WAIT=$(parse_tag 'id=.time.>' em <<< "$PAGE")
     wait $(( $WAIT + 1 )) || return
 
     # Push download button
@@ -174,9 +174,9 @@ filer_net_list() {
     PAGE=$(curl -L "$URL" ) || return
 
     LINKS=$(echo "$PAGE" | parse_all_attr_quiet '/get/.*<img[[:space:]]' href)
-    NAMES=$(echo "$PAGE" | parse_all_quiet '/get/.*<img[[:space:]]' '>\([^<]\+\)</a>' -2)
-
     test "$LINKS" || return $ERR_LINK_DEAD
+
+    NAMES=$(echo "$PAGE" | parse_all_quiet '/get/.*<img[[:space:]]' '>\([^<]\+\)</a>' -2)
 
     list_submit "$LINKS" "$NAMES" 'http://filer.net'
 }
