@@ -128,12 +128,11 @@ rapidshare_download() {
         fi
 
         PAGE=$(curl -d 'sub=download' -d "cookie=$COOKIE" \
-            -d "fileid=$FILEID" -d "filename=$FILENAME" \
+            -d "fileid=$FILEID" --data-urlencode "filename=$FILENAME" \
             "$BASE_URL") || return
     else
-        PAGE=$(curl -d 'sub=download' \
-            -d "fileid=$FILEID" -d "filename=$FILENAME" \
-            "$BASE_URL") || return
+        PAGE=$(curl -d 'sub=download' -d "fileid=$FILEID" \
+            --data-urlencode "filename=$FILENAME" "$BASE_URL") || return
     fi
 
     ERROR=$(echo "$PAGE" | parse_quiet 'ERROR:' 'ERROR:[[:space:]]*\(.*\)')
@@ -184,7 +183,6 @@ rapidshare_download() {
         log_error 'Unexpected page content'
         return $ERR_FATAL
     fi
-
 
     log_debug "File MD5: $CRC"
 
@@ -298,7 +296,7 @@ rapidshare_probe() {
     rapidshare_parse_url "$2" "$BASE_URL" FILE_ID FILE_NAME || return
 
     RESPONSE=$(curl -d 'sub=checkfiles' -d "files=$FILE_ID" \
-        -d "filenames=$FILE_NAME" "$BASE_URL") || return
+        --data-urlencode "filenames=$FILE_NAME" "$BASE_URL") || return
 
     # ERROR: File not found.
     if [[ "$RESPONSE" = ERROR:\ * ]]; then
