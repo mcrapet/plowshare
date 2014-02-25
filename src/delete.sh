@@ -142,10 +142,10 @@ if [ -n "$CAPTCHA_METHOD" ]; then
     captcha_method_translate "$CAPTCHA_METHOD" || exit
     log_notice "plowdel: force captcha method ($CAPTCHA_METHOD)"
 else
-    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowdel: --9kweu selected"
-    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowdel: --antigate selected"
-    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowdel: --captchabhood selected"
-    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowdel: --deathbycaptcha selected"
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug 'plowdel: --9kweu selected'
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug 'plowdel: --antigate selected'
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug 'plowdel: --captchabhood selected'
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)

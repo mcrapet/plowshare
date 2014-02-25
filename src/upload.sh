@@ -322,10 +322,10 @@ if [ -n "$CAPTCHA_METHOD" ]; then
     captcha_method_translate "$CAPTCHA_METHOD" || exit
     log_notice "plowup: force captcha method ($CAPTCHA_METHOD)"
 else
-    [ -n "$CAPTCHA_9KWEU" ] && log_debug "plowup: --9kweu selected"
-    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug "plowup: --antigate selected"
-    [ -n "$CAPTCHA_BHOOD" ] && log_debug "plowup: --captchabhood selected"
-    [ -n "$CAPTCHA_DEATHBY" ] && log_debug "plowup: --deathbycaptcha selected"
+    [ -n "$CAPTCHA_9KWEU" ] && log_debug 'plowup: --9kweu selected'
+    [ -n "$CAPTCHA_ANTIGATE" ] && log_debug 'plowup: --antigate selected'
+    [ -n "$CAPTCHA_BHOOD" ] && log_debug 'plowup: --captchabhood selected'
+    [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowup: --deathbycaptcha selected'
 fi
 
 if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
