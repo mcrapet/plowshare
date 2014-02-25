@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # 4shared.com module
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -42,21 +42,22 @@ MODULE_4SHARED_PROBE_OPTIONS=""
 
 # Static function. Proceed with login (tested on free-membership)
 4shared_login() {
-    local AUTH=$1
-    local COOKIE_FILE=$2
-    local BASEURL=$3
-    local LOGIN_DATA JSON_RESULT ERR
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA NAME
 
     LOGIN_DATA='login=$USER&password=$PASSWORD&doNotRedirect=true'
-    JSON_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASEURL/login") || return
+    post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/web/login" -o /dev/null || return
 
-    # {"ok":true,"rejectReason":"","loginRedirect":"http://...
-    if ! match_json_true 'ok' "$JSON_RESULT"; then
-        ERR=$(echo "$JSON_RESULT" | parse_json 'rejectReason')
-        log_debug "remote says: $ERR"
-        return $ERR_LOGIN_FAILED
+    # On success, add cookie entries: Login & Password
+    NAME=$(parse_cookie_quiet 'Login' < "$COOKIE_FILE")
+    if [ -n "$NAME" ]; then
+        return 0
     fi
+
+    return $ERR_LOGIN_FAILED
 }
 
 # Output a 4shared file download URL
