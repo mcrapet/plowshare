@@ -1448,9 +1448,6 @@ captcha_process() {
             ;;
     esac
 
-    local TEXT1='Leave this field blank and hit enter to get another captcha image'
-    local TEXT2='Enter captcha response (drop punctuation marks, case insensitive): '
-
     # How to solve captcha
     case $METHOD_SOLVE in
         none)
@@ -1683,10 +1680,10 @@ captcha_process() {
             # Reload mecanism is not available for all types
             if [ "$CAPTCHA_TYPE" = 'recaptcha' -o \
                  "$CAPTCHA_TYPE" = 'solvemedia' ]; then
-                log_notice "$TEXT1"
+                log_notice 'Leave this field blank and hit enter to get another captcha image'
             fi
 
-            read -r -p "$TEXT2" RESPONSE
+            read -r -p 'Enter captcha response (drop punctuation marks, case insensitive): ' RESPONSE
             echo "$RESPONSE"
             echo $TID
             ;;
@@ -2047,7 +2044,7 @@ random() {
 #
 # $1: input string
 # stdout: message-digest fingerprint (32-digit hexadecimal number, lowercase letters)
-# $? zero for success or $ERR_SYSTEM
+# $?: 0 for success or $ERR_SYSTEM
 md5() {
     # GNU coreutils
     if check_exec md5sum; then
@@ -2070,7 +2067,7 @@ md5() {
 #
 # $1: input string
 # stdout: message-digest fingerprint (40-digit hexadecimal number, lowercase letters)
-# $? zero for success or $ERR_SYSTEM
+# $?: 0 for success or $ERR_SYSTEM
 sha1() {
     # GNU coreutils
     if check_exec sha1sum; then
@@ -2088,7 +2085,7 @@ sha1() {
 # Calculate MD5 hash (128-bit) of a file.
 # $1: input file
 # stdout: message-digest fingerprint (32-digit hexadecimal number, lowercase letters)
-# $? zero for success or $ERR_SYSTEM
+# $?: 0 for success or $ERR_SYSTEM
 md5_file() {
     if [ -f "$1" ]; then
         # GNU coreutils
