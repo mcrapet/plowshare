@@ -119,8 +119,15 @@ MODULE_4SHARED_PROBE_OPTIONS=""
     fi
 
     # Try to figure real filename from HTML
+    # - trinityConfig.globalFileName = '...'
+    FILE_NAME=$(parse_all_quiet 'trinityConfig.globalFileName' '=[[:space:]]*["'\'']\([^/"'\'']*\)' <<< "$PAGE")
+
     # - <meta property="og:title" content="..."/>
-    FILE_NAME=$(echo "$PAGE" | parse_attr_quiet 'og:title' 'content')
+    # Warning: filename without extension
+    if [ -z "$FILE_NAME" ]; then
+        FILE_NAME=$(echo "$PAGE" | parse_attr_quiet 'og:title' 'content')
+    fi
+
     # - <h1 class="fileName light-blue lucida f24"> ... </h1>
     if [ -z "$FILE_NAME" ]; then
         FILE_NAME=$(echo "$PAGE" | parse_tag '=.fileName' 'h1')
