@@ -2548,9 +2548,8 @@ log_report_info() {
         GIT_DIR=$(cd "$LIBDIR" && git rev-parse --git-dir 2>/dev/null) || true
         if [ -d "$GIT_DIR" ]; then
             local -r GIT_BRANCH=$(git --git-dir=$GIT_DIR rev-parse --abbrev-ref HEAD 2>/dev/null)
-            local -r GIT_REV=$(git --git-dir=$GIT_DIR describe 2>/dev/null || \
-                echo 'g'$(git --git-dir=$GIT_DIR rev-parse --short HEAD))
-            log_report "[git ] $GIT_BRANCH:$GIT_REV"
+            local -r GIT_REV=$(git --git-dir=$GIT_DIR describe --tags --always 2>/dev/null)
+            log_report "[git ] $GIT_REV ($GIT_BRANCH branch)"
         fi
 
         log_report '=== SYSTEM INFO END ==='
