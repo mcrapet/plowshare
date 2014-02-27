@@ -23,7 +23,7 @@ Jan <krompospeed@googlemail.com>
 
 Jason <stone.bronson@gmail.com
 	Official maintainer [2013.08.23-...]
-	sharebeast, sockshare, hipfile modules
+	sharebeast, sockshare, hipfile modules. Xfilesharing engine master.
 
 CONTRIBUTORS (alphabet sorted)
 ============
@@ -77,6 +77,9 @@ StalkR <stalkr@stalkr.net>
 	Official maintainer [2011.02.02-2011.12.24] with 23 commits.
 	filesonic module support (feb 2011)
 	dl.free.fr module support (feb 2010)
+
+Stefan Meier <stefan.111.meier@gmail.com>
+	shareonline_biz (aug 2012), misc patches
 
 Thomas Jensen <thomas.otvald@gmail.com>
 	Early sharingmatrix/filesonic module (before using reCaptcha) (sep 2010)
