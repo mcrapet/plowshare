@@ -1,5 +1,8 @@
 ##
-# Plowshare4 Makefile
+# Plowshare4 Makefile (requires GNU sed)
+# Usage:
+# - make PREFIX=/usr install
+# - make PREFIX=/usr DESTDIR=/tmp/packaging install
 ##
 
 # Tools
@@ -10,21 +13,14 @@ RM      = rm -f
 
 # Files
 
-SRCS = src/download.sh src/upload.sh src/delete.sh src/list.sh \
-       src/probe.sh src/core.sh
-
-SETUP_FILES     = Makefile setup.sh
-TEST_FILES      = tests/modules.sh $(wildcard tests/*.t)
-MODULE_FILES    = $(wildcard src/modules/*.sh) src/modules/config
-
+MODULE_FILES = $(wildcard src/modules/*.sh) src/modules/config
+SRCS = download.sh upload.sh delete.sh list.sh probe.sh core.sh
 MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1 plowprobe.1
 MANPAGES5 = plowshare.conf.5
-MANPAGES  = $(addprefix docs/,$(MANPAGES1)) $(addprefix docs/,$(MANPAGES5))
-DOCS      = AUTHORS COPYING INSTALL README
+DOCS      = README
 
-CONTRIB_FILES = $(addprefix contrib/,plowdown_add_remote_loop.sh plowdown_loop.sh \
-                plowdown_parallel.sh)
-ETC_FILES = $(addprefix etc/,plowshare.completion)
+BASH_COMPL = scripts/plowshare.completion
+GIT_VERSION = scripts/version
 
 # Target path
 # DESTDIR is for package creation only
@@ -32,16 +28,19 @@ ETC_FILES = $(addprefix etc/,plowshare.completion)
 PREFIX ?= /usr/local
 ETCDIR  = /etc
 BINDIR  = $(PREFIX)/bin
-DATADIR = ${PREFIX}/share/plowshare4
-DOCDIR  = ${PREFIX}/share/doc/plowshare4
-MANDIR  = ${PREFIX}/share/man/man
+DATADIR = $(PREFIX)/share/plowshare4
+DOCDIR  = $(PREFIX)/share/doc/plowshare4
+MANDIR  = $(PREFIX)/share/man/man
 
 # Packaging
+GIT_HASH:=$(shell LANG=C git describe --tags --always)
 GIT_DATE:=$(shell LANG=C git log -n1 --pretty=%ci | cut -d' ' -f1)
-GIT_HASH:=$(shell LANG=C git log -n1 --pretty=%h)
-DISTDIR = plowshare4-snapshot-git$(subst -,,$(GIT_DATE).$(GIT_HASH))
 
-install:
+# Rules
+
+install: install_files install_git_version install_bash_completion
+
+install_files:
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)/modules
@@ -49,10 +48,10 @@ install:
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -d $(DESTDIR)$(MANDIR)5
 	$(INSTALL) -m 644 $(MODULE_FILES) $(DESTDIR)$(DATADIR)/modules
-	$(INSTALL) -m 755 $(SRCS) $(DESTDIR)$(DATADIR)
+	$(INSTALL) -m 755 $(addprefix src/,$(SRCS)) $(DESTDIR)$(DATADIR)
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES1)) $(DESTDIR)$(MANDIR)1
 	$(INSTALL) -m 644 $(addprefix docs/,$(MANPAGES5)) $(DESTDIR)$(MANDIR)5
-	$(INSTALL) -m 644 README $(DESTDIR)$(DOCDIR)
+	$(INSTALL) -m 644 $(DOCS) $(DESTDIR)$(DOCDIR)
 	$(LN_S) $(DATADIR)/download.sh $(DESTDIR)$(BINDIR)/plowdown
 	$(LN_S) $(DATADIR)/upload.sh   $(DESTDIR)$(BINDIR)/plowup
 	$(LN_S) $(DATADIR)/delete.sh   $(DESTDIR)$(BINDIR)/plowdel
@@ -68,36 +67,26 @@ uninstall:
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)1/, $(MANPAGES1))
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))
 
+install_git_version: install_files
+	@v=`$(GIT_VERSION)` && v2=`$(GIT_VERSION) x` && \
+	for file in $(SRCS); do \
+		sed -i -e 's/^\(declare -r VERSION=\).*/\1'"'$$v'"'/' $(DESTDIR)$(DATADIR)/$$file; \
+	done; \
+	for file in $(DOCS); do \
+		sed -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v"'\2/' $(DESTDIR)$(DOCDIR)/$$file; \
+	done; \
+	for file in $(MANPAGES1); do \
+		sed -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)1/$$file; \
+	done; \
+	for file in $(MANPAGES5); do \
+		sed -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)5/$$file; \
+	done
+
+install_bash_completion: install_files
+	@$(INSTALL) -d $(DESTDIR)$(ETCDIR)/bash_completion.d
+	@sed -e "/cut/s,/usr/local/share/plowshare4,$(DATADIR)," $(BASH_COMPL) > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare4
+
 test:
 	@cd tests && ./modules.sh -l
 
-install_bash_completion:
-	@$(INSTALL) -d $(DESTDIR)$(ETCDIR)/bash_completion.d
-	@sed -e "/cut/s,/usr/local/share/plowshare4,$(DATADIR)," etc/plowshare.completion > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare4
-
-dist: distdir
-	@tar -cf - $(DISTDIR)/* | gzip -9 >$(DISTDIR).tar.gz
-	@rm -rf $(DISTDIR)
-
-distdir:
-	@test -d $(DISTDIR) || mkdir $(DISTDIR)
-	@mkdir -p $(DISTDIR)/etc $(DISTDIR)/tests $(DISTDIR)/docs $(DISTDIR)/contrib
-	@mkdir -p $(DISTDIR)/src/modules
-	@for file in $(SRCS) $(SETUP_FILES) $(MODULE_FILES) $(TEST_FILES) \
-			$(MANPAGES) $(DOCS) $(ETC_FILES) $(CONTRIB_FILES); do \
-		cp -pf $$file $(DISTDIR)/$$file; \
-	done
-	@for file in $(SRCS); do \
-		sed -i 's/^\(declare -r VERSION=\).*/\1'\''GIT-$(GIT_HASH) ($(GIT_DATE))'\''/' $(DISTDIR)/$$file; \
-	done
-	@for file in $(DOCS); do \
-		sed -i '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1GIT-$(GIT_HASH) ($(GIT_DATE))\2/' $(DISTDIR)/$$file; \
-	done
-	@for file in $(MANPAGES); do \
-		sed -i '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1GIT-$(GIT_HASH)\2/' $(DISTDIR)/$$file; \
-	done
-
-distclean:
-	@rm -rf plowshare-snapshot-*
-
-.PHONY: dist distclean install uninstall test
+.PHONY: install uninstall test

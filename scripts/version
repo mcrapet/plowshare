@@ -1,0 +1,13 @@
+#!/bin/sh -e
+if git rev-parse --is-inside-work-tree 1>/dev/null 2>&1; then
+  if [ $# -eq 0 ]; then
+    rev=$(git describe --always --tags)
+    date=$(git log "$rev" -n1 --pretty=%ci | cut -d' ' -f1)
+    echo "$rev ($date)"
+  else
+    rev=$(git describe --always)
+    echo "GIT-$rev"
+  fi
+else
+  echo 'UNKNOWN'
+fi
