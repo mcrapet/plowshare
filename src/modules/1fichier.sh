@@ -89,7 +89,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return 0
     fi
 
-    PAGE=$(curl --include -d 'a=1' "$URL") || return
+    PAGE=$(curl --include -d 'b=1' "$URL") || return
 
     # Attention ! En téléchargement standard, vous ne pouvez télécharger qu'un seul fichier
     # à la fois et vous devez attendre jusqu'à 5 minutes entre chaque téléchargement.
