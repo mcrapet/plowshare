@@ -3157,7 +3157,8 @@ service_9kweu_ready() {
         else
             log_error "9kw.eu remote error: ${AMOUNT:5}"
         fi
-    elif (( AMOUNT < 5 )); then
+    # One solved captcha costs between 5 and 10
+    elif (( AMOUNT < 10 )); then
         log_notice '9kw.eu: insufficient credits'
     else
         log_debug "9kw.eu credits: $AMOUNT"
