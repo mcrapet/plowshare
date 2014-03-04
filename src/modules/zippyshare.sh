@@ -157,15 +157,15 @@ zippyshare_download() {
 
     JS=$(echo "$JS" | delete_first_line | delete_last_line)
 
-    PART_URL=$(echo "var elt = {}; var elt2 = {};
+    PART_URL=$(echo "var elts = new Array();
         var document = {
           getElementById: function(id) {
-            if(id == 'dlbutton') return elt;
-            if(id == 'lang-one') return elt2;
+            if (! elts[id]) { elts[id] = {}; }
+            return elts[id];
           }
         };
         $JS
-        print(elt.href);" | javascript) || return
+        print(elts['dlbutton'].href);" | javascript) || return
 
     FILE_URL="$(basename_url "$URL")$PART_URL"
 
