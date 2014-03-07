@@ -137,8 +137,8 @@ $ plowup oron /path/myfile.txt
 7. Abort slow upload (if rate is below limit during 30 seconds)
 $ plowup --min-rate 100k mediafire /path/bigfile.zip
 
-8. Modify remote filenames
-$ plowup --name-prefix="2011.jul-" mirrorcreator *.rar
+8. Modify remote filenames (example: foobar.rar gives foobar-PLOW.rar)
+$ plowup --name='%g-PLOW.%x' mirrorcreator *.rar
 
 Be aware that curl is not capable of uploading files containing a comma (,)
 in their name, so make sure to rename them before using plowup.

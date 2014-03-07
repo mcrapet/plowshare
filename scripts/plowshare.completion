@@ -16,7 +16,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-b|-d|-p|--auth|--description|--link-password|--name|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
+        -a|-b|-d|-p|--auth|--description|--link-password|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
@@ -26,6 +26,12 @@ _plowup()
             ;;
         --captchamethod)
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
+            return 0
+            ;;
+        --name)
+            if [ -z "$cur" ]; then
+                COMPREPLY=( "'%f'" )
+            fi
             return 0
             ;;
         --temp-directory)
