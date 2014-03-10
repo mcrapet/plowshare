@@ -25,7 +25,6 @@ euroshare_eu    | download | upload | delete |      | probe |
 extabit         | download | upload |        |      | probe |
 exoshare        |          | upload |        | list |       |
 filebin_ca      | download | upload |        |      | probe |
-filebox         | download | upload | delete |      | probe |
 filecloud       | download | upload |        | list | probe |
 filefactory     | download | upload |        | list | probe |
 filemonkey      |          | upload |        |      |       |
