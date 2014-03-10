@@ -45,6 +45,7 @@ gfile_ru        | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
 hipfile         | download | upload | delete | list | probe |
 jheberg         |          | upload |        | list | probe |
+keep2share      |          | upload |        |      | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
