@@ -1,10 +1,6 @@
 Plowshare4 installation notes.
 
-There are two ways to install Plowshare4.
-
-Using GNU Make
-==============
-
+# If you have root access (like Ubuntu)
 $ sudo make install
 
 # For non root users, you can override default prefix (/usr/local)
@@ -16,21 +12,20 @@ $ make install DESTDIR=/media/rootfs
 or
 $ make install PREFIX=/opt DESTDIR=/media/rootfs
 
+Distro packages
+===============
 Plowshare4 is also available for several Linux distribution
 (Debian, Ubuntu, Archlinux, Fedora, Gentoo, ...):
 Consult online documentation for up-to-date list:
-http://code.google.com/p/plowshare/wiki/Readme
+http://code.google.com/p/plowshare/wiki/Readme4
 
+Note for BSD users
+==================
+Don't forget to properly define GNU_SED variable.
 
-Without GNU Make
-================
-Note: This is also the recommended way for BSD & Mac OS X users.
-      The script will look for gsed and patch plowshare.
+# For example
+$ make install GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
+$ make patch_gnused GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
 
-# Default installation path: is /usr/local
-$ sudo bash setup.sh install
-
-# Or as non-root:
-$ PREFIX=$HOME bash setup.sh install
 
 # vim: set fileencoding utf-8
