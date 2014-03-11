@@ -30,7 +30,6 @@ GIT_VERSION = scripts/version
 # DESTDIR is for package creation only
 
 PREFIX ?= /usr/local
-ETCDIR  = /etc
 BINDIR  = $(PREFIX)/bin
 DATADIR = $(PREFIX)/share/plowshare4
 DOCDIR  = $(PREFIX)/share/doc/plowshare4
@@ -38,9 +37,9 @@ MANDIR  = $(PREFIX)/share/man/man
 
 # Rules
 
-install: $(DESTDIR)$(BINDIR) patch_git_version patch_bash_completion
+install: $(DESTDIR)$(DATADIR) patch_git_version patch_bash_completion
 
-$(DESTDIR)$(BINDIR):
+$(DESTDIR)$(DATADIR):
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)/modules
@@ -67,7 +66,7 @@ uninstall:
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)1/, $(MANPAGES1))
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))
 
-patch_git_version: $(DESTDIR)$(BINDIR)
+patch_git_version: $(DESTDIR)$(DATADIR)
 	@v=`$(GIT_VERSION)` && v2=`$(GIT_VERSION) x` && \
 	for file in $(SRCS); do \
 		$(GNU_SED) -i -e 's/^\(declare -r VERSION=\).*/\1'"'$$v'"'/' $(DESTDIR)$(DATADIR)/$$file; \
@@ -82,12 +81,12 @@ patch_git_version: $(DESTDIR)$(BINDIR)
 		$(GNU_SED) -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)5/$$file; \
 	done
 
-patch_bash_completion: $(DESTDIR)$(BINDIR)
-	@$(INSTALL) -d $(DESTDIR)$(ETCDIR)/bash_completion.d
-	@$(GNU_SED) -e "/cut/s,/usr/local/share/plowshare4,$(DATADIR)," $(BASH_COMPL) > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare4
+patch_bash_completion: $(DESTDIR)$(DATADIR)
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
+	@$(GNU_SED) -e '/cut/s,/usr/local/share/plowshare4,$(DATADIR),' $(BASH_COMPL) > $(DESTDIR)$(PREFIX)/share/bash-completion/completions/plowshare4
 
 # Note: sed append syntax is not BSD friendly!
-patch_gnused: $(DESTDIR)$(BINDIR)
+patch_gnused: $(DESTDIR)$(DATADIR)
 	@for file in $(SRCS); do \
 		$(GNU_SED) -i -e '/\/licenses\/>/ashopt -s expand_aliases; alias sed='\''$(GNU_SED)'\' "$(DESTDIR)$(DATADIR)/$$file"; \
 	done

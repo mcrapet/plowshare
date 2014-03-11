@@ -1,5 +1,5 @@
-# Programmable completion for Plowshare commands under bash 3.x
-# Copy this file to /etc/bash_completion.d/plowshare
+# Programmable completion for Plowshare commands.
+# Copy this file to /usr/share/bash-completion/completions/plowshare4
 
 have plowup &&
 _plowup()
