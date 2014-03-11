@@ -50,20 +50,24 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME REDIR
+    local PAGE FILE_URL FILE_NAME REDIR PASSWD
 
-    PAGE=$(curl "$URL") || return
+    PAGE=$(curl -b 'LG=en' "$URL") || return
 
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match "Le fichier demandÃ© n'existe pas.\|file has been deleted" "$PAGE"; then
+
+    # The requested file could not be found
+    # The file may have been deleted by its owner.
+    elif match '>The requested file could not be found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    # notice typo in 'telechargement'
-    if match 'entre 2 tÃ©lÃ©charger\?ments' "$PAGE"; then
+    # Warning ! Without premium status, you can download only one file at a time and you must wait up to 15 minutes between each downloads.
+    if match 'you must wait up to [[:digit:]][[:digit:]]\? minutes between each downloads' "$PAGE"; then
         log_error 'No parallel download allowed.'
+        echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     # Please wait until the file has been scanned by our anti-virus
@@ -72,39 +76,39 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet 'Nom du fichier' td)
+    # Note: Don't parse form action for now..
+    local FORM_HTML FORM_SUBMIT FORM_T
+    FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
+    FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'submit') || return
 
-    if match 'name="pass"' "$PAGE"; then
+    PAGE=$(curl -b 'LG=en' \
+        --data "submit=$FORM_SUBMIT" \
+        "$URL") || return
+
+    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet '>Filename[[:space:]]*:<' td)
+
+    # Accessing this file is protected by password.
+    if match '>Incorrect password<' "$PAGE"; then
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
-        FILE_URL=$(curl -i -F "pass=$LINK_PASSWORD" "$URL" | \
-            grep_http_header_location_quiet) || return
-
         test "$FILE_URL" || return $ERR_LINK_PASSWORD_REQUIRED
 
-        echo "$FILE_URL"
-        echo "$FILE_NAME"
-        return 0
+        log_error '1fichier has not properly implemented password protected links.'
+        return $ERR_LINK_PASSWORD_REQUIRED
     fi
 
-    PAGE=$(curl --include -d 'b=1' "$URL") || return
+    FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
+    FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'submit') || return
+    FORM_T=$(echo "$FORM_HTML" | parse_form_input_by_name 't') || return
 
-    # Attention ! En téléchargement standard, vous ne pouvez télécharger qu'un seul fichier
-    # à la fois et vous devez attendre jusqu'à 5 minutes entre chaque téléchargement.
-    if match 'vous devez attendre .* 5 minutes' "$PAGE"; then
-        log_error 'Forced delay between downloads.'
-        echo 300
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
+    PAGE=$(curl -b 'LG=en' \
+        --data "submit=$FORM_SUBMIT" \
+        --data "t=$FORM_T" \
+        "$URL") || return
 
-    FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
-
-    if [ -z "$FILE_URL" ]; then
-        echo 300
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
+    FILE_URL=$(parse '[[:space:]]*window.location' "=[[:space:]]*'\([^']\+\)" <<< "$PAGE")  || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
