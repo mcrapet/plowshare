@@ -2895,6 +2895,9 @@ process_options() {
 
     shift 3
 
+    UNUSED_OPTS=()
+    UNUSED_ARGS=()
+
     if [ -z "$OPTIONS" ]; then
         if [ $STEP -gt 0 ]; then
             echo "${NAME}_vars_set() { :; }"
