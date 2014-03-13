@@ -67,19 +67,10 @@ uninstall:
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))
 
 patch_git_version: $(DESTDIR)$(DATADIR)
-	@v=`$(GIT_VERSION)` && v2=`$(GIT_VERSION) x` && \
+	@v=`$(GIT_VERSION)` && \
 	for file in $(SRCS); do \
 		$(GNU_SED) -i -e 's/^\(declare -r VERSION=\).*/\1'"'$$v'"'/' $(DESTDIR)$(DATADIR)/$$file; \
 	done; \
-	for file in $(DOCS); do \
-		$(GNU_SED) -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v"'\2/' $(DESTDIR)$(DOCDIR)/$$file; \
-	done; \
-	for file in $(MANPAGES1); do \
-		$(GNU_SED) -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)1/$$file; \
-	done; \
-	for file in $(MANPAGES5); do \
-		$(GNU_SED) -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)5/$$file; \
-	done
 
 patch_bash_completion: $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
