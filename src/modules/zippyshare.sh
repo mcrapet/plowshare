@@ -165,7 +165,7 @@ zippyshare_download() {
           }
         };
         $JS
-        someFunction();
+        somefunction();
         print(elts['dlbutton'].href);" | javascript) || return
 
     FILE_URL="$(basename_url "$URL")$PART_URL"
