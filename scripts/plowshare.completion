@@ -30,6 +30,8 @@ _plowup()
             ;;
         --temp-directory)
             _filedir -d
+            return 0
+            ;;
         --engine)
             COMPREPLY=( $( compgen -W 'xfilesharing' -- $cur ) )
             return 0
@@ -56,7 +58,6 @@ _plowup()
         done
 
         [ -z "$list" ] && list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
-        list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
             /usr/local/share/plowshare4/modules/config | cut -d'|' -f1)
 
         # check for already given module name
