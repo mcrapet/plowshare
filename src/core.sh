@@ -1254,7 +1254,7 @@ wait() {
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
     local -r CAPTCHA_TYPE=$2
-    local METHOD_SOLVE METHOD_VIEW FILENAME RESPONSE WORD I
+    local METHOD_SOLVE METHOD_VIEW FILENAME RESPONSE WORD I FBDEV
     local TID=0
 
     if [ -f "$1" ]; then
@@ -1321,7 +1321,12 @@ captcha_process() {
     fi
 
     # Auto-guess mode (view)
-    : ${METHOD_VIEW:=view-x,view-aa,log}
+    # Is current terminal a pseudo tty?
+    if [[ "$(tty)" = /dev/tty* ]]; then
+        : ${METHOD_VIEW:=view-x,view-fb,view-aa,log}
+    else
+        : ${METHOD_VIEW:=view-x,view-aa,log}
+    fi
 
     # 1) Probe for X11/Xorg viewers
     if [[ "$METHOD_VIEW" = *view-x* ]]; then
@@ -1342,8 +1347,17 @@ captcha_process() {
 
     # 2) Probe for framebuffer viewers
     if [[ "$METHOD_VIEW" = *view-fb* ]]; then
-        if ! test -c '/dev/fb0'; then
-            log_notice '/dev/fb0 not found! Skip FB viewers probing.'
+        if test -n "$FRAMEBUFFER"; then
+            log_notice 'FRAMEBUFFER variable is not empty, use it.'
+            FBDEV=$FRAMEBUFFER
+        else
+            FBDEV=/dev/fb0
+        fi
+
+        if ! test -c "$FBDEV"; then
+            log_notice "$FBDEV not found! Skip FB viewers probing."
+        elif check_exec 'fbi'; then
+            METHOD_VIEW=fb-fbi
         elif check_exec 'fim'; then
             METHOD_VIEW=fb-fim
         else
@@ -1434,9 +1448,15 @@ captcha_process() {
             sxiv -q -s "$FILENAME" &
             [ $? -eq 0 ] && PRG_PID=$!
             ;;
+        fb-fbi)
+            log_debug "fbi -autozoom -noverbose -d $FBDEV $FILENAME"
+            fbi -autozoom -noverbose -d "$FBDEV" "$FILENAME" &>/dev/null
+            PRG_PID=""
+            ;;
         fb-fim)
-            fim "$FILENAME" &
-            PRG_PID=$!
+            log_debug "fim --quiet --autozoom -d $FBDEV $FILENAME"
+            fim --quiet --autozoom -d "$FBDEV" "$FILENAME" 2>/dev/null
+            PRG_PID=""
             ;;
         imgur)
             IMG_HASH=$(image_upload_imgur "$FILENAME") || true
@@ -2577,11 +2597,11 @@ captcha_method_translate() {
                 return $ERR_FATAL
             fi
             [[ $2 ]] && unset "$2" && eval $2=prompt
-            [[ $3 ]] && unset "$3" && eval $3=view-x
+            [[ $3 ]] && unset "$3" && eval $3=view-x,log
             ;;
         nox)
             [[ $2 ]] && unset "$2" && eval $2=prompt
-            [[ $3 ]] && unset "$3" && eval $3=view-aa
+            [[ $3 ]] && unset "$3" && eval $3=view-aa,log
             ;;
         online)
             if [ -z "$CAPTCHA_ANTIGATE" -a -z "$CAPTCHA_9KWEU" -a \
@@ -2598,7 +2618,7 @@ captcha_method_translate() {
                 return $ERR_FATAL
             fi
             [[ $2 ]] && unset "$2" && eval $2=prompt
-            [[ $3 ]] && unset "$3" && eval $3=view-fb
+            [[ $3 ]] && unset "$3" && eval $3=view-fb,log
             ;;
         *)
             log_error "Error: unknown captcha method: $1"

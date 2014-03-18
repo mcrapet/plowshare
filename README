@@ -41,6 +41,7 @@ To run plowshare4 and all its modules you will need:
     - feh (imlib2, X11) or
     - sxiv (imlib2, X11, very fast) or
     - qiv (imlib2, X11) or
+    - fbi (frame buffer image viewer) or
     - fim (frame buffer and ascii art image viewer) or
     - img2txt (libcaca) or
     - tiv (perl script using Image::Magick, color output) or
