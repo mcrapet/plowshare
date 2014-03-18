@@ -1,7 +1,5 @@
-# Programmable completion for Plowshare commands.
-# Copy this file to /usr/share/bash-completion/completions/plowshare4
+# plowshare4 completion                                    -*- shell-script -*-
 
-have plowup &&
 _plowup()
 {
     local cur prev words cword split
@@ -67,7 +65,6 @@ _plowup()
 } &&
 complete -F _plowup plowup
 
-have plowdown &&
 _plowdown()
 {
     local cur prev words cword split
@@ -113,7 +110,6 @@ _plowdown()
 } &&
 complete -F _plowdown plowdown
 
-have plowdel &&
 _plowdel()
 {
     local cur prev words cword split
@@ -153,7 +149,6 @@ _plowdel()
 } &&
 complete -F _plowdel plowdel
 
-have plowlist &&
 _plowlist()
 {
     local cur prev words cword split
@@ -188,7 +183,6 @@ _plowlist()
 } &&
 complete -F _plowlist plowlist
 
-have plowprobe &&
 _plowprobe()
 {
     local cur prev words cword split

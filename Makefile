@@ -73,8 +73,12 @@ patch_git_version: $(DESTDIR)$(DATADIR)
 	done; \
 
 patch_bash_completion: $(DESTDIR)$(DATADIR)
-	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
-	@$(GNU_SED) -e '/cut/s,/usr/local/share/plowshare4,$(DATADIR),' $(BASH_COMPL) > $(DESTDIR)$(PREFIX)/share/bash-completion/completions/plowshare4
+	@$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
+	@$(GNU_SED) -e '/cut/s,/usr/local/share/plowshare4,$(DATADIR),' $(BASH_COMPL) > $(DESTDIR)$(PREFIX)/share/bash-completion/completions/plowdown
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowup
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowdel
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowlist
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowprobe
 
 # Note: sed append syntax is not BSD friendly!
 patch_gnused: $(DESTDIR)$(DATADIR)
