@@ -18,7 +18,7 @@ data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
 depositfiles    | download | upload | delete | list | probe |
 directmirror    |          | upload |        | list |       |
-divshare        | download | upload | delete | list |       |
+divshare        | download | upload | delete | list | probe |
 dl_free_fr      | download | upload | delete |      | probe |
 embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
