@@ -210,7 +210,7 @@ download() {
     local -r MAX_RETRIES=$7
     local -r LAST_HOST=$8
 
-    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME
+    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME BASE_URL
     local -i STATUS FILE_SIZE
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
@@ -366,9 +366,17 @@ download() {
         fi
 
         # Sanity check 4
-        if [[ $FILE_URL = $(basename_url "$FILE_URL") ]]; then
+        BASE_URL=$(basename_url "$FILE_URL")
+        if [ "$FILE_URL" = "$BASE_URL" ]; then
             log_error "Output URL is not valid: $FILE_URL"
             return $ERR_FATAL
+        fi
+
+        if [[ $BASE_URL =~ :([[:digit:]]{2,5})$ ]]; then
+            local -i PORT=${BASH_REMATCH[1]}
+            if (( PORT != 80 && PORT != 443 )); then
+                log_notice "Warning: Final URL requires an outgoing TCP connection to port $PORT, hope you're not behind a proxy/firewall"
+            fi
         fi
 
         if test -z "$FILE_NAME"; then
