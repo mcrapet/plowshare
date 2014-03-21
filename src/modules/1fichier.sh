@@ -25,7 +25,7 @@ MODULE_1FICHIER_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
 MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_1FICHIER_DOWNLOAD_SUCCESSIVE_INTERVAL=300
+MODULE_1FICHIER_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_1FICHIER_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -50,7 +50,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME REDIR PASSWD
+    local PAGE FILE_URL FILE_NAME
 
     PAGE=$(curl -b 'LG=en' "$URL") || return
 
@@ -64,8 +64,8 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_DEAD
     fi
 
-    # Warning ! Without premium status, you can download only one file at a time and you must wait up to 15 minutes between each downloads.
-    if match 'you must wait up to [[:digit:]][[:digit:]]\? minutes between each downloads' "$PAGE"; then
+    # Warning ! Without premium status, you can download only one file at a time
+    if match '>Warning ! Without premium status,' "$PAGE" ; then
         log_error 'No parallel download allowed.'
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -76,39 +76,33 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Note: Don't parse form action for now..
-    local FORM_HTML FORM_SUBMIT FORM_T
-    FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
-    FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'submit') || return
-
-    PAGE=$(curl -b 'LG=en' \
-        --data "submit=$FORM_SUBMIT" \
-        "$URL") || return
-
-    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet '>Filename[[:space:]]*:<' td)
-
-    # Accessing this file is protected by password.
-    if match '>Incorrect password<' "$PAGE"; then
+    # Accessing this file is protected by password.<br/>Please put it on the box bellow :
+    if match 'name="pass"' "$PAGE"; then
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
         fi
 
+        FILE_URL=$(curl -i -F "pass=$LINK_PASSWORD" "$URL" | \
+            grep_http_header_location_quiet) || return
+
         test "$FILE_URL" || return $ERR_LINK_PASSWORD_REQUIRED
 
-        log_error '1fichier has not properly implemented password protected links.'
-        return $ERR_LINK_PASSWORD_REQUIRED
+        echo "$FILE_URL"
+        echo "$FILE_NAME"
+        return 0
     fi
 
-    FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
-    FORM_SUBMIT=$(echo "$FORM_HTML" | parse_form_input_by_name 'submit') || return
-    FORM_T=$(echo "$FORM_HTML" | parse_form_input_by_name 't') || return
+    FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE")
 
-    PAGE=$(curl -b 'LG=en' \
-        --data "submit=$FORM_SUBMIT" \
-        --data "t=$FORM_T" \
-        "$URL") || return
+    PAGE=$(curl --include -b 'LG=en' -d '' \
+        --referer "$URL" "$URL") || return
 
-    FILE_URL=$(parse '[[:space:]]*window.location' "=[[:space:]]*'\([^']\+\)" <<< "$PAGE")  || return
+    FILE_URL=$(grep_http_header_location_quiet <<< "$PAGE")
+
+    if [ -z "$FILE_URL" ]; then
+        echo 300
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
