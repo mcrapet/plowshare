@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "March 13, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowshare.conf" "5" "March 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -42,9 +42,9 @@ for its initial setup. This configuration file is searched for in the following 
 .RE
 .PP
 Note: Usage of configuration file can be disabled using
-.I \-\-no-plowsharerc
+.B \-\-no-plowsharerc
 command-line option. There is also
-.IB --plowsharerc =FILE
+.BI --plowsharerc= FILE
 option to specify an alternate configuration file.
 
 .SH FILE FORMAT
@@ -77,13 +77,13 @@ file uses an INI-style format. It is composed of six sections which may be prese
 .RE
 .PP
 Notes:
-.IP .
+.IP \(bu 2
 Sections are unordered.
-.IP .
+.IP \(bu 2
 Blank lines or lines beginning with a hash character ('#') are treated as comments and ignored.
-.IP .
+.IP \(bu 2
 Whitespace before and after a \fItoken\fP or \fIvalue\fP is ignored (although a \fIvalue\fP can contain whitespace within).
-.IP .
+.IP \(bu 2
 Double quoting \fIvalue\fP is optional. Use them to preserve leading and trailing whitespace.
 .PP
 Valid tokens are always lowercase.
@@ -98,8 +98,7 @@ Options in general section prevail over Plow* section. Options given on the comm
 .\" * Example                                                                  *
 .\" ****************************************************************************
 .SH EXAMPLE
-.PP
-.nf
+.EX
 ###
 ### Plowshare configuration file
 ###
@@ -115,13 +114,13 @@ timeout=3600
 
 [Plowup]
 max-retries=2
-printf=Download URL: %u%nDelete   URL: %d
+printf=Download URL: %u%nDelete   URL: %d%n
 mirrorcreator/auth-free = foo:bar
 mirrorcreator/mediafire = yes
 
 [Plowlist]
 verbose = 3
-.fi
+.EE
 
 .\" ****************************************************************************
 .\" * Authors / See Also                                                       *

@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "March 13, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowlist" "1" "March 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowlist \- List links from shared folders websites
@@ -107,7 +107,7 @@ Do not consider any configuration file.
 .BI "   " " " --plowsharerc "=FILE"
 Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
 This option has no effect when
-.I --no-plowsharerc
+.B --no-plowsharerc
 is defined.
 .TP
 .B "   " --modules
@@ -142,20 +142,22 @@ See help message for detailed modules option list.
 .SH EXAMPLES
 
 .SS 1) List links providing shared folder URL(s)
-.nf
+.EX
 $ plowlist http://rapidgator.net/folder/1689302/Test.html
 .sp 1
 # First URL is processed, then the second one (this is not parallel)
-$ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
-.fi
+$ plowlist http://www.mediafire.com/?qouncpzfe74s9 \\
+    http://www.sendspace.com/folder/5njdw7
+.EE
 .SS 2) Custom results format
-.nf
+.EX
 # List to give to plowdown (only links, no filenames)
-$ plowlist --printf %u http://www.sendspace.com/folder/5njdw7 >mylist.txt
+$ plowlist \-\-printf %u http://www.sendspace.com/folder/5njdw7 >mylist.txt
 .sp 1
 # vBulletin "BB" syntax
-$ plowlist --printf '[url=%u]%f[/url]' http://www.sendspace.com/folder/5njdw7 >mylist.txt
-.fi
+$ plowlist \-\-printf '[url=%u]%f[/url]' \\
+    http://www.sendspace.com/folder/5njdw7 >mylist.txt
+.EE
 
 .\" ****************************************************************************
 .\" * Files                                                                    *

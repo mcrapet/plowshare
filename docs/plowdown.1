@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "March 18, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "March 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -91,7 +91,8 @@ Force specific captcha solving method. Available values:
 \fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
 .RE
 .RS
-\fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for FB viewer: fbi, fim.
+\fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for framebuffer viewers: fbi, fim.
+\fIFRAMEBUFFER\fR environment variable can contain device file. Default is \fI/dev/fb0\fR.
 .RE
 .RS
 \fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
@@ -122,7 +123,7 @@ Return value (on stdout) and exit status:
 \fB0\fR : solving success. Captcha Word(s) must be echo'ed.
 .RE
 .RS
-\fB2\fR : external solver is not able to solve requested captcha. Let plowdown continue solving it normally (will consider \fI--captchamethod\fP if specified).
+\fB2\fR : external solver is not able to solve requested captcha. Let plowdown continue solving it normally (will consider \fB--captchamethod\fR if specified).
 .RE
 .RS
 \fB7\fR : external solver failed.
@@ -155,7 +156,11 @@ Append .part suffix to filename while file is being downloaded. Download resume 
 .TP
 .B "   " --skip-final
 Don't process final link (returned by module download function), just skip it. This is applied for each input URL.
-If you are using this option, you should need \fI--run-after\fP or \fI--printf\fP too.
+If you are using this option, you should need
+.B --run-after
+or
+.B --printf
+too.
 .TP
 .BI "   " " " --run-before "=PROGRAM"
 Call external program or script before new link processing. Provided executable can be located in PATH environment variable.
@@ -296,7 +301,7 @@ Do not consider any configuration file.
 .BI "   " " " --plowsharerc "=FILE"
 Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
 This option has no effect when
-.I --no-plowsharerc
+.B --no-plowsharerc
 is defined.
 .TP
 .B "   " --modules
@@ -352,43 +357,43 @@ Don't forget to single-quote string if your password contain shell expandable ch
 .SH EXAMPLES
 
 .SS 1) Download one or several files
-.nf
+.EX
 $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
 .sp 1
 # Downloads are successive (not parallel)
-$ plowdown http://depositfiles.com/files/fv2u9xqya http://rapidgator.net/file/49b1b874
+$ plowdown http://depositfiles.com/files/fv2u9xqya \\
+    http://rapidgator.net/file/49b1b874
 .sp 1
 # Download a password-protected file from mediafire
 $ plowdown \-p somepassword http://www.mediafire.com/?mt0egmhietj60iy
 .sp 1
 # Download using an account (free or premium, not supported by all modules)
-$ plowdown \-a myuser:mypassword http://rapidgator.net/file/49b1b874
-.fi
+$ plowdown \-a 'myuser:mypassword' http://rapidgator.net/file/49b1b874
+.EE
 .SS 2) Download a list of links (one link per line) commenting out (with #) those successfully downloaded 
-.nf
+.EX
 $ plowdown \-m file_with_links.txt
-.fi
+.EE
 .SS 3) Download with restrictions
-.nf
+.EX
 $ plowdown \-\-max\-rate 900K \-i eth1 http://depositfiles.com/files/fv2u9xqya
-.fi
+.EE
 .SS 4) Download with a proxy (3128 is the default port)
-.nf
+.EX
 $ export http_proxy=http://192.168.0.20:80
-.sp 0
 $ plowdown http://www.rapidshare.com/files/12345678/foo.rar
-.fi
+.EE
 .SS 5) Don't download file but only display final download URL (alternative HTTP retriever can be used).
-.nf
+.EX
 # Depending hosters, cookie file might be required.
-$ plowdown \-v1 \-\-skip-final \-\-printf "# %f%n%d"  http://uploading.com/files/39267me4/foo.zip/
-.fi
+$ plowdown \-v1 \-\-skip-final \-\-printf '# %f%n%d%n' \\
+    http://uploading.com/files/39267me4/foo.zip/
+.EE
 .SS 6) Safe download. Each URL will be limited in the number of tries and wait delays.
-.nf
+.EX
 $ alias plowdown='plowdown \-\-no\-overwrite \-\-max\-retries=10 \-\-timeout=3600'
-.sp 0
 $ plowdown \-m file_with_links.txt
-.fi
+.EE
 
 .\" ****************************************************************************
 .\" * Files                                                                    *

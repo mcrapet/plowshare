@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "March 13, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowprobe" "1" "March 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowprobe \- Gather information from file sharing download links
@@ -126,7 +126,7 @@ Do not consider any configuration file.
 .BI "   " " " --plowsharerc "=FILE"
 Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
 This option has no effect when
-.I --no-plowsharerc
+.B --no-plowsharerc
 is defined.
 .TP
 .B "   " --modules
@@ -156,16 +156,16 @@ There is none yet!
 .SH EXAMPLES
 
 .SS 1) Filter alive links in a text file 
-.nf
+.EX
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 # Or
 $ cat file_with_links.txt | plowprobe - > file_with_active_links.txt
-.fi
+.EE
 .SS 2) Custom results format
-.nf
+.EX
 # Print links informations: filename and size
-$ plowprobe --printf '# %f (%s)%n%u' http://www.sendspace.com/file/5njdw7
-.fi
+$ plowprobe \-\-printf '# %f (%s)%n%u' http://www.sendspace.com/file/5njdw7
+.EE
 
 .\" ****************************************************************************
 .\" * Files                                                                    *
