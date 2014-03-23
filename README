@@ -168,10 +168,10 @@ $ plowdown -m links.txt
 $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
 
 3. List some sendspace.com web folder. Render results for vBulletin "BB" syntax.
-$ plowlist --printf '[url=%u]%f[/url]' http://www.sendspace.com/folder/5njdw7
+$ plowlist --printf '[url=%u]%f[/url]%n' http://www.sendspace.com/folder/5njdw7
 
 4. List links contained in a dummy web page. Render results as HTML list.
-$ plowlist --fallback --printf '<li><a href="%u">%u</a></li>' \
+$ plowlist --fallback --printf '<li><a href="%u">%u</a></li>%n' \
       http://en.wikipedia.org/wiki/SI_prefix
 
 Plowprobe
@@ -181,7 +181,7 @@ Plowprobe
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 
 2. Custom results format : print filename and size (as shell comment)
-$ plowprobe --printf "#%f (%s)%n%u" http://www.sendspace.com/file/5njdw7
+$ plowprobe --printf '#%f (%s)%n%u%n' http://www.sendspace.com/file/5njdw7
 
 3. Use '-' argument to read from stdin
 $ plowlist http://pastebin.com/1d82F5sd | plowprobe - > filtered_list.txt

@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdel" "1" "March 22, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowdel" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdel \- Delete files from file sharing websites links
@@ -47,23 +47,23 @@ Login process may sometimes require captcha solving.
 
 .SS Common options
 .TP
-.BI -i, " " --interface "=IFACE"
+.BI -i, " " --interface= IFACE
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .SS Captcha options
 .TP
-.BI "   " " " --9kweu "=KEY"
+.BI "   " " " --9kweu= KEY
 Use 9kw.eu service to solve captchas.
 .TP
-.BI "   " " " --antigate "=KEY"
+.BI "   " " " --antigate= KEY
 Use Antigate.com service to solve captchas.
 .TP
-.BI "   " " " --captchabhood "=USER:PASSWORD"
+.BI "   " " " --captchabhood= USER:PASSWORD
 Use Captcha Brotherhood service to solve captchas.
 .TP
-.BI "   " " " --deathbycaptcha "=USER:PASSWORD"
+.BI "   " " " --deathbycaptcha= USER:PASSWORD
 Use Death by Captcha service to solve captchas.
 .TP
-.BI "   " " " --captchamethod "=METHOD"
+.BI "   " " " --captchamethod= METHOD
 Force specific captcha solving method. Available values:
 .RS
 \fBimgur\fR : upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
@@ -85,7 +85,7 @@ Force specific captcha solving method. Available values:
 \fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
 .RE
 .TP
-.BI "   " " " --captchaprogram "=PROGRAM"
+.BI "   " " " --captchaprogram= PROGRAM
 Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
 
 Three arguments are given:
@@ -101,10 +101,10 @@ image filename (with full path).
 \fB$3\fR
 hint or captcha type (string). For example: \fIrecaptcha\fR, \fIsolvemedia\fR or \fIdigits-4\fR.
 
-Return value and exit status:
+Return value (on stdout) and exit status:
 .RE
 .RS
-\fB0\fR : solving success. Result must be printed on stdout.
+\fB0\fR : solving success. Captcha Word(s) must be echo'ed.
 .RE
 .RS
 \fB2\fR : external solver is not able to solve requested captcha. Let plowdel continue solving it normally (will consider \fB--captchamethod\fR if specified).
@@ -116,7 +116,7 @@ Note: plowdel legacy exit errors can also be returned, for example: \fB1\fR (fat
 .RE
 .SS Logging options
 .TP
-.BI -v, " " --verbose "=LEVEL"
+.BI -v, " " --verbose= LEVEL
 Set output verbose level:
 .RS 
 \fB0\fR  none,
@@ -141,7 +141,7 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .B "   " --no-plowsharerc
 Do not consider any configuration file.
 .TP
-.BI "   " " " --plowsharerc "=FILE"
+.BI "   " " " --plowsharerc= FILE
 Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
 This option has no effect when
 .B --no-plowsharerc
@@ -167,7 +167,7 @@ Output version information and exit.
 
 .SS Common options
 .TP
-.BI -a, " " --auth "=USER:PASSWORD"
+.BI -a, " " --auth= "USER:PASSWORD"
 Use premium account. Free account can be used sometimes.
 .P
 All switches are not implemented nor required for all modules.

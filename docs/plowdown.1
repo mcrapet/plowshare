@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "March 22, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -44,20 +44,20 @@ Currently supported hosting sites list is available in README file.
 
 .SS Common options
 .TP
-.BI -i, " " --interface "=IFACE"
+.BI -i, " " --interface= IFACE
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
 .B -m, --mark-downloaded
 Mark downloaded links in (regular) file arguments.
 .TP
-.BI -o, " " --output-directory "=DIRECTORY"
+.BI -o, " " --output-directory= DIRECTORY
 Directory where files will be saved. Default is current directory.
 .TP
-.BI -r, " " --max-retries "=N"
+.BI -r, " " --max-retries= N
 Set maximum retries for download failures. Apply on module exit status: \fB3\fR (network error), \fB7\fR (captcha error).
 Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
 .TP
-.BI -t, " " --timeout "=SECS"
+.BI -t, " " --timeout= SECS
 Cancel download after \fISECS\fR seconds of waits. Apply on module exit status: \fB10\fR (temporary unavailable error).
 This error can be returned in various cases: unallowed parallel download, daily downloads limit reached, remote hoster overloaded.
 Default option value is disabled (no timeout, infinite) and applies for one single URL download.
@@ -67,19 +67,19 @@ Do not overwrite existing files. Existing file will be preserved and filename wi
 suffixed with .1, .2, and so on.
 .SS Captcha options
 .TP
-.BI "   " " " --9kweu "=KEY"
+.BI "   " " " --9kweu= KEY
 Use 9kw.eu service to solve captchas.
 .TP
-.BI "   " " " --antigate "=KEY"
+.BI "   " " " --antigate= KEY
 Use Antigate.com service to solve captchas.
 .TP
-.BI "   " " " --captchabhood "=USER:PASSWORD"
+.BI "   " " " --captchabhood= USER:PASSWORD
 Use Captcha Brotherhood service to solve captchas.
 .TP
-.BI "   " " " --deathbycaptcha "=USER:PASSWORD"
+.BI "   " " " --deathbycaptcha= USER:PASSWORD
 Use Death by Captcha service to solve captchas.
 .TP
-.BI "   " " " --captchamethod "=METHOD"
+.BI "   " " " --captchamethod= METHOD
 Force specific captcha solving method. Available values:
 .RS
 \fBimgur\fR : upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
@@ -101,7 +101,7 @@ Force specific captcha solving method. Available values:
 \fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
 .RE
 .TP
-.BI "   " " " --captchaprogram "=PROGRAM"
+.BI "   " " " --captchaprogram= PROGRAM
 Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
 
 Three arguments are given:
@@ -127,13 +127,13 @@ Return value (on stdout) and exit status:
 .RE
 .RS
 \fB7\fR : external solver failed.
-Note: this exit code is eligible with retry policy (\fI-r/--max-retries\fP).
+Note: this exit code is eligible with retry policy (\fB-r\fR/\fB--max-retries\fR).
 
 Note: plowdown legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
 .RE
 .SS Tuning settings
 .TP
-.BI "   " " " --max-rate "=SPEED"
+.BI "   " " " --max-rate= SPEED
 Limit download speed in bytes per second. Suffixes are:
 .RS 
 \fBk\fR  for kilobytes (kB i.e. 1000),
@@ -148,7 +148,7 @@ Limit download speed in bytes per second. Suffixes are:
 \fBm\fR or \fBMi\fR  for mebibytes (mB or MiB i.e. 1024^2).
 .RE
 .TP
-.BI "   " " " --temp-directory "=DIRECTORY"
+.BI "   " " " --temp-directory= DIRECTORY
 Directory for temporary files: final link download, cookies, images, ...
 .TP
 .B "   " --temp-rename
@@ -162,7 +162,7 @@ or
 .B --printf
 too.
 .TP
-.BI "   " " " --run-before "=PROGRAM"
+.BI "   " " " --run-before= PROGRAM
 Call external program or script before new link processing. Provided executable can be located in PATH environment variable.
 Messages can be sent to stderr, stdout is trashed.
 
@@ -190,7 +190,7 @@ Exit status:
 Note: Any other script exit status like \fB1\fR (fatal) or \fB3\fR (network) will be ignored (an error message will be reported).
 .RE
 .TP
-.BI "   " " " --run-after "=PROGRAM"
+.BI "   " " " --run-after= PROGRAM
 Call external program or script after final link successful download. Provided executable can be located in PATH environment variable.
 Messages can be sent to stderr, stdout is trashed.
 
@@ -223,7 +223,7 @@ Exit status:
 Note: Any other (non zero) exit status will be ignored (an error message will be reported).
 .RE
 .TP
-.BI "   " " " --printf "=FORMAT"
+.BI "   " " " --printf= FORMAT
 Print results (on stdout) in a given format (for each successful download). Default string is: \fI"%F%n"\fR. Interpreted sequences are:
 .RS
 .TP
@@ -253,7 +253,7 @@ newline
 .TP
 \fI%s\fR
 destination (local) file size (in bytes).
-Important: empty string is returned when \fI--skip-final\fP switch is specified.
+Important: empty string is returned when \fB--skip-final\fR switch is specified.
 .TP
 \fI%t\fR
 tabulation character
@@ -263,7 +263,7 @@ download (source) url
 .RE
 .SS Logging options
 .TP
-.BI -v, " " --verbose "=LEVEL"
+.BI -v, " " --verbose= LEVEL
 Set output verbose level:
 .RS
 \fB0\fR  none,
@@ -285,9 +285,9 @@ Set output verbose level:
 Alias for \fB-v0\fR. Do not print any debug messages.
 .SS Miscellaneous options
 .TP
-.BI "   " " " --cookies "=FILE"
+.BI "   " " " --cookies= FILE
 Use provided cookie file for HTTP requests. This can be used to bypass login process on registered (premium) accounts.
-This is not handled by all modules.
+This is not handled by all modules. It is invoked before \fB--run-before\fR hook.
 .TP
 .B "   " --fallback
 If no module is found for link, simply download it (HTTP GET).
@@ -298,7 +298,7 @@ Do not use curl config file (~/.curlrc).
 .B "   " --no-plowsharerc
 Do not consider any configuration file.
 .TP
-.BI "   " " " --plowsharerc "=FILE"
+.BI "   " " " --plowsharerc= FILE
 Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
 This option has no effect when
 .B --no-plowsharerc
@@ -324,13 +324,13 @@ Output version information and exit.
 
 .SS Common options
 .TP
-.BI -a, " " --auth "=USER:PASSWORD"
+.BI -a, " " --auth= USER:PASSWORD
 Use premium account.
 .TP
-.BI -b, " " --auth-free "=USER:PASSWORD"
+.BI -b, " " --auth-free= USER:PASSWORD
 Use free account.
 .TP
-.BI -p, " " --link-password "=PASSWORD"
+.BI -p, " " --link-password= PASSWORD
 Used for password-protected files.
 .P
 All switches are not implemented nor required for all modules.
@@ -426,9 +426,9 @@ Network error. Mostly curl related.
 .IP 4
 Authentication failed (bad login/password).
 .IP 5
-Timeout reached (refer to \fI-t/--timeout\fP command-line option).
+Timeout reached (refer to \fB-t\fR/\fB--timeout\fR command-line option).
 .IP 6
-Maximum tries reached (refer to \fI-r/--max-retries\fP command-line option).
+Maximum tries reached (refer to \fB-r\fR/\fB--max-retries\fR command-line option).
 .IP 7
 Captcha generic error.
 .IP 8

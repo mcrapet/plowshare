@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "March 22, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowlist" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowlist \- List links from shared folders websites
@@ -44,13 +44,13 @@ Currently supported hosting sites list is available in README file.
 
 .SS Common options
 .TP
-.BI -i, " " --interface "=IFACE"
+.BI -i, " " --interface= IFACE
 If your machine has several network interfaces, force using \fIIFACE\fR interface.
 .TP
 .B -R, --recursive
 Recurse into sub folders.
 .TP
-.BI "   " " " --printf "=FORMAT"
+.BI "   " " " --printf= FORMAT
 Print results (on stdout) in a given format (for each non-dead link). Default string is: \fI"%F%u%n"\fR. Interpreted sequences are:
 .RS
 .TP
@@ -76,7 +76,7 @@ tabulation character
 download url
 .SS Logging options
 .TP
-.BI -v, " " --verbose "=LEVEL"
+.BI -v, " " --verbose= LEVEL
 Set output verbose level:
 .RS 
 \fB0\fR  none,
@@ -104,7 +104,7 @@ If no module is found for link, get page (HTTP GET) and simply grep all URLs con
 .B "   " --no-plowsharerc
 Do not consider any configuration file.
 .TP
-.BI "   " " " --plowsharerc "=FILE"
+.BI "   " " " --plowsharerc= FILE
 Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
 This option has no effect when
 .B --no-plowsharerc
@@ -130,7 +130,7 @@ Output version information and exit.
 
 .SS Common options
 .TP
-.BI -p, " " --link-password "=PASSWORD"
+.BI -p, " " --link-password= PASSWORD
 Used for password-protected folders.
 .P
 All switches are not implemented nor required for all modules.
@@ -152,10 +152,10 @@ $ plowlist http://www.mediafire.com/?qouncpzfe74s9 \\
 .SS 2) Custom results format
 .EX
 # List to give to plowdown (only links, no filenames)
-$ plowlist \-\-printf %u http://www.sendspace.com/folder/5njdw7 >mylist.txt
+$ plowlist \-\-printf '%u%n' http://www.sendspace.com/folder/5njdw7 >mylist.txt
 .sp 1
 # vBulletin "BB" syntax
-$ plowlist \-\-printf '[url=%u]%f[/url]' \\
+$ plowlist \-\-printf '[url=%u]%f[/url]%n' \\
     http://www.sendspace.com/folder/5njdw7 >mylist.txt
 .EE
 
