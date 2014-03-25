@@ -57,10 +57,12 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
 
     # The requested file could not be found
     # The file may have been deleted by its owner.
-    elif match '>The requested file could not be found' "$PAGE"; then
+    # The requested file has been deleted following an abuse request.
+    if match 'The \(requested \)\?file \(could not be found\|.*been deleted\)' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
