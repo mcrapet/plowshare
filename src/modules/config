@@ -56,6 +56,7 @@ nakido          | download |        |        |      | probe |
 netkups         | download | upload |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 nowdownload_co  | download | upload |        |      | probe |
+oboom           | download | upload |        | list | probe |
 pastebin        |          |        |        | list |       |
 promptfile      | download |        |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
@@ -70,6 +71,7 @@ solidfiles      | download | upload |        | list | probe |
 tempsend        |          | upload |        |      |       |
 turbobit        | download | upload | delete | list | probe |
 ultramegabit    | download | upload |        |      | probe |
+uploadable_ch   | download | upload | delete | list | probe |
 uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
