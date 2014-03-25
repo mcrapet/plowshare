@@ -32,8 +32,8 @@ FOLDER,,folder,s=FOLDER,Folder to upload files into
 ASYNC,,async,,Asynchronous remote upload (only start upload, don't wait for link)"
 MODULE_OBOOM_UPLOAD_REMOTE_SUPPORT=yes
 
-MODULE_MYVDRIVE_LIST_OPTIONS=""
-MODULE_MYVDRIVE_LIST_HAS_SUBFOLDERS=yes
+MODULE_OBOOM_LIST_OPTIONS=""
+MODULE_OBOOM_LIST_HAS_SUBFOLDERS=yes
 
 MODULE_OBOOM_PROBE_OPTIONS=""
 
