@@ -79,5 +79,5 @@ upstore         | download | upload |        |      | probe |
 uptobox         | download | upload |        |      | probe |
 zalaa           | download | upload |        | list | probe |
 zalil_ru        | download | upload |        |      | probe |
-ziddu           | download | upload | delete |      | probe |
+ziddu           | download | upload |        |      | probe |
 zippyshare      | download | upload |        | list | probe |
