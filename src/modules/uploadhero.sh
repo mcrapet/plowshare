@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # uploadhero.co module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -107,8 +107,10 @@ uploadhero_login() {
 uploadhero_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$(echo "$2" | replace 'www.' '' | replace '/v/' '/dl/')
-    local -r BASE_URL='http://uploadhero.co'
     local FILE_ID PAGE FILE_NAME FILE_URL CAPTCHA_URL CAPTCHA_IMG
+
+    # Can be .com or .co
+    local -r BASE_URL=$(basename_url "$URL")
 
     # Recognize folders
     if match 'uploadhero.com\?/f/' "$URL"; then
@@ -154,19 +156,19 @@ uploadhero_download() {
 
     # Extract the raw file id
     FILE_ID=$(echo "$URL" | parse . '/dl/\([^/]*\)')
-    log_debug "File id=$FILE_ID"
+    log_debug "File id: '$FILE_ID'"
 
     # Extract filename (first <div> marker)
-    FILE_NAME=$(echo "$PAGE" | parse_tag 'class="nom_de_fichier"' div)
-    log_debug "Filename: $FILE_NAME"
+    FILE_NAME=$(parse_tag 'class="nom_de_fichier"' div <<< "$PAGE")
 
     # Handle captcha
     CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'id="captcha"' 'src')
+    log_debug "Captcha url: '$CAPTCHA_URL'"
     CAPTCHA_URL="$BASE_URL$CAPTCHA_URL"
 
     # Create new formatted image (cookie is mandatory)
     CAPTCHA_IMG=$(create_tempfile) || return
-    curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
+    curl --referer "$URL" -b "$COOKIE_FILE" -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
 
     # Decode captcha
     local WI WORD ID
@@ -177,14 +179,15 @@ uploadhero_download() {
     log_debug "decoded captcha: $WORD"
 
     # Get final URL
-    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL?code=$WORD") || return
+    PAGE=$(curl -b "$COOKIE_FILE" "$URL?code=$WORD") || return
 
-    if ! match 'setTimeout' "$PAGE"; then
+    # name="code" id="captcha-form" style="border: solid 1px #c60000;"
+    if match 'id="captcha-form" style="border:' "$PAGE"; then
         captcha_nack $ID
         log_error 'Wrong captcha'
         return $ERR_CAPTCHA
-    elif match 'magicomfg' "$PAGE"; then
-        FILE_URL=$(echo "$PAGE" | parse_attr 'magicomfg' 'href') || return
+    elif match '(magicomfg)' "$PAGE"; then
+        FILE_URL=$(parse_attr magicomfg href <<< "$PAGE") || return
     else
         log_error 'No match. Site update?'
         return $ERR_FATAL
@@ -193,8 +196,8 @@ uploadhero_download() {
     captcha_ack $ID
     log_debug 'correct captcha'
 
-    # Wait 46 seconds (we should parse the javascript function setTimeout to extract 46000, but it is multiline...)
-    wait 46 seconds || return
+    # Note: we should parse the javascript function...
+    wait 60 seconds || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
