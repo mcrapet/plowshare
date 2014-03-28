@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "March 28, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -132,6 +132,22 @@ Note: this exit code is eligible with retry policy (\fB-r\fR/\fB--max-retries\fR
 Note: plowdown legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
 .RE
 .SS Tuning settings
+.TP
+.BI "   " " " --min-space= LIMIT
+Define threshold amount of available disk space before quitting plowdown.
+You must specify a suffix.  Suffixes are:
+.RS
+\fBM\fR  for megabytes (MB i.e. 1000^2),
+.RE
+.RS
+\fBG\fR  for gigabytes (GB i.e. 1000^3),
+.RE
+.RS
+\fBMi\fR or \fBm\fR  for mebibytes (MiB i.e. 1024^2),
+.RE
+.RS
+\fBGi\fR  for gibibytes (GiB i.e. 1024^3).
+.RE
 .TP
 .BI "   " " " --max-rate= SPEED
 Limit download speed in bytes per second. Suffixes are:
