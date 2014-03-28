@@ -2741,6 +2741,34 @@ check_transfer_speed() {
     fi
 }
 
+# Check for disk size.
+# Mi is mebi (2^20 = 1024^2 = 1048576). Alias:m
+# Gi is gibi (2^30 = 1024^3 = 1073741824).
+# M  is mega (10^6 = 1000000). Alias:MB
+# G  is giga (10^9 = 1000000000). Alias:GB
+#
+# $1: integer number (with or without suffix)
+check_disk_size() {
+    local N=${1// }
+
+    # Probe for unit
+    case $N in
+        *Mi|*Gi|*MB|*GB)
+            N=${N%??}
+            ;;
+        *M|*m|*G)
+            N=${N%?}
+            ;;
+        *)
+            N=err
+            ;;
+    esac
+
+    if [[ $N = *[![:digit:]]* || $N -eq 0 ]]; then
+        return 1
+    fi
+}
+
 # Extract a specific block from a HTML content.
 # Notes:
 # - Use this function with leaf blocks (avoid <div>, <p>)
@@ -2793,7 +2821,7 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, D, e, f, F, l, n, N, r, s, S, V)
+# $2: format (a, D, e, f, F, l, n, N, r, R, s, S, V)
 # $3: option value (string)
 # $4: option name (used for error reporting only)
 # $?: return 0 for success
@@ -2820,6 +2848,9 @@ check_argument_type() {
     # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
     elif [ "$TYPE" = 'r' ] && ! check_transfer_speed "$VAL"; then
         log_error "$NAME ($OPT): positive transfer rate expected"
+    # R: Disk size (positive value, suffix is mandatory). Known suffixes: Mi/m/M/MB/Gi/G/GB
+    elif [ "$TYPE" = 'R' ] && ! check_disk_size "$VAL"; then
+        log_error "$NAME ($OPT): wrong value, megabyte or gigabyte suffix is mandatory"
     # e: E-mail string
     elif [[ $TYPE = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
         log_error "$NAME ($OPT): invalid email address"
@@ -2877,9 +2908,9 @@ check_argument_type() {
     elif [[ $TYPE = 'V' && $VAL != [0-4] ]]; then
        log_error "$NAME: wrong verbose level \`$VAL'. Must be 0, 1, 2, 3 or 4."
 
-    elif [[ "$TYPE" = [lsS] ]]; then
+    elif [[ $TYPE = [lsS] ]]; then
         RET=0
-    elif [[ "$TYPE" = [aenNrV] ]]; then
+    elif [[ $TYPE = [aenNrRV] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
             log_error "$NAME ($OPT): missing parameter"
         else
@@ -2966,7 +2997,7 @@ process_options() {
 
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
-                    elif [ "$TYPE" = 'r' ]; then
+                    elif [[ $TYPE = [rR] ]]; then
                         FUNC=translate_size
                     elif [ "$TYPE" = 'F' ]; then
                         FUNC=translate_exec
@@ -3011,7 +3042,7 @@ process_options() {
 
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
-                    elif [ "$TYPE" = 'r' ]; then
+                    elif [[ $TYPE = [rR] ]]; then
                         FUNC=translate_size
                     elif [ "$TYPE" = 'F' ]; then
                         FUNC=translate_exec
