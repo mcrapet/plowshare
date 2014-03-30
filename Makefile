@@ -62,6 +62,7 @@ uninstall:
 	@$(RM) $(DESTDIR)$(BINDIR)/plowup
 	@$(RM) $(DESTDIR)$(BINDIR)/plowdel
 	@$(RM) $(DESTDIR)$(BINDIR)/plowlist
+	@$(RM) $(DESTDIR)$(BINDIR)/plowprobe
 	@rm -rf $(DESTDIR)$(DATADIR) $(DESTDIR)$(DOCDIR)
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)1/, $(MANPAGES1))
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))
