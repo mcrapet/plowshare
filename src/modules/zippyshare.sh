@@ -130,13 +130,13 @@ zippyshare_download() {
 
     case "$CONTENT" in
         'music.song')
-            N=-9
+            N=-10
             ;;
         'image')
-            N=-5
+            N=-6
             ;;
         '')
-            N=-6
+            N=-7
             ;;
         *)
             log_error "Unexpected content ('$CONTENT'), site updated?"
@@ -165,7 +165,7 @@ zippyshare_download() {
           }
         };
         $JS
-        somefunction();
+        somdfunction();
         print(elts['dlbutton'].href);" | javascript) || return
 
     FILE_URL="$(basename_url "$URL")$PART_URL"
