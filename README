@@ -19,46 +19,6 @@ For a complete list of supported websites (named "module"), have a look here:
 http://code.google.com/p/plowshare/wiki/Readme4
 
 
-Dependencies
-============
-
-To run plowshare4 and all its modules you will need:
-
-> A POSIX compliant operating system:
-    - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
-      (Busybox sed is working too, need version >1.10)
-    - BSD/Mac OSX: requires GNU-sed
-    - Cygwin
-> Bash (version >= 4.1). It will NOT work using Busybox or Dash (POSIX) shell.
-> Curl (version >= 7.24, with SSL support: usually required for premium account)
-> Character encoding converter (recommended)
-    - recode or
-    - perl + HTML::Entities
-
-> Some websites are using captchas. You'll need a (X11, FB or ascii) picture viewer
-  for manual console entry or an account to an automatic solving service:
-    - display (imagemagick, X11) or
-    - feh (imlib2, X11) or
-    - sxiv (imlib2, X11, very fast) or
-    - qiv (imlib2, X11) or
-    - fbi (frame buffer image viewer) or
-    - fim (frame buffer and ascii art image viewer) or
-    - img2txt (libcaca) or
-    - tiv (perl script using Image::Magick, color output) or
-    - aview (libaa) or
-    - 9kw.eu account or
-    - Antigate.com account or
-    - CaptchaBrotherhood account or
-    - DeathByCaptcha account
-
-> Some websites requires javascript interpreter [1]
-    - spidermonkey or
-    - rhino (JavaScript engine written in Java)
-
----
-[1] Used by letitbit, rapidgator, zalaa and zippyshare
-
-
 Install
 =======
 See INSTALL file for details.

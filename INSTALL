@@ -1,6 +1,52 @@
 Plowshare4 installation notes.
 
-# If you have root access (like Ubuntu)
+Runtime dependencies
+====================
+
+To run plowshare4 and all its modules you will need:
+
+* GNU/Linux basic operating system : coreutils (chmod, date, ...), sed, util-linux (kill), grep.
+  Note for BSD/Mac OSX: requires gnu-sed.
+* bash (version 4.1 or better). It will NOT work using Busybox or Dash (POSIX) shell.
+* curl (version 7.24 or better, compiled with SSL support)
+
+* Character encoding converter. This is optional.
+  - recode or
+  - perl and HTML::Entities module
+
+* Javascript interpreter. Used by few modules (mostly plowdown).
+  - spidermonkey or
+  - rhino (JavaScript engine written in Java)
+
+Some websites are using captchas. You'll need one (X11, FB or ascii) picture viewer
+for manual console entry or an account to an automatic solving service.
+
+* X11 viewers
+  - display (imagemagick, X11) or
+  - sxiv (imlib2, X11, very fast) or
+  - feh (imlib2, X11) or
+  - qiv (imlib2, X11)
+
+* Framebuffer viewers
+  - fbi (frame buffer image viewer) or
+  - fim (frame buffer and ascii art image viewer)
+
+* Ascii text viewers
+  - aview (libaa) or
+  - img2txt (libcaca) or
+  - tiv (perl script using Image::Magick, color output)
+
+* Online services:
+  - 9kw.eu account or
+  - Antigate.com account or
+  - CaptchaBrotherhood account or
+  - DeathByCaptcha account
+
+
+Installation
+============
+
+# If you have root privileges (like Ubuntu)
 $ sudo make install
 
 # For non root users, you can override default prefix (/usr/local)
@@ -13,14 +59,14 @@ or
 $ make install PREFIX=/opt DESTDIR=/media/rootfs
 
 Distro packages
-===============
+---------------
 Plowshare4 is also available for several Linux distribution
 (Debian, Ubuntu, Archlinux, Fedora, Gentoo, ...):
 Consult online documentation for up-to-date list:
 http://code.google.com/p/plowshare/wiki/Readme4
 
 Note for BSD users
-==================
+------------------
 Don't forget to properly define GNU_SED variable.
 
 # For example
