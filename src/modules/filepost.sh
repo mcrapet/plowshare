@@ -169,7 +169,7 @@ filepost_download() {
     FILE_NAME=$(parse '<title>' ': Download \(.*\) - fast' <<< "$PAGE")
 
     if [ "$ROLE" = 'premium' ]; then
-        FILE_URL=$(parse '/get_file/' '('\(http[^']*\)' <<< "$PAGE") || return
+        FILE_URL=$(parse '/get_file/' "('\(http[^']*\)" <<< "$PAGE") || return
 
         echo "$FILE_URL"
         echo "$FILE_NAME"
