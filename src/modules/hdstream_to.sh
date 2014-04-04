@@ -256,6 +256,7 @@ hdstream_to_upload() {
     FILE_NAME=$(echo -e "$FILE_NAME")
     FILE_NAME=${FILE_NAME// - /-}
     FILE_NAME=${FILE_NAME// /-}
+    FILE_NAME=${FILE_NAME//[\\!@#$%^&*()[\]\{\}:|<>?]/}
 
     echo "$BASE_URL/f/$FILE_NAME-$FILE_TOKEN.html"
 }
