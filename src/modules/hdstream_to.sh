@@ -20,18 +20,21 @@
 
 MODULE_HDSTREAM_TO_REGEXP_URL='https\?://\(www\.\)\?hdstream\.to/'
 
-MODULE_HDSTREAM_TO_DOWNLOAD_OPTIONS=""
-MODULE_HDSTREAM_TO_DOWNLOAD_RESUME=yes
-MODULE_HDSTREAM_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_HDSTREAM_TO_DOWNLOAD_OPTIONS="
+STREAM,,stream,,Download video stream instead of direct download"
+MODULE_HDSTREAM_TO_DOWNLOAD_RESUME=no
+MODULE_HDSTREAM_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 MODULE_HDSTREAM_TO_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_HDSTREAM_TO_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
+SHORT_LINK,,short,,Generate short link like http://hdstream.to/#!f=XXXXXXXX
 TITLE,,title,s=TITLE,Set file title
 CATEGORY,,category,s=CATEGORY,Set file category - private, public or adult (default: public)
 QUALITY,,quality,s=QUALITY,Set stream quality - original, hd, sd or smartphone (default: original)
 DL_LEVEL,,level,s=DL_LEVEL,Set downloadable level - all, mb100, mb200, mb450 or premium (default: all)
 DL_OFF,,nodownload,,Disallow stream download"
+
 MODULE_HDSTREAM_TO_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_HDSTREAM_TO_PROBE_OPTIONS=""
@@ -63,7 +66,7 @@ hdstream_to_download() {
     local -r URL=$2
     local -r BASE_URL='http://hdstream.to'
 
-    local PAGE FILE_TOKEN FILE_NAME FILE_SERVER FILE_LOC
+    local PAGE FILE_TOKEN FILE_NAME FILE_SERVER FILE_LOC FILE_URL FILE_CTYPE
 
     if match '/f/' "$URL"; then
         FILE_TOKEN=$(parse . 'hdstream\.to/f/.*-\([[:alnum:]]\+\)\.html$' <<< "$URL") || return
@@ -87,44 +90,59 @@ hdstream_to_download() {
 
     FILE_SERVER=$(parse "\"token\":\"$FILE_TOKEN\"" '"server":"\([^"]\+\)' <<< "$PAGE") || return
 
-    # Bypass limits option
+    # Bypass limits option (works only for mp4)
     # FILE_HASH=$(parse "\"token\":\"$FILE_TOKEN\"" '"hash":"\([^"]\+\)' <<< "$PAGE") || return
+    # FILE_EXT=$(parse "\"token\":\"$FILE_TOKEN\"" '"extension":"\([^"]\+\)' <<< "$PAGE") || return
     #
-    # echo "http://s${FILE_SERVER}.hdstream.to/data/${FILE_HASH}.mp4?start=0"
+    # echo "http://s${FILE_SERVER}.hdstream.to/data/${FILE_HASH}.${FILE_EXT}"
     # echo "$FILE_NAME"
     # return 0
 
-    # Direct download very unstable, almost always returns 403 even after timer
-    # PAGE=$(curl -b "$COOKIE_FILE" \
-    #     "$BASE_URL/send.php?visited=$FILE_TOKEN") || return
-    #
-    # WAIT_TIME=$(parse_json 'wait' <<< "$PAGE") || return
-    # WAIT_TIME=$((WAIT_TIME + 10))
-    # wait $WAIT_TIME || return
-    #
-    # PAGE=$(curl -I -b "$COOKIE_FILE" -e "$BASE_URL/" \
-    #     "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN") || return
-    #
-    # # 403 if limit is reached or video require premium
-    # if match '403 Forbidden' "$PAGE"; then
-    #     return $ERR_LINK_NEED_PERMISSIONS
-    # fi
-    #
-    # echo "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN"
-    # echo "$FILE_NAME"
-    # return 0
+    if [ -n "$STREAM" ]; then
+        PAGE=$(curl -I -b "$COOKIE_FILE" \
+            "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN&stream=1") || return
 
-    PAGE=$(curl -i -b "$COOKIE_FILE" \
-        "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN&stream=1") || return
+        # 403 if limit is reached or video require premium
+        if match '403 Forbidden' "$PAGE"; then
+            return $ERR_LINK_NEED_PERMISSIONS
+        fi
 
-    # 403 if limit is reached or video require premium
-    if match '403 Forbidden' "$PAGE"; then
-        return $ERR_LINK_NEED_PERMISSIONS
+        if match '404 Not Found' "$PAGE"; then
+            log_error 'Unstreamable file. Use direct download.'
+            return $ERR_FATAL
+        fi
+
+        FILE_CTYPE=$(grep_http_header_content_type <<< "$PAGE") || return
+
+        MODULE_HDSTREAM_TO_DOWNLOAD_RESUME=yes
+
+        if match 'text/html' "$FILE_CTYPE"; then
+            # mp4 videos return redirect
+            FILE_LOC=$(grep_http_header_location <<< "$PAGE") || return
+            FILE_URL="http://s${FILE_SERVER}.hdstream.to/${FILE_LOC}"
+        else
+            FILE_URL="http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN&stream=1"
+        fi
+    else
+        PAGE=$(curl -b "$COOKIE_FILE" \
+            "$BASE_URL/send.php?visited=$FILE_TOKEN") || return
+
+        WAIT_TIME=$(parse_json 'wait' <<< "$PAGE") || return
+        WAIT_TIME=$((WAIT_TIME + 10))
+        wait $WAIT_TIME || return
+
+        PAGE=$(curl -I -b "$COOKIE_FILE" -e "$BASE_URL/" \
+            "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN") || return
+
+        # 403 if limit is reached or video require premium
+        if match '403 Forbidden' "$PAGE"; then
+            return $ERR_LINK_NEED_PERMISSIONS
+        fi
+
+        FILE_URL="http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN"
     fi
 
-    FILE_LOC=$(grep_http_header_location <<< "$PAGE") || return
-
-    echo "http://s${FILE_SERVER}.hdstream.to/${FILE_LOC}"
+    echo "$FILE_URL"
     echo "$FILE_NAME"
 }
 
@@ -224,6 +242,11 @@ hdstream_to_upload() {
 
     FILE_TOKEN=$(parse_json 'token' <<< "$PAGE") || return
 
+    if [ -n "$SHORT_LINK" ]; then
+        echo "$BASE_URL/#!f=$FILE_TOKEN"
+        return 0
+    fi
+
     FILE_NAME=$(parse_json 'file_title' <<< "$PAGE") || return
     if [ "$FILE_NAME" = 'null' ]; then
         FILE_NAME=$(parse_json 'name' <<< "$PAGE") || return
@@ -231,8 +254,10 @@ hdstream_to_upload() {
 
     # In case of unicode names \u1234
     FILE_NAME=$(echo -e "$FILE_NAME")
+    FILE_NAME=${FILE_NAME// - /-}
+    FILE_NAME=${FILE_NAME// /-}
 
-    echo "http://hdstream.to/f/$FILE_NAME-$FILE_TOKEN.html"
+    echo "$BASE_URL/f/$FILE_NAME-$FILE_TOKEN.html"
 }
 
 # Probe a download URL
