@@ -21,6 +21,7 @@
 MODULE_HDSTREAM_TO_REGEXP_URL='https\?://\(www\.\)\?hdstream\.to/'
 
 MODULE_HDSTREAM_TO_DOWNLOAD_OPTIONS="
+AUTH,a,auth,a=USER:PASSWORD,User account
 STREAM,,stream,,Download video stream instead of direct download"
 MODULE_HDSTREAM_TO_DOWNLOAD_RESUME=no
 MODULE_HDSTREAM_TO_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
@@ -28,7 +29,7 @@ MODULE_HDSTREAM_TO_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_HDSTREAM_TO_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
-SHORT_LINK,,short,,Generate short link like http://hdstream.to/#!f=XXXXXXXX
+FULL_LINK,,full-link,,Final link includes filename
 TITLE,,title,s=TITLE,Set file title
 CATEGORY,,category,s=CATEGORY,Set file category - private, public or adult (default: public)
 QUALITY,,quality,s=QUALITY,Set stream quality - original, hd, sd or smartphone (default: original)
@@ -67,14 +68,35 @@ hdstream_to_download() {
     local -r BASE_URL='http://hdstream.to'
 
     local PAGE FILE_TOKEN FILE_NAME FILE_SERVER FILE_LOC FILE_URL FILE_CTYPE
+    local PREMIUM_T='0'
 
     if match '/f/' "$URL"; then
-        FILE_TOKEN=$(parse . 'hdstream\.to/f/.*-\([[:alnum:]]\+\)\.html$' <<< "$URL") || return
+        if match '\.html$' "$URL"; then
+            FILE_TOKEN=$(parse . 'hdstream\.to/f/.*-\([[:alnum:]]\+\)\.html$' <<< "$URL") || return
+        else
+            FILE_TOKEN=$(parse . 'hdstream\.to/f/\([[:alnum:]]\+\)$' <<< "$URL") || return
+        fi
     else
         FILE_TOKEN=$(parse . 'hdstream\.to/#!f=\([[:alnum:]]\+\)$' <<< "$URL") || return
     fi
 
-    PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
+    if [ -n "$AUTH" ]; then
+        local USERNAME
+        local RND=$(random d 10)
+
+        hdstream_to_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+
+        split_auth "$AUTH" USERNAME || return
+
+        PAGE=$(curl -b "$COOKIE_FILE" \
+            "$BASE_URL/json/userdata.php?user=$USERNAME&ra$RND") || return
+
+        PREMIUM_T=$(parse_json 'premium' <<< "$PAGE") || return
+
+        log_debug "Premium timestamp: '$PREMIUM_T'"
+    else
+        PAGE=$(curl -c "$COOKIE_FILE" "$BASE_URL") || return
+    fi
 
     PAGE=$(curl -b "$COOKIE_FILE" \
         "$BASE_URL/json/filelist.php?file=$FILE_TOKEN") || return
@@ -124,19 +146,23 @@ hdstream_to_download() {
             FILE_URL="http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN&stream=1"
         fi
     else
-        PAGE=$(curl -b "$COOKIE_FILE" \
-            "$BASE_URL/send.php?visited=$FILE_TOKEN") || return
+        if [ "$PREMIUM_T" = '0' ]; then
+            PAGE=$(curl -b "$COOKIE_FILE" \
+                "$BASE_URL/send.php?visited=$FILE_TOKEN") || return
 
-        WAIT_TIME=$(parse_json 'wait' <<< "$PAGE") || return
-        WAIT_TIME=$((WAIT_TIME + 10))
-        wait $WAIT_TIME || return
+            WAIT_TIME=$(parse_json 'wait' <<< "$PAGE") || return
+            WAIT_TIME=$((WAIT_TIME + 10))
+            wait $WAIT_TIME || return
 
-        PAGE=$(curl -I -b "$COOKIE_FILE" -e "$BASE_URL/" \
-            "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN") || return
+            PAGE=$(curl -I -b "$COOKIE_FILE" -e "$BASE_URL/" \
+                "http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN") || return
 
-        # 403 if limit is reached or video require premium
-        if match '403 Forbidden' "$PAGE"; then
-            return $ERR_LINK_NEED_PERMISSIONS
+            # 403 if limit is reached or video require premium
+            if match '403 Forbidden' "$PAGE"; then
+                return $ERR_LINK_NEED_PERMISSIONS
+            fi
+        else
+            MODULE_HDSTREAM_TO_DOWNLOAD_RESUME=yes
         fi
 
         FILE_URL="http://s${FILE_SERVER}.hdstream.to/send.php?token=$FILE_TOKEN"
@@ -242,8 +268,8 @@ hdstream_to_upload() {
 
     FILE_TOKEN=$(parse_json 'token' <<< "$PAGE") || return
 
-    if [ -n "$SHORT_LINK" ]; then
-        echo "$BASE_URL/#!f=$FILE_TOKEN"
+    if [ -z "$FULL_LINK" ]; then
+        echo "$BASE_URL/f/$FILE_TOKEN"
         return 0
     fi
 
@@ -256,6 +282,11 @@ hdstream_to_upload() {
     FILE_NAME=$(echo -e "$FILE_NAME")
     FILE_NAME=${FILE_NAME// - /-}
     FILE_NAME=${FILE_NAME// /-}
+    # Strip all special symbols, all characters after first letter are not important
+    # anyway redirects to http://hdstream.to/#!f=XXXXXXXX
+    # OK:   http://hdstream.to/f/Test.avi-XXXXXXXX.html
+    # OK:   http://hdstream.to/f/Tabcabc.abc-XXXXXXXX.html
+    # Fail: http://hdstream.to/f/test.avi-XXXXXXXX.html
     FILE_NAME=${FILE_NAME//[\\!@#$%^&*()[\]\{\}:|<>?]/}
 
     echo "$BASE_URL/f/$FILE_NAME-$FILE_TOKEN.html"
