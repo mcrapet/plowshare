@@ -1980,72 +1980,75 @@ captcha_nack() {
 #   - "L": letters [A-Z]. Param: length.
 #   - "ll", "LL": letters [A-Za-z]. Param: length.
 #   - "u16": unsigned short (decimal) number <=65535. Example: "352".
+# stdout: random string/integer (\n-terminated)
 random() {
-    local I=0
+    local -i I=0
     local LEN=${2:-8}
     local -r SEED=$RANDOM
-    local RESULT N
-
-    # FIXME: Adding LC_CTYPE=C in front of printf is required?
+    local RESULT N L
 
     case $1 in
         d|dec)
             RESULT=$(( SEED % 9 + 1 ))
             (( ++I ))
             while (( I < $LEN )); do
-                N=$(printf '%04u' $((RANDOM % 10000)))
-                RESULT=$RESULT$N
+                printf -v N '%04u' $((RANDOM % 10000))
+                RESULT+=$N
                 (( I += 4 ))
             done
             ;;
         h|hex)
-            RESULT=$(printf '%x' $(( SEED % 15 + 1 )))
+            printf -v RESULT '%x' $(( SEED % 15 + 1 ))
             (( ++I ))
             while (( I < $LEN )); do
-                N=$(printf '%04x' $((RANDOM & 65535)))
-                RESULT=$RESULT$N
+                printf -v N '%04x' $((RANDOM & 65535))
+                RESULT+=$N
                 (( I += 4 ))
             done
             ;;
         H|HEX)
-            RESULT=$(printf '%X' $(( SEED % 15 + 1 )))
+            printf -v RESULT '%X' $(( SEED % 15 + 1 ))
             (( ++I ))
             while (( I < $LEN )); do
-                N=$(printf '%04X' $((RANDOM & 65535)))
-                RESULT=$RESULT$N
+                printf -v N '%04X' $((RANDOM & 65535))
+                RESULT+=$N
                 (( I += 4 ))
             done
             ;;
         l)
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 26 + 16#61))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         L)
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 26 + 16#41))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         [Ll][Ll])
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 52 + 16#41))
                 [[ $N -gt 90 ]] && (( N += 6 ))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         a)
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 36 + 16#30))
                 [[ $N -gt 57 ]] && (( N += 39 ))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         js)
             LEN=$((SEED % 3 + 17))
             RESULT='0.'$((RANDOM * 69069 & 16#ffffffff))
-            RESULT=$RESULT$((RANDOM * 69069 & 16#ffffffff))
+            RESULT+=$((RANDOM * 69069 & 16#ffffffff))
             ;;
         u16)
             RESULT=$(( 256 * (SEED & 255) + (RANDOM & 255) ))
