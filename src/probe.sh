@@ -31,7 +31,7 @@ NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --prinft=%m
+GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --printf=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
