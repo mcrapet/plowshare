@@ -25,7 +25,7 @@ streamcloud_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME
 
-    WAIT_TIME=$(parse_quiet 'var count = ' 'var count = \([0-9]\+\)' <<< "$PAGE") || return
+    WAIT_TIME=$(parse_quiet 'var count = ' 'var count = \([0-9]\+\)' <<< "$PAGE")
 
     echo "$WAIT_TIME"
 }

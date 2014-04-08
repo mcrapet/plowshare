@@ -27,7 +27,7 @@ backin_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME
 
-    WAIT_TIME=$(parse_quiet 'setTimeout("azz()"' 'setTimeout("azz()", \([0-9]\+\)\*1000);' <<< "$PAGE") || return
+    WAIT_TIME=$(parse_quiet 'setTimeout("azz()"' 'setTimeout("azz()", \([0-9]\+\)\*1000);' <<< "$PAGE")
 
     echo "$WAIT_TIME"
 }
