@@ -260,7 +260,7 @@ xfilesharing_dl_parse_error_generic() {
             ERROR="$PAGE"
             ERROR_NOBLOCK=1
         fi
-    elif match 'You have to wait\|You can download files up to\|Video [Ii][sn] [Ee]ncoding\|Wrong password\|Wrong captcha\|Skipped countdown\|This file is available for Premium Users only' "$PAGE"; then
+    elif match 'You have to wait\|You can download files up to\|[Vv]ideo.*[Ii][sn] [Ee]ncoding\|Wrong password\|Wrong captcha\|Skipped countdown\|This file is available for Premium Users only' "$PAGE"; then
         ERROR="$PAGE"
         ERROR_NOBLOCK=1
     fi

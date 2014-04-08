@@ -20,6 +20,7 @@
 
 declare -gA HULKFILE_FUNCS
 HULKFILE_FUNCS['dl_parse_error']='hulkfile_dl_parse_error'
+HULKFILE_FUNCS['dl_parse_countdown']='hulkfile_dl_parse_countdown'
 
 hulkfile_dl_parse_error() {
     local PAGE=$1
@@ -27,4 +28,13 @@ hulkfile_dl_parse_error() {
     PAGE=$(replace '<div class="err">' '' <<< "$PAGE")
 
     xfilesharing_dl_parse_error_generic "$PAGE"
+}
+
+hulkfile_dl_parse_countdown () {
+    local -r PAGE=$1
+    local WAIT_TIME
+
+    WAIT_TIME=$(parse_tag_quiet 'font-family:tahoma; font-size:28pt;' 'span' <<< "$PAGE") || return
+
+    echo "$WAIT_TIME"
 }

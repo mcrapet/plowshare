@@ -143,6 +143,7 @@ xfilesharing_download() {
 
         WAIT_TIME=$(xfilesharing_dl_parse_countdown "$PAGE") || return
         if [ -n "$WAIT_TIME" ]; then
+            (( WAIT_TIME++ ))
             wait $WAIT_TIME || return
         fi
 
@@ -176,7 +177,7 @@ xfilesharing_download() {
         if [ -n "$WAIT_TIME" ]; then
             TIME=$(($(date +%s) - $TIME))
             if [ $TIME -lt $WAIT_TIME ]; then
-                WAIT_TIME=$((WAIT_TIME - $TIME))
+                WAIT_TIME=$((WAIT_TIME - $TIME + 1))
                 wait $WAIT_TIME || return
             fi
         fi
