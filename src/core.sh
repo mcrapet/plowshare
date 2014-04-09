@@ -2942,7 +2942,8 @@ process_options() {
     local -r OPTIONS=$2
     local -r STEP=$3
 
-    local -a RES UNUSED_OPTS UNUSED_ARGS
+    local -A RES
+    local -a UNUSED_OPTS UNUSED_ARGS
     local -a OPTS_VAR_LONG OPTS_NAME_LONG OPTS_TYPE_LONG
     local -a OPTS_VAR_SHORT OPTS_NAME_SHORT OPTS_TYPE_SHORT
     local ARG VAR SHORT LONG TYPE HELP SKIP_ARG FOUND FUNC
@@ -3009,15 +3010,19 @@ process_options() {
                     fi
 
                     if [ -z "$TYPE" ]; then
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=1"
+                        [[ ${RES["${OPTS_VAR_LONG[$I]}"]} ]] && \
+                            log_notice "$NAME: useless duplicated option ${ARG%%=*}, ignoring"
+                        RES["${OPTS_VAR_LONG[$I]}"]=1
                         [ "${ARG%%=*}" != "$ARG" ] && \
-                            log_notice "$NAME: unwanted argument for ${ARG%%=*}, ignoring"
-
+                            log_notice "$NAME: unwanted argument \`${ARG#*=}' for ${ARG%%=*}, ignoring"
                     # Argument with equal (ex: --timeout=60)
                     elif [ "${ARG%%=*}" != "$ARG" ]; then
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "${ARG#*=}" "${ARG%%=*}" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$($FUNC "${ARG#*=}")"
+
+                        [[ ${RES["${OPTS_VAR_LONG[$I]}"]} ]] && \
+                            log_notice "$NAME: duplicated option ${ARG%%=*}, taking last one"
+                        RES["${OPTS_VAR_LONG[$I]}"]="$($FUNC "${ARG#*=}")"
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -3027,7 +3032,10 @@ process_options() {
 
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "$1" "$ARG" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$($FUNC "$1")"
+
+                        [[ ${RES["${OPTS_VAR_LONG[$I]}"]} ]] && \
+                            log_notice "$NAME: duplicated option $ARG, taking last one"
+                        RES["${OPTS_VAR_LONG[$I]}"]="$($FUNC "$1")"
                         SKIP_ARG=1
                     fi
 
@@ -3054,13 +3062,19 @@ process_options() {
                     fi
 
                     if [ -z "$TYPE" ]; then
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=1"
-
+                        [[ ${RES["${OPTS_VAR_SHORT[$I]}"]} ]] && \
+                            log_notice "$NAME: useless duplicated option ${ARG:0:2}, ignoring"
+                        RES["${OPTS_VAR_SHORT[$I]}"]=1
+                        [[ ${#ARG} -gt 2 ]] && \
+                            log_notice "$NAME: unwanted argument \`${ARG:2}' for ${ARG:0:2}, ignoring"
                     # Argument without whitespace (ex: -v3)
                     elif [ ${#ARG} -gt 2 ]; then
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "${ARG:2}" "${ARG:0:2}" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$($FUNC "${ARG:2}")"
+
+                        [[ ${RES["${OPTS_VAR_SHORT[$I]}"]} ]] && \
+                            log_notice "$NAME: duplicated option ${ARG:0:2}, taking last one"
+                        RES["${OPTS_VAR_SHORT[$I]}"]="$($FUNC "${ARG:2}")"
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -3070,7 +3084,10 @@ process_options() {
 
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "$1" "$ARG" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$($FUNC "$1")"
+
+                        [[ ${RES["${OPTS_VAR_SHORT[$I]}"]} ]] && \
+                            log_notice "$NAME: duplicated option $ARG, taking last one"
+                        RES["${OPTS_VAR_SHORT[$I]}"]="$($FUNC "$1")"
                         SKIP_ARG=1
                     fi
 
@@ -3099,16 +3116,15 @@ process_options() {
 
     # Declare core options as readonly
     if [ $STEP -lt 0 ]; then
-        # FIXME: Look for duplicates
-        for ARG in "${RES[@]}"; do echo "declare -r $ARG"; done
+        for ARG in "${!RES[@]}"; do echo "declare -r ${ARG}=${RES[$ARG]}"; done
 
     # Declare target module options: ${NAME}_vars_set/unset
     elif [ $STEP -gt 0 ]; then
         echo "${NAME}_vars_set() { :"
-        for ARG in "${RES[@]}"; do echo "$ARG"; done
+        for ARG in "${!RES[@]}"; do echo "${ARG}=${RES[$ARG]}"; done
         echo '}'
         echo "${NAME}_vars_unset() { :"
-        for ARG in "${RES[@]}"; do echo "${ARG%%=*}="; done
+        for ARG in "${!RES[@]}"; do echo "${ARG%%=*}="; done
         echo '}'
     fi
 
