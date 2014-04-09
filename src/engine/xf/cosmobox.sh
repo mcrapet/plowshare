@@ -18,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA COSMOBOX_FUNCS
-COSMOBOX_FUNCS['ul_get_space_data']='cosmobox_ul_get_space_data'
-
-cosmobox_ul_get_space_data() {
+xfilesharing:cosmobox_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT

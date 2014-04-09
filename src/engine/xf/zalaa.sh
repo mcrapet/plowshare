@@ -20,16 +20,12 @@
 
 # Clone of uploadc, maybe will mrege it with generic if more such sites discovered
 
-declare -gA ZALAA_FUNCS
-ZALAA_FUNCS['dl_parse_form2']='zalaa_dl_parse_form2'
-ZALAA_FUNCS['dl_commit_step2']='zalaa_dl_commit_step2'
-
-zalaa_dl_parse_form2() {
+xfilesharing:zalaa_dl_parse_form2() {
     xfilesharing_dl_parse_form2_generic "$1" 'frmdownload' '' '' '' '' '' '' '' '' \
         'ipcount_val'
 }
 
-zalaa_dl_commit_step2() {
+xfilesharing:zalaa_dl_commit_step2() {
     local -r COOKIE_FILE=$1
     #local -r FORM_ACTION=$2
     local -r FORM_DATA=$3

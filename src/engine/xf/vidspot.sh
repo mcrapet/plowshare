@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA VIDSPOT_FUNCS
-VIDSPOT_FUNCS['dl_parse_form1']='vidspot_dl_parse_form1'
-VIDSPOT_FUNCS['dl_commit_step1']='vidspot_dl_commit_step1'
-VIDSPOT_FUNCS['dl_parse_imagehosting']='vidspot_dl_parse_imagehosting'
-
-vidspot_dl_parse_form1() {
+xfilesharing:vidspot_dl_parse_form1() {
     local -r PAGE=$1
 
     local EMBED_URL FILE_NAME
@@ -42,7 +37,7 @@ vidspot_dl_parse_form1() {
     fi
 }
 
-vidspot_dl_commit_step1() {
+xfilesharing:vidspot_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -66,6 +61,6 @@ vidspot_dl_commit_step1() {
 }
 
 # Ignore video thumbnail
-vidspot_dl_parse_imagehosting() {
+xfilesharing:vidspot_dl_parse_imagehosting() {
     return 1
 }

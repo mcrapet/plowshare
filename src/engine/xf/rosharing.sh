@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA ROSHARING_FUNCS
-ROSHARING_FUNCS['pr_parse_file_name']='rosharing_pr_parse_file_name'
-ROSHARING_FUNCS['pr_parse_file_size']='rosharing_pr_parse_file_size'
-
-rosharing_pr_parse_file_name() {
+xfilesharing:rosharing_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -31,7 +27,7 @@ rosharing_pr_parse_file_name() {
     echo "$FILE_NAME"
 }
 
-rosharing_pr_parse_file_size() {
+xfilesharing:rosharing_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

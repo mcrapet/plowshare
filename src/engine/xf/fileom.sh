@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA FILEOM_FUNCS
-FILEOM_FUNCS['ls_parse_links']='fileom_ls_parse_links'
-FILEOM_FUNCS['ls_parse_names']='fileom_ls_parse_names'
-FILEOM_FUNCS['ls_parse_folders']='fileom_ls_parse_folders'
-
-fileom_ls_parse_links() {
+xfilesharing:fileom_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -32,7 +27,7 @@ fileom_ls_parse_links() {
     echo "$LINKS"
 }
 
-fileom_ls_parse_names() {
+xfilesharing:fileom_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -41,7 +36,7 @@ fileom_ls_parse_names() {
     echo "$NAMES"
 }
 
-fileom_ls_parse_folders() {
+xfilesharing:fileom_ls_parse_folders() {
     local PAGE=$1
     local FOLDERS
 

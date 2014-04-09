@@ -223,17 +223,30 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     test -z "$NO_PLOWSHARERC" && \
         process_configfile_module_options '[Pp]lowdel' "$MODULE" DELETE "$EXT_PLOWSHARERC"
 
-    eval "$(process_module_options "$MODULE" DELETE \
-        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+    if [ -n "$ENGINE" ]; then
+        eval "$(process_module_options "${MODULE//:/_}" DELETE \
+            "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+    else
+        eval "$(process_module_options "$MODULE" DELETE \
+            "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+    fi
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
 
     :> "$DCOOKIE"
 
-    ${MODULE}_vars_set
+    if [ -n "$ENGINE" ]; then
+        ${MODULE//:/_}_vars_set
+    else
+        ${MODULE}_vars_set
+    fi
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
-    ${MODULE}_vars_unset
+    if [ -n "$ENGINE" ]; then
+        ${MODULE//:/_}_vars_unset
+    else
+        ${MODULE}_vars_unset
+    fi
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice 'File removed successfully'

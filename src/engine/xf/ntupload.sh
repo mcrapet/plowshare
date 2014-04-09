@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA NTUPLOAD_FUNCS
-NTUPLOAD_FUNCS['dl_commit_step1']='ntupload_dl_commit_step1'
-NTUPLOAD_FUNCS['dl_parse_streaming']='ntupload_dl_parse_streaming'
-NTUPLOAD_FUNCS['pr_parse_file_size']='ntupload_pr_parse_file_size'
-
-ntupload_dl_commit_step1() {
+xfilesharing:ntupload_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -41,7 +36,7 @@ ntupload_dl_commit_step1() {
     echo "$PAGE"
 }
 
-ntupload_dl_parse_streaming() {
+xfilesharing:ntupload_dl_parse_streaming() {
     local PAGE=$1
     local -r URL=$2
     local -r FILE_NAME=$3
@@ -56,7 +51,7 @@ ntupload_dl_parse_streaming() {
     return 0
 }
 
-ntupload_pr_parse_file_size() {
+xfilesharing:ntupload_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

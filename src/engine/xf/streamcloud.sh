@@ -18,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA STREAMCLOUD_FUNCS
-STREAMCLOUD_FUNCS['dl_parse_countdown']='streamcloud_dl_parse_countdown'
-
-streamcloud_dl_parse_countdown () {
+xfilesharing:streamcloud_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME
 

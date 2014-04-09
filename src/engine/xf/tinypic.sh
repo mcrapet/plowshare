@@ -18,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA TINYPIC_FUNCS
-TINYPIC_FUNCS['dl_parse_form2']='tinypic_dl_parse_form2'
-
-tinypic_dl_parse_form2() {
+xfilesharing:tinypic_dl_parse_form2() {
     local PAGE=$1
 
     # Remove excess form inside main form

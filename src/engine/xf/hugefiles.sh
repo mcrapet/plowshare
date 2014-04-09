@@ -18,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA HUGEFILES_FUNCS
-HUGEFILES_FUNCS['ul_get_space_data']='hugefiles_ul_get_space_data'
-
-hugefiles_ul_get_space_data() {
+xfilesharing:hugefiles_ul_get_space_data() {
     # No space limit
 
     return 0

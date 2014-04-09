@@ -18,18 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA UPLOADC_FUNCS
-UPLOADC_FUNCS['dl_parse_form2']='uploadc_dl_parse_form2'
-UPLOADC_FUNCS['dl_commit_step2']='uploadc_dl_commit_step2'
-UPLOADC_FUNCS['pr_parse_file_size']='uploadc_pr_parse_file_size'
-UPLOADC_FUNCS['ul_get_space_data']='uploadc_ul_get_space_data'
-
-uploadc_dl_parse_form2() {
+xfilesharing:uploadc_dl_parse_form2() {
     xfilesharing_dl_parse_form2_generic "$1" 'frmdownload' '' '' '' '' '' '' '' '' \
         'ipcount_val'
 }
 
-uploadc_dl_commit_step2() {
+xfilesharing:uploadc_dl_commit_step2() {
     local -r COOKIE_FILE=$1
     #local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -65,7 +59,7 @@ uploadc_dl_commit_step2() {
     echo "$EXTRA"
 }
 
-uploadc_pr_parse_file_size() {
+xfilesharing:uploadc_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 
@@ -74,6 +68,6 @@ uploadc_pr_parse_file_size() {
     echo "$FILE_SIZE"
 }
 
-uploadc_ul_get_space_data() {
+xfilesharing:uploadc_ul_get_space_data() {
     return 0
 }

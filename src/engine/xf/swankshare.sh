@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA SWANKSHARE_FUNCS
-SWANKSHARE_FUNCS['pr_parse_file_name']='swankshare_pr_parse_file_name'
-SWANKSHARE_FUNCS['pr_parse_file_size']='swankshare_pr_parse_file_size'
-
-swankshare_pr_parse_file_name() {
+xfilesharing:swankshare_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -31,7 +27,7 @@ swankshare_pr_parse_file_name() {
     echo "$FILE_NAME"
 }
 
-swankshare_pr_parse_file_size() {
+xfilesharing:swankshare_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

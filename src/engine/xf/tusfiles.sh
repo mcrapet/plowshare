@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA TUSFILES_FUNCS
-TUSFILES_FUNCS['ls_parse_links']='tusfiles_ls_parse_links'
-TUSFILES_FUNCS['ls_parse_names']='tusfiles_ls_parse_names'
-TUSFILES_FUNCS['ls_parse_folders']='tusfiles_ls_parse_folders'
-
-tusfiles_ls_parse_links() {
+xfilesharing:tusfiles_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -32,7 +27,7 @@ tusfiles_ls_parse_links() {
     echo "$LINKS"
 }
 
-tusfiles_ls_parse_names() {
+xfilesharing:tusfiles_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -41,7 +36,7 @@ tusfiles_ls_parse_names() {
     echo "$NAMES"
 }
 
-tusfiles_ls_parse_folders() {
+xfilesharing:tusfiles_ls_parse_folders() {
     local PAGE=$1
     local FOLDERS
 

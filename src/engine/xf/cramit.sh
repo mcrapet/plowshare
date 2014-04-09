@@ -18,22 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA CRAMIT_FUNCS
-CRAMIT_FUNCS['dl_parse_form1']='cramit_dl_parse_form1'
-CRAMIT_FUNCS['ls_parse_links']='cramit_ls_parse_links'
-CRAMIT_FUNCS['ls_parse_names']='cramit_ls_parse_names'
-CRAMIT_FUNCS['ls_parse_folders']='cramit_ls_parse_folders'
-CRAMIT_FUNCS['ul_remote_queue_test']='cramit_ul_remote_queue_test'
-CRAMIT_FUNCS['ul_remote_queue_add']='cramit_ul_remote_queue_add'
-CRAMIT_FUNCS['ul_remote_queue_del']='cramit_ul_remote_queue_del'
-CRAMIT_FUNCS['ul_remote_queue_check']='cramit_ul_remote_queue_check'
-CRAMIT_FUNCS['ul_get_file_code']='cramit_ul_get_file_code'
-
-cramit_dl_parse_form1() {
+xfilesharing:cramit_dl_parse_form1() {
     xfilesharing_dl_parse_form1_generic "$1" '' '' '' '' '' '' 'freemethod'
 }
 
-cramit_ls_parse_links() {
+xfilesharing:cramit_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -44,7 +33,7 @@ cramit_ls_parse_links() {
     echo "$LINKS"
 }
 
-cramit_ls_parse_names() {
+xfilesharing:cramit_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -55,7 +44,7 @@ cramit_ls_parse_names() {
     echo "$NAMES"
 }
 
-cramit_ls_parse_folders() {
+xfilesharing:cramit_ls_parse_folders() {
     local PAGE=$1
 
     PAGE=$(replace '<TR' $'\n<TR' <<< "$PAGE")
@@ -63,13 +52,13 @@ cramit_ls_parse_folders() {
     xfilesharing_ls_parse_folders_generic "$PAGE"
 }
 
-cramit_ul_remote_queue_test() {
+xfilesharing:cramit_ul_remote_queue_test() {
     #local -r PAGE=$1
 
     echo 'uploader2'
 }
 
-cramit_ul_remote_queue_add() {
+xfilesharing:cramit_ul_remote_queue_add() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r FILE=$3
@@ -94,7 +83,7 @@ cramit_ul_remote_queue_add() {
     return 0
 }
 
-cramit_ul_remote_queue_del() {
+xfilesharing:cramit_ul_remote_queue_del() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r REMOTE_UPLOAD_QUEUE_OP=$3
@@ -121,7 +110,7 @@ cramit_ul_remote_queue_del() {
     return 0
 }
 
-cramit_ul_remote_queue_check() {
+xfilesharing:cramit_ul_remote_queue_check() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r REMOTE_UPLOAD_QUEUE_OP=$3
@@ -145,7 +134,7 @@ cramit_ul_remote_queue_check() {
     fi
 }
 
-cramit_ul_get_file_code() {
+xfilesharing:cramit_ul_get_file_code() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE FILE_CODE

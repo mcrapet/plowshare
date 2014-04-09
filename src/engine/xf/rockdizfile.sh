@@ -18,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA ROCKDIZFILE_FUNCS
-ROCKDIZFILE_FUNCS['pr_parse_file_name']='rockdizfile_pr_parse_file_name'
-
-rockdizfile_pr_parse_file_name() {
+xfilesharing:rockdizfile_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 

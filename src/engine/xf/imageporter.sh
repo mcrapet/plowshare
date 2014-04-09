@@ -18,9 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA IMAGEPORTER_FUNCS
-IMAGEPORTER_FUNCS['ul_parse_data']='imageporter_ul_parse_data'
-
-imageporter_ul_parse_data() {
+xfilesharing:imageporter_ul_parse_data() {
     xfilesharing_ul_parse_data_generic "$@" "thumb_size=190x190"
 }

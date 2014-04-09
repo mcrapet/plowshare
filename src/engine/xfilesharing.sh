@@ -110,17 +110,6 @@ xfilesharing_init() {
             source "$ENGINE_DIR/xf/$XF_MODULE.sh"
         fi
     done
-
-    #for FUNC_NAME in "${!GENERIC_FUNCS[@]}"
-    #do
-    #    eval "xfilesharing_$FUNC_NAME() {
-    #        local -u VAR=\${SUBMODULE}_FUNCS
-    #        FUNC=\${VAR}[$FUNC_NAME]
-    #        FUNC=\${!FUNC}
-    #        test \"\$FUNC\" || FUNC=\${GENERIC_FUNCS[$FUNC_NAME]}
-    #        \$FUNC \"\$@\"
-    #        }"
-    #done
 }
 
 # Check if we accept this kind of url. No subshell.
@@ -143,30 +132,56 @@ xfilesharing_probe_module() {
     if [ $RET -eq 0 ]; then
         if [ -f "$ENGINE_DIR/xf/$SUBMODULE.sh" ]; then
             log_debug "submodule: '$SUBMODULE' (custom)"
-            #source "$ENGINE_DIR/xf/$SUBMODULE.sh"
         else
             log_debug "submodule: '$SUBMODULE' (generic)"
         fi
 
-        local -u VAR=${SUBMODULE}_FUNCS
-        for FUNCTION_NAME in "${!GENERIC_FUNCS[@]}"
-        do
-            FUNCTION=${VAR}[$FUNCTION_NAME]
-            FUNCTION=${!FUNCTION}
-            test "$FUNCTION" || FUNCTION=${GENERIC_FUNCS[$FUNCTION_NAME]}
+        case "$NAME" in
+            'plowdown')
+                eval "xfilesharing:${SUBMODULE}_download(){ xfilesharing_download \"\$@\"; }"
+                ;;
+            'plowlist')
+                eval "xfilesharing:${SUBMODULE}_list(){ xfilesharing_list \"\$@\"; }"
+                ;;
+            'plowdel')
+                eval "xfilesharing:${SUBMODULE}_delete(){ xfilesharing_delete \"\$@\"; }"
+                ;;
+            'plowprobe')
+                eval "xfilesharing:${SUBMODULE}_probe(){ xfilesharing_probe \"\$@\"; }"
+                ;;
+            'plowup')
+                eval "xfilesharing:${SUBMODULE}_upload(){ xfilesharing_upload \"\$@\"; }"
+                ;;
+        esac
 
-            eval "xfilesharing_${FUNCTION_NAME}() { $FUNCTION \"\$@\"; }"
-        done
+        while read -r FUNCTION_NAME; do
+            [ -z "$FUNCTION_NAME" ] && continue
+            if ! declare -f "xfilesharing:${SUBMODULE}_${FUNCTION_NAME}" >/dev/null; then
+                eval "xfilesharing:${SUBMODULE}_${FUNCTION_NAME}(){
+                    xfilesharing_${FUNCTION_NAME}_generic \"\$@\"
+                }"
+            fi
 
-        local -u VAR=${SUBMODULE}_OPTIONS
-        for OPTION_NAME in "${!GENERIC_OPTIONS[@]}"
-        do
-            OPTION=${VAR}[$OPTION_NAME]
-            OPTION=${!OPTION}
-            test "$OPTION" || OPTION=${GENERIC_OPTIONS[$OPTION_NAME]}
+            eval "xfilesharing_${FUNCTION_NAME}() { xfilesharing:${SUBMODULE}_${FUNCTION_NAME} \"\$@\"; }"
+        done <<< "$XFILESHARING_FUNCTIONS"
 
-            eval "MODULE_XFILESHARING_${OPTION_NAME}=\"$OPTION\""
-        done
+        while read -r OPTION_NAME; do
+            [ -z "$OPTION_NAME" ] && continue
+            local -u SUBMODULE_OPTION="MODULE_XFILESHARING_${SUBMODULE}_${OPTION_NAME}"
+
+            if [ -n "${!SUBMODULE_OPTION}" ]; then
+                case "$OPTION_NAME" in
+                    'DOWNLOAD_OPTIONS'|'UPLOAD_OPTIONS'|'DELETE_OPTIONS'|'PROBE_OPTIONS'|'LIST_OPTIONS')
+                        eval "$SUBMODULE_OPTION=\"\$XFILESHARING_${OPTION_NAME}_GENERIC${!SUBMODULE_OPTION}\""
+                        ;;
+                    *)
+                        eval "$SUBMODULE_OPTION=\"${!SUBMODULE_OPTION}\""
+                        ;;
+                esac
+            else
+                eval "$SUBMODULE_OPTION=\"\$XFILESHARING_${OPTION_NAME}_GENERIC\""
+            fi
+        done <<< "$XFILESHARING_OPTIONS"
     fi
 
     return $RET
@@ -177,7 +192,7 @@ xfilesharing_probe_module() {
 # stdout: module name
 xfilesharing_get_module() {
     test "$SUBMODULE" || return $ERR_NOMODULE
-    echo 'xfilesharing'
+    echo "xfilesharing:$SUBMODULE"
 }
 
 # Look for a configuration module variable
@@ -185,14 +200,17 @@ xfilesharing_get_module() {
 # stdout: options list (one per line)
 xfilesharing_get_all_modules_options() {
     local -ur VAR_OPTIONS="${1}_OPTIONS"
+    local -ur VAR_OPTIONS_GENERIC="XFILESHARING_${VAR_OPTIONS}_GENERIC"
     local OPTIONS
 
-    strip_and_drop_empty_lines "${GENERIC_OPTIONS[$VAR_OPTIONS]}"
+    strip_and_drop_empty_lines "${!VAR_OPTIONS_GENERIC}"
 
     while read -r; do
-        local -u VAR=${REPLY}_OPTIONS
-        OPTIONS=${VAR}[${VAR_OPTIONS}]
-        OPTIONS=${!OPTIONS}
-        [ -z "$OPTIONS" ] || strip_and_drop_empty_lines "$OPTIONS"
+        while read -r OPTION_NAME; do
+            local -u VAR="MODULE_XFILESHARING_${REPLY}_${OPTION_NAME}"
+            if [ -n "${!VAR}" ]; then
+                strip_and_drop_empty_lines "${!VAR}"
+            fi
+        done <<< "$XFILESHARING_OPTIONS"
     done <<< "$(grep_list_xfilesharing_modules)"
 }

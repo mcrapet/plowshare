@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA HULKFILE_FUNCS
-HULKFILE_FUNCS['dl_parse_error']='hulkfile_dl_parse_error'
-HULKFILE_FUNCS['dl_parse_countdown']='hulkfile_dl_parse_countdown'
-
-hulkfile_dl_parse_error() {
+xfilesharing:hulkfile_dl_parse_error() {
     local PAGE=$1
 
     PAGE=$(replace '<div class="err">' '' <<< "$PAGE")
@@ -30,7 +26,7 @@ hulkfile_dl_parse_error() {
     xfilesharing_dl_parse_error_generic "$PAGE"
 }
 
-hulkfile_dl_parse_countdown () {
+xfilesharing:hulkfile_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME
 

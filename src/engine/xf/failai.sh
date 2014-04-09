@@ -18,14 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA FAILAI_FUNCS
-FAILAI_FUNCS['dl_parse_form1']='failai_dl_parse_form1'
-FAILAI_FUNCS['dl_commit_step1']='failai_dl_commit_step1'
-FAILAI_FUNCS['dl_parse_error']='failai_dl_parse_error'
-FAILAI_FUNCS['ul_create_folder']='failai_ul_create_folder'
-FAILAI_FUNCS['ul_get_space_data']='failai_ul_get_space_data'
-
-failai_ul_create_folder() {
+xfilesharing:failai_ul_create_folder() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r NAME=$3
@@ -49,12 +42,12 @@ failai_ul_create_folder() {
     return 0
 }
 
-failai_dl_parse_form1() {
+xfilesharing:failai_dl_parse_form1() {
     xfilesharing_dl_parse_form1_generic "$1" '' '' '' '' '' '' '' \
         'file_wait'
 }
 
-failai_dl_commit_step1() {
+xfilesharing:failai_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -92,7 +85,7 @@ failai_dl_commit_step1() {
     echo "$PAGE"
 }
 
-failai_dl_parse_error() {
+xfilesharing:failai_dl_parse_error() {
     local PAGE=$1
 
     if match '<font class="err"></font>' "$PAGE"; then
@@ -102,7 +95,7 @@ failai_dl_parse_error() {
     xfilesharing_dl_parse_error_generic "$@"
 }
 
-failai_ul_get_space_data() {
+xfilesharing:failai_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT

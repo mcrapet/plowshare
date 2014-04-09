@@ -18,13 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA UPTOBOX_FUNCS
-UPTOBOX_FUNCS['ul_get_space_data']='uptobox_ul_get_space_data'
-UPTOBOX_FUNCS['ls_parse_links']='uptobox_ls_parse_links'
-UPTOBOX_FUNCS['ls_parse_names']='uptobox_ls_parse_names'
-UPTOBOX_FUNCS['ls_parse_folders']='uptobox_ls_parse_folders'
-
-uptobox_ul_get_space_data() {
+xfilesharing:uptobox_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT
@@ -44,7 +38,7 @@ uptobox_ul_get_space_data() {
     echo "$SPACE_LIMIT"
 }
 
-uptobox_ls_parse_links() {
+xfilesharing:uptobox_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -53,7 +47,7 @@ uptobox_ls_parse_links() {
     echo "$LINKS"
 }
 
-uptobox_ls_parse_names() {
+xfilesharing:uptobox_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -62,7 +56,7 @@ uptobox_ls_parse_names() {
     echo "$NAMES"
 }
 
-uptobox_ls_parse_folders() {
+xfilesharing:uptobox_ls_parse_folders() {
     local PAGE=$1
     local FOLDERS USERNAME
 

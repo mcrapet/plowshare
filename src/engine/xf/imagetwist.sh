@@ -18,18 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA IMAGETWIST_FUNCS
-declare -gA IMAGETWIST_OPTIONS
-IMAGETWIST_FUNCS['ls_parse_links']='imagetwist_ls_parse_links'
-IMAGETWIST_FUNCS['ls_parse_names']='imagetwist_ls_parse_names'
-IMAGETWIST_FUNCS['ul_parse_data']='imagetwist_ul_parse_data'
-IMAGETWIST_FUNCS['ul_parse_del_code']='imagetwist_ul_parse_del_code'
-IMAGETWIST_FUNCS['ul_generate_links']='imagetwist_ul_generate_links'
-IMAGETWIST_OPTIONS['UPLOAD_OPTIONS']="${GENERIC_OPTIONS[UPLOAD_OPTIONS]}""
-        THUMB_SIZE,,thumb-size,s=THUMB_SZIE,Picture thumb size (100x100, 170x170, 250x250, 300x300, 500x500) (default: 170x170)
-        URL_DOMAIN,,url-domain,s=URL_DOMAIN,Picture URL domain (imagetwist.com, imageshimage.com, imagenpic.com) (default: imagetwist.com)"
+MODULE_XFILESHARING_IMAGETWIST_UPLOAD_OPTIONS="
+THUMB_SIZE,,thumb-size,s=THUMB_SZIE,Picture thumb size (100x100, 170x170, 250x250, 300x300, 500x500) (default: 170x170)
+URL_DOMAIN,,url-domain,s=URL_DOMAIN,Picture URL domain (imagetwist.com, imageshimage.com, imagenpic.com) (default: imagetwist.com)"
 
-imagetwist_ls_parse_links() {
+xfilesharing:imagetwist_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -39,11 +32,11 @@ imagetwist_ls_parse_links() {
     echo "$LINKS"
 }
 
-imagetwist_ls_parse_names() {
+xfilesharing:imagetwist_ls_parse_names() {
     return 0
 }
 
-imagetwist_ul_parse_data() {
+xfilesharing:imagetwist_ul_parse_data() {
     if [ -z "$THUMB_SIZE" ]; then
         THUMB_SIZE='170x170'
     fi
@@ -72,19 +65,23 @@ imagetwist_ul_parse_data() {
     xfilesharing_ul_parse_data_generic "$@" "file_safe=0" "$THUMB_SIZE" "$URL_DOMAIN"
 }
 
-imagetwist_ul_parse_del_code() {
+xfilesharing:imagetwist_ul_parse_del_code() {
     local -r PAGE=$1
 
     parse_attr 'Preview:' 'src' <<< "$PAGE"
 }
 
-imagetwist_ul_generate_links() {
-    #local BASE_URL=$1
+xfilesharing:imagetwist_ul_generate_links() {
+    local BASE_URL=$1
     local FILE_CODE=$2
     local DEL_CODE=$3
     #local FILE_NAME=$4
 
-    echo "http://${URL_DOMAIN}/$FILE_CODE"
+    if [ -z "$URL_DOMAIN" ]; then
+        URL_DOMAIN='imagetwist.com'
+    fi
+
+    echo "http://$URL_DOMAIN/$FILE_CODE"
     echo "$DEL_CODE"
 
     return 0

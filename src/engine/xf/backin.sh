@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA BACKIN_FUNCS
-BACKIN_FUNCS['dl_parse_countdown']='backin_dl_parse_countdown'
-BACKIN_FUNCS['pr_parse_file_name']='backin_pr_parse_file_name'
-BACKIN_FUNCS['pr_parse_file_size']='backin_pr_parse_file_size'
-
-backin_dl_parse_countdown () {
+xfilesharing:backin_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME
 
@@ -32,7 +27,7 @@ backin_dl_parse_countdown () {
     echo "$WAIT_TIME"
 }
 
-backin_pr_parse_file_name() {
+xfilesharing:backin_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -41,7 +36,7 @@ backin_pr_parse_file_name() {
     echo "$FILE_NAME"
 }
 
-backin_pr_parse_file_size() {
+xfilesharing:backin_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

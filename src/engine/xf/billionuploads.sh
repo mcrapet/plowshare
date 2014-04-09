@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA BILLIONUPLOADS_FUNCS
-BILLIONUPLOADS_FUNCS['ul_parse_result']='billionuploads_ul_parse_result'
-BILLIONUPLOADS_FUNCS['dl_parse_form2']='billionuploads_dl_parse_form2'
-BILLIONUPLOADS_FUNCS['dl_parse_final_link']='billionuploads_dl_parse_final_link'
-
-billionuploads_ul_parse_result() {
+xfilesharing:billionuploads_ul_parse_result() {
     local PAGE=$1
 
     local STATE FILE_CODE
@@ -35,12 +30,12 @@ billionuploads_ul_parse_result() {
     echo "$FILE_CODE"
 }
 
-billionuploads_dl_parse_form2() {
+xfilesharing:billionuploads_dl_parse_form2() {
     xfilesharing_dl_parse_form2_generic "$@" '' '' '' '' '' '' '' '' '' \
         'geekref=yeahman' || return
 }
 
-billionuploads_dl_parse_final_link() {
+xfilesharing:billionuploads_dl_parse_final_link() {
     local PAGE=$1
     #local FILE_NAME=$2
 

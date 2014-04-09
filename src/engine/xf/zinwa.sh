@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA ZINWA_FUNCS
-ZINWA_FUNCS['pr_parse_file_name']='zinwa_pr_parse_file_name'
-ZINWA_FUNCS['pr_parse_file_size']='zinwa_pr_parse_file_size'
-
-zinwa_pr_parse_file_name() {
+xfilesharing:zinwa_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -31,6 +27,6 @@ zinwa_pr_parse_file_name() {
     echo "${FILE_NAME// /_}.mp4"
 }
 
-zinwa_pr_parse_file_size() {
+xfilesharing:zinwa_pr_parse_file_size() {
     return 0
 }

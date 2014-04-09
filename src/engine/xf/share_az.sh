@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA SHARE_AZ_FUNCS
-SHARE_AZ_FUNCS['ls_parse_links']='share_az_ls_parse_links'
-SHARE_AZ_FUNCS['ls_parse_names']='share_az_ls_parse_names'
-
-share_az_ls_parse_links() {
+xfilesharing:share_az_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -31,7 +27,7 @@ share_az_ls_parse_links() {
     echo "$LINKS"
 }
 
-share_az_ls_parse_names() {
+xfilesharing:share_az_ls_parse_names() {
     local PAGE=$1
     local NAMES
 

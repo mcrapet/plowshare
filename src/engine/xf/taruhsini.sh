@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA TARUHSINI_FUNCS
-TARUHSINI_FUNCS['ls_parse_names']='taruhsini_ls_parse_names'
-TARUHSINI_FUNCS['ls_parse_folders']='taruhsini_ls_parse_folders'
-
-taruhsini_ls_parse_names() {
+xfilesharing:taruhsini_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -32,7 +28,7 @@ taruhsini_ls_parse_names() {
     echo "$NAMES"
 }
 
-taruhsini_ls_parse_folders() {
+xfilesharing:taruhsini_ls_parse_folders() {
     local PAGE=$1
     local FOLDERS FOLDER
 

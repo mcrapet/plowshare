@@ -18,70 +18,84 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-# Simple quotes are mandatory. Bash4 bug?
-# http://unix.stackexchange.com/questions/56815/how-to-initialize-a-read-only-global-associative-array-in-bash
-declare -rgA 'GENERIC_FUNCS=(
-    [login]=xfilesharing_login_generic
-    [handle_captcha]=xfilesharing_handle_captcha_generic
-    [dl_parse_error]=xfilesharing_dl_parse_error_generic
-    [dl_parse_form1]=xfilesharing_dl_parse_form1_generic
-    [dl_parse_form2]=xfilesharing_dl_parse_form2_generic
-    [dl_parse_final_link]=xfilesharing_dl_parse_final_link_generic
-    [dl_commit_step1]=xfilesharing_dl_commit_step1_generic
-    [dl_commit_step2]=xfilesharing_dl_commit_step2_generic
-    [dl_parse_streaming]=xfilesharing_dl_parse_streaming_generic
-    [dl_parse_imagehosting]=xfilesharing_dl_parse_imagehosting_generic
-    [dl_parse_countdown]=xfilesharing_dl_parse_countdown_generic
-    [ul_get_space_data]=xfilesharing_ul_get_space_data_generic
-    [ul_get_folder_data]=xfilesharing_ul_get_folder_data_generic
-    [ul_create_folder]=xfilesharing_ul_create_folder_generic
-    [ul_get_file_id]=xfilesharing_ul_get_file_id_generic
-    [ul_parse_data]=xfilesharing_ul_parse_data_generic
-    [ul_commit]=xfilesharing_ul_commit_generic
-    [ul_parse_result]=xfilesharing_ul_parse_result_generic
-    [ul_commit_result]=xfilesharing_ul_commit_result_generic
-    [ul_handle_state]=xfilesharing_ul_handle_state_generic
-    [ul_parse_del_code]=xfilesharing_ul_parse_del_code_generic
-    [ul_parse_file_id]=xfilesharing_ul_parse_file_id_generic
-    [ul_move_file]=xfilesharing_ul_move_file_generic
-    [ul_edit_file]=xfilesharing_ul_edit_file_generic
-    [ul_set_flag_premium]=xfilesharing_ul_set_flag_premium_generic
-    [ul_set_flag_public]=xfilesharing_ul_set_flag_public_generic
-    [ul_generate_links]=xfilesharing_ul_generate_links_generic
-    [ul_remote_queue_test]=xfilesharing_ul_remote_queue_test_generic
-    [ul_remote_queue_check]=xfilesharing_ul_remote_queue_check_generic
-    [ul_remote_queue_add]=xfilesharing_ul_remote_queue_add_generic
-    [ul_remote_queue_del]=xfilesharing_ul_remote_queue_del_generic
-    [ul_get_file_code]=xfilesharing_ul_get_file_code_generic
-    [pr_parse_file_name]=xfilesharing_pr_parse_file_name_generic
-    [pr_parse_file_size]=xfilesharing_pr_parse_file_size_generic
-    [ls_parse_links]=xfilesharing_ls_parse_links_generic
-    [ls_parse_names]=xfilesharing_ls_parse_names_generic
-    [ls_parse_last_page]=xfilesharing_ls_parse_last_page_generic
-    [ls_parse_folders]=xfilesharing_ls_parse_folders_generic)'
+XFILESHARING_FUNCTIONS="
+login
+handle_captcha
+dl_parse_error
+dl_parse_form1
+dl_parse_form2
+dl_parse_final_link
+dl_commit_step1
+dl_commit_step2
+dl_parse_streaming
+dl_parse_imagehosting
+dl_parse_countdown
+ul_get_space_data
+ul_get_folder_data
+ul_create_folder
+ul_get_file_id
+ul_parse_data
+ul_commit
+ul_parse_result
+ul_commit_result
+ul_handle_state
+ul_parse_del_code
+ul_parse_file_id
+ul_move_file
+ul_edit_file
+ul_set_flag_premium
+ul_set_flag_public
+ul_generate_links
+ul_remote_queue_test
+ul_remote_queue_check
+ul_remote_queue_add
+ul_remote_queue_del
+ul_get_file_code
+pr_parse_file_name
+pr_parse_file_size
+ls_parse_links
+ls_parse_names
+ls_parse_last_page
+ls_parse_folders"
 
-declare -rgA 'GENERIC_OPTIONS=(
-    [DOWNLOAD_OPTIONS]="
-        AUTH,a,auth,a=USER:PASSWORD,User account
-        LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
-    [DOWNLOAD_RESUME]=yes
-    [DOWNLOAD_FINAL_LINK_NEEDS_COOKIE]=yes
-    [DOWNLOAD_FINAL_LINK_NEEDS_EXTRA]=
-    [DOWNLOAD_SUCCESSIVE_INTERVAL]=
-    [UPLOAD_OPTIONS]="
-        AUTH,a,auth,a=USER:PASSWORD,User account
-        LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
-        FOLDER,,folder,s=FOLDER,Folder to upload files into
-        DESCRIPTION,d,description,S=DESCRIPTION,Set file description
-        TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
-        PREMIUM,,premium,,Make file inaccessible to non-premium users
-        PRIVATE_FILE,,private,,Do not make file visible in folder view
-        ASYNC,,async,,Asynchronous remote upload"
-    [UPLOAD_REMOTE_SUPPORT]=yes
-    [DELETE_OPTIONS]=""
-    [PROBE_OPTIONS]=""
-    [LIST_OPTIONS]=""
-    [LIST_HAS_SUBFOLDERS]=yes)'
+XFILESHARING_OPTIONS="
+DOWNLOAD_OPTIONS
+DOWNLOAD_RESUME
+DOWNLOAD_FINAL_LINK_NEEDS_COOKIE
+DOWNLOAD_FINAL_LINK_NEEDS_EXTRA
+DOWNLOAD_SUCCESSIVE_INTERVAL
+UPLOAD_OPTIONS
+UPLOAD_REMOTE_SUPPORT
+DELETE_OPTIONS
+PROBE_OPTIONS
+LIST_OPTIONS
+LIST_HAS_SUBFOLDERS"
+
+XFILESHARING_DOWNLOAD_OPTIONS_GENERIC="
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
+XFILESHARING_DOWNLOAD_RESUME_GENERIC=yes
+XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE_GENERIC=yes
+XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA_GENERIC=
+XFILESHARING_DOWNLOAD_SUCCESSIVE_INTERVAL_GENERIC=
+
+XFILESHARING_UPLOAD_OPTIONS_GENERIC="
+AUTH,a,auth,a=USER:PASSWORD,User account
+LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
+FOLDER,,folder,s=FOLDER,Folder to upload files into
+DESCRIPTION,d,description,S=DESCRIPTION,Set file description
+TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
+PREMIUM,,premium,,Make file inaccessible to non-premium users
+PRIVATE_FILE,,private,,Do not make file visible in folder view
+ASYNC,,async,,Asynchronous remote upload"
+XFILESHARING_UPLOAD_REMOTE_SUPPORT_GENERIC=yes
+
+XFILESHARING_DELETE_OPTIONS_GENERIC=""
+
+XFILESHARING_PROBE_OPTIONS_GENERIC=""
+
+XFILESHARING_LIST_OPTIONS_GENERIC=""
+XFILESHARING_LIST_HAS_SUBFOLDERS_GENERIC=yes
 
 # Static function. Proceed with login.
 # $1: cookie file

@@ -395,8 +395,13 @@ fi
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options '[Pp]lowup' "$MODULE" UPLOAD "$EXT_PLOWSHARERC"
 
-eval "$(process_module_options "$MODULE" UPLOAD \
-    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+if [ -n "$ENGINE" ]; then
+    eval "$(process_module_options "${MODULE//:/_}" UPLOAD \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+else
+    eval "$(process_module_options "$MODULE" UPLOAD \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+fi
 
 if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
     log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
@@ -484,7 +489,11 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     timeout_init $TIMEOUT
 
     TRY=0
-    ${MODULE}_vars_set
+    if [ -n "$ENGINE" ]; then
+        ${MODULE//:/_}_vars_set
+    else
+        ${MODULE}_vars_set
+    fi
 
     while :; do
         :> "$UCOOKIE"
@@ -517,7 +526,11 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         log_notice "Starting upload ($MODULE): retry $TRY/$MAXRETRIES"
     done
 
-    ${MODULE}_vars_unset
+    if [ -n "$ENGINE" ]; then
+        ${MODULE//:/_}_vars_unset
+    else
+        ${MODULE}_vars_unset
+    fi
 
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true

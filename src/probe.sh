@@ -441,12 +441,26 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             test -z "$NO_PLOWSHARERC" && \
                 process_configfile_module_options '[Pp]lowprobe' "$MODULE" PROBE "$EXT_PLOWSHARERC"
 
-            eval "$(process_module_options "$MODULE" PROBE \
-                "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+            if [ -n "$ENGINE" ]; then
+                eval "$(process_module_options "${MODULE//:/_}" PROBE \
+                    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+            else
+                eval "$(process_module_options "$MODULE" PROBE \
+                    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+            fi
 
-            ${MODULE}_vars_set
+            if [ -n "$ENGINE" ]; then
+                ${MODULE//:/_}_vars_set
+            else
+                ${MODULE}_vars_set
+            fi
             probe "$MODULE" "$URL" "$ITEM" || PRETVAL=$?
-            ${MODULE}_vars_unset
+            if [ -n "$ENGINE" ]; then
+                ${MODULE//:/_}_vars_unset
+            else
+                ${MODULE}_vars_unset
+            fi
+
 
             RETVALS+=($PRETVAL)
         fi

@@ -18,12 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA SHAREBEAST_FUNCS
-SHAREBEAST_FUNCS['pr_parse_file_name']='sharebeast_pr_parse_file_name'
-SHAREBEAST_FUNCS['pr_parse_file_size']='sharebeast_pr_parse_file_size'
-SHAREBEAST_FUNCS['ul_get_space_data']='sharebeast_ul_get_space_data'
-
-sharebeast_pr_parse_file_name() {
+xfilesharing:sharebeast_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -32,7 +27,7 @@ sharebeast_pr_parse_file_name() {
     echo "$FILE_NAME"
 }
 
-sharebeast_pr_parse_file_size() {
+xfilesharing:sharebeast_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 
@@ -41,7 +36,7 @@ sharebeast_pr_parse_file_size() {
     echo "$FILE_SIZE"
 }
 
-sharebeast_ul_get_space_data() {
+xfilesharing:sharebeast_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT

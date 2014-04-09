@@ -18,18 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA NOVAFILE_FUNCS
-NOVAFILE_FUNCS['ul_parse_file_id']='novafile_ul_parse_file_id'
-NOVAFILE_FUNCS['login']='novafile_login'
-NOVAFILE_FUNCS['ul_get_folder_id']='novafile_ul_get_folder_id'
-NOVAFILE_FUNCS['ul_move_file']='novafile_ul_move_file'
-NOVAFILE_FUNCS['ul_parse_data']='novafile_ul_parse_data'
-NOVAFILE_FUNCS['ul_commit']='novafile_ul_commit'
-NOVAFILE_FUNCS['ul_parse_result']='novafile_ul_parse_result'
-NOVAFILE_FUNCS['pr_parse_file_size']='novafile_pr_parse_file_size'
-NOVAFILE_FUNCS['ul_get_space_data']='novafile_ul_get_space_data'
-
-novafile_ul_parse_data() {
+xfilesharing:novafile_ul_parse_data() {
     local -r PAGE=$1
 
     local FORM_UTYPE FORM_SESS
@@ -84,7 +73,7 @@ novafile_ul_parse_data() {
     echo "$FORM_REMOTE_URL_FIELD"
 }
 
-novafile_ul_commit() {
+xfilesharing:novafile_ul_commit() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$(basename_url "$2")
     local -r FILE=$3
@@ -166,7 +155,7 @@ novafile_ul_commit() {
     echo "$PAGE"
 }
 
-novafile_ul_parse_result() {
+xfilesharing:novafile_ul_parse_result() {
     local PAGE=$1
 
     local STATE OP FORM_LINK_RCPT FILE_CODE DEL_CODE
@@ -218,7 +207,7 @@ novafile_ul_parse_result() {
     echo "$FORM_LINK_RCPT"
 }
 
-novafile_ul_parse_file_id() {
+xfilesharing:novafile_ul_parse_file_id() {
     local PAGE=$1
 
     FILE_ID=$(echo "$PAGE" | parse_quiet 'id="l[0-9]-' 'id="l[0-9]-\([0-9]\+\)')
@@ -234,7 +223,7 @@ novafile_ul_parse_file_id() {
     echo "$FILE_ID"
 }
 
-novafile_login() {
+xfilesharing:novafile_login() {
     #local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     #local -r AUTH=$3
@@ -245,7 +234,7 @@ novafile_login() {
     xfilesharing_login_generic "$@" "$LOGIN_URL"
 }
 
-novafile_ul_get_folder_id() {
+xfilesharing:novafile_ul_get_folder_id() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r NAME=$3
@@ -273,7 +262,7 @@ novafile_ul_get_folder_id() {
     return 0
 }
 
-novafile_ul_move_file() {
+xfilesharing:novafile_ul_move_file() {
     local COOKIE_FILE=$1
     local BASE_URL=$2
     local FILE_ID=$3
@@ -305,7 +294,7 @@ novafile_ul_move_file() {
     return 0
 }
 
-novafile_pr_parse_file_size() {
+xfilesharing:novafile_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 
@@ -314,7 +303,7 @@ novafile_pr_parse_file_size() {
     echo "$FILE_SIZE"
 }
 
-novafile_ul_get_space_data() {
+xfilesharing:novafile_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT

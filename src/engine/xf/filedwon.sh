@@ -18,10 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA FILEDWON_FUNCS
-FILEDWON_FUNCS['dl_parse_form2']='filedwon_dl_parse_form2'
-
-filedwon_dl_parse_form2() {
+xfilesharing:filedwon_dl_parse_form2() {
     local PAGE=$1
 
     # Remove all paypal form tails from main form (which end is '</Form>')

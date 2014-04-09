@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA OTEUPLOAD_FUNCS
-OTEUPLOAD_FUNCS['pr_parse_file_name']='oteupload_pr_parse_file_name'
-OTEUPLOAD_FUNCS['pr_parse_file_size']='oteupload_pr_parse_file_size'
-
-oteupload_pr_parse_file_name() {
+xfilesharing:oteupload_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -31,7 +27,7 @@ oteupload_pr_parse_file_name() {
     echo "$FILE_NAME"
 }
 
-oteupload_pr_parse_file_size() {
+xfilesharing:oteupload_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

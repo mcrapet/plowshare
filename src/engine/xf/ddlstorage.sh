@@ -18,11 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-declare -gA DDLSTORAGE_FUNCS
-DDLSTORAGE_FUNCS['ls_parse_links']='ddlstorage_ls_parse_links'
-DDLSTORAGE_FUNCS['ls_parse_names']='ddlstorage_ls_parse_names'
-
-ddlstorage_ls_parse_links() {
+xfilesharing:ddlstorage_ls_parse_links() {
     local -r PAGE=$1
     local LINKS
 
@@ -31,7 +27,7 @@ ddlstorage_ls_parse_links() {
     echo "$LINKS"
 }
 
-ddlstorage_ls_parse_names() {
+xfilesharing:ddlstorage_ls_parse_names() {
     local -r PAGE=$1
     local NAMES
 
