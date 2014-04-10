@@ -2680,8 +2680,22 @@ quote() {
     echo \'${1//\'/\'\\\'\'}\' #'# Help vim syntax highlighting
 }
 
+# Append element to a "quoted" array.
+# $1: quoted array (multiline).
+# $2: new element (string) to add
+# stdout: quoted items (one per line)
+quote_multiple() {
+  if [[ $1 ]]; then
+      echo "${1%)}"
+  else
+      echo '('
+  fi
+  quote "$2"
+  echo ')'
+}
+
 # $1: input string (this is a comma separated list)
-# stdout: quote items (one per line)
+# stdout: quoted items (one per line)
 quote_array() {
     local -a ARR
     local E
@@ -2824,7 +2838,7 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, D, e, f, F, l, n, N, r, R, s, S, V)
+# $2: format (a, D, e, f, F, l, n, N, r, R, s, S, t, V)
 # $3: option value (string)
 # $4: option name (used for error reporting only)
 # $?: return 0 for success
@@ -2846,7 +2860,8 @@ check_argument_type() {
     elif [[ $TYPE = 'N' && ( $VAL = *[![:digit:]]* || $VAL = '' ) ]]; then
         log_error "$NAME ($OPT): positive or zero integer expected"
     # s: Non empty string
-    elif [[ $TYPE = 's' && $VAL = '' ]]; then
+    # t: Non empty string (multiple command-line switch allowed)
+    elif [[ $TYPE = [st] && $VAL = '' ]]; then
         log_error "$NAME ($OPT): empty string not expected"
     # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
     elif [ "$TYPE" = 'r' ] && ! check_transfer_speed "$VAL"; then
@@ -2911,7 +2926,7 @@ check_argument_type() {
     elif [[ $TYPE = 'V' && $VAL != [0-4] ]]; then
        log_error "$NAME: wrong verbose level \`$VAL'. Must be 0, 1, 2, 3 or 4."
 
-    elif [[ $TYPE = [lsS] ]]; then
+    elif [[ $TYPE = [lsSt] ]]; then
         RET=0
     elif [[ $TYPE = [aenNrRV] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
@@ -3005,14 +3020,16 @@ process_options() {
                         FUNC=translate_size
                     elif [ "$TYPE" = 'F' ]; then
                         FUNC=translate_exec
+                    elif [ "$TYPE" = 't' ]; then
+                        FUNC=quote_multiple
                     else
                         FUNC=quote
                     fi
 
                     if [ -z "$TYPE" ]; then
-                        [[ ${RES["${OPTS_VAR_LONG[$I]}"]} ]] && \
+                        [[ ${RES[${OPTS_VAR_LONG[$I]}]} ]] && \
                             log_notice "$NAME: useless duplicated option ${ARG%%=*}, ignoring"
-                        RES["${OPTS_VAR_LONG[$I]}"]=1
+                        RES[${OPTS_VAR_LONG[$I]}]=1
                         [ "${ARG%%=*}" != "$ARG" ] && \
                             log_notice "$NAME: unwanted argument \`${ARG#*=}' for ${ARG%%=*}, ignoring"
                     # Argument with equal (ex: --timeout=60)
@@ -3020,9 +3037,13 @@ process_options() {
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "${ARG#*=}" "${ARG%%=*}" || return
 
-                        [[ ${RES["${OPTS_VAR_LONG[$I]}"]} ]] && \
-                            log_notice "$NAME: duplicated option ${ARG%%=*}, taking last one"
-                        RES["${OPTS_VAR_LONG[$I]}"]="$($FUNC "${ARG#*=}")"
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "${RES[${OPTS_VAR_LONG[$I]}]}" "${ARG#*=}")"
+                        else
+                            [[ ${RES[${OPTS_VAR_LONG[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option ${ARG%%=*}, taking last one"
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "${ARG#*=}")"
+                        fi
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -3033,9 +3054,13 @@ process_options() {
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "$1" "$ARG" || return
 
-                        [[ ${RES["${OPTS_VAR_LONG[$I]}"]} ]] && \
-                            log_notice "$NAME: duplicated option $ARG, taking last one"
-                        RES["${OPTS_VAR_LONG[$I]}"]="$($FUNC "$1")"
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "${RES[${OPTS_VAR_LONG[$I]}]}" "$1")"
+                        else
+                            [[ ${RES[${OPTS_VAR_LONG[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option $ARG, taking last one"
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "$1")"
+                        fi
                         SKIP_ARG=1
                     fi
 
@@ -3057,14 +3082,16 @@ process_options() {
                         FUNC=translate_size
                     elif [ "$TYPE" = 'F' ]; then
                         FUNC=translate_exec
+                    elif [ "$TYPE" = 't' ]; then
+                        FUNC=quote_multiple
                     else
                         FUNC=quote
                     fi
 
                     if [ -z "$TYPE" ]; then
-                        [[ ${RES["${OPTS_VAR_SHORT[$I]}"]} ]] && \
+                        [[ ${RES[${OPTS_VAR_SHORT[$I]}]} ]] && \
                             log_notice "$NAME: useless duplicated option ${ARG:0:2}, ignoring"
-                        RES["${OPTS_VAR_SHORT[$I]}"]=1
+                        RES[${OPTS_VAR_SHORT[$I]}]=1
                         [[ ${#ARG} -gt 2 ]] && \
                             log_notice "$NAME: unwanted argument \`${ARG:2}' for ${ARG:0:2}, ignoring"
                     # Argument without whitespace (ex: -v3)
@@ -3072,9 +3099,13 @@ process_options() {
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "${ARG:2}" "${ARG:0:2}" || return
 
-                        [[ ${RES["${OPTS_VAR_SHORT[$I]}"]} ]] && \
-                            log_notice "$NAME: duplicated option ${ARG:0:2}, taking last one"
-                        RES["${OPTS_VAR_SHORT[$I]}"]="$($FUNC "${ARG:2}")"
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "${RES[${OPTS_VAR_SHORT[$I]}]}" "${ARG:2}")"
+                        else
+                            [[ ${RES[${OPTS_VAR_SHORT[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option ${ARG:0:2}, taking last one"
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "${ARG:2}")"
+                        fi
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -3085,9 +3116,13 @@ process_options() {
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "$1" "$ARG" || return
 
-                        [[ ${RES["${OPTS_VAR_SHORT[$I]}"]} ]] && \
-                            log_notice "$NAME: duplicated option $ARG, taking last one"
-                        RES["${OPTS_VAR_SHORT[$I]}"]="$($FUNC "$1")"
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "${RES[${OPTS_VAR_SHORT[$I]}]}" "$1")"
+                        else
+                            [[ ${RES[${OPTS_VAR_SHORT[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option $ARG, taking last one"
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "$1")"
+                        fi
                         SKIP_ARG=1
                     fi
 
