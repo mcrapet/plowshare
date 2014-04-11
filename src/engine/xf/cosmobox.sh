@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # cosmobox callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:cosmobox_ul_get_space_data() {
+xfcb_cosmobox_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT

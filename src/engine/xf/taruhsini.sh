@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # taruhsini callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,17 +18,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:taruhsini_ls_parse_names() {
+xfcb_taruhsini_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
-    NAMES=$(xfilesharing_ls_parse_names_generic "$PAGE")
+    NAMES=$(xfcb_generic_ls_parse_names "$PAGE")
     NAMES=$(parse_all_quiet . '^<small>\(.*\)</small>$' <<< "$NAMES")
 
     echo "$NAMES"
 }
 
-xfilesharing:taruhsini_ls_parse_folders() {
+xfcb_taruhsini_ls_parse_folders() {
     local PAGE=$1
     local FOLDERS FOLDER
 

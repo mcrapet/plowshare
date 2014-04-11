@@ -164,14 +164,14 @@ create_alt_filename() {
 # Example: "MODULE_RYUSHARE_DOWNLOAD_RESUME=no"
 # $1: module name
 module_config_resume() {
-    local -u VAR="MODULE_${1}_DOWNLOAD_RESUME"
+    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_RESUME"
     [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
 # $1: module name
 module_config_need_cookie() {
-    local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
+    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
     [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
@@ -179,14 +179,14 @@ module_config_need_cookie() {
 # $1: module name
 # stdout: variable array name (not content)
 module_config_need_extra() {
-    local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
+    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
     test -z "${!VAR}" || echo "${VAR}"
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=10"
 # $1: module name
 module_config_wait() {
-    local -u VAR="MODULE_${1}_DOWNLOAD_SUCCESSIVE_INTERVAL"
+    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_SUCCESSIVE_INTERVAL"
     echo $((${!VAR}))
 }
 
@@ -800,6 +800,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
 
 if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options DOWNLOAD)
     MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options DOWNLOAD)
 fi
 
@@ -934,26 +935,21 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             test -z "$NO_PLOWSHARERC" && \
                 process_configfile_module_options '[Pp]lowdown' "$MODULE" DOWNLOAD "$EXT_PLOWSHARERC"
 
-            if [ -n "$ENGINE" ]; then
-                eval "$(process_module_options "${MODULE//:/_}" DOWNLOAD \
+            [ -n "$ENGINE" ] && \
+                eval "$(process_engine_options "$ENGINE" DOWNLOAD \
                     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-            else
-                eval "$(process_module_options "$MODULE" DOWNLOAD \
-                    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-            fi
 
-            if [ -n "$ENGINE" ]; then
-                ${MODULE//:/_}_vars_set
-            else
-                ${MODULE}_vars_set
-            fi
+            eval "$(process_module_options "${MODULE//:/_}" DOWNLOAD \
+                "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+
+            [ -n "$ENGINE" ] && ${ENGINE}_vars_set
+            ${MODULE//:/_}_vars_set
+
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
                 "$TMPDIR" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
-            if [ -n "$ENGINE" ]; then
-                ${MODULE//:/_}_vars_unset
-            else
-                ${MODULE}_vars_unset
-            fi
+
+            [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
+            ${MODULE//:/_}_vars_unset
 
             # Link explicitly skipped
             if [ -n "$PRE_COMMAND" -a $MRETVAL -eq $ERR_NOMODULE ]; then

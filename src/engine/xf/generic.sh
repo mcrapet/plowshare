@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # xfilesharing generic functions
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,92 +18,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-XFILESHARING_FUNCTIONS="
-login
-handle_captcha
-dl_parse_error
-dl_parse_form1
-dl_parse_form2
-dl_parse_final_link
-dl_commit_step1
-dl_commit_step2
-dl_parse_streaming
-dl_parse_imagehosting
-dl_parse_countdown
-ul_get_space_data
-ul_get_folder_data
-ul_create_folder
-ul_get_file_id
-ul_parse_data
-ul_commit
-ul_parse_result
-ul_commit_result
-ul_handle_state
-ul_parse_del_code
-ul_parse_file_id
-ul_move_file
-ul_edit_file
-ul_set_flag_premium
-ul_set_flag_public
-ul_generate_links
-ul_remote_queue_test
-ul_remote_queue_check
-ul_remote_queue_add
-ul_remote_queue_del
-ul_get_file_code
-pr_parse_file_name
-pr_parse_file_size
-ls_parse_links
-ls_parse_names
-ls_parse_last_page
-ls_parse_folders"
-
-XFILESHARING_OPTIONS="
-DOWNLOAD_OPTIONS
-DOWNLOAD_RESUME
-DOWNLOAD_FINAL_LINK_NEEDS_COOKIE
-DOWNLOAD_FINAL_LINK_NEEDS_EXTRA
-DOWNLOAD_SUCCESSIVE_INTERVAL
-UPLOAD_OPTIONS
-UPLOAD_REMOTE_SUPPORT
-DELETE_OPTIONS
-PROBE_OPTIONS
-LIST_OPTIONS
-LIST_HAS_SUBFOLDERS"
-
-XFILESHARING_DOWNLOAD_OPTIONS_GENERIC="
-AUTH,a,auth,a=USER:PASSWORD,User account
-LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
-XFILESHARING_DOWNLOAD_RESUME_GENERIC=yes
-XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE_GENERIC=yes
-XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA_GENERIC=
-XFILESHARING_DOWNLOAD_SUCCESSIVE_INTERVAL_GENERIC=
-
-XFILESHARING_UPLOAD_OPTIONS_GENERIC="
-AUTH,a,auth,a=USER:PASSWORD,User account
-LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
-FOLDER,,folder,s=FOLDER,Folder to upload files into
-DESCRIPTION,d,description,S=DESCRIPTION,Set file description
-TOEMAIL,,email-to,e=EMAIL,<To> field for notification email
-PREMIUM,,premium,,Make file inaccessible to non-premium users
-PRIVATE_FILE,,private,,Do not make file visible in folder view
-ASYNC,,async,,Asynchronous remote upload"
-XFILESHARING_UPLOAD_REMOTE_SUPPORT_GENERIC=yes
-
-XFILESHARING_DELETE_OPTIONS_GENERIC=""
-
-XFILESHARING_PROBE_OPTIONS_GENERIC=""
-
-XFILESHARING_LIST_OPTIONS_GENERIC=""
-XFILESHARING_LIST_HAS_SUBFOLDERS_GENERIC=yes
-
 # Static function. Proceed with login.
 # $1: cookie file
 # $2: base URL
 # $3: authentication
 # $4: login URL (optional)
 # $?: 0 for success
-xfilesharing_login_generic() {
+xfcb_generic_login() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r AUTH=$3
@@ -142,7 +63,7 @@ xfilesharing_login_generic() {
 # stdout: captcha data prepaired for cURL (single line)
 #         format "-d name=value -d name1=value1 ..."
 #         or nothing if there is no captcha
-xfilesharing_handle_captcha_generic() {
+xfcb_generic_handle_captcha() {
     local PAGE=$1
     local FORM_CODE ID
 
@@ -244,10 +165,85 @@ xfilesharing_handle_captcha_generic() {
     return 0
 }
 
+# CloudFlare antiDDoS protection handler
+# $1: cooke file
+# $2: referer URL (usually main URL)
+# $3: (X)HTML page data
+# stdout: (X)HTML page data
+xfcb_generic_check_antiddos() {
+    local -r COOKIE_FILE=$1
+    local -r REFERER=$2
+    local PAGE=$3
+    local -r BASE_URL=$(basename_url "$REFERER")
+
+    if match 'DDoS protection by CloudFlare\|CloudFlare Ray ID' "$PAGE"; then
+        local FORM_DDOS FORM_DDOS_VC FORM_DDOS_ACTION DDOS_CHLNG DOMAIN
+
+        log_debug "CloudFlare DDoS protection detected."
+
+        if match 'The web server reported a bad gateway error' "$PAGE"; then
+            log_error 'CloudFlare bad gateway. Try again later.'
+            return $ERR_LINK_TEMP_UNAVAILABLE
+            #return $ERR_FATAL
+        fi
+
+        FORM_DDOS=$(grep_form_by_id "$PAGE" 'challenge-form') || return
+        FORM_DDOS_ACTION=$(echo "$PAGE" | parse_form_action) || return
+        FORM_DDOS_VC=$(echo "$FORM_DDOS" | parse_form_input_by_name 'jschl_vc') || return
+        DDOS_CHLNG=$(echo "$PAGE" | parse 'a.value = ' 'a.value = \([^;]\+\)') || return
+        DOMAIN=$(echo "$BASE_URL" | parse . '^https\?://\(.*\)$')
+        DDOS_CHLNG=$(( ($DDOS_CHLNG) + ${#DOMAIN} ))
+
+        wait 6 || return
+
+        PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' -G \
+            -e "$REFERER" \
+            -d "jschl_vc=$FORM_DDOS_VC" \
+            -d "jschl_answer=$DDOS_CHLNG" \
+            "$BASE_URL$FORM_DDOS_ACTION" | \
+            strip_html_comments) || return
+    fi
+
+    echo "$PAGE"
+    return 0
+}
+
+# Unpack packed(obfuscated) js code
+# $1: js script to unpack
+# stdout: unpacked js script
+xfcb_generic_unpack_js() {
+    local PACKED_SCRIPT=$1
+    local UNPACK_SCRIPT
+
+    UNPACK_SCRIPT="
+    //////////////////////////////////////////
+    //  Un pack the code from the /packer/  //
+    //  By matthew@matthewfl.com            //
+    //  http://matthewfl.com/unPacker.html  //
+    //////////////////////////////////////////
+    function unPack(code) {
+        code = unescape(code);
+        var env = {
+            eval: function(c) {
+                code = c;
+            },
+            window: {},
+            document: {}
+        };
+        eval(\"with(env) {\" + code + \"}\");
+        code = (code + \"\").replace(/;/g, \";\\n\").replace(/{/g, \"\\n{\\n\").replace(/}/g, \"\\n}\\n\").replace(/\\n;\\n/g, \";\\n\").replace(/\\n\\n/g, \"\\n\");
+        return code;
+    }"
+
+    # urlencoding script with all quotes and backslashes to push it into unpack function as string
+    PACKED_SCRIPT=$(echo "$PACKED_SCRIPT" | uri_encode_strict | replace '\' '%5C')
+    echo "$PACKED_SCRIPT_CLEAN $UNPACK_SCRIPT print(unPack('$PACKED_SCRIPT'));" | javascript || return
+}
+
 # Parse all download stage errors
 # $1: (X)HTML page data
 # $?: error code or 0 if no error
-xfilesharing_dl_parse_error_generic() {
+xfcb_generic_dl_parse_error() {
     local PAGE=$1
     local ERROR ERROR_NOBLOCK=0
 
@@ -351,7 +347,7 @@ xfilesharing_dl_parse_error_generic() {
 # $9-... (optional) additional form fields (for custom callbacks)
 # stdout: form data prepaired for cURL
 #         "name=value" for mandatory and "-d name=value" for optional or sparse fields
-xfilesharing_dl_parse_form1_generic() {
+xfcb_generic_dl_parse_form1() {
     local -r PAGE=$1
     local -r FORM_STD_OP=${2:-'op'}
     local -r FORM_STD_ID=${3:-'id'}
@@ -439,7 +435,7 @@ xfilesharing_dl_parse_form1_generic() {
 # $11-... (optional) additional form fields (for custom callbacks)
 # stdout: form data prepaired for cURL
 #         "name=value" for mandatory and "-d name=value" for optional or sparse fields
-xfilesharing_dl_parse_form2_generic() {
+xfcb_generic_dl_parse_form2() {
     local -r PAGE=$1
     local -r FORM_STD_NAME=${2:-'F1'}
     local -r FORM_STD_OP=${3:-'op'}
@@ -540,7 +536,7 @@ xfilesharing_dl_parse_form2_generic() {
 #     May be useful to find actual download link
 # stdout: download URL
 #         file name (optional)
-xfilesharing_dl_parse_final_link_generic() {
+xfcb_generic_dl_parse_final_link() {
     local PAGE=$1
     local FILE_NAME=$2
 
@@ -605,7 +601,7 @@ xfilesharing_dl_parse_final_link_generic() {
 # $2: main URL (used as form action)
 # $3: form data returned by parse function
 # stdout: (X)HTML page data
-xfilesharing_dl_commit_step1_generic() {
+xfcb_generic_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -650,7 +646,7 @@ xfilesharing_dl_commit_step1_generic() {
 # $3: form data returned by parse function
 # $4: (optional) captcha data
 # stdout: (X)HTML page data
-xfilesharing_dl_commit_step2_generic() {
+xfcb_generic_dl_commit_step2() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -678,13 +674,14 @@ xfilesharing_dl_commit_step2_generic() {
     if [ 'act=download2' = "$FORM_OP" ] && [ -n "$FORM_FNAME" ]; then
         log_debug 'XF download-after-post mod detected.'
 
-        EXTRA="MODULE_XFILESHARING_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=( \
+        EXTRA="MODULE_XFILESHARING_${SUBMODULE^^}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=( \
             -d \"$FORM_OP\" \
             -d \"$FORM_ID\" \
             $FORM_FNAME \
             -d \"$FORM_RAND\" \
             $FORM_CAPTCHA \
-            $FORM_ADD )"
+            $FORM_ADD ) \
+            MODULE_XFILESHARING_${SUBMODULE^^}_DOWNLOAD_RESUME=no"
 
         FORM_FNAME=$(echo "$FORM_FNAME" | parse . "=\(.*\)$")
 
@@ -719,7 +716,7 @@ xfilesharing_dl_commit_step2_generic() {
 # $3: (optional) filename
 # stdout: download URL (or RTMP link with parameters)
 #         file name (optional)
-xfilesharing_dl_parse_streaming_generic () {
+xfcb_generic_dl_parse_streaming () {
     local PAGE=$1
     local -r URL=$2
     local -r FILE_NAME=$3
@@ -734,7 +731,7 @@ xfilesharing_dl_parse_streaming_generic () {
         SCRIPTS=$(echo "$PAGE" | parse_all "<script[^>]*>eval(function(p,a,c,k,e,d)" "<script[^>]*>\(eval.*\)$")
 
         while read -r JS; do
-            JS=$(xfilesharing_unpack_js "$JS")
+            JS=$(xfcb_unpack_js "$JS")
 
             if match "$RE_PLAYER" "$JS"; then
                 log_debug "Found some player code in packed script (type 1)."
@@ -766,7 +763,7 @@ xfilesharing_dl_parse_streaming_generic () {
         done <<< "$SCRIPTS"
 
         JS=$(grep_script_by_order "$PAGE" $SCRIPT_N | delete_first_line | delete_last_line | replace $'\r' '' | replace $'\n' '')
-        JS=$(xfilesharing_unpack_js "$JS")
+        JS=$(xfcb_unpack_js "$JS")
 
         if matchi "$RE_PLAYER" "$JS"; then
             log_debug "Found some player code in packed script (type 2)."
@@ -826,7 +823,7 @@ xfilesharing_dl_parse_streaming_generic () {
 # $1: (X)HTML page data
 # stdout: download URL
 #         file name (optional)
-xfilesharing_dl_parse_imagehosting_generic() {
+xfcb_generic_dl_parse_imagehosting() {
     local -r PAGE=$1
 
     RE_IMG="<img[^>]*src=[^>]*\(/files/\|/i/\)[^'\"[:space:]>]*\(t(_\|[^_])\|[^t]\)\."
@@ -854,7 +851,7 @@ xfilesharing_dl_parse_imagehosting_generic() {
 # Parse contdown timer data (download)
 # $1: (X)HTML page data
 # stdout: time to wait
-xfilesharing_dl_parse_countdown_generic () {
+xfcb_generic_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME PAGE_UNBREAK
 
@@ -894,7 +891,7 @@ xfilesharing_dl_parse_countdown_generic () {
 # $2: base URL
 # stdout: space used (XXX Mb/Kb/Gb)
 #         space limit
-xfilesharing_ul_get_space_data_generic() {
+xfcb_generic_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT
@@ -947,7 +944,7 @@ xfilesharing_ul_get_space_data_generic() {
 # stdout: folder ID
 #         (optional) token, used in move file request
 #         (optional) folder move command
-xfilesharing_ul_get_folder_data_generic() {
+xfcb_generic_ul_get_folder_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r NAME=$3
@@ -1049,7 +1046,7 @@ xfilesharing_ul_get_folder_data_generic() {
 # $2: base URL
 # $3: folder name
 # $?: 0 for success
-xfilesharing_ul_create_folder_generic() {
+xfcb_generic_ul_create_folder() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r NAME=$3
@@ -1077,7 +1074,7 @@ xfilesharing_ul_create_folder_generic() {
 # $1: cookie file (logged into account)
 # $2: base URL
 # stdout: file ID
-xfilesharing_ul_get_file_id_generic() {
+xfcb_generic_ul_get_file_id() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE FILE_ID
@@ -1101,7 +1098,7 @@ xfilesharing_ul_get_file_id_generic() {
 # Parse form or other data (upload)
 # $1: (X)HTML page data
 # stdout: form data
-xfilesharing_ul_parse_data_generic() {
+xfcb_generic_ul_parse_data() {
     local -r PAGE=$1
 
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
@@ -1215,7 +1212,7 @@ xfilesharing_ul_parse_data_generic() {
 # $4: remote filename
 # $5: form data
 # stdout: (X)HTML page data
-xfilesharing_ul_commit_generic() {
+xfcb_generic_ul_commit() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$(basename_url "$2")
     local -r FILE=$3
@@ -1340,7 +1337,7 @@ xfilesharing_ul_commit_generic() {
 # Parse result (upload)
 # $1: (X)HTML page data
 # stdout: upload result data
-xfilesharing_ul_parse_result_generic() {
+xfcb_generic_ul_parse_result() {
     local PAGE=$1
 
     local PAGE_BODY STATE OP FORM_LINK_RCPT FILE_CODE DEL_CODE
@@ -1435,7 +1432,7 @@ xfilesharing_ul_parse_result_generic() {
 # $2: base URL
 # $3: upload result data (form data)
 # stdout: (X)HTML page data
-xfilesharing_ul_commit_result_generic() {
+xfcb_generic_ul_commit_result() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r FORM_DATA=$3
@@ -1474,7 +1471,7 @@ xfilesharing_ul_commit_result_generic() {
 # Handle state (upload)
 # $1: upload state info
 # $?: proper error or 0 for success
-xfilesharing_ul_handle_state_generic() {
+xfcb_generic_ul_handle_state() {
     local STATE=$1
 
     if [ "$STATE" = 'OK' ]; then
@@ -1499,7 +1496,7 @@ xfilesharing_ul_handle_state_generic() {
 # Parse delete code from final page (upload)
 # $1: (X)HTML page data
 # stdout: delete code
-xfilesharing_ul_parse_del_code_generic() {
+xfcb_generic_ul_parse_del_code() {
     local PAGE=$1
 
     local DEL_CODE
@@ -1518,7 +1515,7 @@ xfilesharing_ul_parse_del_code_generic() {
 # Parse file ID from final page (upload)
 # $1: (X)HTML page data
 # stdout: file ID
-xfilesharing_ul_parse_file_id_generic() {
+xfcb_generic_ul_parse_file_id() {
     local PAGE=$1
 
     local FILE_ID
@@ -1542,7 +1539,7 @@ xfilesharing_ul_parse_file_id_generic() {
 # $3: file ID to move
 # $4: folder data
 # $?: 0 for success
-xfilesharing_ul_move_file_generic() {
+xfcb_generic_ul_move_file() {
     local COOKIE_FILE=$1
     local BASE_URL=$2
     local FILE_ID=$3
@@ -1584,7 +1581,7 @@ xfilesharing_ul_move_file_generic() {
 # $3: file code
 # $4: remote filename
 # $?: 0 for success
-xfilesharing_ul_edit_file_generic() {
+xfcb_generic_ul_edit_file() {
     local COOKIE_FILE=$1
     local BASE_URL=$2
     local FILE_CODE=$3
@@ -1657,7 +1654,7 @@ xfilesharing_ul_edit_file_generic() {
 # $2: base URL
 # $3: file ID
 # $?: 0 for success
-xfilesharing_ul_set_flag_premium_generic() {
+xfcb_generic_ul_set_flag_premium() {
     local COOKIE_FILE=$1
     local BASE_URL=$2
     local FILE_ID=$3
@@ -1686,7 +1683,7 @@ xfilesharing_ul_set_flag_premium_generic() {
 # $2: base URL
 # $3: file ID
 # $?: 0 for success
-xfilesharing_ul_set_flag_public_generic() {
+xfcb_generic_ul_set_flag_public() {
     local COOKIE_FILE=$1
     local BASE_URL=$2
     local FILE_ID=$3
@@ -1723,7 +1720,7 @@ xfilesharing_ul_set_flag_public_generic() {
 # $4: (optional) file name
 # stdout: file download URL
 #         file delete URL
-xfilesharing_ul_generate_links_generic() {
+xfcb_generic_ul_generate_links() {
     local BASE_URL=$1
     local FILE_CODE=$2
     local DEL_CODE=$3
@@ -1747,7 +1744,7 @@ xfilesharing_ul_generate_links_generic() {
 # Test for remote upload queue support (upload)
 # $1: (X)HTML page data
 # stdout: 1 if supported, 0 otherwise
-xfilesharing_ul_remote_queue_test_generic() {
+xfcb_generic_ul_remote_queue_test() {
     local -r PAGE=$1
 
     if match '?op=upload_url' "$PAGE"; then
@@ -1762,7 +1759,7 @@ xfilesharing_ul_remote_queue_test_generic() {
 # $2: base URL
 # $3: remote URL
 # $4: remote upload op
-xfilesharing_ul_remote_queue_add_generic() {
+xfcb_generic_ul_remote_queue_add() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r FILE=$3
@@ -1794,7 +1791,7 @@ xfilesharing_ul_remote_queue_add_generic() {
 # $1: cookie file
 # $2: base URL
 # $3: remote upload op
-xfilesharing_ul_remote_queue_del_generic() {
+xfcb_generic_ul_remote_queue_del() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r REMOTE_UPLOAD_QUEUE_OP=$3
@@ -1826,7 +1823,7 @@ xfilesharing_ul_remote_queue_del_generic() {
 # $1: cookie file
 # $2: base url
 # $3: remote upload op
-xfilesharing_ul_remote_queue_check_generic() {
+xfcb_generic_ul_remote_queue_check() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r REMOTE_UPLOAD_QUEUE_OP=$3
@@ -1854,7 +1851,7 @@ xfilesharing_ul_remote_queue_check_generic() {
 # $1: cookie file (logged into account)
 # $2: base URL
 # stdout: file code
-xfilesharing_ul_get_file_code_generic() {
+xfcb_generic_ul_get_file_code() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE FILE_CODE
@@ -1878,7 +1875,7 @@ xfilesharing_ul_get_file_code_generic() {
 # Parse file name (probe)
 # $1: (X)HTML page data
 # stdout: file name
-xfilesharing_pr_parse_file_name_generic() {
+xfcb_generic_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -1887,7 +1884,7 @@ xfilesharing_pr_parse_file_name_generic() {
     [ -z "$FILE_NAME" ] && FILE_NAME=$(parse_quiet 'File[[:space:]]*[Nn]ame[[:space:]]*:[[:space:]]*' 'File[[:space:]]*[Nn]ame[[:space:]]*:[[:space:]]*\([[:alnum:]._]\+\)' <<< "$PAGE")
 
     if [ -z "$FILE_NAME" ]; then
-        IMAGE_DATA=$(xfilesharing_dl_parse_imagehosting_generic "$PAGE")
+        IMAGE_DATA=$(xfcb_generic_dl_parse_imagehosting "$PAGE")
         { read -r URL; read -r FILE_NAME; } <<<"$IMAGE_DATA"
     fi
 
@@ -1897,7 +1894,7 @@ xfilesharing_pr_parse_file_name_generic() {
 # Parse file size (probe)
 # $1: (X)HTML page data
 # stdout: file size
-xfilesharing_pr_parse_file_size_generic() {
+xfcb_generic_pr_parse_file_size() {
     local -r PAGE=$1
     local -r FILE_NAME=$2
     local FILE_SIZE
@@ -1916,7 +1913,7 @@ xfilesharing_pr_parse_file_size_generic() {
 # Parse links (list)
 # $1: (X)HTML page data
 # stdout: links list
-xfilesharing_ls_parse_links_generic() {
+xfcb_generic_ls_parse_links() {
     local -r PAGE=$1
     local LINKS
 
@@ -1932,7 +1929,7 @@ xfilesharing_ls_parse_links_generic() {
 # Parse file names (list)
 # $1: (X)HTML page data
 # stdout: names list
-xfilesharing_ls_parse_names_generic() {
+xfcb_generic_ls_parse_names() {
     local -r PAGE=$1
     local NAMES
 
@@ -1949,7 +1946,7 @@ xfilesharing_ls_parse_names_generic() {
 #  for big folders
 # $1: (X)HTML page data
 # stdout: last page number
-xfilesharing_ls_parse_last_page_generic() {
+xfcb_generic_ls_parse_last_page() {
     local -r PAGE=$1
     local LAST_PAGE
 
@@ -1967,7 +1964,7 @@ xfilesharing_ls_parse_last_page_generic() {
 # Parse folder names (list)
 # $1: (X)HTML page data
 # stdout: folders list
-xfilesharing_ls_parse_folders_generic() {
+xfcb_generic_ls_parse_folders() {
     local -r PAGE=$1
     local FOLDERS FOLDER
 

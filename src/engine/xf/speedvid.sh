@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # speedvid callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:speedvid_pr_parse_file_name() {
+xfcb_speedvid_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 

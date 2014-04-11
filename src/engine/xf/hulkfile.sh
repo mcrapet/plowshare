@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # hulkfile callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,15 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:hulkfile_dl_parse_error() {
+xfcb_hulkfile_dl_parse_error() {
     local PAGE=$1
 
     PAGE=$(replace '<div class="err">' '' <<< "$PAGE")
 
-    xfilesharing_dl_parse_error_generic "$PAGE"
+    xfcb_generic_dl_parse_error "$PAGE"
 }
 
-xfilesharing:hulkfile_dl_parse_countdown () {
+xfcb_hulkfile_dl_parse_countdown () {
     local -r PAGE=$1
     local WAIT_TIME
 

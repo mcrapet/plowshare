@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # fileom callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:fileom_ls_parse_links() {
+xfcb_fileom_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -27,7 +27,7 @@ xfilesharing:fileom_ls_parse_links() {
     echo "$LINKS"
 }
 
-xfilesharing:fileom_ls_parse_names() {
+xfcb_fileom_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -36,7 +36,7 @@ xfilesharing:fileom_ls_parse_names() {
     echo "$NAMES"
 }
 
-xfilesharing:fileom_ls_parse_folders() {
+xfcb_fileom_ls_parse_folders() {
     local PAGE=$1
     local FOLDERS
 

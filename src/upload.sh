@@ -107,7 +107,7 @@ module_exist() {
 # Example: "MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no"
 # $1: module name
 module_config_remote_upload() {
-    local -u VAR="MODULE_${1}_UPLOAD_REMOTE_SUPPORT"
+    local -u VAR="MODULE_${1//:/_}_UPLOAD_REMOTE_SUPPORT"
     [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
@@ -350,6 +350,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
 
 if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options UPLOAD)
     MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options UPLOAD)
 fi
 
@@ -395,13 +396,12 @@ fi
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options '[Pp]lowup' "$MODULE" UPLOAD "$EXT_PLOWSHARERC"
 
-if [ -n "$ENGINE" ]; then
-    eval "$(process_module_options "${MODULE//:/_}" UPLOAD \
+[ -n "$ENGINE" ] && \
+    eval "$(process_engine_options "$ENGINE" DOWNLOAD \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-else
-    eval "$(process_module_options "$MODULE" UPLOAD \
-        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-fi
+
+eval "$(process_module_options "${MODULE//:/_}" DOWNLOAD \
+    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
 if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
     log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
@@ -489,11 +489,8 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     timeout_init $TIMEOUT
 
     TRY=0
-    if [ -n "$ENGINE" ]; then
-        ${MODULE//:/_}_vars_set
-    else
-        ${MODULE}_vars_set
-    fi
+    [ -n "$ENGINE" ] && ${ENGINE}_vars_set
+    ${MODULE//:/_}_vars_set
 
     while :; do
         :> "$UCOOKIE"
@@ -526,11 +523,8 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         log_notice "Starting upload ($MODULE): retry $TRY/$MAXRETRIES"
     done
 
-    if [ -n "$ENGINE" ]; then
-        ${MODULE//:/_}_vars_unset
-    else
-        ${MODULE}_vars_unset
-    fi
+    [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
+    ${MODULE//:/_}_vars_unset
 
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true

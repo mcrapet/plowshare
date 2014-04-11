@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zalaa callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -20,12 +20,12 @@
 
 # Clone of uploadc, maybe will mrege it with generic if more such sites discovered
 
-xfilesharing:zalaa_dl_parse_form2() {
-    xfilesharing_dl_parse_form2_generic "$1" 'frmdownload' '' '' '' '' '' '' '' '' \
+xfcb_zalaa_dl_parse_form2() {
+    xfcb_generic_dl_parse_form2 "$1" 'frmdownload' '' '' '' '' '' '' '' '' \
         'ipcount_val'
 }
 
-xfilesharing:zalaa_dl_commit_step2() {
+xfcb_zalaa_dl_commit_step2() {
     local -r COOKIE_FILE=$1
     #local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -36,7 +36,7 @@ xfilesharing:zalaa_dl_commit_step2() {
     { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
     [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
 
-    PAGE=$(xfilesharing_dl_commit_step2_generic "$@") || return
+    PAGE=$(xfcb_generic_dl_commit_step2 "$@") || return
 
     URL=$(echo "$PAGE" | parse_attr "/download-[[:alnum:]]\{12\}.html" 'href') || return
 
@@ -52,7 +52,7 @@ xfilesharing:zalaa_dl_commit_step2() {
     JS=$(echo "$PAGE" | parse "^<script type='text/javascript'>eval(function(p,a,c,k,e,d)" ">\(.*\)$") || return
 
     #FILE_URL=$(echo "var document={location:{href:''}}; $JS; dnlFile(); print(document.location.href);" | javascript) || return
-    JS=$(xfilesharing_unpack_js "$JS") || return
+    JS=$(xfcb_unpack_js "$JS") || return
 
     FILE_URL=$(echo "$JS" | parse 'document.location.href' "document.location.href='\(.*\)'") || return
 

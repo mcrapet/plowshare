@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # cramit callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,11 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:cramit_dl_parse_form1() {
-    xfilesharing_dl_parse_form1_generic "$1" '' '' '' '' '' '' 'freemethod'
+xfcb_cramit_dl_parse_form1() {
+    xfcb_generic_dl_parse_form1 "$1" '' '' '' '' '' '' 'freemethod'
 }
 
-xfilesharing:cramit_ls_parse_links() {
+xfcb_cramit_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -33,7 +33,7 @@ xfilesharing:cramit_ls_parse_links() {
     echo "$LINKS"
 }
 
-xfilesharing:cramit_ls_parse_names() {
+xfcb_cramit_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -44,21 +44,21 @@ xfilesharing:cramit_ls_parse_names() {
     echo "$NAMES"
 }
 
-xfilesharing:cramit_ls_parse_folders() {
+xfcb_cramit_ls_parse_folders() {
     local PAGE=$1
 
     PAGE=$(replace '<TR' $'\n<TR' <<< "$PAGE")
 
-    xfilesharing_ls_parse_folders_generic "$PAGE"
+    xfcb_generic_ls_parse_folders "$PAGE"
 }
 
-xfilesharing:cramit_ul_remote_queue_test() {
+xfcb_cramit_ul_remote_queue_test() {
     #local -r PAGE=$1
 
     echo 'uploader2'
 }
 
-xfilesharing:cramit_ul_remote_queue_add() {
+xfcb_cramit_ul_remote_queue_add() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r FILE=$3
@@ -83,7 +83,7 @@ xfilesharing:cramit_ul_remote_queue_add() {
     return 0
 }
 
-xfilesharing:cramit_ul_remote_queue_del() {
+xfcb_cramit_ul_remote_queue_del() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r REMOTE_UPLOAD_QUEUE_OP=$3
@@ -110,7 +110,7 @@ xfilesharing:cramit_ul_remote_queue_del() {
     return 0
 }
 
-xfilesharing:cramit_ul_remote_queue_check() {
+xfcb_cramit_ul_remote_queue_check() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r REMOTE_UPLOAD_QUEUE_OP=$3
@@ -134,7 +134,7 @@ xfilesharing:cramit_ul_remote_queue_check() {
     fi
 }
 
-xfilesharing:cramit_ul_get_file_code() {
+xfcb_cramit_ul_get_file_code() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE FILE_CODE

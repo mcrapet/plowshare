@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # xfilesharing engine
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,6 +18,70 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
+# Engine options
+ENGINE_XFILESHARING_DOWNLOAD_OPTIONS=
+ENGINE_XFILESHARING_UPLOAD_OPTIONS=
+ENGINE_XFILESHARING_DELETE_OPTIONS=
+ENGINE_XFILESHARING_LIST_OPTIONS=
+ENGINE_XFILESHARING_PROBE_OPTIONS=
+
+# Generic callback functions list
+declare -ra XFCB_FUNCTIONS=(
+login
+handle_captcha
+check_antiddos
+unpack_js
+dl_parse_error
+dl_parse_form1
+dl_parse_form2
+dl_parse_final_link
+dl_commit_step1
+dl_commit_step2
+dl_parse_streaming
+dl_parse_imagehosting
+dl_parse_countdown
+ul_get_space_data
+ul_get_folder_data
+ul_create_folder
+ul_get_file_id
+ul_parse_data
+ul_commit
+ul_parse_result
+ul_commit_result
+ul_handle_state
+ul_parse_del_code
+ul_parse_file_id
+ul_move_file
+ul_edit_file
+ul_set_flag_premium
+ul_set_flag_public
+ul_generate_links
+ul_remote_queue_test
+ul_remote_queue_check
+ul_remote_queue_add
+ul_remote_queue_del
+ul_get_file_code
+pr_parse_file_name
+pr_parse_file_size
+ls_parse_links
+ls_parse_names
+ls_parse_last_page
+ls_parse_folders)
+
+# Generic submodule options list
+declare -ra OPTS_VAR_SUBMODULE=(
+DOWNLOAD_OPTIONS
+DOWNLOAD_RESUME
+DOWNLOAD_FINAL_LINK_NEEDS_COOKIE
+DOWNLOAD_FINAL_LINK_NEEDS_EXTRA
+DOWNLOAD_SUCCESSIVE_INTERVAL
+UPLOAD_OPTIONS
+UPLOAD_REMOTE_SUPPORT
+DELETE_OPTIONS
+PROBE_OPTIONS
+LIST_OPTIONS
+LIST_HAS_SUBFOLDERS)
+
 # Globals
 declare ENGINE_DIR
 declare SUBMODULE
@@ -28,7 +92,7 @@ declare URL_UPLOAD
 # Note: use global variable ENGINE_DIR
 #
 # stdout: return module list (one name per line)
-grep_list_xfilesharing_modules() {
+xfilesharing_grep_list_modules() {
     local -r CONFIG="$ENGINE_DIR/xf/config"
 
     if [ ! -f "$CONFIG" ]; then
@@ -103,7 +167,7 @@ xfilesharing_init() {
     source "$ENGINE_DIR/xf/module.sh"
     source "$ENGINE_DIR/xf/generic.sh"
 
-    XF_MODULES=$(grep_list_xfilesharing_modules) || return
+    XF_MODULES=$(xfilesharing_grep_list_modules) || return
 
     for XF_MODULE in $XF_MODULES; do
         if [ -f "$ENGINE_DIR/xf/$XF_MODULE.sh" ]; then
@@ -138,50 +202,48 @@ xfilesharing_probe_module() {
 
         case "$NAME" in
             'plowdown')
-                eval "xfilesharing:${SUBMODULE}_download(){ xfilesharing_download \"\$@\"; }"
+                eval "xfilesharing:${SUBMODULE}_download(){ xfcb_download \"\$@\"; }"
                 ;;
             'plowlist')
-                eval "xfilesharing:${SUBMODULE}_list(){ xfilesharing_list \"\$@\"; }"
+                eval "xfilesharing:${SUBMODULE}_list(){ xfcb_list \"\$@\"; }"
                 ;;
             'plowdel')
-                eval "xfilesharing:${SUBMODULE}_delete(){ xfilesharing_delete \"\$@\"; }"
+                eval "xfilesharing:${SUBMODULE}_delete(){ xfcb_delete \"\$@\"; }"
                 ;;
             'plowprobe')
-                eval "xfilesharing:${SUBMODULE}_probe(){ xfilesharing_probe \"\$@\"; }"
+                eval "xfilesharing:${SUBMODULE}_probe(){ xfcb_probe \"\$@\"; }"
                 ;;
             'plowup')
-                eval "xfilesharing:${SUBMODULE}_upload(){ xfilesharing_upload \"\$@\"; }"
+                eval "xfilesharing:${SUBMODULE}_upload(){ xfcb_upload \"\$@\"; }"
                 ;;
         esac
 
-        while read -r FUNCTION_NAME; do
-            [ -z "$FUNCTION_NAME" ] && continue
-            if ! declare -f "xfilesharing:${SUBMODULE}_${FUNCTION_NAME}" >/dev/null; then
-                eval "xfilesharing:${SUBMODULE}_${FUNCTION_NAME}(){
-                    xfilesharing_${FUNCTION_NAME}_generic \"\$@\"
+        for FUNCTION_NAME in "${XFCB_FUNCTIONS[@]}"; do
+            if ! declare -f "xfcb_${SUBMODULE}_${FUNCTION_NAME}" >/dev/null; then
+                eval "xfcb_${SUBMODULE}_${FUNCTION_NAME}(){
+                    xfcb_generic_${FUNCTION_NAME} \"\$@\"
                 }"
             fi
 
-            eval "xfilesharing_${FUNCTION_NAME}() { xfilesharing:${SUBMODULE}_${FUNCTION_NAME} \"\$@\"; }"
-        done <<< "$XFILESHARING_FUNCTIONS"
+            eval "xfcb_${FUNCTION_NAME}() { xfcb_${SUBMODULE}_${FUNCTION_NAME} \"\$@\"; }"
+        done
 
-        while read -r OPTION_NAME; do
-            [ -z "$OPTION_NAME" ] && continue
+        for OPTION_NAME in "${OPTS_VAR_SUBMODULE[@]}"; do
             local -u SUBMODULE_OPTION="MODULE_XFILESHARING_${SUBMODULE}_${OPTION_NAME}"
 
             if [ -n "${!SUBMODULE_OPTION}" ]; then
                 case "$OPTION_NAME" in
                     'DOWNLOAD_OPTIONS'|'UPLOAD_OPTIONS'|'DELETE_OPTIONS'|'PROBE_OPTIONS'|'LIST_OPTIONS')
-                        eval "$SUBMODULE_OPTION=\"\$XFILESHARING_${OPTION_NAME}_GENERIC${!SUBMODULE_OPTION}\""
+                        eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPTION_NAME}${!SUBMODULE_OPTION}\""
                         ;;
                     *)
                         eval "$SUBMODULE_OPTION=\"${!SUBMODULE_OPTION}\""
                         ;;
                 esac
             else
-                eval "$SUBMODULE_OPTION=\"\$XFILESHARING_${OPTION_NAME}_GENERIC\""
+                eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPTION_NAME}\""
             fi
-        done <<< "$XFILESHARING_OPTIONS"
+        done
     fi
 
     return $RET
@@ -199,18 +261,25 @@ xfilesharing_get_module() {
 # $1: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 xfilesharing_get_all_modules_options() {
-    local -ur VAR_OPTIONS="${1}_OPTIONS"
-    local -ur VAR_OPTIONS_GENERIC="XFILESHARING_${VAR_OPTIONS}_GENERIC"
-    local OPTIONS
+    local -ur VAR_OPTIONS_GENERIC="MODULE_XFILESHARING_GENERIC_${1}_OPTIONS"
 
     strip_and_drop_empty_lines "${!VAR_OPTIONS_GENERIC}"
 
     while read -r; do
-        while read -r OPTION_NAME; do
+        for OPTION_NAME in "${OPTS_VAR_SUBMODULE[@]}"; do
             local -u VAR="MODULE_XFILESHARING_${REPLY}_${OPTION_NAME}"
             if [ -n "${!VAR}" ]; then
                 strip_and_drop_empty_lines "${!VAR}"
             fi
-        done <<< "$XFILESHARING_OPTIONS"
-    done <<< "$(grep_list_xfilesharing_modules)"
+        done
+    done <<< "$(xfilesharing_grep_list_modules)"
+}
+
+# Look for a configuration module variable
+# $1: option family name (string, example:UPLOAD)
+# stdout: options list (one per line)
+xfilesharing_get_core_options() {
+    local -ur VAR_OPTIONS="ENGINE_XFILESHARING_${1}_OPTIONS"
+
+    strip_and_drop_empty_lines "${!VAR_OPTIONS}"
 }

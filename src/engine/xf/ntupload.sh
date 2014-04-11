@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # ntupload callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:ntupload_dl_commit_step1() {
+xfcb_ntupload_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -36,7 +36,7 @@ xfilesharing:ntupload_dl_commit_step1() {
     echo "$PAGE"
 }
 
-xfilesharing:ntupload_dl_parse_streaming() {
+xfcb_ntupload_dl_parse_streaming() {
     local PAGE=$1
     local -r URL=$2
     local -r FILE_NAME=$3
@@ -51,7 +51,7 @@ xfilesharing:ntupload_dl_parse_streaming() {
     return 0
 }
 
-xfilesharing:ntupload_pr_parse_file_size() {
+xfcb_ntupload_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

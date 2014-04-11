@@ -2392,6 +2392,16 @@ process_module_options() {
     process_options "$MODULE" "$OPTIONS" 1 "$@"
 }
 
+# $1: engine name (used for error reporting only)
+# $2: option family name (string, example:UPLOAD)
+# $3..$n: arguments
+process_engine_options() {
+    local -r ENGINE_O=$1
+    local -r OPTIONS=$(get_engine_options "$1" "$2")
+    shift 2
+    process_options "$ENGINE_O" "$OPTIONS" 1 "$@"
+}
+
 # Get module list according to capability
 # Note1: use global variable LIBDIR
 # Note2: VERBOSE (log_debug) not initialised yet
@@ -3073,6 +3083,16 @@ strip_and_drop_empty_lines() {
 # stdout: options list (one per line)
 get_module_options() {
     local -ur VAR="MODULE_${1}_${2}_OPTIONS"
+    strip_and_drop_empty_lines "${!VAR}"
+}
+
+# Look for a configuration engine variable
+# Example: ENGINE_XFILESHARING_DOWNLOAD_OPTIONS (result can be multiline)
+# $1: engine name
+# $2: option family name (string, example:UPLOAD)
+# stdout: options list (one per line)
+get_engine_options() {
+    local -ur VAR="ENGINE_${1}_${2}_OPTIONS"
     strip_and_drop_empty_lines "${!VAR}"
 }
 

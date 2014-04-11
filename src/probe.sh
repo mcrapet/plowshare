@@ -333,6 +333,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" PROBE)
 
 if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options PROBE)
     MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options PROBE)
 fi
 
@@ -441,26 +442,20 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             test -z "$NO_PLOWSHARERC" && \
                 process_configfile_module_options '[Pp]lowprobe' "$MODULE" PROBE "$EXT_PLOWSHARERC"
 
-            if [ -n "$ENGINE" ]; then
-                eval "$(process_module_options "${MODULE//:/_}" PROBE \
+            [ -n "$ENGINE" ] && \
+                eval "$(process_engine_options "$ENGINE" PROBE \
                     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-            else
-                eval "$(process_module_options "$MODULE" PROBE \
-                    "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-            fi
 
-            if [ -n "$ENGINE" ]; then
-                ${MODULE//:/_}_vars_set
-            else
-                ${MODULE}_vars_set
-            fi
+            eval "$(process_module_options "${MODULE//:/_}" PROBE \
+                "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
+
+            [ -n "$ENGINE" ] && ${ENGINE}_vars_set
+            ${MODULE//:/_}_vars_set
+
             probe "$MODULE" "$URL" "$ITEM" || PRETVAL=$?
-            if [ -n "$ENGINE" ]; then
-                ${MODULE//:/_}_vars_unset
-            else
-                ${MODULE}_vars_unset
-            fi
 
+            [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
+            ${MODULE//:/_}_vars_unset
 
             RETVALS+=($PRETVAL)
         fi

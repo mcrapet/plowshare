@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # hugefiles callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:hugefiles_ul_get_space_data() {
+xfcb_hugefiles_ul_get_space_data() {
     # No space limit
 
     return 0

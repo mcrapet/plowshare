@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # rosharing callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:rosharing_pr_parse_file_name() {
+xfcb_rosharing_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -27,7 +27,7 @@ xfilesharing:rosharing_pr_parse_file_name() {
     echo "$FILE_NAME"
 }
 
-xfilesharing:rosharing_pr_parse_file_size() {
+xfcb_rosharing_pr_parse_file_size() {
     local -r PAGE=$1
     local FILE_SIZE
 

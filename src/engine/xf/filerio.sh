@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # filerio callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:filerio_dl_parse_final_link() {
+xfcb_filerio_dl_parse_final_link() {
     local -r PAGE=$1
     #local FILE_NAME=$2
 
@@ -30,7 +30,7 @@ xfilesharing:filerio_dl_parse_final_link() {
 
     JS=$(echo "$PAGE" | parse '<script type="text/javascript">eval(unescape' ">\(.*\)<") || return
 
-    JS=$(xfilesharing_unpack_js "$JS") || return
+    JS=$(xfcb_unpack_js "$JS") || return
 
     FILE_URL=$(echo "$JS" | parse 'location.href=' 'location.href="\(.*\)"') || return
 

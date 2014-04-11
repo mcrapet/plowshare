@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # imageporter callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,6 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:imageporter_ul_parse_data() {
-    xfilesharing_ul_parse_data_generic "$@" "thumb_size=190x190"
+xfcb_imageporter_ul_parse_data() {
+    xfcb_generic_ul_parse_data "$@" "thumb_size=190x190"
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # filedwon callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,12 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:filedwon_dl_parse_form2() {
+xfcb_filedwon_dl_parse_form2() {
     local PAGE=$1
 
     # Remove all paypal form tails from main form (which end is '</Form>')
     # password input is placed below those paypal forms
     PAGE="${PAGE//<\/form>/}"
 
-    xfilesharing_dl_parse_form2_generic "$PAGE"
+    xfcb_generic_dl_parse_form2 "$PAGE"
 }

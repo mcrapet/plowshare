@@ -243,6 +243,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
 
 if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options LIST)
     MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options LIST)
 fi
 
@@ -308,13 +309,12 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     test -z "$NO_PLOWSHARERC" && \
         process_configfile_module_options '[Pp]lowlist' "$MODULE" LIST "$EXT_PLOWSHARERC"
 
-    if [ -n "$ENGINE" ]; then
-        eval "$(process_module_options "${MODULE//:/_}" LIST \
+    [ -n "$ENGINE" ] && \
+        eval "$(process_engine_options "$ENGINE" LIST \
             "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-    else
-        eval "$(process_module_options "$MODULE" LIST \
-            "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-    fi
+
+    eval "$(process_module_options "${MODULE//:/_}" LIST \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
@@ -323,18 +323,14 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
         log_notice 'recursive flag has no sense here, ignoring'
     fi
 
-    if [ -n "$ENGINE" ]; then
-        ${MODULE//:/_}_vars_set
-    else
-        ${MODULE}_vars_set
-    fi
+    [ -n "$ENGINE" ] && ${ENGINE}_vars_set
+    ${MODULE//:/_}_vars_set
+
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
         pretty_print "${PRINTF_FORMAT:-%F%u%n}" "$MODULE" || LRETVAL=$?
-    if [ -n "$ENGINE" ]; then
-        ${MODULE//:/_}_vars_unset
-    else
-        ${MODULE}_vars_unset
-    fi
+
+    [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
+    ${MODULE//:/_}_vars_unset
 
     if [ $LRETVAL -eq 0 ]; then
         : # everything went fine

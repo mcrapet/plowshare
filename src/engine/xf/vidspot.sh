@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # vidspot callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:vidspot_dl_parse_form1() {
+xfcb_vidspot_dl_parse_form1() {
     local -r PAGE=$1
 
     local EMBED_URL FILE_NAME
@@ -33,11 +33,11 @@ xfilesharing:vidspot_dl_parse_form1() {
         echo "name=$FILE_NAME.mp4"
         echo "$EMBED_URL"
     else
-        xfilesharing_dl_parse_form1_generic "$@"
+        xfcb_generic_dl_parse_form1 "$@"
     fi
 }
 
-xfilesharing:vidspot_dl_commit_step1() {
+xfcb_vidspot_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
@@ -50,7 +50,7 @@ xfilesharing:vidspot_dl_commit_step1() {
     } <<<"$FORM_DATA"
 
     if [ "$EMBED_URL" = 'op=download1' ]; then
-        xfilesharing_dl_commit_step1_generic "$@"
+        xfcb_generic_dl_commit_step1 "$@"
     else
         PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
             -e "$FORM_ACTION" \
@@ -61,6 +61,6 @@ xfilesharing:vidspot_dl_commit_step1() {
 }
 
 # Ignore video thumbnail
-xfilesharing:vidspot_dl_parse_imagehosting() {
+xfcb_vidspot_dl_parse_imagehosting() {
     return 1
 }

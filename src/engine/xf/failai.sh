@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # failai callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:failai_ul_create_folder() {
+xfcb_failai_ul_create_folder() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local -r NAME=$3
@@ -42,22 +42,22 @@ xfilesharing:failai_ul_create_folder() {
     return 0
 }
 
-xfilesharing:failai_dl_parse_form1() {
-    xfilesharing_dl_parse_form1_generic "$1" '' '' '' '' '' '' '' \
+xfcb_failai_dl_parse_form1() {
+    xfcb_generic_dl_parse_form1 "$1" '' '' '' '' '' '' '' \
         'file_wait'
 }
 
-xfilesharing:failai_dl_commit_step1() {
+xfcb_failai_dl_commit_step1() {
     local -r COOKIE_FILE=$1
     local -r FORM_ACTION=$2
     local -r FORM_DATA=$3
 
     local FORM_HTML FORM_OP FORM_ID FORM_USR FORM_FNAME FORM_REFERER FORM_HASH FORM_METHOD_F FORM_ADD
 
-    PAGE=$(xfilesharing_dl_commit_step1_generic "$@") || return
+    PAGE=$(xfcb_generic_dl_commit_step1 "$@") || return
 
     if ! match '"download2"' "$PAGE"; then
-        FORM_DATA=$(xfilesharing_dl_parse_form1 "$PAGE") || return
+        FORM_DATA=$(xfcb_dl_parse_form1 "$PAGE") || return
 
         {
         read -r FORM_FNAME
@@ -85,17 +85,17 @@ xfilesharing:failai_dl_commit_step1() {
     echo "$PAGE"
 }
 
-xfilesharing:failai_dl_parse_error() {
+xfcb_failai_dl_parse_error() {
     local PAGE=$1
 
     if match '<font class="err"></font>' "$PAGE"; then
         return 0
     fi
 
-    xfilesharing_dl_parse_error_generic "$@"
+    xfcb_generic_dl_parse_error "$@"
 }
 
-xfilesharing:failai_ul_get_space_data() {
+xfcb_failai_ul_get_space_data() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE SPACE_USED SPACE_LIMIT

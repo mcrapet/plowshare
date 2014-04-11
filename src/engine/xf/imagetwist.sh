@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # imagetwist callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -22,7 +22,7 @@ MODULE_XFILESHARING_IMAGETWIST_UPLOAD_OPTIONS="
 THUMB_SIZE,,thumb-size,s=THUMB_SZIE,Picture thumb size (100x100, 170x170, 250x250, 300x300, 500x500) (default: 170x170)
 URL_DOMAIN,,url-domain,s=URL_DOMAIN,Picture URL domain (imagetwist.com, imageshimage.com, imagenpic.com) (default: imagetwist.com)"
 
-xfilesharing:imagetwist_ls_parse_links() {
+xfcb_imagetwist_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -32,11 +32,11 @@ xfilesharing:imagetwist_ls_parse_links() {
     echo "$LINKS"
 }
 
-xfilesharing:imagetwist_ls_parse_names() {
+xfcb_imagetwist_ls_parse_names() {
     return 0
 }
 
-xfilesharing:imagetwist_ul_parse_data() {
+xfcb_imagetwist_ul_parse_data() {
     if [ -z "$THUMB_SIZE" ]; then
         THUMB_SIZE='170x170'
     fi
@@ -62,16 +62,16 @@ xfilesharing:imagetwist_ul_parse_data() {
         URL_DOMAIN="sdomain=$URL_DOMAIN"
     fi
 
-    xfilesharing_ul_parse_data_generic "$@" "file_safe=0" "$THUMB_SIZE" "$URL_DOMAIN"
+    xfcb_generic_ul_parse_data "$@" "file_safe=0" "$THUMB_SIZE" "$URL_DOMAIN"
 }
 
-xfilesharing:imagetwist_ul_parse_del_code() {
+xfcb_imagetwist_ul_parse_del_code() {
     local -r PAGE=$1
 
     parse_attr 'Preview:' 'src' <<< "$PAGE"
 }
 
-xfilesharing:imagetwist_ul_generate_links() {
+xfcb_imagetwist_ul_generate_links() {
     local BASE_URL=$1
     local FILE_CODE=$2
     local DEL_CODE=$3

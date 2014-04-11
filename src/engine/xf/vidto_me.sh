@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # vidto_me callbacks
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfilesharing:vidto_me_pr_parse_file_name() {
+xfcb_vidto_me_pr_parse_file_name() {
     local -r PAGE=$1
     local FILE_NAME
 
@@ -27,11 +27,11 @@ xfilesharing:vidto_me_pr_parse_file_name() {
     echo "${FILE_NAME// /_}.mp4"
 }
 
-xfilesharing:vidto_me_pr_parse_file_size() {
+xfcb_vidto_me_pr_parse_file_size() {
     return 0
 }
 
-xfilesharing:vidto_me_ls_parse_links() {
+xfcb_vidto_me_ls_parse_links() {
     local PAGE=$1
     local LINKS
 
@@ -40,7 +40,7 @@ xfilesharing:vidto_me_ls_parse_links() {
     echo "$LINKS"
 }
 
-xfilesharing:vidto_me_ls_parse_names() {
+xfcb_vidto_me_ls_parse_names() {
     local PAGE=$1
     local NAMES
 
@@ -49,17 +49,17 @@ xfilesharing:vidto_me_ls_parse_names() {
     echo "$NAMES"
 }
 
-xfilesharing:vidto_me_ls_parse_folders() {
+xfcb_vidto_me_ls_parse_folders() {
     return 0
 }
 
-xfilesharing:vidto_me_ul_remote_queue_test() {
+xfcb_vidto_me_ul_remote_queue_test() {
     #local -r PAGE=$1
 
     echo 'upload_url'
 }
 
-xfilesharing:vidto_me_ul_get_file_code() {
+xfcb_vidto_me_ul_get_file_code() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL=$2
     local PAGE FILE_CODE

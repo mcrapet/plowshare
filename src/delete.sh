@@ -166,6 +166,7 @@ fi
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
 
 if [ -n "$ENGINE" ]; then
+    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options DELETE)
     MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options DELETE)
 fi
 
@@ -223,30 +224,25 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     test -z "$NO_PLOWSHARERC" && \
         process_configfile_module_options '[Pp]lowdel' "$MODULE" DELETE "$EXT_PLOWSHARERC"
 
-    if [ -n "$ENGINE" ]; then
-        eval "$(process_module_options "${MODULE//:/_}" DELETE \
+    [ -n "$ENGINE" ] && \
+        eval "$(process_engine_options "$ENGINE" DELETE \
             "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-    else
-        eval "$(process_module_options "$MODULE" DELETE \
-            "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
-    fi
+
+    eval "$(process_module_options "${MODULE//:/_}" DELETE \
+        "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     FUNCTION=${MODULE}_delete
     log_notice "Starting delete ($MODULE): $URL"
 
     :> "$DCOOKIE"
 
-    if [ -n "$ENGINE" ]; then
-        ${MODULE//:/_}_vars_set
-    else
-        ${MODULE}_vars_set
-    fi
+    [ -n "$ENGINE" ] && ${ENGINE}_vars_set
+    ${MODULE//:/_}_vars_set
+
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
-    if [ -n "$ENGINE" ]; then
-        ${MODULE//:/_}_vars_unset
-    else
-        ${MODULE}_vars_unset
-    fi
+
+    [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
+    ${MODULE//:/_}_vars_unset
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice 'File removed successfully'
