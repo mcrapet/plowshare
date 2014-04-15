@@ -135,6 +135,7 @@ sockshare_download() {
         return $ERR_FATAL
     fi
 
+    FILENAME=$(parse 'var name' '"\([^"]\+\)"' <<< "$PAGE") || return
     WAIT_TIME=$(echo "$PAGE" | parse_all 'var wait_count ' '=[[:space:]]*\([0-9]\+\);' | last_line) || return
 
     if [ $WAIT_TIME -gt 1 ]; then
