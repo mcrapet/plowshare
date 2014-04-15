@@ -653,7 +653,7 @@ sockshare_list() {
 # $3: requested capability list
 # stdout: 1 capability per line
 sockshare_probe() {
-    local -r URL=$2
+    local -r URL=${2/\/embed\//\/file\/}
     local -r REQ_IN=$3
     local PAGE LOCATION FILE_NAME FILE_SIZE REQ_OUT
 
