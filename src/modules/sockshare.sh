@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_SOCKSHARE_REGEXP_URL='http://\(www\.\)\?sockshare\.com/\(file\|public\)/[[:alnum:]]\+'
+MODULE_SOCKSHARE_REGEXP_URL='http://\(www\.\)\?sockshare\.com/\(file\|public\|embed\)/[[:alnum:]]\+'
 
 MODULE_SOCKSHARE_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
@@ -113,7 +113,7 @@ sockshare_login() {
 #         file name
 sockshare_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$2
+    local -r URL=${2/\/embed\//\/file\/}
     local -r BASE_URL='http://www.sockshare.com'
 
     local PAGE LOCATION GET_FILE_URL FILE_NAME WAIT_TIME
