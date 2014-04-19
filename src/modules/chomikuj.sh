@@ -353,6 +353,7 @@ chomikuj_list() {
             "$BASE_URL/action/Files/LoginToFolder") || return
 
         if ! match '"IsSuccess":true' "$PAGE"; then
+            rm -f "$COOKIE_FILE"
             return $ERR_LINK_PASSWORD_REQUIRED
         fi
 
