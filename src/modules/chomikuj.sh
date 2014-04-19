@@ -32,7 +32,8 @@ FOLDER,,folder,s=FOLDER,Folder to upload files into
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description"
 MODULE_CHOMIKUJ_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_CHOMIKUJ_LIST_OPTIONS=""
+MODULE_CHOMIKUJ_LIST_OPTIONS="
+LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected folders"
 MODULE_CHOMIKUJ_LIST_HAS_SUBFOLDERS=yes
 
 MODULE_CHOMIKUJ_PROBE_OPTIONS=""
@@ -318,7 +319,7 @@ chomikuj_list() {
     local -r REC=$2
     local -r BASE_URL='http://chomikuj.pl'
 
-    local PAGE LOCATION LINKS NAMES PAGES_BAR LAST_PAGE PAGE_NUMBER
+    local PAGE LOCATION LINKS NAMES PAGES_BAR LAST_PAGE PAGE_NUMBER COOKIE_FILE
 
     PAGE=$(curl -i "$URL") || return
 
@@ -329,8 +330,33 @@ chomikuj_list() {
         return $ERR_LINK_DEAD
     fi
 
-    if match 'id="LoginToFolder"' "$PAGE"; then
-        return $ERR_LINK_PASSWORD_REQUIRED
+    if match 'LoginToFolder' "$PAGE"; then
+        log_debug 'Password protected folder.'
+
+        [ -z "$LINK_PASSWORD" ] && return $ERR_LINK_PASSWORD_REQUIRED
+
+        local FORM_HTML FORM_CHOMIK_ID FORM_FOLDER_ID FORM_FOLDER_NAME FORM_REMEMBER
+        FORM_HTML=$(grep_form_by_id "$PAGE" 'LoginToFolder') || return
+        FORM_CHOMIK_ID=$(parse_form_input_by_name 'ChomikId' <<< "$FORM_HTML") || return
+        FORM_FOLDER_ID=$(parse_form_input_by_name 'FolderId' <<< "$FORM_HTML") || return
+        FORM_FOLDER_NAME=$(parse_form_input_by_name 'FolderName' <<< "$FORM_HTML") || return
+
+        COOKIE_FILE=$(create_tempfile) || return
+
+        PAGE=$(curl -c "$COOKIE_FILE" \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            -d "ChomikId=$FORM_CHOMIK_ID" \
+            -d "FolderId=$FORM_FOLDER_ID" \
+            -d "FolderName=$FORM_FOLDER_NAME" \
+            -d "Password=$LINK_PASSWORD" \
+            -d 'Remember=true' \
+            "$BASE_URL/action/Files/LoginToFolder") || return
+
+        if ! match '"IsSuccess":true' "$PAGE"; then
+            return $ERR_LINK_PASSWORD_REQUIRED
+        fi
+
+        PAGE=$(curl -b "$COOKIE_FILE" "$URL") || return
     fi
 
     if match '<a class="downloadAction"' "$PAGE"; then
@@ -348,7 +374,7 @@ chomikuj_list() {
     LAST_PAGE=$(last_line <<< "$PAGES_BAR")
 
     if [ "$LAST_PAGE" = '9 ...' ]; then
-        PAGE=$(curl -i "$URL,9999999") || return
+        PAGE=$(curl -b "$COOKIE_FILE" -i "$URL,9999999") || return
         LOCATION=$(grep_http_header_location <<< "$PAGE") || return
         LAST_PAGE=$(parse . ',\([0-9]\+\)$' <<< "$LOCATION") || return
     fi
@@ -357,7 +383,7 @@ chomikuj_list() {
         for (( PAGE_NUMBER=2; PAGE_NUMBER<=LAST_PAGE; PAGE_NUMBER++ )); do
             log_debug "Listing page #$PAGE_NUMBER"
 
-            PAGE=$(curl "$URL,$PAGE_NUMBER") || return
+            PAGE=$(curl -b "$COOKIE_FILE" "$URL,$PAGE_NUMBER") || return
 
             if match '<a class="downloadAction"' "$PAGE"; then
                 LINKS=$LINKS$'\n'$(parse_all_quiet '<a class="downloadAction"' '\(href="[^"]\+\)' <<< "$PAGE")
@@ -368,6 +394,8 @@ chomikuj_list() {
             fi
         done
     fi
+
+    [ -n "$COOKIE_FILE" ] && rm -f "$COOKIE_FILE"
 
     LINKS=$(replace_all 'href="' "$BASE_URL" <<< "$LINKS")
     NAMES=$(replace_all '</span>' '' <<< "$NAMES")
