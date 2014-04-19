@@ -46,7 +46,6 @@ absolute_path() {
         DIR=$(dirname "$TARGET")
         TARGET=$(readlink "$TARGET")
         cd -P "$DIR"
-        DIR=$PWD
     done
 
     if [ -f "$TARGET" ]; then
