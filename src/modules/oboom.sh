@@ -599,37 +599,28 @@ oboom_upload() {
     if [ -n "$FOLDER" ]; then
         PAGE=$(curl \
             -d "token=$ACC_SESSION" \
+            -d "parent=1" \
+            -d "name=$FOLDER" \
+            -d 'name_policy=fail' \
+            'http://api.oboom.com/1/mkdir') || return
+
+        if match '^\[200\]$' "$PAGE"; then
+            log_error 'Folder created.'
+        elif match '\[409,"item with same name already exists"' "$PAGE"; then
+            log_debug 'Folder already exists.'
+        elif ! match '^\[200\]$' "$PAGE"; then
+            log_error 'Failed to create folder.'
+            return $ERR_FATAL
+        fi
+
+        PAGE=$(curl \
+            -d "token=$ACC_SESSION" \
             'http://api.oboom.com/1/tree') || return
 
-        FOLDERS=$(replace_all '{', $'\n{' <<< "$PAGE") || return
-        FOLDERS=$(replace_all '}', $'}\n' <<< "$FOLDERS") || return
-        FOLDERS_N=$(parse_all '"type":"folder"' '"name":"\([^"]\+\)' <<< "$FOLDERS") || return
+        FOLDER_ID=$(parse . \
+            "\"type\":\"folder\"[^\}]\+\"id\":\"\([^\"]\+\)\",\"name\":\"$FOLDER\"" <<< "$PAGE") || return
 
-        if ! match "^$FOLDER$" "$FOLDERS_N"; then
-            log_debug "Creating folder: '$FOLDER'"
-
-            PAGE=$(curl \
-                -d "token=$ACC_SESSION" \
-                -d "parent=1" \
-                -d "name=$FOLDER" \
-                'http://api.oboom.com/1/mkdir') || return
-
-            if ! match '^\[200\]$' "$PAGE"; then
-                log_error 'Failed to create folder.'
-                return $ERR_FATAL
-            fi
-
-            PAGE=$(curl \
-                -d "token=$ACC_SESSION" \
-                'http://api.oboom.com/1/tree') || return
-
-            FOLDERS=$(replace_all '{', $'\n{' <<< "$PAGE") || return
-            FOLDERS=$(replace_all '}', $'}\n' <<< "$FOLDERS") || return
-       fi
-
-       FOLDER_ID=$(parse "\"type\":\"folder\".*\"name\":\"$FOLDER\"" '"id":"\([^"]\+\)' <<< "$FOLDERS") || return
-
-       log_debug "Folder ID: '$FOLDER_ID'"
+        log_debug "Folder ID: '$FOLDER_ID'"
     fi
 
     # Upload remote file
