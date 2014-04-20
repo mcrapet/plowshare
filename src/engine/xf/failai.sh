@@ -32,7 +32,7 @@ xfcb_failai_ul_create_folder() {
         -d "create_new_folder=$NAME" \
         "$BASE_URL/") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     if match '?op=my_files' "$LOCATION"; then
         log_debug 'Folder created.'
     else

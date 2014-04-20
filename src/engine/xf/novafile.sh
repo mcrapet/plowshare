@@ -33,29 +33,29 @@ xfcb_novafile_ul_parse_data() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_ACTION_REMOTE=$(echo "$FORM_HTML_REMOTE" | parse_form_action) || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
+    FORM_ACTION_REMOTE=$(parse_form_action <<< "$FORM_HTML_REMOTE") || return
 
-    FORM_USER_TYPE=$(echo "$FORM_HTML_REMOTE" | parse_form_input_by_name 'utype') || return
+    FORM_USER_TYPE=$(parse_form_input_by_name 'utype' <<< "$FORM_HTML_REMOTE") || return
 
     if [ -n "$FORM_USER_TYPE" ]; then
         log_debug "User type: '$FORM_USER_TYPE'"
     fi
 
     # Will be empty on anon upload
-    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
+    FORM_SESS=$(parse_form_input_by_name_quiet 'sess_id' <<< "$FORM_HTML")
     [ -n "$FORM_SESS" ] && FORM_SESS="-F sess_id=$FORM_SESS"
 
-    FORM_SRV_TMP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'srv_tmp_url')
+    FORM_SRV_TMP=$(parse_form_input_by_name_quiet 'srv_tmp_url' <<< "$FORM_HTML")
     [ -n "$FORM_SRV_TMP" ] && FORM_SRV_TMP="-F srv_tmp_url=$FORM_SRV_TMP"
 
-    FORM_SRV_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'srv_id')
+    FORM_SRV_ID=$(parse_form_input_by_name_quiet 'srv_id' <<< "$FORM_HTML")
     [ -n "$FORM_SRV_ID" ] && FORM_SRV_ID="-F srv_id=$FORM_SRV_ID"
 
-    FORM_SRV_TMP_REMOTE=$(echo "$FORM_HTML_REMOTE" | parse_form_input_by_name_quiet 'srv_tmp_url')
+    FORM_SRV_TMP_REMOTE=$(parse_form_input_by_name_quiet 'srv_tmp_url' <<< "$FORM_HTML_REMOTE")
     [ -n "$FORM_SRV_TMP_REMOTE" ] && FORM_SRV_TMP_REMOTE="-F srv_tmp_url=$FORM_SRV_TMP_REMOTE"
 
-    FORM_SRV_ID_REMOTE=$(echo "$FORM_HTML_REMOTE" | parse_form_input_by_name_quiet 'srv_id')
+    FORM_SRV_ID_REMOTE=$(parse_form_input_by_name_quiet 'srv_id' <<< "$FORM_HTML_REMOTE")
     [ -n "$FORM_SRV_ID_REMOTE" ] && FORM_SRV_ID_REMOTE="-F srv_id=$FORM_SRV_ID_REMOTE"
 
     FORM_FILE_FIELD='file_0'
@@ -165,7 +165,7 @@ xfcb_novafile_ul_parse_result() {
         replace '<input' $'\n<input' | replace '<textarea' $'\n<textarea')
 
     if [ -z "$FORM_HTML" ]; then
-        ERROR=$(echo "$PAGE" | parse_quiet '[Ee][Rr][Rr][Oo][Rr]:' "[Ee][Rr][Rr][Oo][Rr]:[[:space:]]*\(.*\)')")
+        ERROR=$(parse_quiet '[Ee][Rr][Rr][Oo][Rr]:' "[Ee][Rr][Rr][Oo][Rr]:[[:space:]]*\(.*\)')" <<< "$PAGE")
         if [ -n "$ERROR" ]; then
             log_error "Remote error: '$ERROR'"
         else
@@ -175,22 +175,22 @@ xfcb_novafile_ul_parse_result() {
         return $ERR_FATAL
     fi
 
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
 
     if match "<input[^>]*name='op'" "$FORM_HTML"; then
-        OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-        FILE_CODE=$(echo "$FORM_HTML" | parse_form_input_by_name 'fn') || return
-        STATE=$(echo "$FORM_HTML" | parse_form_input_by_name 'st') || return
+        OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
+        FILE_CODE=$(parse_form_input_by_name 'fn' <<< "$FORM_HTML") || return
+        STATE=$(parse_form_input_by_name 'st' <<< "$FORM_HTML") || return
 
-        FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'link_rcpt')
+        FORM_LINK_RCPT=$(parse_form_input_by_name_quiet 'link_rcpt' <<< "$FORM_HTML")
         [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
 
     elif match "<textarea name='op'>" "$FORM_HTML"; then
-        OP=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?op[\"']\?" 'textarea') || return
-        FILE_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?fn[\"']\?" 'textarea') || return
-        STATE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?st[\"']\?" 'textarea') || return
+        OP=$(parse_tag "name=[\"']\?op[\"']\?" 'textarea' <<< "$FORM_HTML") || return
+        FILE_CODE=$(parse_tag "name=[\"']\?fn[\"']\?" 'textarea' <<< "$FORM_HTML") || return
+        STATE=$(parse_tag "name=[\"']\?st[\"']\?" 'textarea' <<< "$FORM_HTML") || return
 
-        FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?link_rcpt[\"']\?" 'textarea')
+        FORM_LINK_RCPT=$(parse_tag_quiet "name=[\"']\?link_rcpt[\"']\?" 'textarea' <<< "$FORM_HTML")
         [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
 
     else
@@ -210,7 +210,7 @@ xfcb_novafile_ul_parse_result() {
 xfcb_novafile_ul_parse_file_id() {
     local PAGE=$1
 
-    FILE_ID=$(echo "$PAGE" | parse_quiet 'id="l[0-9]-' 'id="l[0-9]-\([0-9]\+\)')
+    FILE_ID=$(parse_quiet 'id="l[0-9]-' 'id="l[0-9]-\([0-9]\+\)' <<< "$PAGE")
 
     if [ -z "$FILE_ID" ]; then
         if match 'id="l[0-9]-"' "$PAGE"; then
@@ -247,10 +247,11 @@ xfcb_novafile_ul_get_folder_id() {
 
     # <li id="12345"><a href="#">Folder Name</a>
     # first will be root id=0
-    FOLDERS=$(echo "$PAGE" | parse_all_tag_quiet '<li id="[0-9]\+"><a href="#">.*</a>' 'a' | delete_first_line) || return
+    FOLDERS=$(parse_all_tag_quiet '<li id="[0-9]\+"><a href="#">.*</a>' 'a' <<< "$PAGE") || return
+    FOLDERS=$(delete_first_line <<< "$FOLDERS") || return
 
     if match "^$NAME$" "$FOLDERS"; then
-        FOLDER_ID=$(echo "$PAGE" | parse_attr "<li id=\"[0-9]\+\"><a href=\"#\">$NAME</a>" 'id')
+        FOLDER_ID=$(parse_attr "<li id=\"[0-9]\+\"><a href=\"#\">$NAME</a>" 'id' <<< "$PAGE") || return
     fi
 
     if [ -n "$FOLDER_ID" ]; then
@@ -283,7 +284,7 @@ xfcb_novafile_ul_move_file() {
         -F 'move_copy_action=1' \
         "$BASE_URL") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
     if match '?op=my_files' "$LOCATION"; then
         log_debug 'File moved.'

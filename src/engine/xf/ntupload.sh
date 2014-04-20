@@ -30,7 +30,7 @@ xfcb_ntupload_dl_commit_step1() {
     # Some sites (like ntupload.to) add captcha and timers to get video, but return the same
     #  player block as in embed version. But we connot get filename from embed version. That's
     #  why I placed this after first form parser.
-    FILE_ID=$(echo "$FORM_ACTION" | parse . '/\([[:alnum:]]\{12\}\)')
+    FILE_ID=$(parse . '/\([[:alnum:]]\{12\}\)' <<< "$FORM_ACTION")
     PAGE=$(curl "$BASE_URL/embed-$FILE_ID.html") || return
 
     echo "$PAGE"
@@ -45,7 +45,7 @@ xfcb_ntupload_dl_parse_streaming() {
 
     [ -z $FILE_NAME ] && return 1
 
-    FILE_URL=$(echo "$PAGE" | parse '^var urlvar' "urlvar='\([^']\+\)")
+    FILE_URL=$(parse '^var urlvar' "urlvar='\([^']\+\)" <<< "$PAGE")
     echo "$FILE_URL"
     echo "$FILE_NAME"
     return 0

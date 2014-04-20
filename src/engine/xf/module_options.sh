@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# filerio callbacks
+# xfilesharing modules options
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
@@ -18,21 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-xfcb_filerio_dl_parse_final_link() {
-    local -r PAGE=$1
-    #local FILE_NAME=$2
-
-    local FILE_URL JS
-
-    detect_javascript || return
-
-    log_debug 'Decrypting final link...'
-
-    JS=$(parse '<script type="text/javascript">eval(unescape' ">\(.*\)<" <<< "$PAGE") || return
-
-    JS=$(xfcb_unpack_js "$JS") || return
-
-    FILE_URL=$(parse 'location.href=' 'location.href="\(.*\)"' <<< "$JS") || return
-
-    echo "$FILE_URL"
-}
+MODULE_XFILESHARING_IMAGETWIST_UPLOAD_OPTIONS="
+THUMB_SIZE,,thumb-size,s=THUMB_SZIE,Picture thumb size (100x100, 170x170, 250x250, 300x300, 500x500) (default: 170x170)
+URL_DOMAIN,,url-domain,s=URL_DOMAIN,Picture URL domain (imagetwist.com, imageshimage.com, imagenpic.com) (default: imagetwist.com)"

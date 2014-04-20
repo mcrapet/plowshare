@@ -23,8 +23,8 @@ xfcb_billionuploads_ul_parse_result() {
 
     local STATE FILE_CODE
 
-    FILE_CODE=$(echo "$PAGE" | parse 'fc-X-x-' 'fc-X-x-\([^"]\+\)')
-    STATE=$(echo "$PAGE" | parse 'st-X-x-' 'st-X-x-\([^"]\+\)')
+    FILE_CODE=$(parse 'fc-X-x-' 'fc-X-x-\([^"]\+\)' <<< "$PAGE")
+    STATE=$(parse 'st-X-x-' 'st-X-x-\([^"]\+\)' <<< "$PAGE")
 
     echo "$STATE"
     echo "$FILE_CODE"
@@ -50,7 +50,7 @@ xfcb_billionuploads_dl_parse_final_link() {
 
     log_debug 'Decoding final link...'
 
-    CRYPT=$(echo "$PAGE" | parse 'subway="metro"' 'subway="metro">[^<]*XXX\([^<]\+\)XXX[^<]*') || return
+    CRYPT=$(parse 'subway="metro"' 'subway="metro">[^<]*XXX\([^<]\+\)XXX[^<]*' <<< "$PAGE") || return
     if ! match '^[[:alnum:]=]\+$' "$CRYPT"; then
         log_error "Something wrong with encoded message."
         return $ERR_FATAL

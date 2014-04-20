@@ -936,7 +936,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 process_configfile_module_options '[Pp]lowdown' "$MODULE" DOWNLOAD "$EXT_PLOWSHARERC"
 
             [ -n "$ENGINE" ] && \
-                eval "$(process_engine_options "$ENGINE" DOWNLOAD \
+                eval "$(process_engine_options "$ENGINE" \
                     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
             eval "$(process_module_options "${MODULE//:/_}" DOWNLOAD \

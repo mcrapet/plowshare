@@ -2393,12 +2393,11 @@ process_module_options() {
 }
 
 # $1: engine name (used for error reporting only)
-# $2: option family name (string, example:UPLOAD)
 # $3..$n: arguments
 process_engine_options() {
     local -r ENGINE_O=$1
-    local -r OPTIONS=$(get_engine_options "$1" "$2")
-    shift 2
+    local -r OPTIONS=$(get_engine_options "$1")
+    shift 1
     process_options "$ENGINE_O" "$OPTIONS" 1 "$@"
 }
 
@@ -3087,12 +3086,11 @@ get_module_options() {
 }
 
 # Look for a configuration engine variable
-# Example: ENGINE_XFILESHARING_DOWNLOAD_OPTIONS (result can be multiline)
+# Example: ENGINE_XFILESHARING_OPTIONS (result can be multiline)
 # $1: engine name
-# $2: option family name (string, example:UPLOAD)
 # stdout: options list (one per line)
 get_engine_options() {
-    local -ur VAR="ENGINE_${1}_${2}_OPTIONS"
+    local -ur VAR="ENGINE_${1}_OPTIONS"
     strip_and_drop_empty_lines "${!VAR}"
 }
 

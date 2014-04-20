@@ -19,11 +19,8 @@
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
 # Engine options
-ENGINE_XFILESHARING_DOWNLOAD_OPTIONS=
-ENGINE_XFILESHARING_UPLOAD_OPTIONS=
-ENGINE_XFILESHARING_DELETE_OPTIONS=
-ENGINE_XFILESHARING_LIST_OPTIONS=
-ENGINE_XFILESHARING_PROBE_OPTIONS=
+ENGINE_XFILESHARING_OPTIONS=
+ENGINE_XFILESHARING_FLAGS=
 
 # Generic callback functions list
 declare -ra XFCB_FUNCTIONS=(
@@ -83,97 +80,87 @@ LIST_OPTIONS
 LIST_HAS_SUBFOLDERS)
 
 # Globals
-declare ENGINE_DIR
-declare SUBMODULE
+declare XFILESHARING_ENGINE_DIR
+declare XFILESHARING_SUBMODULE
 
-declare URL_UPLOAD
+declare XFILESHARING_URL_UPLOAD
 
 # Get module list for xfilesharing engine
 # Note: use global variable ENGINE_DIR
 #
 # stdout: return module list (one name per line)
 xfilesharing_grep_list_modules() {
-    local -r CONFIG="$ENGINE_DIR/xf/config"
+    local -r CONFIG="$XFILESHARING_ENGINE_DIR/xf/config"
 
     if [ ! -f "$CONFIG" ]; then
-        stderr "can't find xfilesharing config file"
+        log_error "Can't find xfilesharing config file"
         return $ERR_SYSTEM
     fi
 
-    sed -ne "/^[^#]/{/.*/s/^\([^[:space:],]*\).*/\1/p}" \
-        "$CONFIG"
+    sed -ne "/^[^#]/{/.*/s/^\([^[:space:],]*\).*/\1/p}" "$CONFIG"
 }
 
 # Static function. Get module property
 # $1: module name
-# $2: property name to get
+# $2: property name to get. Accepted value(s): URL_UPLOAD
 # stdout: requested property
 xfilesharing_get_submodule_property() {
-    local -r CONFIG="$ENGINE_DIR/xf/config"
+    local -r CONFIG="$XFILESHARING_ENGINE_DIR/xf/config"
 
     if [ ! -f "$CONFIG" ]; then
-        stderr "can't find xfilesharing config file"
+        log_error "Can't find xfilesharing config file"
         return $ERR_SYSTEM
     fi
 
-    while IFS=',' read -r MODULE URL_REGEX \
-        URL_UPLOAD_PROP; do
+    while IFS=',' read -r MODULE URL_REGEX URL_UPLOAD_PROP; do
         if [ "$MODULE" = "$1" ]; then
             case "$2" in
-            'URL_UPLOAD')
-                echo "$URL_UPLOAD_PROP"
-                ;;
+                'URL_UPLOAD')
+                    echo "$URL_UPLOAD_PROP"
+                    ;;
             esac
-
-            unset IFS
             return 0
         fi
     done < "$CONFIG"
-    unset IFS
-
-    return 1
+    return $ERR_NOMODULE
 }
 
 # Static function. Get module name by URL
 # $1: URL
 # stdout: module name
 xfilesharing_get_submodule() {
-    local -r CONFIG="$ENGINE_DIR/xf/config"
+    local -r CONFIG="$XFILESHARING_ENGINE_DIR/xf/config"
 
     if [ ! -f "$CONFIG" ]; then
-        stderr "can't find xfilesharing config file"
+        log_error "Can't find xfilesharing config file"
         return $ERR_SYSTEM
     fi
 
-    while IFS=',' read -r MODULE URL_REGEX \
-        URL_UPLOAD; do
+    while IFS=',' read -r MODULE URL_REGEX URL_UPLOAD; do
         if match "$URL_REGEX" "$1"; then
             echo "$MODULE"
-
-            unset IFS
             return 0
         fi
     done < "$CONFIG"
-    unset IFS
-
-    return 1
+    return $ERR_NOMODULE
 }
 
 # Engine initialisation. No subshell.
 # $1: plowshare engine directory
 xfilesharing_init() {
-    ENGINE_DIR=$1
+    XFILESHARING_ENGINE_DIR=$1
 
-    source "$ENGINE_DIR/xf/module.sh"
-    source "$ENGINE_DIR/xf/generic.sh"
+    source "$XFILESHARING_ENGINE_DIR/xf/module.sh"
+    source "$XFILESHARING_ENGINE_DIR/xf/module_options.sh"
+    source "$XFILESHARING_ENGINE_DIR/xf/generic.sh"
 
-    XF_MODULES=$(xfilesharing_grep_list_modules) || return
-
-    for XF_MODULE in $XF_MODULES; do
-        if [ -f "$ENGINE_DIR/xf/$XF_MODULE.sh" ]; then
-            source "$ENGINE_DIR/xf/$XF_MODULE.sh"
-        fi
-    done
+    #XF_MODULES=$(xfilesharing_grep_list_modules) || return
+    #
+    #for XF_MODULE in $XF_MODULES; do
+    #    if [ -f "$XFILESHARING_ENGINE_DIR/xf/$XF_MODULE.sh" ]; then
+    #        source "$XFILESHARING_ENGINE_DIR/xf/$XF_MODULE.sh"
+    #    fi
+    #done
 }
 
 # Check if we accept this kind of url. No subshell.
@@ -187,53 +174,55 @@ xfilesharing_probe_module() {
     local -i RET=0
 
     if [ "$NAME" = 'plowdown' ] || [ "$NAME" = 'plowlist' ] || [ "$NAME" = 'plowdel' ] || [ "$NAME" = 'plowprobe' ]; then
-        SUBMODULE=$(xfilesharing_get_submodule "$MODULE_DATA") || RET=$ERR_NOMODULE
+        XFILESHARING_SUBMODULE=$(xfilesharing_get_submodule "$MODULE_DATA") || RET=$ERR_NOMODULE
     elif [ "$NAME" = 'plowup' ]; then
-        URL_UPLOAD=$(xfilesharing_get_submodule_property "$MODULE_DATA" 'URL_UPLOAD' ) || RET=$ERR_NOMODULE
-        SUBMODULE="$MODULE_DATA"
+        XFILESHARING_URL_UPLOAD=$(xfilesharing_get_submodule_property "$MODULE_DATA" \
+            'URL_UPLOAD' ) || RET=$ERR_NOMODULE
+        XFILESHARING_SUBMODULE=$MODULE_DATA
     fi
 
     if [ $RET -eq 0 ]; then
-        if [ -f "$ENGINE_DIR/xf/$SUBMODULE.sh" ]; then
-            log_debug "submodule: '$SUBMODULE' (custom)"
+        if [ -f "$XFILESHARING_ENGINE_DIR/xf/$XFILESHARING_SUBMODULE.sh" ]; then
+            source "$XFILESHARING_ENGINE_DIR/xf/$XFILESHARING_SUBMODULE.sh"
+            log_debug "submodule: '$XFILESHARING_SUBMODULE' (custom)"
         else
-            log_debug "submodule: '$SUBMODULE' (generic)"
+            log_debug "submodule: '$XFILESHARING_SUBMODULE' (generic)"
         fi
 
         case "$NAME" in
             'plowdown')
-                eval "xfilesharing:${SUBMODULE}_download(){ xfcb_download \"\$@\"; }"
+                eval "xfilesharing:${XFILESHARING_SUBMODULE}_download(){ xfilesharing_module_download \"\$@\"; }"
                 ;;
             'plowlist')
-                eval "xfilesharing:${SUBMODULE}_list(){ xfcb_list \"\$@\"; }"
+                eval "xfilesharing:${XFILESHARING_SUBMODULE}_list(){ xfilesharing_module_list \"\$@\"; }"
                 ;;
             'plowdel')
-                eval "xfilesharing:${SUBMODULE}_delete(){ xfcb_delete \"\$@\"; }"
+                eval "xfilesharing:${XFILESHARING_SUBMODULE}_delete(){ xfilesharing_module_delete \"\$@\"; }"
                 ;;
             'plowprobe')
-                eval "xfilesharing:${SUBMODULE}_probe(){ xfcb_probe \"\$@\"; }"
+                eval "xfilesharing:${XFILESHARING_SUBMODULE}_probe(){ xfilesharing_module_probe \"\$@\"; }"
                 ;;
             'plowup')
-                eval "xfilesharing:${SUBMODULE}_upload(){ xfcb_upload \"\$@\"; }"
+                eval "xfilesharing:${XFILESHARING_SUBMODULE}_upload(){ xfilesharing_module_upload \"\$@\"; }"
                 ;;
         esac
 
         for FUNCTION_NAME in "${XFCB_FUNCTIONS[@]}"; do
-            if ! declare -f "xfcb_${SUBMODULE}_${FUNCTION_NAME}" >/dev/null; then
-                eval "xfcb_${SUBMODULE}_${FUNCTION_NAME}(){
+            if ! declare -f "xfcb_${XFILESHARING_SUBMODULE}_${FUNCTION_NAME}" >/dev/null; then
+                eval "xfcb_${XFILESHARING_SUBMODULE}_${FUNCTION_NAME}(){
                     xfcb_generic_${FUNCTION_NAME} \"\$@\"
                 }"
             fi
 
-            eval "xfcb_${FUNCTION_NAME}() { xfcb_${SUBMODULE}_${FUNCTION_NAME} \"\$@\"; }"
+            eval "xfcb_${FUNCTION_NAME}() { xfcb_${XFILESHARING_SUBMODULE}_${FUNCTION_NAME} \"\$@\"; }"
         done
 
         for OPTION_NAME in "${OPTS_VAR_SUBMODULE[@]}"; do
-            local -u SUBMODULE_OPTION="MODULE_XFILESHARING_${SUBMODULE}_${OPTION_NAME}"
+            local -u SUBMODULE_OPTION="MODULE_XFILESHARING_${XFILESHARING_SUBMODULE}_${OPTION_NAME}"
 
             if [ -n "${!SUBMODULE_OPTION}" ]; then
-                case "$OPTION_NAME" in
-                    'DOWNLOAD_OPTIONS'|'UPLOAD_OPTIONS'|'DELETE_OPTIONS'|'PROBE_OPTIONS'|'LIST_OPTIONS')
+                case $OPTION_NAME in
+                    *_OPTIONS)
                         eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPTION_NAME}${!SUBMODULE_OPTION}\""
                         ;;
                     *)
@@ -253,8 +242,8 @@ xfilesharing_probe_module() {
 # $1: URL to probe
 # stdout: module name
 xfilesharing_get_module() {
-    test "$SUBMODULE" || return $ERR_NOMODULE
-    echo "xfilesharing:$SUBMODULE"
+    test "$XFILESHARING_SUBMODULE" || return $ERR_NOMODULE
+    echo "xfilesharing:$XFILESHARING_SUBMODULE"
 }
 
 # Look for a configuration module variable
@@ -272,7 +261,7 @@ xfilesharing_get_all_modules_options() {
                 strip_and_drop_empty_lines "${!VAR}"
             fi
         done
-    done <<< "$(xfilesharing_grep_list_modules)"
+    done < <(xfilesharing_grep_list_modules)
 }
 
 # Look for a configuration module variable

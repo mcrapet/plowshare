@@ -138,9 +138,9 @@ fi
 if [ -n "$ENGINE" ]; then
     if [ "$ENGINE" = 'xfilesharing' ]; then
         source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowdel: initialising $ENGINE engine"
+        log_notice "plowdel: initializing $ENGINE engine"
         if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialisation error"
+            log_error "$ENGINE initialization error"
             exit $ERR_FATAL
         fi
     else
@@ -225,7 +225,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
         process_configfile_module_options '[Pp]lowdel' "$MODULE" DELETE "$EXT_PLOWSHARERC"
 
     [ -n "$ENGINE" ] && \
-        eval "$(process_engine_options "$ENGINE" DELETE \
+        eval "$(process_engine_options "$ENGINE" \
             "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     eval "$(process_module_options "${MODULE//:/_}" DELETE \

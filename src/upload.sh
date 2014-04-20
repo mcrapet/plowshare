@@ -307,12 +307,22 @@ if [ -n "$TEMP_DIR" ]; then
     log_notice "Temporary directory: $TMPDIR"
 fi
 
+if [ -z "$ENGINE" ] && [ ${#UNUSED_OPTS[@]} -ge 2 ]; then
+    for OPTION in "${UNUSED_OPTS[@]}"; do
+        if match '^[a-z_]\+:[a-z_]\+$' "$OPTION"; then
+            ENGINE=$(parse . '^\([^:]\+\)' <<< "$OPTION")
+            ENGINE_SUBMODULE=$(parse . '^[^:]\+:\(.*\)$' <<< "$OPTION")
+            break
+        fi
+    done
+fi
+
 if [ -n "$ENGINE" ]; then
     if [ "$ENGINE" = 'xfilesharing' ]; then
         source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowup: initialising $ENGINE engine"
+        log_notice "plowup: initializing $ENGINE engine"
         if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialisation error"
+            log_error "$ENGINE initialization error"
             exit $ERR_FATAL
         fi
     else
@@ -370,8 +380,10 @@ fi
 
 # Check requested module
 if [ -n "$ENGINE" ]; then
-    if ${ENGINE}_probe_module 'plowup' "${COMMAND_LINE_ARGS[0]}"; then
-        MODULE=$(${ENGINE}_get_module "${COMMAND_LINE_ARGS[0]}") || {
+    [ -z "$ENGINE_SUBMODULE" ] && ENGINE_SUBMODULE="${COMMAND_LINE_ARGS[0]}"
+
+    if ${ENGINE}_probe_module 'plowup' "$ENGINE_SUBMODULE"; then
+        MODULE=$(${ENGINE}_get_module "$ENGINE_SUBMODULE") || {
             log_error "plowup: $ENGINE engine cannot provide base module (${COMMAND_LINE_ARGS[0]})";
             exit $ERR_NOMODULE;
         }
@@ -397,10 +409,10 @@ test -z "$NO_PLOWSHARERC" && \
     process_configfile_module_options '[Pp]lowup' "$MODULE" UPLOAD "$EXT_PLOWSHARERC"
 
 [ -n "$ENGINE" ] && \
-    eval "$(process_engine_options "$ENGINE" DOWNLOAD \
+    eval "$(process_engine_options "$ENGINE" \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-eval "$(process_module_options "${MODULE//:/_}" DOWNLOAD \
+eval "$(process_module_options "${MODULE//:/_}" UPLOAD \
     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
 if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then

@@ -75,7 +75,7 @@ xfcb_generic_handle_captcha() {
 
             # http://www.google.com/recaptcha/api/challenge?k=
             # http://api.recaptcha.net/challenge?k=
-            PUBKEY=$(echo "$PAGE" | parse 'recaptcha.*?k=' '?k=\([[:alnum:]_-.]\+\)') || return
+            PUBKEY=$(parse 'recaptcha.*?k=' '?k=\([[:alnum:]_-.]\+\)' <<< "$PAGE") || return
             WCI=$(recaptcha_process $PUBKEY) || return
             { read WORD; read CHALLENGE; read ID; } <<<"$WCI"
 
@@ -87,7 +87,7 @@ xfcb_generic_handle_captcha() {
             log_debug 'CAPTCHA: Solve Media'
 
             # solvemedia.com/papi/challenge.script?k=
-            PUBKEY=$(echo "$PAGE" | parse 'solvemedia\.com.*?k=' '?k=\([[:alnum:]_-.]\+\)') || return
+            PUBKEY=$(parse 'solvemedia\.com.*?k=' '?k=\([[:alnum:]_-.]\+\)' <<< "$PAGE") || return
             log_debug "Solvemedia pubkey: '$PUBKEY'"
             RESP=$(solvemedia_captcha_process $PUBKEY) || return
             { read CHALLENGE; read ID; } <<< "$RESP"
@@ -101,7 +101,7 @@ xfcb_generic_handle_captcha() {
 
             log_debug 'CAPTCHA: xfilesharing image'
 
-            CAPTCHA_URL=$(echo "$PAGE" | parse_attr '/captchas/' src) || return
+            CAPTCHA_URL=$(parse_attr '/captchas/' 'src' <<< "$PAGE") || return
             CAPTCHA_IMG=$(create_tempfile '.jpg') || return
 
             curl -o "$CAPTCHA_IMG" "$CAPTCHA_URL" || return
@@ -125,12 +125,12 @@ xfcb_generic_handle_captcha() {
             OFFSET=48
             for (( DIGIT_N=1; DIGIT_N<=7; DIGIT_N+=2 )); do
                 # direction:ltr
-                DIGIT=$(echo "$PAGE" | parse_quiet 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '^&#\([[:digit:]]\+\);<' DIGIT_N+1) || return
+                DIGIT=$(parse_quiet 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '^&#\([[:digit:]]\+\);<' DIGIT_N+1 <<< "$PAGE") || return
                 if [ -z $DIGIT ]; then
-                    DIGIT=$(echo "$PAGE" | parse 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '^\([[:digit:]]\+\)<' DIGIT_N+1) || return
+                    DIGIT=$(parse 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '^\([[:digit:]]\+\)<' DIGIT_N+1 <<< "$PAGE") || return
                     OFFSET=0
                 fi
-                XCOORD=$(echo "$PAGE" | parse 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '-left:\([[:digit:]]\+\)p' DIGIT_N) || return
+                XCOORD=$(parse 'width:80px;height:26px;font:bold 13px Arial;background:#ccc;text-align:left;' '-left:\([[:digit:]]\+\)p' DIGIT_N <<< "$PAGE") || return
 
                 # Depending x, guess digit rank
                 if (( XCOORD < 15 )); then
@@ -188,10 +188,10 @@ xfcb_generic_check_antiddos() {
         fi
 
         FORM_DDOS=$(grep_form_by_id "$PAGE" 'challenge-form') || return
-        FORM_DDOS_ACTION=$(echo "$PAGE" | parse_form_action) || return
-        FORM_DDOS_VC=$(echo "$FORM_DDOS" | parse_form_input_by_name 'jschl_vc') || return
-        DDOS_CHLNG=$(echo "$PAGE" | parse 'a.value = ' 'a.value = \([^;]\+\)') || return
-        DOMAIN=$(echo "$BASE_URL" | parse . '^https\?://\(.*\)$')
+        FORM_DDOS_ACTION=$(parse_form_action <<< "$PAGE") || return
+        FORM_DDOS_VC=$(parse_form_input_by_name 'jschl_vc' <<< "$FORM_DDOS") || return
+        DDOS_CHLNG=$(parse 'a.value = ' 'a.value = \([^;]\+\)' <<< "$PAGE") || return
+        DOMAIN=$(parse . '^https\?://\(.*\)$' <<< "$BASE_URL")
         DDOS_CHLNG=$(( ($DDOS_CHLNG) + ${#DOMAIN} ))
 
         wait 6 || return
@@ -237,7 +237,7 @@ xfcb_generic_unpack_js() {
 
     # urlencoding script with all quotes and backslashes to push it into unpack function as string
     PACKED_SCRIPT=$(echo "$PACKED_SCRIPT" | uri_encode_strict | replace '\' '%5C')
-    echo "$PACKED_SCRIPT_CLEAN $UNPACK_SCRIPT print(unPack('$PACKED_SCRIPT'));" | javascript || return
+    javascript <<< "$PACKED_SCRIPT_CLEAN $UNPACK_SCRIPT print(unPack('$PACKED_SCRIPT'));" || return
 }
 
 # Parse all download stage errors
@@ -262,9 +262,13 @@ xfcb_generic_dl_parse_error() {
     if match 'class="err">' "$PAGE"; then
         log_debug 'Remote error detected.'
 
-        ERROR=$(echo "$PAGE" | parse_quiet 'class="err">' 'class="err">\([^<]\+\)')
-        [ -z "$ERROR" -o "${#ERROR}" -lt 3 ] && ERROR=$(echo "$PAGE" | replace $'\r' '' | replace $'\n' '' | \
-            parse_quiet 'class="err">' 'class="err">\([^<]\+\)')
+        ERROR=$(parse_quiet 'class="err">' 'class="err">\([^<]\+\)' <<< "$PAGE")
+
+        if [ -z "$ERROR" -o "${#ERROR}" -lt 3 ]; then
+            ERROR=$(replace_all $'\r' '' <<< "$PAGE")
+            ERROR=$(replace_all $'\n' '' <<< "$ERROR")
+            ERROR=$(parse_quiet 'class="err">' 'class="err">\([^<]\+\)' <<< "$ERROR")
+        fi
 
         if [ -z "$ERROR" -o "${#ERROR}" -lt 3 ]; then
             ERROR="$PAGE"
@@ -281,8 +285,7 @@ xfcb_generic_dl_parse_error() {
     if match 'You have reached the download-limit.*wait[^)]*second' "$PAGE"; then
         local SECS
 
-        SECS=$(echo "$PAGE" | \
-            parse_quiet 'You have reached the download-limit' ' \([[:digit:]]\+\) second')
+        SECS=$(parse_quiet 'You have reached the download-limit' ' \([[:digit:]]\+\) second' <<< "$PAGE")
         echo "$SECS"
 
         return $ERR_LINK_TEMP_UNAVAILABLE
@@ -291,12 +294,9 @@ xfcb_generic_dl_parse_error() {
     elif match 'You have to wait' "$PAGE"; then
         local HOURS MINS SECS
 
-        HOURS=$(echo "$PAGE" | \
-            parse_quiet 'You have to wait' ' \([[:digit:]]\+\) hour')
-        MINS=$(echo "$PAGE" | \
-            parse_quiet 'You have to wait' ' \([[:digit:]]\+\) minute')
-        SECS=$(echo "$PAGE" | \
-            parse_quiet 'You have to wait' ' \([[:digit:]]\+\) second')
+        HOURS=$(parse_quiet 'You have to wait' ' \([[:digit:]]\+\) hour' <<< "$PAGE")
+        MINS=$(parse_quiet 'You have to wait' ' \([[:digit:]]\+\) minute' <<< "$PAGE")
+        SECS=$(parse_quiet 'You have to wait' ' \([[:digit:]]\+\) second' <<< "$PAGE")
 
         log_error 'Forced delay between downloads.'
         echo $(( HOURS * 60 * 60 + MINS * 60 + SECS ))
@@ -371,7 +371,7 @@ xfcb_generic_dl_parse_form1() {
         log_debug "Searching form 1... $FORM_COUNT"
         FORM_HTML=$(grep_form_by_order "$PAGE" $FORM_COUNT 2>/dev/null | break_html_lines_alt | replace $'\r' '')
         [ -z "$FORM_HTML" ] && log_debug "Another attempt to get form 1..." && \
-            FORM_HTML=$(grep_form_by_order $(echo "$PAGE" | break_html_lines_alt) $FORM_COUNT 2>/dev/null)
+            FORM_HTML=$(grep_form_by_order $(break_html_lines_alt <<< "$PAGE") $FORM_COUNT 2>/dev/null)
 
         [ -z "$FORM_HTML" ] && log_error "Cannot find first step form" && return $ERR_FATAL
         ((FORM_COUNT++))
@@ -381,17 +381,17 @@ xfcb_generic_dl_parse_form1() {
             continue
         fi
 
-        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_OP")
+        FORM_OP=$(parse_form_input_by_name_quiet "$FORM_STD_OP" <<< "$FORM_HTML")
     done
     FORM_OP="$FORM_STD_OP=$FORM_OP"
 
-    FORM_ID="$FORM_STD_ID="$(echo "$FORM_HTML" | parse_form_input_by_name "$FORM_STD_ID") || return
-    FORM_USR="$FORM_STD_USR="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_USR")
-    FORM_FNAME="$FORM_STD_FNAME="$(echo "$FORM_HTML" | parse_form_input_by_name "$FORM_STD_FNAME") || return
-    FORM_REFERER="$FORM_STD_REFERER="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_REFERER")
+    FORM_ID="$FORM_STD_ID="$(parse_form_input_by_name "$FORM_STD_ID" <<< "$FORM_HTML") || return
+    FORM_USR="$FORM_STD_USR="$(parse_form_input_by_name_quiet "$FORM_STD_USR" <<< "$FORM_HTML")
+    FORM_FNAME="$FORM_STD_FNAME="$(parse_form_input_by_name "$FORM_STD_FNAME" <<< "$FORM_HTML") || return
+    FORM_REFERER="$FORM_STD_REFERER="$(parse_form_input_by_name_quiet "$FORM_STD_REFERER" <<< "$FORM_HTML")
 
     # Rare, but some hosters verify this hash on the first form
-    FORM_HASH=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_HASH")
+    FORM_HASH=$(parse_form_input_by_name_quiet "$FORM_STD_HASH" <<< "$FORM_HTML")
     [ -n "$FORM_HASH" ] && FORM_HASH="-d $FORM_STD_HASH=$FORM_HASH"
 
     if ! match "$FORM_STD_METHOD_F" "$FORM_HTML"; then
@@ -399,18 +399,18 @@ xfcb_generic_dl_parse_form1() {
         FORM_STD_METHOD_F='imhuman'
     fi
 
-    FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_METHOD_F")
+    FORM_METHOD_F=$(parse_form_input_by_name_quiet "$FORM_STD_METHOD_F" <<< "$FORM_HTML")
     if [ -z "$FORM_METHOD_F" ]; then
-        FORM_METHOD_F=$(echo "$FORM_HTML" | parse_attr \
+        FORM_METHOD_F=$(parse_attr \
             "<[Bb][Uu][Tt][Tt][Oo][Nn][^>]*name=[\"']\?$FORM_STD_METHOD_F[\"']\?[[:space:]/>]" \
-            'value') || return
+            'value' <<< "$FORM_HTML") || return
     fi
     FORM_METHOD_F="$FORM_STD_METHOD_F=$FORM_METHOD_F"
 
     if [ "$#" -gt 8 ]; then
         for ADD in "${@:9}"; do
             if ! match '=' "$ADD"; then
-                FORM_ADD=$FORM_ADD" -d $ADD="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$ADD")
+                FORM_ADD=$FORM_ADD" -d $ADD="$(parse_form_input_by_name_quiet "$ADD" <<< "$FORM_HTML")
             else
                 FORM_ADD=$FORM_ADD" -d $ADD"
             fi
@@ -463,27 +463,27 @@ xfcb_generic_dl_parse_form2() {
         return $ERR_FATAL
     fi
 
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_OP") || return
+    FORM_OP=$(parse_form_input_by_name_quiet "$FORM_STD_OP" <<< "$FORM_HTML") || return
     if [ -n "$FORM_OP" ]; then
         FORM_OP="$FORM_STD_OP=$FORM_OP"
 
     # Some XF mod special, part 1/3 (dozen of sites use this mod)
     else
-        FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'act') || return
+        FORM_OP=$(parse_form_input_by_name 'act' <<< "$FORM_HTML") || return
         FORM_OP="act=$FORM_OP"
     fi
 
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_ID")
+    FORM_ID=$(parse_form_input_by_name_quiet "$FORM_STD_ID" <<< "$FORM_HTML")
     if match 'download2' "$FORM_OP" && [ -z "$FORM_ID" ]; then
         log_error "Most probably file is deleted."
         return $ERR_LINK_DEAD
     fi
     FORM_ID="$FORM_STD_ID=$FORM_ID"
 
-    FORM_RAND="$FORM_STD_RAND="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_RAND")
-    FORM_REFERER="$FORM_STD_REFERER="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_REFERER")
-    FORM_METHOD_F="$FORM_STD_METHOD_F="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_METHOD_F")
-    FORM_METHOD_P="$FORM_STD_METHOD_P="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_METHOD_P")
+    FORM_RAND="$FORM_STD_RAND="$(parse_form_input_by_name_quiet "$FORM_STD_RAND" <<< "$FORM_HTML")
+    FORM_REFERER="$FORM_STD_REFERER="$(parse_form_input_by_name_quiet "$FORM_STD_REFERER" <<< "$FORM_HTML")
+    FORM_METHOD_F="$FORM_STD_METHOD_F="$(parse_form_input_by_name_quiet "$FORM_STD_METHOD_F" <<< "$FORM_HTML")
+    FORM_METHOD_P="$FORM_STD_METHOD_P="$(parse_form_input_by_name_quiet "$FORM_STD_METHOD_P" <<< "$FORM_HTML")
 
     if match "$FORM_STD_DD" "$FORM_HTML"; then
         FORM_DD="-d $FORM_STD_DD=1"
@@ -502,7 +502,7 @@ xfcb_generic_dl_parse_form2() {
     fi
 
     # Some XF mod special, part 2/3 (other sites may put this into second form, which is very handy)
-    FORM_FNAME=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$FORM_STD_FNAME")
+    FORM_FNAME=$(parse_form_input_by_name_quiet "$FORM_STD_FNAME" <<< "$FORM_HTML")
     if [ -n "$FORM_FNAME" ]; then
         FORM_FNAME=" -d $FORM_STD_FNAME=$FORM_FNAME"
     fi
@@ -510,7 +510,7 @@ xfcb_generic_dl_parse_form2() {
     if [ "$#" -gt 10 ]; then
         for ADD in "${@:11}"; do
             if ! match '=' "$a"; then
-                FORM_ADD=$FORM_ADD" -d $ADD="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$ADD")
+                FORM_ADD=$FORM_ADD" -d $ADD="$(parse_form_input_by_name_quiet "$ADD" <<< "$FORM_HTML")
             else
                 FORM_ADD=$FORM_ADD" -d $ADD"
             fi
@@ -542,7 +542,7 @@ xfcb_generic_dl_parse_final_link() {
 
     local LOCATION FILE_URL
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
     # Generic final link parser
     if [ -n "$LOCATION" ]; then
@@ -557,7 +557,7 @@ xfcb_generic_dl_parse_final_link() {
         local RE_URL="[^'^\"^[:space:]^>^<^\[]"
         local RE_DLOC='/d/\|/files/\|/dl/\|dl\.cgi'
         local TRY
-        local PAGE_BREAK=$(echo "$PAGE" | break_html_lines_alt)
+        local PAGE_BREAK=$(break_html_lines_alt <<< "$PAGE")
 
         for TRY in 1 2; do
             [ $TRY = 2 ] && RE_DLOC='/cgi-bin/' && log_debug 'Trying other needle...'
@@ -587,7 +587,7 @@ xfcb_generic_dl_parse_final_link() {
     # hulkload, queenshare adflying links
     if match '^http://adf\.ly/.*http://' "$FILE_URL"; then
         log_debug 'Aflyed link detected.'
-        FILE_URL=$(echo "$FILE_URL" | parse . '^http://adf\.ly/.*\(http://.*\)$')
+        FILE_URL=$(parse . '^http://adf\.ly/.*\(http://.*\)$' <<< "$FILE_URL")
     fi
 
     echo "$FILE_URL"
@@ -683,7 +683,7 @@ xfcb_generic_dl_commit_step2() {
             $FORM_ADD ) \
             MODULE_XFILESHARING_${SUBMODULE^^}_DOWNLOAD_RESUME=no"
 
-        FORM_FNAME=$(echo "$FORM_FNAME" | parse . "=\(.*\)$")
+        FORM_FNAME=$(parse . "=\(.*\)$" <<< "$FORM_FNAME")
 
         echo "$FORM_ACTION"
         echo "$FORM_FNAME"
@@ -728,7 +728,7 @@ xfcb_generic_dl_parse_streaming () {
 
         detect_javascript || return
 
-        SCRIPTS=$(echo "$PAGE" | parse_all "<script[^>]*>eval(function(p,a,c,k,e,d)" "<script[^>]*>\(eval.*\)$")
+        SCRIPTS=$(parse_all "<script[^>]*>eval(function(p,a,c,k,e,d)" "<script[^>]*>\(eval.*\)$" <<< "$PAGE")
 
         while read -r JS; do
             JS=$(xfcb_unpack_js "$JS")
@@ -753,7 +753,7 @@ xfcb_generic_dl_parse_streaming () {
         detect_javascript || return
 
         SCRIPT_N=1
-        SCRIPTS=$(echo "$PAGE" | parse_all '<script' '^\(.*\)$' 1)
+        SCRIPTS=$(parse_all '<script' '^\(.*\)$' 1 <<< "$PAGE")
 
         while read JS; do
             if match 'function decodejs(instr,icount)' "$JS"; then
@@ -775,35 +775,35 @@ xfcb_generic_dl_parse_streaming () {
 
     if match "jwplayer([\"'].*[\"']).setup\|new SWFObject.*player" "$PAGE"; then
         if match 'streamer.*rtmp' "$PAGE"; then
-            RTMP_BASE=$(echo "$PAGE" | parse 'streamer.*rtmp' "[\"']\?streamer[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(rtmp[^'^\"^)]\+\)")
-            RTMP_PLAYPATH=$(echo "$PAGE" | parse 'file' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\([^'^\"^)]\+\)")
+            RTMP_BASE=$(parse 'streamer.*rtmp' "[\"']\?streamer[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(rtmp[^'^\"^)]\+\)" <<< "$PAGE")
+            RTMP_PLAYPATH=$(parse 'file' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\([^'^\"^)]\+\)" <<< "$PAGE")
 
             FILE_URL="$RTMP_BASE playpath=$RTMP_PLAYPATH"
 
         # videopremium.tv special
         elif match 'file":"rtmp' "$PAGE"; then
-            RTMP_SRC=$(echo "$PAGE" | parse 'file":"rtmp' '"file":"\(rtmp[^"]\+\)')
-            RTMP_SWF=$(echo "$PAGE" | parse 'new swfobject.embedSWF("' 'new swfobject.embedSWF("\([^"]\+\)')
+            RTMP_SRC=$(parse 'file":"rtmp' '"file":"\(rtmp[^"]\+\)' <<< "$PAGE")
+            RTMP_SWF=$(parse 'new swfobject.embedSWF("' 'new swfobject.embedSWF("\([^"]\+\)' <<< "$PAGE")
 
-            RTMP_PLAYPATH=$(echo "$RTMP_SRC" | parse . '^.*/\([^/]*\)$')
-            RTMP_BASE=$(echo "$RTMP_SRC" | parse . '^\(.*\)/[^/]*$')
+            RTMP_PLAYPATH=$(parse . '^.*/\([^/]*\)$' <<< "$RTMP_SRC")
+            RTMP_BASE=$(parse . '^\(.*\)/[^/]*$' <<< "$RTMP_SRC")
 
             FILE_URL="$RTMP_BASE pageUrl=$URL playpath=$RTMP_PLAYPATH swfUrl=$RTMP_SWF"
         else
-            FILE_URL=$(echo "$PAGE" | parse 'file.*http' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(http[^'^\"^)]\+\)")
+            FILE_URL=$(parse 'file.*http' "[\"']\?file[\"']\?[[:space:]]*[,\:][[:space:]]*[\"']\?\(http[^'^\"^)]\+\)" <<< "$PAGE")
         fi
 
     # www.donevideo.com special
     elif match '<object[^>]*DivXBrowserPlugin' "$PAGE"; then
-        FILE_URL=$(echo "$PAGE" | parse '<object[^>]*DivXBrowserPlugin' 'id="np_vid"[^>]*src="\([^"]\+\)')
+        FILE_URL=$(parse '<object[^>]*DivXBrowserPlugin' 'id="np_vid"[^>]*src="\([^"]\+\)' <<< "$PAGE")
 
     # www.lovevideo.tv special
     elif match 'StrobeMediaPlayback.swf' "$PAGE"; then
         # rtmp://50.7.69.178/vod000027/ey5ozfhq448b.flv?e=1378429062&st=f-o_ItdghTPRSnILtjgnng
         # "rtmp://50.7.69.178/vod000027 pageUrl=http://www.lovevideo.tv/4fnfwqtu1typ playpath=ey5ozfhq448b.flv?e=1378464032&st=Bg1WAlpO3wr9HRkteAy4ng"
         RTMP_SRC=$(echo "$PAGE" | parse 'StrobeMediaPlayback.swf' "value='src=\(rtmp[^&]\+\)" | uri_decode | replace '%3F' '?')
-        RTMP_PLAYPATH=$(echo "$RTMP_SRC" | parse . '^.*/\([^/]*\)$')
-        RTMP_BASE=$(echo "$RTMP_SRC" | parse . '^\(.*\)/[^/]*$')
+        RTMP_PLAYPATH=$(parse . '^.*/\([^/]*\)$' <<< "$RTMP_SRC")
+        RTMP_BASE=$(parse . '^\(.*\)/[^/]*$' <<< "$RTMP_SRC")
 
         # Need to add some exception for rtmp links
         FILE_URL="$RTMP_BASE pageUrl=$URL playpath=$RTMP_PLAYPATH"
@@ -828,10 +828,10 @@ xfcb_generic_dl_parse_imagehosting() {
 
     RE_IMG="<img[^>]*src=[^>]*\(/files/\|/i/\)[^'\"[:space:]>]*\(t(_\|[^_])\|[^t]\)\."
     if match "$RE_IMG" "$PAGE"; then
-        IMG_URL=$(echo "$PAGE" | parse_attr_quiet "$RE_IMG" 'src')
-        IMG_ALT=$(echo "$PAGE" | parse_attr_quiet "$IMG_URL" 'alt')
-        IMG_TITLE=$(echo "$PAGE" | parse_tag_quiet '<[Tt]itle>' '[Tt]itle')
-        IMG_ID=$(echo "$URL" | parse_quiet . '[^/]/\([[:alnum:]]\{12\}\)\(/\|$\)')
+        IMG_URL=$(parse_attr_quiet "$RE_IMG" 'src' <<< "$PAGE")
+        IMG_ALT=$(parse_attr_quiet "$IMG_URL" 'alt' <<< "$PAGE")
+        IMG_TITLE=$(parse_tag_quiet '<[Tt]itle>' '[Tt]itle' <<< "$PAGE")
+        IMG_ID=$(parse_quiet . '[^/]/\([[:alnum:]]\{12\}\)\(/\|$\)' <<< "$URL")
         # Ignore video thumbnails
         if [ -n "$IMG_URL" ]; then
             if ( [ -n "$IMG_ALT" ] && match "$IMG_ALT" "$IMG_TITLE" ) || \
@@ -856,25 +856,25 @@ xfcb_generic_dl_parse_countdown () {
     local WAIT_TIME PAGE_UNBREAK
 
     if match '"countdown_str"' "$PAGE"; then
-        WAIT_TIME=$(echo "$PAGE" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\{6\}">[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
+        WAIT_TIME=$(parse_quiet 'countdown_str' \
+            'countdown_str.*<span[^>]*id="[[:alnum:]]\{6\}">[[:space:]]*\([0-9]\+\)[[:space:]]*<' <<< "$PAGE") \
             && log_debug "Seraching countdown timer... 1"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE" | parse_quiet '<span id="[[:alnum:]]\{6\}">' \
-            '<span id="[[:alnum:]]\{6\}">[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
+        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(parse_quiet '<span id="[[:alnum:]]\{6\}">' \
+            '<span id="[[:alnum:]]\{6\}">[[:space:]]*\([0-9]\+\)[[:space:]]*<' <<< "$PAGE") \
             && log_debug "Seraching countdown timer... 2"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE" | parse_quiet 'Wait.*second' \
-            'Wait.*>[[:space:]]*\([0-9]\+\)[[:space:]]*<.*second') \
+        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(parse_quiet 'Wait.*second' \
+            'Wait.*>[[:space:]]*\([0-9]\+\)[[:space:]]*<.*second' <<< "$PAGE") \
             && log_debug "Seraching countdown timer... 3"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\+"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
+        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(parse_quiet 'countdown_str' \
+            'countdown_str.*<span[^>]*id="[[:alnum:]]\+"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<' <<< "$PAGE") \
             && log_debug "Seraching countdown timer... 4"
 
-        [ -z "$WAIT_TIME" ] && PAGE_UNBREAK=$(echo "$PAGE" | replace $'\n' '')
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE_UNBREAK" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\{6\}"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
+        [ -z "$WAIT_TIME" ] && PAGE_UNBREAK=$(replace $'\n' '' <<< "$PAGE")
+        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(parse_quiet 'countdown_str' \
+            'countdown_str.*<span[^>]*id="[[:alnum:]]\{6\}"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<' <<< "$PAGE_UNBREAK") \
             && log_debug "Seraching countdown timer... 5"
-        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(echo "$PAGE_UNBREAK" | parse_quiet 'countdown_str' \
-            'countdown_str.*<span[^>]*id="[[:alnum:]]\+"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<') \
+        [ -z "$WAIT_TIME" ] && WAIT_TIME=$(parse_quiet 'countdown_str' \
+            'countdown_str.*<span[^>]*id="[[:alnum:]]\+"[^>]*>[[:space:]]*\([0-9]\+\)[[:space:]]*<' <<< "$PAGE_UNBREAK") \
             && log_debug "Seraching countdown timer... 6"
 
         [ -z "$WAIT_TIME" ] && log_error "Cannot locate countdown timer." && return $ERR_FATAL
@@ -907,31 +907,31 @@ xfcb_generic_ul_get_space_data() {
 
     if match '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*GB[[:space:]]*Used' "$PAGE"; then
         # XXX Kb of XXX GB
-        SPACE_USED=$(echo "$PAGE" | parse_quiet '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+\?[[:space:]]*Used' \
-            '>\([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ')
+        SPACE_USED=$( parse_quiet '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+\?[[:space:]]*Used' \
+            '>\([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ' <<< "$PAGE")
         if [ -z "$SPACE_USED" ]; then
-            SPACE_USED=$(echo "$PAGE" | parse '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+\?[[:space:]]*Used' \
-                ' \([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ') || return
+            SPACE_USED=$(parse '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+\?[[:space:]]*Used' \
+                ' \([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ' <<< "$PAGE") || return
         fi
 
-        SPACE_LIMIT=$(echo "$PAGE" | parse '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+\?[[:space:]]*Used' \
-            'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)') || return
+        SPACE_LIMIT=$(parse '[0-9.]\+[[:space:]]*of[[:space:]]*[0-9.]\+[[:space:]]*[KMGBb]\+\?[[:space:]]*Used' \
+            'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)' <<< "$PAGE") || return
     else
         # XXX Kb of XXX GB
-        SPACE_USED=$(echo "$PAGE" | parse_quiet 'Used space' \
-            '>\([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ')
+        SPACE_USED=$(parse_quiet 'Used space' \
+            '>\([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ' <<< "$PAGE")
         if [ -z "$SPACE_USED" ]; then
-            SPACE_USED=$(echo "$PAGE" | parse 'Used space' \
-                ' \([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ') || return
+            SPACE_USED=$(parse 'Used space' \
+                ' \([0-9.]\+[[:space:]]*[KMGBb]\+\?\) of ' <<< "$PAGE") || return
         fi
 
-        SPACE_LIMIT=$(echo "$PAGE" | parse 'Used space' \
-            'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)') || return
+        SPACE_LIMIT=$(parse 'Used space' \
+            'of \([0-9.]\+[[:space:]]*[KMGBb]\+\)' <<< "$PAGE") || return
     fi
 
     # played.to speedvid
     if match '^[0-9.]\+$' "$SPACE_USED"; then
-        SPACE_MEASURE=$(echo "$SPACE_LIMIT" | parse . '[[:space:]]\([KMGBb]\+\)$') || return
+        SPACE_MEASURE=$(parse . '[[:space:]]\([KMGBb]\+\)$' <<< "$SPACE_LIMIT") || return
         SPACE_USED="$SPACE_USED $SPACE_MEASURE"
         log_debug "Common space measure: '$SPACE_MEASURE'"
     fi
@@ -978,7 +978,7 @@ xfcb_generic_ul_get_folder_data() {
 
     if match "<[Ss]elect[^>]*to_folder[^[:alnum:]_]" "$PAGE"; then
         SELECT_N=1
-        SELECTS=$(echo "$PAGE" | parse_all '<[Ss]elect' '^\(.*\)$')
+        SELECTS=$(parse_all '<[Ss]elect' '^\(.*\)$' <<< "$PAGE")
 
         while read -r LINE; do
             match '<[Ss]elect[^>]*to_folder[^[:alnum:]_]' "$LINE" && break
@@ -999,7 +999,7 @@ xfcb_generic_ul_get_folder_data() {
         FOLDERS=$(echo "$FORM" | parse_all_tag 'option' | delete_first_line 2 | strip) || return
 
         if match "^$NAME$" "$FOLDERS"; then
-            FOLDER_ID=$(echo "$FORM" | parse_attr "<option[^>]*>[[:space:]]*$NAME[[:space:]]*</option>" 'value') || return
+            FOLDER_ID=$(parse_attr "<option[^>]*>[[:space:]]*$NAME[[:space:]]*</option>" 'value' <<< "$FORM") || return
         fi
 
     elif match '<a[^>]*my_files&amp;fld_id=' "$PAGE"; then
@@ -1015,16 +1015,16 @@ xfcb_generic_ul_get_folder_data() {
         fi
 
         if match "^$NAME$" "$FOLDERS"; then
-            FOLDER_ID=$(echo "$FORM" | parse "<a[^>]*fld_id=.*>[[:space:]]*$NAME[[:space:]]*<" 'fld_id=\([0-9]\+\)') || return
+            FOLDER_ID=$(parse "<a[^>]*fld_id=.*>[[:space:]]*$NAME[[:space:]]*<" 'fld_id=\([0-9]\+\)' <<< "$FORM") || return
         fi
     fi
 
     if [ -n "$FOLDER_ID" ]; then
-        TOKEN=$(echo "$PAGE" | parse_form_input_by_name_quiet 'token')
+        TOKEN=$(parse_form_input_by_name_quiet 'token' <<< "$PAGE")
 
-        COMMAND=$(echo "$PAGE" | parse_form_input_by_name_quiet 'to_folder_move')
+        COMMAND=$(parse_form_input_by_name_quiet 'to_folder_move' <<< "$PAGE")
         if [ -z "$COMMAND" ]; then
-            COMMAND=$(echo "$PAGE" | parse_form_input_by_name_quiet 'file_move')
+            COMMAND=$(parse_form_input_by_name_quiet 'file_move' <<< "$PAGE")
             [ -n "$COMMAND" ] && COMMAND="file_move=$COMMAND"
         else
             COMMAND="to_folder_move=$COMMAND"
@@ -1060,7 +1060,7 @@ xfcb_generic_ul_create_folder() {
         -d "create_new_folder=$NAME" \
         "$BASE_URL/") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     if match '?op=my_files' "$LOCATION"; then
         log_debug 'Folder created.'
     else
@@ -1110,7 +1110,7 @@ xfcb_generic_ul_parse_data() {
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file' 2>/dev/null | break_html_lines_alt)
     if [ -z "$FORM_HTML" ]; then
-        FORM_NAME=$(echo "$PAGE" | parse_quiet '<form[^>]*/cgi-bin[^>]*upload.cgi' "<form[^>]*name[[:space:]]*=[[:space:]]*[\"']\?\([^'\">]\+\)[\"']\?")
+        FORM_NAME=$(parse_quiet '<form[^>]*/cgi-bin[^>]*upload.cgi' "<form[^>]*name[[:space:]]*=[[:space:]]*[\"']\?\([^'\">]\+\)[\"']\?" <<< "$PAGE")
         if [ -n "$FORM_NAME" ]; then
             log_debug 'Found upload form by action.'
             FORM_HTML=$(grep_form_by_name "$PAGE" "$FORM_NAME" | break_html_lines_alt) || return
@@ -1120,9 +1120,9 @@ xfcb_generic_ul_parse_data() {
     if [ -z "$FORM_HTML" ] && match 'up_flash.cgi' "$PAGE"; then
         log_debug 'Using flash uploader.'
 
-        FL_URL=$(echo "$PAGE" | parse 'script.*up_flash.cgi' "script['\"]\?[[:space:]]*:[[:space:]]*['\"]\([^'\",]\+\)") || return
-        FL_FILEEXT=$(echo "$PAGE" | parse_quiet 'fileExt' "fileExt['\"]\?[[:space:]]*:[[:space:]]*['\"]\([^'\",]\+\)")
-        FL_SESS=$(echo "$PAGE" | parse_quiet 'scriptData.*sess_id' "sess_id['\"]\?[[:space:]]*:[[:space:]]*['\"]\([^'\"]\+\)")
+        FL_URL=$(parse 'script.*up_flash.cgi' "script['\"]\?[[:space:]]*:[[:space:]]*['\"]\([^'\",]\+\)" <<< "$PAGE") || return
+        FL_FILEEXT=$(parse_quiet 'fileExt' "fileExt['\"]\?[[:space:]]*:[[:space:]]*['\"]\([^'\",]\+\)" <<< "$PAGE")
+        FL_SESS=$(parse_quiet 'scriptData.*sess_id' "sess_id['\"]\?[[:space:]]*:[[:space:]]*['\"]\([^'\"]\+\)" <<< "$PAGE")
 
         echo "$FL_URL"
         echo "$FL_FILEEXT"
@@ -1135,9 +1135,9 @@ xfcb_generic_ul_parse_data() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
 
-    FORM_USER_TYPE=$(echo "$PAGE" | parse_quiet 'var[[:space:]]*utype' "utype['\"]\?[[:space:]]*=[[:space:]]*['\"]\?\([^'\";]\+\)['\"]\?")
+    FORM_USER_TYPE=$(parse_quiet 'var[[:space:]]*utype' "utype['\"]\?[[:space:]]*=[[:space:]]*['\"]\?\([^'\";]\+\)['\"]\?" <<< "$PAGE")
 
     if [ -n "$FORM_USER_TYPE" ]; then
         log_debug "User type: '$FORM_USER_TYPE'"
@@ -1152,24 +1152,24 @@ xfcb_generic_ul_parse_data() {
     fi
 
     # Will be empty on anon upload
-    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
+    FORM_SESS=$(parse_form_input_by_name_quiet 'sess_id' <<< "$FORM_HTML")
     [ -n "$FORM_SESS" ] && FORM_SESS="-F sess_id=$FORM_SESS"
 
-    FORM_SRV_TMP=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'srv_tmp_url')
+    FORM_SRV_TMP=$(parse_form_input_by_name_quiet 'srv_tmp_url' <<< "$FORM_HTML")
     [ -n "$FORM_SRV_TMP" ] && FORM_SRV_TMP="-F srv_tmp_url=$FORM_SRV_TMP"
 
-    FORM_SRV_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'srv_id')
+    FORM_SRV_ID=$(parse_form_input_by_name_quiet 'srv_id' <<< "$FORM_HTML")
     [ -n "$FORM_SRV_ID" ] && FORM_SRV_ID="-F srv_id=$FORM_SRV_ID"
 
-    FORM_DISK_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'disk_id')
+    FORM_DISK_ID=$(parse_form_input_by_name_quiet 'disk_id' <<< "$FORM_HTML")
     if [ -n "$FORM_DISK_ID" ]; then
         FORM_DISK_ID_URL="&disk_id=$FORM_DISK_ID"
         FORM_DISK_ID="-F disk_id=$FORM_DISK_ID"
     fi
 
-    FORM_SUBMIT_BTN=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'submit_btn')
+    FORM_SUBMIT_BTN=$(parse_form_input_by_name_quiet 'submit_btn' <<< "$FORM_HTML")
 
-    FORM_FILE_FIELD=$(echo "$FORM_HTML" | parse_attr_quiet "<input[^>]*type[[:space:]]*=[[:space:]]*['\"]\?file['\"]\?" 'name')
+    FORM_FILE_FIELD=$(parse_attr_quiet "<input[^>]*type[[:space:]]*=[[:space:]]*['\"]\?file['\"]\?" 'name' <<< "$FORM_HTML")
     if [ -z "$FORM_FILE_FIELD" ] || [ "$FORM_FILE_FIELD" = "file_1" ]; then
         FORM_FILE_FIELD='file_0'
     else
@@ -1185,7 +1185,7 @@ xfcb_generic_ul_parse_data() {
     if [ "$#" -gt 1 ]; then
         for ADD in "${@:2}"; do
             if ! match '=' "$ADD"; then
-                FORM_ADD=$FORM_ADD" -F $ADD="$(echo "$FORM_HTML" | parse_form_input_by_name_quiet "$ADD")
+                FORM_ADD=$FORM_ADD" -F $ADD="$(parse_form_input_by_name_quiet "$ADD" <<< "$FORM_HTML")
             else
                 FORM_ADD=$FORM_ADD" -F $ADD"
             fi
@@ -1343,13 +1343,13 @@ xfcb_generic_ul_parse_result() {
     local PAGE_BODY STATE OP FORM_LINK_RCPT FILE_CODE DEL_CODE
     local FORM_HTML RESPONSE ERROR FORM_ACTION
 
-    RESPONSE=$(echo "$PAGE" | first_line)
+    RESPONSE=$(first_line <<< "$PAGE")
     if match '^HTTP.*50[0-9]' "$RESPONSE"; then
         log_error 'Server Issues.'
         return $ERR_FATAL
     fi
 
-    RESPONSE=$(echo "$PAGE" | last_line)
+    RESPONSE=$(last_line <<< "$PAGE")
     if match '^<HTML></HTML>$' "$RESPONSE"; then
         log_error 'Server Issues. Empty response.'
         return $ERR_FATAL
@@ -1361,7 +1361,7 @@ xfcb_generic_ul_parse_result() {
 
     PAGE_BODY="${PAGE#$'HTTP*\n\n'}"
     if match '^[[:alnum:]]\+:' "$RESPONSE"; then
-        FILE_CODE=$(echo "$RESPONSE" | parse . '^\([[:alnum:]]\+\)')
+        FILE_CODE=$(parse . '^\([[:alnum:]]\+\)' <<< "$RESPONSE")
 
         echo 'EDIT'
         echo "$FILE_CODE"
@@ -1375,7 +1375,7 @@ xfcb_generic_ul_parse_result() {
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1' 2>/dev/null)
 
     if [ -z "$FORM_HTML" ]; then
-        ERROR=$(echo "$PAGE" | parse_quiet '[Ee][Rr][Rr][Oo][Rr]:' "[Ee][Rr][Rr][Oo][Rr]:[[:space:]]*\(.*\)')")
+        ERROR=$(parse_quiet '[Ee][Rr][Rr][Oo][Rr]:' "[Ee][Rr][Rr][Oo][Rr]:[[:space:]]*\(.*\)')" <<< "$PAGE")
         if [ -n "$ERROR" ]; then
             if [ "$ERROR" = "You can\'t use remote URL upload" ]; then
                 log_error "Remote uploads disabled or limited for your account type."
@@ -1390,25 +1390,25 @@ xfcb_generic_ul_parse_result() {
         return $ERR_FATAL
     fi
 
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
 
     # download-after-post mod special
     if match "<textarea name='url_mass'>" "$FORM_HTML"; then
         log_error 'This hosting does not support remote uploads.'
         return $ERR_FATAL
     elif match "<textarea name='status'>" "$FORM_HTML"; then
-        FILE_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?filename[\"']\?" 'textarea') || return
-        STATE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?status[\"']\?" 'textarea') || return
+        FILE_CODE=$(parse_tag "name=[\"']\?filename[\"']\?" 'textarea' <<< "$FORM_HTML") || return
+        STATE=$(parse_tag "name=[\"']\?status[\"']\?" 'textarea' <<< "$FORM_HTML") || return
 
-        DEL_CODE=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?del_id[\"']\?" 'textarea') || return
-        FILE_NAME=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?filename_original[\"']\?" 'textarea') || return
+        DEL_CODE=$(parse_tag "name=[\"']\?del_id[\"']\?" 'textarea' <<< "$FORM_HTML") || return
+        FILE_NAME=$(parse_tag "name=[\"']\?filename_original[\"']\?" 'textarea' <<< "$FORM_HTML") || return
 
     else
-        OP=$(echo "$FORM_HTML" | parse_tag "name=[\"']\?op[\"']\?" 'textarea') || return
-        FILE_CODE=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?fn[\"']\?" 'textarea')
-        STATE=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?st[\"']\?" 'textarea')
+        OP=$(parse_tag "name=[\"']\?op[\"']\?" 'textarea' <<< "$FORM_HTML") || return
+        FILE_CODE=$(parse_tag_quiet "name=[\"']\?fn[\"']\?" 'textarea' <<< "$FORM_HTML")
+        STATE=$(parse_tag_quiet "name=[\"']\?st[\"']\?" 'textarea' <<< "$FORM_HTML")
 
-        FORM_LINK_RCPT=$(echo "$FORM_HTML" | parse_tag_quiet "name=[\"']\?link_rcpt[\"']\?" 'textarea')
+        FORM_LINK_RCPT=$(parse_tag_quiet "name=[\"']\?link_rcpt[\"']\?" 'textarea' <<< "$FORM_HTML")
         [ -n "$FORM_LINK_RCPT" ] && FORM_LINK_RCPT="--form-string link_rcpt=$FORM_LINK_RCPT"
 
         if [ -z "$FILE_CODE" ]; then
@@ -1501,11 +1501,11 @@ xfcb_generic_ul_parse_del_code() {
 
     local DEL_CODE
 
-    DEL_CODE=$(echo "$PAGE" | parse_quiet 'killcode=' 'killcode=\([[:alnum:]]\+\)')
+    DEL_CODE=$(parse_quiet 'killcode=' 'killcode=\([[:alnum:]]\+\)' <<< "$PAGE")
 
     # Another mod style
     if [ -z "$DEL_CODE" ]; then
-        DEL_CODE=$(echo "$PAGE" | parse_quiet 'del-' '\(del-[[:alnum:]]\{10\}\)')
+        DEL_CODE=$(parse_quiet 'del-' '\(del-[[:alnum:]]\{10\}\)' <<< "$PAGE")
         [ -n "$DEL_CODE" ] && log_debug 'Alternative kill link.'
     fi
 
@@ -1520,7 +1520,7 @@ xfcb_generic_ul_parse_file_id() {
 
     local FILE_ID
 
-    FILE_ID=$(echo "$PAGE" | parse_quiet 'id="ic[0-9]-' 'id="ic[0-9]-\([0-9]\+\)')
+    FILE_ID=$(parse_quiet 'id="ic[0-9]-' 'id="ic[0-9]-\([0-9]\+\)' <<< "$PAGE")
 
     if [ -z "$FILE_ID" ]; then
         if match 'id="ic[0-9]-"' "$PAGE"; then
@@ -1563,7 +1563,7 @@ xfcb_generic_ul_move_file() {
         $TOKEN_OPT \
         "$BASE_URL/") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     # fld_id0.php oteupload.com special
     if match '?op=my_files\|fld_id0' "$LOCATION"; then
         log_debug 'File moved.'
@@ -1610,7 +1610,7 @@ xfcb_generic_ul_edit_file() {
         -d "file_code=$FILE_CODE" \
         "$BASE_URL/" | break_html_lines) || return
 
-    EDIT_FILE_NAME=$(echo "$PAGE" | parse_form_input_by_name_quiet 'file_name')
+    EDIT_FILE_NAME=$(parse_form_input_by_name_quiet 'file_name' <<< "$PAGE")
 
     if [ -n "$EDIT_FILE_NAME" ]; then
         if [ "$DEST_FILE" != 'dummy' ]; then
@@ -1632,14 +1632,14 @@ xfcb_generic_ul_edit_file() {
         -F 'op=file_edit' \
         -F "file_code=$FILE_CODE" \
         $EDIT_FILE_NAME \
-        -F "file_descr=$DESCRIPTION" \
-        -F "file_password=$LINK_PASSWORD" \
+        --form-string "file_descr=$DESCRIPTION" \
+        --form-string "file_password=$LINK_PASSWORD" \
         -F "file_public=$PUBLIC_FLAG" \
         $PREMIUM_OPT \
         -F "save=Submit" \
         "$BASE_URL/?op=file_edit&file_code=$FILE_CODE") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     if match '?op=my_files' "$LOCATION" || match '?op=file_edit' "$LOCATION"; then
         log_debug 'File edited.'
     else

@@ -48,12 +48,12 @@ MODULE_XFILESHARING_GENERIC_LIST_HAS_SUBFOLDERS=yes
 # $1: cookie file
 # $2: file hosting url
 # stdout: real file download link
-xfcb_download() {
+xfilesharing_module_download() {
     local -r COOKIE_FILE=$1
     local URL=$2
 
     local BASE_URL=$(basename_url "$URL")
-    local PAGE LOCATION EXTRA FILE_URL WAIT_TIME TIME ERROR
+    local PAGE LOCATION EXTRA FILE_URL FILE_NAME FILE_NAME_TMP WAIT_TIME TIME ERROR
     local FORM_DATA FORM_CAPTCHA FORM_PASSWORD
     local NEW_PAGE=1
 
@@ -66,15 +66,15 @@ xfcb_download() {
 
     PAGE=$(xfcb_check_antiddos "$COOKIE_FILE" "$URL" "$PAGE") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     if [ -n "$LOCATION" ] && [ "$LOCATION" != "$URL" ]; then
         if [ $(basename_url "$LOCATION") = "$LOCATION" ]; then
             URL="$BASE_URL/$LOCATION"
         elif match 'op=login' "$LOCATION"; then
-            log_error "You must be registered to download."
+            log_error 'You must be registered to download.'
             return $ERR_LINK_NEED_PERMISSIONS
         else
-            URL="$LOCATION"
+            URL=$LOCATION
         fi
         log_debug "New form action: '$URL'"
     fi
@@ -89,8 +89,7 @@ xfcb_download() {
     # First form sometimes absent
     FORM_DATA=$(xfcb_dl_parse_form1 "$PAGE") || return
     if [ -n "$FORM_DATA" ]; then
-        { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
-        [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
+        FILE_NAME=$(parse . '=\(.*\)$' <<< "$FORM_DATA") || return
 
         WAIT_TIME=$(xfcb_dl_parse_countdown "$PAGE") || return
         if [ -n "$WAIT_TIME" ]; then
@@ -114,8 +113,9 @@ xfcb_download() {
 
     FORM_DATA=$(xfcb_dl_parse_form2 "$PAGE") || return
     if [ -n "$FORM_DATA" ]; then
-        { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
-        [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
+        if [ -z "$FILE_NAME" ]; then
+            FILE_NAME=$(parse . '=\(.*\)$' <<< "$FORM_DATA") || return
+        fi
 
         WAIT_TIME=$(xfcb_dl_parse_countdown "$PAGE") || return
 
@@ -138,7 +138,7 @@ xfcb_download() {
 
         # In case of download-after-post system or some complicated link parsing
         #  that requires additional data and page rquests (like uploadc or up.lds.net)
-        if match_remote_url $(echo "$PAGE" | first_line); then
+        if match_remote_url $(first_line <<< "$PAGE"); then
             { read FILE_URL; read FILE_NAME_TMP; read EXTRA; } <<<"$PAGE"
             [ -n "$FILE_NAME_TMP" ] && FILE_NAME="$FILE_NAME_TMP"
             [ -n "$EXTRA" ] && eval "$EXTRA"
@@ -152,7 +152,7 @@ xfcb_download() {
     if [ -z "$FILE_URL" ]; then
         if [ $NEW_PAGE = 1 ]; then
             xfcb_dl_parse_error "$PAGE" || ERROR=$?
-            if [ "$ERROR" = "$ERR_CAPTCHA" ]; then
+            if [ "$ERROR" = $ERR_CAPTCHA ]; then
                 log_debug 'Wrong captcha'
                 [ -n "$CAPTCHA_ID" ] && captcha_nack $CAPTCHA_ID
             fi
@@ -198,15 +198,15 @@ xfcb_download() {
 # $2: input file (with full path)
 # $3: remote filename
 # stdout: download link
-xfcb_upload() {
+xfilesharing_module_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL=$(echo "$URL_UPLOAD" | parse . "^\(.*\)/")
+    local -r BASE_URL=$(parse . "^\(.*\)/" <<< "$XFILESHARING_URL_UPLOAD")
     local PAGE LOCATION STATE FILE_CODE DEL_CODE FILE_ID FORM_DATA RESULT_DATA
     local FILE_NEED_EDIT=0
 
-    log_debug "Current: $URL_UPLOAD"
+    log_debug "Current: $XFILESHARING_URL_UPLOAD"
 
     if [ -z "$AUTH" ]; then
         if [ -n "$FOLDER" ]; then
@@ -266,12 +266,12 @@ xfcb_upload() {
     fi
 
     PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' \
-        "$URL_UPLOAD" | \
+        "$XFILESHARING_URL_UPLOAD" | \
         strip_html_comments) || return
 
-    PAGE=$(xfcb_check_antiddos "$COOKIE_FILE" "$URL_UPLOAD" "$PAGE") || return
+    PAGE=$(xfcb_check_antiddos "$COOKIE_FILE" "$XFILESHARING_URL_UPLOAD" "$PAGE") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
     if match 'op=login' "$LOCATION"; then
         log_error 'Anonymous upload not allowed.'
         return $ERR_LINK_NEED_PERMISSIONS
@@ -291,11 +291,9 @@ xfcb_upload() {
         xfcb_ul_remote_queue_add "$COOKIE_FILE" "$BASE_URL" "$FILE" "$REMOTE_UPLOAD_QUEUE_OP" || return
 
         # If this is an async upload, we are done
-        # FIXME: fake output, maybe introduce a new exit code?
         if [ -n "$ASYNC" ]; then
-            log_error 'Async remote upload, check your account for link.'
-            echo '#'
-            return 0
+            log_error 'Once remote upload completed, check your account for link.'
+            return $ERR_ASYNC_REQUEST
         fi
 
         # Keep checking progress
@@ -389,7 +387,7 @@ xfcb_upload() {
 # Delete a file uploaded to file hosting
 # $1: cookie file (unused here)
 # $2: delete url
-xfcb_delete() {
+xfilesharing_module_delete() {
     local -r URL=$2
     local BASE_URL
     local PAGE FILE_ID FILE_DEL_ID
@@ -447,12 +445,12 @@ xfcb_delete() {
 # $2: file hosting url
 # $3: requested capability list
 # stdout: 1 capability per line
-xfcb_probe() {
+xfilesharing_module_probe() {
     local -r COOKIE_FILE=$1
     local URL=$2
     local -r REQ_IN=$3
     local BASE_URL=$(basename_url "$URL")
-    local PAGE FORM_DATA FILE_NAME FILE_NAME_TMP FILE_SIZE REQ_OUT
+    local PAGE FORM_DATA FILE_NAME FILE_SIZE REQ_OUT
 
     PAGE=$(curl -i -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL" | \
         strip_html_comments) || return
@@ -464,7 +462,7 @@ xfcb_probe() {
         if [ $(basename_url "$LOCATION") = "$LOCATION" ]; then
             URL="$BASE_URL/$LOCATION"
         elif match 'op=login' "$LOCATION"; then
-            log_error "You must be registered to download."
+            log_error 'You must be registered to download.'
             return $ERR_LINK_NEED_PERMISSIONS
         else
             URL="$LOCATION"
@@ -480,8 +478,7 @@ xfcb_probe() {
 
     FORM_DATA=$(xfcb_dl_parse_form1 "$PAGE" 2>/dev/null)
     if [ -n "$FORM_DATA" ]; then
-        { read -r FILE_NAME_TMP; } <<<"$FORM_DATA"
-        [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(parse . '=\(.*\)$' <<<"$FILE_NAME_TMP")
+        FILE_NAME=$(parse . '=\(.*\)$' <<< "$FORM_DATA") || return
     else
         log_debug 'Form 1 omitted.'
     fi
@@ -490,15 +487,14 @@ xfcb_probe() {
         LINK_PASSWORD='dummy'
         FORM_DATA_2=$(xfcb_dl_parse_form2 "$PAGE" 2>/dev/null)
         if [ -n "$FORM_DATA_2" ]; then
-            { read -r FILE_NAME_TMP; } <<<"$FORM_DATA_2"
-            [ -n "$FILE_NAME_TMP" ] && FILE_NAME=$(echo "$FILE_NAME_TMP" | parse . '=\(.*\)$')
+            FILE_NAME=$(parse . '=\(.*\)$' <<< "$FORM_DATA_2") || return
         fi
     fi
 
     REQ_OUT=c
 
     for TRY in 1 2; do
-        if [ "$TRY" = "2" ]; then
+        if [ "$TRY" = '2' ]; then
             if [ -n "$FORM_DATA" ] && [ -z "$FILE_NAME" -o -z "$FILE_SIZE" ]; then
                 PAGE=$(xfcb_dl_commit_step1 "$COOKIE_FILE" "$URL" "$FORM_DATA") || return
             else
@@ -532,7 +528,7 @@ xfcb_probe() {
 # $1: folder URL
 # $2: recurse subfolders (null string means not selected)
 # stdout: list of links and file names (alternating)
-xfcb_list() {
+xfilesharing_module_list() {
     local -r URL=$1
     local -r REC=$2
     local RET=$ERR_LINK_DEAD

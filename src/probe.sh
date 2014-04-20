@@ -311,9 +311,9 @@ fi
 if [ -n "$ENGINE" ]; then
     if [ "$ENGINE" = 'xfilesharing' ]; then
         source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowprobe: initialising $ENGINE engine"
+        log_notice "plowprobe: initializing $ENGINE engine"
         if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialisation error"
+            log_error "$ENGINE initialization error"
             exit $ERR_FATAL
         fi
     else
@@ -443,7 +443,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 process_configfile_module_options '[Pp]lowprobe' "$MODULE" PROBE "$EXT_PLOWSHARERC"
 
             [ -n "$ENGINE" ] && \
-                eval "$(process_engine_options "$ENGINE" PROBE \
+                eval "$(process_engine_options "$ENGINE" \
                     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
             eval "$(process_module_options "${MODULE//:/_}" PROBE \
