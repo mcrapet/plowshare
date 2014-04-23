@@ -76,11 +76,6 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # - debug: all core/modules messages, curl calls
 # - report: debug plus curl content (html pages, cookies)
 
-# Global variables (local to this file):
-# Note: prefer "type -P" rather than "type -p" to override local definitions (function, alias, ...).
-declare -r CURL_PRG=$(type -P curl)
-declare -r JS_PRG=$(type -P js)
-
 # log_report for a file
 # $1: filename
 logcat_report() {
@@ -159,11 +154,11 @@ curl() {
     fi
 
     if test $VERBOSE -lt 4; then
-        "$CURL_PRG" "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
+        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
-        "$CURL_PRG" --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
+        command curl --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
         log_report '=== CURL BEGIN ==='
@@ -229,6 +224,10 @@ curl() {
                     log_error "$FUNCNAME: too many redirects"
                     return $ERR_FATAL
                 fi
+                ;;
+            # Invalid LDAP URL. See command_not_found_handle()
+            62)
+                return $ERR_SYSTEM
                 ;;
             *)
                 log_error "$FUNCNAME: failed with exit code $DRETVAL"
@@ -1176,7 +1175,7 @@ post_login() {
 # Detect if a JavaScript interpreter is installed
 # $? is zero on success
 detect_javascript() {
-    if [ -z "$JS_PRG" ]; then
+    if ! type -P js >/dev/null 2>&1; then
         log_notice 'Javascript interpreter not found. Please install one!'
         return $ERR_SYSTEM
     fi
@@ -1193,12 +1192,12 @@ javascript() {
     TEMPSCRIPT=$(create_tempfile '.js') || return
     cat > "$TEMPSCRIPT"
 
-    log_report "interpreter: '$JS_PRG'"
+    log_report "interpreter: $(type -P js)"
     log_report '=== JAVASCRIPT BEGIN ==='
     logcat_report "$TEMPSCRIPT"
     log_report '=== JAVASCRIPT END ==='
 
-    "$JS_PRG" "$TEMPSCRIPT"
+    command js "$TEMPSCRIPT"
     rm -f "$TEMPSCRIPT"
     return 0
 }
@@ -2074,7 +2073,7 @@ md5() {
         echo -n "$1" | md5sum -b 2>/dev/null | cut -d' ' -f1
     # BSD
     elif check_exec md5; then
-        "$(type -P md5)" -qs "$1"
+        command md5 -qs "$1"
     # OpenSSL
     elif check_exec openssl; then
         echo -n "$1" | openssl dgst -md5 | cut -d' ' -f2
@@ -2116,7 +2115,7 @@ md5_file() {
             md5sum -b "$1" 2>/dev/null | cut -d' ' -f1
         # BSD
         elif check_exec md5; then
-            "$(type -P md5)" -q "$1"
+            command md5 -q "$1"
         # OpenSSL
         elif check_exec openssl; then
             openssl dgst -md5 "$1" | cut -d' ' -f2
@@ -2550,6 +2549,7 @@ process_configfile_module_options() {
 }
 
 # Get system information
+# Note: prefer "type -P" rather than "type -p" to override local definitions (function, alias, ...).
 log_report_info() {
     local G GIT_DIR
 
@@ -2558,11 +2558,11 @@ log_report_info() {
         log_report "[mach] $(uname -a)"
         log_report "[bash] $BASH_VERSION"
         test "$http_proxy" && log_report "[env ] http_proxy=$http_proxy"
-        if [ -z "$CURL_PRG" ]; then
-            log_report '[curl] not found!'
-        else
-            log_report "[curl] $("$CURL_PRG" --version | first_line)"
+        if type -P curl >/dev/null 2>&1; then
+            log_report "[curl] $(command curl --version | first_line)"
             test -f "$HOME/.curlrc" && log_report '[curl] ~/.curlrc exists'
+        else
+            log_report '[curl] not found!'
         fi
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
@@ -3469,4 +3469,16 @@ log_notice_stack() {
         # quit if we go outside core.sh
         match '/core\.sh' "${BASH_SOURCE[$N]}" || break
     done
+}
+
+# Bash4 builtin error-handling function
+command_not_found_handle() {
+    local ERR=$ERR_SYSTEM
+    [ "$1" = 'curl' ] && ERR=62
+
+    log_error "$1: command not found"
+    shift
+    log_debug "with arguments: $*"
+
+    return $ERR
 }
