@@ -103,7 +103,7 @@ uptobox_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://uptobox.com'
-    local PAGE WAIT_TIME CODE PREMIUM FILE_URL
+    local PAGE WAIT_TIME CODE PREMIUM CAPTCHA_DATA CAPTCHA_ID
     local FORM_HTML FORM_OP FORM_USR FORM_ID FORM_FNAME FORM_RAND FORM_METHOD FORM_DD
 
     if [ -n "$AUTH" ]; then
@@ -146,6 +146,7 @@ uptobox_download() {
 
     # Handle premium downloads
     if [ "$PREMIUM" = '1' ]; then
+        local FILE_URL
         FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
 
         PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
@@ -195,29 +196,13 @@ uptobox_download() {
         fi
     fi
 
-    if match 'Enter code below:' "$PAGE"; then
-        local CAPTCHA DIGIT XCOORD
+    if match 'Enter code above' "$PAGE"; then
+        local RESP CHALL
 
-        # Funny captcha, this is text (4 digits)!
-        # <span style='position:absolute;padding-left:64px;padding-top:3px;'>&#55;</span>
-        CAPTCHA=$(parse_tag 'direction:ltr' div | \
-            replace_all 'span>' $'span>\n' <<< "$FORM_HTML") || return
-        CODE=0
-        while read LINE; do
-            DIGIT=$(parse 'padding-' '>&#\([[:digit:]]\+\);<' <<< "$LINE") || return
-            XCOORD=$(parse 'padding-' '-left:\([[:digit:]]\+\)p' <<< "$LINE") || return
+        RESP=$(solvemedia_captcha_process 'dAlo2UnjILCt709UJOmCZvfUBFxms5vw') || return
+        { read CHALL; read CAPTCHA_ID; } <<< "$RESP"
 
-            # Depending x, guess digit rank
-            if (( XCOORD < 15 )); then
-                (( CODE = CODE + 1000 * (DIGIT-48) ))
-            elif (( XCOORD < 30 )); then
-                (( CODE = CODE + 100 * (DIGIT-48) ))
-            elif (( XCOORD < 50 )); then
-                (( CODE = CODE + 10 * (DIGIT-48) ))
-            else
-                (( CODE = CODE + (DIGIT-48) ))
-            fi
-        done <<< "$CAPTCHA"
+        CAPTCHA_DATA="-F adcopy_challenge=$CHALL -F adcopy_response=manual_challenge"
     fi
 
     FORM_HTML=$(grep_form_by_order "$PAGE") || return
@@ -238,17 +223,20 @@ uptobox_download() {
         -F "referer=$URL" \
         -F "method_free=$FORM_METHOD" \
         -F 'method_premium=' \
+        $CAPTCHA_DATA \
         -F "down_direct=$FORM_DD" \
-        ${CODE:+"-F code=$CODE"} \
         "$URL") || return
 
-    # <p class="err">Wrong captcha</p>
-    if [ -n "$CODE" ] && match 'Wrong captcha' "$PAGE"; then
+    # <p class="err">Invalid captcha</p>
+    if [ -n "$CAPTCHA_DATA" ] && match 'Invalid captcha' "$PAGE"; then
+        captcha_nack $CAPTCHA_ID
         return $ERR_CAPTCHA
     fi
 
-    FILE_URL=$(parse_attr 'start your download' 'href' <<< "$PAGE") || return
-    echo "$FILE_URL"
+    captcha_ack $CAPTCHA_ID
+    log_debug 'Correct captcha'
+
+    parse_attr 'start your download' 'href' <<< "$PAGE" || return
     echo "$FORM_FNAME"
 }
 
