@@ -3465,9 +3465,9 @@ log_notice_stack() {
     local N
     for N in "${!FUNCNAME[@]}"; do
         [ $N -le 1 ] && continue
-        log_notice "failed inside ${FUNCNAME[$N]}(), line ${BASH_LINENO[$((N-1))]}, $(basename_file "${BASH_SOURCE[$N]}")"
-        # quit if we go outside core.sh
-        match '/core\.sh' "${BASH_SOURCE[$N]}" || break
+        log_notice "Failed inside ${FUNCNAME[$N]}(), line ${BASH_LINENO[$((N-1))]}, $(basename_file "${BASH_SOURCE[$N]}")"
+        # Exit if we go outside core.sh scope
+        [[ ${BASH_SOURCE[$N]} = */core.sh ]] || break
     done
 }
 
