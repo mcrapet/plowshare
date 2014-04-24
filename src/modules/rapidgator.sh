@@ -69,16 +69,16 @@ rapidgator_login() {
     STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
     [ -n "$STATUS" ] || return $ERR_LOGIN_FAILED
 
+    split_auth "$AUTH" EMAIL || return
+
     if match '^[[:space:]]*Account:.*Free' "$HTML"; then
         TYPE='free'
-    elif match '^[[:space:]]*Premium till' "$HTML"; then
+    elif match "^[[:space:]]*Premium.*$EMAIL" "$HTML"; then
         TYPE='premium'
     else
         log_error 'Could not determine account type. Site updated?'
         return $ERR_FATAL
     fi
-
-    split_auth "$AUTH" EMAIL || return
     log_debug "Successfully logged in as $TYPE member '$EMAIL'"
 
     echo "$TYPE"
