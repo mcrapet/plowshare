@@ -73,7 +73,7 @@ uploadable_ch_download() {
 
     PAGE=$(curl -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
-    if match 'File not available\|cannot be found on the server' "$PAGE"; then
+    if match 'File not available\|cannot be found on the server\|no longer available\|Page not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -332,7 +332,7 @@ uploadable_ch_probe() {
 
     PAGE=$(curl -L "$URL") || return
 
-    if match 'File not available\|cannot be found on the server' "$PAGE"; then
+    if match 'File not available\|cannot be found on the server\|no longer available\|Page not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -362,7 +362,7 @@ uploadable_ch_list() {
 
     PAGE=$(curl -L "$URL") || return
 
-    if match 'File not available\|cannot be found on the server' "$PAGE"; then
+    if match 'File not available\|cannot be found on the server\|no longer available\|Page not found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -381,7 +381,7 @@ uploadable_ch_delete() {
 
     PAGE=$(curl -L "$URL") || return
 
-    if match 'File not available\|cannot be found on the server\|File Delete Fail' "$PAGE"; then
+    if match 'File not available\|cannot be found on the server\|no longer available\|Page not found\|File Delete Fail' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
