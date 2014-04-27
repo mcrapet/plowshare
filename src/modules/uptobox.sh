@@ -212,7 +212,7 @@ uptobox_download() {
     FORM_METHOD=$(parse_form_input_by_name 'method_free' <<< "$FORM_HTML") || return
     FORM_DD=$(parse_form_input_by_name 'down_direct' <<< "$FORM_HTML") || return
 
-    WAIT_TIME=$(parse_tag 'Wait.*seconds' 'span' <<< "$FORM_HTML") || return
+    WAIT_TIME=$(parse_tag '[Ww]ait.*seconds' 'span' <<< "$FORM_HTML") || return
     wait $((WAIT_TIME + 1)) || return
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
