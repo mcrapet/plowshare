@@ -137,7 +137,7 @@ billionuploads_download() {
     PAGE=$(billionuploads_antiddos "$COOKIEFILE" "$URL" "$PAGE") || return
 
     # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
-    if match 'File Not Found' "$PAGE"; then
+    if match '[Ff]ile [Nn]ot [Ff]ound' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -278,7 +278,7 @@ billionuploads_probe() {
 
     PAGE=$(curl -L "$URL") || return
 
-    ! match 'File Not Found' "$PAGE" || return $ERR_LINK_DEAD
+    ! match '[Ff]ile [Nn]ot [Ff]ound' "$PAGE" || return $ERR_LINK_DEAD
 
     REQ_OUT=c
 
