@@ -906,7 +906,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
                     if [ -n "$URL_TEMP" ]; then
                         MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
-                        test "$MODULE" && URL="$URL_TEMP"
+                        test "$MODULE" && URL=$URL_TEMP
                     elif test "$NO_MODULE_FALLBACK"; then
                         log_notice 'No module found, do a simple HTTP GET as requested'
                         MODULE='module_null'

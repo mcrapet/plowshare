@@ -377,7 +377,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
                     if [ -n "$URL_TEMP" ]; then
                         MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
-                        test "$MODULE" && URL="$URL_TEMP"
+                        test "$MODULE" && URL=$URL_TEMP
                     else
                         match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
                             "$URL" && log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
