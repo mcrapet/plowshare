@@ -410,7 +410,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             RETVALS+=(0)
             echo "$MODULE"
         else
-            # Get configuration file module options (yes, Plowdown's one)
+            # Get configuration file module options
             test -z "$NO_PLOWSHARERC" && \
                 process_configfile_module_options '[Pp]lowprobe' "$MODULE" PROBE "$EXT_PLOWSHARERC"
 
