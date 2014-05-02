@@ -76,11 +76,6 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # - debug: all core/modules messages, curl calls
 # - report: debug plus curl content (html pages, cookies)
 
-# Global variables (local to this file):
-# Note: prefer "type -P" rather than "type -p" to override local definitions (function, alias, ...).
-declare -r CURL_PRG=$(type -P curl)
-declare -r JS_PRG=$(type -P js)
-
 # log_report for a file
 # $1: filename
 logcat_report() {
@@ -159,11 +154,11 @@ curl() {
     fi
 
     if test $VERBOSE -lt 4; then
-        "$CURL_PRG" "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
+        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
     else
         local TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
-        "$CURL_PRG" --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
+        command curl --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
         log_report '=== CURL BEGIN ==='
@@ -229,6 +224,10 @@ curl() {
                     log_error "$FUNCNAME: too many redirects"
                     return $ERR_FATAL
                 fi
+                ;;
+            # Invalid LDAP URL. See command_not_found_handle()
+            62)
+                return $ERR_SYSTEM
                 ;;
             *)
                 log_error "$FUNCNAME: failed with exit code $DRETVAL"
@@ -1176,7 +1175,7 @@ post_login() {
 # Detect if a JavaScript interpreter is installed
 # $? is zero on success
 detect_javascript() {
-    if [ -z "$JS_PRG" ]; then
+    if ! type -P js >/dev/null 2>&1; then
         log_notice 'Javascript interpreter not found. Please install one!'
         return $ERR_SYSTEM
     fi
@@ -1193,12 +1192,12 @@ javascript() {
     TEMPSCRIPT=$(create_tempfile '.js') || return
     cat > "$TEMPSCRIPT"
 
-    log_report "interpreter: '$JS_PRG'"
+    log_report "interpreter: $(type -P js)"
     log_report '=== JAVASCRIPT BEGIN ==='
     logcat_report "$TEMPSCRIPT"
     log_report '=== JAVASCRIPT END ==='
 
-    "$JS_PRG" "$TEMPSCRIPT"
+    command js "$TEMPSCRIPT"
     rm -f "$TEMPSCRIPT"
     return 0
 }
@@ -1254,7 +1253,7 @@ wait() {
 # Important note: input image ($1) is deleted in case of error
 captcha_process() {
     local -r CAPTCHA_TYPE=$2
-    local METHOD_SOLVE METHOD_VIEW FILENAME RESPONSE WORD I
+    local METHOD_SOLVE METHOD_VIEW FILENAME RESPONSE WORD I FBDEV
     local TID=0
 
     if [ -f "$1" ]; then
@@ -1321,7 +1320,12 @@ captcha_process() {
     fi
 
     # Auto-guess mode (view)
-    : ${METHOD_VIEW:=view-x,view-aa,log}
+    # Is current terminal a pseudo tty?
+    if [[ "$(tty)" = /dev/tty* ]]; then
+        : ${METHOD_VIEW:=view-x,view-fb,view-aa,log}
+    else
+        : ${METHOD_VIEW:=view-x,view-aa,log}
+    fi
 
     # 1) Probe for X11/Xorg viewers
     if [[ "$METHOD_VIEW" = *view-x* ]]; then
@@ -1342,8 +1346,17 @@ captcha_process() {
 
     # 2) Probe for framebuffer viewers
     if [[ "$METHOD_VIEW" = *view-fb* ]]; then
-        if ! test -c '/dev/fb0'; then
-            log_notice '/dev/fb0 not found! Skip FB viewers probing.'
+        if test -n "$FRAMEBUFFER"; then
+            log_notice 'FRAMEBUFFER variable is not empty, use it.'
+            FBDEV=$FRAMEBUFFER
+        else
+            FBDEV=/dev/fb0
+        fi
+
+        if ! test -c "$FBDEV"; then
+            log_notice "$FBDEV not found! Skip FB viewers probing."
+        elif check_exec 'fbi'; then
+            METHOD_VIEW=fb-fbi
         elif check_exec 'fim'; then
             METHOD_VIEW=fb-fim
         else
@@ -1434,9 +1447,15 @@ captcha_process() {
             sxiv -q -s "$FILENAME" &
             [ $? -eq 0 ] && PRG_PID=$!
             ;;
+        fb-fbi)
+            log_debug "fbi -autozoom -noverbose -d $FBDEV $FILENAME"
+            fbi -autozoom -noverbose -d "$FBDEV" "$FILENAME" &>/dev/null
+            PRG_PID=""
+            ;;
         fb-fim)
-            fim "$FILENAME" &
-            PRG_PID=$!
+            log_debug "fim --quiet --autozoom -d $FBDEV $FILENAME"
+            fim --quiet --autozoom -d "$FBDEV" "$FILENAME" 2>/dev/null
+            PRG_PID=""
             ;;
         imgur)
             IMG_HASH=$(image_upload_imgur "$FILENAME") || true
@@ -1960,72 +1979,75 @@ captcha_nack() {
 #   - "L": letters [A-Z]. Param: length.
 #   - "ll", "LL": letters [A-Za-z]. Param: length.
 #   - "u16": unsigned short (decimal) number <=65535. Example: "352".
+# stdout: random string/integer (\n-terminated)
 random() {
-    local I=0
+    local -i I=0
     local LEN=${2:-8}
     local -r SEED=$RANDOM
-    local RESULT N
-
-    # FIXME: Adding LC_CTYPE=C in front of printf is required?
+    local RESULT N L
 
     case $1 in
         d|dec)
             RESULT=$(( SEED % 9 + 1 ))
             (( ++I ))
             while (( I < $LEN )); do
-                N=$(printf '%04u' $((RANDOM % 10000)))
-                RESULT=$RESULT$N
+                printf -v N '%04u' $((RANDOM % 10000))
+                RESULT+=$N
                 (( I += 4 ))
             done
             ;;
         h|hex)
-            RESULT=$(printf '%x' $(( SEED % 15 + 1 )))
+            printf -v RESULT '%x' $(( SEED % 15 + 1 ))
             (( ++I ))
             while (( I < $LEN )); do
-                N=$(printf '%04x' $((RANDOM & 65535)))
-                RESULT=$RESULT$N
+                printf -v N '%04x' $((RANDOM & 65535))
+                RESULT+=$N
                 (( I += 4 ))
             done
             ;;
         H|HEX)
-            RESULT=$(printf '%X' $(( SEED % 15 + 1 )))
+            printf -v RESULT '%X' $(( SEED % 15 + 1 ))
             (( ++I ))
             while (( I < $LEN )); do
-                N=$(printf '%04X' $((RANDOM & 65535)))
-                RESULT=$RESULT$N
+                printf -v N '%04X' $((RANDOM & 65535))
+                RESULT+=$N
                 (( I += 4 ))
             done
             ;;
         l)
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 26 + 16#61))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         L)
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 26 + 16#41))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         [Ll][Ll])
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 52 + 16#41))
                 [[ $N -gt 90 ]] && (( N += 6 ))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         a)
             while (( I++ < $LEN )); do
                 N=$(( RANDOM % 36 + 16#30))
                 [[ $N -gt 57 ]] && (( N += 39 ))
-                RESULT=$RESULT$(printf \\$(($N/64*100+$N%64/8*10+$N%8)))
+                printf -v L \\$(($N/64*100+$N%64/8*10+$N%8))
+                RESULT+=$L
             done
             ;;
         js)
             LEN=$((SEED % 3 + 17))
             RESULT='0.'$((RANDOM * 69069 & 16#ffffffff))
-            RESULT=$RESULT$((RANDOM * 69069 & 16#ffffffff))
+            RESULT+=$((RANDOM * 69069 & 16#ffffffff))
             ;;
         u16)
             RESULT=$(( 256 * (SEED & 255) + (RANDOM & 255) ))
@@ -2051,7 +2073,7 @@ md5() {
         echo -n "$1" | md5sum -b 2>/dev/null | cut -d' ' -f1
     # BSD
     elif check_exec md5; then
-        "$(type -P md5)" -qs "$1"
+        command md5 -qs "$1"
     # OpenSSL
     elif check_exec openssl; then
         echo -n "$1" | openssl dgst -md5 | cut -d' ' -f2
@@ -2093,7 +2115,7 @@ md5_file() {
             md5sum -b "$1" 2>/dev/null | cut -d' ' -f1
         # BSD
         elif check_exec md5; then
-            "$(type -P md5)" -q "$1"
+            command md5 -q "$1"
         # OpenSSL
         elif check_exec openssl; then
             openssl dgst -md5 "$1" | cut -d' ' -f2
@@ -2536,6 +2558,7 @@ process_configfile_module_options() {
 }
 
 # Get system information
+# Note: prefer "type -P" rather than "type -p" to override local definitions (function, alias, ...).
 log_report_info() {
     local G GIT_DIR
 
@@ -2544,11 +2567,11 @@ log_report_info() {
         log_report "[mach] $(uname -a)"
         log_report "[bash] $BASH_VERSION"
         test "$http_proxy" && log_report "[env ] http_proxy=$http_proxy"
-        if [ -z "$CURL_PRG" ]; then
-            log_report '[curl] not found!'
-        else
-            log_report "[curl] $("$CURL_PRG" --version | first_line)"
+        if type -P curl >/dev/null 2>&1; then
+            log_report "[curl] $(command curl --version | first_line)"
             test -f "$HOME/.curlrc" && log_report '[curl] ~/.curlrc exists'
+        else
+            log_report '[curl] not found!'
         fi
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
@@ -2586,11 +2609,11 @@ captcha_method_translate() {
                 return $ERR_FATAL
             fi
             [[ $2 ]] && unset "$2" && eval $2=prompt
-            [[ $3 ]] && unset "$3" && eval $3=view-x
+            [[ $3 ]] && unset "$3" && eval $3=view-x,log
             ;;
         nox)
             [[ $2 ]] && unset "$2" && eval $2=prompt
-            [[ $3 ]] && unset "$3" && eval $3=view-aa
+            [[ $3 ]] && unset "$3" && eval $3=view-aa,log
             ;;
         online)
             if [ -z "$CAPTCHA_ANTIGATE" -a -z "$CAPTCHA_9KWEU" -a \
@@ -2607,7 +2630,7 @@ captcha_method_translate() {
                 return $ERR_FATAL
             fi
             [[ $2 ]] && unset "$2" && eval $2=prompt
-            [[ $3 ]] && unset "$3" && eval $3=view-fb
+            [[ $3 ]] && unset "$3" && eval $3=view-fb,log
             ;;
         *)
             log_error "Error: unknown captcha method: $1"
@@ -2666,8 +2689,22 @@ quote() {
     echo \'${1//\'/\'\\\'\'}\' #'# Help vim syntax highlighting
 }
 
+# Append element to a "quoted" array.
+# $1: quoted array (multiline).
+# $2: new element (string) to add
+# stdout: quoted items (one per line)
+quote_multiple() {
+  if [[ $1 ]]; then
+      echo "${1%)}"
+  else
+      echo '('
+  fi
+  quote "$2"
+  echo ')'
+}
+
 # $1: input string (this is a comma separated list)
-# stdout: quote items (one per line)
+# stdout: quoted items (one per line)
 quote_array() {
     local -a ARR
     local E
@@ -2730,6 +2767,34 @@ check_transfer_speed() {
     fi
 }
 
+# Check for disk size.
+# Mi is mebi (2^20 = 1024^2 = 1048576). Alias:m
+# Gi is gibi (2^30 = 1024^3 = 1073741824).
+# M  is mega (10^6 = 1000000). Alias:MB
+# G  is giga (10^9 = 1000000000). Alias:GB
+#
+# $1: integer number (with or without suffix)
+check_disk_size() {
+    local N=${1// }
+
+    # Probe for unit
+    case $N in
+        *Mi|*Gi|*MB|*GB)
+            N=${N%??}
+            ;;
+        *M|*m|*G)
+            N=${N%?}
+            ;;
+        *)
+            N=err
+            ;;
+    esac
+
+    if [[ $N = *[![:digit:]]* || $N -eq 0 ]]; then
+        return 1
+    fi
+}
+
 # Extract a specific block from a HTML content.
 # Notes:
 # - Use this function with leaf blocks (avoid <div>, <p>)
@@ -2782,7 +2847,7 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, D, e, f, F, l, n, N, r, s, S, V)
+# $2: format (a, D, e, f, F, l, n, N, r, R, s, S, t, V)
 # $3: option value (string)
 # $4: option name (used for error reporting only)
 # $?: return 0 for success
@@ -2804,11 +2869,15 @@ check_argument_type() {
     elif [[ $TYPE = 'N' && ( $VAL = *[![:digit:]]* || $VAL = '' ) ]]; then
         log_error "$NAME ($OPT): positive or zero integer expected"
     # s: Non empty string
-    elif [[ $TYPE = 's' && $VAL = '' ]]; then
+    # t: Non empty string (multiple command-line switch allowed)
+    elif [[ $TYPE = [st] && $VAL = '' ]]; then
         log_error "$NAME ($OPT): empty string not expected"
     # r: Speed rate (positive value, in bytes). Known suffixes: Ki/K/k/Mi/M/m
     elif [ "$TYPE" = 'r' ] && ! check_transfer_speed "$VAL"; then
         log_error "$NAME ($OPT): positive transfer rate expected"
+    # R: Disk size (positive value, suffix is mandatory). Known suffixes: Mi/m/M/MB/Gi/G/GB
+    elif [ "$TYPE" = 'R' ] && ! check_disk_size "$VAL"; then
+        log_error "$NAME ($OPT): wrong value, megabyte or gigabyte suffix is mandatory"
     # e: E-mail string
     elif [[ $TYPE = 'e' && "${VAL#*@*.}" = "$VAL" ]]; then
         log_error "$NAME ($OPT): invalid email address"
@@ -2866,9 +2935,9 @@ check_argument_type() {
     elif [[ $TYPE = 'V' && $VAL != [0-4] ]]; then
        log_error "$NAME: wrong verbose level \`$VAL'. Must be 0, 1, 2, 3 or 4."
 
-    elif [[ "$TYPE" = [lsS] ]]; then
+    elif [[ $TYPE = [lsSt] ]]; then
         RET=0
-    elif [[ "$TYPE" = [aenNrV] ]]; then
+    elif [[ $TYPE = [aenNrRV] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
             log_error "$NAME ($OPT): missing parameter"
         else
@@ -2897,12 +2966,16 @@ process_options() {
     local -r OPTIONS=$2
     local -r STEP=$3
 
-    local -a RES UNUSED_OPTS UNUSED_ARGS
+    local -A RES
+    local -a UNUSED_OPTS UNUSED_ARGS
     local -a OPTS_VAR_LONG OPTS_NAME_LONG OPTS_TYPE_LONG
     local -a OPTS_VAR_SHORT OPTS_NAME_SHORT OPTS_TYPE_SHORT
     local ARG VAR SHORT LONG TYPE HELP SKIP_ARG FOUND FUNC
 
     shift 3
+
+    UNUSED_OPTS=()
+    UNUSED_ARGS=()
 
     if [ -z "$OPTIONS" ]; then
         if [ $STEP -gt 0 ]; then
@@ -2952,24 +3025,34 @@ process_options() {
 
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
-                    elif [ "$TYPE" = 'r' ]; then
+                    elif [[ $TYPE = [rR] ]]; then
                         FUNC=translate_size
                     elif [ "$TYPE" = 'F' ]; then
                         FUNC=translate_exec
+                    elif [ "$TYPE" = 't' ]; then
+                        FUNC=quote_multiple
                     else
                         FUNC=quote
                     fi
 
                     if [ -z "$TYPE" ]; then
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=1"
+                        [[ ${RES[${OPTS_VAR_LONG[$I]}]} ]] && \
+                            log_notice "$NAME: useless duplicated option ${ARG%%=*}, ignoring"
+                        RES[${OPTS_VAR_LONG[$I]}]=1
                         [ "${ARG%%=*}" != "$ARG" ] && \
-                            log_notice "$NAME: unwanted argument for ${ARG%%=*}, ignoring"
-
+                            log_notice "$NAME: unwanted argument \`${ARG#*=}' for ${ARG%%=*}, ignoring"
                     # Argument with equal (ex: --timeout=60)
                     elif [ "${ARG%%=*}" != "$ARG" ]; then
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "${ARG#*=}" "${ARG%%=*}" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$($FUNC "${ARG#*=}")"
+
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "${RES[${OPTS_VAR_LONG[$I]}]}" "${ARG#*=}")"
+                        else
+                            [[ ${RES[${OPTS_VAR_LONG[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option ${ARG%%=*}, taking last one"
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "${ARG#*=}")"
+                        fi
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -2979,7 +3062,14 @@ process_options() {
 
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "$1" "$ARG" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_LONG[$I]}=$($FUNC "$1")"
+
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "${RES[${OPTS_VAR_LONG[$I]}]}" "$1")"
+                        else
+                            [[ ${RES[${OPTS_VAR_LONG[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option $ARG, taking last one"
+                            RES[${OPTS_VAR_LONG[$I]}]="$($FUNC "$1")"
+                        fi
                         SKIP_ARG=1
                     fi
 
@@ -2997,22 +3087,34 @@ process_options() {
 
                     if [ "$TYPE" = 'l' ]; then
                         FUNC=quote_array
-                    elif [ "$TYPE" = 'r' ]; then
+                    elif [[ $TYPE = [rR] ]]; then
                         FUNC=translate_size
                     elif [ "$TYPE" = 'F' ]; then
                         FUNC=translate_exec
+                    elif [ "$TYPE" = 't' ]; then
+                        FUNC=quote_multiple
                     else
                         FUNC=quote
                     fi
 
                     if [ -z "$TYPE" ]; then
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=1"
-
+                        [[ ${RES[${OPTS_VAR_SHORT[$I]}]} ]] && \
+                            log_notice "$NAME: useless duplicated option ${ARG:0:2}, ignoring"
+                        RES[${OPTS_VAR_SHORT[$I]}]=1
+                        [[ ${#ARG} -gt 2 ]] && \
+                            log_notice "$NAME: unwanted argument \`${ARG:2}' for ${ARG:0:2}, ignoring"
                     # Argument without whitespace (ex: -v3)
                     elif [ ${#ARG} -gt 2 ]; then
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "${ARG:2}" "${ARG:0:2}" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$($FUNC "${ARG:2}")"
+
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "${RES[${OPTS_VAR_SHORT[$I]}]}" "${ARG:2}")"
+                        else
+                            [[ ${RES[${OPTS_VAR_SHORT[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option ${ARG:0:2}, taking last one"
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "${ARG:2}")"
+                        fi
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
@@ -3022,7 +3124,14 @@ process_options() {
 
                         [ $STEP -gt 0 ] || check_argument_type "$NAME" \
                             "$TYPE" "$1" "$ARG" || return
-                        RES[${#RES[@]}]="${OPTS_VAR_SHORT[$I]}=$($FUNC "$1")"
+
+                        if [ "$TYPE" = 't' ]; then
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "${RES[${OPTS_VAR_SHORT[$I]}]}" "$1")"
+                        else
+                            [[ ${RES[${OPTS_VAR_SHORT[$I]}]} ]] && \
+                                log_notice "$NAME: duplicated option $ARG, taking last one"
+                            RES[${OPTS_VAR_SHORT[$I]}]="$($FUNC "$1")"
+                        fi
                         SKIP_ARG=1
                     fi
 
@@ -3051,16 +3160,15 @@ process_options() {
 
     # Declare core options as readonly
     if [ $STEP -lt 0 ]; then
-        # FIXME: Look for duplicates
-        for ARG in "${RES[@]}"; do echo "declare -r $ARG"; done
+        for ARG in "${!RES[@]}"; do echo "declare -r ${ARG}=${RES[$ARG]}"; done
 
     # Declare target module options: ${NAME}_vars_set/unset
     elif [ $STEP -gt 0 ]; then
         echo "${NAME}_vars_set() { :"
-        for ARG in "${RES[@]}"; do echo "$ARG"; done
+        for ARG in "${!RES[@]}"; do echo "${ARG}=${RES[$ARG]}"; done
         echo '}'
         echo "${NAME}_vars_unset() { :"
-        for ARG in "${RES[@]}"; do echo "${ARG%%=*}="; done
+        for ARG in "${!RES[@]}"; do echo "${ARG%%=*}="; done
         echo '}'
     fi
 
@@ -3175,7 +3283,8 @@ service_9kweu_ready() {
         else
             log_error "9kw.eu remote error: ${AMOUNT:5}"
         fi
-    elif (( AMOUNT < 5 )); then
+    # One solved captcha costs between 5 and 10
+    elif (( AMOUNT < 10 )); then
         log_notice '9kw.eu: insufficient credits'
     else
         log_debug "9kw.eu credits: $AMOUNT"
@@ -3374,8 +3483,20 @@ log_notice_stack() {
     local N
     for N in "${!FUNCNAME[@]}"; do
         [ $N -le 1 ] && continue
-        log_notice "failed inside ${FUNCNAME[$N]}(), line ${BASH_LINENO[$((N-1))]}, $(basename_file "${BASH_SOURCE[$N]}")"
-        # quit if we go outside core.sh
-        match '/core\.sh' "${BASH_SOURCE[$N]}" || break
+        log_notice "Failed inside ${FUNCNAME[$N]}(), line ${BASH_LINENO[$((N-1))]}, $(basename_file "${BASH_SOURCE[$N]}")"
+        # Exit if we go outside core.sh scope
+        [[ ${BASH_SOURCE[$N]} = */core.sh ]] || break
     done
+}
+
+# Bash4 builtin error-handling function
+command_not_found_handle() {
+    local ERR=$ERR_SYSTEM
+    [ "$1" = 'curl' ] && ERR=62
+
+    log_error "$1: command not found"
+    shift
+    log_debug "with arguments: $*"
+
+    return $ERR
 }

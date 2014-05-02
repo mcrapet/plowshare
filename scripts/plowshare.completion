@@ -1,7 +1,5 @@
-# Programmable completion for Plowshare commands under bash 3.x
-# Copy this file to /etc/bash_completion.d/plowshare
+# plowshare4 completion                                    -*- shell-script -*-
 
-have plowup &&
 _plowup()
 {
     local cur prev words cword split
@@ -16,7 +14,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-b|-d|-p|--auth|--description|--link-password|--name|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
+        -a|-b|-d|-p|--auth|--description|--link-password|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
@@ -26,6 +24,12 @@ _plowup()
             ;;
         --captchamethod)
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
+            return 0
+            ;;
+        --name)
+            if [ -z "$cur" ]; then
+                COMPREPLY=( "'%f'" )
+            fi
             return 0
             ;;
         --temp-directory)
@@ -76,7 +80,6 @@ _plowup()
 } &&
 complete -F _plowup plowup
 
-have plowdown &&
 _plowdown()
 {
     local cur prev words cword split
@@ -87,7 +90,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|-p|--auth-free|--auth|--link-password|--9kweu|--antigate|--captchabhood|--deathbycaptcha|--max-rate|-r|--max-retries|-t|--timeout|--printf)
+        -a|-b|-p|--auth-free|--auth|--link-password|--9kweu|--antigate|--captchabhood|--deathbycaptcha|--min-space|--max-rate|-r|--max-retries|-t|--timeout|--printf)
             # argument required but no completion available
             return 0
             ;;
@@ -116,8 +119,8 @@ _plowdown()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -o -m -r -t -x \
-            --max-rate --interface --mark-downloaded --no-overwrite --output-directory \
-            --temp-directory --temp-rename --timeout --max-retries \
+            --min-space --max-rate --interface --mark-downloaded --no-overwrite \
+            --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --deathbycaptcha \
             --fallback --cookies --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc --engine' -- $cur ) )
     else
@@ -126,7 +129,6 @@ _plowdown()
 } &&
 complete -F _plowdown plowdown
 
-have plowdel &&
 _plowdel()
 {
     local cur prev words cword split
@@ -170,7 +172,6 @@ _plowdel()
 } &&
 complete -F _plowdel plowdel
 
-have plowlist &&
 _plowlist()
 {
     local cur prev words cword split
@@ -209,7 +210,6 @@ _plowlist()
 } &&
 complete -F _plowlist plowlist
 
-have plowprobe &&
 _plowprobe()
 {
     local cur prev words cword split

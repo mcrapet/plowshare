@@ -144,7 +144,7 @@ uploaded_net_parse_json_alt() {
 }
 
 # Check if specified folder name is valid.
-# When multiple folders wear the same name, first one is taken.
+# When multiple folders have the same name, first one is taken.
 # $1: folder name selected by user
 # $2: cookie file (logged into account)
 # $3: base URL
@@ -384,7 +384,7 @@ uploaded_net_upload() {
     local -r DEST_FILE=$3
     local -r BASE_URL='http://uploaded.net'
     local -r MAX_SIZE=1073741823
-    local PAGE SERVER FILE_ID AUTH_DATA ACCOUNT FOLDER_ID
+    local PAGE SERVER FILE_ID AUTH_DATA ACCOUNT FOLDER_ID OPT_FOLDER
 
     # Sanity checks
     [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
@@ -444,6 +444,7 @@ uploaded_net_upload() {
     if [ -n "$FOLDER" ]; then
         FOLDER_ID=$(uploaded_net_check_folder "$FOLDER" "$COOKIE_FILE" \
             "$BASE_URL") || return
+        OPT_FOLDER="&folder=$FOLDER_ID"
     fi
     log_debug "Folder ID: $FOLDER_ID"
 
@@ -454,7 +455,7 @@ uploaded_net_upload() {
         -F "Filename=$DEST_FILE" \
         -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         -F 'Upload=Submit Query' \
-        "${SERVER}upload?admincode=$ADMIN_CODE$AUTH_DATA") || return
+        "${SERVER}upload?admincode=$ADMIN_CODE$AUTH_DATA$OPT_FOLDER") || return
 
     if match '<title>504 Gateway Time-out</title>' "$PAGE"; then
         log_error 'Remote server error, maybe due to overload.'

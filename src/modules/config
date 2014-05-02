@@ -10,13 +10,12 @@ bayfiles        | download | upload | delete |      | probe |
 bayimg          | download | upload | delete |      | probe |
 bitshare        | download | upload | delete |      | probe |
 chomikuj        | download | upload |        | list | probe |
-cloudzer_net    | download | upload | delete | list | probe |
 crocko          | download | upload |        | list | probe |
 data_hu         | download | upload | delete |      |       |
 dataport_cz     | download | upload | delete |      |       |
 depositfiles    | download | upload | delete | list | probe |
 directmirror    |          | upload |        | list |       |
-divshare        | download | upload | delete | list |       |
+divshare        | download | upload | delete | list | probe |
 dl_free_fr      | download | upload | delete |      | probe |
 embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
@@ -39,7 +38,9 @@ gamefront       | download | upload |        |      | probe |
 ge_tt           | download | upload |        | list | probe |
 gfile_ru        | download | upload |        |      | probe |
 go4up           |          | upload | delete | list |       |
+hdstream_to     | download | upload |        |      | probe |
 jheberg         |          | upload |        | list | probe |
+keep2share      |          | upload |        |      | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |
@@ -52,6 +53,7 @@ nakido          | download |        |        |      | probe |
 netkups         | download | upload |        |      | probe |
 netload_in      | download | upload |        | list | probe |
 nowdownload_co  | download | upload |        |      | probe |
+oboom           | download | upload |        | list | probe |
 pastebin        |          |        |        | list |       |
 promptfile      | download |        |        |      | probe |
 rapidgator      | download | upload | delete | list | probe |
@@ -61,12 +63,14 @@ sendspace       | download | upload | delete | list | probe |
 shareonline_biz | download | upload |        |      | probe |
 sockshare       | download | upload | delete | list | probe |
 solidfiles      | download | upload |        | list | probe |
+tempsend        |          | upload |        |      |       |
 turbobit        | download | upload | delete | list | probe |
 ultramegabit    | download | upload |        |      | probe |
+uploadable_ch   | download | upload | delete | list | probe |
 uploadhero      | download | upload | delete | list | probe |
 uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
 upstore         | download | upload |        |      | probe |
 zalil_ru        | download | upload |        |      | probe |
-ziddu           | download | upload | delete |      | probe |
+ziddu           | download | upload |        |      | probe |
 zippyshare      | download | upload |        | list | probe |

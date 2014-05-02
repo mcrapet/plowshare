@@ -37,6 +37,7 @@ OUTPUT_DIR,o,output-directory,D=DIR,Directory where files will be saved
 TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (final link download, cookies, images)
 TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
 MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
+MIN_LIMIT_SPACE,,min-space,R=LIMIT,Set the minimum amount of disk space to exit.
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
@@ -68,7 +69,6 @@ absolute_path() {
         DIR=$(dirname "$TARGET")
         TARGET=$(readlink "$TARGET")
         cd -P "$DIR"
-        DIR=$PWD
     done
 
     if [ -f "$TARGET" ]; then
@@ -161,6 +161,41 @@ create_alt_filename() {
     echo "$FILENAME.$COUNT"
 }
 
+# Find mount point which belongs to given directory
+# $1: directory
+# $?: 0 for success
+# stdout: mount point (for example: /media/usbkey)
+disk_mount_point() {
+    local MOUNT DIR
+    local -a F
+
+    while read -r -a F; do
+        MOUNT=${F[5]}
+        # Mount point should be a substring of $1
+        if [[ $1 = ${MOUNT}* ]]; then
+            [[ $DIR > $MOUNT ]] || DIR=$MOUNT
+        fi
+    done < <(df -P -k|sed -ne '2,$p')
+
+    [ -z "$DIR" ] && return $ERR_FATAL
+    echo "$DIR"
+}
+
+# Check filesystem disk space
+# $1: mount point returned by disk_mount_point()
+# $2: limit (in bytes)
+# $?: 0 when free disk space is strictly below requested size
+disk_check() {
+    local -a F
+    local -ir KB_SIZE=$(($2 / 1024))
+
+    read -r -a F < <(df -P -k | grep "$1\$" | head -n1)
+    if [[ ${F[3]} -lt $KB_SIZE ]]; then
+        log_error "Requested disk limit reached. Available space on $1 is ${F[3]} bytes. Aborting."
+        return $ERR_SYSTEM
+    fi
+}
+
 # Example: "MODULE_RYUSHARE_DOWNLOAD_RESUME=no"
 # $1: module name
 module_config_resume() {
@@ -211,7 +246,7 @@ download() {
     local -r MAX_RETRIES=$7
     local -r LAST_HOST=$8
 
-    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME
+    local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME BASE_URL
     local -i STATUS FILE_SIZE
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_download
@@ -367,9 +402,17 @@ download() {
         fi
 
         # Sanity check 4
-        if [[ $FILE_URL = $(basename_url "$FILE_URL") ]]; then
+        BASE_URL=$(basename_url "$FILE_URL")
+        if [ "$FILE_URL" = "$BASE_URL" ]; then
             log_error "Output URL is not valid: $FILE_URL"
             return $ERR_FATAL
+        fi
+
+        if [[ $BASE_URL =~ :([[:digit:]]{2,5})$ ]]; then
+            local -i PORT=${BASH_REMATCH[1]}
+            if (( PORT != 80 && PORT != 443 )); then
+                log_notice "Warning: Final URL requires an outgoing TCP connection to port $PORT, hope you're not behind a proxy/firewall"
+            fi
         fi
 
         if test -z "$FILE_NAME"; then
@@ -754,6 +797,10 @@ elif [ ! -w "$PWD" ]; then
     log_notice 'Warning: Current directory is not writable!'
 fi
 
+if [ -n "$MIN_LIMIT_SPACE" ]; then
+    DISKMON=$(disk_mount_point "${OUTPUT_DIR:-$PWD}") || exit
+fi
+
 if [ -n "$GLOBAL_COOKIES" ]; then
     log_notice 'plowdown: using provided cookies file'
 fi
@@ -850,6 +897,11 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
     for URL in "${ELEMENTS[@]}"; do
         MRETVAL=0
+
+        # See --min-space
+        if [ -n "$MIN_LIMIT_SPACE" ]; then
+            disk_check "$DISKMON" $MIN_LIMIT_SPACE || break 2
+        fi
 
         # Detect (simple) redirection services
         # http://8bbd5066.redir.com/url/http://www.hoster.com/file/921AFF48

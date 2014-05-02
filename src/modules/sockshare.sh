@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_SOCKSHARE_REGEXP_URL='http://\(www\.\)\?sockshare\.com/\(file\|public\)/[[:alnum:]]\+'
+MODULE_SOCKSHARE_REGEXP_URL='http://\(www\.\)\?sockshare\.com/\(file\|public\|embed\)/[[:alnum:]]\+'
 
 MODULE_SOCKSHARE_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
@@ -113,10 +113,10 @@ sockshare_login() {
 #         file name
 sockshare_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$2
+    local -r URL=${2/\/embed\//\/file\/}
     local -r BASE_URL='http://www.sockshare.com'
 
-    local PAGE LOCATION GET_FILE_URL FILE_URL WAIT_TIME
+    local PAGE LOCATION GET_FILE_URL FILE_NAME WAIT_TIME
     local FORM_HTML FORM_HASH FORM_CONFIRM
 
     if ! match '/file/' "$URL"; then
@@ -125,8 +125,7 @@ sockshare_download() {
     fi
 
     PAGE=$(sockshare_curl_failsafe -i -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
-
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
     if [ "$LOCATION" = '../?404' ]; then
         return $ERR_LINK_DEAD
@@ -135,20 +134,19 @@ sockshare_download() {
         return $ERR_FATAL
     fi
 
-    WAIT_TIME=$(echo "$PAGE" | parse_all 'var wait_count ' '=[[:space:]]*\([0-9]\+\);' | last_line) || return
+    FILE_NAME=$(parse 'var name' '"\([^"]\+\)"' <<< "$PAGE") || return
+    WAIT_TIME=$(parse_all 'var wait_count ' '=[[:space:]]*\([0-9]\+\);' <<< "$PAGE" | last_line) || return
 
     if [ $WAIT_TIME -gt 1 ]; then
         wait $WAIT_TIME || return
     fi
 
     FORM_HTML=$(grep_form_by_order "$PAGE" 1) || return
-    FORM_HASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'hash') || return
-    FORM_CONFIRM=$(echo "$FORM_HTML" | parse_form_input_by_name 'confirm') || return
+    FORM_HASH=$(parse_form_input_by_name 'hash' <<< "$FORM_HTML") || return
+    FORM_CONFIRM=$(parse_form_input_by_name 'confirm' <<< "$FORM_HTML") || return
 
     PAGE=$(sockshare_curl_failsafe -e "$URL" -b "$COOKIE_FILE" \
-        -d "hash=$FORM_HASH" \
-        -d "confirm=$FORM_CONFIRM" \
-        "$URL") || return
+        -d "hash=$FORM_HASH" -d "confirm=$FORM_CONFIRM"  "$URL") || return
 
     if match 'This file requires a password. Please enter it.' "$PAGE"; then
         if [ -z $LINK_PASSWORD ]; then
@@ -156,25 +154,22 @@ sockshare_download() {
         fi
 
         PAGE=$(sockshare_curl_failsafe -i -e "$URL" -b "$COOKIE_FILE" \
-            -d "file_password=$LINK_PASSWORD" \
-            "$URL") || return
+            -d "file_password=$LINK_PASSWORD" "$URL") || return
 
-        LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+        LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
         if [ -n "$LOCATION" ]; then
             return $ERR_LINK_PASSWORD_REQUIRED
         fi
     fi
 
-    GET_FILE_URL=$(echo "$PAGE" | parse_attr 'get_file\.php' href) || return
+    GET_FILE_URL=$(parse_attr 'get_file\.php' 'href' <<< "$PAGE") || return
 
-    PAGE=$(sockshare_curl_failsafe -i -e "$URL" -b "$COOKIE_FILE" "$BASE_URL$GET_FILE_URL") || return
+    PAGE=$(sockshare_curl_failsafe -i -e "$URL" -b "$COOKIE_FILE" \
+        "$BASE_URL$GET_FILE_URL") || return
 
-    FILE_URL=$(echo "$PAGE" | grep_http_header_location) || return
-    FILENAME=$(echo "$FILE_URL" | parse . '&f=\(.*\)$' | replace_all '+' ' ' | uri_decode) || return
-
-    echo "$FILE_URL"
-    echo "$FILENAME"
+    grep_http_header_location <<< "$PAGE" || return
+    echo "$FILE_NAME"
 }
 
 # Check for active remote uploads
@@ -658,7 +653,7 @@ sockshare_list() {
 # $3: requested capability list
 # stdout: 1 capability per line
 sockshare_probe() {
-    local -r URL=$2
+    local -r URL=${2/\/embed\//\/file\/}
     local -r REQ_IN=$3
     local PAGE LOCATION FILE_NAME FILE_SIZE REQ_OUT
 

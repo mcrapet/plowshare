@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_SENDSPACE_REGEXP_URL='http://\(www\.\)\?sendspace\.com/\(file\|folder\|delete\)/'
+MODULE_SENDSPACE_REGEXP_URL='https\?://\(www\.\)\?sendspace\.com/\(file\|folder\|delete\)/'
 
 MODULE_SENDSPACE_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account"
@@ -68,10 +68,10 @@ sendspace_login() {
 sendspace_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local -r BASE_URL='http://www.sendspace.com'
+    local -r BASE_URL='https://www.sendspace.com'
     local PAGE
 
-    if match "${BASE_URL}/folder/" "$URL"; then
+    if match "${BASE_URL#*/}/folder/" "$URL"; then
         log_error 'This is a directory list, use plowlist!'
         return $ERR_FATAL
     fi
@@ -109,7 +109,7 @@ sendspace_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://www.sendspace.com'
+    local -r BASE_URL='https://www.sendspace.com'
     local PAGE SIZE MAXSIZE OPT_USER OPT_FOLDER
     local FORM_HTML FORM_URL FORM_PROG_URL FORM_DEST_DIR FORM_SIG FORM_MAIL
 

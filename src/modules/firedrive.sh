@@ -39,30 +39,28 @@ firedrive_download() {
     PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
 
     # 404: This file might have been moved, replaced or deleted
-		if match 'class=.removed_file_image.>' "$PAGE"; then
+    if match 'class=.removed_file_image.>' "$PAGE"; then
         return $ERR_LINK_DEAD
     # This file is private and only viewable by the owner
-		elif match 'class=.private_file_image.>' "$PAGE"; then
+    elif match 'class=.private_file_image.>' "$PAGE"; then
         return $ERR_LINK_NEED_PERMISSIONS
-		fi
+    fi
 
-    FILE_NAME=$(parse 'id=.information_content.>' \
-            '</b>[[:space:]]\?\([^<]\+\)' 1 <<< "$PAGE")
+    FILE_NAME=$(parse_tag 'class="external_title_left"' 'div' <<< "$PAGE") || return
 
     FORM_HTML=$(grep_form_by_id "$PAGE" 'confirm_form') || return
-    DL_KEY=$(echo "$FORM_HTML" | parse_form_input_by_name 'confirm') || return
+    DL_KEY=$(parse_form_input_by_name 'confirm' <<< "$FORM_HTML") || return
 
     PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
-        --data-urlencode "confirm=$DL_KEY" \
-        "$URL") || return
+        --data-urlencode "confirm=$DL_KEY" "$URL") || return
 
-    FILE_URL=$(parse_attr 'id=.external_download' href <<< "$PAGE") || return
+    FILE_URL=$(parse_attr 'Download This File' href <<< "$PAGE") || return
 
     PAGE=$(curl --include -b "$COOKIE_FILE" "$FILE_URL") || return
     FILE_URL=$(grep_http_header_location <<< "$PAGE") || return
 
     echo "$FILE_URL"
-    echo "${FILE_NAME% }"
+    echo "$FILE_NAME"
 }
 
 # Probe a download URL

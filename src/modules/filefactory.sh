@@ -107,7 +107,7 @@ filefactory_download() {
     WAIT_TIME=$(parse_attr 'data-delay' <<< "$PAGE") || return
     wait $WAIT_TIME || return
 
-    FILE_URL=$(parse_attr 'data-href-direct' <<< "$PAGE") || return
+    FILE_URL=$(parse_attr 'data-href' <<< "$PAGE") || return
 
     # Redirect to /?code=275 on simultaneous download for non-premium, 1hr download limit
     echo $FILE_URL

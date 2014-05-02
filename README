@@ -1,5 +1,5 @@
 
-                  Plowshare for Bash 4, GIT-snapshot
+                   Plowshare4: Plowshare for Bash 4
 
 
 Introduction
@@ -16,46 +16,7 @@ Plowshare4 is divided into 5 scripts:
   - plowprobe, for retrieving information of downloading URLs
 
 For a complete list of supported websites (named "module"), have a look here:
-http://code.google.com/p/plowshare/wiki/Readme
-
-
-Dependencies
-============
-
-To run plowshare4 and all its modules you will need:
-
-> A POSIX compliant operating system:
-    - GNU/Linux (Debian/Ubuntu/Fedora/Gentoo/Archlinux/...): coreutils, sed
-      (Busybox sed is working too, need version >1.10)
-    - BSD/Mac OSX: requires GNU-sed
-    - Cygwin
-> Bash (version >= 4.1). It will NOT work using Busybox or Dash (POSIX) shell.
-> Curl (version >= 7.24, with SSL support: usually required for premium account)
-> Character encoding converter (recommended)
-    - recode or
-    - perl + HTML::Entities
-
-> Some websites are using captchas. You'll need a (X11, FB or ascii) picture viewer
-  for manual console entry or an account to an automatic solving service:
-    - display (imagemagick, X11) or
-    - feh (imlib2, X11) or
-    - sxiv (imlib2, X11, very fast) or
-    - qiv (imlib2, X11) or
-    - fim (frame buffer and ascii art image viewer) or
-    - img2txt (libcaca) or
-    - tiv (perl script using Image::Magick, color output) or
-    - aview (libaa) or
-    - 9kw.eu account or
-    - Antigate.com account or
-    - CaptchaBrotherhood account or
-    - DeathByCaptcha account
-
-> Some websites requires javascript interpreter [1]
-    - spidermonkey or
-    - rhino (JavaScript engine written in Java)
-
----
-[1] Used by letitbit, rapidgator, zalaa and zippyshare
+http://code.google.com/p/plowshare/wiki/Readme4
 
 
 Install
@@ -137,8 +98,8 @@ $ plowup oron /path/myfile.txt
 7. Abort slow upload (if rate is below limit during 30 seconds)
 $ plowup --min-rate 100k mediafire /path/bigfile.zip
 
-8. Modify remote filenames
-$ plowup --name-prefix="2011.jul-" mirrorcreator *.rar
+8. Modify remote filenames (example: foobar.rar gives foobar-PLOW.rar)
+$ plowup --name='%g-PLOW.%x' mirrorcreator *.rar
 
 Be aware that curl is not capable of uploading files containing a comma (,)
 in their name, so make sure to rename them before using plowup.
@@ -167,10 +128,10 @@ $ plowdown -m links.txt
 $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
 
 3. List some sendspace.com web folder. Render results for vBulletin "BB" syntax.
-$ plowlist --printf '[url=%u]%f[/url]' http://www.sendspace.com/folder/5njdw7
+$ plowlist --printf '[url=%u]%f[/url]%n' http://www.sendspace.com/folder/5njdw7
 
 4. List links contained in a dummy web page. Render results as HTML list.
-$ plowlist --fallback --printf '<li><a href="%u">%u</a></li>' \
+$ plowlist --fallback --printf '<li><a href="%u">%u</a></li>%n' \
       http://en.wikipedia.org/wiki/SI_prefix
 
 Plowprobe
@@ -180,7 +141,7 @@ Plowprobe
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 
 2. Custom results format : print filename and size (as shell comment)
-$ plowprobe --printf "#%f (%s)%n%u" http://www.sendspace.com/file/5njdw7
+$ plowprobe --printf '#%f (%s)%n%u%n' http://www.sendspace.com/file/5njdw7
 
 3. Use '-' argument to read from stdin
 $ plowlist http://pastebin.com/1d82F5sd | plowprobe - > filtered_list.txt
@@ -209,4 +170,4 @@ If you find a bug in plowshare or want to propose an enhancement,
 open a new ticket here:
 http://code.google.com/p/plowshare/issues/list
 
-# vim: set fileencoding utf-8
+# vim:fileencoding=utf-8

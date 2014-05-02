@@ -25,7 +25,7 @@ MODULE_1FICHIER_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
 MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_1FICHIER_DOWNLOAD_SUCCESSIVE_INTERVAL=300
+MODULE_1FICHIER_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_1FICHIER_UPLOAD_OPTIONS="
 AUTH,a,auth,a=USER:PASSWORD,User account
@@ -50,20 +50,26 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME REDIR
+    local PAGE FILE_URL FILE_NAME
 
-    PAGE=$(curl "$URL") || return
+    PAGE=$(curl -b 'LG=en' "$URL") || return
 
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match "Le fichier demandÃ© n'existe pas.\|file has been deleted" "$PAGE"; then
+    fi
+
+    # The requested file could not be found
+    # The file may have been deleted by its owner.
+    # The requested file has been deleted following an abuse request.
+    if match 'The \(requested \)\?file \(could not be found\|.*been deleted\)' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    # notice typo in 'telechargement'
-    if match 'entre 2 tÃ©lÃ©charger\?ments' "$PAGE"; then
+    # Warning ! Without premium status, you can download only one file at a time
+    if match '>Warning ! Without premium status,' "$PAGE" ; then
         log_error 'No parallel download allowed.'
+        echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     # Please wait until the file has been scanned by our anti-virus
@@ -72,8 +78,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_NAME=$(echo "$PAGE" | parse_tag_quiet 'Nom du fichier' td)
-
+    # Accessing this file is protected by password.<br/>Please put it on the box bellow :
     if match 'name="pass"' "$PAGE"; then
         if [ -z "$LINK_PASSWORD" ]; then
             LINK_PASSWORD=$(prompt_for_password) || return
@@ -89,17 +94,12 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return 0
     fi
 
-    PAGE=$(curl --include -d 'a=1' "$URL") || return
+    FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE")
 
-    # Attention ! En téléchargement standard, vous ne pouvez télécharger qu'un seul fichier
-    # à la fois et vous devez attendre jusqu'à 5 minutes entre chaque téléchargement.
-    if match 'vous devez attendre .* 5 minutes' "$PAGE"; then
-        log_error 'Forced delay between downloads.'
-        echo 300
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
+    PAGE=$(curl --include -b 'LG=en' -d '' \
+        --referer "$URL" "$URL") || return
 
-    FILE_URL=$(echo "$PAGE" | grep_http_header_location_quiet)
+    FILE_URL=$(grep_http_header_location_quiet <<< "$PAGE")
 
     if [ -z "$FILE_URL" ]; then
         echo 300

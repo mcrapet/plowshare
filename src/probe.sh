@@ -31,7 +31,7 @@ NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
-GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --prinft=%m
+GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --printf=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
@@ -48,7 +48,6 @@ absolute_path() {
         DIR=$(dirname "$TARGET")
         TARGET=$(readlink "$TARGET")
         cd -P "$DIR"
-        DIR=$PWD
     done
 
     if [ -f "$TARGET" ]; then
@@ -385,30 +384,28 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         MODULE=$(get_module "$URL" "$MODULES") || true
 
         if [ -z "$MODULE" ]; then
-            if test "$ENGINE" && match_remote_url "$URL"; then
-                if ${ENGINE}_probe_module 'plowprobe' "$URL"; then
-                    MODULE=$(${ENGINE}_get_module "$URL") || PRETVAL=$?
+            if match_remote_url "$URL"; then
+                if test "$TRY_REDIRECTION"; then
+                    # Test for simple HTTP 30X redirection
+                    # (disable User-Agent because some proxy can fake it)
+                    log_debug 'No module found, try simple redirection'
+
+                    local URL_ENCODED HEADERS URL_TEMP
+                    URL_ENCODED=$(uri_encode <<< "$URL")
+                    HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
+                    URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
+
+                    if [ -n "$URL_TEMP" ]; then
+                        MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
+                        test "$MODULE" && URL="$URL_TEMP"
+                    else
+                        match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
+                            "$URL" && log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
+                        test "$HEADERS" && \
+                            log_debug "remote server reply: $(first_line <<< "${HEADERS//$'\r'}")"
+                        PRETVAL=$ERR_NOMODULE
+                    fi
                 else
-                    PRETVAL=$ERR_NOMODULE
-                fi
-
-            elif match_remote_url "$URL" && test "$TRY_REDIRECTION"; then
-                # Test for simple HTTP 30X redirection
-                # (disable User-Agent because some proxy can fake it)
-                log_debug 'No module found, try simple redirection'
-
-                URL_ENCODED=$(uri_encode <<< "$URL")
-                HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
-                URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
-
-                if [ -n "$URL_TEMP" ]; then
-                    MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
-                    test "$MODULE" && URL="$URL_TEMP"
-                else
-                    match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
-                        "$URL" && log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
-                    test "$HEADERS" && \
-                        log_debug "remote server reply: $(first_line <<< "${HEADERS//$'\r'}")"
                     PRETVAL=$ERR_NOMODULE
                 fi
             else
@@ -438,7 +435,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             RETVALS+=(0)
             echo "$MODULE"
         else
-            # Get configuration file module options (yes, Plowdown's one)
+            # Get configuration file module options
             test -z "$NO_PLOWSHARERC" && \
                 process_configfile_module_options '[Pp]lowprobe' "$MODULE" PROBE "$EXT_PLOWSHARERC"
 

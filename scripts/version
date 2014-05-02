@@ -1,13 +1,24 @@
 #!/bin/sh -e
-if git rev-parse --is-inside-work-tree 1>/dev/null 2>&1; then
-  if [ $# -eq 0 ]; then
-    rev=$(git describe --always --tags)
-    date=$(git log "$rev" -n1 --pretty=%ci | cut -d' ' -f1)
-    echo "$rev ($date)"
-  else
-    rev=$(git describe --always)
-    echo "GIT-$rev"
-  fi
+#
+# Note:
+# Choose "git describe" revision syntax: v1.0.1-17-g390e0fa
+# over usual (distro) one: 1.0.1~git20140411-390e0fa
+
+if [ $# -ne 0 ]; then
+  echo 'warning: this script does not take any argument.' >&2
+fi
+
+# Check environment variable PLOWSHARE_FORCE_VERSION
+# For example: "1.0.1"
+if [ -n "$PLOWSHARE_FORCE_VERSION" ]; then
+  date=$(date +'%Y-%m-%d')
+  echo "v${PLOWSHARE_FORCE_VERSION#v} ($date)"
+elif git rev-parse --is-inside-work-tree 1>/dev/null 2>&1; then
+  rev=$(git describe --always --tags)
+  date=$(git log "$rev" -n1 --pretty=%ci | cut -d' ' -f1)
+  echo "$rev ($date)"
 else
-  echo 'UNKNOWN'
+  echo 'warning: unable to detect plowshare version.' >&2
+  date=$(date +'%Y-%m-%d')
+  echo "UNKNOWN ($date)"
 fi

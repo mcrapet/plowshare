@@ -3,18 +3,22 @@
 # Usage:
 # - make PREFIX=/usr install
 # - make PREFIX=/usr DESTDIR=/tmp/packaging install
+#
+# Important note for OpenBSD, NetBSD and Mac OS X users:
+# Be sure to properly define GNU_SED variable (gsed or gnu-sed).
 ##
 
 # Tools
 
-INSTALL = install
-LN_S    = ln -sf
-RM      = rm -f
+INSTALL  = install
+LN_S     = ln -sf
+RM       = rm -f
+GNU_SED ?= sed
 
 # Files
 
 MODULE_FILES = $(wildcard src/modules/*.sh) src/modules/config
-SRCS = download.sh upload.sh delete.sh list.sh probe.sh core.sh
+SRCS      = download.sh upload.sh delete.sh list.sh probe.sh core.sh
 MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1 plowprobe.1
 MANPAGES5 = plowshare.conf.5
 DOCS      = README
@@ -22,28 +26,23 @@ DOCS      = README
 ENGINE_FILES    = $(wildcard src/engine/*.sh)
 XF_ENGINE_FILES = $(wildcard src/engine/xf/*.sh) src/engine/xf/config
 
-BASH_COMPL = scripts/plowshare.completion
+BASH_COMPL  = scripts/plowshare.completion
 GIT_VERSION = scripts/version
 
 # Target path
 # DESTDIR is for package creation only
 
 PREFIX ?= /usr/local
-ETCDIR  = /etc
 BINDIR  = $(PREFIX)/bin
 DATADIR = $(PREFIX)/share/plowshare4
 DOCDIR  = $(PREFIX)/share/doc/plowshare4
 MANDIR  = $(PREFIX)/share/man/man
 
-# Packaging
-GIT_HASH:=$(shell LANG=C git describe --tags --always)
-GIT_DATE:=$(shell LANG=C git log -n1 --pretty=%ci | cut -d' ' -f1)
-
 # Rules
 
-install: install_files install_git_version install_bash_completion
+install: $(DESTDIR)$(DATADIR) patch_git_version patch_bash_completion
 
-install_files:
+$(DESTDIR)$(DATADIR):
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)/modules
@@ -69,30 +68,29 @@ uninstall:
 	@$(RM) $(DESTDIR)$(BINDIR)/plowup
 	@$(RM) $(DESTDIR)$(BINDIR)/plowdel
 	@$(RM) $(DESTDIR)$(BINDIR)/plowlist
+	@$(RM) $(DESTDIR)$(BINDIR)/plowprobe
 	@rm -rf $(DESTDIR)$(DATADIR) $(DESTDIR)$(DOCDIR)
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)1/, $(MANPAGES1))
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))
 
-install_git_version: install_files
-	@v=`$(GIT_VERSION)` && v2=`$(GIT_VERSION) x` && \
+patch_git_version: $(DESTDIR)$(DATADIR)
+	@v=`$(GIT_VERSION)` && \
 	for file in $(SRCS); do \
-		sed -i -e 's/^\(declare -r VERSION=\).*/\1'"'$$v'"'/' $(DESTDIR)$(DATADIR)/$$file; \
+		$(GNU_SED) -i -e 's/^\(declare -r VERSION=\).*/\1'"'$$v'"'/' $(DESTDIR)$(DATADIR)/$$file; \
 	done; \
-	for file in $(DOCS); do \
-		sed -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v"'\2/' $(DESTDIR)$(DOCDIR)/$$file; \
-	done; \
-	for file in $(MANPAGES1); do \
-		sed -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)1/$$file; \
-	done; \
-	for file in $(MANPAGES5); do \
-		sed -i -e '/[Pp]lowshare/s/\(.*\)GIT-snapshot\(.*\)/\1'"$$v2"'\2/' $(DESTDIR)$(MANDIR)5/$$file; \
+
+patch_bash_completion: $(DESTDIR)$(DATADIR)
+	@$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
+	@$(GNU_SED) -e '/cut/s,/usr/local/share/plowshare4,$(DATADIR),' $(BASH_COMPL) > $(DESTDIR)$(PREFIX)/share/bash-completion/completions/plowdown
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowup
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowdel
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowlist
+	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowprobe
+
+# Note: sed append syntax is not BSD friendly!
+patch_gnused: $(DESTDIR)$(DATADIR)
+	@for file in $(SRCS); do \
+		$(GNU_SED) -i -e '/\/licenses\/>/ashopt -s expand_aliases; alias sed='\''$(GNU_SED)'\' "$(DESTDIR)$(DATADIR)/$$file"; \
 	done
 
-install_bash_completion: install_files
-	@$(INSTALL) -d $(DESTDIR)$(ETCDIR)/bash_completion.d
-	@sed -e "/cut/s,/usr/local/share/plowshare4,$(DATADIR)," $(BASH_COMPL) > $(DESTDIR)$(ETCDIR)/bash_completion.d/plowshare4
-
-test:
-	@cd tests && ./modules.sh -l
-
-.PHONY: install uninstall test
+.PHONY: install uninstall

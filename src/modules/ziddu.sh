@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # ziddu.com module
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_ZIDDU_REGEXP_URL='https\?://\(www\.\)\?ziddu\.com/'
+MODULE_ZIDDU_REGEXP_URL='https\?://\(www\.\|downloads\.\)\?ziddu\.com/download/[[:digit:]]\+/'
 
 MODULE_ZIDDU_DOWNLOAD_OPTIONS=""
 MODULE_ZIDDU_DOWNLOAD_RESUME=no
@@ -29,7 +29,6 @@ MODULE_ZIDDU_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_ZIDDU_UPLOAD_REMOTE_SUPPORT=no
 
-MODULE_ZIDDU_DELETE_OPTIONS=""
 MODULE_ZIDDU_PROBE_OPTIONS=""
 
 # Static function. Proceed with login.
@@ -58,7 +57,8 @@ ziddu_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
 
-    local PAGE LOCATION REFERER BASE_URL
+    local BASE_URL='http://downloads.ziddu.com'
+    local PAGE LOCATION REFERER
     local CAPTCHA_URL CAPTCHA_IMG
     local FORM_HTML FORM_URL
 
@@ -67,16 +67,12 @@ ziddu_download() {
     # Form 2 data
     local FORM_FID FORM_TID FORM_FNAME
 
-    if ! match '^http://www\.ziddu\.com/download/\([[:digit:]]\+\)/' "$URL"; then
-        log_error 'Bad url'
-        return $ERR_LINK_DEAD
-    fi
-
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'lan=eng' -b "$COOKIE_FILE" -i "$URL") || return
+    PAGE=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" -i "$URL") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
 
-    if match '^/errortracking\.php?msg=File not found' "$LOCATION"; then
+    # Yes, spaces!
+    if match '^/errortracking\.php?msg=File not found\|^/errortracking.php$' "$LOCATION"; then
         return $ERR_LINK_DEAD
 
     # Bad url or other error
@@ -87,9 +83,9 @@ ziddu_download() {
 
     FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_MEM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'mmemid') || return
+    FORM_MEM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'mmemid') || return
     FORM_MEM_N=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'mname')
-    FORM_LANG=$(echo "$FORM_HTML" | parse_form_input_by_name 'lang') || return
+    FORM_LANG=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'lang') || return
 
     # Writing cookies again, new domain
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" \
@@ -98,11 +94,10 @@ ziddu_download() {
         -d "mname=$FORM_MEM_N" \
         -d "lang=$FORM_LANG" \
         -d "Submit=Download" \
-        "$FORM_URL") || return
+        "$BASE_URL$FORM_URL") || return
 
     # http://downloads.ziddu.com/downloadfile/*
-    REFERER=$FORM_URL
-    BASE_URL=$(basename_url "$FORM_URL")
+    REFERER=$BASE_URL$FORM_URL
 
     FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
     FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
@@ -167,11 +162,12 @@ ziddu_upload() {
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://www.ziddu.com'
-    local PAGE LOCATION REFERER
-    local FORM_HTML FORM_URL LINK_DL LINK_DEL
-    local FORM_MEM_ID FORM_MEM_N FORM_MEM_M FORM_LANG
+    local PAGE LOCATION
+    local FORM_HTML FORM_URL FORM_MEM_M
 
-    local -r MAX_SIZE=209715200 # 200 MiB
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+    local -r MAX_SIZE=262144000 # 250 MiB
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$MAX_SIZE" ]; then
         log_debug "file is bigger than $MAX_SIZE"
@@ -187,92 +183,29 @@ ziddu_upload() {
         log_debug '*** Allowed list (part): 001 3gp 7z apk avi doc exe gz jpg mkv mp3 mp4 mpg rar tgz txt vob wmv zip.'
     fi
 
-    if test "$AUTH"; then
-        ziddu_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
+    ziddu_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
-        PAGE=$(curl -b "$COOKIE_FILE" -e "$BASE_URL/login.php" "$BASE_URL/upload.php") || return
-
-        FORM_HTML=$(grep_form_by_name "$PAGE" 'upform') || return
-        FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-        FORM_MEM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'mmemid') || return
-        FORM_MEM_N=$(echo "$FORM_HTML" | parse_form_input_by_name 'mname') || return
-        FORM_MEM_M=$(echo "$FORM_HTML" | parse_form_input_by_name 'memail') || return
-        FORM_LANG=$(echo "$FORM_HTML" | parse_form_input_by_name 'lang') || return
-
-        PAGE=$(curl -b "$COOKIE_FILE" -e "$BASE_URL/upload.php" \
-            -d "mmemid=$FORM_MEM_ID" \
-            -d "mname=$FORM_MEM_N" \
-            -d "memail=$FORM_MEM_M" \
-            -d "lang=$FORM_LANG" \
-            "$FORM_URL") || return
-
-        REFERER=$FORM_URL
-    else
-        REFERER='http://uploads.ziddu.com/uploadanon.php'
-        PAGE=$(curl -c "$COOKIE_FILE" -b 'lan=eng' -b "$COOKIE_FILE" -e "$BASE_URL/index.php" "$REFERER") || return
-    fi
+    PAGE=$(curl -L -b "$COOKIE_FILE" "$BASE_URL/upload.php") || return
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'form_upload') || return
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
+    FORM_URL=$(parse_form_action <<< "$FORM_HTML") || return
+    FORM_MEM_M=$(parse_form_input_by_name_quiet 'memail' <<< "$FORM_HTML")
 
-    # Will be empty on anon upload
-    FORM_MEM_M=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'memail')
-
-    PAGE=$(curl_with_log -b "$COOKIE_FILE" -e "$REFERER" -i \
+    PAGE=$(curl_with_log -b "$COOKIE_FILE" -i \
         -F "upfile_0=@$FILE;filename=$DEST_FILE" \
         -F "memail=$FORM_MEM_M" \
         "http://uploads.ziddu.com/$FORM_URL") || return
 
-    LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
+    LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
     # Check upload finished page link
-    if match '^http://www\.ziddu\.com/finished\(anon\)\?\.php.*?sub=done' "$LOCATION"; then
+    if match '^http://www\.ziddu\.com/finished\.php.*?sub=done' "$LOCATION"; then
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl -b "$COOKIE_FILE" -e "$REFERER" "$LOCATION") || return
+    PAGE=$(curl -b "$COOKIE_FILE" "$LOCATION") || return
 
-    if test "$AUTH"; then
-        LINK_DL=$(echo "$PAGE" | parse_attr '/download/' href) || return
-
-        echo "$LINK_DL"
-        return 0
-    fi
-
-    FORM_HTML=$(grep_form_by_order "$PAGE" -1) || return
-    LINK_DL=$(echo "$FORM_HTML" | parse_form_input_by_name 'acclink') || return
-    LINK_DEL=$(echo "$FORM_HTML" | parse_form_input_by_name 'dellink')
-
-    echo "$LINK_DL"
-    echo "$LINK_DEL"
-}
-
-# Delete a file uploaded to ziddu.com
-# $1: cookie file (unused here)
-# $2: delete url
-ziddu_delete() {
-    local URL=$2
-    local PAGE CONFIRM
-
-    if ! match '^http://www\.ziddu\.com/delete/\([[:digit:]]\+\)/\([[:digit:]]\+\)/' "$URL"; then
-        log_error 'Invalid URL format (must contain "/delete/")'
-        return $ERR_BAD_COMMAND_LINE
-    fi
-
-    PAGE=$(curl -b 'lan=eng' "$URL") || return
-
-    # Invalid link - File not found
-    if match 'Not a valid link Or May be File Deleted' "$PAGE"; then
-        return $ERR_LINK_DEAD
-    fi
-
-    # onClick="javascript:location.href='http://www.ziddu.com/delete.php?fid=...
-    CONFIRM=$(echo "$PAGE" | parse 'http://www\.ziddu\.com/delete\.php' "href='\([^']*\)'") || return
-    CONFIRM=${CONFIRM% }
-
-    PAGE=$(curl -b 'lan=eng' -e "$URL" "$CONFIRM") || return
-
-    match 'File deleted Successfully' "$PAGE" || return $ERR_FATAL
+    parse_form_input_by_name_quiet 'txt1' <<< "$PAGE" || return
 }
 
 # Probe a download URL
@@ -285,17 +218,12 @@ ziddu_probe() {
     local -r REQ_IN=$3
     local PAGE LOCATION FILE_NAME FILE_SIZE REQ_OUT
 
-    if ! match '^http://www\.ziddu\.com/download/\([[:digit:]]\+\)/' "$URL"; then
-        log_error 'Invalid URL format (must contain "/download/")'
-        return $ERR_BAD_COMMAND_LINE
-    fi
-
-    PAGE=$(curl -b 'lan=eng' -i "$URL") || return
+    PAGE=$(curl -L -i "$URL") || return
 
     LOCATION=$(echo "$PAGE" | grep_http_header_location_quiet)
 
     # Yes, spaces!
-    if match '^/errortracking\.php?msg=File not found' "$LOCATION"; then
+    if match '^/errortracking\.php?msg=File not found\|^/errortracking.php$' "$LOCATION"; then
         return $ERR_LINK_DEAD
 
     # Bad url or other error
@@ -313,7 +241,7 @@ ziddu_probe() {
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(parse '>File Size' '">\([^<]*\)</span>' 1 <<< "$PAGE") && \
+        FILE_SIZE=$(parse 'File Size' 'File Size&nbsp;:&nbsp;\([^&]\+\)' <<< "$PAGE") && \
             translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 

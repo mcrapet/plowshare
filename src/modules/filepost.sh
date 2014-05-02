@@ -105,7 +105,7 @@ filepost_login() {
 
     # Determine account type
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
-    NAME=$(echo "$PAGE" | parse_tag 'Welcome, ' b) || return
+    NAME=$(parse_tag 'Welcome, ' 'b' <<< "$PAGE") || return
 
     if match '<li>Account type:[[:space:]]*<span>Free</span></li>' "$PAGE"; then
         TYPE='free'
@@ -166,17 +166,17 @@ filepost_download() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    FILE_NAME=$(echo "$PAGE" | parse '<title>' ': Download \(.*\) - fast')
+    FILE_NAME=$(parse '<title>' ': Download \(.*\) - fast' <<< "$PAGE")
 
     if [ "$ROLE" = 'premium' ]; then
-        FILE_URL=$(echo "$PAGE" | parse '/get_file/' "('\(http[^']*\)") || return
+        FILE_URL=$(parse '/get_file/' "('\(http[^']*\)" <<< "$PAGE") || return
 
         echo "$FILE_URL"
         echo "$FILE_NAME"
         return 0
     fi
 
-    CODE=$(echo "$URL" | parse '/files/' 'files/\([^/]*\)') || return
+    CODE=$(parse '/files/' 'files/\([^/]*\)' <<< "$URL") || return
     TID=t$(random d 4)
     JS_URL="$BASE_URL/files/get/?SID=$SID&JsHttpRequest=$(date +%s0000)-xml"
 
@@ -186,8 +186,7 @@ filepost_download() {
         "action=set_download&code=$CODE&token=$TID" "$JS_URL") || return
 
     # {"id":"12345","js":{"answer":{"wait_time":"60"}},"text":""}
-    WAIT=$(echo "$JSON" | parse 'wait_time' \
-        'wait_time"[[:space:]]*:[[:space:]]*"\([^"]*\)')
+    WAIT=$(parse 'wait_time' 'wait_time"[[:space:]]*:[[:space:]]*"\([^"]*\)' <<< "$JSON")
 
     if [ -z "$WAIT" ]; then
         log_error 'Cannot get wait time'
@@ -220,7 +219,7 @@ filepost_download() {
 
     # {"id":"12345","js":{"answer":{"link":"http:\/\/fs122.filepost.com\/get_file\/...\/"}},"text":""}
     # {"id":"12345","js":{"error":"f"},"text":""}
-    local ERR=$(echo "$JSON" | parse_json_quiet 'error')
+    local ERR=$(parse_json_quiet 'error' <<<  "$JSON")
     if [ -n "$ERR" ]; then
         # You still need to wait for the start of your download"
         if match 'need to wait' "$ERR"; then
@@ -231,7 +230,7 @@ filepost_download() {
         fi
     fi
 
-    FILE_URL=$(echo "$JSON" | parse_json link) || return
+    FILE_URL=$(parse_json 'link' <<< "$JSON") || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -255,8 +254,8 @@ filepost_upload() {
     filepost_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" "$SID" > /dev/null || return
 
     PAGE=$(curl -L -b "$COOKIE_FILE" "$BASE_URL/files/upload") || return
-    SERVER=$(echo "$PAGE" | parse '[[:space:]]upload_url' ":[[:space:]]'\([^']*\)") || return
-    MAX_SIZE=$(echo "$PAGE" | parse 'max_file_size:' ":[[:space:]]*\([^,]\+\)") || return
+    SERVER=$(parse '[[:space:]]upload_url' ":[[:space:]]'\([^']*\)" <<< "$PAGE") || return
+    MAX_SIZE=$(parse 'max_file_size:' ':[[:space:]]*\([^,]\+\)' <<< "$PAGE") || return
 
     local SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$MAX_SIZE" ]; then
@@ -264,7 +263,7 @@ filepost_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    DONE_URL=$(echo "$PAGE" | parse 'done_url:' ":[[:space:]]*'\([^']*\)") || return
+    DONE_URL=$(parse 'done_url:' ":[[:space:]]*'\([^']*\)" <<< "$PAGE") || return
 
     DATA=$(curl_with_log --user-agent 'Shockwave Flash' \
         -F "Filename=$DEST_FILE" \
@@ -274,14 +273,14 @@ filepost_upload() {
         "$SERVER") || return
 
     # new Object({"answer":"4c8e89fa"})
-    FID=$(echo "$DATA" | parse_json answer) || return
+    FID=$(parse_json 'answer' <<< "$DATA") || return
     log_debug "file id: $FID"
 
     # Note: Account cookie required here
     DATA=$(curl -b "$COOKIE_FILE" -b "SID=$SID" "$DONE_URL$FID") || return
 
-    echo "$DATA" | parse_attr 'id="down_link' value || return
-    echo "$DATA" | parse_attr 'id="edit_link' value || return
+    parse_attr 'id="down_link' 'value' <<< "$DATA"|| return
+    parse_attr 'id="edit_link' 'value' <<< "$DATA" || return
 }
 
 # Delete a file from FilePost
@@ -308,7 +307,7 @@ filepost_delete() {
     # <span><b><ins class="delete">Delete File</ins></b></span>
     match '<ins class="delete">Delete File</ins>' "$PAGE" || return $ERR_LINK_DEAD
 
-    FILE_ID=$(echo "$PAGE" | parse_form_input_by_name 'items\[files\]') || return
+    FILE_ID=$(parse_form_input_by_name 'items\[files\]' <<< "$PAGE") || return
 
     # Deletion via edit/delete page doesn't work, so we use file manager instead
     # Note: Parameters concerning file order etc. are not required
@@ -349,13 +348,13 @@ filepost_list_rec() {
     PAGE=$(curl -L "$URL") || return
 
     if match 'class="dl"' "$PAGE"; then
-        LINKS=$(echo "$PAGE" | parse_all_attr 'class="dl"' href)
-        NAMES=$(echo "$PAGE" | parse_all_tag 'class="file \(video\|image\|disk\|archive\)"' a)
+        LINKS=$(parse_all_attr 'class="dl"' 'href' <<< "$PAGE")
+        NAMES=$(parse_all_tag 'class="file \(video\|image\|disk\|archive\)"' 'a' <<< "$PAGE")
         list_submit "$LINKS" "$NAMES" && RET=0
     fi
 
     if test "$REC"; then
-        LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="file folder"' href)
+        LINKS=$(parse_all_attr_quiet 'class="file folder"' 'href' <<< "$PAGE")
         while read LINE; do
             test "$LINE" || continue
             log_debug "entering sub folder: $LINE"
@@ -387,18 +386,18 @@ filepost_probe() {
     REQ_OUT=c
 
     # Get rid of escaping
-    PAGE=$(echo "$PAGE" | replace_all '\' '')
+    PAGE=$(replace_all '\' '' <<< "$PAGE")
 
     if [[ $REQ_IN = *f* ]]; then
         # Parse file name from full URL (Note the trailing slash!)
         #   https://filepost.com/files/123/xyz/
-        echo "$PAGE" | parse '' 'files/[^/]\+/\([^/]\+\)/' | uri_decode &&
+        parse '' 'files/[^/]\+/\([^/]\+\)/' <<< "$PAGE" | uri_decode &&
             REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(echo "$PAGE" | parse '' \
-            '<td>\([[:digit:].]\+[[:space:]][KMG]\?B\)\(ytes\)\?</td>') &&
+        FILE_SIZE=$(parse '' \
+            '<td>\([[:digit:].]\+[[:space:]][KMG]\?B\)\(ytes\)\?</td>') <<< "$PAGE" &&
             translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
     echo $REQ_OUT

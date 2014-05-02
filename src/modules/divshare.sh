@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_DIVSHARE_REGEXP_URL='http://\(www\.\)\?divshare\.com/'
+MODULE_DIVSHARE_REGEXP_URL='https\?://\(www\.\)\?divshare\.com/'
 
 MODULE_DIVSHARE_DOWNLOAD_OPTIONS=""
 MODULE_DIVSHARE_DOWNLOAD_RESUME=no
@@ -38,6 +38,8 @@ AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account (mandatory)"
 MODULE_DIVSHARE_LIST_OPTIONS="
 DIRECT,,direct,,Output direct (HTTP) links for images in a gallery"
 MODULE_DIVSHARE_LIST_HAS_SUBFOLDERS=yes
+
+MODULE_DIVSHARE_PROBE_OPTIONS=""
 
 # Static function. Proceed with login
 # $1: authentication
@@ -122,10 +124,9 @@ divshare_download() {
 
     PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
 
-    if match '<div id="fileInfoHeader">File Information</div>'; then
+    if match '>Sorry, we couldn.t find this file\.<\|>DivShare - File Not Found<' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-
 
     # Uploader can disable audio/video download (only streaming is available)
     REDIR_URL=$(echo "$PAGE" | parse_attr_quiet 'btn_download_new' 'href') || {
@@ -360,4 +361,35 @@ divshare_list() {
     fi
 
     return $RET
+}
+
+# Probe a download URL
+# $1: cookie file (unused here)
+# $2: divshare url
+# $3: requested capability list
+# stdout: 1 capability per line
+divshare_probe() {
+    local -r URL=$2
+    local -r REQ_IN=$3
+    local PAGE FILE_NAME REQ_OUT
+
+    PAGE=$(curl "$URL") || return
+
+    if match '>Sorry, we couldn.t find this file\.<\|>DivShare - File Not Found<' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    REQ_OUT=c
+
+    if [[ $REQ_IN = *f* ]]; then
+        #  <meta property="og:audio:title" content="..."
+        FILE_NAME=$(parse_attr_quiet '=.og:audio:title.' content <<< "$PAGE")
+
+        test -z "$FILE_NAME" &&
+            FILE_NAME=$(parse_tag_quiet title <<< "$PAGE") && FILE_NAME=${FILE_NAME% - DivShare}
+
+        test -n "$FILE_NAME" && echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    echo $REQ_OUT
 }

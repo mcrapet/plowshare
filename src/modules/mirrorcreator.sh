@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # mirrorcreator.com module
-# Copyright (c) 2011-2013 Plowshare team
+# Copyright (c) 2011-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -25,7 +25,7 @@ AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Protect a link with a password
 INCLUDE,,include,l=LIST,Provide list of host site (comma separated)
 SECURE,,secure,,Use HTTPS site version
-FULL_LINK,,full-link,,Parse full link on upload
+FULL_LINK,,full-link,,Final link includes filename
 COUNT,,count,n=COUNT,Take COUNT mirrors (hosters) from the available list. Default is 3, maximum is 12."
 MODULE_MIRRORCREATOR_UPLOAD_REMOTE_SUPPORT=no
 
