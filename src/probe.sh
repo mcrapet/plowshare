@@ -364,23 +364,28 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         MODULE=$(get_module "$URL" "$MODULES") || true
 
         if [ -z "$MODULE" ]; then
-            if match_remote_url "$URL" && test "$TRY_REDIRECTION"; then
-                # Test for simple HTTP 30X redirection
-                # (disable User-Agent because some proxy can fake it)
-                log_debug 'No module found, try simple redirection'
+            if match_remote_url "$URL"; then
+                if test "$TRY_REDIRECTION"; then
+                    # Test for simple HTTP 30X redirection
+                    # (disable User-Agent because some proxy can fake it)
+                    log_debug 'No module found, try simple redirection'
 
-                URL_ENCODED=$(uri_encode <<< "$URL")
-                HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
-                URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
+                    local URL_ENCODED HEADERS URL_TEMP
+                    URL_ENCODED=$(uri_encode <<< "$URL")
+                    HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
+                    URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
 
-                if [ -n "$URL_TEMP" ]; then
-                    MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
-                    test "$MODULE" && URL="$URL_TEMP"
+                    if [ -n "$URL_TEMP" ]; then
+                        MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
+                        test "$MODULE" && URL="$URL_TEMP"
+                    else
+                        match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
+                            "$URL" && log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
+                        test "$HEADERS" && \
+                            log_debug "remote server reply: $(first_line <<< "${HEADERS//$'\r'}")"
+                        PRETVAL=$ERR_NOMODULE
+                    fi
                 else
-                    match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
-                        "$URL" && log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'
-                    test "$HEADERS" && \
-                        log_debug "remote server reply: $(first_line <<< "${HEADERS//$'\r'}")"
                     PRETVAL=$ERR_NOMODULE
                 fi
             else
