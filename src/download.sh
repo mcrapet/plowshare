@@ -480,7 +480,7 @@ download() {
             fi
 
             if test "$TEMP_RENAME"; then
-                FILENAME_TMP="$FILENAME_TMP.part"
+                FILENAME_TMP+='.part'
             fi
 
             if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then

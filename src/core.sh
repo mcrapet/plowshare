@@ -441,11 +441,11 @@ parse_all() {
             log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
 
         while (( I-- )); do
-            INIT="$INIT;N"
+            INIT+=';N'
         done
 
         while (( N_ABS-- )); do
-            LINES="$LINES\\n.*"
+            LINES+='\n.*'
         done
 
         if [ $N -gt 0 ]; then
@@ -527,11 +527,11 @@ parse() {
             log_notice "$FUNCNAME: are you sure you want to skip $N lines?"
 
         while (( I-- )); do
-            INIT="$INIT;N"
+            INIT+=';N'
         done
 
         while (( N_ABS-- )); do
-            LINES="$LINES\\n.*"
+            LINES+='\n.*'
         done
 
         if [ $N -gt 0 ]; then
