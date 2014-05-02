@@ -51,7 +51,7 @@ declare -r ERR_ASYNC_REQUEST=16           # plowup: Asynchronous remote upload s
 declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in plow* scripts):
-#   - VERBOSE          Verbose log level (0=none, 1, 2, 3, 4)
+#   - VERBOSE          Verbosity level (0=none, 1=error, 2=notice, 3=debug, 4=report)
 #   - LIBDIR           Absolute path to plowshare's libdir
 #   - INTERFACE        Network interface (used by curl)
 #   - MAX_LIMIT_RATE   Network maximum speed (used by curl)
