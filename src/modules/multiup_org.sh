@@ -138,12 +138,9 @@ multiup_org_list() {
     PAGE=$(curl -L -c "$COOKIE_FILE" "$URL") || return
 
     LINK=$(parse_quiet 'class=.btn.' 'href=.\([^"]*\)' 1 <<< "$PAGE")
-    if [ -z "$LINK" ]; then
-        rm -f "$COOKIE_FILE"
-        return $ERR_LINK_DEAD
+    if [ -n "$LINK" ]; then
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" "$BASE_URL$LINK") || return
     fi
-
-    PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" "$BASE_URL$LINK") || return
 
     rm -f "$COOKIE_FILE"
 
