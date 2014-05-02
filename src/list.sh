@@ -34,8 +34,8 @@ QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
-NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page
-ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing."
+ENGINES,,engine,t=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
+NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page"
 
 
 # This function is duplicated from download.sh
@@ -218,33 +218,39 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     fi
 fi
 
-if [ -n "$ENGINE" ]; then
-    if [ "$ENGINE" = 'xfilesharing' ]; then
-        source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowlist: initializing $ENGINE engine"
-        if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialization error"
-            exit $ERR_FATAL
-        fi
-    else
-        log_error "Error: unknown engine name: $ENGINE"
-        exit $ERR_FATAL
-    fi
-fi
-
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
 
+# Engines check
+for E in "${ENGINES[@]}"; do
+    if [[ $E =~ ^(xfilesharing)$ ]]; then
+        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
+            log_error "plowlist: can't find engine \`$E', sources are missing"
+            exit $ERR_BAD_COMMAND_LINE
+        fi
+    else
+        log_error "plowlist: unknown engine \`$E'"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+done
+
+MODULE_OPTIONS=
+
+for E in "${ENGINES[@]}"; do
+    source "$LIBDIR/engine/$E.sh"
+    if ! ${E}_init "$LIBDIR/engine"; then
+        log_error "plowlist: $E engine initialisation error"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options LIST)
+done
+
 # Print chosen options
 [ -n "$RECURSE" ] && log_debug 'plowlist: --recursive selected'
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
-
-if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options LIST)
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options LIST)
-fi
+MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" LIST)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowlist' "$MODULE_OPTIONS" \
@@ -274,11 +280,32 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     LRETVAL=0
 
     MODULE=$(get_module "$URL" "$MODULES") || LRETVAL=$?
+    ENGINE=
 
-    if [ $LRETVAL -ne 0 ] && [ -n "$ENGINE" ] && match_remote_url "$URL"; then
-        LRETVAL=0
-        if ${ENGINE}_probe_module 'plowlist' "$URL"; then
-            MODULE=$(${ENGINE}_get_module "$URL") || LRETVAL=$?
+    if [ -z "$MODULE" ]; then
+        if [ "${#ENGINES[@]}" -gt 0 ] && match_remote_url "$URL"; then
+            for E in "${ENGINES[@]}"; do
+                LRETVAL=$ERR_NOMODULE
+                if ${E}_probe_module 'plowlist' "$URL"; then
+                    MOD=$(${E}_get_module "$URL")
+                    LRETVAL=$?
+                    if [ $LRETVAL -eq 0 ]; then
+                        log_notice "plowlist ($E): found matching module \`${MOD#*:}'"
+                        MODULE=${MOD/:/_}
+
+                        # Sanity check
+                        if declare -f "${MODULE}_list" > /dev/null; then
+                            ENGINE=$E
+                            break
+                        else
+                            log_error "plowlist: module \`${MODULE}_list' function was not found"
+                            MODULE=
+                        fi
+                    else
+                        log_error "plowlist ($E): get_module failed ($LRETVAL)"
+                    fi
+                fi
+            done
         else
             LRETVAL=$ERR_NOMODULE
         fi
@@ -312,7 +339,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
         eval "$(process_engine_options "$ENGINE" \
             "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-    eval "$(process_module_options "${MODULE//:/_}" LIST \
+    eval "$(process_module_options "$MODULE" LIST \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     FUNCTION=${MODULE}_list
@@ -323,13 +350,11 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     fi
 
     [ -n "$ENGINE" ] && ${ENGINE}_vars_set
-    ${MODULE//:/_}_vars_set
-
+    ${MODULE}_vars_set
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
         pretty_print "${PRINTF_FORMAT:-%F%u%n}" "$MODULE" || LRETVAL=$?
-
+    ${MODULE}_vars_unset
     [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
-    ${MODULE//:/_}_vars_unset
 
     if [ $LRETVAL -eq 0 ]; then
         : # everything went fine

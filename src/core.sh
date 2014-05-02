@@ -2417,10 +2417,10 @@ process_module_options() {
 # $1: engine name (used for error reporting only)
 # $3..$n: arguments
 process_engine_options() {
-    local -r ENGINE_O=$1
+    local -r NAME=$1
     local -r OPTIONS=$(get_engine_options "$1")
     shift 1
-    process_options "$ENGINE_O" "$OPTIONS" 1 "$@"
+    process_options "$NAME" "$OPTIONS" 1 "$@"
 }
 
 # Get module list according to capability

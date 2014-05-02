@@ -38,7 +38,7 @@ CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
-ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing."
+ENGINES,,engine,t=ENGINE,Use specific engine (add more modules). Available: xfilesharing."
 
 
 # This function is duplicated from download.sh
@@ -134,19 +134,30 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     fi
 fi
 
-if [ -n "$ENGINE" ]; then
-    if [ "$ENGINE" = 'xfilesharing' ]; then
-        source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowdel: initializing $ENGINE engine"
-        if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialization error"
-            exit $ERR_FATAL
+# Engines check
+for E in "${ENGINES[@]}"; do
+    if [[ $E =~ ^(xfilesharing)$ ]]; then
+        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
+            log_error "plowdel: can't find engine \`$E', sources are missing"
+            exit $ERR_BAD_COMMAND_LINE
         fi
     else
-        log_error "Error: unknown engine name: $ENGINE"
-        exit $ERR_FATAL
+        log_error "plowdel: unknown engine \`$E'"
+        exit $ERR_BAD_COMMAND_LINE
     fi
-fi
+done
+
+MODULE_OPTIONS=
+
+for E in "${ENGINES[@]}"; do
+    source "$LIBDIR/engine/$E.sh"
+    if ! ${E}_init "$LIBDIR/engine"; then
+        log_error "plowdel: $E engine initialisation error"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options DELETE)
+done
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
     log_debug 'plowdel: --captchaprogram selected'
@@ -162,12 +173,7 @@ else
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
 fi
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
-
-if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options DELETE)
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options DELETE)
-fi
+MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" DELETE)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdel' "$MODULE_OPTIONS" \
@@ -199,11 +205,32 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     DRETVAL=0
 
     MODULE=$(get_module "$URL" "$MODULES") || DRETVAL=$?
+    ENGINE=
 
-    if [ $DRETVAL -ne 0 ] && [ -n "$ENGINE" ] && match_remote_url "$URL"; then
-        DRETVAL=0
-        if ${ENGINE}_probe_module 'plowdel' "$URL"; then
-            MODULE=$(${ENGINE}_get_module "$URL") || DRETVAL=$?
+    if [ -z "$MODULE" ]; then
+        if [ "${#ENGINES[@]}" -gt 0 ] && match_remote_url "$URL"; then
+            for E in "${ENGINES[@]}"; do
+                DRETVAL=$ERR_NOMODULE
+                if ${E}_probe_module 'plowdel' "$URL"; then
+                    MOD=$(${E}_get_module "$URL")
+                    DRETVAL=$?
+                    if [ $DRETVAL -eq 0 ]; then
+                        log_notice "plowdel ($E): found matching module \`${MOD#*:}'"
+                        MODULE=${MOD/:/_}
+
+                        # Sanity check
+                        if declare -f "${MODULE}_delete" > /dev/null; then
+                            ENGINE=$E
+                            break
+                        else
+                            log_error "plowdel: module \`${MODULE}_delete' function was not found"
+                            MODULE=
+                        fi
+                    else
+                        log_error "plowdel ($E): get_module failed ($DRETVAL)"
+                    fi
+                fi
+            done
         else
             DRETVAL=$ERR_NOMODULE
         fi
@@ -227,7 +254,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
         eval "$(process_engine_options "$ENGINE" \
             "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-    eval "$(process_module_options "${MODULE//:/_}" DELETE \
+    eval "$(process_module_options "$MODULE" DELETE \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
     FUNCTION=${MODULE}_delete
@@ -236,12 +263,10 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
     :> "$DCOOKIE"
 
     [ -n "$ENGINE" ] && ${ENGINE}_vars_set
-    ${MODULE//:/_}_vars_set
-
+    ${MODULE}_vars_set
     $FUNCTION "${UNUSED_OPTIONS[@]}" "$DCOOKIE" "$URL" || DRETVAL=$?
-
+    ${MODULE}_vars_unset
     [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
-    ${MODULE//:/_}_vars_unset
 
     if [ $DRETVAL -eq 0 ]; then
         log_notice 'File removed successfully'

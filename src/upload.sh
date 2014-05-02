@@ -44,8 +44,8 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u%n\".
+ENGINES,,engine,t=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
 TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
-ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
@@ -106,7 +106,7 @@ module_exist() {
 # Example: "MODULE_4SHARED_UPLOAD_REMOTE_SUPPORT=no"
 # $1: module name
 module_config_remote_upload() {
-    local -u VAR="MODULE_${1//:/_}_UPLOAD_REMOTE_SUPPORT"
+    local -u VAR="MODULE_${1}_UPLOAD_REMOTE_SUPPORT"
     [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
@@ -301,33 +301,34 @@ if [ -n "$MAX_LIMIT_RATE" -a -n "$MIN_LIMIT_RATE" ]; then
   fi
 fi
 
+# Engines check
+for E in "${ENGINES[@]}"; do
+    if [[ $E =~ ^(xfilesharing)$ ]]; then
+        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
+            log_error "plowup: can't find engine \`$E', sources are missing"
+            exit $ERR_BAD_COMMAND_LINE
+        fi
+    else
+        log_error "plowup: unknown engine \`$E'"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+done
+
+MODULE_OPTIONS=
+
+for E in "${ENGINES[@]}"; do
+    source "$LIBDIR/engine/$E.sh"
+    if ! ${E}_init "$LIBDIR/engine"; then
+        log_error "plowup: $E engine initialisation error"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options UPLOAD)
+done
+
 if [ -n "$TEMP_DIR" ]; then
     TMPDIR=${TEMP_DIR%/}
     log_notice "Temporary directory: $TMPDIR"
-fi
-
-if [ -z "$ENGINE" ] && [ ${#UNUSED_OPTS[@]} -ge 2 ]; then
-    for OPTION in "${UNUSED_OPTS[@]}"; do
-        if match '^[a-z_]\+:[a-z_]\+$' "$OPTION"; then
-            ENGINE=$(parse . '^\([^:]\+\)' <<< "$OPTION")
-            ENGINE_SUBMODULE=$(parse . '^[^:]\+:\(.*\)$' <<< "$OPTION")
-            break
-        fi
-    done
-fi
-
-if [ -n "$ENGINE" ]; then
-    if [ "$ENGINE" = 'xfilesharing' ]; then
-        source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowup: initializing $ENGINE engine"
-        if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialization error"
-            exit $ERR_FATAL
-        fi
-    else
-        log_error "Error: unknown engine name: $ENGINE"
-        exit $ERR_FATAL
-    fi
 fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
@@ -356,12 +357,7 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
 fi
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
-
-if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options UPLOAD)
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options UPLOAD)
-fi
+MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" UPLOAD)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowup' "$MODULE_OPTIONS" \
@@ -378,23 +374,31 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
 fi
 
 # Check requested module
-if [ -n "$ENGINE" ]; then
-    [ -z "$ENGINE_SUBMODULE" ] && ENGINE_SUBMODULE="${COMMAND_LINE_ARGS[0]}"
+if ! MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}"); then
+    for E in "${ENGINES[@]}"; do
+        MODULE=
+        if ${E}_probe_module 'plowup' "${COMMAND_LINE_ARGS[0]}"; then
+            if MOD=$(${E}_get_module "$URL"); then
+                log_notice "plowup ($E): found matching module \`${MOD#*:}'"
+                MODULE=${MOD/:/_}
 
-    if ${ENGINE}_probe_module 'plowup' "$ENGINE_SUBMODULE"; then
-        MODULE=$(${ENGINE}_get_module "$ENGINE_SUBMODULE") || {
-            log_error "plowup: $ENGINE engine cannot provide base module (${COMMAND_LINE_ARGS[0]})";
-            exit $ERR_NOMODULE;
-        }
-    else
-        log_error "plowup: $ENGINE engine unsupported module (${COMMAND_LINE_ARGS[0]})";
-        exit $ERR_NOMODULE;
-    fi
-else
-    MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
-        log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})";
-        exit $ERR_NOMODULE;
-    }
+                # Sanity check
+                if declare -f "${MODULE}_upload" > /dev/null; then
+                    ENGINE=$E
+                    break
+                else
+                    log_error "plowup: module \`${MODULE}_upload' function was not found"
+                fi
+            else
+                log_error "plowup ($E): get_module failed"
+            fi
+        fi
+    done
+fi
+
+if [ -z "$MODULE" ]; then
+    log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})"
+    exit $ERR_NOMODULE
 fi
 
 if [ ${#COMMAND_LINE_ARGS[@]} -lt 2 ]; then
@@ -411,7 +415,7 @@ test -z "$NO_PLOWSHARERC" && \
     eval "$(process_engine_options "$ENGINE" \
         "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-eval "$(process_module_options "${MODULE//:/_}" UPLOAD \
+eval "$(process_module_options "$MODULE" UPLOAD \
     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
 if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
@@ -501,7 +505,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
     TRY=0
     [ -n "$ENGINE" ] && ${ENGINE}_vars_set
-    ${MODULE//:/_}_vars_set
+    ${MODULE}_vars_set
 
     while :; do
         :> "$UCOOKIE"
@@ -534,8 +538,8 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         log_notice "Starting upload ($MODULE): retry $TRY/$MAXRETRIES"
     done
 
+    ${MODULE}_vars_unset
     [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
-    ${MODULE//:/_}_vars_unset
 
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true

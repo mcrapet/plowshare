@@ -52,8 +52,8 @@ PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link p
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F%n\".
+ENGINES,,engine,t=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
-ENGINE,,engine,s=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
@@ -199,14 +199,14 @@ disk_check() {
 # Example: "MODULE_RYUSHARE_DOWNLOAD_RESUME=no"
 # $1: module name
 module_config_resume() {
-    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_RESUME"
+    local -u VAR="MODULE_${1}_DOWNLOAD_RESUME"
     [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no"
 # $1: module name
 module_config_need_cookie() {
-    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
+    local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE"
     [[ ${!VAR} = [Yy][Ee][Ss] || ${!VAR} = 1 ]]
 }
 
@@ -214,14 +214,14 @@ module_config_need_cookie() {
 # $1: module name
 # stdout: variable array name (not content)
 module_config_need_extra() {
-    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
+    local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
     test -z "${!VAR}" || echo "${VAR}"
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=10"
 # $1: module name
 module_config_wait() {
-    local -u VAR="MODULE_${1//:/_}_DOWNLOAD_SUCCESSIVE_INTERVAL"
+    local -u VAR="MODULE_${1}_DOWNLOAD_SUCCESSIVE_INTERVAL"
     echo $((${!VAR}))
 }
 
@@ -805,23 +805,34 @@ if [ -n "$GLOBAL_COOKIES" ]; then
     log_notice 'plowdown: using provided cookies file'
 fi
 
-if [ -n "$ENGINE" ]; then
-    if [ "$ENGINE" = 'xfilesharing' ]; then
-        source "$LIBDIR/engine/$ENGINE.sh"
-        log_notice "plowdown: initialising $ENGINE engine"
-        if ! ${ENGINE}_init "$LIBDIR/engine"; then
-            log_error "$ENGINE initialisation error"
-            exit $ERR_FATAL
-        fi
-    else
-        log_error "Error: unknown engine name: $ENGINE"
-        exit $ERR_FATAL
-    fi
-fi
-
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
+
+# Engines check
+for E in "${ENGINES[@]}"; do
+    if [[ $E =~ ^(xfilesharing)$ ]]; then
+        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
+            log_error "plowdown: can't find engine \`$E', sources are missing"
+            exit $ERR_BAD_COMMAND_LINE
+        fi
+    else
+        log_error "plowdown: unknown engine \`$E'"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+done
+
+MODULE_OPTIONS=
+
+for E in "${ENGINES[@]}"; do
+    source "$LIBDIR/engine/$E.sh"
+    if ! ${E}_init "$LIBDIR/engine"; then
+        log_error "plowdown: $E engine initialisation error"
+        exit $ERR_BAD_COMMAND_LINE
+    fi
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options DOWNLOAD)
+done
 
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug 'plowdown: --no-overwrite selected'
@@ -844,12 +855,7 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
 fi
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
-
-if [ -n "$ENGINE" ]; then
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_core_options DOWNLOAD)
-    MODULE_OPTIONS=$MODULE_OPTIONS$'\n'$(${ENGINE}_get_all_modules_options DOWNLOAD)
-fi
+MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" DOWNLOAD)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdown' "$MODULE_OPTIONS" \
@@ -911,14 +917,32 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         fi
 
         MODULE=$(get_module "$URL" "$MODULES") || true
+        ENGINE=
 
         if [ -z "$MODULE" ]; then
-            if test "$ENGINE" && match_remote_url "$URL"; then
-                if ${ENGINE}_probe_module 'plowdown' "$URL"; then
-                    MODULE=$(${ENGINE}_get_module "$URL") || MRETVAL=$?
-                else
+            if [ "${#ENGINES[@]}" -gt 0 ] && match_remote_url "$URL"; then
+                for E in "${ENGINES[@]}"; do
                     MRETVAL=$ERR_NOMODULE
-                fi
+                    if ${E}_probe_module 'plowdown' "$URL"; then
+                        MOD=$(${E}_get_module "$URL")
+                        MRETVAL=$?
+                        if [ $MRETVAL -eq 0 ]; then
+                            log_notice "plowdown ($E): found matching module \`${MOD#*:}'"
+                            MODULE=${MOD/:/_}
+
+                            # Sanity check
+                            if declare -f "${MODULE}_download" > /dev/null; then
+                                ENGINE=$E
+                                break
+                            else
+                                log_error "plowdown: module \`${MODULE}_download' function was not found"
+                                MODULE=
+                            fi
+                        else
+                            log_error "plowdown ($E): get_module failed ($MRETVAL)"
+                        fi
+                    fi
+                done
 
             elif match_remote_url "$URL"; then
                 # Test for simple HTTP 30X redirection
@@ -991,17 +1015,15 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 eval "$(process_engine_options "$ENGINE" \
                     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
-            eval "$(process_module_options "${MODULE//:/_}" DOWNLOAD \
+            eval "$(process_module_options "$MODULE" DOWNLOAD \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
             [ -n "$ENGINE" ] && ${ENGINE}_vars_set
-            ${MODULE//:/_}_vars_set
-
+            ${MODULE}_vars_set
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
                 "$TMPDIR" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
-
+            ${MODULE}_vars_unset
             [ -n "$ENGINE" ] && ${ENGINE}_vars_unset
-            ${MODULE//:/_}_vars_unset
 
             # Link explicitly skipped
             if [ -n "$PRE_COMMAND" -a $MRETVAL -eq $ERR_NOMODULE ]; then

@@ -191,19 +191,19 @@ xfilesharing_probe_module() {
 
         case "$NAME" in
             'plowdown')
-                eval "xfilesharing:${XFILESHARING_SUBMODULE}_download(){ xfilesharing_module_download \"\$@\"; }"
+                eval "xfilesharing_${XFILESHARING_SUBMODULE}_download(){ xfilesharing_module_download \"\$@\"; }"
                 ;;
             'plowlist')
-                eval "xfilesharing:${XFILESHARING_SUBMODULE}_list(){ xfilesharing_module_list \"\$@\"; }"
+                eval "xfilesharing_${XFILESHARING_SUBMODULE}_list(){ xfilesharing_module_list \"\$@\"; }"
                 ;;
             'plowdel')
-                eval "xfilesharing:${XFILESHARING_SUBMODULE}_delete(){ xfilesharing_module_delete \"\$@\"; }"
+                eval "xfilesharing_${XFILESHARING_SUBMODULE}_delete(){ xfilesharing_module_delete \"\$@\"; }"
                 ;;
             'plowprobe')
-                eval "xfilesharing:${XFILESHARING_SUBMODULE}_probe(){ xfilesharing_module_probe \"\$@\"; }"
+                eval "xfilesharing_${XFILESHARING_SUBMODULE}_probe(){ xfilesharing_module_probe \"\$@\"; }"
                 ;;
             'plowup')
-                eval "xfilesharing:${XFILESHARING_SUBMODULE}_upload(){ xfilesharing_module_upload \"\$@\"; }"
+                eval "xfilesharing_${XFILESHARING_SUBMODULE}_upload(){ xfilesharing_module_upload \"\$@\"; }"
                 ;;
         esac
 
