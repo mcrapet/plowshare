@@ -2672,6 +2672,31 @@ handle_tokens() {
     echo -n "${OUT%x}"
 }
 
+# Initialise all engines
+# $1: caller (plowdown, plowup, ...). Used for error reporting only.
+# $2: array[@]
+engine_setup() {
+    local -r NAME=$1
+    local E
+    for E in "${!2}"; do
+        if [[ $E =~ ^(xfilesharing)$ ]]; then
+            if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
+                log_error "$NAME: can't find engine \`$E', sources are missing"
+                exit $ERR_SYSTEM
+            fi
+            source "$LIBDIR/engine/$E.sh"
+            if ! ${E}_init "$LIBDIR/engine"; then
+                log_error "$NAME ($E): initialisation error"
+                exit $ERR_SYSTEM
+            fi
+        else
+            log_error "$NAME: unknown engine \`$E'"
+            exit $ERR_BAD_COMMAND_LINE
+        fi
+
+    done
+}
+
 ## ----------------------------------------------------------------------------
 
 ##

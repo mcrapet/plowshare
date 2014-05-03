@@ -22,51 +22,14 @@
 ENGINE_XFILESHARING_OPTIONS=
 ENGINE_XFILESHARING_FLAGS=
 
-# Generic callback functions list
-declare -ra XFCB_FUNCTIONS=(
-login
-handle_captcha
-check_antiddos
-unpack_js
-dl_parse_error
-dl_parse_form1
-dl_parse_form2
-dl_parse_final_link
-dl_commit_step1
-dl_commit_step2
-dl_parse_streaming
-dl_parse_imagehosting
-dl_parse_countdown
-ul_get_space_data
-ul_get_folder_data
-ul_create_folder
-ul_get_file_id
-ul_parse_data
-ul_commit
-ul_parse_result
-ul_commit_result
-ul_handle_state
-ul_parse_del_code
-ul_parse_file_id
-ul_move_file
-ul_edit_file
-ul_set_flag_premium
-ul_set_flag_public
-ul_generate_links
-ul_remote_queue_test
-ul_remote_queue_check
-ul_remote_queue_add
-ul_remote_queue_del
-ul_get_file_code
-pr_parse_file_name
-pr_parse_file_size
-ls_parse_links
-ls_parse_names
-ls_parse_last_page
-ls_parse_folders)
+# Globals only used here.
+# Important: Don't use "declare" keyword to screw scope
+XFILESHARING_DIR=
+XFILESHARING_SUBMODULE=
+XFILESHARING_URL_UPLOAD=
 
 # Generic submodule options list
-declare -ra OPTS_VAR_SUBMODULE=(
+OPTIONS_VAR_SUBMODULE=(
 DOWNLOAD_OPTIONS
 DOWNLOAD_RESUME
 DOWNLOAD_FINAL_LINK_NEEDS_COOKIE
@@ -79,18 +42,12 @@ PROBE_OPTIONS
 LIST_OPTIONS
 LIST_HAS_SUBFOLDERS)
 
-# Globals
-declare XFILESHARING_ENGINE_DIR
-declare XFILESHARING_SUBMODULE
-
-declare XFILESHARING_URL_UPLOAD
-
 # Get module list for xfilesharing engine
-# Note: use global variable ENGINE_DIR
+# Note: use global variable XFILESHARING_DIR.
 #
 # stdout: return module list (one name per line)
 xfilesharing_grep_list_modules() {
-    local -r CONFIG="$XFILESHARING_ENGINE_DIR/xf/config"
+    local -r CONFIG="$XFILESHARING_DIR/config"
 
     if [ ! -f "$CONFIG" ]; then
         log_error "Can't find xfilesharing config file"
@@ -105,7 +62,8 @@ xfilesharing_grep_list_modules() {
 # $2: property name to get. Accepted value(s): URL_UPLOAD
 # stdout: requested property
 xfilesharing_get_submodule_property() {
-    local -r CONFIG="$XFILESHARING_ENGINE_DIR/xf/config"
+    local -r CONFIG="$XFILESHARING_DIR/config"
+    local MODULE URL_REGEX URL_UPLOAD_PROP
 
     if [ ! -f "$CONFIG" ]; then
         log_error "Can't find xfilesharing config file"
@@ -129,7 +87,8 @@ xfilesharing_get_submodule_property() {
 # $1: URL
 # stdout: module name
 xfilesharing_get_submodule() {
-    local -r CONFIG="$XFILESHARING_ENGINE_DIR/xf/config"
+    local -r CONFIG="$XFILESHARING_DIR/config"
+    local MODULE URL_REGEX URL_UPLOAD
 
     if [ ! -f "$CONFIG" ]; then
         log_error "Can't find xfilesharing config file"
@@ -148,23 +107,21 @@ xfilesharing_get_submodule() {
 # Engine initialisation. No subshell.
 # $1: plowshare engine directory
 xfilesharing_init() {
-    XFILESHARING_ENGINE_DIR=$1
+    XFILESHARING_DIR="$1/xf"
 
-    source "$XFILESHARING_ENGINE_DIR/xf/module.sh"
-    source "$XFILESHARING_ENGINE_DIR/xf/module_options.sh"
-    source "$XFILESHARING_ENGINE_DIR/xf/generic.sh"
+    if [ ! -d "$XFILESHARING_DIR" ]; then
+        log_error "$FUNCNAME: invalid directory \`$XFILESHARING_DIR'"
+        return $ERR_SYSTEM
+    fi
 
-    #XF_MODULES=$(xfilesharing_grep_list_modules) || return
-    #
-    #for XF_MODULE in $XF_MODULES; do
-    #    if [ -f "$XFILESHARING_ENGINE_DIR/xf/$XF_MODULE.sh" ]; then
-    #        source "$XFILESHARING_ENGINE_DIR/xf/$XF_MODULE.sh"
-    #    fi
-    #done
+    readonly XFILESHARING_DIR
+
+    source "$XFILESHARING_DIR/module.sh"
+    source "$XFILESHARING_DIR/module_options.sh"
+    source "$XFILESHARING_DIR/generic.sh"
 }
 
 # Check if we accept this kind of url. No subshell.
-# This is used by plowdown and plowprobe.
 # $1: caller (plowdown, plowup, ...)
 # $2: URL or module to probe
 # $?: 0 for success
@@ -172,6 +129,7 @@ xfilesharing_probe_module() {
     local -r NAME=$1
     local -r MODULE_DATA=$2
     local -i RET=0
+    local FUNC OPT
 
     if [ "$NAME" = 'plowdown' ] || [ "$NAME" = 'plowlist' ] || [ "$NAME" = 'plowdel' ] || [ "$NAME" = 'plowprobe' ]; then
         XFILESHARING_SUBMODULE=$(xfilesharing_get_submodule "$MODULE_DATA") || RET=$ERR_NOMODULE
@@ -182,8 +140,8 @@ xfilesharing_probe_module() {
     fi
 
     if [ $RET -eq 0 ]; then
-        if [ -f "$XFILESHARING_ENGINE_DIR/xf/$XFILESHARING_SUBMODULE.sh" ]; then
-            source "$XFILESHARING_ENGINE_DIR/xf/$XFILESHARING_SUBMODULE.sh"
+        if [ -f "$XFILESHARING_DIR/$XFILESHARING_SUBMODULE.sh" ]; then
+            source "$XFILESHARING_DIR/$XFILESHARING_SUBMODULE.sh"
             log_debug "submodule: '$XFILESHARING_SUBMODULE' (custom)"
         else
             log_debug "submodule: '$XFILESHARING_SUBMODULE' (generic)"
@@ -207,30 +165,72 @@ xfilesharing_probe_module() {
                 ;;
         esac
 
-        for FUNCTION_NAME in "${XFCB_FUNCTIONS[@]}"; do
-            if ! declare -f "xfcb_${XFILESHARING_SUBMODULE}_${FUNCTION_NAME}" >/dev/null; then
-                eval "xfcb_${XFILESHARING_SUBMODULE}_${FUNCTION_NAME}(){
-                    xfcb_generic_${FUNCTION_NAME} \"\$@\"
+        # Generic callback functions list
+        local -ra XFCB_FUNCTIONS=(
+        login
+        handle_captcha
+        check_antiddos
+        unpack_js
+        dl_parse_error
+        dl_parse_form1
+        dl_parse_form2
+        dl_parse_final_link
+        dl_commit_step1
+        dl_commit_step2
+        dl_parse_streaming
+        dl_parse_imagehosting
+        dl_parse_countdown
+        ul_get_space_data
+        ul_get_folder_data
+        ul_create_folder
+        ul_get_file_id
+        ul_parse_data
+        ul_commit
+        ul_parse_result
+        ul_commit_result
+        ul_handle_state
+        ul_parse_del_code
+        ul_parse_file_id
+        ul_move_file
+        ul_edit_file
+        ul_set_flag_premium
+        ul_set_flag_public
+        ul_generate_links
+        ul_remote_queue_test
+        ul_remote_queue_check
+        ul_remote_queue_add
+        ul_remote_queue_del
+        ul_get_file_code
+        pr_parse_file_name
+        pr_parse_file_size
+        ls_parse_links
+        ls_parse_names
+        ls_parse_last_page
+        ls_parse_folders)
+
+        for FUNC in "${XFCB_FUNCTIONS[@]}"; do
+            if ! declare -f "xfcb_${XFILESHARING_SUBMODULE}_${FUNC}" >/dev/null; then
+                eval "xfcb_${XFILESHARING_SUBMODULE}_${FUNC}(){
+                    xfcb_generic_${FUNC} \"\$@\"
                 }"
             fi
-
-            eval "xfcb_${FUNCTION_NAME}() { xfcb_${XFILESHARING_SUBMODULE}_${FUNCTION_NAME} \"\$@\"; }"
+            eval "xfcb_${FUNC}() { xfcb_${XFILESHARING_SUBMODULE}_${FUNC} \"\$@\"; }"
         done
 
-        for OPTION_NAME in "${OPTS_VAR_SUBMODULE[@]}"; do
-            local -u SUBMODULE_OPTION="MODULE_XFILESHARING_${XFILESHARING_SUBMODULE}_${OPTION_NAME}"
+        for OPT in "${OPTIONS_VAR_SUBMODULE[@]}"; do
+            local -u SUBMODULE_OPTION="MODULE_XFILESHARING_${XFILESHARING_SUBMODULE}_${OPT}"
 
             if [ -n "${!SUBMODULE_OPTION}" ]; then
-                case $OPTION_NAME in
+                case $OPT in
                     *_OPTIONS)
-                        eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPTION_NAME}${!SUBMODULE_OPTION}\""
+                        eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPT}${!SUBMODULE_OPTION}\""
                         ;;
                     *)
                         eval "$SUBMODULE_OPTION=\"${!SUBMODULE_OPTION}\""
                         ;;
                 esac
             else
-                eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPTION_NAME}\""
+                eval "$SUBMODULE_OPTION=\"\$MODULE_XFILESHARING_GENERIC_${OPT}\""
             fi
         done
     fi
@@ -251,12 +251,13 @@ xfilesharing_get_module() {
 # stdout: options list (one per line)
 xfilesharing_get_all_modules_options() {
     local -ur VAR_OPTIONS_GENERIC="MODULE_XFILESHARING_GENERIC_${1}_OPTIONS"
+    local OPT
 
     strip_and_drop_empty_lines "${!VAR_OPTIONS_GENERIC}"
 
     while read -r; do
-        for OPTION_NAME in "${OPTS_VAR_SUBMODULE[@]}"; do
-            local -u VAR="MODULE_XFILESHARING_${REPLY}_${OPTION_NAME}"
+        for OPT in "${OPTIONS_VAR_SUBMODULE[@]}"; do
+            local -u VAR="MODULE_XFILESHARING_${REPLY}_${OPT}"
             if [ -n "${!VAR}" ]; then
                 strip_and_drop_empty_lines "${!VAR}"
             fi

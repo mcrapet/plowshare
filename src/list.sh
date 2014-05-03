@@ -222,35 +222,18 @@ if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
 
-# Engines check
-for E in "${ENGINES[@]}"; do
-    if [[ $E =~ ^(xfilesharing)$ ]]; then
-        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
-            log_error "plowlist: can't find engine \`$E', sources are missing"
-            exit $ERR_BAD_COMMAND_LINE
-        fi
-    else
-        log_error "plowlist: unknown engine \`$E'"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
-MODULE_OPTIONS=
-
-for E in "${ENGINES[@]}"; do
-    source "$LIBDIR/engine/$E.sh"
-    if ! ${E}_init "$LIBDIR/engine"; then
-        log_error "plowlist: $E engine initialisation error"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
-    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options LIST)
-done
+engine_setup 'plowlist' ENGINES[@] || exit
 
 # Print chosen options
 [ -n "$RECURSE" ] && log_debug 'plowlist: --recursive selected'
 
-MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" LIST)
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" LIST)
+
+# Add engine(s) and their module options
+for E in "${ENGINES[@]}"; do
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options LIST)
+done
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowlist' "$MODULE_OPTIONS" \
@@ -290,7 +273,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
                     MOD=$(${E}_get_module "$URL")
                     LRETVAL=$?
                     if [ $LRETVAL -eq 0 ]; then
-                        log_notice "plowlist ($E): found matching module \`${MOD#*:}'"
+                        log_debug "$E: found matching module \`${MOD#*:}'"
                         MODULE=${MOD/:/_}
 
                         # Sanity check

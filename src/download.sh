@@ -809,30 +809,7 @@ if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
 fi
 
-# Engines check
-for E in "${ENGINES[@]}"; do
-    if [[ $E =~ ^(xfilesharing)$ ]]; then
-        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
-            log_error "plowdown: can't find engine \`$E', sources are missing"
-            exit $ERR_BAD_COMMAND_LINE
-        fi
-    else
-        log_error "plowdown: unknown engine \`$E'"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
-MODULE_OPTIONS=
-
-for E in "${ENGINES[@]}"; do
-    source "$LIBDIR/engine/$E.sh"
-    if ! ${E}_init "$LIBDIR/engine"; then
-        log_error "plowdown: $E engine initialisation error"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
-    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options DOWNLOAD)
-done
+engine_setup 'plowdown' ENGINES[@] || exit
 
 # Print chosen options
 [ -n "$NOOVERWRITE" ] && log_debug 'plowdown: --no-overwrite selected'
@@ -855,7 +832,13 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
 fi
 
-MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" DOWNLOAD)
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DOWNLOAD)
+
+# Add engine(s) and their module options
+for E in "${ENGINES[@]}"; do
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options DOWNLOAD)
+done
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdown' "$MODULE_OPTIONS" \
@@ -927,7 +910,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                         MOD=$(${E}_get_module "$URL")
                         MRETVAL=$?
                         if [ $MRETVAL -eq 0 ]; then
-                            log_notice "plowdown ($E): found matching module \`${MOD#*:}'"
+                            log_debug "$E: found matching module \`${MOD#*:}'"
                             MODULE=${MOD/:/_}
 
                             # Sanity check

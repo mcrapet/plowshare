@@ -134,30 +134,7 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     fi
 fi
 
-# Engines check
-for E in "${ENGINES[@]}"; do
-    if [[ $E =~ ^(xfilesharing)$ ]]; then
-        if [ ! -f "$LIBDIR/engine/$E.sh" ]; then
-            log_error "plowdel: can't find engine \`$E', sources are missing"
-            exit $ERR_BAD_COMMAND_LINE
-        fi
-    else
-        log_error "plowdel: unknown engine \`$E'"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
-MODULE_OPTIONS=
-
-for E in "${ENGINES[@]}"; do
-    source "$LIBDIR/engine/$E.sh"
-    if ! ${E}_init "$LIBDIR/engine"; then
-        log_error "plowdel: $E engine initialisation error"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
-    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options DELETE)
-done
+engine_setup 'plowdel' ENGINES[@] || exit
 
 if [ -n "$CAPTCHA_PROGRAM" ]; then
     log_debug 'plowdel: --captchaprogram selected'
@@ -173,7 +150,13 @@ else
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
 fi
 
-MODULE_OPTIONS+=$(get_all_modules_options "$MODULES" DELETE)
+MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
+
+# Add engine(s) and their module options
+for E in "${ENGINES[@]}"; do
+    MODULE_OPTIONS+=$'\n'$(${E}_get_core_options)
+    MODULE_OPTIONS+=$'\n'$(${E}_get_all_modules_options DELETE)
+done
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdel' "$MODULE_OPTIONS" \
@@ -215,7 +198,7 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
                     MOD=$(${E}_get_module "$URL")
                     DRETVAL=$?
                     if [ $DRETVAL -eq 0 ]; then
-                        log_notice "plowdel ($E): found matching module \`${MOD#*:}'"
+                        log_debug "$E: found matching module \`${MOD#*:}'"
                         MODULE=${MOD/:/_}
 
                         # Sanity check
