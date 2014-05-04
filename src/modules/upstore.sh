@@ -36,15 +36,14 @@ MODULE_UPSTORE_PROBE_OPTIONS=""
 # $1: authentication
 # $2: cookie file
 # $3: base url
-# stdout: account type (only "free" for now) on success
 upstore_login() {
-    local -r AUTH_FREE=$1
+    local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
     local LOGIN_DATA PAGE STATUS NAME
 
     LOGIN_DATA='email=$USER&password=$PASSWORD&send=Login'
-    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASE_URL/account/login/" -b 'lang=en' --location) || return
 
     STATUS=$(parse_cookie_quiet 'usid' < "$COOKIE_FILE")
@@ -54,7 +53,6 @@ upstore_login() {
     NAME=$(echo "$PAGE" | parse_tag '"/account/"' 'a') || return
 
     log_debug "Successfully logged in as member '$NAME'"
-    echo 'free'
 }
 
 # Switch language to english
@@ -93,7 +91,7 @@ upstore_download() {
     if [ -n "$ERR" ]; then
         [ "$ERR" = 'File not found' ] && return $ERR_LINK_DEAD
 
-        #File size is larger than 1 GB. Unfortunately, it can be downloaded only with premium
+        # File size is larger than 1 GB. Unfortunately, it can be downloaded only with premium
         if [[ "$ERR" = 'File size is larger than'* ]]; then
                 return $ERR_LINK_NEED_PERMISSIONS
         fi
@@ -210,7 +208,7 @@ upstore_upload() {
     upstore_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
     if [ -n "$AUTH_FREE" ]; then
-        upstore_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+        upstore_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
