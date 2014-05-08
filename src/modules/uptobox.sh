@@ -110,7 +110,7 @@ uptobox_download() {
         uptobox_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
         # Distinguish acount type (free or premium)
-        PAGE=$(curl -b "$COOKIE_FILE" 'http://www.uptobox.com/?op=my_account') || return
+        PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/?op=my_account") || return
 
         # Opposite is: 'Upgrade to premium';
         if match 'Renew premium' "$PAGE"; then
