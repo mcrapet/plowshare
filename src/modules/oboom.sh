@@ -624,7 +624,7 @@ oboom_upload() {
             'http://api.oboom.com/1/tree') || return
 
         FOLDER_ID=$(parse . \
-            "\"type\":\"folder\"[^\}]\+\"id\":\"\([^\"]\+\)\",\"name\":\"$FOLDER\"" <<< "$PAGE") || return
+            "\"name\":\"$FOLDER\"[^\}]\+\"type\":\"folder\"[^\}]\+\"id\":\"\([^\"]\+\)\"" <<< "$PAGE") || return
 
         log_debug "Folder ID: '$FOLDER_ID'"
     fi
