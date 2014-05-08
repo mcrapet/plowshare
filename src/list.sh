@@ -104,6 +104,7 @@ pretty_check() {
     fi
 }
 
+# stdin: list of url and filename (one per line)
 # $1: format string
 # $2: module name
 pretty_print() {

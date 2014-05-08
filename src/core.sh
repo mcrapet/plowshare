@@ -64,7 +64,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - CAPTCHA_DEATHBY  DeathByCaptcha account
 #   - CAPTCHA_PROGRAM  External solver program/script
 #   - MODULE           Module name (don't include .sh)
-# Note: captchas are handled in plowdown, plowup, plowdel.
+# Note: captchas are handled in plowdown, plowup and plowdel.
 #
 # Global variables defined here:
 #   - PS_TIMEOUT       (plowdown, plowup) Timeout (in seconds) for one item
@@ -412,7 +412,7 @@ parse_all() {
     fi
 
     [ '^' = "${PARSE:0:1}" ] || PARSE="^.*$PARSE"
-    [ '$' = "${PARSE:(-1):1}" ] || PARSE="$PARSE.*$"
+    [ '$' = "${PARSE:(-1):1}" ] || PARSE+='.*$'
     PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p
 
     if [ $N -eq 0 ]; then
@@ -498,7 +498,7 @@ parse() {
     fi
 
     [ '^' = "${PARSE:0:1}" ] || PARSE="^.*$PARSE"
-    [ '$' = "${PARSE:(-1):1}" ] || PARSE="$PARSE.*$"
+    [ '$' = "${PARSE:(-1):1}" ] || PARSE+='.*$'
     PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p
 
     if [ $N -eq 0 ]; then
@@ -1271,7 +1271,7 @@ captcha_process() {
         return $ERR_FATAL
     fi
 
-    # plowdown/plowup --captchaprogram
+    # plowdown/plowup/plowdel --captchaprogram
     if [ -n "$CAPTCHA_PROGRAM" ]; then
         local RET=0
 
@@ -1286,7 +1286,7 @@ captcha_process() {
         fi
     fi
 
-    # plowdown/plowup --captchamethod
+    # plowdown/plowup/plowdel --captchamethod
     if [ -n "$CAPTCHA_METHOD" ]; then
         captcha_method_translate "$CAPTCHA_METHOD" METHOD_SOLVE METHOD_VIEW
     # Auto-guess mode (solve)
