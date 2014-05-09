@@ -605,26 +605,37 @@ oboom_upload() {
     if [ -n "$FOLDER" ]; then
         PAGE=$(curl \
             -d "token=$ACC_SESSION" \
-            -d "parent=1" \
-            -d "name=$FOLDER" \
-            -d 'name_policy=fail' \
-            'http://api.oboom.com/1/mkdir') || return
-
-        if match '^\[200\]$' "$PAGE"; then
-            log_error 'Folder created.'
-        elif match '\[409,"item with same name already exists"' "$PAGE"; then
-            log_debug 'Folder already exists.'
-        elif ! match '^\[200\]$' "$PAGE"; then
-            log_error 'Failed to create folder.'
-            return $ERR_FATAL
-        fi
-
-        PAGE=$(curl \
-            -d "token=$ACC_SESSION" \
             'http://api.oboom.com/1/tree') || return
 
-        FOLDER_ID=$(parse . \
-            "\"name\":\"$FOLDER\"[^\}]\+\"type\":\"folder\"[^\}]\+\"id\":\"\([^\"]\+\)\"" <<< "$PAGE") || return
+        FOLDER_ID=$(parse_quiet . \
+            "\"name\":\"$FOLDER\"[^\}]\+\"type\":\"folder\"[^\}]\+\"id\":\"\([^\"]\+\)\"" <<< "$PAGE")
+
+        if [ -z "$FOLDER_ID" ]; then
+            log_debug 'Creating folder...'
+
+            PAGE=$(curl \
+                -d "token=$ACC_SESSION" \
+                -d 'parent=1' \
+                -d "name=$FOLDER" \
+                -d 'name_policy=fail' \
+                'http://api.oboom.com/1/mkdir') || return
+
+            if match '^\[200\]$' "$PAGE"; then
+                log_debug 'Folder created.'
+            elif match '\[409,"item with same name already exists"' "$PAGE"; then
+                log_debug 'Folder already exists.'
+            elif ! match '^\[200\]$' "$PAGE"; then
+                log_error 'Failed to create folder.'
+                return $ERR_FATAL
+            fi
+
+            PAGE=$(curl \
+                -d "token=$ACC_SESSION" \
+                'http://api.oboom.com/1/tree') || return
+
+            FOLDER_ID=$(parse . \
+                "\"name\":\"$FOLDER\"[^\}]\+\"type\":\"folder\"[^\}]\+\"id\":\"\([^\"]\+\)\"" <<< "$PAGE") || return
+        fi
 
         log_debug "Folder ID: '$FOLDER_ID'"
     fi
