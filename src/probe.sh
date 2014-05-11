@@ -100,10 +100,10 @@ probe() {
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_probe
     local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH FILE_ID
+    local -a DATA
 
     log_debug "Starting probing ($MODULE): $URL_ENCODED"
 
-    # $PRINTF_FORMAT
     local PCOOKIE=$(create_tempfile)
     local PRESULT=$(create_tempfile)
 
@@ -125,11 +125,7 @@ probe() {
     fi
 
     $FUNCTION "$PCOOKIE" "$URL_ENCODED" "$CAPS" >"$PRESULT" || CHECK_LINK=$?
-
-    OLD_IFS=$IFS
-    IFS=$'\n'
-    local -a DATA=($(< "$PRESULT"))
-    IFS=$OLD_IFS
+    mapfile -t DATA < "$PRESULT"
 
     rm -f "$PRESULT" "$PCOOKIE"
 
@@ -354,10 +350,11 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         cat > "$ITEM"
     fi
 
-    OLD_IFS=$IFS
-    IFS=$'\n'
-    ELEMENTS=( $(process_item "$ITEM") )
-    IFS=$OLD_IFS
+    I=0
+    while IFS= read -r; do
+        ELEMENTS[$I]=$REPLY
+        ((++I))
+    done < <(process_item "$ITEM")
 
     for URL in "${ELEMENTS[@]}"; do
         PRETVAL=0
