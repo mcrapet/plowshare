@@ -134,7 +134,7 @@ uptobox_download() {
     PAGE=$(uptobox_cloudflare "$PAGE" "$COOKIE_FILE" "$BASE_URL") || return
 
     # The file you were looking for could not be found, sorry for any inconvenience
-    if matchi 'File Not Found' "$PAGE"; then
+    if matchi '<span[[:space:]].*File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -316,8 +316,10 @@ uptobox_probe() {
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
     PAGE=$(uptobox_cloudflare "$PAGE" "$COOKIE_FILE" "$BASE_URL") || return
 
+    # Not nice!
+    # <div style="position:absolute;display: none;">No such file No such user exist File not found</div>
     # The file you were looking for could not be found, sorry for any inconvenience
-    if matchi 'File Not Found' "$PAGE"; then
+    if matchi '<span[[:space:]].*File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
