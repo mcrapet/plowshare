@@ -867,10 +867,7 @@ PREVIOUS_HOST=none
 declare -i INDEX=1
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
-    OLD_IFS=$IFS
-    IFS=$'\n'
-    ELEMENTS=($(process_item "$ITEM"))
-    IFS=$OLD_IFS
+    mapfile -t ELEMENTS < <(process_item "$ITEM")
 
     TYPE=${ELEMENTS[0]}
     unset ELEMENTS[0]

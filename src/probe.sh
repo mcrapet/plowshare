@@ -350,11 +350,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         cat > "$ITEM"
     fi
 
-    I=0
-    while IFS= read -r; do
-        ELEMENTS[$I]=$REPLY
-        ((++I))
-    done < <(process_item "$ITEM")
+    mapfile -t ELEMENTS < <(process_item "$ITEM")
 
     for URL in "${ELEMENTS[@]}"; do
         PRETVAL=0
