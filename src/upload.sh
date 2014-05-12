@@ -235,6 +235,11 @@ if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
     exit 1
 fi
 
+if [[ $SHELLOPTS = *posix* ]]; then
+    echo "plowup: Your shell is in POSIX mode, plowshare this will not work." >&2
+    exit 1
+fi
+
 # Get library directory
 LIBDIR=$(absolute_path "$0")
 
