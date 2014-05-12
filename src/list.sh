@@ -29,7 +29,7 @@ EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file 
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
 declare -r MAIN_OPTIONS="
-VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
@@ -105,6 +105,7 @@ pretty_check() {
     fi
 }
 
+# stdin: list of url and filename (one per line)
 # $1: format string
 # $2: module name
 pretty_print() {
@@ -248,14 +249,6 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     log_error "plowlist: try \`plowlist --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
 fi
-
-# Sanity check
-for MOD in $MODULES; do
-    if ! declare -f "${MOD}_list" > /dev/null; then
-        log_error "plowlist: module \`${MOD}_list' function was not found"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
 
 set_exit_trap
 

@@ -66,7 +66,8 @@ gamefront_download() {
 
     PAGE=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
 
-    if match 'File not found' "$PAGE"; then
+    # The file you are looking for seems to be missing.
+    if match 'File not found\|seems to be missing' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -169,7 +170,8 @@ gamefront_probe() {
 
     PAGE=$(curl -L "$URL") || return
 
-    if match 'File not found' "$PAGE"; then
+    # The file you are looking for seems to be missing.
+    if match 'File not found\|seems to be missing' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 

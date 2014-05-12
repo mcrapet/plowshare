@@ -214,7 +214,7 @@ shareonline_biz_download() {
 
     CAP_ID=$(echo "$PAGE" | parse 'var[[:space:]]\+dl=' \
         '[[:space:]]dl="\([^"]*\)') || return
-    CAP_ID=$(base64 -d <<< "$CAP_ID") || return
+    CAP_ID=$(base64 --decode <<< "$CAP_ID") || return
     URL_ID=$(echo "$PAGE" | parse '///' '///\([[:digit:]]\+\)') || return
     log_debug "Captcha: '$CAP_ID'"
     log_debug "URL ID: $URL_ID"

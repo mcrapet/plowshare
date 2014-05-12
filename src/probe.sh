@@ -29,7 +29,7 @@ EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file 
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
 declare -r MAIN_OPTIONS="
-VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --printf=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
@@ -101,10 +101,10 @@ probe() {
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_probe
     local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH FILE_ID
+    local -a DATA
 
     log_debug "Starting probing ($MODULE): $URL_ENCODED"
 
-    # $PRINTF_FORMAT
     local PCOOKIE=$(create_tempfile)
     local PRESULT=$(create_tempfile)
 
@@ -126,11 +126,7 @@ probe() {
     fi
 
     $FUNCTION "$PCOOKIE" "$URL_ENCODED" "$CAPS" >"$PRESULT" || CHECK_LINK=$?
-
-    OLD_IFS=$IFS
-    IFS=$'\n'
-    local -a DATA=($(< "$PRESULT"))
-    IFS=$OLD_IFS
+    mapfile -t DATA < "$PRESULT"
 
     rm -f "$PRESULT" "$PCOOKIE"
 
@@ -339,14 +335,6 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-# Sanity check
-for MOD in $MODULES; do
-    if ! declare -f "${MOD}_probe" > /dev/null; then
-        log_error "plowprobe: module \`${MOD}_probe' function was not found"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
 set_exit_trap
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
@@ -363,10 +351,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         cat > "$ITEM"
     fi
 
-    OLD_IFS=$IFS
-    IFS=$'\n'
-    ELEMENTS=( $(process_item "$ITEM") )
-    IFS=$OLD_IFS
+    mapfile -t ELEMENTS < <(process_item "$ITEM")
 
     for URL in "${ELEMENTS[@]}"; do
         PRETVAL=0
@@ -412,7 +397,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
                     if [ -n "$URL_TEMP" ]; then
                         MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
-                        test "$MODULE" && URL="$URL_TEMP"
+                        test "$MODULE" && URL=$URL_TEMP
                     else
                         match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
                             "$URL" && log_notice 'Raw IPv4 address not expected. Provide an URL with a DNS name.'

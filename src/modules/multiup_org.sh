@@ -138,19 +138,24 @@ multiup_org_list() {
     PAGE=$(curl -L -c "$COOKIE_FILE" "$URL") || return
 
     LINK=$(parse_quiet 'class=.btn.' 'href=.\([^"]*\)' 1 <<< "$PAGE")
-    if [ -z "$LINK" ]; then
-        rm -f "$COOKIE_FILE"
-        return $ERR_LINK_DEAD
+    if [ -n "$LINK" ]; then
+        LINK=$(replace '/fr/' '/en/' <<< "$LINK")
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" "$BASE_URL$LINK") || return
     fi
-
-    PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" "$BASE_URL$LINK") || return
 
     rm -f "$COOKIE_FILE"
 
     LINKS=$(parse_all_quiet 'dateLastChecked=' 'href=.\([^"]*\)' 3 <<< "$PAGE")
     if [ -z "$LINKS" ]; then
-        log_error 'No links found. Site updated?'
-        return $ERR_FATAL
+        # <h3>File currently uploading ...</h3>
+        if match '>File currently uploading \.\.\.<' "$PAGE"; then
+            local N=$(parse '>File position in queue' '[[:space:]]:[[:space:]]\([[:digit:]]\+\)<' <<< "$PAGE")
+            log_debug "file position in queue: '$N'"
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        else
+            log_error 'No links found. Site updated?'
+            return $ERR_FATAL
+        fi
     fi
 
     NAMES=$(parse_all_quiet 'dateLastChecked=' 'nameHost=.\([^"]*\)' -2 <<< "$PAGE")

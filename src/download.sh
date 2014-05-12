@@ -29,7 +29,7 @@ EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file 
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
 declare -r MAIN_OPTIONS="
-VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 MARK_DOWN,m,mark-downloaded,,Mark downloaded links (useful for file list arguments)
 NOOVERWRITE,x,no-overwrite,,Do not overwrite existing files
@@ -481,7 +481,7 @@ download() {
             fi
 
             if test "$TEMP_RENAME"; then
-                FILENAME_TMP="$FILENAME_TMP.part"
+                FILENAME_TMP+='.part'
             fi
 
             if [ "$FILENAME_OUT" = "$FILENAME_TMP" ]; then
@@ -728,6 +728,11 @@ if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
     exit 1
 fi
 
+if [[ $SHELLOPTS = *posix* ]]; then
+    echo "plowup: Your shell is in POSIX mode, plowshare this will not work." >&2
+    exit 1
+fi
+
 # Get library directory
 LIBDIR=$(absolute_path "$0")
 
@@ -854,14 +859,6 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-# Sanity check
-for MOD in $MODULES; do
-    if ! declare -f "${MOD}_download" > /dev/null; then
-        log_error "plowdown: module \`${MOD}_download' function was not found"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
 set_exit_trap
 
 # Save umask
@@ -876,10 +873,7 @@ PREVIOUS_HOST=none
 declare -i INDEX=1
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
-    OLD_IFS=$IFS
-    IFS=$'\n'
-    ELEMENTS=($(process_item "$ITEM"))
-    IFS=$OLD_IFS
+    mapfile -t ELEMENTS < <(process_item "$ITEM")
 
     TYPE=${ELEMENTS[0]}
     unset ELEMENTS[0]
@@ -940,7 +934,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
                     if [ -n "$URL_TEMP" ]; then
                         MODULE=$(get_module "$URL_TEMP" "$MODULES") || MRETVAL=$?
-                        test "$MODULE" && URL="$URL_TEMP"
+                        test "$MODULE" && URL=$URL_TEMP
                     elif test "$NO_MODULE_FALLBACK"; then
                         log_notice 'No module found, do a simple HTTP GET as requested'
                         MODULE='module_null'

@@ -29,7 +29,7 @@ EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file 
 NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
 
 declare -r MAIN_OPTIONS="
-VERBOSE,v,verbose,V=LEVEL,Set output verbose level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+VERBOSE,v,verbose,V=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
 QUIET,q,quiet,,Alias for -v0
 MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
 MIN_LIMIT_RATE,,min-rate,r=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
@@ -236,6 +236,11 @@ if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
     exit 1
 fi
 
+if [[ $SHELLOPTS = *posix* ]]; then
+    echo "plowup: Your shell is in POSIX mode, plowshare this will not work." >&2
+    exit 1
+fi
+
 # Get library directory
 LIBDIR=$(absolute_path "$0")
 
@@ -404,14 +409,6 @@ eval "$(process_module_options "$MODULE" UPLOAD \
 if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
     log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
 fi
-
-# Sanity check
-for MOD in $MODULES; do
-    if ! declare -f "${MOD}_upload" > /dev/null; then
-        log_error "plowup: module \`${MOD}_upload' function was not found"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
 
 # Remove module name from argument list
 unset COMMAND_LINE_ARGS[0]

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # upstore module
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2013-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -21,13 +21,14 @@
 MODULE_UPSTORE_REGEXP_URL='https\?://\(www\.\)\?upsto\(\.re\|re\.net\)/'
 
 MODULE_UPSTORE_DOWNLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_UPSTORE_DOWNLOAD_RESUME=no
 MODULE_UPSTORE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_UPSTORE_DOWNLOAD_SUCCESSIVE_INTERVAL=900
 
 MODULE_UPSTORE_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account
+SHORT_LINK,,short-link,,Produce short link like http://upsto.re/XXXXXX"
 MODULE_UPSTORE_UPLOAD_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_UPSTORE_PROBE_OPTIONS=""
@@ -36,25 +37,30 @@ MODULE_UPSTORE_PROBE_OPTIONS=""
 # $1: authentication
 # $2: cookie file
 # $3: base url
-# stdout: account type (only "free" for now) on success
+# stdout: account type ("free" or "premium") on success
 upstore_login() {
-    local -r AUTH_FREE=$1
+    local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
     local LOGIN_DATA PAGE STATUS NAME
 
     LOGIN_DATA='email=$USER&password=$PASSWORD&send=Login'
-    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
         "$BASE_URL/account/login/" -b 'lang=en' --location) || return
 
     STATUS=$(parse_cookie_quiet 'usid' < "$COOKIE_FILE")
     [ -n "$STATUS" ] || return $ERR_LOGIN_FAILED
 
     # Determine account type and user name
-    NAME=$(echo "$PAGE" | parse_tag '"/account/"' 'a') || return
+    NAME=$(parse '"/account/"' '^[[:space:]]*\(.*\)$' 1 <<< "$PAGE")
+
+    if match '="/premium/">renew</a>' "$PAGE"; then
+        echo 'premium'
+    else
+        echo 'free'
+    fi
 
     log_debug "Successfully logged in as member '$NAME'"
-    echo 'free'
 }
 
 # Switch language to english
@@ -73,7 +79,7 @@ upstore_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://upstore.net'
-    local PAGE HASH ERR WAIT
+    local PAGE HASH ERR WAIT JSON
 
     # extract file ID from URL
     #  http://upstore.net/xyz
@@ -83,8 +89,8 @@ upstore_download() {
 
     upstore_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
-    if [ -n "$AUTH_FREE" ]; then
-        upstore_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    if [ -n "$AUTH" ]; then
+        ACC=$(upstore_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL/$HASH") || return
@@ -93,7 +99,7 @@ upstore_download() {
     if [ -n "$ERR" ]; then
         [ "$ERR" = 'File not found' ] && return $ERR_LINK_DEAD
 
-        #File size is larger than 1 GB. Unfortunately, it can be downloaded only with premium
+        # File size is larger than 1 GB. Unfortunately, it can be downloaded only with premium
         if [[ "$ERR" = 'File size is larger than'* ]]; then
                 return $ERR_LINK_NEED_PERMISSIONS
         fi
@@ -102,6 +108,16 @@ upstore_download() {
         return $ERR_FATAL
     fi
 
+    if [ -n "$AUTH" -a "$ACC" = 'premium' ]; then
+        JSON=$(curl -b "$COOKIE_FILE" -b 'lang=en' --referer "$URL" \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            -d "hash=$HASH" \
+            -d 'antispam=' \
+            -d 'js=1' "$BASE_URL/load/premium/") || return
+
+        parse_json 'ok' <<< "$JSON" || return
+        return 0
+    fi
 
     PAGE=$(curl -b 'lang=en' -d "hash=$HASH" \
         -d 'free=Slow download' "$BASE_URL/$HASH") || return
@@ -137,7 +153,7 @@ upstore_download() {
     WCI=$(recaptcha_process $PUBKEY)
     { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
 
-    PAGE=$(curl -b 'lang=en' -d "recaptcha_response_field=$WORD"  \
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' -d "recaptcha_response_field=$WORD" \
         -d "recaptcha_challenge_field=$CHALLENGE" -d "hash=$HASH" \
         -d 'free=Get download link' "$BASE_URL/$HASH") || return
     ERR=$(echo "$PAGE" | parse_tag_quiet 'span class="error"' span) || return
@@ -209,8 +225,8 @@ upstore_upload() {
 
     upstore_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
 
-    if [ -n "$AUTH_FREE" ]; then
-        upstore_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+    if [ -n "$AUTH" ]; then
+        upstore_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" >/dev/null || return
     fi
 
     PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL") || return
@@ -228,7 +244,7 @@ upstore_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    if [ -n "$AUTH_FREE" ]; then
+    if [ -n "$AUTH" ]; then
         local USER_ID
 
         USER_ID=$(echo "$PAGE" | parse 'usid' ":[[:blank:]]'\([^']\+\)'") || return
@@ -247,7 +263,13 @@ upstore_upload() {
         "$UP_URL") || return
 
     HASH=$(echo "$JSON" | parse_json 'hash') || return
-    echo "$BASE_URL/$HASH"
+
+    if [ -n "$SHORT_LINK" ]; then
+        echo "http://upsto.re/$HASH"
+    else
+        echo "$BASE_URL/$HASH"
+    fi
+
 }
 
 # Probe a download URL
