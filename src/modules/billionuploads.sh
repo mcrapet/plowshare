@@ -185,7 +185,7 @@ billionuploads_download() {
         return $ERR_FATAL
     fi
 
-    FILE_URL=$(echo "$CRYPT" | base64 -d | base64 -d)
+    FILE_URL=$(echo "$CRYPT" | base64 --decode | base64 --decode)
 
     echo "$FILE_URL"
 }
