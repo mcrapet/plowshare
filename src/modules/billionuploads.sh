@@ -141,6 +141,11 @@ billionuploads_download() {
         return $ERR_LINK_DEAD
     fi
 
+    if ! check_exec 'base64'; then
+        log_error "'base64' is required but was not found in path."
+        return $ERR_SYSTEM
+    fi
+
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
     FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
     FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return

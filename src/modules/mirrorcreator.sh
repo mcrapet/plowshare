@@ -49,6 +49,11 @@ mirrorcreator_upload() {
     fi
     local PAGE FORM SITES_SEL SITES_ALL SITE DATA
 
+    if ! check_exec 'base64'; then
+        log_error "'base64' is required but was not found in path."
+        return $ERR_SYSTEM
+    fi
+
     # File size limit check (warning message only)
     if [ "$SZ" -gt 419430400 ]; then
         log_debug 'file is bigger than 400MB, some site may not support it'
