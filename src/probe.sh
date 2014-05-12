@@ -326,14 +326,6 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-# Sanity check
-for MOD in $MODULES; do
-    if ! declare -f "${MOD}_probe" > /dev/null; then
-        log_error "plowprobe: module \`${MOD}_probe' function was not found"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
 set_exit_trap
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do

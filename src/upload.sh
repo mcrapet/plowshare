@@ -375,14 +375,6 @@ if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
     log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
 fi
 
-# Sanity check
-for MOD in $MODULES; do
-    if ! declare -f "${MOD}_upload" > /dev/null; then
-        log_error "plowup: module \`${MOD}_upload' function was not found"
-        exit $ERR_BAD_COMMAND_LINE
-    fi
-done
-
 # Remove module name from argument list
 unset COMMAND_LINE_ARGS[0]
 
