@@ -196,7 +196,7 @@ uptobox_download() {
         fi
     fi
 
-    if match 'Enter code above' "$PAGE"; then
+    if match '[^-]Enter code above' "$PAGE"; then
         local RESP CHALL
 
         RESP=$(solvemedia_captcha_process 'dAlo2UnjILCt709UJOmCZvfUBFxms5vw') || return
@@ -209,7 +209,7 @@ uptobox_download() {
     FORM_OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
     FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM_HTML") || return
     FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
-    FORM_METHOD=$(parse_form_input_by_name 'method_free' <<< "$FORM_HTML") || return
+    FORM_METHOD=$(parse_form_input_by_name 'method_free' <<< "$FORM_HTML")
     FORM_DD=$(parse_form_input_by_name 'down_direct' <<< "$FORM_HTML") || return
 
     WAIT_TIME=$(parse_tag '[Ww]ait.*seconds' 'span' <<< "$FORM_HTML") || return
@@ -228,13 +228,15 @@ uptobox_download() {
         "$URL") || return
 
     # <p class="err">Invalid captcha</p>
-    if [ -n "$CAPTCHA_DATA" ] && match 'Invalid captcha' "$PAGE"; then
-        captcha_nack $CAPTCHA_ID
-        return $ERR_CAPTCHA
+    if [ -n "$CAPTCHA_DATA" ]; then
+        if match 'Invalid captcha' "$PAGE"; then
+            captcha_nack $CAPTCHA_ID
+            return $ERR_CAPTCHA
+       else
+           captcha_ack $CAPTCHA_ID
+           log_debug 'Correct captcha'
+       fi
     fi
-
-    captcha_ack $CAPTCHA_ID
-    log_debug 'Correct captcha'
 
     parse_attr 'start your download' 'href' <<< "$PAGE" || return
     echo "$FORM_FNAME"
