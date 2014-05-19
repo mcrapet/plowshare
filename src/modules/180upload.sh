@@ -217,9 +217,15 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 
     REQ_OUT=c
 
+    # Note: all info parsed from HTML comments on the page
     if [[ $REQ_IN = *f* ]]; then
-        parse_tag 'center nowrap' b <<< "$PAGE" && \
-            REQ_OUT="${REQ_OUT}f"
+        parse_tag 'center nowrap' 'b' <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(parse_tag 'Size:' 'small' <<< "$PAGE") && \
+            FILE_SIZE=${FILE_SIZE#(} && FILE_SIZE=${FILE_SIZE% bytes)} && \
+            REQ_OUT="${REQ_OUT}s"
     fi
 
     echo $REQ_OUT
