@@ -166,7 +166,8 @@ rapidgator_download() {
             "$BASE_URL") || return
     fi
 
-    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+    # Also log headers to capture premium 'direct download' link
+    HTML=$(curl --include -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
 
     # Various (temporary) errors
     if [ -z "$HTML" ] || match '502 Bad Gateway' "$HTML" || \
@@ -199,20 +200,33 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Parse file name from page title
-    FILE_NAME=$(parse_tag 'title' <<< "$HTML") || return
+    # Try to parse file name from page title
+    FILE_NAME=$(parse_tag_quiet 'title' <<< "$HTML")
     FILE_NAME=${FILE_NAME#Download file }
 
     # If this is a premium download, we already have the download link
     if [ "$ACCOUNT" = 'premium' ]; then
-        if ! match 'Click here to download' "$HTML"; then
+        # Extract premium download link from page
+        if match 'Click here to download' "$HTML"; then
+            parse 'premium_download_link' "'\(.\+\)'" <<< "$HTML" || return
+            echo "$FILE_NAME"
+            return 0
+        fi
+
+        # This may be a 'direct download'
+        local DIRECT_LINK
+        DIRECT_LINK=$(grep_http_header_location_quiet <<< "$HTML")
+
+        if ! [ -n "$DIRECT_LINK" ]; then
             log_error 'Unexpected content. Site updated?'
             return $ERR_FATAL
         fi
 
-        # Extract + output download link
-        parse 'premium_download_link' "'\(.\+\)'" <<< "$HTML" || return
-        echo "$FILE_NAME"
+        HTML=$(curl --head "$DIRECT_LINK") || return
+
+        # Parse and output file name
+        echo "$DIRECT_LINK"
+        grep_http_header_content_disposition <<< "$HTML" || return
         return 0
     fi
 
