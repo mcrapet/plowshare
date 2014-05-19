@@ -35,7 +35,7 @@ MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
 MODULE_180UPLOAD_PROBE_OPTIONS=""
 
 # Output a 180upload.com file download URL
-# $1: cookie file (account only)
+# $1: cookie file
 # $2: 180upload.com url
 # stdout: real file download link
 180upload_download() {
@@ -43,76 +43,67 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     local -r URL=$2
     local PAGE FILE_NAME FILE_URL ERR
     local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P
+    local PUBKEY RESP CHALL ID CAPTCHA_DATA
 
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
+    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
     # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
     if match 'File Not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-
     FORM_HTML=$(grep_form_by_name "$PAGE" 'F1') || return
-    FORM_OP=$(echo "$FORM_HTML" | parse_form_input_by_name 'op') || return
-    FORM_ID=$(echo "$FORM_HTML" | parse_form_input_by_name 'id') || return
-    FORM_RAND=$(echo "$FORM_HTML" | parse_form_input_by_name 'rand') || return
-    FORM_DD=$(echo "$FORM_HTML" | parse_form_input_by_name 'down_direct') || return
+    FORM_OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
+    FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM_HTML") || return
+    FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
+    FORM_DD=$(parse_form_input_by_name 'down_direct' <<< "$FORM_HTML") || return
+    FORM_METHOD_F=$(parse_form_input_by_name_quiet 'method_free' <<< "$FORM_HTML")
+    FORM_METHOD_P=$(parse_form_input_by_name_quiet 'method_premium' <<< "$FORM_HTML")
 
-    # Note: this is quiet parsing
-    FORM_METHOD_F=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_free')
-    FORM_METHOD_P=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'method_premium')
-
+    # Check for Captcha
     if match 'api\.solvemedia\.com' "$FORM_HTML"; then
         log_debug 'Solve Media CAPTCHA found'
 
-        local PUBKEY RESP CHALLENGE ID
-
         PUBKEY='MIqUIMADf7KbDRf0ANI-9wLP.8iJSG9N'
         RESP=$(solvemedia_captcha_process $PUBKEY) || return
-        { read CHALLENGE; read ID; } <<< "$RESP"
+        { read CHALL; read ID; } <<< "$RESP"
 
-        # Okay, duplicated code..
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
-            -F 'referer=' \
-            -F "op=$FORM_OP" \
-            -F "id=$FORM_ID" \
-            -F "rand=$FORM_RAND" \
-            -F "down_direct=$FORM_DD" \
-            -F "method_free=$FORM_METHOD_F" \
-            -F "method_premium=$FORM_METHOD_P" \
-            -F 'adcopy_response=none' -F "adcopy_challenge=$CHALLENGE" \
-            "$URL") || return
-    else
-        PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
-            -F 'referer=' \
-            -F "op=$FORM_OP" \
-            -F "id=$FORM_ID" \
-            -F "rand=$FORM_RAND" \
-            -F "down_direct=$FORM_DD" \
-            -F "method_free=$FORM_METHOD_F" \
-            -F "method_premium=$FORM_METHOD_P" \
-            "$URL") || return
+        CAPTCHA_DATA="-F adcopy_challenge=$CHALL -F adcopy_response=none"
+    elif match 'RecaptchaOptions' "$FORM_HTML"; then
+        log_debug 'reCaptcha found'
+
+        local WORD
+        PUBKEY='6LeEc8wSAAAAAJG8vzd61DufFYS_I6nXwMkl4dhI'
+        RESP=$(recaptcha_process $PUBKEY) || return
+        { read WORD; read CHALL; read ID; } <<< "$RESP"
+
+        CAPTCHA_DATA="-F recaptcha_challenge_field=$CHALL -F recaptcha_response_field=$WORD"
     fi
 
-    # <div class="err">Skipped countdown</div>
-    if match '<div class="err"' "$PAGE"; then
-        ERR=$(echo "$PAGE" | parse_tag 'class="err"' div)
-        if match 'Skipped countdown' "$ERR"; then
-            # Can do a retry
-            log_debug "Remote error: $ERR"
-            return $ERR_NETWORK
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
+        -F "op=$FORM_OP" -F "id=$FORM_ID" -F "rand=$FORM_RAND" \
+        -F 'referer='    -F "method_free=$FORM_METHOD_F" \
+        -F "method_premium=$FORM_METHOD_P" $CAPTCHA_DATA \
+        -F "down_direct=$FORM_DD" "$URL") || return
+
+    # Get error message, if any
+    ERR=$(parse_tag_quiet '<div class="err"' 'div' <<< "$PAGE")
+
+    if [ -n "$ERR" ]; then
+        if [ "$ERR" = 'Wrong captcha' ]; then
+            captcha_nack "$ID"
+            return $ERR_CAPTCHA
         fi
-        log_error "Remote error: $ERR"
-    else
-        FILE_NAME=$(echo "$PAGE" | parse_tag '"style1"' span) || return
-        FILE_URL=$(echo "$PAGE" | parse_attr '[[:digit:]]/d/' href) || return
 
-        echo "$FILE_URL"
-        echo "$FILE_NAME"
-        return 0
+        captcha_ack "$ID"
+        log_error "Unexpected remote error: $ERR"
+        return $ERR_FATAL
     fi
 
-    return $ERR_FATAL
+    captcha_ack "$ID"
+
+    parse_attr 'id="lnk_download"' 'href' <<< "$PAGE" || return
+    parse_tag 'class="style1"' 'span' <<< "$PAGE" || return
 }
 
 # Upload a file to filebox
