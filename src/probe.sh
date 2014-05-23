@@ -355,7 +355,6 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                     # (disable User-Agent because some proxy can fake it)
                     log_debug 'No module found, try simple redirection'
 
-                    local URL_ENCODED HEADERS URL_TEMP
                     URL_ENCODED=$(uri_encode <<< "$URL")
                     HEADERS=$(curl --user-agent '' -i "$URL_ENCODED") || true
                     URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
