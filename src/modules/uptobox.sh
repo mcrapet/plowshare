@@ -142,6 +142,8 @@ uptobox_download() {
     FORM_HTML=$(grep_form_by_order "$PAGE") || return
     FORM_OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
     FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM_HTML") || return
+    FORM_DD=$(parse_form_input_by_name_quiet 'down_direct' <<< "$FORM_HTML")
+    FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
     FORM_METHOD=$(parse_form_input_by_name_quiet 'method_free' <<< "$FORM_HTML")
 
     # Handle premium downloads
@@ -154,7 +156,7 @@ uptobox_download() {
             -d "id=$FORM_ID" \
             -d "rand=$FORM_RAND" \
             -d 'method_free=' \
-            -d 'down_direct=1' \
+            -d "down_direct=${FORM_DD:+1}" \
             -d 'referer=' \
             -d "method_premium=$FORM_METHOD" "$URL") || return
 
@@ -165,17 +167,6 @@ uptobox_download() {
             return 0
         fi
     fi
-
-    FORM_USR=$(parse_form_input_by_name_quiet 'usr_login' <<< "$FORM_HTML")
-    FORM_FNAME=$(parse_form_input_by_name 'fname' <<< "$FORM_HTML") || return
-
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' \
-        -F "op=$FORM_OP" \
-        -F "usr_login=$FORM_USR" \
-        -F "id=$FORM_ID" \
-        -F "fname=$FORM_FNAME" \
-        -F 'referer=' \
-        -F "method_free=$FORM_METHOD" "$URL") || return
 
     # Check for enforced download limits
     if match '<p class="err">' "$PAGE"; then
@@ -193,6 +184,10 @@ uptobox_download() {
 
             echo $(( MINS * 60 + SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
+
+        elif match 'Expired download session' "$PAGE"; then
+            log_error 'Remote error: expired session'
+            return $ERR_LINK_TEMP_UNAVAILABLE
         fi
     fi
 
@@ -205,12 +200,8 @@ uptobox_download() {
         CAPTCHA_DATA="-F adcopy_challenge=$CHALL -F adcopy_response=manual_challenge"
     fi
 
-    FORM_HTML=$(grep_form_by_order "$PAGE") || return
-    FORM_OP=$(parse_form_input_by_name 'op' <<< "$FORM_HTML") || return
-    FORM_ID=$(parse_form_input_by_name 'id' <<< "$FORM_HTML") || return
-    FORM_RAND=$(parse_form_input_by_name 'rand' <<< "$FORM_HTML") || return
-    FORM_METHOD=$(parse_form_input_by_name 'method_free' 2>/dev/null <<< "$FORM_HTML")
-    FORM_DD=$(parse_form_input_by_name 'down_direct' <<< "$FORM_HTML") || return
+    # Is this still needed?
+    FORM_USR=$(parse_form_input_by_name_quiet 'usr_login' <<< "$FORM_HTML")
 
     WAIT_TIME=$(parse_tag_quiet '[Ww]ait.*seconds' 'span' <<< "$FORM_HTML")
     if [ -n "$WAIT_TIME" ]; then
