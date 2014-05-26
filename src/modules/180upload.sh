@@ -91,15 +91,18 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 
     if [ -n "$ERR" ]; then
         if [ "$ERR" = 'Wrong captcha' ]; then
+            log_error 'Wrong captcha'
             captcha_nack "$ID"
             return $ERR_CAPTCHA
         fi
 
+        log_debug 'Correct captcha'
         captcha_ack "$ID"
         log_error "Unexpected remote error: $ERR"
         return $ERR_FATAL
     fi
 
+    log_debug 'Correct captcha'
     captcha_ack "$ID"
 
     parse_attr 'id="lnk_download"' 'href' <<< "$PAGE" || return
