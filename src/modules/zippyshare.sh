@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zippyshare.com module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -145,7 +145,7 @@ zippyshare_download() {
 
     JS=$(grep_script_by_order "$PAGE" $N) || return
 
-    # Sanity check
+    # Sanity check 1
     if match '<script[[:space:]][^>]\+></script>' "$JS"; then
         log_error "Unexpected javascript content (N=$N)"
         #JS=$(grep_script_by_order "$PAGE" $((N+1))) || return
@@ -155,7 +155,14 @@ zippyshare_download() {
         return $ERR_FATAL
     fi
 
-    JS=$(echo "$JS" | delete_first_line | delete_last_line)
+    JS=$(delete_first_line <<< "$JS" | delete_last_line)
+
+    # Sanity check 2
+    if [ -z "$JS" ]; then
+        log_error "Unexpected error (N=$N)"
+        log_debug "js: '$(grep_script_by_order "$PAGE" $N)'"
+        return $ERR_FATAL
+    fi
 
     PART_URL=$(echo "var elts = new Array();
         var document = {
