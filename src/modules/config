@@ -44,7 +44,7 @@ go4up           |          | upload | delete | list |       |
 hdstream_to     | download | upload |        |      | probe |
 hipfile         | download | upload | delete | list | probe |
 jheberg         |          | upload |        | list | probe |
-keep2share      |          | upload |        |      | probe |
+keep2share      | download | upload |        |      | probe |
 letitbit        | download | upload | delete | list | probe |
 mediafire       | download | upload |        | list | probe |
 megashares      | download | upload | delete |      | probe |

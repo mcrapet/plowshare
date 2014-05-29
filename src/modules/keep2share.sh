@@ -20,7 +20,11 @@
 #
 # Official API: https://github.com/keep2share/api
 
-MODULE_KEEP2SHARE_REGEXP_URL='http://\(www\.\)\?\(keep2share\|k2s\)\.cc/'
+MODULE_KEEP2SHARE_REGEXP_URL='https\?://\(www\.\)\?\(keep2share\|k2s\|k2share\|keep2s\)\.cc/'
+
+MODULE_KEEP2SHARE_DOWNLOAD_OPTIONS=""
+MODULE_KEEP2SHARE_DOWNLOAD_RESUME=no
+MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_KEEP2SHARE_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account
@@ -61,6 +65,53 @@ keep2share_login() {
 
     parse_json 'auth_token' <<< "$JSON" && \
         log_debug "Successfully logged in as $USER member"
+}
+
+# Output an keep2share file download URL
+# $1: cookie file
+# $2: keep2share url
+# stdout: real file download link
+keep2share_download() {
+    local -r COOKIE_FILE=$1
+    local -r URL=$2
+    local -r BASE_URL='http://k2s.cc'
+    local PAGE FORM_HTML FORM_ID FORM_ACTION FILE_NAME PRE_URL
+
+    PAGE=$(curl --location -c "$COOKIE_FILE" "$URL") || return
+
+    # File not found or deleted
+    if match 'File not found or deleted' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
+    FILE_NAME=$(parse_tag '^File:' 'span' <<< "$PAGE" | html_to_utf8) || return
+
+    FORM_HTML=$(grep_form_by_order "$PAGE") || return
+    FORM_ID=$(parse_form_input_by_name 'slow_id' <<< "$FORM_HTML") || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
+
+    # request download
+    PAGE=$(curl -b "$COOKIE_FILE" -d "slow_id=$FORM_ID" -d 'yt0' \
+        "$BASE_URL$FORM_ACTION") || return
+
+    # check for CAPTCHA
+    if match 'id="captcha-form"' "$PAGE"; then
+        log_error 'Captcha handling not implemented yet'
+        return $ERR_FATAL
+    fi
+
+    if ! match 'btn-success.*Download' "$PAGE"; then
+        log_error 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
+
+    # get (redirecting) file URL
+    PRE_URL=$(parse 'window.location.href' "'\([^']\+\)'" <<< "$PAGE") || return
+    PAGE=$(curl --head -b "$COOKIE_FILE" "$BASE_URL/$PRE_URL") || return
+
+    # output final url + file name
+    grep_http_header_location <<< "$PAGE" || return
+    echo "$FILE_NAME"
 }
 
 # Upload a file to keep2share.
