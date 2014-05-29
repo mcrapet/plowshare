@@ -160,5 +160,14 @@ keep2share_probe() {
             echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
     fi
 
+    if [[ $REQ_IN = *s* ]]; then
+        FILE_SIZE=$(parse_tag 'Size:' 'div' <<< "$PAGE") && \
+            translate_size "${FILE_SIZE#Size: }" && REQ_OUT="${REQ_OUT}s"
+    fi
+
+    if [[ $REQ_IN = *i* ]]; then
+        parse . 'file/\([[:alnum:]]\+\)/\?' <<< "$URL" && REQ_OUT="${REQ_OUT}i"
+    fi
+
     echo $REQ_OUT
 }
