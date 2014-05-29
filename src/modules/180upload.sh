@@ -219,7 +219,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     if [[ $REQ_IN = *s* ]]; then
         FILE_SIZE=$(parse_tag 'Size:' 'small' <<< "$PAGE") && \
             FILE_SIZE=${FILE_SIZE#(} && FILE_SIZE=${FILE_SIZE% bytes)} && \
-            REQ_OUT="${REQ_OUT}s"
+            echo "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
 
     echo $REQ_OUT
