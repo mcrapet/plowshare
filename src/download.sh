@@ -728,7 +728,7 @@ if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
 fi
 
 if [[ $SHELLOPTS = *posix* ]]; then
-    echo "plowup: Your shell is in POSIX mode, plowshare this will not work." >&2
+    echo "plowdown: Your shell is in POSIX mode, this will not work." >&2
     exit 1
 fi
 
