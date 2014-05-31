@@ -351,9 +351,10 @@ rapidgator_download() {
         if ! match 'Click here to download' "$HTML"; then
             local FAIL_COOKIE
             FAIL_COOKIE=$(parse_cookie_quiet 'failed_on_captcha' < "$COOKIE_FILE")
+            log_debug "fail cookie: '$FAIL_COOKIE'"
 
             if match 'verification code is incorrect' "$HTML" || \
-                [ "$FAIL_COOKIE" -eq 1 ]; then
+                [ "$FAIL_COOKIE" = '1' ]; then
                 captcha_nack $ID
                 return $ERR_CAPTCHA
             fi
