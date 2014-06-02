@@ -90,7 +90,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     ERR=$(parse_tag_quiet '<div class="err"' 'div' <<< "$PAGE")
 
     if [ -n "$ERR" ]; then
-        if [ "$ERR" = 'Wrong captcha' ]; then
+        if match 'Wrong captcha' "$ERR"; then
             log_error 'Wrong captcha'
             captcha_nack "$ID"
             return $ERR_CAPTCHA
