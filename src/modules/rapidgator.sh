@@ -156,7 +156,7 @@ rapidgator_download() {
     local -r URL=$2
     local -r BASE_URL='http://rapidgator.net'
     local -r CAPTCHA_URL='/download/captcha'
-    local ACCOUNT HTML FILE_ID FILE_NAME SESSION_ID JSON STATE
+    local ACCOUNT HTML REDIR FILE_ID FILE_NAME SESSION_ID JSON STATE
     local WAIT_TIME FORM RESP CHALL CAPTCHA_DATA ID
 
     rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
@@ -168,6 +168,7 @@ rapidgator_download() {
 
     # Also log headers to capture premium 'direct download' link
     HTML=$(curl --include -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+    REDIR=$(grep_http_header_location_quiet <<< "$HTML")
 
     # Various (temporary) errors
     if [ -z "$HTML" ] || match '502 Bad Gateway' "$HTML" || \
@@ -178,10 +179,10 @@ rapidgator_download() {
 
     # Various "File not found" responses
     elif match 'Error 404' "$HTML" || \
-        match 'File not found' "$HTML"; then
+        match 'File not found' "$HTML" ||
+        [[ "$REDIR" = */article/premium ]]; then
         return $ERR_LINK_DEAD
     fi
-
 
     # [premium] You have reached daily quota of downloaded information for premium accounts. At the moment, the quota is 15 GB
     # [free, anon] You have reached your daily downloads limit. Please try again later.
@@ -214,18 +215,15 @@ rapidgator_download() {
         fi
 
         # This may be a 'direct download'
-        local DIRECT_LINK
-        DIRECT_LINK=$(grep_http_header_location_quiet <<< "$HTML")
-
-        if ! [ -n "$DIRECT_LINK" ]; then
+        if [ -z "$REDIR" ]; then
             log_error 'Unexpected content. Site updated?'
             return $ERR_FATAL
         fi
 
-        HTML=$(curl --head "$DIRECT_LINK") || return
+        HTML=$(curl --head "$REDIR") || return
 
         # Parse and output file name
-        echo "$DIRECT_LINK"
+        echo "$REDIR"
         grep_http_header_content_disposition <<< "$HTML" || return
         return 0
     fi
@@ -657,14 +655,16 @@ rapidgator_probe() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT FILE_NAME FILE_SIZE
+    local PAGE REDIR REQ_OUT FILE_NAME FILE_SIZE
 
     # Note: Should use rapidgator_switch_lang
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    PAGE=$(curl --include -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    REDIR=$(grep_http_header_location_quiet <<< "$PAGE")
 
     # Various "File not found" responses
     if match 'Error 404' "$PAGE" || \
-        match 'File not found' "$PAGE"; then
+        match 'File not found' "$PAGE" ||
+        [[ "$REDIR" = */article/premium ]]; then
         return $ERR_LINK_DEAD
     fi
 
