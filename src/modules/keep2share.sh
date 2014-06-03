@@ -84,7 +84,8 @@ keep2share_download() {
         return $ERR_LINK_DEAD
     fi
 
-    FILE_NAME=$(parse_tag '^File:' 'span' <<< "$PAGE" | html_to_utf8) || return
+    FILE_NAME=$(parse_tag '^[[:space:]]*File:' 'span' <<< "$PAGE" | \
+        html_to_utf8) || return
 
     FORM_HTML=$(grep_form_by_order "$PAGE") || return
     FORM_ID=$(parse_form_input_by_name 'slow_id' <<< "$FORM_HTML") || return
@@ -207,8 +208,8 @@ keep2share_probe() {
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        FILE_NAME=$(parse_tag '^File:' span <<< "$PAGE" | html_to_utf8) && \
-            echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
+        parse_tag '^[[:space:]]*File:' 'span' <<< "$PAGE" | html_to_utf8 && \
+            REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
