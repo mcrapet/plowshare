@@ -69,7 +69,7 @@ zippyshare_login() {
 zippyshare_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME PART_URL CONTENT JS N
+    local PAGE FILE_URL FILE_NAME PART_URL CONTENT JS FUNC N
 
     # JSESSIONID required
     PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
@@ -164,6 +164,10 @@ zippyshare_download() {
         return $ERR_FATAL
     fi
 
+    # Find the function to call
+    # var somefunction = function() {somffunction()};
+    FUNC=$(parse 'var somefunction = ' '{\([^}]\+\)}' <<< "$PAGE") || return
+
     PART_URL=$(echo "var elts = new Array();
         var document = {
           getElementById: function(id) {
@@ -172,7 +176,7 @@ zippyshare_download() {
           }
         };
         $JS
-        somdfunction();
+        $FUNC;
         print(elts['dlbutton'].href);" | javascript) || return
 
     FILE_URL="$(basename_url "$URL")$PART_URL"
