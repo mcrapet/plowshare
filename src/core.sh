@@ -61,6 +61,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - CAPTCHA_ANTIGATE Antigate.com captcha key
 #   - CAPTCHA_9KWEU    9kw.eu captcha key
 #   - CAPTCHA_BHOOD    Captcha Brotherhood account
+#   - CAPTCHA_COIN     captchacoin.com captcha key
 #   - CAPTCHA_DEATHBY  DeathByCaptcha account
 #   - CAPTCHA_PROGRAM  External solver program/script
 #   - MODULE           Module name (don't include .sh)
@@ -1304,6 +1305,9 @@ captcha_process() {
         elif service_captchabrotherhood_ready "${CAPTCHA_BHOOD%%:*}" "${CAPTCHA_BHOOD#*:}"; then
             METHOD_SOLVE=captchabrotherhood
             : ${METHOD_VIEW:=log}
+        elif service_captchacoin_ready "$CAPTCHA_COIN"; then
+            METHOD_SOLVE=captchacoin
+            : ${METHOD_VIEW:=log}
         elif service_captchadeathby_ready "${CAPTCHA_DEATHBY%%:*}" "${CAPTCHA_DEATHBY#*:}"; then
             METHOD_SOLVE=deathbycaptcha
             : ${METHOD_VIEW:=log}
@@ -1640,6 +1644,78 @@ captcha_process() {
             rm -f "$FILENAME"
             return $ERR_FATAL
             ;;
+        captchacoin)
+            log_notice 'Using CaptchaCoin captcha recognition system'
+
+            RESPONSE=$(curl -F "file=@$FILENAME;filename=file.jpg" \
+                -F "api_key=$CAPTCHA_COIN" \
+                'http://www.captchacoin.com/api/submit') || return
+
+            if [ -z "$RESPONSE" ]; then
+                log_error 'CaptchaCoin empty answer'
+                rm -f "$FILENAME"
+                return $ERR_NETWORK
+            fi
+
+            if match_json_true 'success' "$RESPONSE"; then
+                TID=$(echo "$RESPONSE" | parse_json_quiet 'img_key')
+
+                if [ -z "$TID" ]; then
+                    log_error 'CaptchaCoin error: no image key'
+                    rm -f "$FILENAME"
+                    return $ERR_FATAL
+                fi
+            else
+                log_error "CaptchaCoin error: $RESPONSE"
+                rm -f "$FILENAME"
+                return $ERR_FATAL
+            fi
+
+            for I in 10 5 5 6 6 7 7 8; do
+                wait $I seconds
+
+                RESPONSE=$(curl --get \
+                    -d "api_key=$CAPTCHA_COIN" \
+                    -d "img_key=$TID" \
+                    'http://api.captchacoin.com/api/imginfo') || return
+
+                if match_json_true 'success' "$RESPONSE"; then
+                    if match_json_true 'assigned' "$RESPONSE"; then
+                        log_debug 'CaptchaCoin: someone is solving the captcha'
+                    fi
+
+                    CAPCTHA_AGE=$(echo "$RESPONSE" | parse_json_quiet 'age_seconds')
+                    [ -n "$CAPCTHA_AGE" ] && log_debug "CaptchaCoin: captcha age $CAPCTHA_AGE"
+
+                    WORD=$(echo "$RESPONSE" | parse_json_quiet 'solution')
+                    [ -n "$WORD" ] && break
+                else
+                    log_error "CaptchaCoin error: $RESPONSE"
+                    rm -f "$FILENAME"
+                    return $ERR_FATAL
+                fi
+            done
+
+            if [ -z "$WORD" ]; then
+                RESPONSE=$(curl --get \
+                    -d "api_key=$CAPTCHA_COIN" \
+                    -d "img_key=$TID" \
+                    'http://www.captchacoin.com/api/withdraw') || return
+
+                if match_json_true 'success' "$RESPONSE"; then
+                    log_error 'CaptchaCoin: recognition failed, withdraw successful'
+                else
+                    log_error "CaptchaCoin: recognition failed, withdraw error ($RESPONSE)"
+                fi
+
+                rm -f "$FILENAME"
+                return $ERR_FATAL
+            fi
+
+            # result on two lines
+            echo "$WORD"
+            echo "c$TID"
+            ;;
         deathbycaptcha)
             local HTTP_CODE POLL_URL
             local USERNAME=${CAPTCHA_DEATHBY%%:*}
@@ -1883,6 +1959,21 @@ captcha_ack() {
             log_error "$FUNCNAME failed: 9kweu missing captcha key"
         fi
 
+    elif [ c = "$M" ]; then
+        if [ -n "$CAPTCHA_COIN" ]; then
+            log_debug 'CaptchaCoin report ack'
+
+            RESPONSE=$(curl --get \
+                -d "api_key=$CAPTCHA_COIN" -d 'status=1' \
+                -d "img_key=$TID" \
+                'http://www.captchacoin.com/api/poststatus') || return
+
+            if ! match_json_true 'success' "$RESPONSE"; then
+                log_error "CaptchaCoin: report ack error ($RESPONSE)"
+            fi
+        else
+            log_error "$FUNCNAME failed: CaptchaCoin missing API key"
+        fi
     elif [[ $M != [abd] ]]; then
         log_error "$FUNCNAME failed: unknown transaction ID: $1"
     fi
@@ -1937,6 +2028,22 @@ captcha_nack() {
                 log_error "$FUNCNAME FIXME cbh[$RESPONSE]"
         else
             log_error "$FUNCNAME failed: captcha brotherhood missing account data"
+        fi
+
+    elif [ c = "$M" ]; then
+        if [ -n "$CAPTCHA_COIN" ]; then
+            log_debug 'CaptchaCoin report nack'
+
+            RESPONSE=$(curl --get \
+                -d "api_key=$CAPTCHA_COIN" -d 'status=0' \
+                -d "img_key=$TID" \
+                'http://www.captchacoin.com/api/poststatus') || return
+
+            if ! match_json_true 'success' "$RESPONSE"; then
+                log_error "CaptchaCoin: report nack error ($RESPONSE)"
+            fi
+        else
+            log_error "$FUNCNAME failed: CaptchaCoin missing API key"
         fi
 
     elif [ d = "$M" ]; then
@@ -2608,8 +2715,8 @@ captcha_method_translate() {
             ;;
         online)
             if [ -z "$CAPTCHA_ANTIGATE" -a -z "$CAPTCHA_9KWEU" -a \
-                    -z "$CAPTCHA_BHOOD" -a -z "$CAPTCHA_DEATHBY" ]; then
-                log_error 'No captcha solver account provided. Consider using --9kweu, --antigate, --captchabhood or --deathbycaptcha options.'
+                    -z "$CAPTCHA_BHOOD" -a -z "$CAPTCHA_COIN" -a -z "$CAPTCHA_DEATHBY" ]; then
+                log_error 'No captcha solver account provided. Consider using --9kweu, --antigate, --captchabhood, --captchacoin or --deathbycaptcha options.'
                 return $ERR_FATAL
             fi
             [[ $2 ]] && unset "$2" && eval $2=online
@@ -3358,6 +3465,45 @@ service_captchabrotherhood_ready() {
     fi
 
     log_debug "CaptchaBrotherhood credits: $AMOUNT"
+}
+
+# Verify balance (captchacoin)
+# $1: captchacoin.com captcha key
+# $?: 0 for success (enough credits)
+service_captchacoin_ready() {
+    local -r KEY=$1
+    local JSON ERROR AMOUNT
+
+    if [ -z "$KEY" ]; then
+        return $ERR_FATAL
+    fi
+
+    JSON=$(curl --get -d "api_key=${KEY}" \
+            'http://api.captchacoin.com/api/details') || { \
+        log_notice 'CaptchaCoin: site seems to be down'
+        return $ERR_NETWORK
+    }
+
+    if match_json_true 'success' "$JSON"; then
+        AMOUNT=$(echo "$JSON" | parse_json 'balance')
+
+        if (( AMOUNT < 100 )); then
+            log_error 'CaptchaCoin: not enough credits'
+            return $ERR_FATAL
+        fi
+    else
+        ERROR=$(echo "$JSON" | parse_json_quiet 'error')
+
+        if [ -n "$ERROR" ]; then
+            log_error "CaptchaCoin error: $ERROR"
+        else
+            log_error "CaptchaCoin unknown error: $JSON"
+        fi
+
+        return $ERR_FATAL
+    fi
+
+    log_debug "CaptchaCoin credits: $AMOUNT"
 }
 
 # Verify balance (DeathByCaptcha)
