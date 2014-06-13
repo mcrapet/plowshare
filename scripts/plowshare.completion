@@ -14,7 +14,7 @@ _plowup()
             _available_interfaces -a
             return 0
             ;;
-        -a|-b|-d|-p|--auth|--description|--link-password|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
+        -a|-b|-d|-p|--auth|--description|--link-password|--min-rate|--max-rate|-r|--max-retries|-t|--timeout|--printf|--9kweu|--antigate|--captchabhood|--captchacoin|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
@@ -42,7 +42,7 @@ _plowup()
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -t -r \
             --min-rate --max-rate --interface --max-retries --timeout --name \
-            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --deathbycaptcha \
+            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
             --temp-directory --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         local m i list
@@ -75,7 +75,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|-p|--auth-free|--auth|--link-password|--9kweu|--antigate|--captchabhood|--deathbycaptcha|--min-space|--max-rate|-r|--max-retries|-t|--timeout|--printf)
+        -a|-b|-p|--auth-free|--auth|--link-password|--9kweu|--antigate|--captchabhood|--captchacoin|--deathbycaptcha|--min-space|--max-rate|-r|--max-retries|-t|--timeout|--printf)
             # argument required but no completion available
             return 0
             ;;
@@ -102,7 +102,7 @@ _plowdown()
             -v -q -i -o -m -r -t -x \
             --min-space --max-rate --interface --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
-            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --deathbycaptcha \
+            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
             --fallback --cookies --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         _filedir
@@ -120,7 +120,7 @@ _plowdel()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|--auth|--auth-free|--9kweu|--antigate|--captchabhood|--deathbycaptcha)
+        -a|-b|--auth|--auth-free|--9kweu|--antigate|--captchabhood|--captchacoin|--deathbycaptcha)
             # argument required but no completion available
             return 0
             ;;
@@ -140,7 +140,7 @@ _plowdel()
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
-            --9kweu --antigate --captchabhood --deathbycaptcha --captchamethod --captchaprogram \
+            --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha --captchamethod --captchaprogram \
             -v -q -i --interface --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected

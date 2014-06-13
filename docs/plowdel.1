@@ -60,6 +60,9 @@ Use Antigate.com service to solve captchas.
 .BI "   " " " --captchabhood= USER:PASSWORD
 Use Captcha Brotherhood service to solve captchas.
 .TP
+.BI "   " " " --captchacoin= KEY
+Use CaptchaCoin service to solve captchas.
+.TP
 .BI "   " " " --deathbycaptcha= USER:PASSWORD
 Use Death by Captcha service to solve captchas.
 .TP
@@ -72,7 +75,7 @@ Force specific captcha solving method. Available values:
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood, CaptchaCoin or DeathByCaptcha account required).
 .RE
 .RS
 \fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for framebuffer viewers: fbi, fim.
