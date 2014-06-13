@@ -128,7 +128,7 @@ turbobit_download() {
     # This document was not found in System
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
-    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
+    matchi '\(file\|document\)\( was\)\? not found' "$PAGE" && return $ERR_LINK_DEAD
 
     # Download xyz. Free download without registration from TurboBit.net
     FILE_NAME=$(echo "$PAGE" | parse '<title>' \
@@ -444,7 +444,7 @@ turbobit_probe() {
     # This document was not found in System
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
-    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
+    matchi '\(file\|document\)\( was\)\? not found' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
