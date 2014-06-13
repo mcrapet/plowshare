@@ -2657,25 +2657,32 @@ process_configfile_module_options() {
     fi
 }
 
-# Get system information
-# Note: prefer "type -P" rather than "type -p" to override local definitions (function, alias, ...).
+# Get system information.
 log_report_info() {
-    local G GIT_DIR
+    local G GIT_DIR LIBDIR2
 
     if test $VERBOSE -ge 4; then
         log_report '=== SYSTEM INFO BEGIN ==='
-        log_report "[mach] $(uname -a)"
+        log_report "[mach] $HOSTNAME $HOSTTYPE $OSTYPE $MACHTYPE"
         log_report "[bash] $BASH_VERSION"
         test "$http_proxy" && log_report "[env ] http_proxy=$http_proxy"
-        if type -P curl >/dev/null 2>&1; then
+        if check_exec 'curl'; then
             log_report "[curl] $(command curl --version | first_line)"
-            test -f "$HOME/.curlrc" && log_report '[curl] ~/.curlrc exists'
+            [ -f "$HOME/.curlrc" ] && \
+                log_report '[curl] ~/.curlrc exists'
         else
             log_report '[curl] not found!'
         fi
         check_exec 'gsed' && G=g
         log_report "[sed ] $(${G}sed --version | sed -ne '/version/p')"
         log_report "[lib ] '$LIBDIR'"
+
+        # Having several installations is usually a source of issues
+        for LIBDIR2 in '/usr/share/plowshare4' '/usr/local/share/plowshare4'; do
+            if [ "$LIBDIR2" != "$LIBDIR" -a -f "$LIBDIR2/core.sh" ]; then
+                log_report "[lib2] '$LIBDIR2'"
+            fi
+        done
 
         GIT_DIR=$(cd "$LIBDIR" && git rev-parse --git-dir 2>/dev/null) || true
         if [ -d "$GIT_DIR" ]; then
@@ -2829,6 +2836,8 @@ translate_exec() {
     if test -x "$F"; then
         [[ $F = /* ]] || F="$PWD/$F"
     else
+        # Note: prefer "type -P" rather than "type -p" to override
+        #       local definitions (function, alias, ...).
         F=$(type -P "$F" 2>/dev/null)
     fi
 
