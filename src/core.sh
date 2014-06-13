@@ -408,8 +408,9 @@ parse_all() {
 
     if [ -n "$1" -a "$1" != '.' ]; then
         FILTER="\\${D}$1${D}" # /$1/
-    else
-        [ $N -eq 0 ] || return $ERR_FATAL
+    elif [ $N -ne 0 ]; then
+        log_error "$FUNCNAME: wrong argument, offset argument is $N and filter regexp is \"$1\""
+        return $ERR_FATAL
     fi
 
     [ '^' = "${PARSE:0:1}" ] || PARSE="^.*$PARSE"
@@ -494,8 +495,9 @@ parse() {
 
     if [ -n "$1" -a "$1" != '.' ]; then
         FILTER="\\${D}$1${D}" # /$1/
-    else
-        [ $N -eq 0 ] || return $ERR_FATAL
+    elif [ $N -ne 0 ]; then
+        log_error "$FUNCNAME: wrong argument, offset argument is $N and filter regexp is \"$1\""
+        return $ERR_FATAL
     fi
 
     [ '^' = "${PARSE:0:1}" ] || PARSE="^.*$PARSE"
