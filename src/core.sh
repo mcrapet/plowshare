@@ -2328,8 +2328,8 @@ translate_size() {
         return $ERR_FATAL
     fi
 
-    declare -i R=10#${S%_*}
-    declare -i F=0
+    local -i R=10#${S%_*}
+    local -i F=0
 
     # Fractionnal part (consider 3 digits)
     T=${S#*_}
