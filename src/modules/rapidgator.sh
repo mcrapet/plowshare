@@ -24,7 +24,7 @@ MODULE_RAPIDGATOR_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_RAPIDGATOR_DOWNLOAD_RESUME=yes
 MODULE_RAPIDGATOR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_RAPIDGATOR_DOWNLOAD_SUCCESSIVE_INTERVAL=900
+MODULE_RAPIDGATOR_DOWNLOAD_SUCCESSIVE_INTERVAL=2100
 
 MODULE_RAPIDGATOR_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account
@@ -354,6 +354,7 @@ rapidgator_download() {
             if match 'verification code is incorrect' "$HTML" || \
                 [ "$FAIL_COOKIE" = '1' ]; then
                 captcha_nack $ID
+                log_debug 'Wrong captcha'
                 return $ERR_CAPTCHA
             fi
 
