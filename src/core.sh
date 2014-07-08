@@ -1449,8 +1449,8 @@ captcha_process() {
             PRG_PID=$!
             ;;
         X-sxiv)
-            # open a 640x480 window
-            sxiv -q -s "$FILENAME" &
+            # open a 640x480 window (rescale to fit)
+            sxiv -q -s f "$FILENAME" &
             [ $? -eq 0 ] && PRG_PID=$!
             ;;
         fb-fbi)
