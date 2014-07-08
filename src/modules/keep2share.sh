@@ -27,7 +27,7 @@ MODULE_KEEP2SHARE_DOWNLOAD_RESUME=no
 MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_KEEP2SHARE_UPLOAD_OPTIONS="
-AUTH_FREE,b,auth-free,a=EMAIL:PASSWORD,Free account
+AUTH,a,auth,a=EMAIL:PASSWORD,User account
 FULL_LINK,,full-link,,Final link includes filename"
 MODULE_KEEP2SHARE_UPLOAD_REMOTE_SUPPORT=no
 
@@ -127,7 +127,7 @@ keep2share_upload() {
     local SZ TOKEN JSON FILE_ID
 
     # Sanity check
-    [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
+    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
     local -r MAX_SIZE=524288000 # 500 MiB (free account)
     SZ=$(get_filesize "$FILE")
@@ -136,7 +136,7 @@ keep2share_upload() {
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    TOKEN=$(keep2share_login "$AUTH_FREE" "$API_URL") || return
+    TOKEN=$(keep2share_login "$AUTH" "$API_URL") || return
     log_debug "token: '$TOKEN'"
 
     JSON=$(curl --data '{"auth_token":"'$TOKEN'"}' \
