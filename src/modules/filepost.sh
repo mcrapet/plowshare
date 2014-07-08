@@ -135,7 +135,7 @@ filepost_switch_lang() {
 filepost_download() {
     local -r COOKIE_FILE=$1
     local -r BASE_URL='https://filepost.com'
-    local URL PAGE SID FILE_NAME JSON SID CODE FILE_PASS TID JS_URL WAIT ROLE
+    local URL PAGE SID FILE_NAME JSON CODE FILE_PASS TID JS_URL WAIT ROLE
 
     # Site redirects all possible urls of a file to the canonical one
     URL=$(curl --head --location "$2" | grep_http_header_location_quiet) || return
