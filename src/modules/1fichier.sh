@@ -22,6 +22,7 @@
 MODULE_1FICHIER_REGEXP_URL='https\?://\(.*\.\)\?\(1fichier\.\(com\|net\|org\|fr\)\|alterupload\.com\|cjoint\.\(net\|org\)\|desfichiers\.\(com\|net\|org\|fr\)\|dfichiers\.\(com\|net\|org\|fr\)\|megadl\.fr\|mesfichiers\.\(net\|org\)\|piecejointe\.\(net\|org\)\|pjointe\.\(com\|net\|org\|fr\)\|tenvoi\.\(com\|net\|org\)\|dl4free\.com\)'
 
 MODULE_1FICHIER_DOWNLOAD_OPTIONS="
+AUTH,a,auth,a=USER:PASSWORD,Premium account
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
 MODULE_1FICHIER_DOWNLOAD_RESUME=yes
 MODULE_1FICHIER_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
@@ -41,14 +42,32 @@ MODULE_1FICHIER_LIST_HAS_SUBFOLDERS=no
 MODULE_1FICHIER_DELETE_OPTIONS=""
 MODULE_1FICHIER_PROBE_OPTIONS=""
 
+# Static function. Proceed with login
+1fichier_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA LOGIN_RESULT SID
+
+    LOGIN_DATA='mail=$USER&pass=$PASSWORD&lt=on&secure=on&Login=Login'
+    LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/login.pl") || return
+
+    # You are logged in. This page will redirect you.
+
+    SID=$(parse_cookie_quiet 'SID' < "$COOKIE_FILE") || return
+    [ -n "$SID" ] || return $ERR_LOGIN_FAILED
+}
+
 # Output a 1fichier file download URL
-# $1: cookie file (unused here)
+# $1: cookie file (account only)
 # $2: 1fichier.tld url
 # stdout: real file download link
 #
 # Note: Consecutive HTTP requests must be delayed (>10s).
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
+    local -r COOKIE_FILE=$1
     local -r URL=$2
     local PAGE FILE_URL FILE_NAME
 
@@ -78,6 +97,11 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
+
+    if [ -n "$AUTH" ]; then
+        1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
+    fi
+
     # Accessing this file is protected by password.<br/>Please put it on the box bellow :
     if match 'name="pass"' "$PAGE"; then
         if [ -z "$LINK_PASSWORD" ]; then
@@ -96,7 +120,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE")
 
-    PAGE=$(curl --include -b 'LG=en' -d '' \
+    PAGE=$(curl --include -b "$COOKIE_FILE" -b 'LG=en' -d '' \
         --referer "$URL" "$URL") || return
 
     FILE_URL=$(grep_http_header_location_quiet <<< "$PAGE")
@@ -119,12 +143,12 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DESTFILE=$3
-    local -r UPLOADURL='http://upload.1fichier.com'
+    local -r UPLOADURL='https://upload.1fichier.com'
     local LOGIN_DATA S_ID RESPONSE DOWNLOAD_ID REMOVE_ID DOMAIN_ID
 
-    if test "$AUTH"; then
-        LOGIN_DATA='mail=$USER&pass=$PASSWORD&submit=Login'
-        post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" "https://www.1fichier.com/en/login.pl" >/dev/null || return
+
+    if [ -n "$AUTH" ]; then
+        1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
     fi
 
     # Initial js code:
@@ -132,6 +156,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     # for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);
     S_ID=$(random ll 5)
 
+    # FIXME: See folders later -F 'did=0' /console/get_dirs_for_upload.pl
     RESPONSE=$(curl_with_log -b "$COOKIE_FILE" \
         --form-string "message=$MESSAGE" \
         --form-string "mail=$TOEMAIL" \
@@ -140,11 +165,11 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         -F "file[]=@$FILE;filename=$DESTFILE" \
         "$UPLOADURL/upload.cgi?id=$S_ID") || return
 
-    RESPONSE=$(curl --header 'EXPORT:1' "$UPLOADURL/end.pl?xid=$S_ID" | replace_all ';' $'\n') || return
+    RESPONSE=$(curl --header 'EXPORT:1' -b "$COOKIE_FILE" \
+        "$UPLOADURL/end.pl?xid=$S_ID") || return
 
-    DOWNLOAD_ID=$(echo "$RESPONSE" | nth_line 3)
-    REMOVE_ID=$(echo "$RESPONSE" | nth_line 4)
-    DOMAIN_ID=$(echo "$RESPONSE" | nth_line 5)
+    # filename;filesize;dlid;rmid,domain;??
+    IFS=";" read -r _ _ DOWNLOAD_ID REMOVE_ID DOMAIN_ID _ <<< "$RESPONSE"
 
     local -a DOMAIN_STR=('1fichier.com' 'alterupload.com' 'cjoint.net' 'desfichiers.com' \
         'dfichiers.com' 'megadl.fr' 'mesfichiers.net' 'piecejointe.net' 'pjointe.com' \
