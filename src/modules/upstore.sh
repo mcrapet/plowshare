@@ -129,7 +129,7 @@ upstore_download() {
         case "$ERR" in
             # Sorry, but server with file is overloaded
             # Server for free downloads is overloaded
-            [Ss]erver*overloaded*)
+            *[Ss]erver*overloaded*)
                 log_error 'No free download slots available'
                 echo 120 # wait some arbitrary time
                 return $ERR_LINK_TEMP_UNAVAILABLE
@@ -137,6 +137,7 @@ upstore_download() {
 
             *'only for Premium users')
                 return $ERR_LINK_NEED_PERMISSIONS
+                ;;
         esac
 
         log_error "Unexpected remote error: $ERR"
@@ -168,7 +169,7 @@ upstore_download() {
         captcha_ack $ID
 
         case "$ERR" in
-            'Sorry, but server with file is overloaded'*)
+            *[Ss]erver*overloaded*)
                 log_error 'No free download slots available'
                 echo 120 # wait some arbitrary time
                 return $ERR_LINK_TEMP_UNAVAILABLE
@@ -197,6 +198,13 @@ upstore_download() {
                     'wait \([[:digit:]]\+\) minute') || return
                 log_error 'Forced delay between downloads.'
                 echo $(( WAIT * 60 + 1 ))
+                return $ERR_LINK_TEMP_UNAVAILABLE
+                ;;
+
+            # Sorry, we have found that you have already downloaded several files recently.
+            *'downloaded several files recently'*)
+                log_error 'Forced delay between downloads.'
+                echo 3600 # wait some arbitrary time
                 return $ERR_LINK_TEMP_UNAVAILABLE
                 ;;
         esac
