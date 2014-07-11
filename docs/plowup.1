@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "July 11, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -99,7 +99,7 @@ Force specific captcha solving method. Available values:
 .RE
 .TP
 .BI "   " " " --captchaprogram= PROGRAM
-Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
+Call external program or script for solving captchas. Provided executable can be located in \fIPATH\fR environment variable.
 
 Three arguments are given:
 .RS
@@ -352,6 +352,9 @@ $ plowup \-a myuser:mypassword rapidgator \\
 .TP
 .I ~/.config/plowshare/plowshare.conf
 This is the per-user configuration file. 
+.TP
+.I ~/.config/plowshare/exec/
+Additional directory considered when searching for executable. See \fB--captchaprogram\fR switch.
 .TP
 .I /etc/plowshare.conf
 Systemwide configuration file.

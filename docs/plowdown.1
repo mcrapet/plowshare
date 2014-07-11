@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "March 28, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "July 11, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -105,7 +105,7 @@ Force specific captcha solving method. Available values:
 .RE
 .TP
 .BI "   " " " --captchaprogram= PROGRAM
-Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
+Call external program or script for solving captchas. Provided executable can be located in \fIPATH\fR environment variable.
 
 Three arguments are given:
 .RS
@@ -154,7 +154,7 @@ You must specify a suffix.  Suffixes are:
 .TP
 .BI "   " " " --max-rate= SPEED
 Limit download speed in bytes per second. Suffixes are:
-.RS 
+.RS
 \fBk\fR  for kilobytes (kB i.e. 1000),
 .RE
 .RS
@@ -182,7 +182,7 @@ or
 too.
 .TP
 .BI "   " " " --run-before= PROGRAM
-Call external program or script before new link processing. Provided executable can be located in PATH environment variable.
+Call external program or script before new link processing. Provided executable can be located in \fIPATH\fR environment variable.
 Messages can be sent to stderr, stdout is trashed.
 
 Three arguments are given:
@@ -210,7 +210,7 @@ Note: Any other script exit status like \fB1\fR (fatal) or \fB3\fR (network) wil
 .RE
 .TP
 .BI "   " " " --run-after= PROGRAM
-Call external program or script after final link successful download. Provided executable can be located in PATH environment variable.
+Call external program or script after final link successful download. Provided executable can be located in \fIPATH\fR environment variable.
 Messages can be sent to stderr, stdout is trashed.
 
 Five arguments are given:
@@ -420,7 +420,11 @@ $ plowdown \-m file_with_links.txt
 .SH "FILES"
 .TP
 .I ~/.config/plowshare/plowshare.conf
-This is the per-user configuration file. 
+This is the per-user configuration file.
+.TP
+.I ~/.config/plowshare/exec/
+Additional directory considered when searching for executable.
+See \fB--captchaprogram\fR, \fB--run-before\fR and \fB--run-after\fR switches.
 .TP
 .I /etc/plowshare.conf
 Systemwide configuration file.
@@ -433,8 +437,8 @@ The file format is described in
 .\" ****************************************************************************
 .SH "EXIT CODES"
 
-Possible exit codes are: 
-.IP 0 
+Possible exit codes are:
+.IP 0
 Success.
 .IP 1
 Fatal error. Upstream site updated or unexpected result.

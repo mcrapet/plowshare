@@ -2500,7 +2500,9 @@ process_core_options() {
     local -r NAME=$1
     local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
     shift 2
-    VERBOSE=2 process_options "$NAME" "$OPTIONS" -1 "$@"
+
+    VERBOSE=2 PATH="$PATH:$HOME/.config/plowshare/exec" process_options \
+        "$NAME" "$OPTIONS" -1 "$@"
 }
 
 # $1: program name (used for error reporting only)
