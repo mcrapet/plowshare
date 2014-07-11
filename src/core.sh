@@ -2530,7 +2530,7 @@ process_module_options() {
 # $1: feature to grep (must not contain '|' char)
 # $2 (optional): feature to subtract (must not contain '|' char)
 # stdout: return module list (one name per line)
-grep_list_modules() {
+get_all_modules_list() {
     local -r CONFIG="$LIBDIR/modules/config"
 
     if [ ! -f "$CONFIG" ]; then

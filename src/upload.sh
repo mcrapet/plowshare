@@ -247,7 +247,7 @@ LIBDIR=$(absolute_path "$0")
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_list_modules 'upload') || exit
+MODULES=$(get_all_modules_list 'upload') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done

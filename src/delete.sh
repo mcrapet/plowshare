@@ -84,7 +84,7 @@ LIBDIR=$(absolute_path "$0")
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_list_modules 'delete') || exit
+MODULES=$(get_all_modules_list 'delete') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done

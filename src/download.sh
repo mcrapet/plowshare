@@ -739,7 +739,7 @@ LIBDIR=$(absolute_path "$0")
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_list_modules 'download') || exit
+MODULES=$(get_all_modules_list 'download') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -938,7 +938,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             # Check if plowlist can handle $URL
             if [ -z "$MODULES_LIST" ]; then
-                MODULES_LIST=$(grep_list_modules 'list' 'download') || true
+                MODULES_LIST=$(get_all_modules_list 'list' 'download') || true
                 for MODULE in $MODULES_LIST; do
                     source "$LIBDIR/modules/$MODULE.sh"
                 done
