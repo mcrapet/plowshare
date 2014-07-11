@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # turbobit.net module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -367,7 +367,7 @@ turbobit_upload() {
     DELETE_ID=$(echo "$PAGE" | parse '' 'null,null,"\([^"]\+\)"')
 
     echo "$BASE_URL/$FILE_ID.html"
-    [ -n "$DELETE_ID" ] && echo "$BASE_URL/delete/file/$FILE_ID/$DELETE_ID"
+    [ -z "$DELETE_ID" ] || echo "$BASE_URL/delete/file/$FILE_ID/$DELETE_ID"
 }
 
 # Delete a file on turbobit
