@@ -460,11 +460,13 @@ oboom_check_error() {
 
         # [403,"filesize",1572864000,1073741824]
         elif [ "$ERR_CODE" = '403' ]; then
+            [ "$ERR_MSG" = 'blocked' ] && return $ERR_LINK_DEAD
+
             local -r MAX_SIZE=${PAGE##*,}
             log_debug "limitation is set to ${MAX_SIZE%]} bytes"
             return $ERR_SIZE_LIMIT_EXCEEDED
 
-        elif [ "$ERR_CODE" = '404' ]; then
+        elif [ "$ERR_CODE" = '404' ] || [ "$ERR_CODE" = '410' ]; then
             return $ERR_LINK_DEAD
         elif [ "$ERR_CODE" = '421' ]; then
             if [ "$ERR_MSG" = 'ip_blocked' ]; then

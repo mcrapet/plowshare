@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # zippyshare.com module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -69,7 +69,7 @@ zippyshare_login() {
 zippyshare_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local PAGE FILE_URL FILE_NAME PART_URL CONTENT JS N
+    local PAGE FILE_URL FILE_NAME PART_URL CONTENT JS FUNC N
 
     # JSESSIONID required
     PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
@@ -145,7 +145,7 @@ zippyshare_download() {
 
     JS=$(grep_script_by_order "$PAGE" $N) || return
 
-    # Sanity check
+    # Sanity check 1
     if match '<script[[:space:]][^>]\+></script>' "$JS"; then
         log_error "Unexpected javascript content (N=$N)"
         #JS=$(grep_script_by_order "$PAGE" $((N+1))) || return
@@ -155,7 +155,18 @@ zippyshare_download() {
         return $ERR_FATAL
     fi
 
-    JS=$(echo "$JS" | delete_first_line | delete_last_line)
+    JS=$(delete_first_line <<< "$JS" | delete_last_line)
+
+    # Sanity check 2
+    if [ -z "$JS" ]; then
+        log_error "Unexpected error (N=$N)"
+        log_debug "js: '$(grep_script_by_order "$PAGE" $N)'"
+        return $ERR_FATAL
+    fi
+
+    # Find the function to call
+    # var somefunction = function() {somffunction()};
+    FUNC=$(parse 'var somefunction = ' '{\([^}]\+\)}' <<< "$PAGE") || return
 
     PART_URL=$(echo "var elts = new Array();
         var document = {
@@ -165,7 +176,7 @@ zippyshare_download() {
           }
         };
         $JS
-        somdfunction();
+        $FUNC;
         print(elts['dlbutton'].href);" | javascript) || return
 
     FILE_URL="$(basename_url "$URL")$PART_URL"

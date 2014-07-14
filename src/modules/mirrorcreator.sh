@@ -177,6 +177,10 @@ mirrorcreator_list() {
 
     PAGE=$(curl -L "$URL") || return
 
+    if match '<h2.*Links Unavailable' "$PAGE"; then
+        return $ERR_LINK_DEAD
+    fi
+
     #NAMES=( $(echo "$PAGE" | parse_all 'Success' '\.gif"[[:space:]]alt="\([^"]*\)') )
     NAME=$(parse_tag 'h3' <<< "$PAGE") || return
 

@@ -74,7 +74,7 @@ filepup_net_download() {
     local -r COOKIE_FILE=$1
     local URL=$(replace '/info/' '/files/' <<<"$2")
     local -r BASE_URL='http://www.filepup.net'
-    local PAGE FILE_URL FILE_NAME ACCOUNT FORM_HTML FORM_TASK WAIT_TIME ERR
+    local PAGE FILE_URL FILE_NAME ACCOUNT FORM_HTML FORM_TASK WAIT_TIME ERR HEADERS DIRECT
 
     # Get PHPSESSID cookie
     PAGE=$(curl -L -c "$COOKIE_FILE" "$URL") || return
@@ -93,6 +93,16 @@ filepup_net_download() {
 
     if [ "$ACCOUNT" = 'premium' ]; then
         URL=$(echo "$PAGE" | parse '=.premium_btn' "location='\([^']\+\)" | uri_encode) || return
+
+        HEADERS=$(curl -b "$COOKIE_FILE" -I "$URL") || return
+        DIRECT=$(echo "$HEADERS" | grep_http_header_content_type) || return
+
+        # Sometimes returns file at this point, maybe some sort of cache
+        if [ "$DIRECT" = 'application/force-download' ]; then
+            MODULE_FILEPUP_NET_DOWNLOAD_RESUME=yes
+            echo "$URL"
+            return 0
+        fi
     else
         URL=$(echo "$PAGE" | parse 'id=.dlbutton' "location='\([^']\+\)" | uri_encode) || return
 

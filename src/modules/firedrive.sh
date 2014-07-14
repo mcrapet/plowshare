@@ -48,11 +48,13 @@ firedrive_download() {
 
     FILE_NAME=$(parse_tag 'class="external_title_left"' 'div' <<< "$PAGE") || return
 
-    FORM_HTML=$(grep_form_by_id "$PAGE" 'confirm_form') || return
-    DL_KEY=$(parse_form_input_by_name 'confirm' <<< "$FORM_HTML") || return
+    if ! match '\.pdf' "$FILE_NAME" ; then
+        FORM_HTML=$(grep_form_by_id "$PAGE" 'confirm_form') || return
+        DL_KEY=$(parse_form_input_by_name 'confirm' <<< "$FORM_HTML") || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
-        --data-urlencode "confirm=$DL_KEY" "$URL") || return
+        PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" \
+            --data-urlencode "confirm=$DL_KEY" "$URL") || return
+    fi
 
     FILE_URL=$(parse_attr 'Download This File' href <<< "$PAGE") || return
 

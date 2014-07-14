@@ -24,7 +24,7 @@ MODULE_RAPIDGATOR_DOWNLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account"
 MODULE_RAPIDGATOR_DOWNLOAD_RESUME=yes
 MODULE_RAPIDGATOR_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
-MODULE_RAPIDGATOR_DOWNLOAD_SUCCESSIVE_INTERVAL=900
+MODULE_RAPIDGATOR_DOWNLOAD_SUCCESSIVE_INTERVAL=2100
 
 MODULE_RAPIDGATOR_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account
@@ -156,7 +156,7 @@ rapidgator_download() {
     local -r URL=$2
     local -r BASE_URL='http://rapidgator.net'
     local -r CAPTCHA_URL='/download/captcha'
-    local ACCOUNT HTML FILE_ID FILE_NAME SESSION_ID JSON STATE
+    local ACCOUNT HTML REDIR FILE_ID FILE_NAME SESSION_ID JSON STATE
     local WAIT_TIME FORM RESP CHALL CAPTCHA_DATA ID
 
     rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
@@ -166,7 +166,9 @@ rapidgator_download() {
             "$BASE_URL") || return
     fi
 
-    HTML=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+    # Also log headers to capture premium 'direct download' link
+    HTML=$(curl --include -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$URL") || return
+    REDIR=$(grep_http_header_location_quiet <<< "$HTML")
 
     # Various (temporary) errors
     if [ -z "$HTML" ] || match '502 Bad Gateway' "$HTML" || \
@@ -177,10 +179,10 @@ rapidgator_download() {
 
     # Various "File not found" responses
     elif match 'Error 404' "$HTML" || \
-        match 'File not found' "$HTML"; then
+        match 'File not found' "$HTML" ||
+        [[ "$REDIR" = */article/premium ]]; then
         return $ERR_LINK_DEAD
     fi
-
 
     # [premium] You have reached daily quota of downloaded information for premium accounts. At the moment, the quota is 15 GB
     # [free, anon] You have reached your daily downloads limit. Please try again later.
@@ -199,20 +201,30 @@ rapidgator_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    # Parse file name from page title
-    FILE_NAME=$(parse_tag 'title' <<< "$HTML") || return
+    # Try to parse file name from page title
+    FILE_NAME=$(parse_tag_quiet 'title' <<< "$HTML")
     FILE_NAME=${FILE_NAME#Download file }
 
     # If this is a premium download, we already have the download link
     if [ "$ACCOUNT" = 'premium' ]; then
-        if ! match 'Click here to download' "$HTML"; then
+        # Extract premium download link from page
+        if match 'Click here to download' "$HTML"; then
+            parse 'premium_download_link' "'\(.\+\)'" <<< "$HTML" || return
+            echo "$FILE_NAME"
+            return 0
+        fi
+
+        # This may be a 'direct download'
+        if [ -z "$REDIR" ]; then
             log_error 'Unexpected content. Site updated?'
             return $ERR_FATAL
         fi
 
-        # Extract + output download link
-        parse 'premium_download_link' "'\(.\+\)'" <<< "$HTML" || return
-        echo "$FILE_NAME"
+        HTML=$(curl --head "$REDIR") || return
+
+        # Parse and output file name
+        echo "$REDIR"
+        grep_http_header_content_disposition <<< "$HTML" || return
         return 0
     fi
 
@@ -337,10 +349,12 @@ rapidgator_download() {
         if ! match 'Click here to download' "$HTML"; then
             local FAIL_COOKIE
             FAIL_COOKIE=$(parse_cookie_quiet 'failed_on_captcha' < "$COOKIE_FILE")
+            log_debug "fail cookie: '$FAIL_COOKIE'"
 
             if match 'verification code is incorrect' "$HTML" || \
-                [ "$FAIL_COOKIE" -eq 1 ]; then
+                [ "$FAIL_COOKIE" = '1' ]; then
                 captcha_nack $ID
+                log_debug 'Wrong captcha'
                 return $ERR_CAPTCHA
             fi
 
@@ -642,14 +656,16 @@ rapidgator_probe() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT FILE_NAME FILE_SIZE
+    local PAGE REDIR REQ_OUT FILE_NAME FILE_SIZE
 
     # Note: Should use rapidgator_switch_lang
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    PAGE=$(curl --include -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    REDIR=$(grep_http_header_location_quiet <<< "$PAGE")
 
     # Various "File not found" responses
     if match 'Error 404' "$PAGE" || \
-        match 'File not found' "$PAGE"; then
+        match 'File not found' "$PAGE" ||
+        [[ "$REDIR" = */article/premium ]]; then
         return $ERR_LINK_DEAD
     fi
 

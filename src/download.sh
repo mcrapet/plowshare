@@ -46,6 +46,7 @@ CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captc
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
+CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
 PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
@@ -729,7 +730,7 @@ if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
 fi
 
 if [[ $SHELLOPTS = *posix* ]]; then
-    echo "plowup: Your shell is in POSIX mode, plowshare this will not work." >&2
+    echo "plowdown: Your shell is in POSIX mode, this will not work." >&2
     exit 1
 fi
 
@@ -739,7 +740,7 @@ LIBDIR=$(absolute_path "$0")
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_list_modules 'download') || exit
+MODULES=$(get_all_modules_list 'download') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -971,7 +972,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             # Check if plowlist can handle $URL
             if [ -z "$MODULES_LIST" ]; then
-                MODULES_LIST=$(grep_list_modules 'list' 'download') || true
+                MODULES_LIST=$(get_all_modules_list 'list' 'download') || true
                 for MODULE in $MODULES_LIST; do
                     source "$LIBDIR/modules/$MODULE.sh"
                 done

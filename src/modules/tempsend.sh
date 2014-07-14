@@ -63,6 +63,12 @@ tempsend_upload() {
         -F "file=@$FILE;filename=$DESTFILE" \
         -F "expire=$DELAY" "$BASE_URL") || return
 
+    # Sanity check
+    if [ "$PAGE" == 'Could not connect to database' ]; then
+        log_error "Remote error: $PAGE"
+        return $ERR_LINK_TEMP_UNAVAILABLE
+    fi
+
     FILE_URL=$(parse_tag 'title=.Link to' a <<< "$PAGE") || return
 
     echo "$FILE_URL"

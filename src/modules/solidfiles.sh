@@ -262,13 +262,13 @@ solidfiles_probe() {
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse 'download-title' '<h2>\([^<]\+\)' 1 <<< "$PAGE" &&
+        parse 'software_filename' "'\([^']\+\)'" <<< "$PAGE" &&
             REQ_OUT="${REQ_OUT}f"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(parse '<span class="filesize">' '<span class="filesize">(\(.*\))' <<< "$PAGE") && \
-            translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
+        parse 'software_filesize' '[[:space:]]\([[:digit:]]\+\)' <<< "$PAGE" &&
+            REQ_OUT="${REQ_OUT}s"
     fi
 
     echo $REQ_OUT

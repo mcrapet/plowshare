@@ -42,6 +42,7 @@ CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captc
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
+CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u%n\".
 ENGINES,,engine,t=ENGINE,Use specific engine (add more modules). Available: xfilesharing.
@@ -237,7 +238,7 @@ if (( ${BASH_VERSINFO[0]} * 100 + ${BASH_VERSINFO[1]} <= 400 )); then
 fi
 
 if [[ $SHELLOPTS = *posix* ]]; then
-    echo "plowup: Your shell is in POSIX mode, plowshare this will not work." >&2
+    echo "plowup: Your shell is in POSIX mode, this will not work." >&2
     exit 1
 fi
 
@@ -247,7 +248,7 @@ LIBDIR=$(absolute_path "$0")
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(grep_list_modules 'upload') || exit
+MODULES=$(get_all_modules_list 'upload') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done

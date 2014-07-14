@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # turbobit.net module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -128,7 +128,7 @@ turbobit_download() {
     # This document was not found in System
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
-    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
+    matchi '\(file\|document\)\( was\)\? not found' "$PAGE" && return $ERR_LINK_DEAD
 
     # Download xyz. Free download without registration from TurboBit.net
     FILE_NAME=$(echo "$PAGE" | parse '<title>' \
@@ -367,7 +367,7 @@ turbobit_upload() {
     DELETE_ID=$(echo "$PAGE" | parse '' 'null,null,"\([^"]\+\)"')
 
     echo "$BASE_URL/$FILE_ID.html"
-    [ -n "$DELETE_ID" ] && echo "$BASE_URL/delete/file/$FILE_ID/$DELETE_ID"
+    [ -z "$DELETE_ID" ] || echo "$BASE_URL/delete/file/$FILE_ID/$DELETE_ID"
 }
 
 # Delete a file on turbobit
@@ -444,7 +444,7 @@ turbobit_probe() {
     # This document was not found in System
     # File was not found. It could possibly be deleted.
     # File not found. Probably it was deleted.
-    matchi '\(file\|document\)\(was \)\? not found' "$PAGE" && return $ERR_LINK_DEAD
+    matchi '\(file\|document\)\( was\)\? not found' "$PAGE" && return $ERR_LINK_DEAD
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then

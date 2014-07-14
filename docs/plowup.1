@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "July 11, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -70,6 +70,9 @@ Use Antigate.com service to solve captchas.
 .BI "   " " " --captchabhood= USER:PASSWORD
 Use Captcha Brotherhood service to solve captchas.
 .TP
+.BI "   " " " --captchacoin= KEY
+Use CaptchaCoin service to solve captchas.
+.TP
 .BI "   " " " --deathbycaptcha= USER:PASSWORD
 Use Death by Captcha service to solve captchas.
 .TP
@@ -82,7 +85,7 @@ Force specific captcha solving method. Available values:
 \fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood or DeathByCaptcha account required).
+\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood, CaptchaCoin or DeathByCaptcha account required).
 .RE
 .RS
 \fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for framebuffer viewers: fbi, fim.
@@ -96,7 +99,7 @@ Force specific captcha solving method. Available values:
 .RE
 .TP
 .BI "   " " " --captchaprogram= PROGRAM
-Call external program or script for solving captchas. Provided executable can be located in PATH environment variable.
+Call external program or script for solving captchas. Provided executable can be located in \fIPATH\fR environment variable.
 
 Three arguments are given:
 .RS
@@ -349,6 +352,9 @@ $ plowup \-a myuser:mypassword rapidgator \\
 .TP
 .I ~/.config/plowshare/plowshare.conf
 This is the per-user configuration file. 
+.TP
+.I ~/.config/plowshare/exec/
+Additional directory considered when searching for executable. See \fB--captchaprogram\fR switch.
 .TP
 .I /etc/plowshare.conf
 Systemwide configuration file.
