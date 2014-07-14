@@ -79,13 +79,17 @@ filefactory_download() {
 
     LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
 
-    if match '/error\.php?code=25[14]' "$LOCATION"; then
-        return $ERR_LINK_DEAD
-    elif match '/error\.php?code=258' "$LOCATION"; then
-        return $ERR_LINK_NEED_PERMISSIONS
-    elif match '/error\.php?code=' "$LOCATION"; then
-        log_error "Remote error code: '${LOCATION:16}'"
-        return $ERR_FATAL
+    if [ -n "$LOCATION" ]; then
+        if match '/error\.php?code=25[14]' "$LOCATION"; then
+            return $ERR_LINK_DEAD
+        elif match '/error\.php?code=258' "$LOCATION"; then
+            return $ERR_LINK_NEED_PERMISSIONS
+        elif match '/error\.php?code=' "$LOCATION"; then
+            log_error "Remote error code: '${LOCATION:16}'"
+            return $ERR_FATAL
+        elif match '/preview/' "$LOCATION"; then
+            PAGE=$(curl -L -c "$COOKIE_FILE" -b "$COOKIE_FILE" "$URL") || return
+        fi
     fi
 
     if match 'Please enter the password' "$PAGE"; then
@@ -104,10 +108,15 @@ filefactory_download() {
         fi
     fi
 
-    WAIT_TIME=$(parse_attr 'data-delay' <<< "$PAGE") || return
-    wait $WAIT_TIME || return
+    # If this an image ?
+    if match '[[:space:]]id=.image_main.[[:space:]]' "$PAGE"; then
+        FILE_URL=$(parse_attr 'Download Image' 'href' <<< "$PAGE") || return
+    else
+        WAIT_TIME=$(parse_attr 'data-delay' <<< "$PAGE") || return
+        wait $WAIT_TIME || return
 
-    FILE_URL=$(parse_attr 'data-href' <<< "$PAGE") || return
+        FILE_URL=$(parse_attr 'data-href' <<< "$PAGE") || return
+    fi
 
     # Redirect to /?code=275 on simultaneous download for non-premium, 1hr download limit
     echo $FILE_URL
