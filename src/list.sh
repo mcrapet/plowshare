@@ -182,11 +182,6 @@ test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
-if test "$ALLMODULES"; then
-    for MODULE in $MODULES; do echo "$MODULE"; done
-    exit 0
-fi
-
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_options '[Pp]lowlist' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
@@ -224,6 +219,16 @@ if [ -n "$PRINTF_FORMAT" ]; then
 fi
 
 engine_setup 'plowlist' ENGINES[@] || exit
+
+if test "$ALLMODULES"; then
+    for MODULE in $MODULES; do echo "$MODULE"; done
+
+    for E in "${ENGINES[@]}"; do
+        MODULES=$(${E}_get_all_modules_list)
+        for MODULE in $MODULES; do echo "$MODULE"; done
+    done
+    exit 0
+fi
 
 # Print chosen options
 [ -n "$RECURSE" ] && log_debug 'plowlist: --recursive selected'

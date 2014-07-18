@@ -260,11 +260,6 @@ test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
-if test "$ALLMODULES"; then
-    for MODULE in $MODULES; do echo "$MODULE"; done
-    exit 0
-fi
-
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_options '[Pp]lowup' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
@@ -338,6 +333,15 @@ fi
 
 if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
+fi
+
+if test "$ALLMODULES"; then
+    for MODULE in $MODULES; do echo "$MODULE"; done
+    for E in "${ENGINES[@]}"; do
+        MODULES=$(${E}_get_all_modules_list)
+        for MODULE in $MODULES; do echo "$MODULE"; done
+    done
+    exit 0
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)

@@ -97,11 +97,6 @@ test "$HELPFULL" && { usage 1; exit 0; }
 test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
-if test "$ALLMODULES"; then
-    for MODULE in $MODULES; do echo "$MODULE"; done
-    exit 0
-fi
-
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
     process_configfile_options '[Pp]lowdel' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
@@ -148,6 +143,16 @@ else
     [ -n "$CAPTCHA_ANTIGATE" ] && log_debug 'plowdel: --antigate selected'
     [ -n "$CAPTCHA_BHOOD" ] && log_debug 'plowdel: --captchabhood selected'
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
+fi
+
+if test "$ALLMODULES"; then
+    for MODULE in $MODULES; do echo "$MODULE"; done
+
+    for E in "${ENGINES[@]}"; do
+        MODULES=$(${E}_get_all_modules_list)
+        for MODULE in $MODULES; do echo "$MODULE"; done
+    done
+    exit 0
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)

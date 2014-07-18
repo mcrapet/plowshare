@@ -42,19 +42,22 @@ PROBE_OPTIONS
 LIST_OPTIONS
 LIST_HAS_SUBFOLDERS)
 
-# Get module list for xfilesharing engine
+# Get module list for xfilesharing engine.
+# xfilesharing_init() has been already called.
 # Note: use global variable XFILESHARING_DIR.
 #
 # stdout: return module list (one name per line)
-xfilesharing_grep_list_modules() {
+# $1: (optionnal) don't append "xfilesharing:" prefix
+xfilesharing_get_all_modules_list() {
     local -r CONFIG="$XFILESHARING_DIR/config"
+    local -r PREFIX=${1-xfilesharing:}
 
     if [ ! -f "$CONFIG" ]; then
         log_error "Can't find xfilesharing config file"
         return $ERR_SYSTEM
     fi
 
-    sed -ne "/^[^#]/{/.*/s/^\([^[:space:],]*\).*/\1/p}" "$CONFIG"
+    sed -ne "/^[^#]/{/.*/s/^\([^[:space:],]*\).*/$PREFIX\1/p}" "$CONFIG"
 }
 
 # Static function. Get module property
@@ -262,7 +265,7 @@ xfilesharing_get_all_modules_options() {
                 strip_and_drop_empty_lines "${!VAR}"
             fi
         done
-    done < <(xfilesharing_grep_list_modules)
+    done < <(xfilesharing_get_all_modules_list '')
 }
 
 # Look for a configuration module variable
