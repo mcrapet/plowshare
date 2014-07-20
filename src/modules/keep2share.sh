@@ -28,6 +28,8 @@ MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 
 MODULE_KEEP2SHARE_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)
+FOLDER,,folder,s=FOLDER,Folder to upload files into. Leaf name, no hierarchy.
+CREATE_FOLDER,,create,,Create (private) folder if it does not exist
 FULL_LINK,,full-link,,Final link includes filename"
 MODULE_KEEP2SHARE_UPLOAD_REMOTE_SUPPORT=no
 
@@ -124,11 +126,18 @@ keep2share_upload() {
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r API_URL='http://keep2share.cc/api/v1/'
-    local SZ TOKEN JSON FILE_ID
+    #local -r API_URL='http://fileboom.me/api/v1/'
+    local SZ TOKEN JSON JSON2 FILE_ID FOLDER_ID
 
     # Sanity check
     [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
+    if [ -n "$CREATE_FOLDER" -a -z "$FOLDER" ]; then
+        log_error '--folder option required'
+        return $ERR_BAD_COMMAND_LINE
+    fi
+
+    # FIXME: Distinguish free/premium account
     local -r MAX_SIZE=524288000 # 500 MiB (free account)
     SZ=$(get_filesize "$FILE")
     if [ "$SZ" -gt "$MAX_SIZE" ]; then
@@ -139,13 +148,53 @@ keep2share_upload() {
     TOKEN=$(keep2share_login "$AUTH" "$API_URL") || return
     log_debug "token: '$TOKEN'"
 
+    # Check folder name
+    if [ -n "$FOLDER" ]; then
+        JSON=$(curl --data '{"auth_token":"'$TOKEN'","type":"folder"}' \
+            "${API_URL}GetFilesList") || return
+
+        # {"status":"success","code":200,"files":[{"id":"cdd2f2d78d4c6","name": ...}]}
+        keep2share_status "$JSON" || return
+
+        JSON2=$(parse_json 'files' <<< "$JSON" ) || return
+        JSON2=${JSON2#[}
+        JSON2=${JSON%]}
+
+        local -i I=1
+        while read -r; do
+            if [ "$REPLY" == "$FOLDER" ]; then
+                FOLDER_ID=$(parse_json 'id' split <<< "$JSON2" | nth_line $I)
+                log_debug "found folder id='$FOLDER_ID'"
+                break
+            fi
+            (( ++I ))
+        done < <(parse_json 'name' split <<< "$JSON2")
+
+
+        if [ -z "$FOLDER_ID" ]; then
+            if [ -n "$CREATE_FOLDER" ]; then
+                JSON=$(curl --data '{"auth_token":"'$TOKEN'","parent":"/","name":"'"$FOLDER"'","access":"private"}' \
+                    "${API_URL}CreateFolder") || return
+
+                # {"status":"success","code":201,"id":"552b574f449e9"}
+                keep2share_status "$JSON" || return
+
+                FOLDER_ID=$(parse_json 'id' <<< "$JSON")
+                log_debug "new folder created id='$FOLDER_ID'"
+            else
+                log_error 'Folder does not seem to exist. Use --create switch.'
+                return $ERR_FATAL
+            fi
+        fi
+    fi
+
     JSON=$(curl --data '{"auth_token":"'$TOKEN'"}' \
         "${API_URL}GetUploadFormData") || return
 
     # {"status":"success","code":200,"form_action":"...","file_field":"Filedata", ...}
     keep2share_status "$JSON" || return
 
-    local FORM_ACTION FILE_FIELD JSON2 NODE_NAME USER_ID HMAC EXPIRES
+    local FORM_ACTION FILE_FIELD NODE_NAME USER_ID HMAC EXPIRES
 
     FORM_ACTION=$(parse_json 'form_action' <<< "$JSON" ) || return
     FILE_FIELD=$(parse_json 'file_field' <<< "$JSON" ) || return
@@ -158,6 +207,7 @@ keep2share_upload() {
     HMAC=$(parse_json 'hmac' <<< "$JSON2" ) || return
     EXPIRES=$(parse_json 'expires' <<< "$JSON2" ) || return
 
+    [ -z "$FOLDER_ID" ] || FOLDER_ID="-F parent_id=$FOLDER_ID"
     JSON=$(curl_with_log \
         -F "$FILE_FIELD=@$FILE;filename=$DEST_FILE" \
         -F "nodeName=$NODE_NAME" \
@@ -165,7 +215,7 @@ keep2share_upload() {
         -F "hmac=$HMAC" \
         -F "expires=$EXPIRES" \
         -F 'api_request=true' \
-        "$FORM_ACTION") || return
+        $FOLDER_ID "$FORM_ACTION") || return
 
     # Sanity check
     # <title>503 Service Temporarily Unavailable</title>
