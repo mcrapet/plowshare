@@ -22,7 +22,7 @@
 set -o pipefail
 
 # Each time an API is updated, this value will be increased
-declare -r PLOWSHARE_API_VERSION=0
+declare -r PLOWSHARE_API_VERSION=1
 
 # Global error codes
 # 0 means success or link alive
@@ -2381,6 +2381,112 @@ translate_size() {
             return $ERR_FATAL
             ;;
     esac
+}
+
+# Add/Update item (key-value pair) to local storage module file.
+#
+# $1: Key name. Will be 'default' for empty string.
+# $2: (optional) String value to save. Don't mention this to delete key.
+# $?: 0 for success (item saved correctly), error otherwise
+storage_set() {
+    local -r KEY=${1:-default}
+    local CONFIG="$HOME/.config/plowshare/storage"
+    local -A OBJ
+
+    if [ -z "$MODULE" ]; then
+        log_error "$FUNCNAME: \$MODULE is undefined, abort."
+        return $ERR_NOMODULE
+    fi
+
+    [ -d "$CONFIG" ] || mkdir --parents "$CONFIG"
+
+    if [ ! -w "$CONFIG" ]; then
+        log_error "$FUNCNAME: write permissions expected \`$CONFIG'"
+        return $ERR_SYSTEM
+    fi
+
+    CONFIG="$CONFIG/${MODULE}.txt"
+
+    if [ -f "$CONFIG" ]; then
+        if [ ! -w "$CONFIG" ]; then
+            log_error "$FUNCNAME: write permissions expected \`$CONFIG'"
+            return $ERR_SYSTEM
+        fi
+        source "$CONFIG"
+    fi
+
+    # Unset parameter and empty string are different
+    if test "${2+isset}"; then
+        OBJ[$KEY]=$2
+    else
+        unset -v OBJ[$KEY]
+    fi
+
+    declare -p OBJ >"$CONFIG"
+    log_debug "$FUNCNAME: \`$KEY' set for module \`$MODULE'"
+}
+
+# Get item value from local storage module file.
+#
+# $1: (optional) Key name. Will be 'default' if unset
+# $?: 0 for success, error otherwise
+# stdout: value read from file
+storage_get() {
+    local -r KEY=${1:-default}
+    local CONFIG="$HOME/.config/plowshare/storage"
+    local -A OBJ
+
+    if [ -z "$MODULE" ]; then
+        log_error "$FUNCNAME: \$MODULE is undefined, abort."
+        return $ERR_NOMODULE
+    fi
+
+    if [ -d "$CONFIG" ]; then
+        CONFIG="$CONFIG/${MODULE}.txt"
+
+        if [ ! -r "$CONFIG" ]; then
+            log_error "$FUNCNAME: read permissions expected \`$CONFIG'"
+            return $ERR_SYSTEM
+        fi
+        source "$CONFIG"
+
+        if test "${OBJ[$KEY]+isset}"; then
+            echo "${OBJ[$KEY]}"
+            return 0
+        fi
+    fi
+    return $ERR_FATAL
+}
+
+# Clear local storage module file, all entries will be lost.
+storage_reset() {
+    local -r CONFIG="$HOME/.config/plowshare/storage"
+
+    if [ -z "$MODULE" ]; then
+        log_error "$FUNCNAME: \$MODULE is undefined, abort."
+        return $ERR_NOMODULE
+    fi
+
+    [ -d "$CONFIG" ] &&  rm -f "$CONFIG/${MODULE}.txt"
+    log_debug "$FUNCNAME: delete file for module \`$MODULE'"
+}
+
+# Save current date (Epoch) in local storage module file.
+# $?: 0 for success, error otherwise
+storage_timestamp_set() {
+  storage_set '__date__' "$(date -u +%s)"
+}
+
+# Get time difference from date save in local storage module file.
+# $1: (optional) Touch flag. If defined, update saved timestamp.
+# $?: 0 for success, error otherwise
+# stdout: age value (in seconds)
+storage_timestamp_diff() {
+  local CUR DATE
+  DATE=$(storage_get '__date__') || return
+  CUR=$(date -u +%s)
+  [ -z "$1" ] || storage_set '__date__' "$CUR"
+  echo "$((CUR - DATE))"
 }
 
 ## ----------------------------------------------------------------------------
