@@ -3064,7 +3064,7 @@ grep_block_by_order() {
 
 # Check argument type
 # $1: program name (used for error reporting only)
-# $2: format (a, D, e, f, F, l, n, N, r, R, s, S, t, V)
+# $2: format (a, c, C, D, e, f, F, l, n, N, r, R, s, S, t)
 # $3: option value (string)
 # $4: option name (used for error reporting only)
 # $?: return 0 for success
@@ -3148,13 +3148,24 @@ check_argument_type() {
     # l: List (comma-separated values), non empty
     elif [[ $TYPE = 'l' && $VAL = '' ]]; then
         log_error "$NAME ($OPT): comma-separated list expected"
-    # V: special type for verbosity (values={0,1,2,3,4})
-    elif [[ $TYPE = 'V' && $VAL != [0-4] ]]; then
-       log_error "$NAME: wrong verbose level \`$VAL'. Must be 0, 1, 2, 3 or 4."
+    # c: choice list
+    # C: choice list with empty string allowed. Long options only advised.
+    elif [[ $TYPE = [cC]* ]]; then
+        if [[ $TYPE = C* && $VAL = '' ]]; then
+            RET=0
+        else
+            local -a ITEMS
+            IFS='|' read -r -a ITEMS <<< "${TYPE:2}"
+            if find_in_array ITEMS[@] "$VAL"; then
+                RET=0
+            else
+                log_error "$NAME ($OPT): wrong value '$VAL'. Possible values are: ${ITEMS[@]}."
+            fi
+        fi
 
     elif [[ $TYPE = [lsSt] ]]; then
         RET=0
-    elif [[ $TYPE = [aenNrRV] ]]; then
+    elif [[ $TYPE = [aenNrR] ]]; then
         if [ "${VAL:0:1}" = '-' ]; then
             log_error "$NAME ($OPT): missing parameter"
         else
