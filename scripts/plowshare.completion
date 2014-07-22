@@ -91,7 +91,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
             return 0
             ;;
-        --cookies|--captchaprogram|--run-before|--run-after|--plowsharerc)
+        --captchaprogram|--run-before|--run-after|--plowsharerc)
             _filedir
             return 0
             ;;
@@ -103,7 +103,7 @@ _plowdown()
             --min-space --max-rate --interface --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
-            --fallback --cookies --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --fallback --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         _filedir
     fi

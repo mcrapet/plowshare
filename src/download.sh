@@ -48,7 +48,6 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
-GLOBAL_COOKIES,,cookies,f=FILE,Force using specified cookies file
 PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link processing
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
@@ -234,8 +233,8 @@ module_null_download() {
 }
 
 # Note: Global options $INDEX, $MARK_DOWN, $NOOVERWRITE,
-# $TIMEOUT, $CAPTCHA_METHOD, $GLOBAL_COOKIES, $PRINTF_FORMAT,
-# $SKIP_FINAL, $PRE_COMMAND, $POST_COMMAND, $TEMP_RENAME are accessed directly.
+# $TIMEOUT, $CAPTCHA_METHOD, $PRINTF_FORMAT, $SKIP_FINAL,
+# $PRE_COMMAND, $POST_COMMAND, $TEMP_RENAME are accessed directly.
 download() {
     local -r MODULE=$1
     local -r URL_RAW=$2
@@ -265,11 +264,6 @@ download() {
 
     while :; do
         COOKIE_FILE=$(create_tempfile)
-
-        # Use provided cookie
-        if [ -s "$GLOBAL_COOKIES" ]; then
-            cat "$GLOBAL_COOKIES" > "$COOKIE_FILE"
-        fi
 
         # Pre-processing script (executed in a subshell)
         if [ -n "$PRE_COMMAND" ]; then
@@ -804,10 +798,6 @@ fi
 
 if [ -n "$MIN_LIMIT_SPACE" ]; then
     DISKMON=$(disk_mount_point "${OUTPUT_DIR:-$PWD}") || exit
-fi
-
-if [ -n "$GLOBAL_COOKIES" ]; then
-    log_notice 'plowdown: using provided cookies file'
 fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
