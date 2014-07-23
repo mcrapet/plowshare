@@ -118,20 +118,27 @@ keep2share_download() {
 }
 
 # Upload a file to keep2share.
-# $1: cookie file
+# $1: cookie file (unused)
 # $2: input file (with full path)
 # $3: remote filename
 keep2share_upload() {
-    local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r API_URL='http://keep2share.cc/api/v1/'
-    #local -r API_URL='http://fileboom.me/api/v1/'
     local SZ TOKEN JSON JSON2 FILE_ID FOLDER_ID
 
-    # Sanity check
-    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
+    if TOKEN=$(storage_get 'token'); then
+        log_debug "token (cached): '$TOKEN'"
+        # FIXME: Check for expired session
+    else
+        [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
+        TOKEN=$(keep2share_login "$AUTH" "$API_URL") || return
+        storage_set 'token' "$TOKEN"
+        log_debug "token: '$TOKEN'"
+    fi
+
+    # Sanity check
     if [ -n "$CREATE_FOLDER" -a -z "$FOLDER" ]; then
         log_error '--folder option required'
         return $ERR_BAD_COMMAND_LINE
@@ -144,9 +151,6 @@ keep2share_upload() {
         log_debug "file is bigger than $MAX_SIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
-
-    TOKEN=$(keep2share_login "$AUTH" "$API_URL") || return
-    log_debug "token: '$TOKEN'"
 
     # Check folder name
     if [ -n "$FOLDER" ]; then
