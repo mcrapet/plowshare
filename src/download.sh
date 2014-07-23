@@ -234,16 +234,15 @@ module_null_download() {
 
 # Note: Global options $INDEX, $MARK_DOWN, $NOOVERWRITE,
 # $TIMEOUT, $CAPTCHA_METHOD, $PRINTF_FORMAT, $SKIP_FINAL,
-# $PRE_COMMAND, $POST_COMMAND, $TEMP_RENAME are accessed directly.
+# $PRE_COMMAND, $POST_COMMAND, $TEMP_DIR, $TEMP_RENAME are accessed directly.
 download() {
     local -r MODULE=$1
     local -r URL_RAW=$2
     local -r TYPE=$3
     local -r ITEM=$4
     local -r OUT_DIR=$5
-    local -r TMP_DIR=$6
-    local -r MAX_RETRIES=$7
-    local -r LAST_HOST=$8
+    local -r MAX_RETRIES=$6
+    local -r LAST_HOST=$7
 
     local DRETVAL DRESULT AWAIT FILE_NAME FILE_URL COOKIE_FILE COOKIE_JAR ANAME BASE_URL
     local -i STATUS FILE_SIZE
@@ -449,8 +448,8 @@ download() {
             local -a CURL_ARGS=()
 
             # Temporary download filename (with full path)
-            if test "$TMP_DIR"; then
-                FILENAME_TMP="$TMP_DIR/$FILE_NAME"
+            if test "$TEMP_DIR"; then
+                FILENAME_TMP="$TMPDIR/$FILE_NAME"
             elif test "$OUT_DIR"; then
                 FILENAME_TMP="$OUT_DIR/$FILE_NAME"
             else
@@ -729,6 +728,7 @@ fi
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+TMPDIR=${TMPDIR:-/tmp}
 
 set -e # enable exit checking
 
@@ -950,7 +950,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             ${MODULE}_vars_set
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
-                "$TMPDIR" "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
+                "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
             ${MODULE}_vars_unset
 
             # Link explicitly skipped

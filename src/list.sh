@@ -165,6 +165,7 @@ module_null_list() {
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+TMPDIR=${TMPDIR:-/tmp}
 
 set -e # enable exit checking
 

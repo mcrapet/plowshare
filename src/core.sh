@@ -24,6 +24,9 @@ set -o pipefail
 # Each time an API is updated, this value will be increased
 declare -r PLOWSHARE_API_VERSION=1
 
+# User configuration directory (contains plowshare.conf, exec/, storage/)
+declare -r PLOWSHARE_CONFDIR="$HOME/.config/plowshare"
+
 # Global error codes
 # 0 means success or link alive
 declare -r ERR_FATAL=1                    # Unexpected result (upstream site updated, etc)
@@ -53,10 +56,10 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # Global variables used (defined in plow* scripts):
 #   - VERBOSE          Verbosity level (0=none, 1=error, 2=notice, 3=debug, 4=report)
 #   - LIBDIR           Absolute path to plowshare's libdir
-#   - INTERFACE        Network interface (used by curl)
-#   - MAX_LIMIT_RATE   Network maximum speed (used by curl)
-#   - MIN_LIMIT_RATE   Network minimum speed (used by curl)
-#   - NO_CURLRC        Do not read of use curlrc config
+#   - INTERFACE        (curl) Network interface
+#   - MAX_LIMIT_RATE   (curl) Network maximum speed
+#   - MIN_LIMIT_RATE   (curl) Network minimum speed
+#   - NO_CURLRC        (curl) Do not read of use curlrc config
 #   - CAPTCHA_METHOD   User-specified captcha method
 #   - CAPTCHA_ANTIGATE Antigate.com captcha key
 #   - CAPTCHA_9KWEU    9kw.eu captcha key
@@ -64,11 +67,9 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - CAPTCHA_COIN     captchacoin.com captcha key
 #   - CAPTCHA_DEATHBY  DeathByCaptcha account
 #   - CAPTCHA_PROGRAM  External solver program/script
-#   - MODULE           Module name (don't include .sh)
+#   - MODULE           Module name (don't include .sh), used by storage API
+#   - TMPDIR           Temporary directory
 # Note: captchas are handled in plowdown, plowup and plowdel.
-#
-# Global variables defined here:
-#   - PS_TIMEOUT       (plowdown, plowup) Timeout (in seconds) for one item
 #
 # Logs are sent to stderr stream.
 # Policies:
@@ -76,6 +77,9 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # - notice: core messages (wait, timeout, retries), lastest curl call (plowdown, plowup)
 # - debug: all core/modules messages, curl calls
 # - report: debug plus curl content (html pages, cookies)
+#
+# Global variables defined here (FIXME later):
+#   - PS_TIMEOUT       (plowdown, plowup) Timeout (in seconds) for one item
 
 # log_report for a file
 # $1: filename
@@ -1092,7 +1096,7 @@ get_filesize() {
 # $1: (optional) filename suffix
 create_tempfile() {
     local -r SUFFIX=$1
-    local FILE="${TMPDIR:-/tmp}/$(basename_file "$0").$$.$RANDOM$SUFFIX"
+    local FILE="$TMPDIR/$(basename_file "$0").$$.$RANDOM$SUFFIX"
     :> "$FILE" || return $ERR_SYSTEM
     echo "$FILE"
 }
@@ -2390,7 +2394,7 @@ translate_size() {
 # $?: 0 for success (item saved correctly), error otherwise
 storage_set() {
     local -r KEY=${1:-default}
-    local CONFIG="$HOME/.config/plowshare/storage"
+    local CONFIG="$PLOWSHARE_CONFDIR/storage"
     local -A OBJ
 
     if [ -z "$MODULE" ]; then
@@ -2433,7 +2437,7 @@ storage_set() {
 # stdout: value read from file
 storage_get() {
     local -r KEY=${1:-default}
-    local CONFIG="$HOME/.config/plowshare/storage"
+    local CONFIG="$PLOWSHARE_CONFDIR/storage"
     local -A OBJ
 
     if [ -z "$MODULE" ]; then
@@ -2460,7 +2464,7 @@ storage_get() {
 
 # Clear local storage module file, all entries will be lost.
 storage_reset() {
-    local -r CONFIG="$HOME/.config/plowshare/storage"
+    local CONFIG="$PLOWSHARE_CONFDIR/storage"
 
     if [ -z "$MODULE" ]; then
         log_error "$FUNCNAME: \$MODULE is undefined, abort."
@@ -2506,11 +2510,18 @@ strip() {
 # Remove all temporal files created by the script
 # (with create_tempfile)
 remove_tempfiles() {
-    rm -f "${TMPDIR:-/tmp}/$(basename_file $0).$$".*
+    rm -f "$TMPDIR/$(basename_file $0).$$".*
 }
 
 # Exit callback (task: clean temporal files)
 set_exit_trap() {
+    if [ -z "$TMPDIR" ]; then
+        log_error 'Error: TMPDIR is not defined.'
+        return $ERR_SYSTEM
+    elif [ ! -d "$TMPDIR" ]; then
+        log_error 'Error: TMPDIR is not a directory.'
+        return $ERR_SYSTEM
+    fi
     trap remove_tempfiles EXIT
 }
 
@@ -2607,7 +2618,7 @@ process_core_options() {
     local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
     shift 2
 
-    VERBOSE=2 PATH="$PATH:$HOME/.config/plowshare/exec" process_options \
+    VERBOSE=2 PATH="$PATH:$PLOWSHARE_CONFDIR/exec" process_options \
         "$NAME" "$OPTIONS" -1 "$@"
 }
 
@@ -2663,7 +2674,7 @@ process_configfile_options() {
     local CONFIG OPTIONS SECTION NAME VALUE OPTION
 
     if [ -z "$3" ]; then
-        CONFIG="$HOME/.config/plowshare/plowshare.conf"
+        CONFIG="$PLOWSHARE_CONFDIR/plowshare.conf"
         test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
         test -f "$CONFIG" || return 0
     else
@@ -2709,7 +2720,7 @@ process_configfile_module_options() {
     local CONFIG OPTIONS SECTION OPTION LINE VALUE
 
     if [ -z "$4" ]; then
-        CONFIG="$HOME/.config/plowshare/plowshare.conf"
+        CONFIG="$PLOWSHARE_CONFDIR/plowshare.conf"
         if [ -f "$CONFIG" ]; then
             if [ -O "$CONFIG" ]; then
                 # First 10 characters: access rights (human readable form)
