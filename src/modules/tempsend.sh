@@ -20,10 +20,29 @@
 
 MODULE_TEMPSEND_REGEXP_URL='https\?://\(www\.\)\?tempsend\.com/'
 
+MODULE_TEMPSEND_DOWNLOAD_OPTIONS=""
+MODULE_TEMPSEND_DOWNLOAD_RESUME=no
+MODULE_TEMPSEND_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=unused
+MODULE_TEMPSEND_DOWNLOAD_SUCCESSIVE_INTERVAL=
+
 MODULE_TEMPSEND_UPLOAD_OPTIONS="
 NOSSL,,nossl,,Use HTTP upload url instead of HTTPS
 TTL,,ttl,n=SECS,Expiration period (in seconds). Default is 86400 (one day)."
 MODULE_TEMPSEND_UPLOAD_REMOTE_SUPPORT=no
+
+# Output a tempsend.com file download URL
+# $1: cookie file (unused here)
+# $2: tempsend.com url
+# stdout: real file download link
+tempsend_download() {
+    local URL=$2
+    local PAGE FILE_URL
+
+    PAGE=$(curl -L "$URL") || return
+    FILE_URL=$(parse_attr 'title=.Download' 'href' <<< "$PAGE") || return
+
+    echo "http://tempsend.com$FILE_URL"
+}
 
 # Upload a file to tempsend.com
 # $1: cookie file (unused here)

@@ -69,7 +69,7 @@ sharebeast      | download | upload | delete |      | probe |
 shareonline_biz | download | upload |        |      | probe |
 sockshare       | download | upload | delete | list | probe |
 solidfiles      | download | upload |        | list | probe |
-tempsend        |          | upload |        |      |       |
+tempsend        | download | upload |        |      |       |
 turbobit        | download | upload | delete | list | probe |
 ultramegabit    | download | upload |        |      | probe |
 uploadable_ch   | download | upload | delete | list | probe |
