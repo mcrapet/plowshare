@@ -69,7 +69,14 @@ tempsend_upload() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
-    FILE_URL=$(parse_tag 'title=.Link to' a <<< "$PAGE") || return
+    if FILE_URL=$(parse_tag 'title=.Link to' a <<< "$PAGE"); then
+        echo "$FILE_URL"
+        return 0
+    fi
 
-    echo "$FILE_URL"
+    if match '>Not Found</' "$PAGE" && test -z "$NOSSL"; then
+        log_error 'Remote error: retry using --nossl switch'
+    fi
+
+    return $ERR_FATAL
 }
