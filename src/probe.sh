@@ -69,11 +69,20 @@ process_item() {
     if match_remote_url "$ITEM"; then
         strip <<< "$ITEM"
     elif [ -f "$ITEM" ]; then
-        if [[ $ITEM =~ (zip|rar|tar|[7gx]z|bz2|mp[234g]|avi|mkv|jpg)$ ]]; then
-            log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
+        local MATCH
+
+        if check_exec 'file'; then
+            [[ $(file -i "$ITEM") =~ \ charset=binary$ ]] && MATCH=1
         else
+            [[ $ITEM =~ \.(zip|rar|tar|[7gx]z|bz2|mp[234g]|avi|mkv|jpg)$ ]] && MATCH=1
+        fi
+
+        if [ -z "$MATCH" ]; then
             # Discard empty lines and comments
+            echo 'file'
             sed -ne '/^[[:space:]]*[^#[:space:]]/{s/^[[:space:]]*//; s/[[:space:]]*$//; p}' "$ITEM"
+        else
+            log_error "Skip: '$ITEM' seems to be a binary file, not a list of links"
         fi
     else
         log_error "Skip: cannot stat '$ITEM': No such file or directory"
