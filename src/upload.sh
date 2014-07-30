@@ -37,6 +37,7 @@ INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
 NAME_FORMAT,,name,s=FORMAT,Format destination filename (applies on each file argument). Default string is: \"%f\".
+CACHE,,cache,C|none|session|shared=METHOD,Policy for storage data. Available: none, session (default), shared.
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
 CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
@@ -451,6 +452,12 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     timeout_init $TIMEOUT
 
     TRY=0
+
+    # Module storage policy (part 1/2)
+    if [ "$CACHE" = 'none' ]; then
+        storage_reset
+    fi
+
     ${MODULE}_vars_set
 
     while :; do
@@ -522,6 +529,11 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     fi
     RETVALS=(${RETVALS[@]} $URETVAL)
 done
+
+# Module storage policy (part 2/2)
+if [ "$CACHE" != 'shared' ]; then
+    storage_reset
+fi
 
 rm -f "$UCOOKIE" "$URESULT"
 

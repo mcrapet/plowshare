@@ -69,6 +69,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - CAPTCHA_PROGRAM  External solver program/script
 #   - MODULE           Module name (don't include .sh), used by storage API
 #   - TMPDIR           Temporary directory
+#   - CACHE            Storage API policy: none, session (default or empty), shared.
 # Note: captchas are handled in plowdown, plowup and plowdel.
 #
 # Logs are sent to stderr stream.
@@ -2394,7 +2395,7 @@ translate_size() {
 # $?: 0 for success (item saved correctly), error otherwise
 storage_set() {
     local -r KEY=${1:-default}
-    local CONFIG="$PLOWSHARE_CONFDIR/storage"
+    local CONFIG
     local -A OBJ
 
     if [ -z "$MODULE" ]; then
@@ -2402,14 +2403,20 @@ storage_set() {
         return $ERR_NOMODULE
     fi
 
-    [ -d "$CONFIG" ] || mkdir --parents "$CONFIG"
+    if [ "$CACHE" != 'shared' ]; then
+        CONFIG="$TMPDIR/$(basename_file "$0").$$.${MODULE}.txt"
+    else
+        CONFIG="$PLOWSHARE_CONFDIR/storage"
 
-    if [ ! -w "$CONFIG" ]; then
-        log_error "$FUNCNAME: write permissions expected \`$CONFIG'"
-        return $ERR_SYSTEM
+        [ -d "$CONFIG" ] || mkdir --parents "$CONFIG"
+
+        if [ ! -w "$CONFIG" ]; then
+          log_error "$FUNCNAME: write permissions expected \`$CONFIG'"
+          return $ERR_SYSTEM
+        fi
+
+        CONFIG="$CONFIG/${MODULE}.txt"
     fi
-
-    CONFIG="$CONFIG/${MODULE}.txt"
 
     if [ -f "$CONFIG" ]; then
         if [ ! -w "$CONFIG" ]; then
@@ -2437,7 +2444,7 @@ storage_set() {
 # stdout: value read from file
 storage_get() {
     local -r KEY=${1:-default}
-    local CONFIG="$PLOWSHARE_CONFDIR/storage"
+    local CONFIG
     local -A OBJ
 
     if [ -z "$MODULE" ]; then
@@ -2445,13 +2452,20 @@ storage_get() {
         return $ERR_NOMODULE
     fi
 
-    if [ -d "$CONFIG" ]; then
+    if [ "$CACHE" != 'shared' ]; then
+        CONFIG="$TMPDIR/$(basename_file "$0").$$.${MODULE}.txt"
+    else
+        CONFIG="$PLOWSHARE_CONFDIR/storage"
+        [ -d "$CONFIG" ] || return $ERR_FATAL
         CONFIG="$CONFIG/${MODULE}.txt"
+    fi
 
+    if [ -f "$CONFIG" ]; then
         if [ ! -r "$CONFIG" ]; then
             log_error "$FUNCNAME: read permissions expected \`$CONFIG'"
             return $ERR_SYSTEM
         fi
+
         source "$CONFIG"
 
         if test "${OBJ[$KEY]+isset}"; then
@@ -2459,20 +2473,31 @@ storage_get() {
             return 0
         fi
     fi
+
     return $ERR_FATAL
 }
 
 # Clear local storage module file, all entries will be lost.
 storage_reset() {
-    local CONFIG="$PLOWSHARE_CONFDIR/storage"
+    local CONFIG
 
     if [ -z "$MODULE" ]; then
         log_error "$FUNCNAME: \$MODULE is undefined, abort."
         return $ERR_NOMODULE
     fi
 
-    [ -d "$CONFIG" ] &&  rm -f "$CONFIG/${MODULE}.txt"
-    log_debug "$FUNCNAME: delete file for module \`$MODULE'"
+    if [ "$CACHE" != 'shared' ]; then
+        CONFIG="$TMPDIR/$(basename_file "$0").$$.${MODULE}.txt"
+    else
+        CONFIG="$PLOWSHARE_CONFDIR/storage"
+        [ -d "$CONFIG" ] || return $ERR_FATAL
+        CONFIG="$CONFIG/${MODULE}.txt"
+    fi
+
+    if [ -f "$CONFIG" ]; then
+        rm -f "$CONFIG"
+        log_debug "$FUNCNAME: delete file for module \`$MODULE'"
+    fi
 }
 
 # Save current date (Epoch) in local storage module file.

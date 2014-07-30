@@ -41,6 +41,7 @@ MIN_LIMIT_SPACE,,min-space,R=LIMIT,Set the minimum amount of disk space to exit.
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for download failures (captcha, network errors). Default is 2 (3 tries).
+CACHE,,cache,C|none|session|shared=METHOD,Policy for storage data. Available: none, session (default), shared.
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
 CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
@@ -956,6 +957,11 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             eval "$(process_module_options "$MODULE" DOWNLOAD \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
+            # Module storage policy (part 1/2)
+            if [ "$CACHE" = 'none' ]; then
+                storage_reset
+            fi
+
             ${MODULE}_vars_set
             download "$MODULE" "$URL" "$TYPE" "$ITEM" "${OUTPUT_DIR%/}" \
                 "${MAXRETRIES:-2}" "$PREVIOUS_HOST" || MRETVAL=$?
@@ -974,6 +980,11 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         fi
     done
 done
+
+# Module storage policy (part 2/2)
+if [ "$CACHE" != 'shared' ]; then
+    storage_reset
+fi
 
 # Restore umask
 test "$UMASK" && umask $UMASK

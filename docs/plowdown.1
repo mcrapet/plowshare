@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "July 22, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "July 30, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -65,6 +65,28 @@ Default option value is disabled (no timeout, infinite) and applies for one sing
 .B -x, --no-overwrite
 Do not overwrite existing files. Existing file will be preserved and filename will be
 suffixed with .1, .2, and so on.
+.TP
+.BI "   " " " --cache= METHOD
+Cache policy regarding module storage space.
+Each module is able to save data (credentials, authentication session, or tokens)
+in order to be reused later.
+Available values:
+.RS
+\fBnone\fR : module storage file is deleted before each URL processing.
+Temporary directory is used.
+.RE
+.RS
+\fBsession\fR (default) : module storage file is deleted at the end of plowdown execution.
+Temporary directory is used.
+.RE
+.RS
+\fBshared\fR : module storage file is global and located (in \fI~/.config/plowshare/storage/\fR).
+It can be accessed by any other instance of plow* scripts.
+Warning: There is no atomicity (or file locking) on concurrent access.
+
+Example: Multiple links download using a premium account.
+If supported by module, login stage could be performed once.
+.RE
 .SS Captcha options
 .TP
 .BI "   " " " --9kweu= KEY
@@ -415,6 +437,9 @@ $ plowdown \-m file_with_links.txt
 .\" ****************************************************************************
 .SH "FILES"
 .TP
+.I /etc/plowshare.conf
+Systemwide configuration file.
+.TP
 .I ~/.config/plowshare/plowshare.conf
 This is the per-user configuration file.
 .TP
@@ -422,8 +447,9 @@ This is the per-user configuration file.
 Additional directory considered when searching for executable.
 See \fB--captchaprogram\fR, \fB--run-before\fR and \fB--run-after\fR switches.
 .TP
-.I /etc/plowshare.conf
-Systemwide configuration file.
+.I ~/.config/plowshare/storage/
+Directory used for storing data (one file per module) amoung sessions.
+See \fB--cache=shared\fR switch.
 .PP
 The file format is described in
 .BR plowshare.conf (5).
