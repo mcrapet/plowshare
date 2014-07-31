@@ -47,14 +47,14 @@ MODULE_RAPIDGATOR_PROBE_OPTIONS=""
 rapidgator_login() {
     local -r AUTH=$1
     local -r COOKIE_FILE=$2
-    local -r BASE_URL=$3
+    local -r BASE_URL=${3/#http/https}
     local LOGIN_DATA HTML EMAIL TYPE STATUS
 
     LOGIN_DATA='LoginForm[email]=$USER&LoginForm[password]=$PASSWORD&LoginForm[rememberMe]=1'
     HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "${BASE_URL/#http/https}/auth/login" -L -b "$COOKIE_FILE") || return
+        "$BASE_URL/auth/login" -L -b "$COOKIE_FILE") || return
 
-    # check for JS redirection
+    # Check for JS redirection
     # <script language="JavaScript">function ZD5wC ... window.location.href='/auth/login?'+MGOwqz+'';MGOwqz='';</script>
     if match 'window.location.href=' "$HTML"; then
         log_debug 'JS redirect detected'
@@ -67,7 +67,68 @@ rapidgator_login() {
     fi
 
     STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
-    [ -n "$STATUS" ] || return $ERR_LOGIN_FAILED
+
+    # Check for some heavy usage login problems
+    if [ -z "$STATUS" ]; then
+        # Forced wait
+        # <li>Frequent logins. Please wait 20 sec...</li>
+        if match 'Frequent logins' "$HTML"; then
+            log_debug 'Login detention detected'
+            local WAIT_TIME
+
+            WAIT_TIME=$(parse 'Frequent logins' \
+                'Please wait \([[:digit:]]\+\) sec' <<< "$HTML") || return
+            wait $WAIT_TIME || return
+
+            # Retry login
+            HTML=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+                "$BASE_URL/auth/login" -L -b "$COOKIE_FILE") || return
+
+        # CAPTCHA
+        # <li>The code from a picture does not coincide</li>
+        elif match 'The code from a picture does not coincide' "$HTML"; then
+            log_debug 'Login CAPTCHA detected'
+            local CAPTCHA_URL IMG_FILE WI WORD ID
+
+            IMG_FILE=$(create_tempfile '.rapidgator.jpg') || return
+
+            # Get captcha image
+            CAPTCHA_URL=$(parse_attr 'auth/captcha' 'src' <<< "$HTML") || return
+            curl -b "$COOKIE_FILE" -o "$IMG_FILE" "${BASE_URL}${CAPTCHA_URL}" || return
+
+            # Solve captcha
+            # Note: Image is a 120x50 png file containing 5 characters
+            WI=$(captcha_process "$IMG_FILE" rapidgator 5 5) || return
+            { read WORD; read ID; } <<< "$WI"
+            rm -f "$IMG_FILE"
+
+            # Retry login with CAPTCHA
+            HTML=$(post_login "$AUTH" "$COOKIE_FILE" "${LOGIN_DATA}&LoginForm[verifyCode]=$WORD" \
+            "$BASE_URL/auth/login" -L -b "$COOKIE_FILE") || return
+
+            if match 'The code from a picture does not coincide' "$HTML"; then
+                captcha_nack "$ID"
+                return $ERR_CAPTCHA
+            fi
+
+            captcha_ack "$ID"
+            STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
+
+        else
+            local FORM=$(grep_form_by_id_quiet "$HTML" 'registration')
+            log_debug "Unexpected login issue: $FORM"
+            return $ERR_FATAL
+        fi
+    fi
+
+    if [ -z "$STATUS" ]; then
+        if match 'Error e-mail or password' "$HTML"; then
+            return $ERR_LOGIN_FAILED
+        fi
+
+        log_error 'Unexpected content. Site updated?'
+        return $ERR_FATAL
+    fi
 
     split_auth "$AUTH" EMAIL || return
 
