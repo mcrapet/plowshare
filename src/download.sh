@@ -957,6 +957,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             eval "$(process_module_options "$MODULE" DOWNLOAD \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
+            [ "${#UNUSED_OPTS[@]}" -eq 0 ] || \
+                log_notice "$MODULE: unused command line switches: ${UNUSED_OPTS[@]}"
+
             # Module storage policy (part 1/2)
             if [ "$CACHE" = 'none' ]; then
                 storage_reset
