@@ -229,8 +229,20 @@ keep2share_upload() {
     local SZ TOKEN JSON JSON2 FILE_ID FOLDER_ID
 
     if TOKEN=$(storage_get 'token'); then
+
+        # Check for expired session
+        JSON=$(curl --data '{"auth_token":"'$TOKEN'"}' "${API_URL}test") || return
+
+        # {"status":"success","code":200,"message":"Test was successful!"}
+        # {"status":"error","code":403,"message":"Authorization session was expired"}
+        if ! keep2share_status "$JSON"; then
+            log_debug 'expired token, delete cache entry'
+            storage_set 'token'
+            echo 1
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
         log_debug "token (cached): '$TOKEN'"
-        # FIXME: Check for expired session
     else
         [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
 
