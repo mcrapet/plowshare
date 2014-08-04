@@ -231,7 +231,7 @@ uptobox_download() {
        fi
     fi
 
-    parse_attr 'start your download' 'href' <<< "$PAGE" || return
+    parse 'start your download' 'href="\([^"]\+\)"' -2 <<< "$PAGE" || return
     echo "$FORM_FNAME"
 }
 
