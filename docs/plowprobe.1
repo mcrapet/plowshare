@@ -112,7 +112,7 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .SS Miscellaneous options
 .TP
 .B "   " --follow
-If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
+If no module is found for link, follow HTTP redirects (curl \-L). Default is disabled.
 .TP
 .B "   " --get-module
 Echo module name for each URL and exit. Faster than \fB--printf=%m\fR. Useful for wrappers.
@@ -163,7 +163,7 @@ $ cat file_with_links.txt | plowprobe - > file_with_active_links.txt
 .EE
 .SS 2) Custom results format
 .EX
-# Print links informations: filename and size
+# Print links information: filename and size
 $ plowprobe \-\-printf '# %f (%s)%n%u%n' http://www.sendspace.com/file/5njdw7
 .EE
 
