@@ -86,7 +86,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 # $1: filename
 logcat_report() {
     if test -s "$1"; then
-        test $VERBOSE -ge 4 && \
+        test $VERBOSE -lt 4 || \
             stderr "$(sed -e 's/^/rep:/' "$1")"
     fi
     return 0
@@ -94,24 +94,20 @@ logcat_report() {
 
 # This should not be called within modules
 log_report() {
-    test $VERBOSE -ge 4 && stderr "rep: $@"
-    return 0
+    test $VERBOSE -lt 4 || stderr "rep: $@"
 }
 
 log_debug() {
-    test $VERBOSE -ge 3 && stderr "dbg: $@"
-    return 0
+    test $VERBOSE -lt 3 || stderr "dbg: $@"
 }
 
 # This should not be called within modules
 log_notice() {
-    test $VERBOSE -ge 2 && stderr "$@"
-    return 0
+    test $VERBOSE -lt 2 || stderr "$@"
 }
 
 log_error() {
-    test $VERBOSE -ge 1 && stderr "$@"
-    return 0
+    test $VERBOSE -lt 1 || stderr "$@"
 }
 
 ## ----------------------------------------------------------------------------
@@ -2932,6 +2928,7 @@ handle_tokens() {
 
 stderr() {
     echo "$@" >&2
+    return 0
 }
 
 # This function shell-quotes the argument ($1)
