@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# ziddu.com module
+# Plowshare ziddu.com module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

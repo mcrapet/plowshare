@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# hipfile.com module
+# Plowshare hipfile.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

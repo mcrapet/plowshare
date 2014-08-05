@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# multiupload.nl module
+# Plowshare multiupload.nl module
 # Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.

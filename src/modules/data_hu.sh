@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# data.hu module
+# Plowshare data.hu module
 # Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.

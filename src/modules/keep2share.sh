@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# keep2share.cc module
+# Plowshare keep2share.cc module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

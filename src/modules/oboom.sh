@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# oboom.com module
+# Plowshare oboom.com module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

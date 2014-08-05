@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filefactory.com module
+# Plowshare filefactory.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

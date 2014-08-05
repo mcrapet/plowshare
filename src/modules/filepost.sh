@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filepost.com module
+# Plowshare filepost.com module
 # Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.

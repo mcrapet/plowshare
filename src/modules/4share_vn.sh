@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# 4share.vn module
+# Plowshare 4share.vn module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

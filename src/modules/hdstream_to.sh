@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# hdstream.to module
+# Plowshare hdstream.to module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

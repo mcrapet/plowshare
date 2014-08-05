@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# embedupload.com module
+# Plowshare embedupload.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

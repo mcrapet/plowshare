@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# uptobox.com module
+# Plowshare uptobox.com module
 # Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.

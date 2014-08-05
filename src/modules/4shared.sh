@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# 4shared.com module
+# Plowshare 4shared.com module
 # Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.

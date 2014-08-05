@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# uploaded.net module
+# Plowshare uploaded.net module
 # Copyright (c) 2011-2014 Plowshare team
 #
 # This file is part of Plowshare.

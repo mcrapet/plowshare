@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# chomikuj.pl module
+# Plowshare chomikuj.pl module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

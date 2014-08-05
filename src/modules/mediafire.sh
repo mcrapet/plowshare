@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# mediafire.com module
+# Plowshare mediafire.com module
 # Copyright (c) 2011-2013 Plowshare team
 #
 # This file is part of Plowshare.

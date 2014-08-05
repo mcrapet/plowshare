@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# zalaa.com module
+# Plowshare zalaa.com module
 # Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.

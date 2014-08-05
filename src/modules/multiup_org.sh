@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# multiup.org module
+# Plowshare multiup.org module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

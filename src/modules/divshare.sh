@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# divshare.com module
+# Plowshare divshare.com module
 # Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.

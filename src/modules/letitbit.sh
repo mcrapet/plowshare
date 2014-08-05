@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# letitbit module
+# Plowshare letitbit module
 # Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.

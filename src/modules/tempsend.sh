@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# tempsend.com module
+# Plowshare tempsend.com module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

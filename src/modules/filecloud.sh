@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filecloud.io module
+# Plowshare filecloud.io module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# 1fichier.com module
+# Plowshare 1fichier.com module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
 # Copyright (c) 2012-2014 Plowshare team
 #

@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filepup.net module
+# Plowshare filepup.net module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

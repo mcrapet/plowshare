@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# ultramegabit.com module
+# Plowshare ultramegabit.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filebin.ca module
+# Plowshare filebin.ca module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

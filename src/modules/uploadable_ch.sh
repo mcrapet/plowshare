@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# uploadable.ch module
+# Plowshare uploadable.ch module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

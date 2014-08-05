@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# mirrorupload.net module
+# Plowshare mirrorupload.net module
 # Copyright (c) 2011-2013 Plowshare team
 #
 # This file is part of Plowshare.

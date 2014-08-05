@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# fshare.vn module
+# Plowshare fshare.vn module
 # Copyright (c) 2013-2014 Plowshare team
 #
 # This file is part of Plowshare.

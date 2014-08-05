@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# gfile.ru module
+# Plowshare gfile.ru module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

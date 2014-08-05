@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# zalil.ru module
+# Plowshare zalil.ru module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

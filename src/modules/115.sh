@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# 115.com module
+# Plowshare 115.com module
 # Copyright (c) 2010-2012 Plowshare team
 #
 # This file is part of Plowshare.

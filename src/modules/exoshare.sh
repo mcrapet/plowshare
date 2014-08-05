@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# exoshare.com module
+# Plowshare exoshare.com module
 # Copyright (c) 2011-2014 Plowshare team
 #
 # This file is part of Plowshare.

@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# netload.in module
+# Plowshare netload.in module
 # Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.

@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# bitshare.com module
+# Plowshare bitshare.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

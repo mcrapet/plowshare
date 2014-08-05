@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# sockshare.com module
+# Plowshare sockshare.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

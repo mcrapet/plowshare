@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# directmirror.com module
+# Plowshare directmirror.com module
 # Copyright (c) 2011-2014 Plowshare team
 #
 # This file is part of Plowshare.

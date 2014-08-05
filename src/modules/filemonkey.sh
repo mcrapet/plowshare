@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filemonkey.in module
+# Plowshare filemonkey.in module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

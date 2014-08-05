@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# filer.net module
+# Plowshare filer.net module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

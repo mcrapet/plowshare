@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# billionuploads.com module
+# Plowshare billionuploads.com module
 # Copyright (c) 2012-2013 sapk <at> sapk.fr
 #
 # This file is part of Plowshare.

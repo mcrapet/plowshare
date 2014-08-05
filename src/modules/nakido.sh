@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# nakido.com module
+# Plowshare nakido.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

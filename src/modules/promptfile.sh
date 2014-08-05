@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# promptfile.com module
+# Plowshare promptfile.com module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.

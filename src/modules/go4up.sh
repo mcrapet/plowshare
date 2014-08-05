@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# go4up.com module
+# Plowshare go4up.com module
 # Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.

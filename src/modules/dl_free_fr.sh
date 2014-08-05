@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# dl.free.fr module
+# Plowshare dl.free.fr module
 # Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.

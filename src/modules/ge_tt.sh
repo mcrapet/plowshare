@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# ge.tt module
+# Plowshare ge.tt module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

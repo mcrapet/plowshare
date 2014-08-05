@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# fileover.net module
+# Plowshare fileover.net module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

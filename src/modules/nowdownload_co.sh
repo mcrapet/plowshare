@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# nowdownload.co module
+# Plowshare nowdownload.co module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

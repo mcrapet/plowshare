@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# 180upload.com module
+# Plowshare 180upload.com module
 # Copyright (c) 2012-2013 Plowshare team
 #
 # This file is part of Plowshare.

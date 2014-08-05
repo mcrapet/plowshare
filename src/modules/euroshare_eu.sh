@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# euroshare.eu module
+# Plowshare euroshare.eu module
 # Copyright (c) 2011 halfman <Pulpan3@gmail.com>
 # Copyright (c) 2012-2013 Plowshare team
 #

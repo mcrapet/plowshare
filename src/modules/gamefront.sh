@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# gamefront.com module
+# Plowshare gamefront.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

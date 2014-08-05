@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# sendspace.com module
+# Plowshare sendspace.com module
 # Copyright (c) 2010-2013 Plowshare team
 #
 # This file is part of Plowshare.

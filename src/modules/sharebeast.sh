@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# sharebeast.com module
+# Plowshare sharebeast.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

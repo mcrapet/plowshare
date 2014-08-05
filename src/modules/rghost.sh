@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# rghost.net module
+# Plowshare rghost.net module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

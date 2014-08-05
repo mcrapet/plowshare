@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# solidfiles.com module
+# Plowshare solidfiles.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

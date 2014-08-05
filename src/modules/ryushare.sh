@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# ryushare.com module
+# Plowshare ryushare.com module
 # Copyright (c) 2012 Plowshare team
 #
 # This file is part of Plowshare.

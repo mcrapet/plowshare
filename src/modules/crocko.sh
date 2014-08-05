@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# crocko.com module
+# Plowshare crocko.com module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# anonymousdelivers.us module
+# Plowshare anonymousdelivers.us module
 # Copyright (c) 2013 Plowshare team
 #
 # This file is part of Plowshare.

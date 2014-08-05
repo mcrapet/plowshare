@@ -1,6 +1,4 @@
-#!/bin/bash
-#
-# flashx.tv module
+# Plowshare flashx.tv module
 # Copyright (c) 2014 Plowshare team
 #
 # This file is part of Plowshare.
