@@ -69,7 +69,7 @@ anonfiles_download() {
 anonfiles_upload() {
     local -r FILE=$2
     local -r DESTFILE=$3
-    local -r BASE_URL='https://anonfiles.com/api'
+    local -r API_URL='https://anonfiles.com/api/v1/'
     local JSON DL_URL ERR MSG
 
     # Note1: Accepted file types is very restrictive! According to site: jpg, jpeg, gif, png, pdf,
@@ -77,16 +77,16 @@ anonfiles_upload() {
 
     # Note2: -F "file_publish=on" does not work!
     JSON=$(curl_with_log \
-        -F "file=@$FILE;filename=$DESTFILE" "$BASE_URL") || return
+        -F "file=@$FILE;filename=$DESTFILE" "${API_URL}upload") || return
 
-    DL_URL=$(echo "$JSON" | parse_json_quiet url)
+    DL_URL=$(parse_json_quiet url <<< "$JSON")
     if match_remote_url "$DL_URL"; then
       echo "$DL_URL"
       return 0
     fi
 
-    ERR=$(echo "$JSON" | parse_json status)
-    MSG=$(echo "$JSON" | parse_json msg)
+    ERR=$(parse_json status <<< "$JSON")
+    MSG=$(parse_json msg <<< "$JSON")
     log_error "Unexpected status ($ERR): $MSG"
     return $ERR_FATAL
 }
@@ -99,18 +99,25 @@ anonfiles_upload() {
 anonfiles_probe() {
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT
+    local -r API_URL='https://anonfiles.com/api/v1/'
+    local FILE_ID JSON RET REQ_OUT
 
-    PAGE=$(curl -L "$URL") || return
+    FILE_ID=$(parse . '/\(.*\)$' <<< "$URL") || return
+    JSON=$(curl "${API_URL}info/$FILE_ID") || return
 
-    if match '404 - File Not Found<\|>File does not exist\.<' "$PAGE"; then
+    RET=$(parse_json status <<< "$JSON")
+    if [ "$RET" -ne 0 ]; then
         return $ERR_LINK_DEAD
     fi
 
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        parse_tag '<legend' b <<< "$PAGE" && REQ_OUT="${REQ_OUT}f"
+        parse_json_quiet 'file_name' <<< "$JSON" && REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *s* ]]; then
+        parse_json_quiet 'file_size' <<< "$JSON" && REQ_OUT="${REQ_OUT}s"
     fi
 
     echo $REQ_OUT
