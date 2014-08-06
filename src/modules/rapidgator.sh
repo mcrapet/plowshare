@@ -110,7 +110,6 @@ rapidgator_login() {
             fi
 
             captcha_ack "$ID"
-            STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
 
         else
             local FORM=$(grep_form_by_id_quiet "$HTML" 'registration')
@@ -118,6 +117,8 @@ rapidgator_login() {
             return $ERR_FATAL
         fi
     fi
+
+    STATUS=$(parse_cookie_quiet 'user__' < "$COOKIE_FILE")
 
     if [ -z "$STATUS" ]; then
         if match 'Error e-mail or password' "$HTML"; then
