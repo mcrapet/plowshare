@@ -20,9 +20,12 @@
 
 MODULE_KEEP2SHARE_REGEXP_URL='https\?://\(www\.\)\?\(keep2share\|k2s\|k2share\|keep2s\)\.cc/'
 
-MODULE_KEEP2SHARE_DOWNLOAD_OPTIONS=""
+MODULE_KEEP2SHARE_DOWNLOAD_OPTIONS="
+AUTH,a,auth,a=EMAIL:PASSWORD,Premium account"
 MODULE_KEEP2SHARE_DOWNLOAD_RESUME=yes
 MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
+MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=
+MODULE_KEEP2SHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_KEEP2SHARE_UPLOAD_OPTIONS="
 AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)
@@ -73,7 +76,8 @@ keep2share_login() {
 # stdout: real file download link
 keep2share_download() {
     local -r COOKIE_FILE=$1
-    local URL BASE_URL FILE_NAME PRE_URL
+    local -r API_URL='http://keep2share.cc/api/v1/'
+    local URL BASE_URL TOKEN FILE_NAME PRE_URL
     local PAGE FORM_HTML FORM_ID FORM_ACTION WAIT
 
     # get canonical URL and BASE_URL for this file
@@ -81,6 +85,38 @@ keep2share_download() {
     [ -n "$URL" ] || URL=$2
     BASE_URL=${URL%/file*}
     readonly URL BASE_URL
+
+
+    # Premium download
+    if TOKEN=$(storage_get 'token'); then
+
+        # Check for expired session
+        JSON=$(curl --data '{"auth_token":"'$TOKEN'"}' "${API_URL}test") || return
+
+        # {"status":"success","code":200,"message":"Test was successful!"}
+        # {"status":"error","code":403,"message":"Authorization session was expired"}
+        if ! keep2share_status "$JSON"; then
+            log_debug 'expired token, delete cache entry'
+            storage_set 'token'
+            echo 1
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
+        log_debug "token (cached): '$TOKEN'"
+
+        curl --head -b "sessid=$TOKEN" "$URL" | grep_http_header_location || return
+        MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(-J)
+        return 0
+
+    elif [ -n "$AUTH" ]; then
+        TOKEN=$(keep2share_login "$AUTH" "$API_URL") || return
+        storage_set 'token' "$TOKEN"
+        log_debug "token: '$TOKEN'"
+
+        curl --head -b "sessid=$TOKEN" "$URL" | grep_http_header_location || return
+        MODULE_KEEP2SHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(-J)
+        return 0
+    fi
 
     PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
 
