@@ -244,12 +244,13 @@ fi
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+readonly LIBDIR
 TMPDIR=${TMPDIR:-/tmp}
 
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list 'upload') || exit
+MODULES=$(get_all_modules_list "$LIBDIR" 'upload') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -290,7 +291,7 @@ if [ $# -lt 1 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-log_report_info
+log_report_info "$LIBDIR"
 log_report "plowup version $VERSION"
 
 if [ -n "$EXT_PLOWSHARERC" ]; then

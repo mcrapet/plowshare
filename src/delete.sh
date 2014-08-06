@@ -80,12 +80,13 @@ usage() {
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+readonly LIBDIR
 TMPDIR=${TMPDIR:-/tmp}
 
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list 'delete') || exit
+MODULES=$(get_all_modules_list "$LIBDIR" 'delete') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done

@@ -165,12 +165,13 @@ module_null_list() {
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+readonly LIBDIR
 TMPDIR=${TMPDIR:-/tmp}
 
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list 'list') || exit
+MODULES=$(get_all_modules_list "$LIBDIR" 'list') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done

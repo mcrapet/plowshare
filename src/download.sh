@@ -737,12 +737,13 @@ fi
 
 # Get library directory
 LIBDIR=$(absolute_path "$0")
+readonly LIBDIR
 TMPDIR=${TMPDIR:-/tmp}
 
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list 'download') || exit
+MODULES=$(get_all_modules_list "$LIBDIR" 'download') || exit
 for MODULE in $MODULES; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
@@ -783,7 +784,7 @@ if [ $# -lt 1 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-log_report_info
+log_report_info "$LIBDIR"
 log_report "plowdown version $VERSION"
 
 if [ -n "$EXT_PLOWSHARERC" ]; then
@@ -937,7 +938,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
             # Check if plowlist can handle $URL
             if [ -z "$MODULES_LIST" ]; then
-                MODULES_LIST=$(get_all_modules_list 'list' 'download') || true
+                MODULES_LIST=$(get_all_modules_list "$LIBDIR" 'list' 'download') || true
                 for MODULE in $MODULES_LIST; do
                     source "$LIBDIR/modules/$MODULE.sh"
                 done
