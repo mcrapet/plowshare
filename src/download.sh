@@ -221,9 +221,10 @@ module_config_need_cookie() {
 # Example: "MODULE_RYUSHARE_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(-F "key=value")
 # $1: module name
 # stdout: variable array name (not content)
+# $?: 0 for success (non empty array)
 module_config_need_extra() {
     local -u VAR="MODULE_${1}_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA"
-    test -z "${!VAR}" || echo "${VAR}"
+    test -n "${!VAR}" && echo "${VAR}[@]"
 }
 
 # Example: "MODULE_RYUSHARE_DOWNLOAD_SUCCESSIVE_INTERVAL=10"
@@ -531,11 +532,9 @@ download() {
             :> "$DRESULT"
 
             #  Give extra parameters to curl (custom HTTP headers, ...)
-            ANAME=$(module_config_need_extra "$MODULE")
-            if test -n "$ANAME"; then
-                local -a CURL_EXTRA="$ANAME[@]"
+            if ANAME=$(module_config_need_extra "$MODULE"); then
                 local OPTION
-                for OPTION in "${!CURL_EXTRA}"; do
+                for OPTION in "${!ANAME}"; do
                     log_debug "adding extra curl options: '$OPTION'"
                     CURL_ARGS+=("$OPTION")
                 done
@@ -552,7 +551,6 @@ download() {
             curl_with_log "${CURL_ARGS[@]}" --fail --globoff \
                 -w '%{http_code}\t%{size_download}' \
                 -o "$FILENAME_TMP" "$FILE_URL" >"$DRESULT" || DRETVAL=$?
-
             IFS=$'\t' read -r STATUS FILE_SIZE < "$DRESULT"
             rm -f "$DRESULT"
 
