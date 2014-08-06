@@ -267,6 +267,14 @@ rapidgator_download() {
 
     # If this is a premium download, we already have the download link
     if [ "$ACCOUNT" = 'premium' ]; then
+        # Consider errors (enforced limits) which only occur for premium users
+        # You have reached quota of downloaded information for premium accounts
+        if match 'reached quota of downloaded information' "$HTML"; then
+            log_error 'Quota exceeded.'
+            echo 3600
+            return $ERR_LINK_TEMP_UNAVAILABLE
+        fi
+
         # Extract premium download link from page
         if match 'Click here to download' "$HTML"; then
             parse 'premium_download_link' "'\(.\+\)'" <<< "$HTML" || return
