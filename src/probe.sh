@@ -90,14 +90,14 @@ process_item() {
 }
 
 # Print usage (on stdout)
-# Note: $MODULES is a multi-line list
+# Note: Global array variable MODULES is accessed directly.
 usage() {
     echo 'Usage: plowprobe [OPTIONS] [MODULE_OPTIONS] URL|FILE...'
     echo 'Retrieve metadata from file sharing download links.'
     echo
     echo 'Global options:'
     print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
-    test -z "$1" || print_module_options "$MODULES" PROBE
+    test -z "$1" || print_module_options MODULES[@] PROBE
 }
 
 # Note: Global option $PRINTF_FORMAT is accessed directly.
@@ -261,8 +261,8 @@ TMPDIR=${TMPDIR:-/tmp}
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list "$LIBDIR" 'probe') || exit
-for MODULE in $MODULES; do
+mapfile -t MODULES < <(get_all_modules_list "$LIBDIR" 'probe') || exit
+for MODULE in "${MODULES[@]}"; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
@@ -274,7 +274,7 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if test "$ALLMODULES"; then
-    for MODULE in $MODULES; do echo "$MODULE"; done
+    for MODULE in "${MODULES[@]}"; do echo "$MODULE"; done
     exit 0
 fi
 
@@ -321,7 +321,7 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
 fi
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" PROBE)
+MODULE_OPTIONS=$(get_all_modules_options MODULES[@] PROBE)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowprobe' "$MODULE_OPTIONS" \
@@ -357,7 +357,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 
     for URL in "${ELEMENTS[@]}"; do
         PRETVAL=0
-        MODULE=$(get_module "$URL" "$MODULES") || true
+        MODULE=$(get_module "$URL" MODULES[@]) || true
 
         if [ -z "$MODULE" ]; then
             if match_remote_url "$URL"; then
@@ -371,7 +371,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                     URL_TEMP=$(grep_http_header_location_quiet <<< "$HEADERS")
 
                     if [ -n "$URL_TEMP" ]; then
-                        MODULE=$(get_module "$URL_TEMP" "$MODULES") || PRETVAL=$?
+                        MODULE=$(get_module "$URL_TEMP" MODULES[@]) || PRETVAL=$?
                         test "$MODULE" && URL=$URL_TEMP
                     else
                         match 'https\?://[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}/' \
@@ -394,13 +394,13 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 log_error "Skip: no module for URL ($(basename_url "$URL")/)"
 
             # Check if plowlist can handle $URL
-            if [ -z "$MODULES_LIST" ]; then
-                MODULES_LIST=$(get_all_modules_list "$LIBDIR" 'list' 'probe') || true
-                for MODULE in $MODULES_LIST; do
+            if [[ ! $MODULES_LIST ]]; then
+                mapfile -t MODULES_LIST < <(get_all_modules_list "$LIBDIR" 'list' 'probe') || true
+                for MODULE in "${MODULES_LIST[@]}"; do
                     source "$LIBDIR/modules/$MODULE.sh"
                 done
             fi
-            MODULE=$(get_module "$URL" "$MODULES_LIST") || true
+            MODULE=$(get_module "$URL" MODULES_LIST[@]) || true
             if [ -n "$MODULE" ]; then
                 log_notice "Note: This URL ($MODULE) is supported by plowlist"
             fi

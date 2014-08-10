@@ -74,14 +74,14 @@ absolute_path() {
 }
 
 # Print usage (on stdout)
-# Note: $MODULES is a multi-line list
+# Note: Global array variable MODULES is accessed directly.
 usage() {
     echo 'Usage: plowup [OPTIONS] MODULE [MODULE_OPTIONS] URL|FILE[:DESTNAME]...'
     echo 'Upload files to file sharing websites.'
     echo
     echo 'Global options:'
     print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
-    test -z "$1" || print_module_options "$MODULES" UPLOAD
+    test -z "$1" || print_module_options MODULES[@] UPLOAD
 }
 
 # Check if module name is contained in list
@@ -250,8 +250,8 @@ TMPDIR=${TMPDIR:-/tmp}
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list "$LIBDIR" 'upload') || exit
-for MODULE in $MODULES; do
+mapfile -t MODULES < <(get_all_modules_list "$LIBDIR" 'upload') || exit
+for MODULE in "${MODULES[@]}"; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
@@ -263,7 +263,7 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if test "$ALLMODULES"; then
-    for MODULE in $MODULES; do echo "$MODULE"; done
+    for MODULE in "${MODULES[@]}"; do echo "$MODULE"; done
     exit 0
 fi
 
@@ -340,7 +340,7 @@ if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
 fi
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" UPLOAD)
+MODULE_OPTIONS=$(get_all_modules_options MODULES[@] UPLOAD)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowup' "$MODULE_OPTIONS" \

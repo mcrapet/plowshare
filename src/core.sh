@@ -2561,7 +2561,7 @@ timeout_init() {
 
 # Show help info for options
 #
-# $1: options
+# $1: options (one per line)
 # $2: indent string
 print_options() {
     local -r INDENT=${2:-'  '}
@@ -2592,41 +2592,44 @@ print_options() {
 
 # Show usage info for modules
 #
-# $1: module name list (one per line)
+# $1: module list (array name)
 # $2: option family name (string, example:UPLOAD)
 print_module_options() {
-    while read -r; do
-        local OPTIONS=$(get_module_options "$REPLY" "$2")
+    local ELT OPTIONS
+    for ELT in "${!1}"; do
+        OPTIONS=$(get_module_options "$ELT" "$2")
         if test "$OPTIONS"; then
             echo
-            echo "Options for module <$REPLY>:"
+            echo "Options for module <$ELT>:"
             print_options "$OPTIONS"
         fi
-    done <<< "$1"
+    done
 }
 
 # Get all modules options with specified family name
 #
-# $1: module name list (one per line)
+# $1: module list (array name)
 # $2: option family name (string, example:UPLOAD)
 get_all_modules_options() {
-    while read -r; do
-        get_module_options "$REPLY" "$2"
-    done <<< "$1"
+    local ELT
+    for ELT in "${!1}"; do
+        get_module_options "$ELT" "$2"
+    done
 }
 
 # Get module name from URL link
 #
 # $1: url
-# $2: module name list (one per line)
+# $2: module list (array name)
 get_module() {
-    while read -r; do
-        local -u VAR="MODULE_${REPLY}_REGEXP_URL"
+    local ELT
+    for ELT in "${!2}"; do
+        local -u VAR="MODULE_${ELT}_REGEXP_URL"
         if match "${!VAR}" "$1"; then
-            echo "$REPLY"
+            echo "$ELT"
             return 0
         fi
-    done <<< "$2"
+    done
     return $ERR_NOMODULE
 }
 

@@ -64,14 +64,14 @@ absolute_path() {
 }
 
 # Print usage (on stdout)
-# Note: $MODULES is a multi-line list
+# Note: Global array variable MODULES is accessed directly.
 usage() {
     echo 'Usage: plowdel [OPTIONS] [MODULE_OPTIONS] URL...'
     echo 'Delete files from file sharing websites links.'
     echo
     echo 'Global options:'
     print_options "$EARLY_OPTIONS$MAIN_OPTIONS"
-    test -z "$1" || print_module_options "$MODULES" DELETE
+    test -z "$1" || print_module_options MODULES[@] DELETE
 }
 
 #
@@ -86,8 +86,8 @@ TMPDIR=${TMPDIR:-/tmp}
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-MODULES=$(get_all_modules_list "$LIBDIR" 'delete') || exit
-for MODULE in $MODULES; do
+mapfile -t MODULES < <(get_all_modules_list "$LIBDIR" 'delete') || exit
+for MODULE in "${MODULES[@]}"; do
     source "$LIBDIR/modules/$MODULE.sh"
 done
 
@@ -99,7 +99,7 @@ test "$HELP" && { usage; exit 0; }
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if test "$ALLMODULES"; then
-    for MODULE in $MODULES; do echo "$MODULE"; done
+    for MODULE in "${MODULES[@]}"; do echo "$MODULE"; done
     exit 0
 fi
 
@@ -149,7 +149,7 @@ else
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
 fi
 
-MODULE_OPTIONS=$(get_all_modules_options "$MODULES" DELETE)
+MODULE_OPTIONS=$(get_all_modules_options MODULES[@] DELETE)
 
 # Process command-line (all module options)
 eval "$(process_all_modules_options 'plowdel' "$MODULE_OPTIONS" \
@@ -172,7 +172,7 @@ DCOOKIE=$(create_tempfile) || exit
 for URL in "${COMMAND_LINE_ARGS[@]}"; do
     DRETVAL=0
 
-    MODULE=$(get_module "$URL" "$MODULES") || DRETVAL=$?
+    MODULE=$(get_module "$URL" MODULES[@]) || DRETVAL=$?
     if [ $DRETVAL -ne 0 ]; then
         if ! match_remote_url "$URL"; then
             log_error "Skip: not an URL ($URL)"
