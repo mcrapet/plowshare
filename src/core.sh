@@ -1398,9 +1398,8 @@ captcha_process() {
             fi
 
             if check_exec identify; then
-                local DIMENSION=$(identify -quiet "$FILENAME" | cut -d' ' -f3)
-                local W=${DIMENSION%x*}
-                local H=${DIMENSION#*x}
+                local -i W H
+                read -r W H < <(identify -quiet -format '%w %h' "$FILENAME")
                 [ "$W" -lt "$MAX_OUTPUT_WIDTH" ] && MAX_OUTPUT_WIDTH=$W
                 [ "$H" -lt "$MAX_OUTPUT_HEIGHT" ] && MAX_OUTPUT_HEIGHT=$H
             fi
