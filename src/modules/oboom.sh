@@ -431,7 +431,7 @@ oboom_login() {
     PAGE=$(curl \
         -d "auth=$USER" \
         -d "pass=$PASS_PBKDF2" \
-        'http://www.oboom.com/1/login') || return
+        'https://www.oboom.com/1/login') || return
 
     oboom_check_error "$PAGE" 'Login' || return
 
