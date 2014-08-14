@@ -66,6 +66,7 @@ uninstall:
 	@rm -rf $(DESTDIR)$(DATADIR) $(DESTDIR)$(DOCDIR)
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)1/, $(MANPAGES1))
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))
+	@$(RM) $(addprefix $(DESTDIR)$(PREFIX)/share/bash-completion/completions/, $(MANPAGES1:%.1=%))
 
 patch_git_version: $(DESTDIR)$(DATADIR)
 	@v=`$(GIT_VERSION)` && \
