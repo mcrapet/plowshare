@@ -86,7 +86,7 @@ usage() {
 
 # Check if module name is contained in list
 #
-# $1: module name list (one per line)
+# $1: module list (array name)
 # $2: module name
 # $?: zero for found, non zero otherwie
 # stdout: lowercase module name (if found)
@@ -95,12 +95,12 @@ module_exist() {
     local N2=${N1//./_}
     local MODULE
 
-    while read MODULE; do
+    for MODULE in "${!1}"; do
         if [[ $N1 = $MODULE || $N2 = $MODULE ]]; then
             echo "$MODULE"
             return 0
         fi
-    done <<< "$1"
+    done
     return 1
 }
 
@@ -357,7 +357,7 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
 fi
 
 # Check requested module
-MODULE=$(module_exist "$MODULES" "${COMMAND_LINE_ARGS[0]}") || {
+MODULE=$(module_exist MODULES[@] "${COMMAND_LINE_ARGS[0]}") || {
     log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})";
     exit $ERR_NOMODULE;
 }
