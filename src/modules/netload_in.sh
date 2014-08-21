@@ -66,18 +66,18 @@ netload_in_infos() {
 # stdout: real file download link
 netload_in_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$(echo "$2" | replace 'www.' '')
+    local -r URL=${2/www.}
     local -r BASE_URL='http://netload.in'
-    local FILE_ID RESPONSE FILE_NAME
-    local PAGE WAIT_URL WAIT_HTML WAIT_TIME CAPTCHA_URL CAPTCHA_IMG FILE_URL
+    local FILE_ID FILE_NAME
+    local PAGE WAIT_URL WAIT_TIME FILE_URL
 
     # Get filename using API
-    FILE_ID=$(echo "$URL" | parse . '/datei\([[:alnum:]]\+\)[/.]') || return
+    FILE_ID=$(parse . '/datei\([[:alnum:]]\+\)[/.]' <<< "$URL") || return
     log_debug "File ID: '$FILE_ID'"
 
     # file ID, filename, size, status
-    RESPONSE=$(netload_in_infos "$FILE_ID" 0) || return
-    FILE_NAME=${RESPONSE#*;}
+    PAGE=$(netload_in_infos "$FILE_ID" 0) || return
+    FILE_NAME=${PAGE#*;}
     FILE_NAME=${FILE_NAME%%;*}
 
     if [ -n "$AUTH" ]; then
@@ -85,12 +85,12 @@ netload_in_download() {
         MODULE_NETLOAD_IN_DOWNLOAD_RESUME=yes
 
         PAGE=$(curl -i -b "$COOKIE_FILE" "$URL") || return
-        FILE_URL=$(echo "$PAGE" | grep_http_header_location)
+        FILE_URL=$(grep_http_header_location <<< "$PAGE")
 
         # check for link redirection (HTTP error 301)
         if [ "${FILE_URL:0:1}" = '/' ]; then
             PAGE=$(curl -i -b "$COOKIE_FILE" "${BASE_URL}$FILE_URL") || return
-            FILE_URL=$(echo "$PAGE" | grep_http_header_location)
+            FILE_URL=$(grep_http_header_location <<< "$PAGE")
         fi
 
         # Account download method set to "Automatisch"
@@ -113,78 +113,60 @@ netload_in_download() {
         return $ERR_LINK_NEED_PERMISSIONS
     fi
 
-    WAIT_URL=$(echo "$PAGE" | parse_attr_quiet '<div class="Free_dl">' 'href')
-
-    test "$WAIT_URL" || return $ERR_LINK_DEAD
+    # Extract wait time
+    WAIT_URL=$(parse_attr_quiet '<div class="Free_dl">' 'href' <<< "$PAGE")
+    [ "$WAIT_URL" ] || return $ERR_LINK_DEAD
 
     WAIT_URL="$BASE_URL/${WAIT_URL//&amp;/&}"
-    WAIT_HTML=$(curl -b "$COOKIE_FILE" --location --referer "$URL" "$WAIT_URL") || return
-    WAIT_TIME=$(echo "$WAIT_HTML" | parse_quiet 'type="text/javascript">countdown' \
-            "countdown(\([[:digit:]]*\),'change()')")
+    PAGE=$(curl -b "$COOKIE_FILE" --referer "$URL" "$WAIT_URL") || return
+    WAIT_TIME=$(parse 'type="text/javascript">countdown' \
+            "countdown(\([[:digit:]]*\),'change()')" <<< "$PAGE") || return
 
-    wait $((WAIT_TIME / 100)) seconds || return
+    # Scrape (post) form
+    local FORM FORM_ACT FORM_FID
+    FORM=$(grep_form_by_order "$PAGE") || return
+    FORM_ACT=$(parse_form_action <<< "$FORM") || return
+    FORM_FID=$(parse_form_input_by_name 'file_id' <<< "$FORM") || return
 
-    # 74x29 jpeg file
-    CAPTCHA_URL=$(echo "$WAIT_HTML" | parse_attr '<img style="vertical-align' 'src') || return
-    CAPTCHA_IMG=$(create_tempfile '.jpg') || return
+    # Solve recaptcha
+    local PUBKEY WCI CHALLENGE WORD ID
+    PUBKEY='6LcLJMQSAAAAAJzquPUPKNovIhbK6LpSqCjYrsR1'
+    WCI=$(recaptcha_process $PUBKEY)
+    { read WORD; read CHALLENGE; read ID; } <<< "$WCI"
+    log_debug "Decoded captcha: $WORD"
 
-    # Get new image captcha (cookie is mandatory)
-    curl -b "$COOKIE_FILE" "$BASE_URL/$CAPTCHA_URL" -o "$CAPTCHA_IMG" || return
+    wait $((WAIT_TIME / 100 + 1)) || return
 
-    local WI WORD ID
-    WI=$(captcha_process "$CAPTCHA_IMG" digits 4) || return
-    { read WORD; read ID; } <<<"$WI"
-    rm -f "$CAPTCHA_IMG"
+    PAGE=$(curl --include -b "$COOKIE_FILE" \
+        -d "recaptcha_challenge_field=$CHALLENGE" \
+        -d "recaptcha_response_field=$WORD" -d "file_id=$FORM_FID" \
+        -d 'captcha_check=1' -d 'start' "${BASE_URL}/$FORM_ACT") || return
 
-    if [ "${#WORD}" -lt 4 ]; then
-        captcha_nack $ID
-        log_debug 'captcha length invalid'
-        return $ERR_CAPTCHA
-    elif [ "${#WORD}" -gt 4 ]; then
-        WORD="${WORD:0:4}"
-    fi
-
-    log_debug "decoded captcha: $WORD"
-
-    # Send (post) form
-    local DOWNLOAD_FORM FORM_URL FORM_FID WAIT_HTML2
-    DOWNLOAD_FORM=$(grep_form_by_order "$WAIT_HTML" 1)
-    FORM_URL=$(echo "$DOWNLOAD_FORM" | parse_form_action) || return
-    FORM_FID=$(echo "$DOWNLOAD_FORM" | parse_form_input_by_name 'file_id') || return
-
-    WAIT_HTML2=$(curl -b "$COOKIE_FILE" \
-        -d 'start=' \
-        -d "file_id=$FORM_FID" \
-        -d "captcha_check=$WORD" \
-        "$BASE_URL/$FORM_URL") || return
-
-    if match 'class="InPage_Error"' "$WAIT_HTML2"; then
+    # Site redirects on captcha error
+    if grep_http_header_location <<< "$PAGE" &>/dev/null; then
         captcha_nack $ID
         log_error 'Wrong captcha'
         return $ERR_CAPTCHA
     fi
 
     captcha_ack $ID
-    log_debug 'correct captcha'
+    log_debug 'Correct captcha'
 
-    WAIT_TIME2=$(echo "$WAIT_HTML2" | parse_quiet 'type="text/javascript">countdown' \
-            "countdown(\([[:digit:]]*\),'change()')")
+    WAIT_TIME=$(parse_quiet 'type="text/javascript">countdown' \
+            "countdown(\([[:digit:]]*\),'change()')" <<< "$PAGE")
 
     # <!--./share/templates/download_limit.tpl-->
     # <!--./share/templates/download_wait.tpl-->
-    if [[ $WAIT_TIME2 -gt 10000 ]]; then
+    if [[ $WAIT_TIME -gt 10000 ]]; then
         log_debug 'Download limit reached!'
-        echo $((WAIT_TIME2 / 100))
+        echo $((WAIT_TIME / 100 + 1))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
     # Suppress this wait will lead to a 400 http error (bad request)
-    wait $((WAIT_TIME2 / 100)) seconds || return
+    wait $((WAIT_TIME / 100 + 1)) seconds || return
 
-    FILE_URL=$(echo "$WAIT_HTML2" | \
-        parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)')
-
-    echo "$FILE_URL"
+    parse '<a class="Orange_Link"' 'Link" href="\(http[^"]*\)' <<< "$PAGE" || return
     echo "$FILE_NAME"
 }
 
