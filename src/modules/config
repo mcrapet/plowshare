@@ -21,7 +21,6 @@ divshare        | download | upload | delete | list | probe |
 dl_free_fr      | download | upload | delete |      | probe |
 embedupload     |          |        |        | list |       |
 euroshare_eu    | download | upload | delete |      | probe |
-extabit         | download | upload |        |      | probe |
 exoshare        |          | upload |        | list |       |
 filebin_ca      | download | upload |        |      | probe |
 filecloud       | download | upload |        | list | probe |

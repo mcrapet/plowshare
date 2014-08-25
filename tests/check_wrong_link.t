@@ -22,12 +22,8 @@ http://bitshare.com/files/12bad345/
 http://depositfiles.com/files/abcdefghi
 --no-plowsharerc
 
-# free.fr
+# free.fr
 http://dl.free.fr/f12345abc
---no-plowsharerc
-
-# extabit.com
-http://extabit.com/file/12abcdefg4567
 --no-plowsharerc
 
 # filebox.com
