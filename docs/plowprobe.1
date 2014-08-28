@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowprobe" "1" "August 28, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowprobe \- Gather information from file sharing download links
@@ -81,6 +81,9 @@ filesize in bytes  (can be empty string if not available). Note: it's often appr
 .TP
 \fI%t\fR
 tabulation character
+.TP
+\fI%T\fR
+file timestamp (can be empty string if not available). Unix epoch time is preferred.
 .TP
 \fI%u\fR
 download (source) url

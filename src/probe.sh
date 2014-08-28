@@ -108,7 +108,7 @@ probe() {
 
     local URL_ENCODED=$(uri_encode <<< "$URL_RAW")
     local FUNCTION=${MODULE}_probe
-    local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH FILE_ID
+    local MAP I CHECK_LINK CAPS FILE_NAME FILE_SIZE FILE_HASH FILE_ID FILE_TS
     local -a DATA
 
     log_debug "Starting probing ($MODULE): $URL_ENCODED"
@@ -118,15 +118,18 @@ probe() {
 
     # Capabilities:
     # - c: check link (module function return value)
-    # - f: filename (can be empty string if not available)
-    # - h: filehash (can be empty string if not available)
-    # - i: fileid (can be empty string if not available)
-    # - s: filesize (in bytes). This can be approximative.
+    # - f: filename [1]
+    # - h: filehash, unspecific digest [1]
+    # - i: fileid [1]
+    # - s: filesize in bytes. This can be approximative. [1]
+    # - t: file timestamp, unspecific time format [1]
+    #
+    # [1] Can be empty string if not available.
     CHECK_LINK=0
 
     if test "$PRINTF_FORMAT"; then
         CAPS=c
-        for I in f h i s; do
+        for I in f h i s t; do
             [[ ${PRINTF_FORMAT,,} = *%$I* ]] && CAPS+=$I
         done
     else
@@ -158,6 +161,9 @@ probe() {
                 s)
                     FILE_SIZE=${DATA[$I]}
                     ;;
+                t)
+                    FILE_TS=${DATA[$I]}
+                    ;;
                 *)
                     log_error "plowprobe: unknown capability \`${MAP:$I:1}', ignoring"
                     ;;
@@ -183,7 +189,7 @@ probe() {
             log_debug "Link active: $URL_ENCODED"
         fi
 
-        DATA=("$MODULE" "$URL_RAW" "$CHECK_LINK" "$FILE_NAME" "$FILE_SIZE" "$FILE_HASH" "$FILE_ID")
+        DATA=("$MODULE" "$URL_RAW" "$CHECK_LINK" "$FILE_NAME" "$FILE_SIZE" "$FILE_HASH" "$FILE_ID" "$FILE_TS")
         pretty_print DATA[@] "${PRINTF_FORMAT:-%F%u%n}"
 
     elif [ $CHECK_LINK -eq $ERR_LINK_DEAD ]; then
@@ -207,6 +213,7 @@ probe() {
 # %s: filesize (in bytes) or empty string (if not available).
 #     Note: it's often approximative.
 # %u: download url
+# %T: timestamp or empty string (if not available).
 # and also:
 # %n: newline
 # %t: tabulation
@@ -218,7 +225,7 @@ probe() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[cfFhimsunt%]}
+    S=${1//%[cfFhimsuTnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -226,7 +233,7 @@ pretty_check() {
     fi
 }
 
-# $1: array[@] (module, dl_url, check_link, file_name, file_size, file_hash, file_id)
+# $1: array[@] (module, dl_url, check_link, file_name, file_size, file_hash, file_id, timestamp)
 # $2: format string
 pretty_print() {
     local -a A=("${!1}")
@@ -246,7 +253,7 @@ pretty_print() {
 
     handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
         "%m,${A[0]}" "%u,${A[1]}" "%c,${A[2]}" "%f,${A[3]}" \
-        "%s,${A[4]}" "%h,${A[5]}" "%i,${A[6]}"
+        "%s,${A[4]}" "%h,${A[5]}" "%i,${A[6]}" "%T,${A[7]}"
 }
 
 #
