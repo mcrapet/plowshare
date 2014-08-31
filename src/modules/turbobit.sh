@@ -111,6 +111,42 @@ turbobit_login() {
     return 0
 }
 
+# Static function. Check query answer
+# $1: JSON data (like {"status":"xxx","error":{"code":x,"msg":"xxx"}, ...}
+# $?: 0 for success
+turbobit_api_status() {
+    local STATUS=$(parse_json 'status' <<< "$1")
+    if [ "$STATUS" != 'success' ]; then
+        local MSG=$(parse_json 'msg' <<< "$1")
+        log_error "Remote status: '$STATUS'"
+        [ -z "$MSG" ] || log_error "Message: $MSG"
+        return $ERR_FATAL
+    fi
+}
+
+# Static function. Proceed with login (free or premium)
+# $1: authentication
+# $2: base url
+# stdout: userid:usertoken (single line) on success
+turbobit_api_login() {
+    local -r AUTH=$1
+    local -r BASE_URL="$2/login"
+    local JSON USER PASSWORD USER_ID USER_TOKEN
+
+    split_auth "$1" USER PASSWORD || return
+    JSON=$(curl --data "login=$USER&password=$PASSWORD" \
+        "$BASE_URL") || return
+
+    turbobit_api_status "$JSON" || return $ERR_LOGIN_FAILED
+
+    USER_ID=$(parse_json 'user_id' <<< "$JSON") || return
+    USER_TOKEN=$(parse_json 'token' <<< "$JSON") || return
+
+    log_debug "Successfully logged in as member '$USER'"
+    echo "$USER_ID:$USER_TOKEN"
+    return 0
+}
+
 # Output a turbobit file download URL
 # $1: cookie file
 # $2: turbobit url
@@ -296,76 +332,44 @@ turbobit_download() {
 # $3: remote filename
 # stdout: turbobit download link + delete link
 turbobit_upload() {
-    local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://turbobit.net'
-    local PAGE FORM UP_URL APP_TYPE FORM_UID FILE_SIZE MAX_SIZE
-    local JSON FILE_ID DELETE_ID
+    local -r BASE_URL='http://api.turbobit.net/v001/ftn'
+    local JSON LOGINDATA POSTDATA FILE_SIZE FILE_NAME
+    local UP_URL FILE_ID FILE_LINK DELETE_LINK
+
+    FILE_SIZE=$(get_filesize "$FILE") || return
+    FILE_NAME=$(echo "$DEST_FILE" | uri_encode_strict)
+    POSTDATA="user_file_name=$FILE_NAME&size=$FILE_SIZE"
 
     if [ -n "$AUTH" ]; then
-        turbobit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
-        MAX_SIZE=4294967296 # 4 GiB (account type is irrelevant)
-    else
-        MAX_SIZE=209715200 # 200 MiB
+        LOGINDATA=$(turbobit_api_login "$AUTH" "$BASE_URL") || return
+        POSTDATA="$POSTDATA&user_id=${LOGINDATA%%:*}&token=${LOGINDATA#*:}"
     fi
 
-    SIZE=$(get_filesize "$FILE") || return
-    if [ $SIZE -gt $MAX_SIZE ]; then
-        log_debug "File is bigger than $MAX_SIZE"
-        return $ERR_SIZE_LIMIT_EXCEEDED
-    fi
+    JSON=$(curl --data "$POSTDATA" "$BASE_URL/getUploadUrl") || return
+    turbobit_api_status "$JSON" || return
 
-    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'user_lang=en' "$BASE_URL") || return
+    UP_URL=$(parse_json 'upload_link' <<< "$JSON") || return
 
-    # Because of the irrational use of service resources , access to upload new
-    # files in your account is temporarily closed. When an increase temperature
-    # of your thermometer down to 0 degrees, access to upload will be opened.
-    if match '>Access to upload files closed</h2>' "$PAGE"; then
-        return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
+    log_debug "Upload host: '$(basename_url "$UP_URL")'"
 
-    FORM=$(grep_form_by_order "$PAGE") || return
-    UP_URL=$(parse_form_action <<< "$FORM") || return
-    APP_TYPE=$(parse_form_input_by_name 'apptype' <<< "$FORM") || return
+    JSON=$(curl_with_log --request POST \
+        --header 'Content-Type: application/octet-stream' \
+        --header "Content-Disposition: attachment; filename=\"$DEST_FILE\"" \
+        --upload-file "$FILE" \
+        "$UP_URL") || return
 
-    log_debug "Upload URL: $UP_URL"
-    log_debug "App Type: $APP_TYPE"
+    turbobit_api_status "$JSON" || return
 
-    if [ -n "$AUTH" ]; then
-        local USER_ID
-
-        USER_ID=$(parse_form_input_by_name 'user_id' <<< "$FORM") || return
-        log_debug "User ID: $USER_ID"
-        FORM_UID="-F user_id=$USER_ID"
-    fi
-
-    # Cookie to error message in English
-    JSON=$(curl_with_log -b "$COOKIE_FILE" -b 'user_lang=en' \
-        -F "Filedata=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
-        -F "apptype=$APP_TYPE" $FORM_UID "$UP_URL") || return
-
-    if ! match_json_true 'result' "$JSON"; then
-        local MESSAGE
-
-        MESSAGE=$(parse_json 'message' <<< "$JSON") || return
-        log_error "Unexpected remote error: $MESSAGE"
-        return $ERR_FATAL
-    fi
-
-    FILE_ID=$(parse_json 'id' <<< "$JSON") || return
+    FILE_ID=$(parse_json 'file_id' <<< "$JSON") || return
     log_debug "File ID: $FILE_ID"
 
-    # get info page for file
-    # Note: This breaks for anon users when cookie file is used!?
-    PAGE=$(curl --get -b 'user_lang=en' -d '_search=false'           \
-        -d "nd=$(date +%s000)" -d 'rows=20' -d 'page=1' -d 'sidx=id' \
-        -d 'sord=asc' "$BASE_URL/newfile/gridFile/$FILE_ID") || return
+    FILE_LINK=$(parse_json 'download_link' <<< "$JSON") || return
+    DELETE_LINK=$(parse_json 'delete_link' <<< "$JSON") || return
 
-    DELETE_ID=$(echo "$PAGE" | parse '' 'null,null,"\([^"]\+\)"')
-
-    echo "$BASE_URL/$FILE_ID.html"
-    [ -z "$DELETE_ID" ] || echo "$BASE_URL/delete/file/$FILE_ID/$DELETE_ID"
+    echo "$FILE_LINK"
+    echo "${DELETE_LINK/v001\/ftn\/deleteFile/delete\/file}"
 }
 
 # Delete a file on turbobit
