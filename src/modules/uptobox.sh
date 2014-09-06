@@ -173,12 +173,13 @@ uptobox_download() {
             echo 3600
             return $ERR_LINK_TEMP_UNAVAILABLE
         # You have to wait X minutes, Y seconds till next download
+        # You have to wait Y seconds till next download
         elif matchi 'You have to wait' "$PAGE"; then
             local MINS SECS
-            MINS=$(parse 'class="err">' \
-                '[[:space:]]\([[:digit:]]\+\) minute' <<< "$PAGE") || return
+            MINS=$(parse_quiet 'class="err">' \
+                '[[:space:]]\([[:digit:]]\+\) minute' <<< "$PAGE") || MINS=0
             SECS=$(parse_quiet 'class="err">' \
-                '[[:space:]]\([[:digit:]]\+\) second' <<< "$PAGE") || SECS=0
+                '[[:space:]]\([[:digit:]]\+\) second' <<< "$PAGE") || SECS=1
 
             echo $(( MINS * 60 + SECS ))
             return $ERR_LINK_TEMP_UNAVAILABLE
