@@ -79,9 +79,9 @@ filepup_net_download() {
     PAGE=$(curl -L -c "$COOKIE_FILE" "$URL") || return
 
     # You have been given the wrong link or the file you have requested has been deleted for a violation or for inactivity.
-    if match 'has been deleted' "$PAGE"; then
-        return $ERR_LINK_DEAD
-    fi
+    #if match 'has been deleted' "$PAGE"; then
+    #    return $ERR_LINK_DEAD
+    #fi
 
     if [ -n "$AUTH" ]; then
         ACCOUNT=$(filepup_net_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
