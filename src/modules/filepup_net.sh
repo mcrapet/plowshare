@@ -91,7 +91,9 @@ filepup_net_download() {
     fi
 
     if [ "$ACCOUNT" = 'premium' ]; then
-        URL=$(echo "$PAGE" | parse '=.premium_btn' "location='\([^']\+\)" | uri_encode) || return
+        URL=$(echo "$PAGE" | parse '[[:space:]]PRO USER<' "location='\([^']\+\)" | uri_encode)
+        [ -n "$URL" ] || \
+            URL=$(echo "$PAGE" | parse '<button.*/get/' "location='\([^']\+\)" | uri_encode) || return
 
         HEADERS=$(curl -b "$COOKIE_FILE" -I "$URL") || return
         DIRECT=$(echo "$HEADERS" | grep_http_header_content_type) || return
@@ -103,7 +105,9 @@ filepup_net_download() {
             return 0
         fi
     else
-        URL=$(echo "$PAGE" | parse 'id=.dlbutton' "location='\([^']\+\)" | uri_encode) || return
+        URL=$(echo "$PAGE" | parse '[[:space:]]FREE USER<' "location='\([^']\+\)" | uri_encode)
+        [ -n "$URL" ] || \
+            URL=$(echo "$PAGE" | parse '<button.*/get/' "location='\([^']\+\)" | uri_encode) || return
         FILE_NAME=$(echo "$PAGE" | parse '[[:space:]]text-overflow:' '>\([^<]\+\)</h') || return
 
         WAIT_TIME=$(echo "$PAGE" | parse \
