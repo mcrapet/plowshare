@@ -60,7 +60,8 @@ shareonline_biz_login() {
         'Sammler')
             TYPE='free'
             ;;
-        'Premium'|'VIP-Special')
+        'Premium'|'Penalty-Premium'|'VIP-Special')
+            [ "$TYPE" = 'Penalty-Premium' ] && log_error 'Account is in penalty state!'
             TYPE='premium'
             ;;
         *)
@@ -94,12 +95,12 @@ shareonline_biz_download() {
     # Extract file ID from all possible URL formats
     #  http://www.share-online.biz/download.php?id=xyz
     #  http://share-online.biz/download.php?id=xyz
-    FILE_ID=$(echo $2 | parse_quiet . 'id=\([[:alnum:]]\+\)$')
+    FILE_ID=$(parse_quiet . 'id=\([[:alnum:]]\+\)$' <<< "$2")
 
     #  http://www.share-online.biz/dl/xyz
     #  http://share-online.biz/dl/xyz
     if [ -z "$FILE_ID" ]; then
-        FILE_ID=$(echo $2 | parse_quiet . '/dl/\([[:alnum:]]\+\)$')
+        FILE_ID=$(parse_quiet . '/dl/\([[:alnum:]]\+\)$' <<< "$2")
     fi
 
     if [ -z "$FILE_ID" ]; then
@@ -113,8 +114,7 @@ shareonline_biz_download() {
 
     # Get data from shareonline API
     # Note: API requires ID to be uppercase
-    PAGE=$(curl -d "links=$FILE_ID" \
-        "${BASE_URL/www/api}/linkcheck.php") || return
+    PAGE=$(curl -d "links=$FILE_ID" "${BASE_URL/www/api}/linkcheck.php") || return
     log_debug "API response: $PAGE"
 
     IFS=";" read API_FILE_ID FILE_STATUS FILE_NAME SIZE <<< "$PAGE"
@@ -157,6 +157,26 @@ shareonline_biz_download() {
 
         MODULE_SHAREONLINE_BIZ_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=yes
 
+        # Check for problems
+        PAGE=$(curl --head -b "$COOKIE_FILE" "$FILE_URL") || return
+        REDIR=$(grep_http_header_location_quiet <<< "$PAGE")
+
+        if [ -n "$REDIR" ]; then
+            local ERR=$(parse_quiet . 'failure/\([^/]\+\)' <<< "$REDIR")
+
+            case $ERR in
+                ip)
+                    log_error 'Account used from multiple IP addresses'
+                    ;;
+                *)
+                    # Note: This also matches when "$ERR" is empty.
+                    log_error "Unexpected server response (REDIR = '$REDIR'). Site updated?"
+                    ;;
+            esac
+
+            return $ERR_FATAL
+        fi
+
         echo "$FILE_URL"
         echo "$FILE_NAME"
         return 0
@@ -173,9 +193,9 @@ shareonline_biz_download() {
     PAGE=$(curl --include -d 'dl_free=1' -d 'choice=free' "$URL" ) || return
 
     # Handle errors/redirects
-    REDIR=$(echo "$PAGE" | grep_http_header_location_quiet)
+    REDIR=$(grep_http_header_location_quiet <<< "$PAGE")
     if [ -n "$REDIR" ]; then
-        local ERR=$(echo "$REDIR" | parse_quiet . 'failure/\([^/]\+\)')
+        local ERR=$(parse_quiet . 'failure/\([^/]\+\)' <<< "$REDIR")
 
         case $ERR in
             ipfree)
@@ -210,10 +230,10 @@ shareonline_biz_download() {
         return $ERR_FATAL
     fi
 
-    CAP_ID=$(echo "$PAGE" | parse 'var[[:space:]]\+dl=' \
-        '[[:space:]]dl="\([^"]*\)') || return
+    CAP_ID=$(parse 'var[[:space:]]\+dl=' \
+        '[[:space:]]dl="\([^"]*\)' <<< "$PAGE") || return
     CAP_ID=$(base64 --decode <<< "$CAP_ID") || return
-    URL_ID=$(echo "$PAGE" | parse '///' '///\([[:digit:]]\+\)') || return
+    URL_ID=$(parse '///' '///\([[:digit:]]\+\)' <<< "$PAGE") || return
     log_debug "Captcha: '$CAP_ID'"
     log_debug "URL ID: $URL_ID"
 
@@ -225,7 +245,7 @@ shareonline_biz_download() {
 
     # Wait before send recaptcha data (and then again before actual download)
     # 'var wait=30; [...] <current time> + wait/2'
-    WAIT=$(echo "$PAGE" | parse 'var wait' 'wait=\([[:digit:]]\+\)') || return
+    WAIT=$(parse 'var wait' 'wait=\([[:digit:]]\+\)' <<< "$PAGE") || return
     wait $(( ($WAIT / 2) + 1 )) || return
 
     BASE64LINK=$(curl -b "$COOKIE_FILE" -d 'dl_free=1' \
