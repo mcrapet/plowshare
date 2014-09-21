@@ -859,6 +859,10 @@ test "$UMASK" && umask 0066
 # sucessive downloads.
 PREVIOUS_HOST=none
 
+# Only used when CACHE policy is session (default).
+# Use an associative array to not have duplicated modules.
+declare -A CACHED_MODULES
+
 # Count downloads (1-based index)
 declare -i INDEX=1
 
@@ -962,6 +966,8 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             # Module storage policy (part 1/2)
             if [ "$CACHE" = 'none' ]; then
                 storage_reset
+            elif [ "$CACHE" != 'shared' ]; then
+                [[ ${CACHED_MODULES["$MODULE"]} ]] || CACHED_MODULES["$MODULE"]=1
             fi
 
             ${MODULE}_vars_set
@@ -985,7 +991,7 @@ done
 
 # Module storage policy (part 2/2)
 if [ "$CACHE" != 'shared' ]; then
-    storage_reset
+    for MODULE in "${!CACHED_MODULES[@]}"; do storage_reset; done
 fi
 
 # Restore umask
