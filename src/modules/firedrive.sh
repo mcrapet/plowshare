@@ -46,7 +46,7 @@ firedrive_download() {
 
     FILE_NAME=$(parse_tag 'class="external_title_left"' 'div' <<< "$PAGE") || return
 
-    if ! match '\.pdf' "$FILE_NAME" ; then
+    if ! match ' class="download_' "$PAGE"; then
         FORM_HTML=$(grep_form_by_id "$PAGE" 'confirm_form') || return
         DL_KEY=$(parse_form_input_by_name 'confirm' <<< "$FORM_HTML") || return
 
