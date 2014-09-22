@@ -128,13 +128,13 @@ zippyshare_download() {
 
     case "$CONTENT" in
         'music.song')
-            N=-10
+            N=-8
             ;;
         'image')
-            N=-6
+            N=-1
             ;;
         '')
-            N=-7
+            N=-5
             ;;
         *)
             log_error "Unexpected content ('$CONTENT'), site updated?"
@@ -164,7 +164,7 @@ zippyshare_download() {
 
     # Find the function to call
     # var somefunction = function() {somffunction()};
-    FUNC=$(parse 'var somefunction = ' '{\([^}]\+\)}' <<< "$PAGE") || return
+    FUNC=$(parse_quiet 'var somefunction = ' '{\([^}]\+\)}' <<< "$PAGE")
 
     PART_URL=$(echo "var elts = new Array();
         var document = {
