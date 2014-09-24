@@ -1,5 +1,5 @@
 # Plowshare uploading.com module
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_UPLOADING_REGEXP_URL='http://\([[:alnum:]]\+\.\)\?uploading\.com/'
+MODULE_UPLOADING_REGEXP_URL='https\?://\([[:alnum:]]\+\.\)\?uploading\.com/'
 
 MODULE_UPLOADING_DOWNLOAD_OPTIONS=""
 MODULE_UPLOADING_DOWNLOAD_RESUME=no
@@ -45,10 +45,17 @@ uploading_login() {
        "$BASE_URL/general/login_form/?ajax" -b "$COOKIE_FILE" \
        -H 'X-Requested-With: XMLHttpRequest') || return
 
+    log_debug "json: '$JSON'"
+
+    # {"answer":{"captcha":true}}
+    if match_json_true 'captcha' "$JSON"; then
+        log_error "Captcha required. Not implemented yet."
+        return $ERR_FATAL
+
     # Note: Cookies "remembered_user", "u", "autologin" get set on successful login
-    if [ "$JSON" != '{"redirect":"http:\/\/uploading.com\/"}' ]; then
+    elif [ "$JSON" != '{"redirect":"http:\/\/uploading.com\/"}' ]; then
         if ! match 'Incorrect e-mail\/password combination.' "$JSON"; then
-            log_error "Unexpected remote error: $ERROR"
+            log_error "Unexpected remote error"
         fi
 
         return $ERR_LOGIN_FAILED
@@ -80,7 +87,6 @@ uploading_download() {
         return $ERR_LINK_DEAD
     fi
 
-
     # <h2>Maximum File Size Limit</h2>
     # <h2>File access denied</h2>
     if matchi 'File \(Size Limit\|access denied\)' "$PAGE"; then
@@ -103,7 +109,7 @@ uploading_download() {
 
     CODE=$(echo "$PAGE" | parse '[[:space:]]code:' ":[[:space:]]*[\"']\([^'\"]*\)") || return
     PASS=false
-    log_debug "code: $CODE"
+    log_debug "code: '$CODE'"
 
     FILE_NAME=$(echo "$PAGE" | parse '>Filemanager' '>\([^<]*\)</' 1)
 
@@ -126,7 +132,10 @@ uploading_download() {
     FILE_URL=$(echo "$JSON" | parse_json link) || return
 
     PAGE=$(curl -b "$COOKIE_FILE" "$FILE_URL") || return
-    FILE_URL=$(echo "$PAGE" | parse_attr '=.file_form' action) || return
+    FILE_URL=$(parse 'method_title' "location\.href='\([^']*\)" <<< "$PAGE") || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" "$FILE_URL") || return
+    FILE_URL=$(parse_attr '=.file_form' action <<< "$PAGE") || return
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -142,7 +151,7 @@ uploading_upload() {
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://uploading.com'
-    local PAGE JSON UPLOAD_URL MAX_SIZE SIZE SESSION_ID UPLOAD_ID FILE_ID
+    local PAGE JSON UPLOAD_URL MAX_SIZE SIZE SESSION_ID UPLOAD_ID FILE_ID ANSWER
 
     [ -n "$AUTH_FREE" ] || return $ERR_LINK_NEED_PERMISSIONS
     uploading_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
@@ -179,19 +188,16 @@ uploading_upload() {
         "$UPLOAD_URL?X-Progress-ID=$UPLOAD_ID") || return
 
     # ... {"answer":"2111c52b","folder_id":0,"file_id":54671204} ...
-    FILE_ID=$(echo "$PAGE" | parse_json_quiet 'file_id')
-
-    if [ -z "$FILE_ID" ]; then
-        log_error 'Unexpected content. Site updated?'
-        return $ERR_FATAL
-    fi
+    FILE_ID=$(parse_json 'file_id' <<< "$PAGE") || return
+    log_debug "file id: '$FILE_ID'"
+    ANSWER=$(parse_json 'answer' <<< "$PAGE") || return
+    log_debug "answer: '$ANSWER'"
 
     JSON=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
-        -F 'action=get_file_info' -F "file_id=$FILE_ID" \
-        "$BASE_URL/files/nmanager/?ajax") || return
+        "$BASE_URL/files/done/$ANSWER/?ajax") || return
 
-    # Extract and output file link
-    echo "$JSON" | parse_json 'link' || return
+    # FIXME later
+    echo "$BASE_URL/$FILE_ID/a"
 }
 
 # Probe a download URL
