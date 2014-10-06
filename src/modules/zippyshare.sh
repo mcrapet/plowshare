@@ -173,9 +173,15 @@ zippyshare_download() {
             return elts[id];
           }
         };
+
+        var trying = {
+          something: function(x, y) { },
+          other: function(x, y) { },
+        };
+
         $JS
         $FUNC;
-        print(elts['dlbutton'].href);" | javascript) || return
+        print(elts['fimage'].href);" | javascript) || return
 
     FILE_URL="$(basename_url "$URL")$PART_URL"
 
