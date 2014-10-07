@@ -80,6 +80,34 @@ letitbit_login() {
     echo "$TYPE"
 }
 
+# Login for WM Panel
+# $1: authentication
+# $2: cookie file
+# $3: base url
+letitbit_panel_login() {
+    local -r AUTH=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA PAGE REDIR ERR EMAIL
+
+    curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL" || return
+    LOGIN_DATA='log=$USER&pas=$PASSWORD&inout='
+    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "$BASE_URL/user/signin-do" --include -b "$COOKIE_FILE") || return
+
+    REDIR=$(grep_http_header_location <<< "$PAGE") || return
+
+    if [ "$REDIR" != '/' ]; then
+        ERR=${REDIR##*\?}
+        log_error "Remote error: ${ERR%%=*}"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    split_auth "$AUTH" EMAIL || return
+    log_debug "Successfully logged in as member '$EMAIL'"
+}
+
+
 # Decode the PNG image that contains the obfuscation password
 # $1: image file
 # stdout: decoded password
@@ -452,33 +480,34 @@ letitbit_upload() {
     local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://letitbit.net'
+    local -r BASE_URL='http://newlib.wm-panel.com/wm-panel'
     local PAGE SIZE MAX_SIZE UPLOAD_SERVER MARKER STATUS_URL
-    local FORM_HTML FORM_OWNER FORM_PIN FORM_BASE FORM_HOST
+    local FORM FORM_OWNER FORM_PIN FORM_BASE FORM_HOST FORM_SOURCE
 
     # Login (don't care for account type)
     [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
-    letitbit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+    letitbit_panel_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
 
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL") || return
-    FORM_HTML=$(grep_form_by_id "$PAGE" 'upload_form') || return
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL/file-manager-new") || return
+    FORM=$(grep_form_by_id "$PAGE" 'upload_form') || return
 
-    MAX_SIZE=$(echo "$FORM_HTML" | parse_form_input_by_name 'MAX_FILE_SIZE') || return
+    MAX_SIZE=$(parse_form_input_by_name 'MAX_FILE_SIZE' <<< "$FORM") || return
     SIZE=$(get_filesize "$FILE")
     if [ $SIZE -gt "$MAX_SIZE" ]; then
         log_debug "File is bigger than $MAX_SIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    FORM_OWNER=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'owner')
-    FORM_PIN=$(echo "$FORM_HTML" | parse_form_input_by_name 'pin') || return
-    FORM_BASE=$(echo "$FORM_HTML" | parse_form_input_by_name 'base') || return
-    FORM_HOST=$(echo "$FORM_HTML" | parse_form_input_by_name 'host') || return
+    FORM_OWNER=$(parse_form_input_by_name 'owner' <<< "$FORM") || return
+    FORM_PIN=$(parse_form_input_by_name 'pin' <<< "$FORM") || return
+    FORM_BASE=$(parse_form_input_by_name 'base' <<< "$FORM") || return
+    FORM_HOST=$(parse_form_input_by_name 'host' <<< "$FORM") || return
+    FORM_SOURCE=$(parse_form_input_by_name 'source' <<< "$FORM") || return
 
-    UPLOAD_SERVER=$(echo "$PAGE" | parse 'var[[:space:]]\+ACUPL_UPLOAD_SERVER' \
-        "=[[:space:]]\+'\([^']\+\)';") || return
+    UPLOAD_SERVER=$(parse '^[[:space:]]*t.server' \
+        "=[[:space:]]\+'\([^']\+\)';" <<< "$PAGE") || return
 
-    # marker/nonce is generated like this (from http://letitbit.net/acuploader/acuploader2.js)
+    # marker/nonce is generated like this
     #
     # function randomString( _length ) {
     #   var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz';
@@ -488,29 +517,25 @@ letitbit_upload() {
     # <marker> = (new Date()).getTime().toString(16).toUpperCase() + '_' + randomString( 40 );
     #
     # example: 13B18CC2A5D_cwhOyTuzkz7GOsdU9UzCwtB0J9GSGXJCsInpctVV
-    MARKER=$(printf "%X_%s" "$(date +%s000)" "$(random Ll 40)") || return
+    MARKER=$(printf '%X_%s' "$(date +%s000)" "$(random Ll 40)") || return
 
     # Upload local file
     PAGE=$(curl_with_log -b "$COOKIE_FILE" -b 'lang=en' \
-        -F "MAX_FILE_SIZE=$MAX_SIZE" \
-        -F "owner=$FORM_OWNER"       \
-        -F "pin=$FORM_PIN"           \
-        -F "base=$FORM_BASE"         \
-        -F "host=$FORM_HOST"         \
+        -F "owner=$FORM_OWNER" -F "pin=$FORM_PIN" -F "base=$FORM_BASE" \
+        -F "host=$FORM_HOST" -F "source=$FORM_SOURCE" \
         -F "file0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         "http://$UPLOAD_SERVER/marker=$MARKER") || return
 
-    if [ "$(echo "$PAGE" | parse_json_quiet 'code')" -ne 200 ]; then
+    if [ "$(parse_json_quiet 'code' <<< "$PAGE")" -ne 200 ]; then
         log_error "Unexpected response: $PAGE"
         return $ERR_FATAL
     fi
 
     # Get upload stats/result URL
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' --get \
-        -d "srv=$UPLOAD_SERVER" -d "uid=$MARKER"     \
-        "$BASE_URL/acupl_proxy.php") || return
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' \
+        "http://$UPLOAD_SERVER/marker=$MARKER") || return
 
-    STATUS_URL=$(echo "$PAGE" | parse_json_quiet 'post_result')
+    STATUS_URL=$(parse_json_quiet 'post_result' <<< "$PAGE")
 
     if [ -z "STATUS_URL" ]; then
         log_error "Unexpected response: $PAGE"
@@ -520,10 +545,8 @@ letitbit_upload() {
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$STATUS_URL") || return
 
     # extract + output download link + delete link
-    echo "$PAGE" | parse "$BASE_URL/download/" \
-        '<textarea[^>]*>\(http.\+html\)$' || return
-    echo "$PAGE" | parse "$BASE_URL/download/delete" \
-        '<div[^>]*>\(http.\+html\)<br/>' || return
+    parse 'Links to download files' '>\(http.\+html\)$' 2 <<< "$PAGE" || return
+    parse 'Links to delete files' '>\(http.\+html\)<' 1 <<< "$PAGE" || return
 }
 
 # Delete a file on Letitbit.net
