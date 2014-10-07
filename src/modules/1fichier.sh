@@ -55,6 +55,8 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     SID=$(parse_cookie_quiet 'SID' < "$COOKIE_FILE") || return
     [ -n "$SID" ] || return $ERR_LOGIN_FAILED
+
+    #PAGE=$(curl -b "$COOKIE_FILE" -b 'LG=en' 'https://1fichier.com/console/index.pl') || return
 }
 
 # Output a 1fichier file download URL
@@ -69,7 +71,22 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     local -r URL=$2
     local PAGE FILE_URL FILE_NAME
 
+    if [ -n "$AUTH" ]; then
+        1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
+
+        FILE_URL=$(curl --head -b "$COOKIE_FILE" "$URL" | \
+            grep_http_header_location_quiet)
+    fi
+
     PAGE=$(curl -b 'LG=en' "$URL") || return
+
+    if [ -n "$AUTH" -a -n "$FILE_URL" ]; then
+        FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE")
+
+        echo "$FILE_URL"
+        echo "$FILE_NAME"
+        return 0
+    fi
 
     # Location: http://www.1fichier.com/?c=SCAN
     if match 'MOVED - TEMPORARY_REDIRECT' "$PAGE"; then
@@ -93,11 +110,6 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     elif match 'Please wait until the file has been scanned' "$PAGE"; then
         log_error 'File is scanned for viruses.'
         return $ERR_LINK_TEMP_UNAVAILABLE
-    fi
-
-
-    if [ -n "$AUTH" ]; then
-        1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
     fi
 
     # Accessing this file is protected by password.<br/>Please put it on the box bellow :
