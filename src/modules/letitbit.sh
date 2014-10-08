@@ -25,7 +25,8 @@ MODULE_LETITBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_LETITBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_LETITBIT_UPLOAD_OPTIONS="
-AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)"
+AUTH,a,auth,a=EMAIL:PASSWORD,User account (mandatory)
+FOLDER,,folder,s=FOLDER,Folder to upload files into"
 MODULE_LETITBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_LETITBIT_LIST_OPTIONS=""
@@ -107,6 +108,36 @@ letitbit_panel_login() {
     log_debug "Successfully logged in as member '$EMAIL'"
 }
 
+# Check if specified folder name is valid.
+# When multiple folders have the same name, first one is taken.
+# $1: folder name selected by user
+# $2: cookie file (logged into account)
+# $3: base URL
+# stdout: folder ID
+letitbit_check_folder() {
+    local -r NAME=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local JSON FOLDERS FOLDER_ID
+
+    # Use dummy "-d" to force a POST request
+    JSON=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' -d '' \
+        "$BASE_URL/file-manager-new/folders/host/letitbit.net") || return
+
+    # Find matching folder ID
+    FOLDER_ID=$(parse_quiet . \
+        '"id":"\([[:alnum:]]\+\)",[^,]*,"name":"'$NAME'"' <<< "$JSON")
+
+    if [ -n "$FOLDER_ID" ]; then
+        log_debug "Folder ID: $FOLDER_ID"
+        echo "$FOLDER_ID"
+        return 0
+    fi
+
+    FOLDERS=$(parse_json 'name' 'split' <<< "$JSON") || return
+    log_error 'Invalid folder, choose from:' $FOLDERS
+    return $ERR_BAD_COMMAND_LINE
+}
 
 # Decode the PNG image that contains the obfuscation password
 # $1: image file
@@ -481,12 +512,20 @@ letitbit_upload() {
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://newlib.wm-panel.com/wm-panel'
-    local PAGE SIZE MAX_SIZE UPLOAD_SERVER MARKER STATUS_URL
+    local PAGE SIZE MAX_SIZE UPLOAD_SERVER MARKER STATUS_URL OPT_FOLDER
     local FORM FORM_OWNER FORM_PIN FORM_BASE FORM_HOST FORM_SOURCE
 
     # Login (don't care for account type)
     [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
     letitbit_panel_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+
+    # If user chose a folder, check it now
+    if [ -n "$FOLDER" ]; then
+        local FOLDER_ID
+
+        FOLDER_ID=$(letitbit_check_folder "$FOLDER" "$COOKIE_FILE" "$BASE_URL") || return
+        OPT_FOLDER="-F folder=$FOLDER_ID"
+    fi
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=en' "$BASE_URL/file-manager-new") || return
     FORM=$(grep_form_by_id "$PAGE" 'upload_form') || return
@@ -522,7 +561,7 @@ letitbit_upload() {
     # Upload local file
     PAGE=$(curl_with_log -b "$COOKIE_FILE" -b 'lang=en' \
         -F "owner=$FORM_OWNER" -F "pin=$FORM_PIN" -F "base=$FORM_BASE" \
-        -F "host=$FORM_HOST" -F "source=$FORM_SOURCE" \
+        -F "host=$FORM_HOST" -F "source=$FORM_SOURCE" $OPT_FOLDER \
         -F "file0=@$FILE;type=application/octet-stream;filename=$DEST_FILE" \
         "http://$UPLOAD_SERVER/marker=$MARKER") || return
 
