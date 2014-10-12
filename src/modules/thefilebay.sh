@@ -29,6 +29,8 @@ MODULE_THEFILEBAY_UPLOAD_OPTIONS="
 AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_THEFILEBAY_UPLOAD_REMOTE_SUPPORT=no
 
+MODULE_THEFILEBAY_PROBE_OPTIONS=""
+
 # Static function. Proceed with login.
 # $1: authentication
 # $2: cookie file
