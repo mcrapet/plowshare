@@ -198,7 +198,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 180upload_probe() {
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT
+    local PAGE REQ_OUT FILE_SIZE
 
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
 
