@@ -73,15 +73,16 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     if [ -n "$AUTH" ]; then
         1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
-
-        FILE_URL=$(curl --head -b "$COOKIE_FILE" "$URL" | \
-            grep_http_header_location_quiet)
     fi
+
+    FILE_URL=$(curl --head -b "$COOKIE_FILE" "$URL" | \
+        grep_http_header_location_quiet)
 
     PAGE=$(curl -b 'LG=en' "$URL") || return
 
-    if [ -n "$AUTH" -a -n "$FILE_URL" ]; then
-        FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE")
+    if [ -n "$FILE_URL" ]; then
+        FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE") || \
+            log_debug "this must be a direct download link, filename will be wrong"
 
         echo "$FILE_URL"
         echo "$FILE_NAME"
