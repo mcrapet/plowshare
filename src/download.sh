@@ -671,12 +671,12 @@ pretty_check() {
 # $3: format string
 # Note: Don't chmod cookie file (keep strict permissions)
 pretty_print() {
-    local -r N=$(printf %04d $1)
     local -ar A=("${!2}")
     local -r CR=$'\n'
     local FMT=$3
-    local COOKIE_FILE
+    local N COOKIE_FILE
 
+    printf -v N %04d $(($1))
     test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
 
     # FIXME: ${A[2]} could contain %? patterns
