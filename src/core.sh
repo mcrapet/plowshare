@@ -572,7 +572,7 @@ parse_quiet() {
 # Notes:
 # - Single line parsing oriented (user should strip newlines first): no tree model
 # - Array and Object types: basic poor support (depth 1 without complex types)
-# - String type: no support for escaped unicode characters (\uXXXX)
+# - String type: support for escaped unicode characters (\uXXXX) with bash >= 4.2 (and proper locale)
 # - No non standard C/C++ comments handling (like in JSONP)
 # - If several entries exist on same line: last occurrence is taken, but:
 #   consider precedence (order of priority): number, boolean/empty, string.
@@ -621,7 +621,7 @@ parse_json() {
     STRING=${STRING//\\r/$'\r'}
     STRING=${STRING//\\t/	}
 
-    echo "$STRING"
+    echo -e "$STRING"
 }
 
 # Like parse_json, but hide possible error
