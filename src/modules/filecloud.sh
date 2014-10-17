@@ -1,5 +1,5 @@
 # Plowshare filecloud.io module
-# Copyright (c) 2013 Plowshare team
+# Copyright (c) 2013-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -85,7 +85,7 @@ filecloud_api_fetch_apikey() {
     PAGE=$(filecloud_curl_json \
         -d "username=$USER" \
         -d "password=$PASSWORD" \
-        'https://secure.filecloud.io/api-fetch_apikey.api') || return
+        'https://filecloud.io/api-fetch_apikey.api') || return
 
     parse_json 'akey' <<< "$PAGE" || return
 }
