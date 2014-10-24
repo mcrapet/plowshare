@@ -535,8 +535,14 @@ download() {
             if ANAME=$(module_config_need_extra "$MODULE"); then
                 local OPTION
                 for OPTION in "${!ANAME}"; do
-                    log_debug "adding extra curl options: '$OPTION'"
-                    CURL_ARGS+=("$OPTION")
+                    if [[ $OPTION = '-J' || $OPTION = '--remote-header-name' ]]; then
+                        log_debug "ignoring extra curl option: '$OPTION'"
+                    elif [[ $OPTION = '-O' || $OPTION = '--remote-name' ]]; then
+                        log_debug "ignoring extra curl option: '$OPTION'"
+                    else
+                        log_debug "adding extra curl option: '$OPTION'"
+                        CURL_ARGS+=("$OPTION")
+                    fi
                 done
             fi
 
