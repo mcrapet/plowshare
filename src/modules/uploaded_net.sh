@@ -181,6 +181,12 @@ uploaded_net_check_folder() {
 uploaded_net_extract_file_id() {
     local FILE_ID
 
+    # check whether it looks like a folder link
+    if match "${MODULE_UPLOADED_NET_REGEXP_URL}f\(older\)\?/" "$URL"; then
+        log_error 'This is a folder. Please use plowlist.'
+        return $ERR_FATAL
+    fi
+
     FILE_ID=$(parse . "$2/file/\([[:alnum:]]\+\)" <<< "$1") || return
     log_debug "File ID: '$FILE_ID'"
     echo "$FILE_ID"
