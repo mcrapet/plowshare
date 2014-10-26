@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Plowshare.  If not, see <http://www.gnu.org/licenses/>.
 
-MODULE_MEDIAFIRE_REGEXP_URL='http://\(www\.\)\?mediafire\.com/'
+MODULE_MEDIAFIRE_REGEXP_URL='https\?://\(www\.\)\?mediafire\.com/'
 
 MODULE_MEDIAFIRE_DOWNLOAD_OPTIONS="
 LINK_PASSWORD,p,link-password,S=PASSWORD,Used in password-protected files"
