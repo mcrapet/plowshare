@@ -135,7 +135,7 @@ curl() {
         find_in_array CURL_ARGS[@] '--max-redirs' || OPTIONS+=(--max-redirs 5)
     fi
 
-    test -n "$NO_CURLRC" && OPTIONS[${#OPTIONS[@]}]='-q'
+    test -z "$NO_CURLRC" || OPTIONS=(-q "${OPTIONS[@]}")
 
     # No verbose unless debug level; don't show progress meter for report level too
     if [ "${FUNCNAME[1]}" = 'curl_with_log' ]; then
@@ -159,7 +159,7 @@ curl() {
     else
         local TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
-        command curl --show-error --silent "${OPTIONS[@]}" "${CURL_ARGS[@]}" 2>&1 >"$TEMPCURL" || DRETVAL=$?
+        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" --show-error --silent 2>&1 >"$TEMPCURL" || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
         log_report '=== CURL BEGIN ==='
