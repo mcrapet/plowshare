@@ -121,7 +121,7 @@ keep2share_download() {
     PAGE=$(curl -c "$COOKIE_FILE" "$URL") || return
 
     # File not found or deleted
-    if match 'File not found or deleted' "$PAGE"; then
+    if match 'File not found or deleted\|This file is no longer available' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -402,7 +402,7 @@ keep2share_probe() {
     PAGE=$(curl --location "$URL") || return
 
     # File not found or delete
-    if match '<h.>Error 404</h.>' "$PAGE"; then
+    if match 'File not found or deleted\|This file is no longer available' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
