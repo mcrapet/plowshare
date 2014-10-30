@@ -1,5 +1,5 @@
 # Plowshare letitbit module
-# Copyright (c) 2012 Plowshare team
+# Copyright (c) 2012-2014 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -35,33 +35,54 @@ MODULE_LETITBIT_LIST_HAS_SUBFOLDERS=no
 MODULE_LETITBIT_DELETE_OPTIONS=""
 MODULE_LETITBIT_PROBE_OPTIONS=""
 
-# Static function. Proceed with login
+# Static function. Proceed with login (trying to reuse cached session)
 # $1: authentication
 # $2: cookie file
 # $3: base url
-# stdout: account type ("free" or "premium") on success
+# stdout: account type ("" or "free" or "premium") on success
 letitbit_login() {
     local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
-    local LOGIN_DATA PAGE ERR TYPE EMAIL
+    local COOKIES LOGIN_DATA PAGE ERR MSG TYPE EMAIL
 
-    LOGIN_DATA='act=login&login=$USER&password=$PASSWORD'
-    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/index.php" -b 'lang=en') || return
+    # Try to revive old session...
+    if COOKIES=$(storage_get 'cookies'); then
+        echo "$COOKIES" > "$COOKIE_FILE"
 
-    # Note: Cookies "pas" + "log" (=login name) get set on successful login
-    ERR=$(echo "$PAGE" | parse_tag_quiet 'error-text' 'span')
-
-    if [ -n "$ERR" ]; then
-        log_error "Remote error: $ERR"
-        return $ERR_LOGIN_FAILED
+        # ... and check login status/determine account type
+        PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+            -d 'act=get_attached_passwords' \
+            "$BASE_URL/ajax/get_attached_passwords.php") || return
     fi
 
-    # Determine account type
-    PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
-        -d 'act=get_attached_passwords' \
-        "$BASE_URL/ajax/get_attached_passwords.php") || return
+    if [ -z "$PAGE" -o "$PAGE" = 'Authorization data is invalid!' ]; then
+        log_debug 'Cached cookies invalid, deleting storage entry'
+        storage_set 'cookies'
+
+        [ -n "$AUTH" ] || return 0
+
+        LOGIN_DATA='act=login&login=$USER&password=$PASSWORD'
+        PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "$BASE_URL/index.php" -b 'lang=en') || return
+
+        # Note: Cookies 'pas' + 'log' get set on successful login
+        ERR=$(parse_tag_quiet 'error-text' 'span' <<< "$PAGE")
+
+        if [ -n "$ERR" ]; then
+            log_error "Remote error: $ERR"
+            return $ERR_LOGIN_FAILED
+        fi
+
+        PAGE=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+            -d 'act=get_attached_passwords' \
+            "$BASE_URL/ajax/get_attached_passwords.php") || return
+
+        storage_set 'cookies' "$(cat "$COOKIE_FILE")"
+        MSG='logged in as'
+    else
+        MSG='reused login for'
+    fi
 
     # There are no attached premium accounts found
     if match 'no attached premium accounts' "$PAGE"; then
@@ -76,12 +97,12 @@ letitbit_login() {
     fi
 
     EMAIL=$(parse_cookie 'log' < "$COOKIE_FILE" | uri_decode) || return
-    log_debug "Successfully logged in as $TYPE member '$EMAIL'"
+    log_debug "Successfully $MSG member '$EMAIL'"
 
     echo "$TYPE"
 }
 
-# Login for WM Panel
+# Login for WM Panel (trying to reuse cached session)
 # $1: authentication
 # $2: cookie file
 # $3: base url
@@ -89,23 +110,44 @@ letitbit_panel_login() {
     local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
-    local LOGIN_DATA PAGE REDIR ERR EMAIL
+    local COOKIES PAGE REDIR ERR MSG EMAIL
 
-    curl -c "$COOKIE_FILE" -o /dev/null "$BASE_URL" || return
-    LOGIN_DATA='log=$USER&pas=$PASSWORD&inout='
-    PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/user/signin-do" --include -b "$COOKIE_FILE") || return
-
-    REDIR=$(grep_http_header_location <<< "$PAGE") || return
-
-    if [ "$REDIR" != '/' ]; then
-        ERR=${REDIR##*\?}
-        log_error "Remote error: ${ERR%%=*}"
-        return $ERR_LOGIN_FAILED
+    # Try to revive old session...
+    if COOKIES=$(storage_get 'panel_cookies'); then
+        echo "$COOKIES" > "$COOKIE_FILE"
     fi
 
-    split_auth "$AUTH" EMAIL || return
-    log_debug "Successfully logged in as member '$EMAIL'"
+    # ... and check login status (or just init site cookies)
+    PAGE=$(curl -b "$COOKIE_FILE" -c "$COOKIE_FILE" "$BASE_URL/file-manager-new") || return
+
+    # Note: Presence of login form indicates "not logged in"
+    if [ -z "$PAGE" ] || match '/wm-panel/user/signin-do' "$PAGE"; then
+        log_debug 'Cached cookies invalid, deleting storage entry'
+        storage_set 'panel_cookies'
+
+        [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
+
+        LOGIN_DATA='log=$USER&pas=$PASSWORD&inout='
+        PAGE=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "$BASE_URL/user/signin-do" --include -b "$COOKIE_FILE") || return
+
+        REDIR=$(grep_http_header_location <<< "$PAGE") || return
+
+        if [ "$REDIR" != '/' ]; then
+            ERR=${REDIR##*\?}
+            log_error "Remote error: ${ERR%%=*}"
+            return $ERR_LOGIN_FAILED
+        fi
+
+        PAGE=$(curl -b "$COOKIE_FILE" "$BASE_URL/file-manager-new") || return
+        storage_set 'panel_cookies' "$(cat "$COOKIE_FILE")"
+        MSG='logged in as'
+    else
+        MSG='reused login for'
+    fi
+
+    EMAIL=$(parse_tag '/wm-panel/cabinet/account' 'a' <<< "$PAGE") || return
+    log_debug "Successfully $MSG member '$EMAIL'"
 }
 
 # Check if specified folder name is valid.
@@ -321,9 +363,7 @@ letitbit_download() {
     [ -n "$URL" ] || URL=$2
     LINK_BASE_URL=${URL%%/download/*}
 
-    if [ -n "$AUTH" ]; then
-         ACCOUNT=$(letitbit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
-    fi
+    ACCOUNT=$(letitbit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL") || return
 
     # Note: Premium users are redirected to a download page
     PAGE=$(curl --location -b "$COOKIE_FILE" -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
@@ -331,7 +371,6 @@ letitbit_download() {
     if match 'File not found\|страница не существует' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
-
 
     if [ "$ACCOUNT" = 'premium' ]; then
         local FILE_LINKS
@@ -515,9 +554,8 @@ letitbit_upload() {
     local PAGE SIZE MAX_SIZE UPLOAD_SERVER MARKER STATUS_URL OPT_FOLDER
     local FORM FORM_OWNER FORM_PIN FORM_BASE FORM_HOST FORM_SOURCE
 
-    # Login (don't care for account type)
-    [ -n "$AUTH" ] || return $ERR_LINK_NEED_PERMISSIONS
-    letitbit_panel_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+    # Log into panel
+    letitbit_panel_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" || return
 
     # If user chose a folder, check it now
     if [ -n "$FOLDER" ]; then
