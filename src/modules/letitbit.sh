@@ -235,10 +235,10 @@ letitbit_decode_form() {
     detect_javascript || return
 
     # extract all encrypted form fields (id + value)
-    INPUTS=$(echo "$CRYPT_FORM" | break_html_lines_alt | \
+    INPUTS=$(break_html_lines_alt <<< "$CRYPT_FORM" | \
         parse_all '<input.*[iI][dD]' '^\(.*\)$') || return
-    IDS=$(echo "$INPUTS" | parse_all_attr 'input.*[iI][dD]=' '[iI][dD]') || return
-    VALUES=$(echo "$INPUTS" | parse_all_attr 'input.*[iI][dD]=' '[vV][aA][lL][uU][eE]') || return
+    IDS=$(parse_all_attr 'input.*[iI][dD]=' '[iI][dD]' <<< "$INPUTS") || return
+    VALUES=$(parse_all_attr 'input.*[iI][dD]=' '[vV][aA][lL][uU][eE]' <<< "$INPUTS") || return
 
     # create arrays so we can match id-value pairs
     # Note: taken from 'list_submit' of Plowshare3
@@ -259,7 +259,7 @@ letitbit_decode_form() {
     done
 
     # extract the form decryption script
-    SCRIPT=$(echo "$CRYPT_FORM" | tr -d '\n\r' | parse_tag script) || return
+    SCRIPT=$(tr -d '\n\r' <<< "$CRYPT_FORM" | parse_tag script) || return
 
     # split up script into general definition part and decrypting part
     DEF_SCRIPT=${SCRIPT%%;;eval(${VARIABLE_PREFIX}*}
@@ -279,9 +279,9 @@ Number.prototype.chr=function(){return String.fromCharCode(this)};'
     DEC_SCRIPT=${DEC_SCRIPT/eval/print}
 
     # deobfuscate the second part/decryption script
-    DEC_SCRIPT2=$(echo "var window = new Object(); window.__jsp_list = new Array(); $PROTO_SCRIPT ; $DEF_SCRIPT ; $DEC_SCRIPT ;" | javascript | tr -d '\n\r' | parse . '\(var .\+);\)}') || return
+    DEC_SCRIPT2=$(javascript <<< "var window = new Object(); window.__jsp_list = new Array(); $PROTO_SCRIPT ; $DEF_SCRIPT ; $DEC_SCRIPT ;" | tr -d '\n\r' | parse . '\(var .\+);\)}') || return
 
-    CODE=$(echo "$DEC_SCRIPT2" | parse . ", '\([[:alnum:]]\+\)', 'jsprotect") || return
+    CODE=$(parse . ", '\([[:alnum:]]\+\)', 'jsprotect" <<< "$DEC_SCRIPT2") || return
     log_debug "Code: '$CODE'"
 
     # get image file that encodes the password
@@ -336,7 +336,7 @@ function explainJSPForm(dummy1, dummy2, dummy3, list, pass, decoder) {
 }"
 
     # finally, decrypt the form and return the plain version
-    echo "$PROTO_SCRIPT ; $DEF_SCRIPT ; $INPUTS ; $PREPARE ; $DEC_SCRIPT2 ;" | javascript
+    javascript <<< "$PROTO_SCRIPT ; $DEF_SCRIPT ; $INPUTS ; $PREPARE ; $DEC_SCRIPT2 ;"
 }
 
 # Output a file URL to download from Letitbit.net
@@ -385,7 +385,7 @@ letitbit_download() {
 
         # Note: The page performs some kind of verification on all links,
         # but we try to do without this for now and just use the 1st link.
-        echo "$FILE_LINKS" | first_line
+        first_line <<< "$FILE_LINKS"
         echo "$FILE_NAME"
         return 0
     fi
@@ -393,7 +393,7 @@ letitbit_download() {
     # anon/free account download
     FORM=$(grep_form_by_id "$PAGE" 'ifree_form') || return
     FORM=$(letitbit_decode_form "$FORM" "$COOKIE_FILE" "$LINK_BASE_URL") || return
-    log_debug "Plain form: $FORM"
+    #~ log_debug "Plain form: $FORM"
 
     FORM_REDIR=$(parse_form_input_by_name 'redirect_to_pin' <<< "$FORM") || return
     FORM_UID5=$(parse_form_input_by_name 'uid5' <<< "$FORM") || return
@@ -457,7 +457,7 @@ letitbit_download() {
         -d "__jspcheck=$FORM_CHECK" "$LINK_BASE_URL/download3.php") || return
 
     # 3) parse wait time and wait
-    WAIT=$(echo "$PAGE" | parse_tag 'Wait for Your turn' 'span') || return
+    WAIT=$(parse_tag 'Wait for Your turn' 'span' <<< "$PAGE") || return
     wait $((WAIT + 1)) || return
 
     # 4) check download (Note: dummy '-d" to force a POST request)
@@ -536,7 +536,7 @@ letitbit_download() {
     captcha_ack "$ID"
 
     # Response contains multiple possible download links, we just pick the first
-    echo "$PAGE" | parse . '"\(http:[^"]\+\)"' || return
+    parse . '"\(http:[^"]\+\)"' <<< "$PAGE" || return
     echo "$FORM_NAME"
 }
 
@@ -643,7 +643,7 @@ letitbit_delete() {
 
     # Check (manually) if file exists
     # remove "delete15623193_0be902ba49/" to get normal download link
-    DEL_PART=$(echo "$URL" | parse . '\(delete[^/]\+\)') || return
+    DEL_PART=$(parse . '\(delete[^/]\+\)' <<< "$URL") || return
     PAGE=$(curl -L -b 'lang=en' "${URL/$DEL_PART\//}") || return
 
     if match 'File not found' "$PAGE"; then
@@ -695,12 +695,12 @@ letitbit_list() {
         return $ERR_FATAL
     fi
 
-    test "$2" && log_debug "letitbit does not display sub folders"
+    test "$2" && log_debug "Letitbit does not display sub folders"
 
     PAGE=$(curl -L "$URL") || return
 
-    LINKS=$(echo "$PAGE" | parse_all_attr 'target="_blank"' 'href')
-    NAMES=$(echo "$PAGE" | parse_all_tag 'target="_blank"' 'font')
+    LINKS=$(parse_all_attr 'target="_blank"' 'href' <<< "$PAGE")
+    NAMES=$(parse_all_tag  'target="_blank"' 'font' <<< "$PAGE")
 
     test "$LINKS" || return $ERR_LINK_DEAD
 
