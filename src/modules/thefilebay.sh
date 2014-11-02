@@ -39,17 +39,21 @@ thefilebay_login() {
     local -r AUTH=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
-    local LOGIN_DATA LOGIN_RESULT
+    local LOGIN_DATA LOGIN_RESULT STATUS ERR
 
-    LOGIN_DATA='loginUsername=$USER&loginPassword=$PASSWORD&submit=Login&submitme=1'
+    LOGIN_DATA='username=$USER&password=$PASSWORD'
     LOGIN_RESULT=$(post_login "$AUTH" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "$BASE_URL/login.php" -L) || return
+        "$BASE_URL/ajax/_account_login.ajax.php") || return
 
-    # Three entries are added into cookie file:
-    # filehosting, incap_ses_???_[0-9]*, visid_incap_[0-9]*
+    # filehosting cookie entry is added
 
-    # <ul class='pageErrors'>
-    if match 'Your username and password are invalid<' "$LOGIN_RESULT"; then
+    # {"error":"","login_status":"success","redirect_url":"https:\/\/thefilebay.com\/account_home.html"}
+    # {"error":"Your username and password are invalid","login_status":"invalid"}
+    STATUS=$(parse_json_quiet 'login_status' <<< "$LOGIN_RESULT")
+
+    if [ "$STATUS" != 'success' ]; then
+        ERR=$(parse_json 'error' <<< "$LOGIN_RESULT")
+        log_debug "remote error: $ERR"
         return $ERR_LOGIN_FAILED
     fi
 }
