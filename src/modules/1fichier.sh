@@ -68,8 +68,8 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$2
-    local PAGE FILE_URL FILE_NAME
+    local -r URL=$(replace 'http://' 'https://' <<< "$2")
+    local PAGE FILE_URL FILE_NAME WAIT
 
     if [ -n "$AUTH" ]; then
         1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
@@ -107,6 +107,12 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
 
+    # Warning ! Without Premium, you must wait between downloads.<br/>You must wait 9 minutes</div>
+    elif match '>Warning ! Without Premium,' "$PAGE"; then
+        WAIT=$(parse '>Warning ! Without' 'You must wait \([[:digit:]]\+\) minute' <<< "$PAGE")
+        echo $((WAIT * 60))
+        return $ERR_LINK_TEMP_UNAVAILABLE
+
     # Please wait until the file has been scanned by our anti-virus
     elif match 'Please wait until the file has been scanned' "$PAGE"; then
         log_error 'File is scanned for viruses.'
@@ -129,7 +135,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return 0
     fi
 
-    FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE")
+    FILE_NAME=$(parse 'FileName[[:space:]]*:' '">\([^<]*\)' 1 <<< "$PAGE")
 
     PAGE=$(curl --include -b "$COOKIE_FILE" -b 'LG=en' -d '' \
         --referer "$URL" "$URL") || return
