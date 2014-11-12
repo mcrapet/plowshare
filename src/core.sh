@@ -2640,8 +2640,12 @@ process_core_options() {
     local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
     shift 2
 
-    VERBOSE=2 PATH="$PATH:$PLOWSHARE_CONFDIR/exec" process_options \
-        "$NAME" "$OPTIONS" -1 "$@"
+    if [ -d "$PLOWSHARE_CONFDIR/exec" ]; then
+        VERBOSE=2 PATH="$PLOWSHARE_CONFDIR/exec:$PATH" process_options \
+            "$NAME" "$OPTIONS" -1 "$@"
+    else
+        VERBOSE=2 process_options "$NAME" "$OPTIONS" -1 "$@"
+    fi
 }
 
 # $1: program name (used for error reporting only)
