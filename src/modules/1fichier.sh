@@ -270,7 +270,9 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 
     # Try to get a "strict" url
     FID=$(echo "$URL" | parse_quiet . '://\([[:alnum:]]*\)\.')
-    [ -n "$FID" ] && URL="http://$FID.1fichier.com"
+    if [ -n "$FID" ] && [ "$FID" != '1fichier' ]; then
+        URL="http://$FID.1fichier.com"
+    fi
 
     RESPONSE=$(curl --form-string "links[]=$URL" \
         'https://1fichier.com/check_links.pl') || return
