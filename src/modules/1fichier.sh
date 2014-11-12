@@ -81,7 +81,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     PAGE=$(curl -b 'LG=en' "$URL") || return
 
     if [ -n "$FILE_URL" ]; then
-        FILE_NAME=$(parse_tag '>Filename[[:space:]]*:<' td <<< "$PAGE") || \
+        FILE_NAME=$(parse 'FileName[[:space:]]*:' '">\([^<]*\)' 1 <<< "$PAGE") || \
             log_debug "this must be a direct download link, filename will be wrong"
 
         echo "$FILE_URL"
@@ -273,7 +273,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     [ -n "$FID" ] && URL="http://$FID.1fichier.com"
 
     RESPONSE=$(curl --form-string "links[]=$URL" \
-        'https://www.1fichier.com/check_links.pl') || return
+        'https://1fichier.com/check_links.pl') || return
 
     # Note: Password protected links return NOT FOUND
     if match '\(NOT FOUND\|BAD LINK\)$' "$RESPONSE"; then
@@ -288,6 +288,11 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     if [[ $REQ_IN = *f* ]]; then
         echo "$FILE_NAME"
         REQ_OUT="${REQ_OUT}f"
+    fi
+
+    if [[ $REQ_IN = *i* ]]; then
+        echo "$FID"
+        REQ_OUT="${REQ_OUT}i"
     fi
 
     if [[ $REQ_IN = *s* ]]; then
