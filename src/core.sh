@@ -375,7 +375,7 @@ match_remote_url() {
 
     shopt -s nocasematch
     while [[ $# -gt 1 ]]; do
-            shift
+        shift
         if [[ $1 =~ ^[[:alpha:]][-.+[:alnum:]]*$ ]]; then
             if [[ $URL =~ ^[[:space:]]*$1:// ]]; then
                 RET=0
