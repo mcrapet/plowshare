@@ -49,9 +49,9 @@ filepup_net_login() {
     fi
 
     NAME=$(parse 'class=.hue' '=.hue.>\([^<]\+\)</s' <<< "$PAGE") || NAME='?'
-    TYPE=$(parse_tag_quiet 'fa-star.>' b <<< "$PAGE")
+    TYPE=$(parse 'fa-star-o' 'i>[[:space:]]*\([^<]\+\)' <<< "$PAGE")
 
-    # <span class="hue"> <i class="fa fa-star"></i><b>PRO MEMBER</b></span><br>
+    # <span class="hue"> </span> <i class="fa fa-star-o"></i> FREE MEMBER<br>
     if matchi 'FREE MEMBER' "$TYPE"; then
         TYPE='free'
     elif matchi 'PRO MEMBER' "$TYPE"; then
@@ -131,6 +131,12 @@ filepup_net_download() {
         MODULE_FILEPUP_NET_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(--data "task=$FORM_TASK")
 
     else
+        # I thought it was a trick.. but no!
+        # <img src="../captcha.php?c=664" style="position:relative; margin-top: 8px;" />
+        #FILE_URL=$(parse_attr '/captcha\.php' src <<< "$PAGE")
+        #FILE_URL="$BASE_URL/${FILE_URL#*/}"
+        #curl -b "$COOKIE_FILE" -o /dev/null "$FILE_URL" || return
+
         # We expect HTTP 302 redirection
         PAGE=$(curl -i -b "$COOKIE_FILE" \
             -d "task=$FORM_TASK" "$URL") || return
@@ -149,6 +155,7 @@ filepup_net_download() {
         fi
 
         FILE_URL=$(grep_http_header_location <<< "$PAGE") || return
+        MODULE_FILEPUP_NET_DOWNLOAD_FINAL_LINK_NEEDS_EXTRA=(--referer "$FILE_URL")
     fi
 
     echo "$FILE_URL"
