@@ -78,6 +78,7 @@ uploading       | download | upload |        |      | probe |
 uploaded_net    | download | upload | delete | list | probe |
 upstore         | download | upload |        |      | probe |
 uptobox         | download | upload |        |      | probe |
+yourvideohost   | download |        |        |      | probe |
 zalaa           | download | upload |        | list | probe |
 ziddu           | download | upload |        |      | probe |
 zippyshare      | download | upload |        | list | probe |
