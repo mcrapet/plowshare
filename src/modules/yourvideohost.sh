@@ -63,7 +63,7 @@ yourvideohost_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://yourvideohost.com'
-    local PAGE FILE_URL WAIT_TIME JS JSON
+    local PAGE FILE_URL WAIT_TIME JS
     local FORM_HTML FORM_OP FORM_ID FORM_USR FORM_REF FORM_FNAME FORM_HASH FORM_SUBMIT
 
     detect_javascript || return
@@ -101,12 +101,16 @@ yourvideohost_download() {
     JS=$(echo "${JS#*>}" | delete_last_line)
     log_debug "js: '$JS'"
 
-    JSON=$(javascript <<< 'empty = function(f) {}
-setup = function(options) {
-  var dump = JSON.stringify(options, null, 4);
-  print(dump);
+    FILE_URL=$(javascript <<< 'empty = function(f) {}
+setup = function(opts) {
+  for(var key in opts) {
+    if (key == "file") {
+      print(opts[key]);
+      break;
+    }
+  }
 }
-var jwplayer = function(obj) {
+var jwplayer = function(tag) {
   return {
     setup: setup,
     onTime: empty,
@@ -116,8 +120,6 @@ var jwplayer = function(obj) {
   };
 }
 '"$JS") || return
-
-    FILE_URL=$(parse_json 'file' <<< "$JSON" | first_line) || return
 
     echo "$FILE_URL"
     echo "$FORM_FNAME"
