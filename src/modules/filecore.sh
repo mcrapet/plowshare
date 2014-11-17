@@ -126,7 +126,7 @@ filecore_download() {
         return $ERR_FATAL
     fi
 
-    parse_attr '/download_linker\.' href <<< "$PAGE" || return
+    parse '"Download Link"' "window\.open('\([^']\+\)')" <<< "$PAGE" || return
     parse_tag 'colspan=.2.><b>' b <<< "$PAGE" || return
 }
 
