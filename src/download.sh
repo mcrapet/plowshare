@@ -648,11 +648,13 @@ download() {
 # %c: final cookie filename (with output directory)
 # %C: %c or empty string if module does not require it
 # %d: download (final) url
+# %D: download (final) url (JSON string)
 # %f: destination (local) filename
 # %F: destination (local) filename (with output directory)
 # %m: module name
 # %s: destination (local) file size (in bytes)
 # %u: download (source) url
+# %U: download url (JSON string)
 # and also:
 # %n: newline
 # %t: tabulation
@@ -664,7 +666,7 @@ download() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[cdfmsuCFnt%]}
+    S=${1//%[cdDfmsuUCFnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -720,7 +722,7 @@ pretty_print() {
 
     handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
         "%m,${A[0]}" "%f,${A[1]}" "%u,${A[4]}" "%d,${A[5]}" \
-        "%s,${A[6]}"
+        "%s,${A[6]}" "%U,$(json_escape "${A[4]}")" "%D,$(json_escape "${A[5]}")"
 }
 
 #

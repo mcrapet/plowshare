@@ -2926,6 +2926,17 @@ handle_tokens() {
     echo -n "${OUT%x}"
 }
 
+# Format a string suitable for JSON (see www.json.org)
+# Escaped characters: / " \
+#
+# $1: string
+# stdout: JSON string
+json_escape() {
+    local S=${1//\\/\\\\}
+    S=${S//\//\\/}
+    echo -n "${S//\"/\\\"}"
+}
+
 ## ----------------------------------------------------------------------------
 
 ##

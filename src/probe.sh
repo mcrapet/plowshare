@@ -213,6 +213,7 @@ probe() {
 # %s: filesize (in bytes) or empty string (if not available).
 #     Note: it's often approximative.
 # %u: download url
+# %U: download url (JSON string)
 # %T: timestamp or empty string (if not available).
 # and also:
 # %n: newline
@@ -225,7 +226,7 @@ probe() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[cfFhimsuTnt%]}
+    S=${1//%[cfFhimsuUTnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -253,7 +254,8 @@ pretty_print() {
 
     handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
         "%m,${A[0]}" "%u,${A[1]}" "%c,${A[2]}" "%f,${A[3]}" \
-        "%s,${A[4]}" "%h,${A[5]}" "%i,${A[6]}" "%T,${A[7]}"
+        "%s,${A[4]}" "%h,${A[5]}" "%i,${A[6]}" "%T,${A[7]}" \
+        "%U,$(json_escape "${A[1]}")"
 }
 
 #

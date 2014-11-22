@@ -45,7 +45,7 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
-PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%D%A%u%n\".
+PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%L%M%u%n\".
 TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -116,13 +116,16 @@ module_config_remote_upload() {
 # Interpreted sequences are:
 # %f: destination (remote) filename
 # %u: download url
+# %U: download url (JSON string)
 # %d: delete url
+# %D: delete url (JSON string)
 # %a: admin url/code
+# %A: admin url/code (JSON string)
 # %l: source (local) filename
 # %m: module name
 # %s: filesize (in bytes)
-# %D: alias for "#DEL %d%n" or empty string (if %d is empty)
-# %A: alias for "#ADM %a%n" or empty string (if %a is empty)
+# %L: alias for "#DEL %d%n" or empty string (if %d is empty)
+# %M: alias for "#ADM %a%n" or empty string (if %a is empty)
 # and also:
 # %n: newline
 # %t: tabulation
@@ -134,7 +137,7 @@ module_config_remote_upload() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[fudalmsADnt%]}
+    S=${1//%[fuUdDaAlmsLMnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -151,19 +154,19 @@ pretty_print() {
 
     test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
 
-    if test "${FMT#*%D}" != "$FMT"; then
+    if test "${FMT#*%L}" != "$FMT"; then
         if [ -z "${A[4]}" ]; then
-            FMT=${FMT//%D/}
+            FMT=${FMT//%L/}
         else
-            FMT=$(replace_all '%D' "#DEL %d%n" <<< "$FMT")
+            FMT=$(replace_all '%L' "#DEL %d%n" <<< "$FMT")
         fi
     fi
 
-    if test "${FMT#*%A}" != "$FMT"; then
+    if test "${FMT#*%M}" != "$FMT"; then
         if [ -z "${A[5]}" ]; then
-            FMT=${FMT//%A/}
+            FMT=${FMT//%M/}
         else
-            FMT=$(replace_all '%A' "#ADM %a%n" <<< "$FMT")
+            FMT=$(replace_all '%M' "#ADM %a%n" <<< "$FMT")
         fi
     fi
 
@@ -172,7 +175,8 @@ pretty_print() {
 
     handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
         "%m,${A[0]}" "%l,${A[1]}" "%f,${A[2]}" "%u,${A[3]}" \
-        "%d,${A[4]}" "%a,${A[5]}"
+        "%d,${A[4]}" "%a,${A[5]}" "%U,$(json_escape "${A[3]}")" \
+        "%D,$(json_escape "${A[4]}")" "%A,$(json_escape "${A[5]}")"
 }
 
 # Filename (arguments) printf format
@@ -506,7 +510,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
             DATA=("$MODULE" "$LOCALFILE" "$DESTFILE" \
                   "$DL_URL" "$DEL_URL" "$ADMIN_URL_OR_CODE")
-            pretty_print DATA[@] "${PRINTF_FORMAT:-%D%A%u%n}"
+            pretty_print DATA[@] "${PRINTF_FORMAT:-%L%M%u%n}"
         else
             log_error 'Output URL expected'
             URETVAL=$ERR_FATAL

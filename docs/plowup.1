@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "July 30, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "November 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -208,7 +208,7 @@ extension (without dot character) of %f (not greedy)
 .RE
 .TP
 .BI "   " " " --printf= FORMAT
-Print results (on stdout) in a given format (for each successful upload). Default string is: \fI"%D%A%u%n"\fR. Interpreted sequences are:
+Print results (on stdout) in a given format (for each successful upload). Default string is: \fI"%L%M%u%n"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
@@ -218,13 +218,19 @@ raw % character
 admin url or admin code (rare case)
 .TP
 \fI%A\fR
-empty if %a is empty, or alias to \fB"#ADM %a%n"\fR.
+same as \fB%a\fR but url is escaped for JSON usage
+.TP
+\fI%M\fR
+empty if \fB%a\fR is empty, or alias to "\fB#ADM %a%n\fR".
 .TP
 \fI%d\fR
 delete url
 .TP
 \fI%D\fR
-empty if %d is empty, or alias to \fB"#DEL %d%n"\fR.
+same as \fB%d\fR but url is escaped for JSON usage
+.TP
+\fI%L\fR
+empty if \fB%d\fR is empty, or alias to "\fB#DEL %d%n\fR".
 .TP
 \fI%f\fR
 destination (remote) filename
@@ -239,13 +245,16 @@ module name
 newline
 .TP
 \fI%s\fR
-filesize (in bytes)
+filesize (positive interger in bytes)
 .TP
 \fI%t\fR
 tabulation character
 .TP
 \fI%u\fR
 download url
+.TP
+\fI%U\fR
+same as \fB%u\fR but url is escaped for JSON usage
 .RE
 .SS Logging options
 .TP

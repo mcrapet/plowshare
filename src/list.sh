@@ -84,6 +84,7 @@ module_config_has_subfolders() {
 # %f: filename (can be an empty string)
 # %F: alias for "# %f%n" or empty string if %f is empty
 # %u: download url
+# %U: download url (JSON string)
 # %m: module name
 # and also:
 # %n: newline
@@ -96,7 +97,7 @@ module_config_has_subfolders() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[fFumnt%]}
+    S=${1//%[fFuUmnt%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -128,7 +129,7 @@ pretty_print() {
         fi
 
         handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
-            "%m,$2" "%u,$URL" "%f,$NAME"
+            "%m,$2" "%u,$URL" "%f,$NAME" "%U,$(json_escape "$URL")"
     done
 }
 

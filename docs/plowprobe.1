@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "August 28, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowprobe" "1" "November 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowprobe \- Gather information from file sharing download links
@@ -62,7 +62,7 @@ probe function return status (0 for success, 13 for dead link, see list below)
 filename (can be empty string)
 .TP
 \fI%F\fR
-empty if %f is empty, or alias to \fB"# %f%n"\fR.
+empty if \fB%f\fR is empty, or alias to "\fB# %f%n\fR".
 .TP
 \fI%h\fR
 filehash (can be empty string if not available). Usually MD5 or SHA1. If hoster supports several algorithms, the longest digest is used.
@@ -77,7 +77,7 @@ module name
 newline
 .TP
 \fI%s\fR
-filesize in bytes  (can be empty string if not available). Note: it's often approximative.
+filesize (positive integer) in bytes (can be empty string if not available). Note: It's often approximative.
 .TP
 \fI%t\fR
 tabulation character
@@ -87,6 +87,9 @@ file timestamp (can be empty string if not available). Unix epoch time is prefer
 .TP
 \fI%u\fR
 download (source) url
+.TP
+\fI%U\fR
+same as \fB%u\fR but url is escaped for JSON usage
 .P
 Note: Metadata are often not fully available from hosters nor implemented by all
 modules.
@@ -166,8 +169,12 @@ $ cat file_with_links.txt | plowprobe - > file_with_active_links.txt
 .EE
 .SS 2) Custom results format
 .EX
-# Print links information: filename and size
-$ plowprobe \-\-printf '# %f (%s)%n%u%n' http://www.sendspace.com/file/5njdw7
+.sp 1
+# Print links information: filename and hash
+$ plowprobe \-\-printf '# %f (%h)%n%u%n' http://www.sendspace.com/file/5njdw7
+.sp 1
+# Print a JSON result
+$ plowprobe \-\-printf '{"url":"%U","size":%s}%n' http://www.sendspace.com/file/5njdw7
 .EE
 
 .\" ****************************************************************************

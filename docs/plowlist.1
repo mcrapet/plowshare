@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "March 23, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowlist" "1" "November 22, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowlist \- List links from shared folders websites
@@ -61,7 +61,7 @@ raw % character
 filename (can be empty string if module list function does not report any name)
 .TP
 \fI%F\fR
-empty if %f is empty, or alias to \fB"# %f%n"\fR.
+empty if \fB%f\fR is empty, or alias to "\fB# %f%n\fR".
 .TP
 \fI%m\fR
 module name
@@ -74,6 +74,9 @@ tabulation character
 .TP
 \fI%u\fR
 download url
+.TP
+\fI%U\fR
+same as \fB%u\fR but url is escaped for JSON usage
 .SS Logging options
 .TP
 .BI -v, " " --verbose= LEVEL
