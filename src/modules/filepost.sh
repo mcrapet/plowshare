@@ -386,6 +386,10 @@ filepost_probe() {
     # Get rid of escaping
     PAGE=$(replace_all '\' '' <<< "$PAGE")
 
+    if [[ $REQ_IN = *i* ]]; then
+        parse_json 'id' <<< "$PAGE" && REQ_OUT="${REQ_OUT}i"
+    fi
+
     if [[ $REQ_IN = *f* ]]; then
         # Parse file name from full URL (Note the trailing slash!)
         #   https://filepost.com/files/123/xyz/
@@ -394,9 +398,10 @@ filepost_probe() {
     fi
 
     if [[ $REQ_IN = *s* ]]; then
-        FILE_SIZE=$(parse '' \
-            '<td>\([[:digit:].]\+[[:space:]][KMG]\?B\)\(ytes\)\?</td>') <<< "$PAGE" &&
+        FILE_SIZE=$(parse '.' \
+            '<td>\([[:digit:].]\+[[:space:]][KMG]\?B\)\(ytes\)\?</td>' <<< "$PAGE") &&
             translate_size "$FILE_SIZE" && REQ_OUT="${REQ_OUT}s"
     fi
+
     echo $REQ_OUT
 }
