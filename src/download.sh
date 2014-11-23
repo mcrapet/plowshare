@@ -54,6 +54,7 @@ POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being 
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F%n\".
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
+EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
@@ -837,7 +838,13 @@ else
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdown: --deathbycaptcha selected'
 fi
 
-if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
+if [ -n "$EXT_CURLRC" ]; then
+    if [ -n "$NO_CURLRC" ]; then
+        log_notice 'plowdown: --no-curlrc selected and prevails over --curlrc'
+    else
+        log_notice 'plowdown: using alternate curl configuration file'
+    fi
+elif [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
     log_debug 'using local ~/.curlrc'
 fi
 

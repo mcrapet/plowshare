@@ -18,7 +18,7 @@ _plowup()
             # argument required but no completion available
             return 0
             ;;
-        --captchaprogram|--plowsharerc)
+        --captchaprogram|--plowsharerc|--curlrc)
             _filedir
             return 0
             ;;
@@ -43,7 +43,7 @@ _plowup()
             -v -q -i -t -r \
             --min-rate --max-rate --interface --max-retries --timeout --name \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
-            --temp-directory --printf --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --temp-directory --printf --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         local m i list
         list=$(sed -ne '/^[^#].*|[[:space:]]*upload[[:space:]]*|/p' \
@@ -91,7 +91,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
             return 0
             ;;
-        --captchaprogram|--run-before|--run-after|--plowsharerc)
+        --captchaprogram|--run-before|--run-after|--plowsharerc|--curlrc)
             _filedir
             return 0
             ;;
@@ -103,7 +103,7 @@ _plowdown()
             --min-space --max-rate --interface --mark-downloaded --no-overwrite \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
-            --fallback --printf --run-before --run-after --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --fallback --printf --run-before --run-after --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         _filedir
     fi
@@ -132,7 +132,7 @@ _plowdel()
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
             return 0
             ;;
-        --captchaprogram|--plowsharerc)
+        --captchaprogram|--plowsharerc|--curlrc)
             _filedir
             return 0
             ;;
@@ -142,7 +142,7 @@ _plowdel()
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
-            --interface --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --interface --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
@@ -168,7 +168,7 @@ _plowlist()
             _available_interfaces -a
             return 0
             ;;
-        --plowsharerc)
+        --plowsharerc|--curlrc)
             _filedir
             return 0
             ;;
@@ -177,7 +177,7 @@ _plowlist()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -R \
-            --interface --printf --recursive --fallback --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --interface --printf --recursive --fallback --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
@@ -203,7 +203,7 @@ _plowprobe()
             _available_interfaces -a
             return 0
             ;;
-        --plowsharerc)
+        --plowsharerc|--curlrc)
             _filedir
             return 0
             ;;
@@ -211,7 +211,7 @@ _plowprobe()
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
-            -v -q -i --get-module --interface --printf --follow --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            -v -q -i --get-module --interface --printf --follow --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir

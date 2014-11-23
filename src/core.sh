@@ -59,6 +59,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - MAX_LIMIT_RATE   (curl) Network maximum speed
 #   - MIN_LIMIT_RATE   (curl) Network minimum speed
 #   - NO_CURLRC        (curl) Do not read of use curlrc config
+#   - EXT_CURLRC       (curl) Alternate curlrc config file
 #   - CAPTCHA_METHOD   User-specified captcha method
 #   - CAPTCHA_ANTIGATE Antigate.com captcha key
 #   - CAPTCHA_9KWEU    9kw.eu captcha key
@@ -135,7 +136,11 @@ curl() {
         find_in_array CURL_ARGS[@] '--max-redirs' || OPTIONS+=(--max-redirs 5)
     fi
 
-    test -z "$NO_CURLRC" || OPTIONS=(-q "${OPTIONS[@]}")
+    if [ -n "$NO_CURLRC" ]; then
+        OPTIONS=(-q "${OPTIONS[@]}")
+    elif [ -n "$EXT_CURLRC" ]; then
+        OPTIONS=(-q --config "$EXT_CURLRC" "${OPTIONS[@]}")
+    fi
 
     # No verbose unless debug level; don't show progress meter for report level too
     if [ "${FUNCNAME[1]}" = 'curl_with_log' ]; then
