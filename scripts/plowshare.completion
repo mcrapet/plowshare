@@ -140,8 +140,9 @@ _plowdel()
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
-            --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha --captchamethod --captchaprogram \
-            -v -q -i --interface --no-plowsharerc --plowsharerc' -- $cur ) )
+            -v -q -i \
+            --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
+            --interface --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir
@@ -175,7 +176,8 @@ _plowlist()
 
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
-            -v -q -i -R --interface --printf --recursive --fallback --no-plowsharerc --plowsharerc' -- $cur ) )
+            -v -q -i -R \
+            --interface --printf --recursive --fallback --no-curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         # URL pattern expected
         _filedir

@@ -34,7 +34,8 @@ QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
-NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page"
+NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
 
 # This function is duplicated from download.sh
@@ -223,6 +224,10 @@ fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
+fi
+
+if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
+    log_debug 'using local ~/.curlrc'
 fi
 
 # Print chosen options

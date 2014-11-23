@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "November 22, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowlist" "1" "November 23, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowlist \- List links from shared folders websites
@@ -103,6 +103,9 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 .TP
 .B "   " --fallback
 If no module is found for link, get page (HTTP GET) and simply grep all URLs contained inside.
+.TP
+.B "   " --no-curlrc
+Do not use curl config file (~/.curlrc).
 .TP
 .B "   " --no-plowsharerc
 Do not consider any configuration file.

@@ -38,7 +38,9 @@ CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
 CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
-CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account"
+CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
+NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
+
 
 # This function is duplicated from download.sh
 absolute_path() {
@@ -147,6 +149,10 @@ else
     [ -n "$CAPTCHA_ANTIGATE" ] && log_debug 'plowdel: --antigate selected'
     [ -n "$CAPTCHA_BHOOD" ] && log_debug 'plowdel: --captchabhood selected'
     [ -n "$CAPTCHA_DEATHBY" ] && log_debug 'plowdel: --deathbycaptcha selected'
+fi
+
+if [ -z "$NO_CURLRC" -a -f "$HOME/.curlrc" ]; then
+    log_debug 'using local ~/.curlrc'
 fi
 
 MODULE_OPTIONS=$(get_all_modules_options MODULES[@] DELETE)
