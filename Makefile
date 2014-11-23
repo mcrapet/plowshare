@@ -37,9 +37,10 @@ MANDIR  = $(PREFIX)/share/man/man
 
 # Rules
 
-install: $(DESTDIR)$(DATADIR) patch_git_version patch_bash_completion
+install: install_files patch_git_version patch_bash_completion
 
-$(DESTDIR)$(DATADIR):
+install_files:
+	@! test -d $(DESTDIR)$(DATADIR) || echo "===[Plowshare update]==="
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)
 	$(INSTALL) -d $(DESTDIR)$(DATADIR)/modules
@@ -88,4 +89,4 @@ patch_gnused: $(DESTDIR)$(DATADIR)
 		$(GNU_SED) -i -e '/\/licenses\/>/ashopt -s expand_aliases; alias sed='\''$(GNU_SED)'\' "$(DESTDIR)$(DATADIR)/$$file"; \
 	done
 
-.PHONY: install uninstall
+.PHONY: install uninstall install_files patch_git_version patch_bash_completion patch_gnused
