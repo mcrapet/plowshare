@@ -2892,7 +2892,7 @@ captcha_method_translate() {
             [[ $3 ]] && unset "$3" && eval $3=view-fb,log
             ;;
         *)
-            log_error "Error: unknown captcha method: $1"
+            log_error "Error: unknown captcha method '$1'.${DISPLAY:+ Try with 'x11' for example.}"
             return $ERR_FATAL
             ;;
     esac
