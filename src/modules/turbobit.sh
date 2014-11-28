@@ -25,7 +25,8 @@ MODULE_TURBOBIT_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_TURBOBIT_DOWNLOAD_SUCCESSIVE_INTERVAL=600
 
 MODULE_TURBOBIT_UPLOAD_OPTIONS="
-AUTH,a,auth,a=USER:PASSWORD,User account"
+AUTH,a,auth,a=USER:PASSWORD,User account
+FOLDER,,folder,s=FOLDER,Folder to upload files into"
 MODULE_TURBOBIT_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_TURBOBIT_LIST_OPTIONS=""
@@ -141,9 +142,39 @@ turbobit_api_login() {
     USER_ID=$(parse_json 'user_id' <<< "$JSON") || return
     USER_TOKEN=$(parse_json 'token' <<< "$JSON") || return
 
-    log_debug "Successfully logged in as member '$USER'"
+    log_debug "Successfully logged in as member '$USER' (API)"
     echo "$USER_ID:$USER_TOKEN"
     return 0
+}
+
+# Check if specified folder name is valid.
+# When multiple folders have the same name, first one is taken.
+# $1: folder name selected by user
+# $2: cookie file (logged into account)
+# $3: base URL
+# stdout: folder ID
+turbobit_check_folder() {
+    local -r NAME=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL="$3/user"
+    local JSON FOLDERS FOLDER_ID
+
+    JSON=$(curl -b "$COOKIE_FILE" -H 'X-Requested-With: XMLHttpRequest' \
+        "$BASE_URL/folders/ajaxGetList") || return
+
+    # Find matching folder ID
+    FOLDER_ID=$(parse_quiet . \
+        '"id":"\([[:alnum:]]\+\)","name":"'$NAME'"' <<< "$JSON")
+
+    if [ -n "$FOLDER_ID" ]; then
+        log_debug "Folder ID: $FOLDER_ID"
+        echo "$FOLDER_ID"
+        return 0
+    fi
+
+    FOLDERS=$(parse_json 'name' 'split' <<< "$JSON") || return
+    log_error 'Invalid folder, choose from:' $FOLDERS
+    return $ERR_BAD_COMMAND_LINE
 }
 
 # Output a turbobit file download URL
@@ -331,22 +362,36 @@ turbobit_download() {
 # $3: remote filename
 # stdout: turbobit download link + delete link
 turbobit_upload() {
+    local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
-    local -r BASE_URL='http://api.turbobit.net/v001/ftn'
+    local -r API_URL='http://api.turbobit.net/v001/ftn'
+    local -r BASE_URL='http://turbobit.net'
     local JSON LOGINDATA POSTDATA FILE_SIZE FILE_NAME
-    local UP_URL FILE_ID FILE_LINK DELETE_LINK
+    local UP_URL FILE_ID FILE_LINK DELETE_LINK FOLDER_ID
 
     FILE_SIZE=$(get_filesize "$FILE") || return
     FILE_NAME=$(echo "$DEST_FILE" | uri_encode_strict)
     POSTDATA="user_file_name=$FILE_NAME&size=$FILE_SIZE"
 
     if [ -n "$AUTH" ]; then
-        LOGINDATA=$(turbobit_api_login "$AUTH" "$BASE_URL") || return
+        LOGINDATA=$(turbobit_api_login "$AUTH" "$API_URL") || return
         POSTDATA="$POSTDATA&user_id=${LOGINDATA%%:*}&token=${LOGINDATA#*:}"
     fi
 
-    JSON=$(curl --data "$POSTDATA" "$BASE_URL/getUploadUrl") || return
+    # If user chose a folder, check it now
+    if [ -n "$FOLDER" ]; then
+        # Sanity check
+        if [ -z "$AUTH" ]; then
+            log_error 'Folder selection requires an account.'
+            return $ERR_BAD_COMMAND_LINE
+        fi
+
+        turbobit_login "$AUTH" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
+        FOLDER_ID=$(turbobit_check_folder "$FOLDER" "$COOKIE_FILE" "$BASE_URL") || return
+    fi
+
+    JSON=$(curl --data "$POSTDATA" "$API_URL/getUploadUrl") || return
     turbobit_api_status "$JSON" || return
 
     UP_URL=$(parse_json 'upload_link' <<< "$JSON") || return
@@ -366,6 +411,21 @@ turbobit_upload() {
 
     FILE_LINK=$(parse_json 'download_link' <<< "$JSON") || return
     DELETE_LINK=$(parse_json 'delete_link' <<< "$JSON") || return
+
+    # Move file to correct folder
+    if [ -n "$FOLDER_ID" ]; then
+        log_debug 'Moving file...'
+
+        JSON=$(curl -b "$COOKIE_FILE" -d "name_text=$FILE_NAME"     \
+            -d 'can_be_copied=Allowed' -d 'description=' -d 'tags=' \
+            -d 'oper=edit' -d "id=$FILE_ID" -d "ids=${FILE_ID}%2C"  \
+            -d "folder_id=$FOLDER_ID" "$BASE_URL/user/files/gridFileEdit") || return
+
+        if [ -n "$JSON" ]; then
+            log_error "Moving file to folder '$FOLDER' (probably) failed."
+            log_error "Server message: $JSON"
+        fi
+    fi
 
     echo "$FILE_LINK"
     echo "${DELETE_LINK/v001\/ftn\/deleteFile/delete\/file}"
