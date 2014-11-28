@@ -55,9 +55,9 @@ turbobit_login() {
         if match 'onclick="updateCaptchaImage()"' "$PAGE"; then
             local CAPTCHA_URL CAPTCHA_TYPE CAPTCHA_SUBTYPE CAPTCHA_IMG
 
-            CAPTCHA_URL=$(echo "$PAGE" | parse_attr 'alt="Captcha"' 'src') || return
-            CAPTCHA_TYPE=$(echo "$PAGE" | parse_attr 'captcha_type' value) || return
-            CAPTCHA_SUBTYPE=$(echo "$PAGE" | parse_attr_quiet 'captcha_subtype' value)
+            CAPTCHA_URL=$(parse_attr 'alt="Captcha"' 'src' <<< "$PAGE") || return
+            CAPTCHA_TYPE=$(parse_attr 'captcha_type' 'value' <<< "$PAGE") || return
+            CAPTCHA_SUBTYPE=$(parse_attr_quiet 'captcha_subtype' 'value' <<< "$PAGE")
 
             # Get new image captcha (cookie is mandatory)
             CAPTCHA_IMG=$(create_tempfile '.png') || return
@@ -94,12 +94,11 @@ turbobit_login() {
     [ "$STATUS" = '1' ] || return $ERR_LOGIN_FAILED
 
     # determine user mail and account type
-    EMAIL=$(echo "$PAGE" | parse ' user-name' \
-        '^[[:blank:]]*\([^[:blank:]]\+\)[[:blank:]]' 3) || return
+    EMAIL=$(parse 'icon-user' '</span>\([^<]\+\)<b' <<< "$PAGE") || return
 
-    if match '<u>Turbo Access</u> denied' "$PAGE"; then
+    if match '>Turbo access denied</' "$PAGE"; then
         TYPE='free'
-    elif match '<u>Turbo Access</u> to' "$PAGE"; then
+    elif match '>Turbo access to </' "$PAGE"; then
         TYPE='premium'
     else
         log_error 'Could not determine account type. Site updated?'
