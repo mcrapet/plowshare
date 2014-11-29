@@ -97,9 +97,10 @@ turbobit_login() {
     # determine user mail and account type
     EMAIL=$(parse 'icon-user' '</span>\([^<]\+\)<b' <<< "$PAGE") || return
 
+    # Purchase or Get more!
     if match '>Turbo access denied</' "$PAGE"; then
         TYPE='free'
-    elif match '>Turbo access to </' "$PAGE"; then
+    elif match '>Turbo access till ' "$PAGE"; then
         TYPE='premium'
     else
         log_error 'Could not determine account type. Site updated?'
