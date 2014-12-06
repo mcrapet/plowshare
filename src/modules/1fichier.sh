@@ -81,11 +81,15 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     PAGE=$(curl -b 'LG=en' "$URL") || return
 
     if [ -n "$FILE_URL" ]; then
-        FILE_NAME=$(parse 'FileName[[:space:]]*:' '">\([^<]*\)' 1 <<< "$PAGE") || \
-            log_debug "this must be a direct download link, filename will be wrong"
-
         echo "$FILE_URL"
-        echo "$FILE_NAME"
+
+        FILE_NAME=$(parse_quiet 'FileName[[:space:]]*:' '">\([^<]*\)' 1 <<< "$PAGE")
+        if [ -z "$FILE_NAME" ]; then
+            log_error 'This must be a direct download link, filename will be wrong!'
+        else
+            echo "$FILE_NAME"
+        fi
+
         return 0
     fi
 
@@ -168,10 +172,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
     fi
 
-    # Initial js code:
-    # var text = ''; var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    # for(var i=0; i<5; i++) text += possible.charAt(Math.floor(Math.random() * possible.length)); print(text);
-    S_ID=$(random ll 5)
+    S_ID=$(random ll 10)
 
     # FIXME: See folders later -F 'did=0' /console/get_dirs_for_upload.pl
     RESPONSE=$(curl_with_log -b "$COOKIE_FILE" \
@@ -197,8 +198,8 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         return $ERR_FATAL
     fi
 
-    echo "http://${DOWNLOAD_ID}.${DOMAIN_STR[$DOMAIN_ID]}"
-    echo "http://www.${DOMAIN_STR[$DOMAIN_ID]}/remove/$DOWNLOAD_ID/$REMOVE_ID"
+    echo "https://${DOMAIN_STR[$DOMAIN_ID]}/?${DOWNLOAD_ID}"
+    echo "https://${DOMAIN_STR[$DOMAIN_ID]}/remove/$DOWNLOAD_ID/$REMOVE_ID"
 }
 
 # Delete a file uploaded to 1fichier
