@@ -33,45 +33,56 @@ MODULE_FLASHX_PROBE_OPTIONS=""
 flashx_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
-    local PAGE CONFIG_URL EMBED_URL FILE_NAME FILE_URL
+    local -r BASE_URL='http://www.flashx.tv'
+    local PAGE VIDEO_ID SMIL_URL LINK_BASE LINK_ID FILE_NAME FILE_URL
 
-    PAGE=$(curl -c "$COOKIE_FILE" --location "$URL") || return
+    detect_javascript || return
 
+    VIDEO_ID=$(parse . '[/?]\([a-z0-9]*\)' <<< "$URL")
+    log_debug "Video ID: $VIDEO_ID"
+
+    PAGE=$(curl "$BASE_URL/$VIDEO_ID") || return
+
+    # pattern still valid?
     if match 'Video not found, deleted, abused or wrong link\|Video not found, deleted or abused, sorry!' \
        "$PAGE"; then
            return $ERR_LINK_DEAD
     fi
 
-    if match '<h2>404 Error</h2>' "$PAGE"; then
+    if match '<b>ERROR - 404 - FILE NOT FOUND</b>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    FILE_NAME=$(parse_tag '<div class=.video_title' 'div' <<< "$PAGE" | html_to_utf8) || return
+    FILE_NAME=$(parse_form_input_by_name 'fname' <<< "$PAGE") || return
+    log_debug "file name: $FILE_NAME"
 
-    # On main page
-    EMBED_URL=$(echo "$PAGE" | parse '<div class="player_container_new"' 'src="\([^"]*\)' 1) || return
-    PAGE=$(curl -b "$COOKIE_FILE" "$EMBED_URL") || return
+    # using embedded video page is easier
+    PAGE=$(curl "$BASE_URL/embed-$VIDEO_ID.html") || return
+    JS=$(grep_script_by_order "$PAGE" -2) || return
+    JS=${JS#*>}
+    JS=${JS%<*}
 
-    # Inside iframe embed on main page
-    local FORM_HTML FORM_URL FORM_HASH FORM_SEC_HASH
-    FORM_HTML=$(grep_form_by_name "$PAGE" 'fxplayit') || return
-    FORM_URL=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_HASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'hash') || return
-    FORM_SEC_HASH=$(echo "$FORM_HTML" | parse_form_input_by_name 'sechash') || return
+    SMIL_URL=$(javascript <<< "empty = function(f) {};
+      setup = function(opts) {
+        print(opts.sources[0].file);
+      }
+      var jwplayer = function(tag) {
+        return {
+          setup: setup,
+          onTime: empty,
+          onSeek: empty,
+          onPlay: empty,
+          onComplete: empty,
+        };
+      }
+      $JS") || return
+    log_debug smil url: "$SMIL_URL"
 
-    PAGE=$(curl -b "$COOKIE_FILE" \
-        --referer "$EMBED_URL" \
-        --data "hash=$FORM_HASH" \
-        --data "sechash=$FORM_SEC_HASH" \
-        --header "Cookie: refid=; vr_referrer=" \
-        "$(basename_url "$EMBED_URL")/player/$FORM_URL") || return
-
-    # Player's response
-    CONFIG_URL=$(echo "$PAGE" | parse '<param name="movie"' 'config=\([^"]*\)') || return
-    PAGE=$(curl -b "$COOKIE_FILE" --location "$CONFIG_URL") || return
-
-    # XML config file
-    FILE_URL=$(parse_tag 'file' <<< "$PAGE") || return
+    PAGE=$(curl "$SMIL_URL") || return
+    LINK_BASE=$(parse base '://\([^:/]*\)' <<< "$PAGE") || return
+    # first link is usually the one with the best quality
+    LINK_ID=$(parse 'video src' '?h=\([a-z0-9]*\)' <<< "$PAGE") || return
+    FILE_URL="http://$LINK_BASE/$LINK_ID/video.mp4"
 
     echo "$FILE_URL"
     echo "$FILE_NAME"
@@ -85,23 +96,26 @@ flashx_download() {
 flashx_probe() {
     local -r URL=$2
     local -r REQ_IN=$3
-    local PAGE REQ_OUT FILE_NAME
+    local -r BASE_URL='http://www.flashx.tv'
+    local PAGE VIDEO_ID REQ_OUT FILE_NAME
 
-    PAGE=$(curl --location "$URL") || return
+    VIDEO_ID=$(parse . '[/?]\([a-z0-9]*\)' <<< "$URL")
+    PAGE=$(curl "$BASE_URL/$VIDEO_ID") || return
 
+    # pattern still valid?
     if match 'Video not found, deleted, abused or wrong link\|Video not found, deleted or abused, sorry!' \
        "$PAGE"; then
            return $ERR_LINK_DEAD
     fi
 
-    if match '<h2>404 Error</h2>' "$PAGE"; then
+    if match '<b>ERROR - 404 - FILE NOT FOUND</b>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
     REQ_OUT=c
 
     if [[ $REQ_IN = *f* ]]; then
-        FILE_NAME=$(parse_tag '<div class="video_title"' 'div' <<< "$PAGE" | html_to_utf8) && \
+        FILE_NAME=$(parse_form_input_by_name 'fname' <<< "$PAGE") && \
             echo "$FILE_NAME" && REQ_OUT="${REQ_OUT}f"
     fi
 
