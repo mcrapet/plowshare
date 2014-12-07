@@ -819,6 +819,8 @@ fi
 
 if [ -n "$PRINTF_FORMAT" ]; then
     pretty_check "$PRINTF_FORMAT" || exit
+elif [ -n "$SKIP_FINAL" -a -z "$POST_COMMAND" ]; then
+    log_notice 'plowdown: using --skip-final without --printf is probably not what you want'
 fi
 
 # Print chosen options
