@@ -904,9 +904,18 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             log_notice "This seems to be a redirection url. Trying with: '$URL'"
         fi
 
+        # Sanity check
+        if [[ ${URL%/} =~ ^[Hh][Tt][Tt][Pp][Ss]?://(www\.)?[[:alnum:]]+\.[[:alpha:]]{2,3}$ ]]; then
+            log_notice 'You seem to have entered a basename link without any path/query. Please check if your link is valid.'
+            URL="${URL%/}/"
+            # Force error even if $MODULE detected
+            MRETVAL=$ERR_NOMODULE
+        fi
+
         MODULE=$(get_module "$URL" MODULES[@]) || true
 
         if [ -z "$MODULE" ]; then
+            MRETVAL=0
             if match_remote_url "$URL"; then
                 # Test for simple HTTP 30X redirection
                 # (disable User-Agent because some proxy can fake it)
@@ -952,8 +961,13 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
         fi
 
         if [ $MRETVAL -ne 0 ]; then
-            match_remote_url "$URL" && \
-                log_error "Skip: no module for URL ($(basename_url "$URL")/)"
+            if match_remote_url "$URL"; then
+                if [ -z "$MODULE" ]; then
+                    log_error "Skip: no module for URL ($(basename_url "$URL"))"
+                else
+                    log_error "Skip: invalid URL (${URL%/}) but module is supported ($MODULE)"
+                fi
+            fi
 
             # Check if plowlist can handle $URL
             if [[ ! $MODULES_LIST ]]; then
