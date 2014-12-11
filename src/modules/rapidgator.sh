@@ -112,7 +112,8 @@ rapidgator_login() {
             captcha_ack "$ID"
 
         else
-            local FORM=$(grep_form_by_id_quiet "$HTML" 'registration')
+            # emulate 'grep_form_by_id_quiet'
+            local FORM=$(grep_form_by_id "$HTML" 'registration' 2>/dev/null)
             log_debug "Unexpected login issue: $FORM"
             return $ERR_FATAL
         fi
