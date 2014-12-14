@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "November 23, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowprobe" "1" "December 14, 2014" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowprobe \- Gather information from file sharing download links
@@ -90,6 +90,14 @@ download (source) url
 .TP
 \fI%U\fR
 same as \fB%u\fR but url is escaped for JSON usage
+.TP
+\fI%v\fR
+alternate or refactored download url.
+This can be for example fixing primary hostname (to avoid HTTP 301 redirection), or force HTTPS protocol.
+If not available, alias to \fB%u\fR.
+.TP
+\fI%V\fR
+same as \fB%v\fR but url is escaped for JSON usage
 .P
 Note: Metadata are often not fully available from hosters nor implemented by all
 modules.

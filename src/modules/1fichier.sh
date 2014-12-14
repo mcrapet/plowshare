@@ -315,5 +315,10 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
         REQ_OUT="${REQ_OUT}s"
     fi
 
+    if [[ $REQ_IN = *v* ]]; then
+        echo "$URL"
+        REQ_OUT="${REQ_OUT}v"
+    fi
+
     echo $REQ_OUT
 }
