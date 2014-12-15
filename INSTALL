@@ -51,13 +51,7 @@ Installation
 $ sudo make install
 
 # For non root users, you can override default prefix (/usr/local)
-$ make install PREFIX=/home/$USER
-
-# If you are on a cross compilation environment:
-# (default prefix is /usr/local)
-$ make install DESTDIR=/media/rootfs
-or
-$ make install PREFIX=/opt DESTDIR=/media/rootfs
+$ make install PREFIX=/home/$USER/local
 
 Distro packages
 ---------------
@@ -73,6 +67,15 @@ Don't forget to properly define GNU_SED variable.
 # For example
 $ make install GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
 $ make patch_gnused GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
+
+Advanced users and maintainers
+------------------------------
+
+# If you are on a cross compilation environment:
+# (default prefix is /usr/local)
+$ make install DESTDIR=/media/rootfs
+or
+$ make install PREFIX=/opt DESTDIR=/media/rootfs
 
 
 # vim:fileencoding=utf-8
