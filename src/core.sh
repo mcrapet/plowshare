@@ -1395,7 +1395,7 @@ captcha_process() {
         if [[ "$METHOD_VIEW" != *view-aa* ]]; then
             if check_exec tput; then
                 local TYPE
-                if [ -z "$TERM" -a "$TERM" != 'dumb' ]; then
+                if [ -z "$TERM" -o "$TERM" = 'dumb' ]; then
                     log_notice 'Invalid $TERM value. Terminal type forced to vt100.'
                     TYPE='-Tvt100'
                 fi
