@@ -63,12 +63,15 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 # $1: 1fichier url
 # stdout: string (with ; as separator)
 1fichier_checklink() {
-    local S
+    local S FID
     S=$(curl --form-string "links[]=$1" 'https://1fichier.com/check_links.pl') || return
 
     # Note: Password protected links return
     # url;;;PRIVATE
-    if match '\(NOT FOUND\|BAD LINK\)$' "$S"; then
+    if [ "${S##*;}" = 'BAD LINK' ]; then
+        log_debug 'obsolete link format?'
+        return $ERR_LINK_DEAD
+    elif [ "${S##*;}" = 'NOT FOUND' ]; then
         return $ERR_LINK_DEAD
     fi
 
@@ -84,8 +87,13 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
 #       Otherwise you'll get the parallel download message.
 1fichier_download() {
     local -r COOKIE_FILE=$1
-    local -r URL=$(replace 'http://' 'https://' <<< "$2")
-    local PAGE FILE_URL FILE_NAME WAIT
+    local URL=$(replace 'http://' 'https://' <<< "$2")
+    local FID PAGE FILE_URL FILE_NAME WAIT
+
+    FID=$(parse_quiet . '://\([[:alnum:]]*\)\.' <<< "$URL")
+    if [ -n "$FID" ] && [ "$FID" != '1fichier' ]; then
+        URL="https://1fichier.com/?$FID"
+    fi
 
     if [ -n "$AUTH" ]; then
         1fichier_login "$AUTH" "$COOKIE_FILE" 'https://1fichier.com' || return
@@ -122,14 +130,14 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     fi
 
     # Warning ! Without premium status, you can download only one file at a time
-    if match '>Warning ! Without premium status,' "$PAGE" ; then
+    if match 'Warning ! Without premium status,' "$PAGE"; then
         log_error 'No parallel download allowed.'
         echo 300
         return $ERR_LINK_TEMP_UNAVAILABLE
 
     # Warning ! Without Premium, you must wait between downloads.<br/>You must wait 9 minutes</div>
-    elif match '>Warning ! Without Premium,' "$PAGE"; then
-        WAIT=$(parse '>Warning ! Without' 'You must wait \([[:digit:]]\+\) minute' <<< "$PAGE")
+    elif match 'Warning ! Without Premium,' "$PAGE"; then
+        WAIT=$(parse 'Warning ! Without' 'You must wait \([[:digit:]]\+\) minute' <<< "$PAGE")
         echo $((WAIT * 60))
         return $ERR_LINK_TEMP_UNAVAILABLE
 
@@ -283,8 +291,7 @@ MODULE_1FICHIER_PROBE_OPTIONS=""
     local -r REQ_IN=$3
     local FID RESPONSE FILE_NAME FILE_SIZE
 
-    # Try to get a "strict" url
-    FID=$(echo "$URL" | parse_quiet . '://\([[:alnum:]]*\)\.')
+    FID=$(parse_quiet . '://\([[:alnum:]]*\)\.' <<< "$URL")
     if [ -n "$FID" ] && [ "$FID" != '1fichier' ]; then
         URL="https://1fichier.com/?$FID"
     fi
