@@ -113,7 +113,7 @@ filecloud_download() {
 
         PAGE=$(filecloud_curl_json \
             -d "akey=$APIKEY" \
-            'http://api.filecloud.io/api-fetch_account_details.api') || return
+            'https://filecloud.io/api-fetch_account_details.api') || return
 
         PREMIUM=$(parse_json 'is_premium' <<< "$PAGE") || return
     fi
@@ -124,7 +124,7 @@ filecloud_download() {
         PAGE=$(filecloud_curl_json \
             -d "akey=$APIKEY" \
             -d "ukey=$UKEY" \
-            'http://api.filecloud.io/api-fetch_download_url.api') || return
+            'https://filecloud.io/api-fetch_download_url.api') || return
 
         FILE_URL=$(parse_json 'download_url' <<< "$PAGE") || return
 
@@ -283,7 +283,7 @@ filecloud_upload() {
     fi
 
     PAGE=$(filecloud_curl_json \
-        'http://api.filecloud.io/api-fetch_upload_url.api') || return
+        'https://filecloud.io/api-fetch_upload_url.api') || return
 
     UP_URL=$(parse_json 'upload_url' <<< "$PAGE") || return
 
@@ -347,7 +347,7 @@ filecloud_list() {
         PAGE=$(filecloud_curl_json \
             -d "akey=$APIKEY" \
             -d "tkey=$TKEY" \
-            'http://api.filecloud.io/api-fetch_tag_details.api') || return
+            'https://filecloud.io/api-fetch_tag_details.api') || return
 
         FILES_LIST=$(parse . '"files":\(.*\)},"status"' <<< "$PAGE") || return
 
@@ -392,7 +392,7 @@ filecloud_probe() {
 
     PAGE=$(filecloud_curl_json \
         -d "ukey=$UKEY" \
-        'http://api.filecloud.io/api-check_file.api') || return
+        'https://filecloud.io/api-check_file.api') || return
 
     REQ_OUT=c
 
