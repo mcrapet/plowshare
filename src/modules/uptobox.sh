@@ -293,7 +293,7 @@ uptobox_upload() {
         return 0
     fi
 
-    log_error "Unexpected status: $FORM2_ST"
+    log_error "Unexpected status: $FORM_ST"
     return $ERR_FATAL
 }
 
