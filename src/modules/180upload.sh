@@ -20,17 +20,48 @@
 
 MODULE_180UPLOAD_REGEXP_URL='https\?://\(www\.\)\?180upload\.com/'
 
-MODULE_180UPLOAD_DOWNLOAD_OPTIONS=""
+MODULE_180UPLOAD_DOWNLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account"
 MODULE_180UPLOAD_DOWNLOAD_RESUME=yes
 MODULE_180UPLOAD_DOWNLOAD_FINAL_LINK_NEEDS_COOKIE=no
 MODULE_180UPLOAD_DOWNLOAD_SUCCESSIVE_INTERVAL=
 
 MODULE_180UPLOAD_UPLOAD_OPTIONS="
+AUTH_FREE,b,auth-free,a=USER:PASSWORD,Free account
 DESCRIPTION,d,description,S=DESCRIPTION,Set file description
 TOEMAIL,,email-to,e=EMAIL,<To> field for notification email"
 MODULE_180UPLOAD_UPLOAD_REMOTE_SUPPORT=no
 
 MODULE_180UPLOAD_PROBE_OPTIONS=""
+
+# Static function. Proceed with login
+# $1: authentication
+# $2: cookie file
+# $3: base URL
+180upload_login() {
+    local -r AUTH_FREE=$1
+    local -r COOKIE_FILE=$2
+    local -r BASE_URL=$3
+    local LOGIN_DATA PAGE ERR NAME
+
+    LOGIN_DATA='op=login&redirect=&login=$USER&password=$PASSWORD'
+    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+        "${BASE_URL}") || return
+
+    # Check for errors
+    # Note: Successful login redirects and sets cookies 'login' and 'xfss'
+    # Get error message, if any
+    ERR=$(parse_tag_quiet "class='err'" 'b' <<< "$PAGE")
+
+    if [ -n "$ERR" ]; then
+        log_debug "Remote error: $ERR"
+        return $ERR_LOGIN_FAILED
+    fi
+
+    # Get username
+    NAME=$(parse_cookie 'login' < "$COOKIE_FILE") || return
+    log_debug "Successfully logged in as member '$NAME'"
+}
 
 # Output a 180upload.com file download URL
 # $1: cookie file
@@ -39,11 +70,16 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 180upload_download() {
     local -r COOKIE_FILE=$1
     local -r URL=$2
+    local -r BASE_URL='http://180upload.com/'
     local PAGE FILE_NAME FILE_URL ERR
     local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P
     local PUBKEY RESP CHALL ID CAPTCHA_DATA
 
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'lang=english' "$URL") || return
+    if [ -n "$AUTH_FREE" ]; then
+        180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    fi
+
+    PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
     # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
     if match 'File Not Found' "$PAGE"; then
@@ -113,11 +149,11 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 # $3: remote filename
 # stdout: download_url
 180upload_upload() {
+    local -r COOKIE_FILE=$1
     local -r FILE=$2
     local -r DEST_FILE=$3
     local -r BASE_URL='http://180upload.com/'
-    local -r MAX_SIZE=2147483648 # 2GiB
-    local PAGE UPLOAD_ID USER_TYPE DL_URL DEL_URL
+    local PAGE SIZE MAX_SIZE UPLOAD_ID STATUS_URL
     local FORM_HTML FORM_ACTION FORM_UTYPE FORM_SESS FORM_TMP_SRV
 
     # Check for forbidden file extensions
@@ -128,19 +164,26 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
             ;;
     esac
 
-    local SZ=$(get_filesize "$FILE")
-    if [ "$SZ" -gt "$MAX_SIZE" ]; then
+    if [ -n "$AUTH_FREE" ]; then
+        180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+        readonly MAX_SIZE=3221225472 # 3GiB
+    else
+        readonly MAX_SIZE=2147483648 # 2GiB
+    fi
+
+    SIZE=$(get_filesize "$FILE") || return
+    if [ "$SIZE" -gt "$MAX_SIZE" ]; then
         log_debug "file is bigger than $MAX_SIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
 
-    PAGE=$(curl -L -b 'lang=english' "$BASE_URL") || return
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
-    FORM_ACTION=$(echo "$FORM_HTML" | parse_form_action) || return
-    FORM_UTYPE=$(echo "$FORM_HTML" | parse_form_input_by_name 'upload_type')
-    FORM_SESS=$(echo "$FORM_HTML" | parse_form_input_by_name_quiet 'sess_id')
-    FORM_TMP_SRV=$(echo "$FORM_HTML" | parse_form_input_by_name 'srv_tmp_url') || return
+    FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
+    FORM_UTYPE=$(parse_form_input_by_name 'upload_type' <<< "$FORM_HTML") || return
+    FORM_SESS=$(parse_form_input_by_name_quiet 'sess_id' <<< "$FORM_HTML")
+    FORM_TMP_SRV=$(parse_form_input_by_name 'srv_tmp_url' <<< "$FORM_HTML") || return
     log_debug "Server URL: '$FORM_TMP_SRV'"
 
     UPLOAD_ID=$(random dec 12)
@@ -154,40 +197,20 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
         return $ERR_FATAL
     fi
 
-    PAGE=$(curl_with_log \
-       -F "upload_type=$FORM_UTYPE" \
-       -F "sess_id=$FORM_SESS" \
-       -F "srv_tmp_url=$FORM_TMP_SRV" \
-       -F "file_0=@$FILE;filename=$DEST_FILE" \
-       --form-string "file_0_descr=$DESCRIPTION" \
-       -F "file_1=@/dev/null;filename=" \
-       -F 'tos=1' \
-       --form-string "link_rcpt=$TOEMAIL" \
-       -F 'submit_btn= Upload! ' \
-       "${FORM_ACTION}${UPLOAD_ID}&js_on=1&utype=${USER_TYPE}&upload_type=$FORM_UTYPE" | \
-       break_html_lines) || return
+    PAGE=$(curl_with_log --include -b "$COOKIE_FILE" \
+        -F "upload_type=$FORM_UTYPE"   -F "sess_id=$FORM_SESS" \
+        -F "srv_tmp_url=$FORM_TMP_SRV" -F "file_1=@$FILE;filename=$DEST_FILE" \
+        --form-string "file_1_descr=$DESCRIPTION" \
+        --form-string "link_rcpt=$TOEMAIL" \
+        -F 'tos=1' -F 'submit_btn= Upload! ' \
+        "${FORM_ACTION}${UPLOAD_ID}") || return
 
-    local FORM2_ACTION FORM2_FN FORM2_ST FORM2_OP
-    FORM2_ACTION=$(echo "$PAGE" | parse_form_action) || return
-    FORM2_FN=$(echo "$PAGE" | parse_tag 'fn.>' textarea)
-    FORM2_ST=$(echo "$PAGE" | parse_tag 'st.>' textarea)
-    FORM2_OP=$(echo "$PAGE" | parse_tag 'op.>' textarea)
+    STATUS_URL=$(grep_http_header_location <<< "$PAGE") || return
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' $STATUS_URL) || return
 
-    if [ "$FORM2_ST" = 'OK' ]; then
-        PAGE=$(curl -b 'lang=english' \
-            -d "fn=$FORM2_FN" -d "st=$FORM2_ST" -d "op=$FORM2_OP" \
-            "$FORM2_ACTION") || return
-
-        DL_URL=$(echo "$PAGE" | parse 'Download Link' '>\(http[^<]\+\)<' 1) || return
-        DEL_URL=$(echo "$PAGE" | parse 'Delete Link' '>\(http[^<]\+\)<' 1)
-
-        echo "$DL_URL"
-        echo "$DEL_URL"
-        return 0
-    fi
-
-    log_error "Unexpected status: $FORM2_ST"
-    return $ERR_FATAL
+    # Parse and output download and delete link
+    parse 'Download Link' '>\(http[^<]\+\)<' 1 <<< "$PAGE" || return
+    parse 'Delete Link' '>\(http[^<]\+\)<' 1 <<< "$PAGE" || return
 }
 
 # Probe a download URL
