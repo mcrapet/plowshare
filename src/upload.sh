@@ -97,7 +97,7 @@ module_exist() {
     local MODULE
 
     for MODULE in "${!1}"; do
-        if [[ $N1 = $MODULE || $N2 = $MODULE ]]; then
+        if [[ $N1 = "$MODULE" || $N2 = "$MODULE" ]]; then
             echo "$MODULE"
             return 0
         fi
@@ -172,7 +172,7 @@ pretty_print() {
     fi
 
     test "${FMT#*%s}" != "$FMT" && \
-        FMT=$(replace_all '%s' $(get_filesize "${A[1]}") <<< "$FMT")
+        FMT=$(replace_all '%s' "$(get_filesize "${A[1]}")" <<< "$FMT")
 
     handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
         "%m,${A[0]}" "%l,${A[1]}" "%f,${A[2]}" "%u,${A[3]}" \
@@ -221,10 +221,10 @@ pretty_name_print() {
     test "${FMT#*%%}" != "$FMT" && FMT=$(replace_all '%%' "%raw" <<< "$FMT")
 
     test "${FMT#*%s}" != "$FMT" && \
-        FMT=$(replace_all '%s' $(get_filesize "${A[1]}") <<< "$FMT")
+        FMT=$(replace_all '%s' "$(get_filesize "${A[1]}")" <<< "$FMT")
 
     test "${FMT#*%h}" != "$FMT" && \
-        FMT=$(replace_all '%h' $(md5_file "${A[1]}") <<< "$FMT")
+        FMT=$(replace_all '%h' "$(md5_file "${A[1]}")" <<< "$FMT")
 
     handle_tokens "$FMT" '%raw,%' \
         "%m,${A[0]}" "%l,${A[1]}" "%f,${A[2]}" \
@@ -387,7 +387,7 @@ eval "$(process_module_options "$MODULE" UPLOAD \
     "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
 if [ ${#UNUSED_OPTS[@]} -ne 0 ]; then
-    log_notice "Unused option(s): ${UNUSED_OPTS[@]}"
+    log_notice "Unused option(s): ${UNUSED_OPTS[*]}"
 fi
 
 # Remove module name from argument list
@@ -554,7 +554,7 @@ if [ ${#RETVALS[@]} -eq 0 ]; then
 elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
-    log_debug "retvals:${RETVALS[@]}"
+    log_debug "retvals:${RETVALS[*]}"
     # Drop success values
     RETVALS=(${RETVALS[@]/#0*} -$ERR_FATAL_MULTIPLE)
 

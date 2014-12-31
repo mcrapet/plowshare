@@ -233,7 +233,7 @@ if [ ${#RETVALS[@]} -eq 0 ]; then
 elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
-    log_debug "retvals:${RETVALS[@]}"
+    log_debug "retvals:${RETVALS[*]}"
     # Drop success values
     RETVALS=(${RETVALS[@]/#0*} -$ERR_FATAL_MULTIPLE)
 

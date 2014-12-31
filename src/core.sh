@@ -94,11 +94,11 @@ logcat_report() {
 
 # This should not be called within modules
 log_report() {
-    test $VERBOSE -lt 4 || stderr "rep: $@"
+    test $VERBOSE -lt 4 || stderr 'rep:' "$@"
 }
 
 log_debug() {
-    test $VERBOSE -lt 3 || stderr "dbg: $@"
+    test $VERBOSE -lt 3 || stderr 'dbg:' "$@"
 }
 
 # This should not be called within modules
@@ -164,7 +164,7 @@ curl() {
     else
         local TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
-        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" --show-error --silent 2>&1 >"$TEMPCURL" || DRETVAL=$?
+        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" --show-error --silent >"$TEMPCURL" 2>&1 || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
         log_report '=== CURL BEGIN ==='
@@ -1151,7 +1151,7 @@ post_login() {
     fi
 
     # Seem faster than
-    # IFS=":" read -r USER PASSWORD <<< "$AUTH"
+    # IFS=':' read -r USER PASSWORD <<< "$AUTH"
     USER=$(echo "${AUTH%%:*}" | uri_encode_strict)
     PASSWORD=$(echo "${AUTH#*:}" | uri_encode_strict)
 
@@ -1803,7 +1803,7 @@ captcha_process() {
     # Second pass for cleaning up
     case $METHOD_VIEW in
         X-*)
-            [[ $PRG_PID ]] && kill -HUP $PRG_PID 2>&1 >/dev/null
+            [[ $PRG_PID ]] && kill -HUP $PRG_PID >/dev/null 2>&1
             ;;
         imgur)
             image_delete_imgur "$IMG_HASH" || true
@@ -2578,7 +2578,7 @@ print_options() {
 
     while read -r; do
         test "$REPLY" || continue
-        IFS="," read -r VAR SHORT LONG TYPE MSG <<< "$REPLY"
+        IFS=',' read -r VAR SHORT LONG TYPE MSG <<< "$REPLY"
         if [ -n "$SHORT" ]; then
             if test "$TYPE"; then
                 STR="-${SHORT} ${TYPE#*=}"
@@ -2785,12 +2785,13 @@ process_configfile_module_options() {
         "$CONFIG" | sed -e '/^\(#\|\[\|[[:space:]]*$\)/d') || true
 
     if [ -n "$SECTION" -a -n "$OPTIONS" ]; then
+        local VAR SHORT LONG
         local -lr M=$2
 
         # For example:
         # AUTH,a,auth,a=USER:PASSWORD,User account
         while read -r; do
-            IFS="," read -r VAR SHORT LONG TYPE_HELP <<< "$REPLY"
+            IFS=',' read -r VAR SHORT LONG _ <<< "$REPLY"
 
             # Look for 'module/option_name' (short or long) in section list
             LINE=$(sed -ne "/^[[:space:]]*$M\/\($SHORT\|$LONG\)[[:space:]]*=/{p;q}" <<< "$SECTION") || true
@@ -2984,7 +2985,7 @@ quote_multiple() {
 quote_array() {
     local -a ARR
     local E
-    IFS="," read -r -a ARR <<< "$1"
+    IFS=',' read -r -a ARR <<< "$1"
     echo '('
     for E in "${ARR[@]}"; do
         quote "$(strip <<< "$E")"
@@ -3220,7 +3221,7 @@ check_argument_type() {
             if find_in_array ITEMS[@] "$VAL"; then
                 RET=0
             else
-                log_error "$NAME ($OPT): wrong value '$VAL'. Possible values are: ${ITEMS[@]}."
+                log_error "$NAME ($OPT): wrong value '$VAL'. Possible values are: ${ITEMS[*]}."
             fi
         fi
 
@@ -3259,7 +3260,7 @@ process_options() {
     local -a UNUSED_OPTS UNUSED_ARGS
     local -a OPTS_VAR_LONG OPTS_NAME_LONG OPTS_TYPE_LONG
     local -a OPTS_VAR_SHORT OPTS_NAME_SHORT OPTS_TYPE_SHORT
-    local ARG VAR SHORT LONG TYPE HELP SKIP_ARG FOUND FUNC
+    local ARG VAR SHORT LONG TYPE SKIP_ARG FOUND FUNC
 
     shift 3
 
@@ -3275,7 +3276,7 @@ process_options() {
     else
         # Populate OPTS_* vars
         while read -r ARG; do
-            IFS="," read -r VAR SHORT LONG TYPE HELP <<< "$ARG"
+            IFS=',' read -r VAR SHORT LONG TYPE _ <<< "$ARG"
             if [ -n "$LONG" ]; then
                 OPTS_VAR_LONG[${#OPTS_VAR_LONG[@]}]=$VAR
                 OPTS_NAME_LONG[${#OPTS_NAME_LONG[@]}]="--$LONG"

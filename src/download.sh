@@ -492,9 +492,11 @@ download() {
                 if [ -f "$FILENAME_OUT" ]; then
                     # Can we overwrite destination file?
                     if [ ! -w "$FILENAME_OUT" ]; then
-                        module_config_resume "$MODULE" && \
-                            log_error "error: no write permission, cannot resume final file ($FILENAME_OUT)" || \
+                        if module_config_resume "$MODULE"; then
+                            log_error "error: no write permission, cannot resume final file ($FILENAME_OUT)"
+                        else
                             log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
+                        fi
                         return $ERR_SYSTEM
                     fi
 
@@ -516,9 +518,11 @@ download() {
                 if [ -f "$FILENAME_TMP" ]; then
                     # Can we overwrite temporary file?
                     if [ ! -w "$FILENAME_TMP" ]; then
-                        module_config_resume "$MODULE" && \
-                            log_error "error: no write permission, cannot resume tmp/part file ($FILENAME_TMP)" || \
+                        if module_config_resume "$MODULE"; then
+                            log_error "error: no write permission, cannot resume tmp/part file ($FILENAME_TMP)"
+                        else
                             log_error "error: no write permission, cannot overwrite tmp/part file ($FILENAME_TMP)"
+                        fi
                         return $ERR_SYSTEM
                     fi
 
@@ -992,7 +996,7 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
             [ "${#UNUSED_OPTS[@]}" -eq 0 ] || \
-                log_notice "$MODULE: unused command line switches: ${UNUSED_OPTS[@]}"
+                log_notice "$MODULE: unused command line switches: ${UNUSED_OPTS[*]}"
 
             # Module storage policy (part 1/2)
             if [ "$CACHE" = 'none' ]; then
@@ -1033,7 +1037,7 @@ if [ ${#RETVALS[@]} -eq 0 ]; then
 elif [ ${#RETVALS[@]} -eq 1 ]; then
     exit ${RETVALS[0]}
 else
-    log_debug "retvals:${RETVALS[@]}"
+    log_debug "retvals:${RETVALS[*]}"
     # Drop success values
     RETVALS=(${RETVALS[@]/#0*} -$ERR_FATAL_MULTIPLE)
 
