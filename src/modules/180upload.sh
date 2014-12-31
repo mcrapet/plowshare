@@ -38,29 +38,51 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 # $1: authentication
 # $2: cookie file
 # $3: base URL
+# stdout: account type ("" or "free" or "premium") on success
 180upload_login() {
     local -r AUTH_FREE=$1
     local -r COOKIE_FILE=$2
     local -r BASE_URL=$3
-    local LOGIN_DATA PAGE ERR NAME
+    local LOGIN_DATA PAGE ERR MSG NAME
 
-    LOGIN_DATA='op=login&redirect=&login=$USER&password=$PASSWORD'
-    PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
-        "${BASE_URL}") || return
+    # Try to revive old session...
+    if COOKIES=$(storage_get 'cookies'); then
+        echo "$COOKIES" > "$COOKIE_FILE"
+    fi
 
-    # Check for errors
-    # Note: Successful login redirects and sets cookies 'login' and 'xfss'
-    # Get error message, if any
-    ERR=$(parse_tag_quiet "class='err'" 'b' <<< "$PAGE")
+    # ... and check login status
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
 
-    if [ -n "$ERR" ]; then
-        log_debug "Remote error: $ERR"
-        return $ERR_LOGIN_FAILED
+    if match 'Login' "$PAGE"; then
+        log_debug 'Cached cookies invalid, deleting storage entry'
+        storage_set 'cookies'
+
+        [ -n "$AUTH_FREE" ] || return 0
+
+        LOGIN_DATA='op=login&redirect=&login=$USER&password=$PASSWORD'
+        PAGE=$(post_login "$AUTH_FREE" "$COOKIE_FILE" "$LOGIN_DATA" \
+            "${BASE_URL}" -b 'lang=english') || return
+
+        # Check for errors
+        # Note: Successful login redirects and sets cookies 'login' and 'xfss'
+        # Get error message, if any
+        ERR=$(parse_tag_quiet "class='err'" 'b' <<< "$PAGE")
+
+        if [ -n "$ERR" ]; then
+            log_debug "Remote error: $ERR"
+            return $ERR_LOGIN_FAILED
+        fi
+
+        storage_set 'cookies' "$(cat "$COOKIE_FILE")"
+        MSG='logged in as'
+    else
+        MSG='reused login for'
     fi
 
     # Get username
     NAME=$(parse_cookie 'login' < "$COOKIE_FILE") || return
-    log_debug "Successfully logged in as member '$NAME'"
+    log_debug "Successfully $MSG member '$NAME'"
+    echo 'free'
 }
 
 # Output a 180upload.com file download URL
@@ -75,9 +97,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P
     local PUBKEY RESP CHALL ID CAPTCHA_DATA
 
-    if [ -n "$AUTH_FREE" ]; then
-        180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
-    fi
+    180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
 
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
@@ -164,20 +184,17 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
             ;;
     esac
 
-    if [ -n "$AUTH_FREE" ]; then
-        180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
-        readonly MAX_SIZE=3221225472 # 3GiB
-    else
-        readonly MAX_SIZE=2147483648 # 2GiB
-    fi
+    180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+
+    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
+    MAX_SIZE=$(parse 'Up to ' 'to \([[:digit:]]\+\) Mb' <<< "$PAGE") || return
+    readonly MAX_SIZE=$(( MAX_SIZE * 1048576 )) # convert MiB to B
 
     SIZE=$(get_filesize "$FILE") || return
     if [ "$SIZE" -gt "$MAX_SIZE" ]; then
         log_debug "file is bigger than $MAX_SIZE"
         return $ERR_SIZE_LIMIT_EXCEEDED
     fi
-
-    PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
 
     FORM_HTML=$(grep_form_by_name "$PAGE" 'file') || return
     FORM_ACTION=$(parse_form_action <<< "$FORM_HTML") || return
@@ -187,8 +204,6 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     log_debug "Server URL: '$FORM_TMP_SRV'"
 
     UPLOAD_ID=$(random dec 12)
-    USER_TYPE=anon
-
     PAGE=$(curl "${FORM_TMP_SRV}/status.html?${UPLOAD_ID}=$DEST_FILE=180upload.com") || return
 
     # Sanity check. Avoid failure after effective upload
