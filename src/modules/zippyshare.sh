@@ -1,5 +1,5 @@
 # Plowshare zippyshare.com module
-# Copyright (c) 2012-2014 Plowshare team
+# Copyright (c) 2012-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -70,7 +70,7 @@ zippyshare_download() {
     local PAGE FILE_URL FILE_NAME PART_URL CONTENT JS FUNC N
 
     # JSESSIONID required
-    PAGE=$(curl -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
+    PAGE=$(curl -L -c "$COOKIE_FILE" -b 'ziplocale=en' "$URL") || return
 
     # File does not exist on this server
     # File has expired and does not exist anymore on this server
