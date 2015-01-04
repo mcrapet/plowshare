@@ -2333,8 +2333,8 @@ translate_size() {
     local S T
 
     N=${N//	}
-    if [ "$N" = '' ]; then
-        log_error "$FUNCNAME: argument expected"
+    if [ -z "$N" ]; then
+        log_error "$FUNCNAME: non empty argument expected"
         return $ERR_FATAL
     fi
 
