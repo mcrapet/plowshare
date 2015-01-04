@@ -2302,7 +2302,7 @@ list_submit() {
         mapfile -t NAMES <<< "$2"
 
         # One single name for all links
-        if [[ "${#NAMES[@]}" -eq 1 && "${#LINKS[@]}" -gt 1 ]]; then
+        if [[ "${#NAMES[@]}" -eq 1 ]]; then
             for I in "${!LINKS[@]}"; do
                 test "${LINKS[$I]}" || continue
                 echo "$3${LINKS[$I]}$4"
