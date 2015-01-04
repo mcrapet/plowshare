@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010-2014 Plowshare team
+# Copyright (c) 2010-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -22,7 +22,7 @@
 set -o pipefail
 
 # Each time an API is updated, this value will be increased
-declare -r PLOWSHARE_API_VERSION=1
+declare -r PLOWSHARE_API_VERSION=2
 
 # User configuration directory (contains plowshare.conf, exec/, storage/)
 declare -r PLOWSHARE_CONFDIR="$HOME/.config/plowshare"
@@ -2286,7 +2286,7 @@ split_auth() {
 # Report list results. Only used by list module functions.
 #
 # $1: links list (one url per line)
-# $2: (optional) name list (one filename per line)
+# $2: (optional) filename or name list (one hoster name per line)
 # $3: (optional) link prefix (gets prepended to every link)
 # $4: (optional) link suffix (gets appended to every link)
 # $?: 0 for success or $ERR_LINK_DEAD
@@ -2301,11 +2301,20 @@ list_submit() {
         mapfile -t LINKS <<< "$1"
         mapfile -t NAMES <<< "$2"
 
-        for I in "${!LINKS[@]}"; do
-            test "${LINKS[$I]}" || continue
-            echo "$3${LINKS[$I]}$4"
-            echo "${NAMES[$I]}"
-        done
+        # One single name for all links
+        if [[ "${#NAMES[@]}" -eq 1 && "${#LINKS[@]}" -gt 1 ]]; then
+            for I in "${!LINKS[@]}"; do
+                test "${LINKS[$I]}" || continue
+                echo "$3${LINKS[$I]}$4"
+                echo "${NAMES[0]}"
+            done
+        else
+            for I in "${!LINKS[@]}"; do
+                test "${LINKS[$I]}" || continue
+                echo "$3${LINKS[$I]}$4"
+                echo "${NAMES[$I]}"
+            done
+        fi
     else
         while IFS= read -r LINE; do
             test "$LINE" || continue
