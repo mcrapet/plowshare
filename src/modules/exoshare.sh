@@ -1,5 +1,5 @@
 # Plowshare exoshare.com module
-# Copyright (c) 2011-2014 Plowshare team
+# Copyright (c) 2011-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -59,17 +59,12 @@ exoshare_upload() {
 
         exoshare_upload_api "$@"
     else
-        local SITES_COUNT
-
         if [ -n "$COUNT" -a -n "$INCLUDE" ]; then
             log_error 'Cannot use --count and --include at the same time.'
             return $ERR_BAD_COMMAND_LINE
         fi
 
-        [ -n "$COUNT" ] && SITES_COUNT="$COUNT"
-        [ -n "$INCLUDE" ] && SITES_COUNT="${#INCLUDE[@]}"
-
-        if [ "$SITES_COUNT" -gt 12 ]; then
+        if (( COUNT > 12 )) || [ "${#INCLUDE[@]}" -gt 12 ]; then
             log_error 'You must select 12 hosting sites or less.'
             return $ERR_BAD_COMMAND_LINE
         fi
@@ -195,7 +190,9 @@ exoshare_upload_regular() {
     fi
 
     if [ -z "$FORM_SITES_OPT" ]; then
-        log_debug 'Empty site selection. Nowhere to upload!'
+        log_error 'Empty site selection. Nowhere to upload!'
+        SITES_ALL=$(replace_all $'\n' ', ' <<< "$SITES_ALL")
+        log_debug "Try one of these: $SITES_ALL"
         return $ERR_FATAL
     fi
 
@@ -246,7 +243,7 @@ exoshare_upload_regular() {
 exoshare_list() {
     local -r URL=$1
     local -r BASE_URL='http://www.exoshare.com'
-    local PAGE SITE_URL LINKS REL_URL NAME SIZE FILE_ID
+    local PAGE LINKS NAMES NAME FILE_ID
 
     if match 'multi.la' "$URL"; then
         FILE_ID=$(parse . '/s/\([a-zA-Z0-9]\+\)' <<< "$URL") || return
@@ -255,26 +252,17 @@ exoshare_list() {
     fi
 
     PAGE=$(curl "$URL") || return
-    NAME=$(parse_quiet 'Name : ' 'Name : \([^<]\+\)' <<< "$PAGE")
-    SIZE=$(parse_quiet 'Size : ' 'Size : \([^<]\+\)' <<< "$PAGE")
+    NAME=$(parse_tag title <<< "$PAGE")
+    NAME=${NAME#Exoshare - Download - }
 
-    PAGE=$(curl -e "$BASE_URL/download.php?uid=$FILE_ID" "$BASE_URL/status.php?uid=$FILE_ID") || return
+    PAGE=$(curl -e "$BASE_URL/download.php?uid=$FILE_ID" \
+        "$BASE_URL/status.php?uid=$FILE_ID&txt=$NAME") || return
 
-    LINKS=$(parse_all_attr_quiet '/redirect.php' href <<< "$PAGE")
-    if [ -z "$LINKS" ]; then
-        return $ERR_LINK_DEAD
-    fi
+    LINKS=$(parse_all_quiet '=.himgdl.*Successv3\.png' 'href="\([^#"][^"]\+\)"' <<< "$PAGE")
+    [ -n "$LINKS" ] || return $ERR_LINK_DEAD
 
-    while read REL_URL; do
-        test "$REL_URL" || continue
+    NAMES=$(parse_all '=.himgdl.*Successv3\.png' '/images/\(.*\)" class.*href="[^#"]' <<< "$PAGE")
+    [ -n "$NAMES" ] || NAMES=$NAME
 
-        PAGE=$(curl -i -e "$BASE_URL/download.php?uid=$FILE_ID" "$BASE_URL$REL_URL") || return
-        LOCATION=$(grep_http_header_location_quiet <<< "$PAGE")
-
-        # Some mirrors fail
-        if [ -n "$LOCATION" ]; then
-            echo "$LOCATION"
-            echo "$NAME ($SIZE)"
-        fi
-    done <<< "$LINKS"
+    list_submit "$LINKS" "$NAMES" || return
 }
