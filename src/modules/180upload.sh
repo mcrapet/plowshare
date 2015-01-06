@@ -93,11 +93,10 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r BASE_URL='http://180upload.com/'
-    local PAGE FILE_NAME FILE_URL ERR
+    local PAGE ERR PUBKEY RESP CHALL ID CAPTCHA_DATA
     local FORM_HTML FORM_OP FORM_ID FORM_RAND FORM_DD FORM_METHOD_F FORM_METHOD_P
-    local PUBKEY RESP CHALL ID CAPTCHA_DATA
 
-    180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
 
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
@@ -184,7 +183,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
             ;;
     esac
 
-    180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" || return
+    180upload_login "$AUTH_FREE" "$COOKIE_FILE" "$BASE_URL" > /dev/null || return
 
     PAGE=$(curl -b "$COOKIE_FILE" -b 'lang=english' "$BASE_URL") || return
     MAX_SIZE=$(parse 'Up to ' 'to \([[:digit:]]\+\) Mb' <<< "$PAGE") || return
