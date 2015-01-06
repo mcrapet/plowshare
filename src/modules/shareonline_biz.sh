@@ -97,10 +97,12 @@ shareonline_biz_download() {
     #  http://share-online.biz/download.php?id=xyz
     FILE_ID=$(parse_quiet . 'id=\([[:alnum:]]\+\)$' <<< "$2")
 
+    #  http://www.share-online.biz/dl/xyz/
     #  http://www.share-online.biz/dl/xyz
+    #  http://share-online.biz/dl/xyz/
     #  http://share-online.biz/dl/xyz
     if [ -z "$FILE_ID" ]; then
-        FILE_ID=$(parse_quiet . '/dl/\([[:alnum:]]\+\)$' <<< "$2")
+        FILE_ID=$(parse_quiet . '/dl/\([[:alnum:]]\+\)/\?$' <<< "$2")
     fi
 
     if [ -z "$FILE_ID" ]; then
