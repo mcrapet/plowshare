@@ -2654,6 +2654,7 @@ get_module() {
 # $1: program name (used for error reporting only)
 # $2: core option list (one per line)
 # $3..$n: arguments
+# Note: This is called two times: early plowX options and plowX options
 process_core_options() {
     local -r NAME=$1
     local -r OPTIONS=$(strip_and_drop_empty_lines "$2")
@@ -3251,6 +3252,11 @@ check_argument_type() {
 }
 
 # Standalone argument parsing (don't use GNU getopt or builtin getopts Bash)
+# Notes:
+# - Function is designed to be called in an eval statement (prints arrays on stdout)
+# - Stdin dash parameter "-" is handled
+# - Double dash parameter "--" is handled
+#
 # $1: program name (used for error reporting only)
 # $2: option list (one per line)
 # $3: step number (-1, 0 or 1). Always declare UNUSED_ARGS & UNUSED_OPTS arrays.
@@ -3258,8 +3264,7 @@ check_argument_type() {
 #      0: check all module args
 #      1: declare module_vars_set & module_vars_unset functions
 # $4..$n: arguments
-# stdout: variable=value (one per line). Content can be eval'ed.
-# Note: "--" (double dash) is handled.
+# stdout: (depending step number) declare two arrays (UNUSED_ARGS & UNUSED_OPTS), variables, functions
 process_options() {
     local -r NAME=$1
     local -r OPTIONS=$2
@@ -3355,7 +3360,7 @@ process_options() {
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
-                            echo false
+                            echo "exit $ERR_BAD_COMMAND_LINE"
                             return $ERR_BAD_COMMAND_LINE
                         fi
 
@@ -3417,7 +3422,7 @@ process_options() {
                     else
                         if [ $# -eq 0 ]; then
                             log_error "$NAME: missing parameter for $ARG"
-                            echo false
+                            echo "exit $ERR_BAD_COMMAND_LINE"
                             return $ERR_BAD_COMMAND_LINE
                         fi
 
@@ -3440,19 +3445,28 @@ process_options() {
             done
         fi
 
-        if [ $STEP -eq 0 ]; then
-            if [ -z "$FOUND" ]; then
-                # Note: accepts '-' argument
+        if [ -z "$FOUND" ]; then
+            # Check for user typo: -option instead of --option
+            if [[ $ARG =~ ^-[[:alnum:]][[:alnum:]-]+ ]]; then
+                if find_in_array OPTS_NAME_LONG[@] "-${BASH_REMATCH[0]}"; then
+                    log_error "$NAME: did you mean \`-${BASH_REMATCH[0]}\` (with two dashes ?)"
+                    echo "exit $ERR_BAD_COMMAND_LINE"
+                    return $ERR_BAD_COMMAND_LINE
+                fi
+            fi
+
+            if [ $STEP -eq 0 ]; then
+                # Accept '-' (stdin semantic) argument
                 if [[ $ARG = -?* ]]; then
                     log_error "$NAME: unknown command-line option $ARG"
-                    echo false
+                    echo "exit $ERR_BAD_COMMAND_LINE"
                     return $ERR_BAD_COMMAND_LINE
                 fi
                 UNUSED_ARGS[${#UNUSED_ARGS[@]}]="$ARG"
             else
                 UNUSED_OPTS[${#UNUSED_OPTS[@]}]="$ARG"
             fi
-        elif [ -z "$FOUND" ]; then
+        elif [ $STEP -eq 0 ]; then
             UNUSED_OPTS[${#UNUSED_OPTS[@]}]="$ARG"
         fi
     done
