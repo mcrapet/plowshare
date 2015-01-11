@@ -162,7 +162,7 @@ curl() {
     if test $VERBOSE -lt 4; then
         command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
     else
-        local TEMPCURL=$(create_tempfile)
+        local FILESIZE TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
         command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" --show-error --silent >"$TEMPCURL" 2>&1 || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
@@ -409,7 +409,7 @@ parse_all() {
     local PARSE=$2
     local -i N=${3:-0}
     local -r D=$'\001' # Change sed separator to allow '/' characters in regexp
-    local STRING FILTER
+    local STR FILTER
 
     if [ -n "$1" -a "$1" != '.' ]; then
         FILTER="\\${D}$1${D}" # /$1/
@@ -423,17 +423,17 @@ parse_all() {
     PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p
 
     if [ $N -eq 0 ]; then
-        # STRING=$(sed -ne "/$1/ s/$2/\1/p")
-        STRING=$(sed -ne "$FILTER $PARSE")
+        # STR=$(sed -ne "/$1/ s/$2/\1/p")
+        STR=$(sed -ne "$FILTER $PARSE")
 
     elif [ $N -eq 1 ]; then
         # Note: Loop (with label) is required for consecutive matches
-        # STRING=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;ba;}")
-        STRING=$(sed -ne ":a $FILTER {n;h; $PARSE; g;ba;}")
+        # STR=$(sed -ne ":a /$1/ {n;h; s/$2/\1/p; g;ba;}")
+        STR=$(sed -ne ":a $FILTER {n;h; $PARSE; g;ba;}")
 
     elif [ $N -eq -1 ]; then
-        # STRING=$(sed -ne "/$1/ {x; s/$2/\1/p; b;}" -e 'h')
-        STRING=$(sed -ne "$FILTER {x; $PARSE; b;}" -e 'h')
+        # STR=$(sed -ne "/$1/ {x; s/$2/\1/p; b;}" -e 'h')
+        STR=$(sed -ne "$FILTER {x; $PARSE; b;}" -e 'h')
 
     else
         local -r FIRST_LINE='^\([^\n]*\).*$'
@@ -463,7 +463,7 @@ parse_all() {
             PARSE_LINE=$FIRST_LINE
         fi
 
-        STRING=$(sed -ne "1 {$INIT;h;n}" \
+        STR=$(sed -ne "1 {$INIT;h;n}" \
             -e "H;g;s/^.*\\n\\($LINES\)$/\\1/;h" \
             -e "s/$FILTER_LINE/\1/" \
             -e "$FILTER {g;s/$PARSE_LINE/\1/;$PARSE }")
@@ -476,13 +476,13 @@ parse_all() {
         #     be parsed and apply parse command
     fi
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ ${PARSE//$D//}\" (skip $N)"
         log_notice_stack
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Like parse_all, but hide possible error
@@ -496,7 +496,7 @@ parse() {
     local PARSE=$2
     local -i N=${3:-0}
     local -r D=$'\001' # Change sed separator to allow '/' characters in regexp
-    local STRING FILTER
+    local STR FILTER
 
     if [ -n "$1" -a "$1" != '.' ]; then
         FILTER="\\${D}$1${D}" # /$1/
@@ -511,16 +511,16 @@ parse() {
 
     if [ $N -eq 0 ]; then
         # Note: This requires GNU sed (which is assumed by Plowshare4)
-        #STRING=$(sed -ne "$FILTER {$PARSE;ta;b;:a;q;}")
-        STRING=$(sed -ne "$FILTER {$PARSE;T;q;}")
+        #STR=$(sed -ne "$FILTER {$PARSE;ta;b;:a;q;}")
+        STR=$(sed -ne "$FILTER {$PARSE;T;q;}")
 
     elif [ $N -eq 1 ]; then
-        #STRING=$(sed -ne ":a $FILTER {n;h;$PARSE;tb;ba;:b;q;}")
-        STRING=$(sed -ne ":a $FILTER {n;$PARSE;Ta;q;}")
+        #STR=$(sed -ne ":a $FILTER {n;h;$PARSE;tb;ba;:b;q;}")
+        STR=$(sed -ne ":a $FILTER {n;$PARSE;Ta;q;}")
 
     elif [ $N -eq -1 ]; then
-        #STRING=$(sed -ne "$FILTER {g;$PARSE;ta;b;:a;q;}" -e 'h')
-        STRING=$(sed -ne "$FILTER {g;$PARSE;T;q;}" -e 'h')
+        #STR=$(sed -ne "$FILTER {g;$PARSE;ta;b;:a;q;}" -e 'h')
+        STR=$(sed -ne "$FILTER {g;$PARSE;T;q;}" -e 'h')
 
     else
         local -r FIRST_LINE='^\([^\n]*\).*$'
@@ -551,19 +551,19 @@ parse() {
         fi
 
         # Note: Need to "clean" conditionnal flag after s/$PARSE_LINE/\1/
-        STRING=$(sed -ne "1 {$INIT;h;n}" \
+        STR=$(sed -ne "1 {$INIT;h;n}" \
             -e "H;g;s/^.*\\n\\($LINES\)$/\\1/;h" \
             -e "s/$FILTER_LINE/\1/" \
             -e "$FILTER {g;s/$PARSE_LINE/\1/;ta;:a;$PARSE;T;q;}")
     fi
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ ${PARSE//$D//}\" (skip $N)"
         log_notice_stack
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Like parse, but hide possible error
@@ -591,7 +591,7 @@ parse_quiet() {
 # stdout: result
 parse_json() {
     local -r NAME="\"$1\"[[:space:]]*:[[:space:]]*"
-    local STRING PRE
+    local STR PRE
     local -r END='\([,}[:space:]].*\)\?$'
 
     if [ "$2" = 'join' ]; then
@@ -603,30 +603,30 @@ parse_json() {
     fi
 
     # Note: "ta;:a" is a trick for cleaning conditionnal flag
-    STRING=$($PRE | sed \
+    STR=$($PRE | sed \
         -ne "/$NAME\[/{s/^.*$NAME\(\[[^]]*\]\).*$/\1/;ta;:a;s/^\[.*\[//;t;p;q;}" \
         -ne "/$NAME{/{s/^.*$NAME\({[^}]*}\).*$/\1/;ta;:a;s/^{.*{//;t;p;q;}" \
         -ne "s/^.*$NAME\(-\?\(0\|[1-9][[:digit:]]*\)\(\.[[:digit:]]\+\)\?\([eE][-+]\?[[:digit:]]\+\)\?\)$END/\1/p" \
         -ne "s/^.*$NAME\(true\|false\|null\)$END/\1/p" \
         -ne "s/\\\\\"/\\\\q/g;s/^.*$NAME\"\([^\"]*\)\"$END/\1/p")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (json): \"$1\""
         log_notice_stack
         return $ERR_FATAL
     fi
 
     # Translate two-character sequence escape representations
-    STRING=${STRING//\\\//\/}
-    STRING=${STRING//\\\\/\\}
-    STRING=${STRING//\\q/\"}
-    STRING=${STRING//\\b/$'\b'}
-    STRING=${STRING//\\f/$'\f'}
-    STRING=${STRING//\\n/$'\n'}
-    STRING=${STRING//\\r/$'\r'}
-    STRING=${STRING//\\t/	}
+    STR=${STR//\\\//\/}
+    STR=${STR//\\\\/\\}
+    STR=${STR//\\q/\"}
+    STR=${STR//\\b/$'\b'}
+    STR=${STR//\\f/$'\f'}
+    STR=${STR//\\n/$'\n'}
+    STR=${STR//\\r/$'\r'}
+    STR=${STR//\\t/	}
 
-    echo -e "$STRING"
+    echo -e "$STR"
 }
 
 # Like parse_json, but hide possible error
@@ -697,15 +697,15 @@ grep_http_header_content_disposition() {
 # stdout: result
 grep_form_by_name() {
     local -r A=${2:-'.*'}
-    local STRING=$(sed -ne \
+    local STR=$(sed -ne \
         "/<[Ff][Oo][Rr][Mm][[:space:]].*name[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?[[:space:]/>]/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"name=$A\""
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Extract a id-specified form from a HTML content.
@@ -720,15 +720,15 @@ grep_form_by_name() {
 # stdout: result
 grep_form_by_id() {
     local -r A=${2:-'.*'}
-    local STRING=$(sed -ne \
+    local STR=$(sed -ne \
         "/<[Ff][Oo][Rr][Mm][[:space:]].*id[[:space:]]*=[[:space:]]*[\"']\?$A[\"']\?[[:space:]/>]/,/<\/[Ff][Oo][Rr][Mm]>/p" <<< "$1")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"id=$A\""
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Extract a specific FORM block from a HTML content.
@@ -787,16 +787,16 @@ strip_html_comments() {
 parse_all_tag() {
     local -r T=${2:-"$1"}
     local -r D=$'\001'
-    local STRING=$(sed -ne \
+    local STR=$(sed -ne \
         "\\${D}$1${D}"'!b; s/<\/'"$T>.*//; s/^.*<$T\(>\|[[:space:]][^>]*>\)//p")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
         log_notice_stack
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Like parse_all_tag, but hide possible error
@@ -810,16 +810,16 @@ parse_all_tag_quiet() {
 parse_tag() {
     local -r T=${2:-"$1"}
     local -r D=$'\001'
-    local STRING=$(sed -ne \
+    local STR=$(sed -ne \
         "\\${D}$1${D}"'!b; s/<\/'"$T>.*//; s/^.*<$T\(>\|[[:space:]][^>]*>\)//;ta;b;:a;p;q;")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ <$T>\""
         log_notice_stack
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Like parse_tag, but hide possible error
@@ -843,18 +843,18 @@ parse_tag_quiet() {
 parse_all_attr() {
     local -r A=${2:-"$1"}
     local -r D=$'\001'
-    local STRING=$(sed \
+    local STR=$(sed \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\"\([^\">]*\).*${D}\2${D}p" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*'\([^'>]*\).*${D}\2${D}p" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"\`'<=>]\+\).*${D}\2${D}p")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
         log_notice_stack
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Like parse_all_attr, but hide possible error
@@ -868,19 +868,19 @@ parse_all_attr_quiet() {
 parse_attr() {
     local -r A=${2:-"$1"}
     local -r D=$'\001'
-    local STRING=$(sed \
+    local STR=$(sed \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\"\([^\">]*\).*${D}\2${D}p;ta" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*'\([^'>]*\).*${D}\2${D}p;ta" \
         -ne "\\${D}$1${D}s${D}.*[[:space:]]\($A\)[[:space:]]*=[[:space:]]*\([^[:space:]\"\`'<=>]\+\).*${D}\2${D}p;ta" \
         -ne 'b;:a;q;')
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "$FUNCNAME failed (sed): \"/$1/ $A=\""
         log_notice_stack
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Like parse_attr, but hide possible error
@@ -1165,7 +1165,7 @@ post_login() {
     RESULT=$(curl --cookie-jar "$COOKIE" --data "$DATA" "${CURL_ARGS[@]}" \
         "$LOGIN_URL") || return
 
-    # "$RESULT" can be empty, this is not necessarily an error
+    # $RESULT can be empty, this is not necessarily an error
     if [ ! -s "$COOKIE" ]; then
         log_debug "$FUNCNAME: no entry was set (empty cookie file)"
         return $ERR_LOGIN_FAILED
@@ -2682,10 +2682,10 @@ process_all_modules_options() {
 # $2: option family name (string, example:UPLOAD)
 # $3..$n: arguments
 process_module_options() {
-    local -r MODULE=$1
+    local -r M=$1
     local -r OPTIONS=$(get_module_options "$1" "$2")
     shift 2
-    process_options "$MODULE" "$OPTIONS" 1 "$@"
+    process_options "$M" "$OPTIONS" 1 "$@"
 }
 
 # Get module list according to capability
@@ -2739,7 +2739,7 @@ process_configfile_options() {
             NAME=$(strip <<< "${REPLY%%=*}")
             VALUE=$(strip <<< "${REPLY#*=}")
 
-            # If NAME contain a '/' character, this is a module option, skip it
+            # If $NAME contains a '/' character, this is a module option, skip it
             [[ $NAME = */* ]] && continue
 
             # Look for optional double quote (protect leading/trailing spaces)
@@ -3123,15 +3123,15 @@ grep_block_by_order() {
     done
 
     # Get first form only
-    local STRING=$(sed -ne \
+    local STR=$(sed -ne \
         "/<$TAG[[:space:]>]/,/<\/$TAG>/{p;/<\/$TAG/q}" <<< "$DATA")
 
-    if [ -z "$STRING" ]; then
+    if [ -z "$STR" ]; then
         log_error "${FUNCNAME[1]} failed (sed): \"n=$N\""
         return $ERR_FATAL
     fi
 
-    echo "$STRING"
+    echo "$STR"
 }
 
 # Check argument type
