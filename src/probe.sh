@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Retrieve metadata from a download link (sharing site url)
-# Copyright (c) 2013-2014 Plowshare team
+# Copyright (c) 2013-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -34,6 +34,7 @@ QUIET,q,quiet,,Alias for -v0
 GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --printf=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default string is: \"%F%u%n\".
+NO_COLOR,,no-color,,Disables log notice & log error output coloring
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
@@ -311,6 +312,12 @@ if [ -n "$QUIET" ]; then
     declare -r VERBOSE=0
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
+fi
+
+if [ -n "$NO_COLOR" ]; then
+    unset COLOR
+else
+    declare -r COLOR=yes
 fi
 
 if [ $# -lt 1 ]; then

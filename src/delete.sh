@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Delete files from file sharing websites
-# Copyright (c) 2010-2013 Plowshare team
+# Copyright (c) 2010-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -39,6 +39,7 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
+NO_COLOR,,no-color,,Disables log notice & log error output coloring
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -122,6 +123,12 @@ if [ -n "$QUIET" ]; then
     declare -r VERBOSE=0
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
+fi
+
+if [ -n "$NO_COLOR" ]; then
+    unset COLOR
+else
+    declare -r COLOR=yes
 fi
 
 if [ $# -lt 1 ]; then

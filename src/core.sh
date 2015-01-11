@@ -70,6 +70,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #   - MODULE           Module name (don't include .sh), used by storage API
 #   - TMPDIR           Temporary directory
 #   - CACHE            Storage API policy: none, session (default or empty), shared.
+#   - COLOR            Display log_notice & log_error messages with colors
 # Note: captchas are handled in plowdown, plowup and plowdel.
 #
 # Logs are sent to stderr stream.
@@ -103,11 +104,21 @@ log_debug() {
 
 # This should not be called within modules
 log_notice() {
-    test $VERBOSE -lt 2 || stderr "$@"
+    if [[ $COLOR ]]; then
+        # 33 is yellow
+        test $VERBOSE -lt 2 || echo -e "\033[0;33m$@\033[0m" >&2
+    else
+        test $VERBOSE -lt 2 || stderr "$@"
+    fi
 }
 
 log_error() {
-    test $VERBOSE -lt 1 || stderr "$@"
+    if [[ $COLOR ]]; then
+        # 31 is red
+        test $VERBOSE -lt 1 || echo -e "\033[0;31m$@\033[0m" >&2
+    else
+        test $VERBOSE -lt 1 || stderr "$@"
+    fi
 }
 
 ## ----------------------------------------------------------------------------
@@ -1239,15 +1250,15 @@ wait() {
     local MSG="Waiting $VALUE $UNIT_STR..."
     local CLEAR="     \b\b\b\b\b"
     if test -t 2; then
-      while [ "$REMAINING" -gt 0 ]; do
-          log_notice -ne "\r$MSG $(splitseconds $REMAINING) left$CLEAR"
-          sleep 1
-          (( --REMAINING ))
-      done
-      log_notice -e "\r$MSG done$CLEAR"
+        while [ "$REMAINING" -gt 0 ]; do
+            log_notice_norc "\r$MSG $(splitseconds $REMAINING) left$CLEAR"
+            sleep 1
+            (( --REMAINING ))
+        done
+        log_notice_norc "\r$MSG done$CLEAR\n"
     else
-      log_notice "$MSG"
-      sleep $TOTAL_SECS
+        log_notice "$MSG"
+        sleep $TOTAL_SECS
     fi
 }
 
@@ -2545,13 +2556,16 @@ strip() {
     sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
-# Remove all temporal files created by the script
-# (with create_tempfile)
-remove_tempfiles() {
+# Do some cleanups before exiting program
+exit_handler() {
+    # Restore proper colors (just in case)
+    log_notice_norc ''
+
+    # Remove temporal files created by create_tempfile
     rm -f "$TMPDIR/$(basename_file $0).$$".*
 }
 
-# Exit callback (task: clean temporal files)
+# Install exit handler
 set_exit_trap() {
     if [ -z "$TMPDIR" ]; then
         log_error 'Error: TMPDIR is not defined.'
@@ -2560,7 +2574,7 @@ set_exit_trap() {
         log_error 'Error: TMPDIR is not a directory.'
         return $ERR_SYSTEM
     fi
-    trap remove_tempfiles EXIT
+    trap exit_handler EXIT
 }
 
 # Check existance of executable in $PATH
@@ -3830,6 +3844,15 @@ log_notice_stack() {
         # Exit if we go outside core.sh scope
         [[ ${BASH_SOURCE[$N]} = */core.sh ]] || break
     done
+}
+
+# log_notice without end of line
+log_notice_norc() {
+    if [[ $COLOR ]]; then
+        test $VERBOSE -lt 2 || echo -ne "\033[0;33m$@\033[0m" >&2
+    else
+        test $VERBOSE -lt 2 || stderr -ne "$@"
+    fi
 }
 
 # Bash4 builtin error-handling function

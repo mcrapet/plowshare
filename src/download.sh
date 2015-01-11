@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Download files from file sharing websites
-# Copyright (c) 2010-2014 Plowshare team
+# Copyright (c) 2010-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -53,6 +53,7 @@ PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new link p
 POST_COMMAND,,run-after,F=PROGRAM,Call external program/script after link being successfully processed
 SKIP_FINAL,,skip-final,,Don't process final link (returned by module), just skip it (for each link)
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful download). Default string is: \"%F%n\".
+NO_COLOR,,no-color,,Disables log notice & log error output coloring
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply download it (HTTP GET)
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
@@ -787,6 +788,12 @@ if [ -n "$QUIET" ]; then
     declare -r VERBOSE=0
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
+fi
+
+if [ -n "$NO_COLOR" ]; then
+    unset COLOR
+else
+    declare -r COLOR=yes
 fi
 
 if [ $# -lt 1 ]; then

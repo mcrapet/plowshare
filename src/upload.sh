@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Upload files to file sharing websites
-# Copyright (c) 2010-2014 Plowshare team
+# Copyright (c) 2010-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -38,6 +38,7 @@ TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
 MAXRETRIES,r,max-retries,N=NUM,Set maximum retries for upload failures (fatal, network errors). Default is 0 (no retry).
 NAME_FORMAT,,name,s=FORMAT,Format destination filename (applies on each file argument). Default string is: \"%f\".
 CACHE,,cache,C|none|session|shared=METHOD,Policy for storage data. Available: none, session (default), shared.
+TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
 CAPTCHA_METHOD,,captchamethod,s=METHOD,Force specific captcha solving method. Available: online, imgur, x11, fb, nox, none.
 CAPTCHA_PROGRAM,,captchaprogram,F=PROGRAM,Call external program/script for captcha solving.
 CAPTCHA_9KWEU,,9kweu,s=KEY,9kw.eu captcha (API) key
@@ -46,7 +47,7 @@ CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default string is: \"%L%M%u%n\".
-TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (cookies, images)
+NO_COLOR,,no-color,,Disables log notice & log error output coloring
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -288,6 +289,12 @@ if [ -n "$QUIET" ]; then
     declare -r VERBOSE=0
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
+fi
+
+if [ -n "$NO_COLOR" ]; then
+    unset COLOR
+else
+    declare -r COLOR=yes
 fi
 
 if [ $# -lt 1 ]; then
