@@ -141,7 +141,7 @@ zippyshare_download() {
             return $ERR_FATAL
     esac
 
-    JS=$(sed -n '/href="#"><img src/,${
+    JS=$(sed -n '/download\.png/,${
           /^<script type="text\/javascript">/,/^<\/script>/{/^</!p}
           }' <<< "$PAGE")
 
