@@ -1,5 +1,5 @@
 # Plowshare go4up.com module
-# Copyright (c) 2012-2013 Plowshare team
+# Copyright (c) 2012-2015 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -262,46 +262,29 @@ go4up_upload() {
 # stdout: list of links
 go4up_list() {
     local URL=$1
-    local PAGE LINKS NAME SITE_URL
+    local BASE_URL='http://go4up.com'
+    local PAGE INFO_URL LINKS NAME
 
-    PAGE=$(curl -L "$URL" | break_html_lines) || return
+    PAGE=$(curl -L "$URL") || return
 
     if match 'The file is being uploaded on mirror websites' "$PAGE"; then
         return $ERR_LINK_TEMP_UNAVAILABLE
-    elif match 'does not exist or has been removed' "$PAGE"; then
+    elif match 'File not Found' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
-    LINKS=$(echo "$PAGE" | parse_all_attr_quiet 'class="dl"' href) || return
-    if [ -z "$LINKS" ]; then
-        log_error 'No links found. Site updated?'
-        return $ERR_FATAL
-    fi
+    # url: "/download/gethosts/<ID>/<Name>",
+    INFO_URL=$(parse '^[[:space:]]*url:' '"\(.\+\)"' <<< "$PAGE") || return
+    NAME=$(parse '<h3' '<h3[[:space:]]*>\(.\+\)[[:space:]]\+([[:alnum:]]\+' <<< "$PAGE") || return
 
-    while read SITE_URL; do
-        [[ "$SITE_URL" = */premium ]] && continue
+    PAGE=$(curl "$BASE_URL$INFO_URL" | break_html_lines) || return
+    LINKS=$(parse_all_attr 'href' <<< "$PAGE") || return
 
-        PAGE=$(curl --include "$SITE_URL") || return
-        URL=$(grep_http_header_location_quiet <<< "$PAGE")
+    while read INFO_URL; do
+        [[ "$INFO_URL" = http://* ]] && continue
 
-        # window.location = "http://... " <= extra space at the end
-        if [ -z "$URL" ]; then
-            URL=$(echo "$PAGE" | parse_quiet 'window\.location' '=[[:space:]]*"\([^"]*\)')
-            URL=${URL% }
-
-            # <meta http-equiv="REFRESH" content="0;url=http://..."></HEAD>
-            if [ -z "$URL" ]; then
-                URL=$(echo "$PAGE" | parse_quiet 'http-equiv' 'url=\([^">]\+\)')
-                if [ -z "$URL" ]; then
-                    log_debug "remote error: link error? Ingore $SITE_URL"
-                    continue
-                fi
-            fi
-        fi
-
-        NAME=$(echo "$SITE_URL" | parse . '/\(.*\)$')
-
-        echo "$URL"
+        PAGE=$(curl "$BASE_URL$INFO_URL") || return
+        parse_attr '<b>' 'href' <<< "$PAGE" || return
         echo "$NAME"
     done <<< "$LINKS"
 }
