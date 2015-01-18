@@ -149,7 +149,7 @@ rapidgator_login() {
 # $1: cookie file
 # $2: base URL
 rapidgator_switch_lang() {
-    curl -b "$1" -c "$1" -d 'lang=en' -o /dev/null "$2/site/lang" || return
+    rapidgator_redir_curl "$2/site/lang" -b "$1" -c "$1" -d 'lang=en' > /dev/null || return
 }
 
 # Check if specified folder name is valid.
@@ -206,6 +206,28 @@ rapidgator_num_remote() {
 
     return $ERR_FATAL
 }
+
+# Check for and handle redirection loop that may occur on first request to site
+# $1: URL
+# $2..$n other are curl arguments
+# stdout: full content of actual page
+rapidgator_redir_curl() {
+    local -r URL=$1
+    shift
+    local PAGE REDIR
+
+    PAGE=$(curl --include $@ "$URL") || return
+    REDIR=$(grep_http_header_location_quiet <<< "$PAGE")
+
+    #/...?DyMyf276e3c54722ffe7b5128d6226fc6cd7=0024a0cee4ae8127d55c0efe0ef2e4e2
+    if [ -n "$REDIR" ] && match '/.*?[[:alnum:]]\+=[[:alnum:]]\+$' "$REDIR"; then
+        log_debug 'Redirection loop...'
+        curl $@ "$BASE_URL$REDIR" || return
+    else
+        echo "$PAGE"
+    fi
+}
+
 
 # Output a file URL to download from Rapidgator
 # $1: cookie file
@@ -674,9 +696,7 @@ rapidgator_delete() {
     log_debug "ID: '$ID'"
     log_debug "Up_ID: '$UP_ID'"
 
-    rapidgator_switch_lang "$COOKIE_FILE" "$BASE_URL" || return
-
-    HTML=$(curl -b "$COOKIE_FILE" "$URL") || return
+    HTML=$(rapidgator_redir_curl "$URL" -b "$COOKIE_FILE" -b 'lang=en') || return
 
     if match 'Do you really want to remove' "$HTML"; then
         HTML=$(curl -b "$COOKIE_FILE" -d "id=$ID" -d "up_id=$UP_ID" \
@@ -706,6 +726,7 @@ rapidgator_list() {
         return $ERR_FATAL
     fi
 
+    # No need for 'rapidgator_redir_curl' as we follow redirections anyway
     PAGE=$(curl -L "$URL") || return
     PAGE=$(parse_all_quiet '=.td-for-select' '\(<a href=.*\)$' <<< "$PAGE")
     [ -z "$PAGE" ] && return $ERR_LINK_DEAD
@@ -717,18 +738,16 @@ rapidgator_list() {
 }
 
 # Probe a download URL
-# $1: cookie file
+# $1: cookie file (unused here)
 # $2: rapidgator url
 # $3: requested capability list
 # stdout: 1 capability per line
 rapidgator_probe() {
-    local -r COOKIE_FILE=$1
     local -r URL=$2
     local -r REQ_IN=$3
     local PAGE REDIR REQ_OUT FILE_NAME FILE_SIZE
 
-    # Note: Should use rapidgator_switch_lang
-    PAGE=$(curl --include -c "$COOKIE_FILE" -b 'lang=en' "$URL") || return
+    PAGE=$(rapidgator_redir_curl "$URL" --include -b 'lang=en') || return
     REDIR=$(grep_http_header_location_quiet <<< "$PAGE")
 
     # Various "File not found" responses
