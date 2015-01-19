@@ -165,6 +165,11 @@ keep2share_download() {
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
+    # Free user can't download large files.
+    if match "Free user can't download large files" "$PAGE" ; then
+        return $ERR_LINK_NEED_PERMISSIONS
+    fi
+
     # check for and handle CAPTCHA (if any)
     # Note: emulate 'grep_form_by_id_quiet'
     FORM_HTML=$(grep_form_by_id "$PAGE" 'captcha-form' 2>/dev/null)
