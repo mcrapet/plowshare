@@ -356,7 +356,7 @@ hipfile_upload() {
     log_debug "State: '$STATE'"
 
     if [ "$STATE" = 'OK' ]; then
-        log_debug 'Upload successfull.'
+        log_debug 'Upload successful.'
     elif [ "$STATE" = 'unallowed extension' ]; then
         log_error 'File extension is forbidden.'
         return $ERR_FATAL

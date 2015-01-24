@@ -90,7 +90,7 @@ filemonkey_upload() {
                     "$BASE_URL/manage") || return
 
                 if [ -z "$PAGE" ]; then
-                    log_error 'An error has occured. Remote folder alread exists?'
+                    log_error 'An error has occurred. Remote folder already exists?'
                     return $ERR_FATAL
                 fi
 

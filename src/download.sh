@@ -884,7 +884,7 @@ declare -r UMASK=$(umask)
 test "$UMASK" && umask 0066
 
 # Remember last host because hosters may require waiting between
-# sucessive downloads.
+# successive downloads.
 PREVIOUS_HOST=none
 
 # Only used when CACHE policy is session (default).

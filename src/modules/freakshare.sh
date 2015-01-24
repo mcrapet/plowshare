@@ -132,7 +132,7 @@ freakshare_download() {
         captcha_ack $ID
         log_debug 'correct captcha'
 
-        # Sorry, you cant download more then 1 files at time.
+        # Sorry, you can't download more then 1 files at time.
         if match 'download more then.*files at time.' "$PAGE"; then
             log_error 'No parallel download allowed'
             echo 120

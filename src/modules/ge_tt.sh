@@ -190,7 +190,7 @@ ge_tt_upload() {
             return $ERR_FATAL
         fi
 
-        log_debug "Wait for server to recieve the file... [$((TRY++))]"
+        log_debug "Wait for server to receive the file... [$((TRY++))]"
         wait 1 || return
     done
 

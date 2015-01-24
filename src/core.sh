@@ -2577,7 +2577,7 @@ set_exit_trap() {
     trap exit_handler EXIT
 }
 
-# Check existance of executable in $PATH
+# Check existence of executable in $PATH
 # Better than "which" (external) executable
 #
 # $1: Executable to check
