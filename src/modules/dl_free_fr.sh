@@ -67,7 +67,7 @@ captcha_ayl_process() {
         log_debug "Adyoulike type: '$TYPE'"
 
         # Easy case, captcha answer is written plain text :)
-        # UTF-8 characters: « (\uC2AB), » (\uC2BB)
+        # UTF-8 characters: Â« (\uC2AB), Â» (\uC2BB)
         if [ $TYPE = 'image/adyoulike' ]; then
             if [ -z "$WORDS" ]; then
                 log_error "$FUNCNAME: instructions_visual empty, skipping"
@@ -264,7 +264,7 @@ dl_free_fr_upload() {
         elif match 'Erreur de traitement...' "$PAGE"; then
             log_error 'process failed, you may try again'
             break
-        # Fichier "foo" en ligne, procédure terminée avec succès...
+        # Fichier "foo" en ligne, procÃ©dure terminÃ©e avec succÃ¨s...
         elif match 'Le fichier sera accessible' "$PAGE"; then
             DL_URL=$(echo "$PAGE" | parse 'en ligne' \
                 "window\.open('\(http://dl.free.fr/[^?]*\)')" | html_to_utf8)
@@ -294,16 +294,16 @@ dl_free_fr_delete() {
 
     PAGE=$(curl "$URL") || return
 
-    # Fichier perimé ou déjà supprimé
+    # Fichier perimÃ© ou dÃ©jÃ  supprimÃ©
     match 'Fichier perim&eacute ou d&eacute;j&agrave; supprim&eacute;' \
         "$PAGE" && return $ERR_LINK_DEAD
 
-    # Si vous souhaitez réelement supprimer le fichier nommé [<FILE_NAME>] cliquez ici
+    # Si vous souhaitez rÃ©element supprimer le fichier nommÃ© [<FILE_NAME>] cliquez ici
     if match 'Si vous souhaitez r&eacute;element supprimer' "$PAGE"; then
         URL=$(echo "$PAGE" | parse_attr 'Si vous souhaitez' 'href') || return
         PAGE=$(curl "$BASE_URL$URL") || return
 
-        # Le fichier nommé [<FILE_NAME>] a été supprimé avec succès.
+        # Le fichier nommÃ© [<FILE_NAME>] a Ã©tÃ© supprimÃ© avec succÃ¨s.
         match 'supprim&eacute; avec succ&egrave;s' "$PAGE" && return 0
     fi
 
