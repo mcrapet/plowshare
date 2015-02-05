@@ -176,7 +176,7 @@ Directory for temporary files: cookies, images, ...
 .TP
 .BI "   " " " --name= FORMAT
 Format destination filename (applies on each file argument). Can be useful is you want to append or prepend a string to all your files.
-Default string is: \fI"%f"\fR. Interpreted sequences are:
+Default format string is \fI"%f"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
@@ -208,7 +208,8 @@ extension (without dot character) of %f (not greedy)
 .RE
 .TP
 .BI "   " " " --printf= FORMAT
-Print results (on stdout) in a given format (for each successful upload). Default string is: \fI"%L%M%u%n"\fR. Interpreted sequences are:
+Print results (on stdout) in a given format (for each successful upload).
+Default format string is \fI"%L%M%u%n"\fR. Interpreted sequences are:
 .RS
 .TP
 \fI%%\fR
