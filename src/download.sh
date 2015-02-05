@@ -755,9 +755,12 @@ TMPDIR=${TMPDIR:-/tmp}
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-mapfile -t MODULES < <(get_all_modules_list "$LIBDIR" 'download') || exit
-for MODULE in "${MODULES[@]}"; do
-    source "$LIBDIR/modules/$MODULE.sh"
+
+declare -a MODULES=()
+eval "$(get_all_modules_list download)" || exit
+for MODULE in "${!MODULES_PATH[@]}"; do
+    source "${MODULES_PATH[$MODULE]}"
+    MODULES+=("$MODULE")
 done
 
 # Process command-line (plowdown early options)
@@ -794,6 +797,19 @@ if [ -n "$NO_COLOR" ]; then
     unset COLOR
 else
     declare -r COLOR=yes
+fi
+
+if [ "${#MODULES}" -le 0 ]; then
+    log_error \
+"-------------------------------------------------------------------------------
+You plowshare installation has currently no module
+('$LIBDIR/modules' is empty).
+
+In order to use plowdown you must install some modules:
+$ mkdir -p $PLOWSHARE_CONFDIR
+$ cd $PLOWSHARE_CONFDIR
+$ git clone https://code.google.com/p/plowshare.unmaintained-modules/ modules
+-------------------------------------------------------------------------------"
 fi
 
 if [ $# -lt 1 ]; then
@@ -981,13 +997,15 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             fi
 
             # Check if plowlist can handle $URL
-            if [[ ! $MODULES_LIST ]]; then
-                mapfile -t MODULES_LIST < <(get_all_modules_list "$LIBDIR" 'list' 'download') || true
-                for MODULE in "${MODULES_LIST[@]}"; do
-                    source "$LIBDIR/modules/$MODULE.sh"
+            if [[ ! $MODULES2 ]]; then
+                declare -a MODULES2=()
+                eval "$(get_all_modules_list list download)" || exit
+                for MODULE in "${!MODULES_PATH[@]}"; do
+                    source "${MODULES_PATH[$MODULE]}"
+                    MODULES2+=("$MODULE")
                 done
             fi
-            MODULE=$(get_module "$URL" MODULES_LIST[@]) || true
+            MODULE=$(get_module "$URL" MODULES2[@]) || true
             if [ -n "$MODULE" ]; then
                 log_notice "Note: This URL ($MODULE) is supported by plowlist"
             fi

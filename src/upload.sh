@@ -256,9 +256,12 @@ TMPDIR=${TMPDIR:-/tmp}
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-mapfile -t MODULES < <(get_all_modules_list "$LIBDIR" 'upload') || exit
-for MODULE in "${MODULES[@]}"; do
-    source "$LIBDIR/modules/$MODULE.sh"
+
+declare -a MODULES=()
+eval "$(get_all_modules_list upload)" || exit
+for MODULE in "${!MODULES_PATH[@]}"; do
+    source "${MODULES_PATH[$MODULE]}"
+    MODULES+=("$MODULE")
 done
 
 # Process command-line (plowup early options)
@@ -295,6 +298,19 @@ if [ -n "$NO_COLOR" ]; then
     unset COLOR
 else
     declare -r COLOR=yes
+fi
+
+if [ "${#MODULES}" -le 0 ]; then
+    log_error \
+"-------------------------------------------------------------------------------
+You plowshare installation has currently no module
+('$LIBDIR/modules' is empty).
+
+In order to use plowup you must install some modules:
+$ mkdir -p $PLOWSHARE_CONFDIR
+$ cd $PLOWSHARE_CONFDIR
+$ git clone https://code.google.com/p/plowshare.unmaintained-modules/ modules
+-------------------------------------------------------------------------------"
 fi
 
 if [ $# -lt 1 ]; then

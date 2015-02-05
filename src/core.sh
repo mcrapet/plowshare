@@ -2702,28 +2702,38 @@ process_module_options() {
     process_options "$M" "$OPTIONS" 1 "$@"
 }
 
-# Get module list according to capability
-# Note1: VERBOSE (log_debug) not initialised yet
+# Get list of all available modules (according to capability)
+# Notes:
+# - VERBOSE (log_debug) not initialised yet
+# - Function is designed to be called in an eval statement (print array on stdout)
 #
-# $1: absolute path to plowshare's libdir
-# $2: feature to grep (must not contain '|' char)
-# $3 (optional): feature to subtract (must not contain '|' char)
-# stdout: return module list (one name per line)
+# $1: feature to grep (must not contain '|' char)
+# $2 (optional): feature to subtract (must not contain '|' char)
+# stdout: declare an associative array (MODULES_PATH)
 get_all_modules_list() {
-    local -r CONFIG="$1/modules/config"
+    local -a SRCS=( "$LIBDIR" "$PLOWSHARE_CONFDIR" )
+    local -A MODULES_PATH=()
+    local D CONFIG
 
-    if [ ! -f "$CONFIG" ]; then
-        stderr "can't find config file"
-        return $ERR_SYSTEM
-    fi
-
-    if test "$3"; then
-        sed -ne "/^[^#]/{/|[[:space:]]*$2/{/|[[:space:]]*$3/!s/^\([^[:space:]|]*\).*/\1/p}}" \
-            "$CONFIG"
-    else
-        sed -ne "/^[^#]/{/|[[:space:]]*$2/s/^\([^[:space:]|]*\).*/\1/p}" \
-            "$CONFIG"
-    fi
+    for D in "${SRCS[@]}"; do
+        CONFIG="$D/modules/config"
+        if [[ -d "$D/modules" && -f "$CONFIG" ]]; then
+            while read -r; do
+                if [ -f "$D/modules/$REPLY.sh" ]; then
+                    if [[ ${MODULES_PATH["$REPLY"]} ]]; then
+                        stderr "INFO: $CONFIG: \`$REPLY\` module overwrite, this one is taken"
+                    fi
+                    MODULES_PATH[$REPLY]="$D/modules/$REPLY.sh"
+                else
+                    stderr "ERROR: $CONFIG: \`$REPLY\` module not found, ignoring"
+                fi
+            done < <(if test "$2"; then sed -ne \
+                "/^[^#]/{/|[[:space:]]*$1/{/|[[:space:]]*$2/!s/^\([^[:space:]|]*\).*/\1/p}}" \
+                "$CONFIG"; else sed -ne \
+                "/^[^#]/{/|[[:space:]]*$1/s/^\([^[:space:]|]*\).*/\1/p}" "$CONFIG"; fi)
+        fi
+    done
+    declare -p MODULES_PATH
 }
 
 # $1: section name in ini-style file ("General" will be considered too)

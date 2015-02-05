@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdel" "1" "January 11, 2015" "GPL" "Plowshare for Bash 4"
+.TH "plowdel" "1" "February 5, 2015" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdel \- Delete files from file sharing websites links
@@ -210,14 +210,19 @@ $ plowdel http://d01.megashares.com/?dl=6EUeDtS \\
 .I ~/.config/plowshare/plowshare.conf
 This is the per-user configuration file.
 .TP
-.I ~/.config/plowshare/exec/
-Additional directory considered when searching for executable. See \fB--captchaprogram\fR switch.
-.TP
 .I /etc/plowshare.conf
 Systemwide configuration file.
 .PP
 The file format is described in
 .BR plowshare.conf (5).
+.TP
+.I ~/.config/plowshare/exec/
+Additional directory considered when searching for executable. See \fB--captchaprogram\fR switch.
+.TP
+.I ~/.config/plowshare/modules/
+User directory considered when searching for modules at startup
+(plowdel will try to open \fB~/.config/plowshare/modules/config\fR).
+One file per module (hoster).
 
 .\" ****************************************************************************
 .\" * Exit codes                                                               *

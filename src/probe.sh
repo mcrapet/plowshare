@@ -279,9 +279,12 @@ TMPDIR=${TMPDIR:-/tmp}
 set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
-mapfile -t MODULES < <(get_all_modules_list "$LIBDIR" 'probe') || exit
-for MODULE in "${MODULES[@]}"; do
-    source "$LIBDIR/modules/$MODULE.sh"
+
+declare -a MODULES=()
+eval "$(get_all_modules_list probe)" || exit
+for MODULE in "${!MODULES_PATH[@]}"; do
+    source "${MODULES_PATH[$MODULE]}"
+    MODULES+=("$MODULE")
 done
 
 # Process command-line (plowprobe early options)
@@ -424,13 +427,15 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
                 log_error "Skip: no module for URL ($(basename_url "$URL")/)"
 
             # Check if plowlist can handle $URL
-            if [[ ! $MODULES_LIST ]]; then
-                mapfile -t MODULES_LIST < <(get_all_modules_list "$LIBDIR" 'list' 'probe') || true
-                for MODULE in "${MODULES_LIST[@]}"; do
-                    source "$LIBDIR/modules/$MODULE.sh"
+            if [[ ! $MODULES2 ]]; then
+                declare -a MODULES2=()
+                eval "$(get_all_modules_list list probe)" || exit
+                for MODULE in "${!MODULES_PATH[@]}"; do
+                    source "${MODULES_PATH[$MODULE]}"
+                    MODULES2+=("$MODULE")
                 done
             fi
-            MODULE=$(get_module "$URL" MODULES_LIST[@]) || true
+            MODULE=$(get_module "$URL" MODULES2[@]) || true
             if [ -n "$MODULE" ]; then
                 log_notice "Note: This URL ($MODULE) is supported by plowlist"
             fi
