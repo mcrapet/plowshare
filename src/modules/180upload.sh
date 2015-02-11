@@ -100,8 +100,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 
     PAGE=$(curl -c "$COOKIE_FILE" -b "$COOKIE_FILE" -b 'lang=english' "$URL") || return
 
-    # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
-    if match 'File Not Found' "$PAGE"; then
+    if match '<h2>File Not Found</h2>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
@@ -158,7 +157,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
     log_debug 'Correct captcha'
     captcha_ack "$ID"
 
-    parse_attr 'id="lnk_download"' 'href' <<< "$PAGE" || return
+    parse_attr 'id="lnk_download_item"' 'href' <<< "$PAGE" || return
     parse_tag 'class="style1"' 'span' <<< "$PAGE" || return
 }
 
@@ -239,8 +238,7 @@ MODULE_180UPLOAD_PROBE_OPTIONS=""
 
     PAGE=$(curl -L -b 'lang=english' "$URL") || return
 
-    # File Not Found, Copyright infringement issue, file expired or deleted by its owner.
-    if match 'File Not Found' "$PAGE"; then
+    if match '<h2>File Not Found</h2>' "$PAGE"; then
         return $ERR_LINK_DEAD
     fi
 
