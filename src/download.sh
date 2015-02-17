@@ -808,7 +808,7 @@ You plowshare installation has currently no module
 In order to use plowdown you must install some modules:
 $ mkdir -p $PLOWSHARE_CONFDIR
 $ cd $PLOWSHARE_CONFDIR
-$ git clone https://code.google.com/p/plowshare.unmaintained-modules/ modules
+$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ modules
 -------------------------------------------------------------------------------"
 fi
 
