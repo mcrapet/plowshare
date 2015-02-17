@@ -159,9 +159,9 @@ keep2share_download() {
         HOUR=${WAIT%%:*}
         SEC=${WAIT##*:}
         MIN=${WAIT#*:}; MIN=${MIN%:*}
-
         log_error 'Forced delay between downloads.'
-        echo $(( (( HOUR * 60 ) + MIN ) * 60 + SEC ))
+        # Note: Get rid of leading zeros so numbers will not be considered octal
+        echo $(( (( ${HOUR#0} * 60 ) + ${MIN#0} ) * 60 + ${SEC#0} ))
         return $ERR_LINK_TEMP_UNAVAILABLE
     fi
 
