@@ -18,6 +18,10 @@ _plowup()
             # argument required but no completion available
             return 0
             ;;
+        --cache)
+            COMPREPLY=( $( compgen -W 'none session shared' -- $cur ) )
+            return 0
+            ;;
         --captchaprogram|--plowsharerc|--curlrc)
             _filedir
             return 0
@@ -41,7 +45,7 @@ _plowup()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -t -r \
-            --min-rate --max-rate --interface --max-retries --timeout --name \
+            --min-rate --max-rate --interface --max-retries --timeout --name --cache \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
             --temp-directory --printf --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
@@ -91,6 +95,10 @@ _plowdown()
             _available_interfaces -a
             return 0
             ;;
+        --cache)
+            COMPREPLY=( $( compgen -W 'none session shared' -- $cur ) )
+            return 0
+            ;;
         --captchamethod)
             COMPREPLY=( $( compgen -W 'imgur none online fb nox x11' -- $cur ) )
             return 0
@@ -104,7 +112,7 @@ _plowdown()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -o -m -r -t -x \
-            --min-space --max-rate --interface --mark-downloaded --no-overwrite \
+            --min-space --max-rate --interface --mark-downloaded --no-overwrite --cache \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
             --fallback --printf --run-before --run-after --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
