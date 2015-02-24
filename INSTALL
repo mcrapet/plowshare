@@ -1,9 +1,9 @@
-Plowshare4 installation notes.
+Plowshare installation notes.
 
 Runtime dependencies
 ====================
 
-To run plowshare4 and all its modules you will need:
+To run plowshare you will need:
 
 * GNU/Linux basic operating system : coreutils (chmod, date, ...), sed, util-linux (kill), grep.
   Note for BSD/Mac OSX: requires gnu-sed.
@@ -44,21 +44,24 @@ for manual console entry or an account to an automatic solving service.
   - DeathByCaptcha account
 
 
-Installation
+Installation (core)
 ============
+
+This is the instructions to install plowshare core without any module.
+No compiler is required, it's only bash scripts!
 
 # If you have root privileges (like Ubuntu)
 $ sudo make install
 
-# For non root users, you can override default prefix (/usr/local)
+# For non root users, you can override default prefix (/usr)
 $ make install PREFIX=/home/$USER/local
 
 Distro packages
 ---------------
-Plowshare4 is also available for several Linux distribution
+Plowshare is also available for several Linux distribution
 (Debian, Ubuntu, Archlinux, Fedora, Gentoo, ...):
 Consult online documentation for up-to-date list:
-http://code.google.com/p/plowshare/wiki/Readme4
+http://code.google.com/p/plowshare/wiki/Readme
 
 Note for BSD users
 ------------------
@@ -77,5 +80,20 @@ $ make install DESTDIR=/media/rootfs
 or
 $ make install PREFIX=/opt DESTDIR=/media/rootfs
 
+
+Installation (external modules)
+============
+
+Using git:
+
+$ mkdir -p ~/.config/plowshare
+$ cd ~/.config/plowshare
+$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ modules
+
+Or using curl:
+$ mkdir -p ~/.config/plowshare
+$ cd ~/.config/plowshare
+$ curl -k https://modules-unmaintained.plowshare.googlecode.com/archive/HEAD.tar.gz | tar zxf -
+$ mv modules-unmaintained.plowshare-HEAD modules
 
 # vim:fileencoding=utf-8

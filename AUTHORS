@@ -1,111 +1,11 @@
-
-                                  Plowshare4
-
-
-CORE ARCHITECTURE
-=================
-
-Arnau Sanchez <tokland@gmail.com>
-	Creator. Project leader.
-	Official maintainer [2009.01.24-...]
-
+Current Developers
+------------------
 Matthieu Crapet <mcrapet@gmail.com>
-	Project leader.
-	Official maintainer [2009.12.11-...]
-
-
-MODULES MAINTAINERS
-===================
-
 Jan <krompospeed@googlemail.com>
-	Official maintainer [2012.04.01-...]
-	oron, rapidgator, go4up modules
-
 Jason <stone.bronson@gmail.com
-	Official maintainer [2013.08.23-...]
-	sharebeast, sockshare, hipfile modules. Xfilesharing engine master.
 
-CONTRIBUTORS (alphabet sorted)
-============
+Former Developers
+-----------------
+Arnau Sanchez <tokland@gmail.com>
 
-Antoine Girard <sapk@sapk.fr>
-	billionuploads module (jan 2013)
-
-Alex Rea <amplitude@gmail.com>
-	Support on OSX related issues
-
-Baptiste <baptiste.brun@gmail.com>
-	bayfiles module (jan 2012)
-
-Chu Chong Meng Steven <chu.chongmeng@gmail.com>
-	freakshare module (mar 2012)
-
-Fabiano Francesconi <fabiano.francesconi@gmail.com>
-	loadfiles.in module (feb 2010)
-
-Golam Sarwar <gsbabil@gmail.com>
-	Initial duckload.com download support (may 2011)
-
-Jan <krompospeed@googlemail.com>a
-	Initial uploaded.to download/list support (may 2011)
-	oron module (apr 2012)
-
-Hervé <test.drive@gmail.com>
-	uploading.com module (dec 2009)
-
-Maurus Cuelenaere <mcuelenaere@gmail.com>
-	mediafire upload support (jun 2010)
-
-Nicolas Michaux <nicolas@michaux.homelinux.org>
-	uploadhero anonymous download (apr 2012)
-
-Pavel Alexeev <Pahan@hubbitus.info>
-	Early letitbit module using gocr (nov 2009)
-
-Petr Pulpán <Pulpan3@gmail.com>
-	Official maintainer [2011.02.14-2011.04.08] with 19 commits.
-	dataport.cz and euroshare.eu modules (feb 2011)
-	1fichier.com module (mar 2011)
-
-pink <ciasoms@gmail.com>
-	bitshare.com module (may 2012)
-
-Ryan <ryan.b.shaw@gmail.com>
-	divshare, sendspace and usershare modules (jan 2010)
-
-Soonbesleeping <soonbesleeping@gmail.com>
-	Initial wupload.com upload function (jun 2011)
-
-StalkR <stalkr@stalkr.net>
-	Official maintainer [2011.02.02-2011.12.24] with 23 commits.
-	filesonic module support (feb 2011)
-	dl.free.fr module support (feb 2010)
-
-Stefan Meier <stefan.111.meier@gmail.com>
-	shareonline_biz (aug 2012), misc patches
-
-Thomas Jensen <thomas.otvald@gmail.com>
-	Early sharingmatrix/filesonic module (before using reCaptcha) (sep 2010)
-
-Walid Iguer <Walid.Iger@gmail.com>
-	Official maintainer [2010.12.06-2011.01] with 1 commit
-	hotfile premium support (dec 2010)
-
-Wesley Barroso <wesleybl@gmail.com>
-	megashares.com module (oct 2011)
-	turbobit module (feb 2012)
-
-? <poomex.pl@gmail.com>
-	wupload.com download and list functions (jun 2011)
-
-
-AND MORE...
-========
-
-- testers & bug reporters
-- scripts contributors
-- premium account contributors
-- donators (paypal, ssh box, ...)
-- distro packagers (ubuntu, fedora, archlinux, ...)
-
-# vim:ts=8:fenc=utf-8
+# vim: set fenc=utf-8:

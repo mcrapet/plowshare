@@ -1,22 +1,23 @@
 
-                   Plowshare4: Plowshare for Bash 4.1+
+                                  Plowshare
 
 
 Introduction
 ============
 
-Plowshare4 is a set of command-line tools (written entirely in shell script)
+Plowshare is a set of command-line tools (written entirely in Bash shell script)
 designed for managing file-sharing websites (aka Hosters).
 
-Plowshare4 is divided into 5 scripts:
+Plowshare is divided into 5 scripts:
   - plowdown, for downloading URLs
   - plowup, for uploading files
   - plowdel, for deleting remote files
   - plowlist, for listing remote shared folders
   - plowprobe, for retrieving information of downloading URLs
 
-For a complete list of supported websites (named "module"), have a look here:
-http://code.google.com/p/plowshare/wiki/Readme4
+Plowshare itself doesn't support any websites (named "module"). It's just the core scripts.
+Concerning modules, few are available separately and must be installed in user directory
+(see paragraph below).
 
 
 Install
@@ -150,7 +151,7 @@ $ plowlist http://pastebin.com/1d82F5sd | plowprobe - > filtered_list.txt
 Implement your own modules
 ==========================
 
-Core of plowshare export a set of API to help text and HTML processing.
+Plowshare exports a set of API to help text and HTML processing.
 It is designed to be as simple as possible to develop new modules.
 A module must be written in shell with portability in mind; one module matches
 one website.
@@ -160,7 +161,13 @@ http://code.google.com/p/plowshare/wiki/NewModules
 API list is here:
 http://code.google.com/p/plowshare/wiki/NewModules2
 
-A common approach is also to study existing modules.
+A common approach is to read existing modules source code.
+
+
+License
+=======
+Plowshare is made available publicly under the GNU GPLv3 License.
+Full license text is available in COPYING file.
 
 
 Feedback

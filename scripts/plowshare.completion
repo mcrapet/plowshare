@@ -1,4 +1,4 @@
-# plowshare4 completion                                    -*- shell-script -*-
+# plowshare completion                                    -*- shell-script -*-
 
 _plowup()
 {
@@ -50,7 +50,7 @@ _plowup()
             --temp-directory --printf --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         local m i list files
-        for i in /usr/local/share/plowshare4/modules/config \
+        for i in /usr/local/share/plowshare/modules/config \
                 $HOME/.config/plowshare/modules/config; do
             test -f $i && files+=($i)
         done

@@ -521,7 +521,7 @@ parse() {
     PARSE="s${D}$PARSE${D}\1${D}p" # s/$PARSE/\1/p
 
     if [ $N -eq 0 ]; then
-        # Note: This requires GNU sed (which is assumed by Plowshare4)
+        # Note: This requires GNU sed (which is assumed by Plowshare)
         #STR=$(sed -ne "$FILTER {$PARSE;ta;b;:a;q;}")
         STR=$(sed -ne "$FILTER {$PARSE;T;q;}")
 
@@ -2870,7 +2870,7 @@ log_report_info() {
         log_report "[lib ] '$LIBDIR1'"
 
         # Having several installations is usually a source of issues
-        for LIBDIR2 in '/usr/share/plowshare4' '/usr/local/share/plowshare4'; do
+        for LIBDIR2 in '/usr/share/plowshare' '/usr/local/share/plowshare'; do
             if [ "$LIBDIR2" != "$LIBDIR1" -a -f "$LIBDIR2/core.sh" ]; then
                 log_report "[lib2] '$LIBDIR2'"
             fi

@@ -1,8 +1,8 @@
 ##
-# Plowshare4 Makefile (requires GNU sed)
+# Plowshare Makefile (requires GNU sed)
 # Usage:
-# - make PREFIX=/usr install
-# - make PREFIX=/usr DESTDIR=/tmp/packaging install
+# - make PREFIX=/usr/local install
+# - make PREFIX=/usr/local DESTDIR=/tmp/packaging install
 #
 # Important note for OpenBSD, NetBSD and Mac OS X users:
 # Be sure to properly define GNU_SED variable (gsed or gnu-sed).
@@ -29,10 +29,10 @@ GIT_VERSION = scripts/version
 # Target path
 # DESTDIR is for package creation only
 
-PREFIX ?= /usr/local
+PREFIX ?= /usr
 BINDIR  = $(PREFIX)/bin
-DATADIR = $(PREFIX)/share/plowshare4
-DOCDIR  = $(PREFIX)/share/doc/plowshare4
+DATADIR = $(PREFIX)/share/plowshare
+DOCDIR  = $(PREFIX)/share/doc/plowshare
 MANDIR  = $(PREFIX)/share/man/man
 
 # Rules
@@ -77,7 +77,7 @@ patch_git_version: install_files
 
 patch_bash_completion: install_files
 	@$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bash-completion/completions
-	@$(GNU_SED) -e '/cut/s,/usr/local/share/plowshare4,$(DATADIR),' $(BASH_COMPL) > $(DESTDIR)$(PREFIX)/share/bash-completion/completions/plowdown
+	@$(GNU_SED) -e '/cut/s,/usr/local/share/plowshare,$(DATADIR),' $(BASH_COMPL) > $(DESTDIR)$(PREFIX)/share/bash-completion/completions/plowdown
 	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowup
 	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowdel
 	@cd $(DESTDIR)$(PREFIX)/share/bash-completion/completions && $(LN_S) plowdown plowlist
