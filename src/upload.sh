@@ -391,10 +391,11 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
 fi
 
 # Check requested module
-MODULE=$(module_exist MODULES[@] "${COMMAND_LINE_ARGS[0]}") || {
-    log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})";
-    exit $ERR_NOMODULE;
-}
+if ! MODULE=$(module_exist MODULES[@] "${COMMAND_LINE_ARGS[0]}"); then
+    log_error "plowup: unsupported module (${COMMAND_LINE_ARGS[0]})"
+    log_error "plowup: try \`plowup --modules' to see available modules."
+    exit $ERR_NOMODULE
+fi
 
 if [ ${#COMMAND_LINE_ARGS[@]} -lt 2 ]; then
     log_error 'plowup: you must specify a filename.'
