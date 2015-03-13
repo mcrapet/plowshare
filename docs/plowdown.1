@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "February 5, 2015" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "March 13, 2015" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -65,6 +65,7 @@ Default option value is disabled (no timeout, infinite) and applies for one sing
 .B -x, --no-overwrite
 Do not overwrite existing files. Existing file will be preserved and filename will be
 suffixed with .1, .2, and so on.
+Default option value is disabled: files are overwritten (whatever their size) or resumed (if module supports it).
 .TP
 .BI "   " " " --cache= METHOD
 Cache policy regarding module storage space.

@@ -513,7 +513,7 @@ download() {
                         log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
                         return $ERR_SYSTEM
                     fi
-                    log_notice "warning: final file will be overwritten ($FILENAME_OUT)"
+                    log_notice 'WARNING: The filename file already exists, overwrite it. Use `plowdown --no-overwrite'\'' to disable.'
                 fi
 
                 if [ -f "$FILENAME_TMP" ]; then
