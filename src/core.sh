@@ -303,10 +303,11 @@ first_line() {
     local -r N=${1:-1}
 
     if (( N < 1 )); then
+        log_error "$FUNCNAME: negative index not expected"
         return $ERR_FATAL
     fi
 
-    # equivalent to `sed -ne 1p` or `sed -e q` or `sed -e 1q` (N=1 here)
+    # Equivalent to `sed -ne 1p` or `sed -e q` or `sed -e 1q` (N=1 here)
     head -n$((N))
 }
 
@@ -317,10 +318,11 @@ last_line() {
     local -r N=${1:-1}
 
     if (( N < 1 )); then
+        log_error "$FUNCNAME: negative index not expected"
         return $ERR_FATAL
     fi
 
-    # equivalent to `sed -ne '$p'` or `sed -e '$!d'` (N=1 here)
+    # Equivalent to `sed -ne '$p'` or `sed -e '$!d'` (N=1 here)
     tail -n$((N))
 }
 
@@ -328,8 +330,15 @@ last_line() {
 # stdin: input string (multiline)
 # $1: line number (start at index 1)
 nth_line() {
-   # equivalent to `sed -e "${1}q;d"` or `sed -e "${1}!d"`
-   sed -ne "${1}p"
+    local -r N=${1:-1}
+
+    if (( N < 1 )); then
+        log_error "$FUNCNAME: negative index not expected"
+        return $ERR_FATAL
+    fi
+
+    # Equivalent to `sed -e "${1}q;d"` or `sed -e "${1}!d"`
+    sed -ne "$((N))p"
 }
 
 # Delete fist line(s) of a buffer
@@ -339,10 +348,11 @@ delete_first_line() {
     local -r N=${1:-1}
 
     if (( N < 1 )); then
+        log_error "$FUNCNAME: negative index not expected"
         return $ERR_FATAL
     fi
 
-    # equivalent to `tail -n +2` (if $1=1)
+    # Equivalent to `tail -n +2` (if $1=1)
     sed -ne "$((N+1)),\$p"
 }
 
