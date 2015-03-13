@@ -3876,20 +3876,21 @@ log_notice_norc() {
 }
 
 # Bash4 builtin error-handling function
+# VERBOSE is not defined here.
 command_not_found_handle() {
     local -r CMD=$1
     local ERR=$ERR_SYSTEM
 
     # Missing module function
     if [[ $CMD =~ _(delete|download|list|probe|upload)$ ]]; then
-        log_error "$MODULE module: \`$CMD' function was not found"
+        stderr "$MODULE module: \`$CMD' function was not found"
     else
         [ "$CMD" = 'curl' ] && ERR=62
-        log_error "$CMD: command not found"
+        stderr "$CMD: command not found"
     fi
 
     shift
-    log_debug "with arguments: $*"
+    stderr "called with arguments: $*"
 
     return $ERR
 }
