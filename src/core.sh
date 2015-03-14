@@ -2442,7 +2442,10 @@ storage_set() {
     else
         CONFIG="$PLOWSHARE_CONFDIR/storage"
 
-        [ -d "$CONFIG" ] || mkdir --parents "$CONFIG"
+        if [ ! -d "$CONFIG" ]; then
+            mkdir --parents "$CONFIG"
+            chmod 700 "$CONFIG"
+        fi
 
         if [ ! -w "$CONFIG" ]; then
           log_error "$FUNCNAME: write permissions expected \`$CONFIG'"
