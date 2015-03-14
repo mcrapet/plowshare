@@ -494,9 +494,9 @@ download() {
                     # Can we overwrite destination file?
                     if [ ! -w "$FILENAME_OUT" ]; then
                         if module_config_resume "$MODULE"; then
-                            log_error "error: no write permission, cannot resume final file ($FILENAME_OUT)"
+                            log_error "ERROR: No write permission, cannot resume final file ($FILENAME_OUT)"
                         else
-                            log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
+                            log_error "ERROR: No write permission, cannot overwrite final file ($FILENAME_OUT)"
                         fi
                         return $ERR_SYSTEM
                     fi
@@ -510,7 +510,7 @@ download() {
                 if [ -f "$FILENAME_OUT" ]; then
                     # Can we overwrite destination file?
                     if [ ! -w "$FILENAME_OUT" ]; then
-                        log_error "error: no write permission, cannot overwrite final file ($FILENAME_OUT)"
+                        log_error "ERROR: No write permission, cannot overwrite final file ($FILENAME_OUT)"
                         return $ERR_SYSTEM
                     fi
                     log_notice 'WARNING: The filename file already exists, overwrite it. Use `plowdown --no-overwrite'\'' to disable.'
@@ -520,9 +520,9 @@ download() {
                     # Can we overwrite temporary file?
                     if [ ! -w "$FILENAME_TMP" ]; then
                         if module_config_resume "$MODULE"; then
-                            log_error "error: no write permission, cannot resume tmp/part file ($FILENAME_TMP)"
+                            log_error "ERROR: No write permission, cannot resume tmp/part file ($FILENAME_TMP)"
                         else
-                            log_error "error: no write permission, cannot overwrite tmp/part file ($FILENAME_TMP)"
+                            log_error "ERROR: No write permission, cannot overwrite tmp/part file ($FILENAME_TMP)"
                         fi
                         return $ERR_SYSTEM
                     fi

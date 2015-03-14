@@ -2581,10 +2581,10 @@ exit_handler() {
 # Install exit handler
 set_exit_trap() {
     if [ -z "$TMPDIR" ]; then
-        log_error 'Error: TMPDIR is not defined.'
+        log_error 'ERROR: $TMPDIR is not defined.'
         return $ERR_SYSTEM
     elif [ ! -d "$TMPDIR" ]; then
-        log_error 'Error: TMPDIR is not a directory.'
+        log_error 'ERROR: $TMPDIR is not a directory.'
         return $ERR_SYSTEM
     fi
     trap exit_handler EXIT
@@ -2948,7 +2948,7 @@ captcha_method_translate() {
             [[ $3 ]] && unset "$3" && eval $3=view-fb,log
             ;;
         *)
-            log_error "Error: unknown captcha method '$1'.${DISPLAY:+ Try with 'x11' for example.}"
+            log_error "ERROR: Unknown captcha method '$1'.${DISPLAY:+ Try with 'x11' for example.}"
             return $ERR_FATAL
             ;;
     esac
