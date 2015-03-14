@@ -75,7 +75,7 @@ Advanced users and maintainers
 ------------------------------
 
 # If you are on a cross compilation environment:
-# (default prefix is /usr/local)
+# (default prefix is /usr)
 $ make install DESTDIR=/media/rootfs
 or
 $ make install PREFIX=/opt DESTDIR=/media/rootfs
