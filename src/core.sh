@@ -2777,7 +2777,7 @@ process_configfile_options() {
             [[ $NAME = */* ]] && continue
 
             # Look for optional double quote (protect leading/trailing spaces)
-            if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
+            if [ ${#VALUE} -gt 1 ] && [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
                 VALUE=${VALUE%?}
                 VALUE=${VALUE:1}
             fi
@@ -2843,7 +2843,7 @@ process_configfile_module_options() {
                 VALUE=$(strip <<< "${LINE#*=}")
 
                 # Look for optional double quote (protect leading/trailing spaces)
-                if [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
+                if [ ${#VALUE} -gt 1 ] && [ '"' = "${VALUE:0:1}" -a '"' = "${VALUE:(-1):1}" ]; then
                     VALUE=${VALUE%?}
                     VALUE=${VALUE:1}
                 fi
