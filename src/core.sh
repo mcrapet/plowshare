@@ -2747,7 +2747,7 @@ get_all_modules_list() {
 }
 
 # $1: section name in ini-style file ("General" will be considered too)
-# $2: command-line arguments list
+# $2: command-line argument list
 # $3 (optional): user specified configuration file
 # Note: VERBOSE (log_debug) not initialised yet
 process_configfile_options() {
@@ -2801,23 +2801,26 @@ process_configfile_module_options() {
 
     if [ -z "$4" ]; then
         CONFIG="$PLOWSHARE_CONFDIR/plowshare.conf"
-        if [ -f "$CONFIG" ]; then
-            if [ -O "$CONFIG" ]; then
-                # First 10 characters: access rights (human readable form)
-                local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
-
-                if [[ ${FILE_PERM:4:6} != '------' ]]; then
-                    log_notice "Warning (configuration file permissions): chmod 600 $CONFIG"
-                fi
-            else
-                log_notice "Warning (configuration file ownership): chown $USERNAME $CONFIG"
-            fi
-        else
-            CONFIG='/etc/plowshare.conf'
-            test -f "$CONFIG" || return 0
-        fi
+        test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
+        test -f "$CONFIG" || return 0
     else
         CONFIG=$4
+    fi
+
+    # Security check
+    if [ -f "$CONFIG" ]; then
+        if [ -O "$CONFIG" ]; then
+            # First 10 characters: access rights (human readable form)
+            local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
+
+            if [[ ${FILE_PERM:4:6} != '------' ]]; then
+                log_notice "WARNING: Wrong configuration file permissions. Fix it with: chmod 600 $CONFIG"
+            fi
+        else
+            log_notice "WARNING: Bad configuration file ownership. Fix it with: chown $USER $CONFIG"
+        fi
+    else
+        return 0
     fi
 
     log_report "use $CONFIG"

@@ -416,7 +416,7 @@ download() {
         if [[ $BASE_URL =~ :([[:digit:]]{2,5})$ ]]; then
             local -i PORT=${BASH_REMATCH[1]}
             if (( PORT != 80 && PORT != 443 )); then
-                log_notice "Warning: Final URL requires an outgoing TCP connection to port $PORT, hope you're not behind a proxy/firewall"
+                log_notice "WARNING: Final URL requires an outgoing TCP connection to port $PORT, hope you're not behind a proxy/firewall."
             fi
         fi
 
@@ -837,7 +837,7 @@ fi
 if [ -n "$OUTPUT_DIR" ]; then
     log_notice "Output directory: ${OUTPUT_DIR%/}"
 elif [ ! -w "$PWD" ]; then
-    log_notice 'Warning: Current directory is not writable!'
+    log_notice 'WARNING: Current directory is not writable, you may experience troubles.'
 fi
 
 if [ -n "$MIN_LIMIT_SPACE" ]; then
