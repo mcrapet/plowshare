@@ -1,0 +1,67 @@
+# Example file for Plowshare configuration file
+# Copy to ~/.config/plowshare/plowshare.conf
+# $ man plowshare.conf
+
+# =========================================================
+[General]
+
+# Put here plow* common options (long --options) and modules options
+# If option is non exisiting or module option unused, it will be just silently ignored
+# (for example modulename1 can have --auth option in plowdown but not in plowup).
+
+# I always want -v3
+verbose=3
+
+# Whitespaces are stripped around token and value
+# Reuse cookies, sessions over sessions (as far as module supports it)
+cache  = shared
+
+# For credentials, format is USER:PASSWORD
+# (it is not possible to have colon character in USER, but it is possible in PASSWORD)
+# /a is alias for /auth
+modulename1/a=foo@bar.com:password123++
+modulename2/a = foo@bar.com:password123++
+
+# Whitespace is inside, it is legal
+modulename3/a = foo@bar.com:password123 ++
+modulename4/a = foo@bar.com: password123 ++
+
+# For leading or trailing spaces, we must use double quotes
+# /b is alias for /auth-free
+modulename5/b = "foo@bar.com:password124++ "
+
+# =========================================================
+[Plowdown]
+
+# Put here plowdown options (long --options) and modules options for plowdown
+# See available module names: $ plowdown --modules
+# See available options per module: $ plowdown --longhelp
+
+# This is a flag switch, any right value does the job
+no-overwrite=1
+
+# Empty value, this following line has no effect
+temp-rename=
+
+# Specific download module options
+# No colon character here, you'll be prompted for a password
+modulename6/a = foo@bar.com
+
+# =========================================================
+[Plowup]
+
+# Put here plowup options (long --options) and modules options for plowup
+# See available module names: $ plowup --modules
+# See available options per module: $ plowup --longhelp
+
+# On upload failure, retry 2 times (default is 0)
+max-retries=2
+
+# Specific upload module options
+modulename5/folder = root
+modulename5/private = 1
+
+# =========================================================
+#[Plowlist]
+#[Plowdel]
+#[Plowprobe]
