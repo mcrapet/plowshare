@@ -1,4 +1,4 @@
-.\" Copyright (c) 2010\-2014 Plowshare Team
+.\" Copyright (c) 2010\-2015 Plowshare Team
 .\"
 .\" This is free documentation; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License as
@@ -23,7 +23,7 @@
 .\"   - xorg.conf.5
 .\"   - sysctl.conf.5
 
-.TH "plowshare.conf" "5" "March 22, 2014" "GPL" "Plowshare for Bash 4"
+.TH "plowshare.conf" "5" "March 14, 2015" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowshare.conf \- Configuration file for Plowshare
@@ -40,6 +40,9 @@ for its initial setup. This configuration file is searched for in the following 
 .I /etc/plowshare.conf
 .fi
 .RE
+.PP
+Instead of specifying long command lines with user's preferences (credentials, network settings or
+download retry number, ...), it is convenient to make them default.
 .PP
 Note: Usage of configuration file can be disabled using
 .B \-\-no-plowsharerc
@@ -107,16 +110,16 @@ Options in general section prevail over Plow* section. Options given on the comm
 interface = eth1
 rapidshare/a = matt:4deadbeef
 rapidgator/a = "matt:4 dead beef "
+antigate=bc427381269d702eccc509b8849e5b0d
 
 [Plowdown]
-deathbycaptcha=matt:blablabla
 timeout=3600
 
 [Plowup]
 max-retries=2
 printf=Download URL: %u%nDelete   URL: %d%n
-mirrorcreator/auth-free = foo:bar
-mirrorcreator/mediafire = yes
+uploadmemodule/auth-free = foo@bar.com:kjguiy1581!
+uploadmemodule/folder = incoming
 
 [Plowlist]
 verbose = 3
@@ -128,7 +131,7 @@ verbose = 3
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2014 The Plowshare Team
+Plowshare is (C) 2010-2015 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowdown (1),
 .BR plowup (1),

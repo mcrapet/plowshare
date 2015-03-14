@@ -150,29 +150,6 @@ All switches are not implemented nor required for all modules.
 See help message for detailed modules option list.
 
 .\" ****************************************************************************
-.\" * Examples                                                                 *
-.\" ****************************************************************************
-.SH EXAMPLES
-
-.SS 1) List links providing shared folder URL(s)
-.EX
-$ plowlist http://rapidgator.net/folder/1689302/Test.html
-.sp 1
-# First URL is processed, then the second one (this is not parallel)
-$ plowlist http://www.mediafire.com/?qouncpzfe74s9 \\
-    http://www.sendspace.com/folder/5njdw7
-.EE
-.SS 2) Custom results format
-.EX
-# List to give to plowdown (only links, no filenames)
-$ plowlist \-\-printf '%u%n' http://www.sendspace.com/folder/5njdw7 >mylist.txt
-.sp 1
-# vBulletin "BB" syntax
-$ plowlist \-\-printf '[url=%u]%f[/url]%n' \\
-    http://www.sendspace.com/folder/5njdw7 >mylist.txt
-.EE
-
-.\" ****************************************************************************
 .\" * Files                                                                    *
 .\" ****************************************************************************
 .SH "FILES"

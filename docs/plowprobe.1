@@ -172,27 +172,6 @@ Output version information and exit.
 There is none yet!
 
 .\" ****************************************************************************
-.\" * Examples                                                                 *
-.\" ****************************************************************************
-.SH EXAMPLES
-
-.SS 1) Filter alive links in a text file 
-.EX
-$ plowprobe file_with_links.txt > file_with_active_links.txt
-# Or
-$ cat file_with_links.txt | plowprobe - > file_with_active_links.txt
-.EE
-.SS 2) Custom results format
-.EX
-.sp 1
-# Print links information: filename and hash
-$ plowprobe \-\-printf '# %f (%h)%n%u%n' http://www.sendspace.com/file/5njdw7
-.sp 1
-# Print a JSON result
-$ plowprobe \-\-printf '{"url":"%U","size":%s}%n' http://www.sendspace.com/file/5njdw7
-.EE
-
-.\" ****************************************************************************
 .\" * Files                                                                    *
 .\" ****************************************************************************
 .SH "FILES"

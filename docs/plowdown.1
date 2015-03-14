@@ -403,50 +403,6 @@ can contain a semi-colon character without any trouble.
 Don't forget to single-quote string if your password contain shell expandable characters (like space, $ or &).
 
 .\" ****************************************************************************
-.\" * Examples                                                                 *
-.\" ****************************************************************************
-.SH EXAMPLES
-
-.SS 1) Download one or several files
-.EX
-$ plowdown http://www.rapidshare.com/files/12345678/foo.rar
-.sp 1
-# Downloads are successive (not parallel)
-$ plowdown http://depositfiles.com/files/fv2u9xqya \\
-    http://rapidgator.net/file/49b1b874
-.sp 1
-# Download a password-protected file from mediafire
-$ plowdown \-p somepassword http://www.mediafire.com/?mt0egmhietj60iy
-.sp 1
-# Download using an account (free or premium, not supported by all modules)
-$ plowdown \-a 'myuser:mypassword' http://rapidgator.net/file/49b1b874
-.EE
-.SS 2) Download a list of links (one link per line) commenting out (with #) those successfully downloaded 
-.EX
-$ plowdown \-m file_with_links.txt
-.EE
-.SS 3) Download with restrictions
-.EX
-$ plowdown \-\-max\-rate 900K \-i eth1 http://depositfiles.com/files/fv2u9xqya
-.EE
-.SS 4) Download with a proxy (3128 is the default port)
-.EX
-$ export http_proxy=http://192.168.0.20:80
-$ plowdown http://www.rapidshare.com/files/12345678/foo.rar
-.EE
-.SS 5) Don't download file but only display final download URL (alternative HTTP retriever can be used).
-.EX
-# Depending hosters, cookie file might be required.
-$ plowdown \-v1 \-\-skip-final \-\-printf '# %f%n%d%n' \\
-    http://www.sendspace.com/file/5njdw7
-.EE
-.SS 6) Safe download. Each URL will be limited in the number of tries and wait delays.
-.EX
-$ alias plowdown='plowdown \-\-no\-overwrite \-\-max\-retries=10 \-\-timeout=3600'
-$ plowdown \-m file_with_links.txt
-.EE
-
-.\" ****************************************************************************
 .\" * Files                                                                    *
 .\" ****************************************************************************
 .SH "FILES"

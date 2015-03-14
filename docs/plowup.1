@@ -352,39 +352,6 @@ All switches are not implemented nor required for all modules.
 See long help message for detailed modules option list.
 
 .\" ****************************************************************************
-.\" * Examples                                                                 *
-.\" ****************************************************************************
-.SH EXAMPLES
-
-.SS 1) Upload a single file anonymously
-.EX
-$ plowup bayfiles /tmp/foo.bar
-.sp 1
-# Add a text description
-$ plowup \-d "Important document" megashares /path/myfile.tex
-.sp 1
-# Abort slow upload (if rate is below limit during 30 seconds)
-$ plowup \-\-min\-rate 100k mediafire /path/bigfile.zip
-.EE
-.SS 2) Upload a single file with authentication
-.EX
-# Change destination filename
-$ plowup \-a 'myuser:mypassword' turbobit /path/myfile.txt:anothername.txt
-.EE
-.SS 3) Remote upload
-Note: URL fetching is rarely implemented by modules.
-
-.EX
-# Feature dedicated to premium members
-$ plowup \-a myuser:mypassword rapidgator \\
-    http://www.somewherefarbeyond.com/somefile
-.sp 1
-# Change destination filename
-$ plowup \-a myuser:mypassword rapidgator \\
-    http://www.somewherefarbeyond.com/somefile:anothername
-.EE
-
-.\" ****************************************************************************
 .\" * Files                                                                    *
 .\" ****************************************************************************
 .SH "FILES"
