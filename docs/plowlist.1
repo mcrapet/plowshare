@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "February 5, 2015" "GPL" "Plowshare for Bash 4"
+.TH "plowlist" "1" "March 23, 2015" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowlist \- List links from shared folders websites
@@ -163,9 +163,9 @@ Systemwide configuration file.
 The file format is described in
 .BR plowshare.conf (5).
 .TP
-.I ~/.config/plowshare/modules/
+.I ~/.config/plowshare/modules.d/
 User directory considered when searching for modules at startup
-(plowlist will try to open \fB~/.config/plowshare/modules/config\fR).
+(plowlist will try to open \fB~/.config/plowshare/modules.d/*/config\fR).
 One file per module (hoster).
 
 .\" ****************************************************************************

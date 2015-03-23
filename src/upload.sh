@@ -307,9 +307,9 @@ You plowshare installation has currently no module
 ('$LIBDIR/modules' is empty).
 
 In order to use plowup you must install some modules:
-$ mkdir -p $PLOWSHARE_CONFDIR
-$ cd $PLOWSHARE_CONFDIR
-$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ modules
+$ mkdir -p $PLOWSHARE_CONFDIR/modules.d
+$ cd $PLOWSHARE_CONFDIR/modules.d
+$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ unmaintained
 -------------------------------------------------------------------------------"
 fi
 

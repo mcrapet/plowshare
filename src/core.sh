@@ -2724,19 +2724,27 @@ process_module_options() {
 # $2 (optional): feature to subtract (must not contain '|' char)
 # stdout: declare an associative array (MODULES_PATH)
 get_all_modules_list() {
-    local -a SRCS=( "$LIBDIR" "$PLOWSHARE_CONFDIR" )
+    # Legacy locations are kept for compatibility
+    local -a SRCS=( "$LIBDIR/modules" "$PLOWSHARE_CONFDIR/modules" )
     local -A MODULES_PATH=()
     local D CONFIG
 
+    if [ -d "$PLOWSHARE_CONFDIR/modules.d/" ]; then
+        while read -r; do
+            D=$(dirname "$REPLY")
+            SRCS+=( "$D" )
+        done < <(find "$PLOWSHARE_CONFDIR/modules.d/" -mindepth 2 -maxdepth 2 -name config)
+    fi
+
     for D in "${SRCS[@]}"; do
-        CONFIG="$D/modules/config"
-        if [[ -d "$D/modules" && -f "$CONFIG" ]]; then
+        CONFIG="$D/config"
+        if [[ -d "$D" && -f "$CONFIG" ]]; then
             while read -r; do
-                if [ -f "$D/modules/$REPLY.sh" ]; then
+                if [ -f "$D/$REPLY.sh" ]; then
                     if [[ ${MODULES_PATH["$REPLY"]} ]]; then
                         stderr "INFO: $CONFIG: \`$REPLY\` module overwrite, this one is taken"
                     fi
-                    MODULES_PATH[$REPLY]="$D/modules/$REPLY.sh"
+                    MODULES_PATH[$REPLY]="$D/$REPLY.sh"
                 else
                     stderr "ERROR: $CONFIG: \`$REPLY\` module not found, ignoring"
                 fi

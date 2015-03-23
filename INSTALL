@@ -86,14 +86,14 @@ Installation (external modules)
 
 Using git:
 
-$ mkdir -p ~/.config/plowshare
-$ cd ~/.config/plowshare
-$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ modules
+$ mkdir -p ~/.config/plowshare/modules.d
+$ cd ~/.config/plowshare/modules.d
+$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ unmaintained
 
 Or using curl:
-$ mkdir -p ~/.config/plowshare
-$ cd ~/.config/plowshare
+$ mkdir -p ~/.config/plowshare/modules.d
+$ cd ~/.config/plowshare/modules.d
 $ curl -k https://modules-unmaintained.plowshare.googlecode.com/archive/HEAD.tar.gz | tar zxf -
-$ mv modules-unmaintained.plowshare-HEAD modules
+$ mv modules-unmaintained.plowshare-HEAD unmaintained
 
 # vim:fileencoding=utf-8

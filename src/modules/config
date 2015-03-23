@@ -1,2 +1,2 @@
 # Plowshare is not delivered with modules anymore. Modules are in a separate git directory now.
-# You can still add system-wide modules here, but prefer user directory (~/.config/plowshare/modules).
+# You can still add system-wide modules here, but prefer user directory (~/.config/plowshare/modules.d/namehere).
