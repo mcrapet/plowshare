@@ -2900,9 +2900,9 @@ log_report_info() {
             fi
         done
 
-        GIT_DIR=$(cd "$LIBDIR" && git rev-parse --git-dir 2>/dev/null) || true
+        GIT_DIR=$(git --work-tree "$LIBDIR" rev-parse --quiet --git-dir) || true
         if [ -d "$GIT_DIR" ]; then
-            local -r GIT_BRANCH=$(git --git-dir=$GIT_DIR rev-parse --abbrev-ref HEAD 2>/dev/null)
+            local -r GIT_BRANCH=$(git --git-dir=$GIT_DIR rev-parse --quiet --abbrev-ref HEAD)
             local -r GIT_REV=$(git --git-dir=$GIT_DIR describe --tags --always 2>/dev/null)
             log_report "[git ] $GIT_REV ($GIT_BRANCH branch)"
         fi
