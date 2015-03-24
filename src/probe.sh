@@ -323,6 +323,17 @@ else
     declare -r COLOR=yes
 fi
 
+if [ "${#MODULES}" -le 0 ]; then
+    log_error \
+"-------------------------------------------------------------------------------
+Your plowshare installation has currently no module.
+($PLOWSHARE_CONFDIR/modules.d/ is empty)
+
+In order to use plowprobe you must install some modules. Here is a quick start:
+$ plowmod --install
+-------------------------------------------------------------------------------"
+fi
+
 if [ $# -lt 1 ]; then
     log_error 'plowprobe: no URL specified!'
     log_error "plowprobe: try \`plowprobe --help' for more information."

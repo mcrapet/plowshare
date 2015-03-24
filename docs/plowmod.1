@@ -1,0 +1,147 @@
+.\" Copyright (c) 2015 Plowshare Team
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 3 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, see
+.\" <http://www.gnu.org/licenses/>.
+
+.TH "plowmod" "1" "March 24, 2015" "GPL" "Plowshare for Bash 4"
+
+.SH NAME
+plowmod \- Simple plowshare modules management tool
+
+.SH SYNOPSIS
+.B plowmod
+\fIACTION\fP [\fIOPTIONS\fP]... [\fIURL\fP]...
+.br
+.B plowmod --install
+[\fIURL\fP]...
+.br
+.B plowmod --update
+
+.SH DESCRIPTION
+.B plowmod
+is a command-line tool designed to ease plowshare modules installation and update.
+The script is standalone and not dependent of other plow* tools.
+
+At startup, plowdown, plowup, plowprobe, plowlist or plowdel search for \fI~/.config/plowshare/modules.d/*/config\fR
+files and build an available module list.
+
+Remote repository sources (URLs) can be only git repositories for now.
+
+.\" ****************************************************************************
+.\" * Options                                                                  *
+.\" ****************************************************************************
+.SH OPTIONS
+
+.SS Action options
+.TP
+.B -i, --install
+Install from scratch from one or several URLs to plowshare modules directory (see \fB--modules-directory\fR switch below).
+For now, this is a simple \fBgit clone\fR.
+From repository URL, a sub-directory name is figured out (some kind of basename) and will be created in plowshare modules directory.
+.TP
+.B -u, --update
+Browse plowshare modules directory (each sub-directory) and try to update sources.
+For now, this is a simple \fBgit pull\fR.
+.SS Logging options
+.TP
+.BI -v, " " --verbose= LEVEL
+Set output verbosity level:
+.RS
+\fB0\fR  none,
+.RE
+.RS
+\fB1\fR  errors,
+.RE
+.RS
+\fB2\fR  notice (default behavior),
+.RE
+.RS
+\fB3\fR  debug,
+.RE
+.RS
+\fB4\fR  report (very noisy, not very useful here).
+.RE
+.TP
+.B -q, --quiet
+Alias for \fB-v0\fR. Do not print any debug messages.
+.SS Miscellaneous options
+.TP
+.B "   " --no-color
+Disables log messages (stderr only) output coloring.
+.TP
+.BI "   " " " --modules-directory= DIR
+Set plowshare modules directory. Default is \fI~/.config/plowshare/modules.d/\fR.
+You should not modify this unless you are a package maintainer or want to embed plowshare into PHP.
+.SS Generic program information
+.TP
+.B -h, --help
+Display main help and exit.
+.TP
+.B "   " --version
+Output version information and exit.
+
+.\" ****************************************************************************
+.\" * Files                                                                    *
+.\" ****************************************************************************
+.SH "FILES"
+.TP
+.I ~/.config/plowshare/modules.d/
+User plowshare modules directory for installation or update of repository sources.
+.TP
+.I /usr/share/plowshare/modules/
+.B (replace /usr with your installation prefix)
+Since plowshare is not delivered with modules anymore, this is unused.
+This is still supported for compatibility purpose but you are discouraged using it.
+.TP
+.I ~/.config/plowshare/modules/
+Obsolete user modules directory. Prefer using \fB~/.config/plowshare/modules.d/xxx/\fR instead.
+
+.\" ****************************************************************************
+.\" * Exit codes                                                               *
+.\" ****************************************************************************
+.SH "EXIT CODES"
+
+Possible exit codes are:
+.IP 0
+Operation success.
+.IP 1
+Fatal error. Unexpected result.
+.IP 8
+System generic error.
+.IP 15
+Unknown command line parameter or incompatible options.
+.PP
+If
+.B plowmod
+is invoked with multiple URLs (command-line arguments),
+and one or several errors occur, the first error code is returned added with 100.
+
+.\" ****************************************************************************
+.\" * Authors / See Also                                                       *
+.\" ****************************************************************************
+.SH AUTHORS
+Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
+
+Plowshare is (C) 2010-2015 The Plowshare Team
+.SH "SEE ALSO"
+.BR plowdown (1),
+.BR plowup (1),
+.BR plowdel (1),
+.BR plowprobe (1),
+.BR plowshare.conf (5).

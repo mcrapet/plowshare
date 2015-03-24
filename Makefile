@@ -18,8 +18,8 @@ GNU_SED ?= sed
 # Files
 
 MODULE_FILES = $(wildcard src/modules/*.sh) src/modules/config
-SRCS      = download.sh upload.sh delete.sh list.sh probe.sh core.sh
-MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1 plowprobe.1
+SRCS      = download.sh upload.sh delete.sh list.sh probe.sh core.sh mod.sh
+MANPAGES1 = plowdown.1 plowup.1 plowdel.1 plowlist.1 plowprobe.1 plowmod.1
 MANPAGES5 = plowshare.conf.5
 DOCS      = README docs/plowshare.conf.sample
 
@@ -57,6 +57,7 @@ install_files:
 	$(LN_S) $(DATADIR)/delete.sh   $(DESTDIR)$(BINDIR)/plowdel
 	$(LN_S) $(DATADIR)/list.sh     $(DESTDIR)$(BINDIR)/plowlist
 	$(LN_S) $(DATADIR)/probe.sh    $(DESTDIR)$(BINDIR)/plowprobe
+	$(LN_S) $(DATADIR)/mod.sh      $(DESTDIR)$(BINDIR)/plowmod
 
 uninstall:
 	@$(RM) $(DESTDIR)$(BINDIR)/plowdown
@@ -64,6 +65,7 @@ uninstall:
 	@$(RM) $(DESTDIR)$(BINDIR)/plowdel
 	@$(RM) $(DESTDIR)$(BINDIR)/plowlist
 	@$(RM) $(DESTDIR)$(BINDIR)/plowprobe
+	@$(RM) $(DESTDIR)$(BINDIR)/plowmod
 	@rm -rf $(DESTDIR)$(DATADIR) $(DESTDIR)$(DOCDIR)
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)1/, $(MANPAGES1))
 	@$(RM) $(addprefix $(DESTDIR)$(MANDIR)5/, $(MANPAGES5))

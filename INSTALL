@@ -84,13 +84,17 @@ $ make install PREFIX=/opt DESTDIR=/media/rootfs
 Installation (external modules)
 ============
 
-Using git:
+Automatic (using plowmod)
+---------
+$ plowmod --install
 
-$ mkdir -p ~/.config/plowshare/modules.d
-$ cd ~/.config/plowshare/modules.d
-$ git clone https://code.google.com/p/plowshare.modules-unmaintained/ unmaintained
+plowmod is a simple tool for managing your modules directory (~/.config/plowshare/modules.d).
 
-Or using curl:
+If git is installed, you can use later:
+$ plowmod --update
+
+Manual
+------
 $ mkdir -p ~/.config/plowshare/modules.d
 $ cd ~/.config/plowshare/modules.d
 $ curl -k https://modules-unmaintained.plowshare.googlecode.com/archive/HEAD.tar.gz | tar zxf -
