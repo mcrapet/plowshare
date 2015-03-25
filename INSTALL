@@ -7,10 +7,10 @@ To run plowshare you will need:
 
 * GNU/Linux basic operating system : coreutils (chmod, date, ...), sed, util-linux (kill), grep.
   Note for BSD/Mac OSX: requires gnu-sed.
-* bash (version 4.1 or better). It will NOT work using Busybox or Dash (POSIX) shell.
-* curl (version 7.24 or better, compiled with SSL support)
+* Bash (version 4.1 or better). It will NOT work using Busybox or Dash (POSIX) shell.
+* cURL (version 7.24 or better). Compiled with SSL support.
 
-* Character encoding converter. This is optional.
+* Character encoding converter (to get proper filenames). This is optional.
   - recode or
   - perl and HTML::Entities module
 
@@ -18,8 +18,8 @@ To run plowshare you will need:
   - spidermonkey or
   - rhino (JavaScript engine written in Java)
 
-Some websites are using captchas. You'll need one (X11, FB or ascii) picture viewer
-for manual console entry or an account to an automatic solving service.
+Some websites are using captchas. If you're not using an automatic solving service,
+you'll need a (X11, FB or ascii) picture viewer.
 
 * X11 viewers
   - display (imagemagick, X11) or
@@ -36,19 +36,31 @@ for manual console entry or an account to an automatic solving service.
   - img2txt (libcaca) or
   - tiv (perl script using Image::Magick, color output)
 
-* Online services:
-  - 9kw.eu account or
-  - Antigate.com account or
-  - CaptchaBrotherhood account or
-  - CaptchaCoin account or
-  - DeathByCaptcha account
-
 
 Installation (core)
 ============
+This is the instructions to install plowshare. Plowshare modules installation is described in the next section.
+No compiler is required, it's only Bash scripts!
 
-This is the instructions to install plowshare core without any module.
-No compiler is required, it's only bash scripts!
+1) Automatic method: distro packages
+
+This is the easiest method, Plowshare is available for several Linux distribution:
+
+# Archlinux (https://www.archlinux.org/packages/community/any/plowshare/)
+$ yaourt -Sy plowshare
+
+# Gentoo (http://packages.gentoo.org/package/net-misc/plowshare)
+$ emerge -av plowshare
+
+# Debian (https://packages.debian.org/sid/plowshare4)
+$ apt-get install plowshare4
+
+# Fedora & CentOS (https://admin.fedoraproject.org/updates/plowshare)
+$ yum install plowshare
+
+PS: You'll probably need to be root to execute the plowshare package.
+
+2) Manual method: from git sources
 
 # If you have root privileges (like Ubuntu)
 $ sudo make install
@@ -56,15 +68,10 @@ $ sudo make install
 # For non root users, you can override default prefix (/usr)
 $ make install PREFIX=/home/$USER/local
 
-Distro packages
----------------
-Plowshare is also available for several Linux distribution
-(Debian, Ubuntu, Archlinux, Fedora, Gentoo, ...):
-Consult online documentation for up-to-date list:
-http://code.google.com/p/plowshare/wiki/Readme
-
-Note for BSD users
+Note for BSD users (Free BSD & Mac OSX)
 ------------------
+You must manually install from sources.
+You'll need GNU make (not bmake) and gnu-sed (or gsed) installed.
 Don't forget to properly define GNU_SED variable.
 
 # For example
@@ -84,8 +91,8 @@ $ make install PREFIX=/opt DESTDIR=/media/rootfs
 Installation (external modules)
 ============
 
-Automatic (using plowmod)
----------
+1) Automatic method: using plowmod
+
 $ plowmod --install
 
 plowmod is a simple tool for managing your modules directory (~/.config/plowshare/modules.d).
@@ -93,8 +100,10 @@ plowmod is a simple tool for managing your modules directory (~/.config/plowshar
 If git is installed, you can use later:
 $ plowmod --update
 
-Manual
-------
+Plowmod can handle 3rd part repositories. See man page for more information.
+
+2) Manual method: from sources
+
 $ mkdir -p ~/.config/plowshare/modules.d
 $ cd ~/.config/plowshare/modules.d
 $ curl -k https://modules-unmaintained.plowshare.googlecode.com/archive/HEAD.tar.gz | tar zxf -
