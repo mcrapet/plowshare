@@ -106,7 +106,7 @@ Plowmod can handle 3rd part repositories. See man page for more information.
 
 $ mkdir -p ~/.config/plowshare/modules.d
 $ cd ~/.config/plowshare/modules.d
-$ curl -k https://modules-unmaintained.plowshare.googlecode.com/archive/HEAD.tar.gz | tar zxf -
-$ mv modules-unmaintained.plowshare-HEAD unmaintained
+$ curl -L -k https://github.com/mcrapet/plowshare-modules-legacy/archive/master.tar.gz | tar zxf -
+$ mv plowshare-modules-legacy-master legacy
 
 # vim:fileencoding=utf-8

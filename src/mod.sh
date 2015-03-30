@@ -21,7 +21,7 @@
 declare -r VERSION='GIT-snapshot'
 
 # Default repository source
-declare -r LEGACY_MODULES='https://code.google.com/p/plowshare.modules-unmaintained/'
+declare -r LEGACY_MODULES='https://github.com/mcrapet/plowshare-modules-legacy.git'
 
 declare -r MAIN_OPTIONS="
 HELP,h,help,,Show help info and exit
