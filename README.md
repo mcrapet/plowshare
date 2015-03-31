@@ -22,11 +22,11 @@ See `INSTALL` file for details.
 ## Usage examples
 
 All scripts share the same verbose options:
-- `-v0` (alias: `-q`),
-- `-v1` (errors only),
-- `-v2` (infos message; default),
-- `-v3` (show all messages),
-- `-v4` (show all messages, HTML pages and cookies, use this for bug report).
+- `-v0` (alias: `-q`)
+- `-v1` (errors only)
+- `-v2` (infos message; default)
+- `-v3` (show all messages)
+- `-v4` (show all messages, HTML pages and cookies, use this for bug report)
 
 Getting help:
 - `--help`
@@ -40,20 +40,21 @@ All examples below are using fake links.
 
 Download a file from Rapidshare:
 
-```shell
+```sh
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 ```
 
-Download a file from Rapidgator using an account (free or premium):<br>
-Note: `:` is the separator character for login and password.
+Download a file from Rapidgator using an account (free or premium):
 
-```shell
+```sh
 $ plowdown -a 'myuser:mypassword' http://rapidgator.net/file/49b1b874
 ```
 
+**Note**: `:` is the separator character for login and password.
+
 Download a list of links (one link per line):
 
-```shell
+```sh
 $ cat file_with_links.txt
 # This is a comment
 http://depositfiles.com/files/abcdefghi
@@ -63,45 +64,46 @@ $ plowdown file_with_links.txt
 
 Download a list of links (one link per line) commenting out (with `#`) those successfully downloaded:
 
-```shell
+```sh
 $ plowdown -m file_with_links.txt
 ```
 
 Download a file from Oron with Death by Captcha service:
 
-```shell
+```sh
 $ plowdown --deathbycaptcha='user:pass' http://oron.com/dw726z0ohky5
 ```
 
 Download a file from Rapidshare with a proxy (cURL supports `http_proxy` and `https_proxy` environment variables, default port is `3128`):
 
-```shell
+```sh
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 ```
 
-Download a file with limiting the download speed (in bytes per second):<br>
-Note: Accepted prefixes are: `k`, `K`, `Ki`, `M`, `m`, `Mi`.
+Download a file with limiting the download speed (in bytes per second):
 
-```shell
+```sh
 $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 ```
 
+**Note**: Accepted prefixes are: `k`, `K`, `Ki`, `M`, `m`, `Mi`.
+
 Download a file from Rapidshare (like firefox: append `.part` suffix to filename while file is being downloaded):
 
-```shell
+```sh
 $ plowdown --temp-rename http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 ```
 
 Download a password-protected file from Mediafire:
 
-```shell
+```sh
 $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 ```
 
 Avoid never-ending downloads: limit the number of tries (for captchas) and wait delays for each link:
 
-```shell
+```sh
 $ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 ```
 
@@ -109,38 +111,39 @@ $ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 
 Upload a single file anonymously to BayFiles:
 
-```shell
+```sh
 $ plowup bayfiles /tmp/foo.bar
 ```
 
-Upload a bunch of files anonymously to 2Shared (doesn't recurse subdirectories):<br>
-Note: `*` is a [wildcard character](http://en.wikipedia.org/wiki/Glob_%28programming%29) expanded by Bash interpreter.
+Upload a bunch of files anonymously to 2Shared (doesn't recurse subdirectories):
 
-```shell
+```sh
 $ plowup 2shared /path/myphotos/*
 ```
 
+**Note**: `*` is a [wildcard character](http://en.wikipedia.org/wiki/Glob_%28programming%29) expanded by Bash interpreter.
+
 Upload a file to Rapidshare with an account (premium or free)
 
-```shell
+```sh
 $ plowup -a 'myuser:mypassword' rapidshare /path/xxx
 ```
 
 Upload a file to Mirrorcreator changing uploaded file name:
 
-```shell
+```sh
 $ plowup mirrorcreator /path/myfile.txt:anothername.txt
 ```
 
 Upload a file to MegaShares (anonymously) and set description:
 
-```shell
+```sh
 $ plowup -d "Important document" megashares /path/myfile.tex
 ```
 
 Upload a file to Oron anonymously with a proxy:
 
-```shell
+```sh
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ export https_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowup oron /path/myfile.txt
@@ -148,35 +151,35 @@ $ plowup oron /path/myfile.txt
 
 Abort slow upload (if rate is below limit during 30 seconds):
 
-```shell
+```sh
 $ plowup --min-rate 100k mediafire /path/bigfile.zip
 ```
 
 Modify remote filenames (example: `foobar.rar` gives `foobar-PLOW.rar`):
 
-```shell
+```sh
 $ plowup --name='%g-PLOW.%x' mirrorcreator *.rar
 ```
 
-Be aware that cURL is not capable of uploading files containing a comma `,` in their name, so make sure to rename them before using *plowup*.
+**Remark**: Be aware that cURL is not capable of uploading files containing a comma `,` in their name, so make sure to rename them before using *plowup*.
 
 ### Plowdel
 
 Delete a file from MegaShares (*delete link* required):
 
-```shell
+```sh
 $ plowdel http://d01.megashares.com/?dl=6EUeDtS
 ```
 
 Delete files (deletes are successive, not parallel):
 
-```shell
+```sh
 $ plowdel http://d01.megashares.com/?dl=6EUeDtS http://depositfiles.com/rmv/1643181821669253
 ```
 
 Delete a file from Rapidshare (account is required):
 
-```shell
+```sh
 $ plowdel -a myuser:mypassword http://rapidshare.com/files/293672730/foo.rar
 ```
 
@@ -184,14 +187,14 @@ $ plowdel -a myuser:mypassword http://rapidshare.com/files/293672730/foo.rar
 
 List links contained in a shared folder link and download them all:
 
-```shell
+```sh
 $ plowlist http://www.mediafire.com/?qouncpzfe74s9 > links.txt
 $ plowdown -m links.txt
 ```
 
 List two shared folders (first link is processed, then the second one, this is not parallel):
 
-```shell
+```sh
 $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
 ```
 
@@ -199,13 +202,13 @@ $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/fold
 
 List some Sendspace web folder. Render results for vBulletin *BB* syntax:
 
-```shell
+```sh
 $ plowlist --printf '[url=%u]%f[/url]%n' http://www.sendspace.com/folder/5njdw7
 ```
 
 List links contained in a dummy web page. Render results as HTML list:
 
-```shell
+```sh
 $ plowlist --fallback --printf '<li><a href="%u">%u</a></li>%n' \
       http://en.wikipedia.org/wiki/SI_prefix
 ```
@@ -217,30 +220,30 @@ No captcha solving is requested.
 
 Filter alive links in a text file:
 
-```shell
+```sh
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 ```
 
 Custom results format: print links informations (filename and size). Shell and [JSON](http://json.org/) output.
 
-```shell
+```sh
 $ plowprobe --printf '#%f (%s)%n%u%n'  http://myhoster.com/files/5njdw7
 ```
 
-```shell
+```sh
 $ plowprobe --printf '{"url":"%U","size":%s}%n' http://myhoster.com/files/5njdw7
 ```
 
 Custom results: print *primary* url (if supported by hosters and implemented by module):
 
-```shell
+```sh
 $ plowprobe --printf='%v%n' http://a5ts8yt25l.1fichier.com/
 https://1fichier.com/?a5ts8yt25l
 ```
 
 Use `-` argument to read from stdin:
 
-```shell
+```sh
 $ plowlist http://pastebin.com/1d82F5sd | plowprobe - > filtered_list.txt
 ```
 
@@ -250,7 +253,7 @@ Plowshare looks for `~/.config/plowshare/plowshare.conf` or `/etc/plowshare.conf
 Options given at command line can be stored in the file.
 
 Example:
-```
+```ini
 ###
 ### Plowshare configuration file
 ### Line syntax: token = value
@@ -303,7 +306,7 @@ It is possible providing *plowdown* or *plowup* with `--captchaprogram` command-
 
 Understanding example:
 
-```shell
+```sh
 #!/bin/bash
 # $1: module name
 # $2: path to image
@@ -328,7 +331,7 @@ exit 0
 
 Captcha emailing example:
 
-```shell
+```sh
 #!/bin/bash
 #
 # Sends an email with image as attachment.
@@ -372,7 +375,7 @@ exit 0
 
 Captcha FTP example:
 
-```shell
+```sh
 #!/bin/bash
 #
 # Uploads the image to an FTP server in the LAN. If the server is not available
@@ -398,7 +401,7 @@ exit 0
 
 Database using image hash as key:
 
-```shell
+```sh
 #!/bin/sh
 #
 # Back to february 2009, Megaupload was using 4-character rotation captchas.
@@ -436,7 +439,7 @@ Possible usage:
 
 Example 1: Skip all links coming from HotFile hoster
 
-```shell
+```sh
 $ cat drophf.sh
 #!/bin/bash
 # $1: module name
@@ -455,7 +458,7 @@ $ plowdown --run-before ./drophf.sh -m list_of_links.txt
 
 Example 2: Use `wget` for final download (with possible required cookie file for last download)
 
-```shell
+```sh
 $ cat finalwget.sh
 #!/bin/bash
 # $1: module name
@@ -473,7 +476,7 @@ $ plowdown --skip-final --run-after ./finalwget.sh http://www.mediafire.com/?k10
 
 Example 3: Use multiple connections for final download (usually only for premium account users)
 
-```shell
+```sh
 $ cat finalaria.sh
 #!/bin/bash
 aria2c -x2 $4
@@ -489,18 +492,18 @@ $ plowdown -a user:password --skip-final --run-after ./finalaria.sh \
 For all network operations, Plowshare is relying on cURL. You can tweak some advanced settings if necessary.
 
 For example (enforce IPv6):
-```shell
+```sh
 echo 'ipv6' >>~/.curlrc
 ```
 
 Use Plowshare with a SOCKS proxy:
-```shell
+```sh
 ssh -f -N -D localhost:3128 user@my.proxy.machine.org
 echo 'socks5=localhost:3128' >>~/.curlrc
 ```
 
-Note: As Plowshare is dealing with verbose, be sure (if present) to have these cURL's options commented:
-```shell
+**Note**: As Plowshare is dealing with verbose, be sure (if present) to have these cURL's options commented:
+```
 #verbose
 #silent
 #show-error
