@@ -22,15 +22,15 @@ See `INSTALL` file for details.
 ## Usage examples
 
 All scripts share the same verbose options:
-> `-v0` (alias: `-q`),
-> `-v1` (errors only),
-> `-v2` (infos message; default),
-> `-v3` (show all messages),
-> `-v4` (show all messages, HTML pages and cookies, use this for bug report).
+- `-v0` (alias: `-q`),
+- `-v1` (errors only),
+- `-v2` (infos message; default),
+- `-v3` (show all messages),
+- `-v4` (show all messages, HTML pages and cookies, use this for bug report).
 
 Getting help:
-> `--help`
-> `--longhelp` (*plowdown* & *plowup* only, prints modules command-line options)
+- `--help`
+- `--longhelp` (*plowdown* & *plowup* only, prints modules command-line options)
 
 Exhaustive documentation is available in manpages.
 
@@ -44,7 +44,7 @@ Download a file from Rapidshare:
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 ```
 
-Download a file from Rapidgator using an account (free or premium).
+Download a file from Rapidgator using an account (free or premium):<br>
 Note: `:` is the separator character for login and password.
 
 ```shell
@@ -80,7 +80,8 @@ $ export http_proxy=http://xxx.xxx.xxx.xxx:80
 $ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
 ```
 
-Download a file with limiting the download speed (in bytes per second). Accepted prefixes are: `k`, `K`, `Ki`, `M`, `m`, `Mi`.
+Download a file with limiting the download speed (in bytes per second):<br>
+Note: Accepted prefixes are: `k`, `K`, `Ki`, `M`, `m`, `Mi`.
 
 ```shell
 $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
@@ -112,8 +113,8 @@ Upload a single file anonymously to BayFiles:
 $ plowup bayfiles /tmp/foo.bar
 ```
 
-Upload a bunch of files anonymously to 2Shared.
-Note: `*` is a [wildcard character](http://en.wikipedia.org/wiki/Glob_%28programming%29) expanded by Bash interpreter. Here in this case: only files will be sent, subdirectories will be ignored.
+Upload a bunch of files anonymously to 2Shared (doesn't recurse subdirectories):<br>
+Note: `*` is a [wildcard character](http://en.wikipedia.org/wiki/Glob_%28programming%29) expanded by Bash interpreter.
 
 ```shell
 $ plowup 2shared /path/myphotos/*
@@ -151,7 +152,7 @@ Abort slow upload (if rate is below limit during 30 seconds):
 $ plowup --min-rate 100k mediafire /path/bigfile.zip
 ```
 
-Modify remote filenames (example: *foobar.rar* gives *foobar-PLOW.rar*):
+Modify remote filenames (example: `foobar.rar` gives `foobar-PLOW.rar`):
 
 ```shell
 $ plowup --name='%g-PLOW.%x' mirrorcreator *.rar
@@ -167,7 +168,7 @@ Delete a file from MegaShares (*delete link* required):
 $ plowdel http://d01.megashares.com/?dl=6EUeDtS
 ```
 
-Delete files (deletes are successive, not parallel:
+Delete files (deletes are successive, not parallel):
 
 ```shell
 $ plowdel http://d01.megashares.com/?dl=6EUeDtS http://depositfiles.com/rmv/1643181821669253
@@ -188,13 +189,13 @@ $ plowlist http://www.mediafire.com/?qouncpzfe74s9 > links.txt
 $ plowdown -m links.txt
 ```
 
-List two shared folders (first URL is processed, then the second one, this is not parallel):
+List two shared folders (first link is processed, then the second one, this is not parallel):
 
 ```shell
 $ plowlist http://www.mediafire.com/?qouncpzfe74s9 http://www.sendspace.com/folder/5njdw7
 ```
 
-Some hosters are handling tree folders, you must specify `-R`/`--recursive` command-line switch to *plowlist* for enabing recursive lisiting.
+**Remark**: Some hosters are handling tree folders, you must specify `-R`/`--recursive` command-line switch to *plowlist* for enabing recursive lisiting.
 
 List some Sendspace web folder. Render results for vBulletin *BB* syntax:
 
@@ -230,7 +231,7 @@ $ plowprobe --printf '#%f (%s)%n%u%n'  http://myhoster.com/files/5njdw7
 $ plowprobe --printf '{"url":"%U","size":%s}%n' http://myhoster.com/files/5njdw7
 ```
 
-Custom results: print *primary* url (if supported by hosters and implemented in module):
+Custom results: print *primary* url (if supported by hosters and implemented by module):
 
 ```shell
 $ plowprobe --printf='%v%n' http://a5ts8yt25l.1fichier.com/
@@ -255,7 +256,7 @@ Example:
 ### Line syntax: token = value
 ###
 
-[[General]]
+[General]
 interface = eth1
 captchabhood=cbhuser:cbhpass
 
@@ -263,19 +264,19 @@ rapidshare/a = matt:4deadbeef
 mediafire/a = "matt:4 dead beef "
 freakshare/b=plowshare:xxxxx
 
-[[Plowdown]]
+[Plowdown]
 timeout=3600
 #antigate=49b1b8740e4b51cf51838975de9e1c31
 
-[[Plowup]]
+[Plowup]
 max-retries=2
 mirrorcreator/auth-free = foo:bar
 mirrorcreator/count = 5
 
-[[Plowlist]]
+[Plowlist]
 verbose = 3
 
-#[[Plowprobe]]
+#[Plowprobe]
 ```
 
 Notes:
@@ -312,7 +313,7 @@ declare -r ERR_NOMODULE=2
 declare -r ERR_CAPTCHA=7
 
 # We only support uploadhero, otherwise tell Plowshare to solve on its own
-if [ "$1" != 'uploadhero' ](url=%u]%f[/url]%n'); then
+if [ "$1" != 'uploadhero' ]; then
     exit $ERR_NOMODULE
 fi
 
@@ -385,7 +386,8 @@ declare -r DEST='192.168.1.3'
 declare -r ERR_NOMODULE=2
 
 # Prepend the used module to the image file name
-curl --connect-timeout 30 -T "$FILE" --silent "ftp://$DEST/${MODULE}__${FILE##*/}" || exit $ERR_NOMODULE
+curl --connect-timeout 30 -T "$FILE" --silent "ftp://$DEST/${MODULE}__${FILE##*/}" || \
+    exit $ERR_NOMODULE
 
 echo "Captcha from module '$MODULE' with hint '$HINT'" >&2
 read -r -t 900 -p 'Enter code: ' RESPONSE || exit $ERR_NOMODULE
@@ -443,7 +445,7 @@ $ cat drophf.sh
 # You can print messages to stderr. stdout will be trashed
 declare -r ERR_NOMODULE=2
 if [ "$1" = 'hotfile' ]; then
-    echo "===[script skipping $2](Pre-processing)===" >&2
+    echo "===[Pre-processing script skipping $2]===" >&2
     exit $ERR_NOMODULE
 fi
 exit 0
@@ -462,7 +464,7 @@ $ cat finalwget.sh
 # $4: final download URL
 # $5: final filename (no path: --output-directory is ignored)
 # You can print messages to stderr. stdout will be trashed
-echo "===[script for $1](Post-processing)===" >&2
+echo "===[Post-processing script for $1]===" >&2
 echo "Temporary cookie file: $3" >&2
 wget --no-verbose --load-cookies $3 -O $5 $4
 
@@ -476,7 +478,8 @@ $ cat finalaria.sh
 #!/bin/bash
 aria2c -x2 $4
 
-$ plowdown -a user:password --skip-final --run-after ./finalaria.sh http://depositfiles.com/files/fv2u9xqya
+$ plowdown -a user:password --skip-final --run-after ./finalaria.sh \
+    http://depositfiles.com/files/fv2u9xqya
 ```
 
 ## Miscellaneous
@@ -521,7 +524,7 @@ A module must be written in shell with portability in mind; one module matches o
 
 A guide is available here:
 http://code.google.com/p/plowshare/wiki/NewModules
-API list is here:
+<br>API list is here:
 http://code.google.com/p/plowshare/wiki/NewModules2
 
 A common approach is to read existing modules source code.
