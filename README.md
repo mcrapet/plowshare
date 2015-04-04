@@ -15,6 +15,14 @@ Plowshare is divided into 6 scripts:
 Plowshare itself doesn't support any websites (named *module*). It's just the core engine.
 Concerning modules, few are available separately and must be installed in user directory (see paragraph below).
 
+### Features
+
+- Small footprint (few shell scripts). No java, no python. Run fast on embedded devices.
+- Few dependencies and portable. [Bash](https://www.gnu.org/software/bash/) and [cURL](http://curl.haxx.se/) are enough for most hosters.
+- Modules (hoster plugins) are simple to write using [Plowshare API](#implement-your-own-modules).
+- Support for automatic online captcha solver services.
+- Cache mecanism: hoster session or cookie reuse (to avoid relogin).
+
 ## Install
 
 See `INSTALL` file for details.
@@ -41,7 +49,7 @@ All examples below are using fake links.
 Download a file from Rapidshare:
 
 ```sh
-$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer.rar
 ```
 
 Download a file from Rapidgator using an account (free or premium):
@@ -68,6 +76,8 @@ Download a list of links (one link per line) commenting out (with `#`) those suc
 $ plowdown -m file_with_links.txt
 ```
 
+**Note**: Files are downloaded consecutively in the order read from input text file.
+
 Download a file from Oron with Death by Captcha service:
 
 ```sh
@@ -78,13 +88,13 @@ Download a file from Rapidshare with a proxy (cURL supports `http_proxy` and `ht
 
 ```sh
 $ export http_proxy=http://xxx.xxx.xxx.xxx:80
-$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+$ plowdown http://www.rapidshare.com/files/86545320/Tux-Trainer.rar
 ```
 
 Download a file with limiting the download speed (in bytes per second):
 
 ```sh
-$ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+$ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer.rar
 ```
 
 **Note**: Accepted prefixes are: `k`, `K`, `Ki`, `M`, `m`, `Mi`.
@@ -92,7 +102,7 @@ $ plowdown --max-rate 900K http://www.rapidshare.com/files/86545320/Tux-Trainer_
 Download a file from Rapidshare (like firefox: append `.part` suffix to filename while file is being downloaded):
 
 ```sh
-$ plowdown --temp-rename http://www.rapidshare.com/files/86545320/Tux-Trainer_250108.rar
+$ plowdown --temp-rename http://www.rapidshare.com/files/86545320/Tux-Trainer.rar
 ```
 
 Download a password-protected file from Mediafire:
@@ -471,7 +481,8 @@ echo "===[Post-processing script for $1]===" >&2
 echo "Temporary cookie file: $3" >&2
 wget --no-verbose --load-cookies $3 -O $5 $4
 
-$ plowdown --skip-final --run-after ./finalwget.sh http://www.mediafire.com/?k10t0egmhi23f
+$ plowdown --skip-final --run-after ./finalwget.sh \
+    http://www.mediafire.com/?k10t0egmhi23f
 ```
 
 Example 3: Use multiple connections for final download (usually only for premium account users)
@@ -525,10 +536,8 @@ Plowshare exports a set of API to help text and HTML processing.
 It is designed to be as simple as possible to develop new modules.
 A module must be written in shell with portability in mind; one module matches one website.
 
-A guide is available here:
-http://code.google.com/p/plowshare/wiki/NewModules
-<br>API list is here:
-http://code.google.com/p/plowshare/wiki/NewModules2
+- [New module documentation](https://github.com/mcrapet/plowshare/wiki/Modules)
+- [API list](https://github.com/mcrapet/plowshare/wiki/API)
 
 A common approach is to read existing modules source code.
 
