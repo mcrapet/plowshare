@@ -560,7 +560,7 @@ download() {
             fi
 
             DRETVAL=0
-            curl_with_log "${CURL_ARGS[@]}" --fail --globoff \
+            umask 0066 && curl_with_log "${CURL_ARGS[@]}" --fail --globoff \
                 -w '%{http_code}\t%{size_download}' \
                 -o "$FILENAME_TMP" "$FILE_URL" >"$DRESULT" || DRETVAL=$?
             IFS=$'\t' read -r STATUS FILE_SIZE < "$DRESULT"
@@ -893,10 +893,6 @@ fi
 
 set_exit_trap
 
-# Save umask
-declare -r UMASK=$(umask)
-test "$UMASK" && umask 0066
-
 # Remember last host because hosters may require waiting between
 # successive downloads.
 PREVIOUS_HOST=none
@@ -1051,9 +1047,6 @@ done
 if [ "$CACHE" != 'shared' ]; then
     for MODULE in "${!CACHED_MODULES[@]}"; do storage_reset; done
 fi
-
-# Restore umask
-test "$UMASK" && umask $UMASK
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
     exit 0

@@ -1119,8 +1119,13 @@ get_filesize() {
 create_tempfile() {
     local -r SUFFIX=$1
     local FILE="$TMPDIR/$(basename_file "$0").$$.$RANDOM$SUFFIX"
-    :> "$FILE" || return $ERR_SYSTEM
-    echo "$FILE"
+
+    if touch "$FILE" && chmod 600 "$FILE"; then
+        echo "$FILE"
+        return 0
+    fi
+
+    return $ERR_SYSTEM
 }
 
 # User password entry
@@ -2461,6 +2466,9 @@ storage_set() {
             return $ERR_SYSTEM
         fi
         source "$CONFIG"
+    else
+        touch "$CONFIG"
+        chmod 600 "$CONFIG"
     fi
 
     # Unset parameter and empty string are different
