@@ -13,7 +13,7 @@ Plowshare is divided into 6 scripts:
 - *plowmod*, easy management (installation or update) of Plowshare modules
 
 Plowshare itself doesn't support any websites (named *module*). It's just the core engine.
-Concerning modules, few are available separately and must be installed in user directory (see paragraph below).
+Concerning modules, few are available separately and must be installed in user directory (see [below](#install)).
 
 ### Features
 
@@ -76,7 +76,7 @@ Download a list of links (one link per line) commenting out (with `#`) those suc
 $ plowdown -m file_with_links.txt
 ```
 
-**Note**: Files are downloaded consecutively in the order read from input text file.
+**Note**: Files are consecutively downloaded in the order read from input text file.
 
 Download a file from Oron with Death by Captcha service:
 
@@ -111,6 +111,8 @@ Download a password-protected file from Mediafire:
 $ plowdown -p 'somepassword' http://www.mediafire.com/?mt0egmhietj60iy
 ```
 
+**Note**: If you don't specify password and link requests it, you'll be prompted (stdin) for one.
+
 Avoid never-ending downloads: limit the number of tries (for captchas) and wait delays for each link:
 
 ```sh
@@ -139,11 +141,13 @@ Upload a file to Rapidshare with an account (premium or free)
 $ plowup -a 'myuser:mypassword' rapidshare /path/xxx
 ```
 
-Upload a file to Mirrorcreator changing uploaded file name:
+Upload a file to Mirrorcreator changing uploaded filename:
 
 ```sh
 $ plowup mirrorcreator /path/myfile.txt:anothername.txt
 ```
+
+**Note**: `:` is the separator character for local filename and remote filename.
 
 Upload a file to MegaShares (anonymously) and set description:
 
@@ -504,13 +508,13 @@ For all network operations, Plowshare is relying on cURL. You can tweak some adv
 
 For example (enforce IPv6):
 ```sh
-echo 'ipv6' >>~/.curlrc
+$ echo 'ipv6' >>~/.curlrc
 ```
 
 Use Plowshare with a SOCKS proxy:
 ```sh
-ssh -f -N -D localhost:3128 user@my.proxy.machine.org
-echo 'socks5=localhost:3128' >>~/.curlrc
+$ ssh -f -N -D localhost:3128 user@my.proxy.machine.org
+$ echo 'socks5=localhost:3128' >>~/.curlrc
 ```
 
 **Note**: As Plowshare is dealing with verbose, be sure (if present) to have these cURL's options commented:
@@ -525,10 +529,9 @@ echo 'socks5=localhost:3128' >>~/.curlrc
 For historical reasons or design choices, there are several known limitations to Plowshare.
 
 1. You cannot enter through command-line several credentials for different hosts. 
-   It's because the modules option `-a`, `--auth`, `b` or `--auth-free` have the same switch name. 
+   It's because the modules option `-a`, `--auth`, `-b` or `--auth-free` have the same switch name.
    But you can do it with the configuration file.
 2. Same restriction for passwords (*plowdown*). Only one password can be defined with `-p`, `--link-password` switch name.
-   If you don't specify this option and link (module) requests it, you'll be prompted for one.
 
 ### Implement your own modules
 
