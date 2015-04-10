@@ -80,7 +80,7 @@ EOH
 get_dir_name() {
     local n=$1
     n=$(basename_file "${n%/}")
-    if [[ $n =~ ([Pp]lowshare[-._])([Mm]odules[-._])?([^/?#]*) ]] ; then
+    if [[ $n =~ ([Pp]lowshare[-._])([Mm]odules?[-._])?([^/?#]*) ]] ; then
         echo "${BASH_REMATCH[3]}"
     else
         echo "$n"
