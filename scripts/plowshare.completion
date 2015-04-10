@@ -51,7 +51,7 @@ _plowup()
     else
         local i files
         for i in /usr/local/share/plowshare/modules/config \
-                $HOME/.config/plowshare/modules.d/legacy.git/config \
+                $HOME/.config/plowshare/modules.d/*/config \
                 $HOME/.config/plowshare/modules/config; do
             test -f $i && files+=($i)
         done
