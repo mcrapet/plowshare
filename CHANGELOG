@@ -1,29 +1,31 @@
 plowshare (2.1.0) stable; urgency=medium
 
-  * plowmod: add tool to easy modules repositories management
+  * Documentation refactor. Add plowshare.conf.sample file.
+  * Support user modules ~/.config/plowshare/modules.d/* scheme
+  * [plowmod] Add tool to ease modules repositories management
 
- -- Matthieu Crapet <mcrapet@gmail.com>  X
+ -- Matthieu Crapet <mcrapet@gmail.com>  Thu, 09 Apr 2015 08:43:05 +0200
 
 plowshare (2.0.1) stable; urgency=low
 
   * bash completion (plowdown, plowup): add missing --cache support
   * Enhance documentation concerning split of modules and core
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Tue Feb 24 17:36:17 2015 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Tue, Feb 24 17:36:17 2015 +0100
 
 plowshare (2.0.0) stable; urgency=low
 
   * First version shipped without any module. Only core here.
     Module sources have been committed in a new GIT repository.
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Wed Feb 18 00:29:16 2015 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Wed, Feb 18 00:29:16 2015 +0100
 
 plowshare (1.3.0) stable; urgency=low
 
   * Add user modules support (~/.config/plowshare/modules)
   * This is the last version shipped with modules
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Wed Feb 18 00:03:13 2015 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Wed, Feb 18 00:03:13 2015 +0100
 
 plowshare (1.2.0) stable; urgency=low
 
@@ -32,7 +34,7 @@ plowshare (1.2.0) stable; urgency=low
     Hosters usually provide several links (with or without filename or using short hostname).
   * API function list_submit: allow single name as second argument. Bump PLOWSHARE_API_VERSION to 2.
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Sun Jan 11 14:52:51 2015 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sun, Jan 11 14:52:51 2015 +0100
 
 plowshare (1.1.0) stable; urgency=low
 
@@ -42,7 +44,7 @@ plowshare (1.1.0) stable; urgency=low
   * [plowlist, plowdel] Add --no-curlrc command line option
   * [core] Define PATH only when required (process_core_options)
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Sun Nov 23 18:20:20 2014 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sun, Nov 23 18:20:20 2014 +0100
 
 plowshare (1.0.6) stable; urgency=low
 
@@ -51,7 +53,7 @@ plowshare (1.0.6) stable; urgency=low
   * [plowdown, plowup, plowprobe] Fix --no-curlrc option
   * [core] Add JSON unicode string support (parse_json). For Bash 4.2+ users.
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Fri Oct 24 18:57:49 2014 +0200
+ -- Matthieu Crapet <mcrapet@gmail.com>  Fri, Oct 24 18:57:49 2014 +0200
 
 plowshare (1.0.5) stable; urgency=low
 
@@ -63,28 +65,28 @@ plowshare (1.0.5) stable; urgency=low
   * [plowprobe] Add %T token (file timestamp) to --printf switch
   * Deleted modules: anonymousdelivers.us, extabit, thefilebay
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Thu Aug 28 22:07:21 2014 +0200
+ -- Matthieu Crapet <mcrapet@gmail.com>  Thu, Aug 28 22:07:21 2014 +0200
 
 plowshare (1.0.4) stable; urgency=low
 
   * Add captchacoin captcha recognition system support
   * [plowdown, plowup, plowdel] --captchaprogram considers ~/.config/plowshare/exec/ directory
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Sun Jul 20 11:56:24 2014 +0200
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sun, Jul 20 11:56:24 2014 +0200
 
 plowshare (1.0.3) stable; urgency=low
 
   * [plowdown, plowup] Test for POSIX mode
   * [plowprobe] Fix unwanted debug message
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Sat May 31 10:09:41 2014 +0200
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sat, May 31 10:09:41 2014 +0200
 
 plowshare (1.0.2) stable; urgency=low
 
   * [core] Add 't' type for argument parsing (process_options)
   * [core] Prefer command xxx over $(type -P xxx)
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Fri May 2 13:35:04 2014 +0200
+ -- Matthieu Crapet <mcrapet@gmail.com>  Fri, May 2 13:35:04 2014 +0200
 
 plowshare (1.0.1) stable; urgency=low
 
@@ -93,19 +95,19 @@ plowshare (1.0.1) stable; urgency=low
     environment variable (/dev/fb0 is the default)
   * Deleted modules: cloudzer.net, filebox
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Fri Mar 28 20:35:17 2014 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Fri, Mar 28 20:35:17 2014 +0100
 
 plowshare (1.0.0) stable; urgency=low
 
   * Resume strict versioning. Plowshare is now packaged officially in several
-    Linux distributions.
+    Linux distributions (fedora, archlinux, gentoo).
   * Changes/Fixes to modules (hosters) are numerous, they will not be listed here
   * Introduce PLOWSHARE_API_VERSION variable to track carefully API changes
   * [plowup] Introduce --name command line option (replaces --name-suffix & --name-prefix)
   * [plowdown] Allow direct FTP download (enable it with --fallback
   * Deleted modules: hotfiles, putlocker
 
- -- Matthieu Crapet <mcrapet@gmail.com>  Sat Mar 1 10:31:01 2014 +0100
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sat, Mar 1 10:31:01 2014 +0100
 
 plowshare (GIT-snapshot) stable; urgency=medium
 

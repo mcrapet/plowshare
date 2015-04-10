@@ -13,7 +13,7 @@
 verbose=3
 
 # Whitespaces are stripped around token and value
-# Reuse cookies, sessions over sessions (as far as module supports it)
+# Persistent storage: reuse cookies, sessions (as far as module supports it).
 cache  = shared
 
 # For credentials, format is USER:PASSWORD
