@@ -98,10 +98,9 @@ mod_install() {
     log_notice "- installing new directory: $L"
 
     if [ -d "$L" -a -n "$HAVE_GIT" ]; then
-        GIT_DIR=$(git --work-tree "$L" rev-parse --quiet --git-dir) || true
-        if [ -d "$GIT_DIR" ]; then
+        if git -C "$L" rev-parse --is-inside-work-tree &>/dev/null; then
             log_notice 'WARNING: directory already exists! Do a git pull.'
-            git pull --quiet
+            git -C "$L" pull --quiet
         else
             log_error 'ERROR: directory exists but it does not appear to be a git repository, abort'
             RET=$ERR_FATAL
@@ -124,9 +123,8 @@ mod_update() {
 
     if [ -d "$L" ]; then
         if [ -n "$HAVE_GIT" ]; then
-            GIT_DIR=$(git --work-tree "$L" rev-parse --quiet --git-dir) || true
-            if [ -d "$GIT_DIR" ]; then
-                git pull --quiet
+            if git -C "$L" rev-parse --is-inside-work-tree &>/dev/null; then
+                git -C "$L" pull --quiet
             else
                 log_error 'ERROR: directory exists but it does not appear to be a git repository, abort!'
                 RET=$ERR_FATAL

@@ -2883,7 +2883,7 @@ process_configfile_module_options() {
 # $1: absolute path to plowshare's libdir
 log_report_info() {
     local -r LIBDIR1=$1
-    local G GIT_DIR LIBDIR2
+    local G LIBDIR2
 
     if test $VERBOSE -ge 4; then
         log_report '=== SYSTEM INFO BEGIN ==='
@@ -2908,10 +2908,9 @@ log_report_info() {
             fi
         done
 
-        GIT_DIR=$(git --work-tree "$LIBDIR" rev-parse --quiet --git-dir) || true
-        if [ -d "$GIT_DIR" ]; then
-            local -r GIT_BRANCH=$(git --git-dir=$GIT_DIR rev-parse --quiet --abbrev-ref HEAD)
-            local -r GIT_REV=$(git --git-dir=$GIT_DIR describe --tags --always 2>/dev/null)
+        if git -C "$LIBDIR" rev-parse --is-inside-work-tree &>/dev/null; then
+            local -r GIT_BRANCH=$(git -C "$LIBDIR" rev-parse --quiet --abbrev-ref HEAD)
+            local -r GIT_REV=$(git -C "$LIBDIR" describe --tags --always 2>/dev/null)
             log_report "[git ] $GIT_REV ($GIT_BRANCH branch)"
         fi
 
