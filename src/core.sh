@@ -2908,6 +2908,7 @@ log_report_info() {
             fi
         done
 
+        # Note: git -C <path> is available since v1.8.5
         if git -C "$LIBDIR" rev-parse --is-inside-work-tree &>/dev/null; then
             local -r GIT_BRANCH=$(git -C "$LIBDIR" rev-parse --quiet --abbrev-ref HEAD)
             local -r GIT_REV=$(git -C "$LIBDIR" describe --tags --always 2>/dev/null)

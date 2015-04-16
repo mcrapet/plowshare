@@ -97,7 +97,7 @@ $ plowmod --install
 
 plowmod is a simple tool for managing your modules directory (~/.config/plowshare/modules.d).
 
-If git is installed, you can use later:
+If git (>1.8.5) is installed, you can use later:
 $ plowmod --update
 
 Plowmod can handle 3rd part repositories. See man page for more information.

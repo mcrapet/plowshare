@@ -220,6 +220,7 @@ fi
 
 if check_exec 'git'; then
     HAVE_GIT=1
+    log_report "[git ] $(git --version)"
 fi
 
 set_exit_trap
