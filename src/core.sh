@@ -2749,9 +2749,10 @@ get_all_modules_list() {
         if [[ -d "$D" && -f "$CONFIG" ]]; then
             while read -r; do
                 if [ -f "$D/$REPLY.sh" ]; then
-                    if [[ ${MODULES_PATH["$REPLY"]} ]]; then
-                        stderr "INFO: $CONFIG: \`$REPLY\` module overwrite, this one is taken"
-                    fi
+                    # Silent override: modues installed in $HOME prevails over $LIBDIR
+                    #if [[ ${MODULES_PATH["$REPLY"]} ]]; then
+                    #    stderr "INFO: $CONFIG: \`$REPLY\` module overwrite, this one is taken"
+                    #fi
                     MODULES_PATH[$REPLY]="$D/$REPLY.sh"
                 else
                     stderr "ERROR: $CONFIG: \`$REPLY\` module not found, ignoring"

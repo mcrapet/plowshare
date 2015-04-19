@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowmod" "1" "March 24, 2015" "GPL" "Plowshare for Bash 4"
+.TH "plowmod" "1" "April 19, 2015" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowmod \- Simple plowshare modules management tool
@@ -32,6 +32,8 @@ plowmod \- Simple plowshare modules management tool
 [\fIURL\fP]...
 .br
 .B plowmod --update
+.br
+.B plowmod --status
 
 .SH DESCRIPTION
 .B plowmod
@@ -54,6 +56,9 @@ Remote repository sources (URLs) can be only git repositories for now.
 Install from scratch from one or several URLs to plowshare modules directory (see \fB--modules-directory\fR switch below).
 For now, this is a simple \fBgit clone\fR.
 From repository URL, a sub-directory name is figured out (some kind of basename) and will be created in plowshare modules directory.
+.TP
+.B -s, --status
+Print some useful information about modules directories found and possible conflicts (when using \fB-v3\fR switch).
 .TP
 .B -u, --update
 Browse plowshare modules directory (each sub-directory) and try to update sources.
@@ -103,6 +108,7 @@ Output version information and exit.
 .TP
 .I ~/.config/plowshare/modules.d/
 User plowshare modules directory for installation or update of repository sources.
+This location prevails over ones listed below.
 .TP
 .I /usr/share/plowshare/modules/
 .B (replace /usr with your installation prefix)

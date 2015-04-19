@@ -32,6 +32,7 @@ NO_COLOR,,no-color,,Disables log notice & log error output coloring
 MOD_DIR,,modules-directory,D=DIR,For maintainers only. Set modules directory (default is ~/.config/plowshare/modules.d)"
 declare -r ACTION_OPTIONS="
 DO_INSTALL,i,install,,Install one or several given repositories to modules directory
+DO_STATUS,s,status,,Print current modules configuration
 DO_UPDATE,u,update,,Update modules directory (requires git)"
 
 # This function is duplicated from download.sh
@@ -140,6 +141,89 @@ mod_update() {
     return $RET
 }
 
+# Information about modules location
+# $1: System modules path
+# $2: User modules or modules.d path
+mod_status() {
+    local -a SRCS
+    local -A MLIST DLIST
+    local -i N
+    local D CONFIG
+
+    if [ -d "$1/modules" -a -f "$1/modules/config" ]; then
+        SRCS+=( "$1/modules" )
+    fi
+
+    if [ "${2%/modules.d}" = "$2" -a -f "$2/config" ]; then
+        SRCS+=( "$2" )
+    else
+        if [ "${2%.d}" -a -f "${2%.d}/config" ]; then
+            SRCS+=( "${2%.d}" )
+        fi
+        while read -r; do
+            D=$(dirname "$REPLY")
+            SRCS+=( "$D" )
+        done < <(find "$2" -mindepth 2 -maxdepth 2 -name config)
+    fi
+
+    # Check for first install
+    N=$(grep '^[^#]' "${SRCS[@]/%/\/config}" | wc -l)
+    if (( N == 0 )); then
+        log_error \
+"-------------------------------------------------------------------------------
+Your plowshare installation has currently no module.
+($2/ is empty)
+
+In order to use plowdown you must install some modules. Here is a quick start:
+$ plowmod --install
+-------------------------------------------------------------------------------"
+        return $ERR_NOMODULE
+    fi
+
+    log_notice 'Found modules locations:'
+    for D in "${SRCS[@]}"; do
+        N=$(grep -c '^[^#]' "$D/config")
+        if [ $N -eq 0 ]; then
+            log_notice "- $D (no module detected)"
+        elif [ $N -eq 1 ]; then
+            log_notice "- $D ($N module found)"
+        else
+            log_notice "- $D ($N modules found)"
+        fi
+    done
+
+    N=0
+    for D in "${SRCS[@]}"; do
+        CONFIG="$D/config"
+        if [[ -d "$D" && -f "$CONFIG" ]]; then
+            while read -r; do
+                if [ -f "$D/$REPLY.sh" ]; then
+                    if [[ ${MLIST["$REPLY"]} ]]; then
+                        if [[ ! ${DLIST["$D"]} ]]; then
+                            DLIST["$D"]=$(dirname ${MLIST["$REPLY"]})
+                        fi
+                        (( ++N ))
+                    else
+                        MLIST[$REPLY]="$D/$REPLY.sh"
+                    fi
+                else
+                    log_error "$CONFIG: \`$REPLY\` module not found, ignoring"
+                fi
+            done < <(sed -ne "/^[^#]/s/^\([^[:space:]|]*\).*/\1/p" "$CONFIG")
+        fi
+    done
+    if (( N == 0 )); then
+        log_debug 'Modules directories overrides: no conflict detected!'
+    else
+        log_debug "Modules directories overrides: $N modules conflicts detected!"
+        for D in "${!DLIST[@]}"; do
+            log_debug "$D conflicts with ${DLIST["$D"]}"
+        done
+    fi
+
+    return 0
+}
+
 #
 # Main
 #
@@ -179,7 +263,7 @@ fi
 
 declare -a ARGS=("${UNUSED_OPTS[@]}")
 
-if [ -z "$DO_INSTALL" -a -z "$DO_UPDATE" ]; then
+if [ -z "$DO_INSTALL" -a -z "$DO_UPDATE" -a -z "$DO_STATUS" ]; then
     log_error 'plowmod: no action specified!'
     log_error "plowmod: try \`plowmod --help' for more information."
     exit $ERR_BAD_COMMAND_LINE
@@ -187,20 +271,23 @@ elif [ -n "$DO_INSTALL" -a -n "$DO_UPDATE" ]; then
     log_error 'plowmod: --install and --update are conflicting actions. You must choose only one.'
     exit $ERR_BAD_COMMAND_LINE
 elif [ -z "$DO_INSTALL" -a "${#ARGS[@]}" -gt 0 ]; then
+    # No argument for update or status
     log_notice "plowmod: two much arguments given, ignoring \`${ARGS[*]}'"
-elif [ -z "$DO_UPDATE" ]; then
+elif [ -n "$DO_INSTALL" ]; then
     # Check provided repositories
     REPOS=()
     for U in "${ARGS[@]}"; do
         if match_remote_url "$U"; then
             REPOS+=("$U")
         else
-            log_error "plowmod: invalid url \`$U', ignoring"
+            log_notice "plowmod: invalid URL \`$U', ignoring"
         fi
     done
     if [ "${#ARGS[@]}" -le 0 ]; then
         log_notice "plowmod: adding legacy (default) repository: $LEGACY_MODULES"
         REPOS+=("$LEGACY_MODULES")
+    elif [ "${#REPOS[@]}" -le 0 ]; then
+        log_error "plowmod: no valid URL given. Maybe just try \`plowup -i' for default installation."
     fi
 fi
 
@@ -227,8 +314,6 @@ set_exit_trap
 
 declare -a RETVALS
 
-
-##
 if [ -n "$DO_INSTALL" ]; then
     for U in "${REPOS[@]}"; do
         RETVAL=0
@@ -236,6 +321,10 @@ if [ -n "$DO_INSTALL" ]; then
         mod_install "$DDIR" "$U" || RETVAL=$?
         RETVALS+=($RETVAL)
     done
+elif [ -n "$DO_STATUS" ]; then
+    RETVAL=0
+    mod_status "$LIBDIR" "$DDIR" || RETVAL=$?
+    RETVALS+=($RETVAL)
 elif [ -n "$DO_UPDATE" ]; then
     while read -r; do
         RETVAL=0
