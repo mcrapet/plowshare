@@ -613,7 +613,9 @@ parse_quiet() {
 parse_json() {
     local -r NAME="\"$1\"[[:space:]]*:[[:space:]]*"
     local STR PRE
-    local -r END='\([,}[:space:]].*\)\?$'
+    # Note: Be nice with unicode chars and don't use $ (end-of-line).
+    # Because dot will not match everthing.
+    local -r END='\([,}[:space:]].*\)\?'
 
     if [ "$2" = 'join' ]; then
         PRE="tr -d '\n\r'"
