@@ -1,3 +1,10 @@
+plowshare (2.1.1) stable; urgency=medium
+
+  * [plowmod] Fixes with git (requires git v1.8.5+)
+  * [plowmod] Add --status command-line switch
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sun, 03 May 2015 08:42:43 +0200
+
 plowshare (2.1.0) stable; urgency=medium
 
   * Documentation refactor. Add plowshare.conf.sample file.
