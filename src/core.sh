@@ -2396,7 +2396,7 @@ translate_size() {
             ;;
         # kibibyte (KiB)
         KiB|Ki|K|KB)
-            echo $(( 1024 * R + F))
+            echo $(( 1024 * R + 1024 * F / 1000))
             ;;
         # megabyte (10^6)
         M|MB)
@@ -2404,7 +2404,7 @@ translate_size() {
             ;;
         # mebibyte (MiB)
         MiB|Mi|m|mB)
-            echo $(( 1048576 * R + 1000 * F))
+            echo $(( 1048576 * R + 1048576 * F / 1000))
             ;;
         # gigabyte (10^9)
         G|GB)
@@ -2412,7 +2412,7 @@ translate_size() {
             ;;
         # gibibyte (GiB)
         GiB|Gi)
-            echo $(( 1073741824 * R + 1000000 * F))
+            echo $(( 1073741824 * R + 1073741824 * F / 1000))
             ;;
         # bytes
         B|'')
