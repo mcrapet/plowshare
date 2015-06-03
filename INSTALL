@@ -62,6 +62,8 @@ PS: You'll probably need to be root to execute the plowshare package.
 
 2) Manual method: from git sources
 
+$ git clone https://github.com/mcrapet/plowshare.git
+
 # If you have root privileges (like Ubuntu)
 $ sudo make install
 
