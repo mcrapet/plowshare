@@ -612,12 +612,12 @@ download() {
                 return $ERR_NETWORK
             fi
 
-            chmod 644 "$FILENAME_TMP" || log_error "chmod failed: $FILENAME_TMP"
+            chmod 644 "$FILENAME_TMP" 2>/dev/null || log_error "chmod failed: $FILENAME_TMP"
 
             if [ "$FILENAME_TMP" != "$FILENAME_OUT" ]; then
                 test "$TEMP_RENAME" || \
                     log_notice "Moving file to output directory: ${OUT_DIR:-.}"
-                mv -f "$FILENAME_TMP" "$FILENAME_OUT"
+                mv -f "$FILENAME_TMP" "$FILENAME_OUT" 2>/dev/null || log_error "mv failed: $FILENAME_TMP"
             fi
 
             mark_queue "$TYPE" "$MARK_DOWN" "$ITEM" "$URL_RAW" OK "$FILENAME_OUT"
