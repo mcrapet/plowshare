@@ -299,7 +299,7 @@ else
 fi
 log_debug "modules directory: $DDIR"
 
-[ -d "$DDIR" ] || mkdir --parents "$DDIR"
+[ -d "$DDIR" ] || mkdir -p "$DDIR"
 if [ ! -w "$DDIR" ]; then
     log_error 'ERROR: Modules directory is not writable, abort.'
     exit $ERR_BAD_COMMAND_LINE
