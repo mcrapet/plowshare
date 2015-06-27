@@ -2450,7 +2450,7 @@ storage_set() {
         CONFIG="$PLOWSHARE_CONFDIR/storage"
 
         if [ ! -d "$CONFIG" ]; then
-            mkdir --parents "$CONFIG"
+            mkdir -p "$CONFIG"
             chmod 700 "$CONFIG"
         fi
 
