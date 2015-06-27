@@ -1003,8 +1003,7 @@ basename_url() {
 #
 # $1: filename
 basename_file() {
-    # `basename -- "$1"` may be screwed on some BusyBox versions
-    echo "${1##*/}"
+    basename -- "$1" || return $ERR_SYSTEM
 }
 
 # HTML entities will be translated
