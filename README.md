@@ -177,6 +177,19 @@ $ plowup --name='%g-PLOW.%x' mirrorcreator *.rar
 
 **Remark**: Be aware that cURL is not capable of uploading files containing a comma `,` in their name, so make sure to rename them before using *plowup*.
 
+Use cache over sessions to avoid multiple logins:
+
+```sh
+$ plowup --cache=shared -a 'user:pasword' 1fichier file1.zip
+$ plowup --cache=shared 1fichier file2.zip
+```
+
+On first command line, login stage will be performed and session (token or cookie) will be saved in
+`~/.config/plowshare/storage/module-name.txt`.
+On second command line, *plowup* will reuse the data stored to bypass login step. You don't have to specify credentials.
+
+**Note**: Only few hosters currently support cache mecanism.
+
 ### Plowdel
 
 Delete a file from MegaShares (*delete link* required):
