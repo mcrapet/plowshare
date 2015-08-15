@@ -1,3 +1,9 @@
+plowshare (2.1.2) stable; urgency=low
+
+  * [core] Minor fixes. More cygwin/bsd friendly.
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sat, 15 Aug 2015 12:17:36 +0200
+
 plowshare (2.1.1) stable; urgency=medium
 
   * [plowmod] Fixes with git (requires git v1.8.5+)
