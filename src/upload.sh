@@ -508,6 +508,13 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
                 log_debug 'arbitrary wait (from module)'
             fi
             wait ${AWAIT:-60} || { URETVAL=$?; break; }
+
+            # Unspecified retry but this error does not count as a retry
+            if [[ $MAXRETRIES -eq 0 ]]; then
+                log_notice "Starting upload ($MODULE): retry (after wait request)"
+                continue
+            fi
+
         elif [[ $MAXRETRIES -eq 0 ]]; then
             break
         elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK -a \
