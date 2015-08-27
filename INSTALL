@@ -58,7 +58,7 @@ $ apt-get install plowshare4
 # Fedora & CentOS (https://admin.fedoraproject.org/updates/plowshare)
 $ yum install plowshare
 
-PS: You'll probably need to be root to execute the plowshare package.
+Note: You'll probably need to be root to install the plowshare package.
 
 2) Manual method: from git sources
 
@@ -100,7 +100,7 @@ $ plowmod --install
 
 plowmod is a simple tool for managing your modules directory (~/.config/plowshare/modules.d).
 
-If git (>1.8.5) is installed, you can use later:
+If git (>1.8.5) is installed on your system, you can use later:
 $ plowmod --update
 
 Plowmod can handle 3rd part repositories. See man page for more information.
