@@ -133,7 +133,7 @@ plowshare (SVN-snapshot) stable; urgency=medium
 
   * As e-storage websites are continuously updated, I suspend versioning
     policy and now rely on SVN revision number. No version can be considered
-    as stable as long as websites keep beeing updated all the time.
+    as stable as long as websites keep being updated all the time.
     See googlecode SVN log history for recent news.
 
  -- Matthieu Crapet <mcrapet@gmail.com>  Sat, 18 Dec 2010 15:44:39 +0100
@@ -168,7 +168,7 @@ plowshare (0.9.2) unstable; urgency=medium
   * Deleted 2 modules (now use recaptcha): loadfiles.in, freakshare.net
   * [rapidshare] Add premium-zone upload
   * [zshare] Add delete function
-  * [mediafire] Fix free download (website keeps changing ofuscated javascript code)
+  * [mediafire] Fix free download (website keeps changing obfuscated javascript code)
   * [download] Add --temp-directory option (saves partial download here before mv)
   * [download] Add -x/--no-overwrite option (do not overwrite existing files)
   * [download] Add -v1/-v2/-v3 verbosity message level
@@ -183,7 +183,7 @@ plowshare (0.9.1) stable; urgency=medium
   * [zshare] Add anonymous upload
   * [download] Add --get-module option (aimed for wrappers to manage parallel download)
   * [download] Add -t/--timeout option (restrict time for download a link)
-  * [download] Add --max-retries option (restrict attemps for loop, mostly captchas)
+  * [download] Add --max-retries option (restrict attempts for loop, mostly captchas)
   * [rapidshare] add Premium-Zone download
 
  -- Arnau Sanchez <pyarnau@gmail.com>  Tue, 09 Feb 2010 12:43:07 +0100
@@ -210,7 +210,7 @@ plowshare (0.8) stable; urgency=low
 
   * Added module for depositfiles (download only)
   * [download] New option -o DIR, --output-directory=DIR
-  * [megaupload] Use tesseract as OCR for the new simplier captcha
+  * [megaupload] Use tesseract as OCR for the new simpler captcha
   * [megaupload] Support for multifetch uploads
   * [rapidshare] More tolerant wait messages parsing
 
@@ -253,7 +253,7 @@ plowshare (0.5.2) unstable; urgency=low
 
 plowshare (0.5.1) unstable; urgency=low
 
-  * Add suport for the new 4-rotated-bold-character megaupload captcha
+  * Add support for the new 4-rotated-bold-character megaupload captcha
   * Change arguments order for plowup
 
  -- Arnau Sanchez <pyarnau@gmail.com>  Sat, 14 Mar 2009 23:38:31 +0100
@@ -261,7 +261,7 @@ plowshare (0.5.1) unstable; urgency=low
 plowshare (0.5) unstable; urgency=low
 
   * Support new megaupload captcha (4 non-rotated chars)
-  * Add suport for mediafire download
+  * Add support for mediafire download
   * Add GNU GPL notices to all sources
 
  -- Arnau Sanchez <pyarnau@gmail.com>  Mon, 09 Mar 2009 17:34:04 +0100

@@ -251,7 +251,7 @@ Filter alive links in a text file:
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 ```
 
-Custom results format: print links informations (filename and size). Shell and [JSON](http://json.org/) output.
+Custom results format: print links information (filename and size). Shell and [JSON](http://json.org/) output.
 
 ```sh
 $ plowprobe --printf '#%f (%s)%n%u%n'  http://myhoster.com/files/5njdw7

@@ -147,7 +147,7 @@ module_null_list() {
     PAGE=$(curl -L "$1" | break_html_lines_alt) || return
     LINKS=$(parse_all_attr_quiet 'https\?://' 'href\|src' <<< "$PAGE")
 
-    # If domain has simply 'domain.tld' format, then also exlcude subdomains
+    # If domain has simply 'domain.tld' format, then also exclude subdomains
     if [[ $BASE_URL =~ \..*\. ]]; then
         log_debug "exclude links from '${BASE_URL##*/}' domain"
         RE="^[Hh][Tt][Tt][Pp][Ss]?:${BASE_URL#*:}"
