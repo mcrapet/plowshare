@@ -614,7 +614,7 @@ parse_json() {
     local -r NAME="\"$1\"[[:space:]]*:[[:space:]]*"
     local STR PRE
     # Note: Be nice with unicode chars and don't use $ (end-of-line).
-    # Because dot will not match everthing.
+    # Because dot will not match everything.
     local -r END='\([,}[:space:]].*\)\?'
 
     if [ "$2" = 'join' ]; then
@@ -676,7 +676,7 @@ match_json_true() {
 # Notes:
 # - This is using parse_all, so result can be multiline
 #   (rare usage is: curl -I -L ...).
-# - Use [:cntrl:] intead of \r because Busybox sed <1.19
+# - Use [:cntrl:] instead of \r because Busybox sed <1.19
 #   does not support it.
 #
 # stdin: result of curl request (with -i/--include, -D/--dump-header
@@ -703,7 +703,7 @@ grep_http_header_content_length() {
 # See RFC5987 and RFC2183.
 #
 # stdin: HTTP response headers (see below)
-# stdout: attachement filename
+# stdout: attachment filename
 grep_http_header_content_disposition() {
     parse_all '^[Cc]ontent-[Dd]isposition:' "filename\*\?=[\"']\?\([^\"'[:cntrl:]]*\)"
 }
@@ -2571,7 +2571,7 @@ storage_timestamp_diff() {
 ## download.sh, upload.sh, delete.sh, list.sh, probe.sh
 ##
 
-# Delete leading and trailing whitespaces.
+# Delete leading and trailing whitespace.
 # stdin: input string (can be multiline)
 # stdout: result string
 strip() {

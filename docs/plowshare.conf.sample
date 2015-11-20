@@ -6,13 +6,13 @@
 [General]
 
 # Put here plow* common options (long --options) and modules options
-# If option is non exisiting or module option unused, it will be just silently ignored
+# If option is non existing or module option unused, it will be just silently ignored
 # (for example modulename1 can have --auth option in plowdown but not in plowup).
 
 # I always want -v3
 verbose=3
 
-# Whitespaces are stripped around token and value
+# Whitespace is stripped around token and value
 # Persistent storage: reuse cookies, sessions (as far as module supports it).
 cache  = shared
 

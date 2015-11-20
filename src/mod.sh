@@ -69,7 +69,7 @@ EOH
     print_options "$ACTION_OPTIONS"
     cat <<EOH
 
-For install, if no source repositoy is specified use:
+For install, if no source repository is specified use:
 $LEGACY_MODULES
 
 Available options:
@@ -255,7 +255,7 @@ if [ -n "$QUIET" ]; then
     if [ -z "$VERBOSE" ]; then
         declare -r VERBOSE=0
     else
-        log_notice "WARNING: --quiet switch conflits with --verbose=$VERBOSE, ignoring -q"
+        log_notice "WARNING: --quiet switch conflicts with --verbose=$VERBOSE, ignoring -q"
     fi
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
