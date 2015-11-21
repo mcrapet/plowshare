@@ -21,7 +21,7 @@ Concerning modules, few are available separately and must be installed in user d
 - Few dependencies and portable. [Bash](https://www.gnu.org/software/bash/) and [cURL](http://curl.haxx.se/) are enough for most hosters.
 - Modules (hoster plugins) are simple to write using [Plowshare API](#implement-your-own-modules).
 - Support for automatic online captcha solver services.
-- Cache mecanism: hoster session or cookie reuse (to avoid relogin).
+- Cache mechanism: hoster session or cookie reuse (to avoid relogin).
 
 ## Install
 
@@ -188,7 +188,7 @@ On first command line, login stage will be performed and session (token or cooki
 `~/.config/plowshare/storage/module-name.txt`.
 On second command line, *plowup* will reuse the data stored to bypass login step. You don't have to specify credentials.
 
-**Note**: Only few hosters currently support cache mecanism.
+**Note**: Only few hosters currently support cache mechanism.
 
 ### Plowdel
 
@@ -431,7 +431,7 @@ Database using image hash as key:
 ```sh
 #!/bin/sh
 #
-# Back to february 2009, Megaupload was using 4-character rotation captchas.
+# Back to February 2009, Megaupload was using 4-character rotation captchas.
 # For example:
 # $ sqlite3 captchas.db
 # sqlite> CREATE TABLE mu (md5sum text unique not null, captcha text not null);

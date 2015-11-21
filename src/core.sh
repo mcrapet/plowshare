@@ -914,7 +914,7 @@ parse_attr_quiet() {
 
 # Retrieve "action" attribute (URL) from a <form> marker
 #
-# stdin: (X)HTML data (idealy, call grep_form_by_xxx before)
+# stdin: (X)HTML data (ideally, call grep_form_by_xxx before)
 # stdout: result
 parse_form_action() {
     parse_attr '<[Ff][Oo][Rr][Mm]' 'action'
@@ -1810,7 +1810,7 @@ captcha_process() {
             return $ERR_CAPTCHA
             ;;
         prompt)
-            # Reload mecanism is not available for all types
+            # Reload mechanism is not available for all types
             if [ "$CAPTCHA_TYPE" = 'recaptcha' -o \
                  "$CAPTCHA_TYPE" = 'solvemedia' ]; then
                 log_notice 'Leave this field blank and hit enter to get another captcha image'
@@ -2750,7 +2750,7 @@ get_all_modules_list() {
         if [[ -d "$D" && -f "$CONFIG" ]]; then
             while read -r; do
                 if [ -f "$D/$REPLY.sh" ]; then
-                    # Silent override: modues installed in $HOME prevails over $LIBDIR
+                    # Silent override: modules installed in $HOME prevails over $LIBDIR
                     #if [[ ${MODULES_PATH["$REPLY"]} ]]; then
                     #    stderr "INFO: $CONFIG: \`$REPLY\` module overwrite, this one is taken"
                     #fi
