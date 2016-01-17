@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "March 23, 2015" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "October 30, 2015" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -203,6 +203,38 @@ file size (in bytes)
 .TP
 \fI%x\fR
 extension (without dot character) of %f (not greedy)
+.RE
+.TP
+.BI "   " " " --run-before= PROGRAM
+Call external program or script before upload file processing. Provided executable can be located in \fIPATH\fR environment variable.
+Messages can be sent to stderr, stdout is trashed.
+
+Three arguments are given:
+.RS
+\fB$1\fR
+module name (lowercase). For example: \fImediafire\fR.
+.RE
+.RS
+\fB$2\fR
+local filename
+.RE
+.RS
+\fB$3\fR
+destination filename
+.RE
+.RS
+\fB$4\fR
+cookie (initially empty) file given to upload module function.
+
+Exit status:
+.RE
+.RS
+\fB0\fR : script success. plowup continue normally.
+.RE
+.RS
+\fB2\fR : script explicitly requests skipping current file.
+
+Note: Any other script exit status like \fB1\fR (fatal) or \fB3\fR (network) will be ignored (an error message will be reported).
 .RE
 .TP
 .BI "   " " " --printf= FORMAT

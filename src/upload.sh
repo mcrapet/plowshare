@@ -46,6 +46,7 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
+PRE_COMMAND,,run-before,F=PROGRAM,Call external program/script before new file processing
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each successful upload). Default is \"%L%M%u%n\".
 NO_COLOR,,no-color,,Disables log notice & log error output coloring
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
@@ -482,6 +483,18 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     log_notice "Destination file: $DESTFILE"
+
+    # Pre-processing script (executed in a subshell)
+    if [ -n "$PRE_COMMAND" ]; then
+        URETVAL=0
+        (exec "$PRE_COMMAND" "$MODULE" "$LOCALFILE" "$DESTFILE" "$UCOOKIE") >/dev/null || URETVAL=$?
+
+        if [ $URETVAL -eq $ERR_NOMODULE ]; then
+            log_notice "Skipping file upload (as requested): $LOCALFILE"
+        elif [ $URETVAL -ne 0 ]; then
+            log_error "Pre-processing script exited with status $URETVAL, continue anyway"
+        fi
+    fi
 
     timeout_init $TIMEOUT
 
