@@ -1863,6 +1863,10 @@ recaptcha_process() {
     SERVER=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
     CHALLENGE=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
 
+    # Result: Recaptcha.finish_reload('...', 'image');
+    VARS=$(curl "${SERVER}reload?k=${1}&c=${CHALLENGE}&reason=i&type=image&lang=en") || return
+    CHALLENGE=$(echo "$VARS" | parse 'finish_reload' "('\([^']*\)") || return
+
     log_debug "reCaptcha server: $SERVER"
 
     # Image dimension: 300x57
