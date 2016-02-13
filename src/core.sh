@@ -1850,7 +1850,7 @@ captcha_process() {
 # stdout: On 3 lines: <word> \n <challenge> \n <transaction_id>
 recaptcha_process() {
     local -r RECAPTCHA_SERVER='http://www.google.com/recaptcha/api/'
-    local URL="${RECAPTCHA_SERVER}challenge?k=${1}&ajax=1"
+    local URL="${RECAPTCHA_SERVER}challenge?k=${1}"
     local VARS SERVER TRY CHALLENGE FILENAME WORDS TID
 
     VARS=$(curl -L "$URL") || return
@@ -1862,6 +1862,10 @@ recaptcha_process() {
     # Load image
     SERVER=$(echo "$VARS" | parse_quiet 'server' "server[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
     CHALLENGE=$(echo "$VARS" | parse_quiet 'challenge' "challenge[[:space:]]\?:[[:space:]]\?'\([^']*\)'") || return
+
+    # Result: Recaptcha.finish_reload('...', 'image');
+    VARS=$(curl "${SERVER}reload?k=${1}&c=${CHALLENGE}&reason=i&type=image&lang=en") || return
+    CHALLENGE=$(echo "$VARS" | parse 'finish_reload' "('\([^']*\)") || return
 
     log_debug "reCaptcha server: $SERVER"
 
