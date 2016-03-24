@@ -52,8 +52,9 @@ $ yaourt -Sy plowshare
 # Gentoo (http://packages.gentoo.org/package/net-misc/plowshare)
 $ emerge -av plowshare
 
-# Debian (https://packages.debian.org/sid/plowshare4)
-$ apt-get install plowshare4
+# Debian (https://packages.debian.org/sid/plowshare)
+# Note: For Debian 8 "Jessy" or less, package name is plowshare4.
+$ apt-get install plowshare
 
 # Fedora & CentOS (https://admin.fedoraproject.org/updates/plowshare)
 $ yum install plowshare
