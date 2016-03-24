@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Download files from file sharing websites
-# Copyright (c) 2010-2015 Plowshare team
+# Copyright (c) 2010-2016 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -297,6 +297,8 @@ download() {
             DRETVAL=0
             $FUNCTION "$COOKIE_FILE" "$URL_ENCODED" >"$DRESULT" || DRETVAL=$?
 
+            # $ERR_LINK_TEMP_UNAVAILABLE and $ERR_EXPIRED_SESSION
+            # do not count as a retry
             if [ $DRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
                 read AWAIT <"$DRESULT"
                 if [ -z "$AWAIT" ]; then
@@ -305,6 +307,9 @@ download() {
                     log_debug 'arbitrary wait (from module)'
                 fi
                 wait ${AWAIT:-60} || { DRETVAL=$?; break; }
+                continue
+            elif [ $DRETVAL -eq $ERR_EXPIRED_SESSION ]; then
+                log_notice 'expired session: delete cache entry'
                 continue
             elif [[ $MAX_RETRIES -eq 0 ]]; then
                 break

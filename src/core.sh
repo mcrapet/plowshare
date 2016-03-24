@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Common set of functions used by modules
-# Copyright (c) 2010-2015 Plowshare team
+# Copyright (c) 2010-2016 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -22,7 +22,7 @@
 set -o pipefail
 
 # Each time an API is updated, this value will be increased
-declare -r PLOWSHARE_API_VERSION=2
+declare -r PLOWSHARE_API_VERSION=3
 
 # User configuration directory (contains plowshare.conf, exec/, storage/)
 declare -r PLOWSHARE_CONFDIR="$HOME/.config/plowshare"
@@ -51,6 +51,7 @@ declare -r ERR_SIZE_LIMIT_EXCEEDED=14     # plowdown: Can't download link becaus
                                           # plowup: Can't upload too big file (need permissions)
 declare -r ERR_BAD_COMMAND_LINE=15        # Unknown command line parameter or incompatible options
 declare -r ERR_ASYNC_REQUEST=16           # plowup: Asynchronous remote upload started (can't predict final status)
+declare -r ERR_EXPIRED_SESSION=17         # Related to local storage module file, expired session
 declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code (when multiple arguments)
 
 # Global variables used (defined in plow* scripts):

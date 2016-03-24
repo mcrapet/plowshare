@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Upload files to file sharing websites
-# Copyright (c) 2010-2015 Plowshare team
+# Copyright (c) 2010-2016 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -522,12 +522,15 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
             fi
             wait ${AWAIT:-60} || { URETVAL=$?; break; }
 
-            # Unspecified retry but this error does not count as a retry
+            # Unspecified retry but this error does not count as a retry
             if [[ $MAXRETRIES -eq 0 ]]; then
                 log_notice "Starting upload ($MODULE): retry (after wait request)"
                 continue
             fi
-
+        # Does not count as a retry
+        elif [ $URETVAL -eq $ERR_EXPIRED_SESSION ]; then
+            log_notice "Starting upload ($MODULE): retry (expired session)"
+            continue
         elif [[ $MAXRETRIES -eq 0 ]]; then
             break
         elif [ $URETVAL -ne $ERR_FATAL -a $URETVAL -ne $ERR_NETWORK -a \
