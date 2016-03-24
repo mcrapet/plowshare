@@ -255,10 +255,13 @@ Custom results format: print links information (filename and size). Shell and [J
 
 ```sh
 $ plowprobe --printf '#%f (%s)%n%u%n'  http://myhoster.com/files/5njdw7
+#foo-bar.rar (134217728)
+http://myhoster.com/files/5njdw7
 ```
 
 ```sh
 $ plowprobe --printf '{"url":"%U","size":%s}%n' http://myhoster.com/files/5njdw7
+{"url":"http:\/\/myhoster.com\/files\/5njdw7","size":134217728}
 ```
 
 Custom results: print *primary* url (if supported by hosters and implemented by module):

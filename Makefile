@@ -1,11 +1,12 @@
 ##
-# Plowshare Makefile (requires GNU sed)
+# Plowshare Makefile
 # Usage:
 # - make PREFIX=/usr/local install
 # - make PREFIX=/usr/local DESTDIR=/tmp/packaging install
 #
-# Important note for OpenBSD, NetBSD and Mac OS X users:
-# Be sure to properly define GNU_SED variable (gsed or gnu-sed).
+# Important notes for OpenBSD, NetBSD and Mac OS X users:
+# - GNU make is required (for installation only), bmake does not support "addprefix" and "wildcard".
+# - GNU sed is required, be sure to properly define GNU_SED variable (gsed or gnu-sed)
 ##
 
 # Tools

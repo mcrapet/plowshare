@@ -79,8 +79,7 @@ You'll need GNU make (not bmake) and gnu-sed (or gsed) installed.
 Don't forget to properly define GNU_SED variable.
 
 # For example
-$ make install GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
-$ make patch_gnused GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
+$ make install patch_gnused GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
 
 Advanced users and maintainers
 ------------------------------
