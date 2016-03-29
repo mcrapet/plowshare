@@ -22,7 +22,7 @@ _plowup()
             COMPREPLY=( $( compgen -W 'none session shared' -- $cur ) )
             return 0
             ;;
-        --captchaprogram|--plowsharerc|--curlrc)
+        --captchaprogram|--run-before|---plowsharerc|--curlrc)
             _filedir
             return 0
             ;;
@@ -47,7 +47,7 @@ _plowup()
             -v -q -i -t -r \
             --min-rate --max-rate --interface --max-retries --timeout --name --cache \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
-            --temp-directory --printf --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
+            --temp-directory --printf --run-before --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )
     else
         local i files
         for i in /usr/local/share/plowshare/modules/config \
