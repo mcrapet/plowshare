@@ -2747,7 +2747,7 @@ get_all_modules_list() {
         while read -r; do
             D=$(dirname "$REPLY")
             SRCS+=( "$D" )
-        done < <(find "$PLOWSHARE_CONFDIR/modules.d/" -mindepth 2 -maxdepth 2 -name config)
+        done < <(find -L "$PLOWSHARE_CONFDIR/modules.d/" -mindepth 2 -maxdepth 2 -name config)
     fi
 
     for D in "${SRCS[@]}"; do
