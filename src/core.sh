@@ -2580,7 +2580,8 @@ storage_timestamp_diff() {
 # stdin: input string (can be multiline)
 # stdout: result string
 strip() {
-    sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//'
+    # first translate non-breaking space to space
+    sed -e 's/\xC2\?\xA0/ /g' -e 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # Do some cleanups before exiting program
