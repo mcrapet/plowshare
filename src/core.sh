@@ -3837,23 +3837,24 @@ service_captchadeathby_ready() {
 # $?: 0 for success
 image_upload_imgur() {
     local -r IMG=$1
-    local -r BASE_API='http://api.imgur.com/2'
-    local RESPONSE DIRECT_URL SITE_URL DEL_HASH
+    local -r BASE_API='https://api.imgur.com/3'
+    local RESPONSE DIRECT_URL FID DEL_HASH
 
     log_debug 'uploading image to Imgur.com'
 
-    # Plowshare API key for Imgur
-    RESPONSE=$(curl -F "image=@$IMG" -H 'Expect: ' \
-        --form-string 'key=23d202e580c2f8f378bd2852916d8f30' \
+    # Plowshare App for Imgur
+    RESPONSE=$(curl -F "image=@$IMG" \
+        -H 'Authorization: Client-ID 5926b561daf4510' \
         --form-string 'type=file' \
         --form-string 'title=Plowshare uploaded image' \
         "$BASE_API/upload.json") || return
 
-    DIRECT_URL=$(echo "$RESPONSE" | parse_json_quiet original)
-    SITE_URL=$(echo "$RESPONSE" | parse_json_quiet imgur_page)
-    DEL_HASH=$(echo "$RESPONSE" | parse_json_quiet deletehash)
+    DIRECT_URL=$(parse_json_quiet link <<< "$RESPONSE")
+    FID=$(parse_json_quiet id <<< "$RESPONSE")
+    DEL_HASH=$(parse_json_quiet deletehash <<< "$RESPONSE")
 
-    if [ -z "$DIRECT_URL" -o -z "$SITE_URL" ]; then
+    if [ -z "$DIRECT_URL" -o -z "$FID" ]; then
+        log_debug "$FUNCNAME: $RESPONSE"
         if match '504 Gateway Time-out' "$RESPONSE"; then
             log_error "$FUNCNAME: upload error (Gateway Time-out)"
         # <h1>Imgur is over capacity!</h1>
@@ -3866,7 +3867,7 @@ image_upload_imgur() {
     fi
 
     log_error "Image: $DIRECT_URL"
-    log_error "Image: $SITE_URL"
+    log_error "Image: http://imgur.com/$FID"
     echo "$DEL_HASH"
 }
 
@@ -3874,14 +3875,19 @@ image_upload_imgur() {
 # $1: delete hash
 image_delete_imgur() {
     local -r HID=$1
-    local -r BASE_API='http://api.imgur.com/2'
-    local RESPONSE MSG
+    local -r BASE_API='https://api.imgur.com/3'
+    local RESPONSE
 
     log_debug 'deleting image from Imgur.com'
-    RESPONSE=$(curl "$BASE_API/delete/$HID.json") || return
-    MSG=$(echo "$RESPONSE" | parse_json_quiet message)
-    if [ "$MSG" != 'Success' ]; then
-        log_notice "$FUNCNAME: remote error, $MSG"
+    RESPONSE=$(curl -X DELETE \
+        -H 'Authorization: Client-ID 5926b561daf4510' \
+        "$BASE_API/image/$HID.json") || return
+
+    if ! match_json_true 'success' "$RESPONSE"; then
+        local MSG ERRNO
+        MSG=$(parse_json error <<< "$RESPONSE")
+        ERRNO=$(parse_json status <<< "$RESPONSE")
+        log_notice "$FUNCNAME: remote error, $MSG ($ERRNO)"
     fi
 }
 
