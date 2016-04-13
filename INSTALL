@@ -53,7 +53,7 @@ $ yaourt -Sy plowshare
 $ emerge -av plowshare
 
 # Debian (https://packages.debian.org/sid/plowshare)
-# Note: For Debian 8 "Jessy" or less, package name is plowshare4.
+# Note: For Debian 8 "Jessie", the package is called plowshare4. Recent versions are included in jessie-backports.
 $ apt-get install plowshare
 
 # Fedora & CentOS (https://admin.fedoraproject.org/updates/plowshare)
