@@ -469,6 +469,11 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         fi
     fi
 
+    if match '[;,]' "$LOCALFILE"; then
+        log_notice "Skipping ($LOCALFILE): curl can't upload filenames that contain , or ;"
+        continue
+    fi
+
     DESTFILE=$(basename_file "${DESTFILE:-$LOCALFILE}")
 
     if test "$NAME_FORMAT"; then
@@ -476,13 +481,14 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         DESTFILE=$(pretty_name_print DATA[@] "$NAME_FORMAT")
     fi
 
-    if match '[;,]' "$DESTFILE"; then
-        log_notice "Skipping ($LOCALFILE): curl can't upload filenames that contain , or ;"
-        continue
-    fi
-
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     log_notice "Destination file: $DESTFILE"
+
+    # Workaround if destination filename contain , or ;
+    # Note: Remote sites may not support filenames with such characters.
+    if match '[;,]' "$DESTFILE" && [ '"' != "${DESTFILE:0:1}" -a '"' != "${DESTFILE:(-1):1}" ]; then
+        DESTFILE="\"$DESTFILE\""
+    fi
 
     # Pre-processing script (executed in a subshell)
     if [ -n "$PRE_COMMAND" ]; then
