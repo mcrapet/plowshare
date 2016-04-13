@@ -22,7 +22,7 @@
 set -o pipefail
 
 # Each time an API is updated, this value will be increased
-declare -r PLOWSHARE_API_VERSION=3
+declare -r PLOWSHARE_API_VERSION=4
 
 # User configuration directory (contains plowshare.conf, exec/, storage/)
 declare -r PLOWSHARE_CONFDIR="$HOME/.config/plowshare"
@@ -2244,6 +2244,9 @@ sha1() {
     # GNU coreutils
     if check_exec sha1sum; then
         echo -n "$1" | sha1sum -b 2>/dev/null | cut -d' ' -f1
+    # BSD
+    elif check_exec sha1; then
+        command sha1 -qs "$1"
     # OpenSSL
     elif check_exec openssl; then
         echo -n "$1" | openssl dgst -sha1 | cut -d' ' -f2
@@ -2271,6 +2274,31 @@ md5_file() {
             openssl dgst -md5 "$1" | cut -d' ' -f2
         else
             log_error "$FUNCNAME: cannot find md5 calculator"
+            return $ERR_SYSTEM
+        fi
+    else
+        log_error "$FUNCNAME: cannot stat file"
+        return $ERR_SYSTEM
+    fi
+}
+
+# Calculate SHA-1 hash (160-bit) of a file.
+# $1: input file
+# stdout: message-digest fingerprint (40-digit hexadecimal number, lowercase letters)
+# $?: 0 for success or $ERR_SYSTEM
+sha1_file() {
+    if [ -f "$1" ]; then
+        # GNU coreutils
+        if check_exec sha1sum; then
+            sha1sum -b "$1" 2>/dev/null | cut -d' ' -f1
+        # BSD
+        elif check_exec sha1; then
+            command sha1 -q "$1"
+        # OpenSSL
+        elif check_exec openssl; then
+            openssl dgst -sha1 "$1" | cut -d' ' -f2
+        else
+            log_error "$FUNCNAME: cannot find sha1 calculator"
             return $ERR_SYSTEM
         fi
     else
