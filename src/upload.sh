@@ -476,7 +476,7 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         DESTFILE=$(pretty_name_print DATA[@] "$NAME_FORMAT")
     fi
 
-    if match '[;,]' "$DESTFILE"; then
+    if match '[;,]' "$LOCALFILE" || match '[;,]' "$DESTFILE"; then
         log_notice "Skipping ($LOCALFILE): curl can't upload filenames that contain , or ;"
         continue
     fi
