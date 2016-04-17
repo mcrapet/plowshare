@@ -92,4 +92,10 @@ patch_gnused: install_files
 		$(GNU_SED) -i -e '/\/licenses\/>/ashopt -s expand_aliases; alias sed='\''$(GNU_SED)'\' "$(DESTDIR)$(DATADIR)/$$file"; \
 	done
 
-.PHONY: install uninstall install_files patch_git_version patch_bash_completion patch_gnused
+# Shrink scripts by ~30%
+minify: install_files
+	@for file in $(SRCS); do \
+		$(GNU_SED) -nf scripts/minify.sed -i "$(DESTDIR)$(DATADIR)/$$file"; \
+	done
+
+.PHONY: install uninstall install_files patch_git_version patch_bash_completion patch_gnused minify
