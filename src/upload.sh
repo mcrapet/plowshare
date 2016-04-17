@@ -469,11 +469,6 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         fi
     fi
 
-    if match '[;,]' "$LOCALFILE"; then
-        log_notice "Skipping ($LOCALFILE): curl can't upload filenames that contain , or ;"
-        continue
-    fi
-
     DESTFILE=$(basename_file "${DESTFILE:-$LOCALFILE}")
 
     if test "$NAME_FORMAT"; then
@@ -483,12 +478,6 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
 
     log_notice "Starting upload ($MODULE): $LOCALFILE"
     log_notice "Destination file: $DESTFILE"
-
-    # Workaround if destination filename contain , or ;
-    # Note: Remote sites may not support filenames with such characters.
-    if match '[;,]' "$DESTFILE" && [ '"' != "${DESTFILE:0:1}" -a '"' != "${DESTFILE:(-1):1}" ]; then
-        DESTFILE="\"$DESTFILE\""
-    fi
 
     # Pre-processing script (executed in a subshell)
     if [ -n "$PRE_COMMAND" ]; then
@@ -500,6 +489,27 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
         elif [ $URETVAL -ne 0 ]; then
             log_error "Pre-processing script exited with status $URETVAL, continue anyway"
         fi
+    fi
+
+    SYMLINK=
+    if match '[;,]' "$LOCALFILE"; then
+        SYMLINK="$TMPDIR/$(basename_file "${LOCALFILE//[;,]/_}").$$.$RANDOM"
+        log_notice 'plowup: fix (symlink) local filename that contrain , or ; (because curl cannot upload it)'
+        log_debug "creating: $LOCALFILE => $SYMLINK"
+
+        # Complicated form of $(realpath "$LOCALFILE") but BSD friendly
+        ln -s "$(absolute_path "$LOCALFILE")/$(basename_file "$LOCALFILE")" "$SYMLINK"
+
+        # Swap SYMLINK and LOCALFILE variables (to not lose exact LOCALFILE string)
+        TRY=$LOCALFILE
+        LOCALFILE=$SYMLINK
+        SYMLINK=$TRY
+    fi
+
+    # Workaround if destination filename contain , or ;
+    # Note: Remote sites may not support filenames with such characters.
+    if match '[;,]' "$DESTFILE" && [ '"' != "${DESTFILE:0:1}" -a '"' != "${DESTFILE:(-1):1}" ]; then
+        DESTFILE="\"$DESTFILE\""
     fi
 
     timeout_init $TIMEOUT
@@ -555,6 +565,11 @@ for FILE in "${COMMAND_LINE_ARGS[@]}"; do
     done
 
     ${MODULE}_vars_unset
+
+    if [ -n "$SYMLINK" ]; then
+        rm -f "$LOCALFILE"
+        LOCALFILE=$SYMLINK
+    fi
 
     if [ $URETVAL -eq 0 ]; then
         { read DL_URL; read DEL_URL; read ADMIN_URL_OR_CODE; } <"$URESULT" || true
