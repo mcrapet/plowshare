@@ -1279,8 +1279,8 @@ wait() {
     fi
 }
 
-# $1: local image filename (with full path). No specific image format expected.
-# $2: captcha type or hint
+# $1: Image filename (local with full path or remote). No specific image format expected.
+# $2: captcha type or hint. For example: digit, letter, alnum
 # $3: (optional) minimal captcha length
 # $4: (optional) maximal captcha length (unused)
 # stdout: On 2 lines: <word> \n <transaction_id>
