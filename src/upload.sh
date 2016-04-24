@@ -129,6 +129,7 @@ module_config_remote_upload() {
 # %s: filesize (in bytes)
 # %L: alias for "#DEL %d%n" or empty string (if %d is empty)
 # %M: alias for "#ADM %a%n" or empty string (if %a is empty)
+# %T: time of finished file upload ("HH:MM:SS" = date +%T)
 # and also:
 # %n: newline
 # %t: tabulation
@@ -140,7 +141,7 @@ module_config_remote_upload() {
 pretty_check() {
     # This must be non greedy!
     local S TOKEN
-    S=${1//%[fuUdDaAlmsLMnt%]}
+    S=${1//%[fuUdDaAlmsLMntT%]}
     TOKEN=$(parse_quiet . '\(%.\)' <<< "$S")
     if [ -n "$TOKEN" ]; then
         log_error "Bad format string: unknown sequence << $TOKEN >>"
@@ -179,7 +180,8 @@ pretty_print() {
     handle_tokens "$FMT" '%raw,%' '%t,	' "%n,$CR" \
         "%m,${A[0]}" "%l,${A[1]}" "%f,${A[2]}" "%u,${A[3]}" \
         "%d,${A[4]}" "%a,${A[5]}" "%U,$(json_escape "${A[3]}")" \
-        "%D,$(json_escape "${A[4]}")" "%A,$(json_escape "${A[5]}")"
+        "%D,$(json_escape "${A[4]}")" "%A,$(json_escape "${A[5]}")" \
+        "%T,$(date +%T)"
 }
 
 # Filename (arguments) printf format
