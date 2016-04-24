@@ -1,4 +1,4 @@
-.\" Copyright (c) 2010\-2015 Plowshare Team
+.\" Copyright (c) 2010\-2016 Plowshare Team
 .\"
 .\" This is free documentation; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License as
@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdel" "1" "March 23, 2015" "GPL" "Plowshare for Bash 4"
+.TH "plowdel" "1" "April 24, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdel \- Delete files from file sharing websites links
@@ -67,23 +67,23 @@ Use Death by Captcha service to solve captchas.
 .BI "   " " " --captchamethod= METHOD
 Force specific captcha solving method. Available values:
 .RS
-\fBimgur\fR : upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
+\fBimgur\fR: upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
 .RE
 .RS
-\fBnone\fR : abort if captcha solving is requested (even if automatic solving service is available).
+\fBnone\fR: abort if captcha solving is requested (even if automatic solving service is available).
 .RE
 .RS
-\fBonline\fR : use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood, CaptchaCoin or DeathByCaptcha account required).
+\fBonline\fR: use captcha solving website only (9kweu, Antigate, CaptchaBrotherhood, CaptchaCoin or DeathByCaptcha account required).
 .RE
 .RS
-\fBfb\fR : display image in framebuffer console and prompt for manual entering. Looks for framebuffer viewers: fbi, fim.
+\fBfb\fR: display image in framebuffer console and prompt for manual entering. Looks for framebuffer viewers: fbi, fim.
 \fIFRAMEBUFFER\fR environment variable can contain device file. Default is \fI/dev/fb0\fR.
 .RE
 .RS
-\fBnox\fR : display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
+\fBnox\fR: display image in console (text) and prompt for manual entering. Looks for ascii viewers: img2txt, aview, tiv.
 .RE
 .RS
-\fBx11\fR : display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
+\fBx11\fR: display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
 .RE
 .TP
 .BI "   " " " --captchaprogram= PROGRAM
@@ -105,13 +105,13 @@ hint or captcha type (string). For example: \fIrecaptcha\fR, \fIsolvemedia\fR or
 Return value (on stdout) and exit status:
 .RE
 .RS
-\fB0\fR : solving success. Captcha Word(s) must be echo'ed.
+\fB0\fR: solving success. Captcha Word(s) must be echo'ed.
 .RE
 .RS
-\fB2\fR : external solver is not able to solve requested captcha. Let plowdel continue solving it normally (will consider \fB--captchamethod\fR if specified).
+\fB2\fR: external solver is not able to solve requested captcha. Let plowdel continue solving it normally (will consider \fB--captchamethod\fR if specified).
 .RE
 .RS
-\fB7\fR : external solver failed.
+\fB7\fR: external solver failed.
 
 Note: plowdel legacy exit errors can also be returned, for example: \fB1\fR (fatal) or \fB3\fR (network).
 .RE
@@ -243,10 +243,11 @@ is invoked with multiple links and one or several errors occur, the first error 
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2015 The Plowshare Team
+Plowshare is (C) 2010-2016 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowdown (1),
 .BR plowup (1),
 .BR plowlist (1),
 .BR plowprobe (1),
-.BR plowshare.conf (5).
+.BR plowshare.conf (5),
+.BR plowmod (1).

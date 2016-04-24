@@ -5,7 +5,7 @@ Runtime dependencies
 
 To run plowshare you will need:
 
-* GNU/Linux basic operating system : coreutils (chmod, date, ...), sed, util-linux (kill), grep.
+* GNU/Linux basic operating system: coreutils (chmod, date, ...), sed, util-linux (kill), grep.
   Note for BSD/Mac OSX: requires gnu-sed.
 * Bash (version 4.1 or better). It will NOT work using Busybox or Dash (POSIX) shell.
 * cURL (version 7.24 or better). Compiled with SSL support.
