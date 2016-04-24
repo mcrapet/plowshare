@@ -1,3 +1,13 @@
+plowshare (2.1.4) stable; urgency=low
+
+  * [plowup] allow local/remote filename having , or ; characters.
+    This is a workaround to curl limitation. (#37)
+  * New API for modules: sha1_file(). Bump PLOWSHARE_API_VERSION to 4. (#43)
+  * [plowup] Add %T --printf token to get time (#45)
+  * [core] update imgur API to 3 (#42)
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sun, 24 Apr 2016 10:58:53 +0200
+
 plowshare (2.1.3) stable; urgency=low
 
   * [core] update reCAPTCHA behavior (PR #36)
