@@ -271,7 +271,14 @@ done
 eval "$(process_core_options 'plowup' "$EARLY_OPTIONS" "$@")" || exit
 
 test "$HELPFUL" && { usage 1; exit 0; }
-test "$HELP" && { usage; exit 0; }
+if test "$HELP"; then
+    usage
+    if MODULE=$(module_exist MODULES[@] "${UNUSED_OPTS[0]}"); then
+        MODULES=("$MODULE")
+        print_module_options MODULES[@] UPLOAD
+    fi
+    exit 0
+fi
 test "$GETVERSION" && { echo "$VERSION"; exit 0; }
 
 if test "$ALLMODULES"; then
