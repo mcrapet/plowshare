@@ -30,7 +30,7 @@ See `INSTALL` file for details.
 ## Usage examples
 
 All scripts share the same verbose options:
-- `-v0` (alias: `-q`)
+- `-v0` (be quiet, alias: `-q`)
 - `-v1` (errors only)
 - `-v2` (infos message; default)
 - `-v3` (show all messages)
@@ -119,6 +119,15 @@ Avoid never-ending downloads: limit the number of tries (for captchas) and wait 
 $ plowdown --max-retries=4 --timeout=3600 my_big_list_file.txt
 ```
 
+Retrieve final url (don't use *plowdown* for download):
+
+```sh
+$ plowdown -q --skip-final --printf %d http://oron.com/dw726z0ohky5 | xargs wget
+```
+
+**Note**: This will not work if final url (remote host) requires a cookie. For anonynous users,
+generated link has limited access in time and you can usually download file only once.
+
 ### Plowup
 
 Upload a single file anonymously to BayFiles:
@@ -141,7 +150,7 @@ Upload a file to Rapidshare with an account (premium or free)
 $ plowup -a 'myuser:mypassword' rapidshare /path/xxx
 ```
 
-Upload a file to Mirrorcreator changing uploaded filename:
+Upload a file to Mirrorcreator changing remote filename:
 
 ```sh
 $ plowup mirrorcreator /path/myfile.txt:anothername.txt
@@ -175,7 +184,8 @@ Modify remote filenames (example: `foobar.rar` gives `foobar-PLOW.rar`):
 $ plowup --name='%g-PLOW.%x' mirrorcreator *.rar
 ```
 
-**Remark**: Be aware that cURL is not capable of uploading files containing a comma `,` in their name, so make sure to rename them before using *plowup*.
+**Remark**: cURL is not capable of uploading files containing a comma `,` in their filename, but *plowup* will
+temporarily create a symlink for you.
 
 Use cache over sessions to avoid multiple logins:
 
@@ -188,7 +198,16 @@ On first command line, login stage will be performed and session (token or cooki
 `~/.config/plowshare/storage/module-name.txt`.
 On second command line, *plowup* will reuse the data stored to bypass login step. You don't have to specify credentials.
 
-**Note**: Only few hosters currently support cache mechanism.
+**Note**: Only few hosters currently support cache mechanism. Have a look to
+[Plowshare legacy modules matrix](https://github.com/mcrapet/plowshare-modules-legacy) for more information.
+
+Custom results, print upload time, link and filename in HTML format:
+
+```sh
+$ plowup 1fichier -v0 --printf '<li>%T: <a href="%u">%f</a>%n' 5MiB.bin 10MB.bin
+<li>11:12:42: <a href="https://1fichier.com/?52jwehc851">5MiB.bin</a>
+<li>11:12:46: <a href="https://1fichier.com/?bn1jdvtpqi">10MB.bin</a>
+```
 
 ### Plowdel
 
@@ -251,13 +270,15 @@ Filter alive links in a text file:
 $ plowprobe file_with_links.txt > file_with_active_links.txt
 ```
 
-Custom results format: print links information (filename and size). Shell and [JSON](http://json.org/) output.
+Custom results as shell format, print links information (filename and size):
 
 ```sh
 $ plowprobe --printf '#%f (%s)%n%u%n'  http://myhoster.com/files/5njdw7
 #foo-bar.rar (134217728)
 http://myhoster.com/files/5njdw7
 ```
+
+Custom results as [JSON](http://json.org/) format, print links information (filename and size):
 
 ```sh
 $ plowprobe --printf '{"url":"%U","size":%s}%n' http://myhoster.com/files/5njdw7
@@ -457,7 +478,7 @@ exit 2
 
 ### Hooks
 
-It is possible to execute your own script before and after call to module download function. 
+It is possible to execute your own script before and after call to module download function.
 Related command-line switches are `--run-before` and `--run-after`.
 
 Possible usage:
@@ -544,7 +565,7 @@ $ echo 'socks5=localhost:3128' >>~/.curlrc
 
 For historical reasons or design choices, there are several known limitations to Plowshare.
 
-1. You cannot enter through command-line several credentials for different hosts. 
+1. You cannot enter through command-line several credentials for different hosts.
    It's because the modules option `-a`, `--auth`, `-b` or `--auth-free` have the same switch name.
    But you can do it with the configuration file.
 2. Same restriction for passwords (*plowdown*). Only one password can be defined with `-p`, `--link-password` switch name.
