@@ -56,6 +56,14 @@ $ emerge -av plowshare
 # Note: For Debian 8 "Jessie", the package is called plowshare4. Recent versions are included in jessie-backports.
 $ apt-get install plowshare
 
+# Mac OS X with Homebrew
+$ brew install Caskroom/cask/xquartz
+$ brew install plowshare
+Note: gnu-sed will be installed as 'gsed', plowshare won't be able to find it with that name; you got two options:
+  1) $ brew reinstall gnu-sed --with-default-names
+  2) $ PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
+
+
 # Fedora & CentOS (https://admin.fedoraproject.org/updates/plowshare)
 $ yum install plowshare
 
@@ -72,7 +80,7 @@ $ sudo make install
 # (make sure you have $HOME/local/bin in you PATH)
 $ make install PREFIX=$HOME/local
 
-Note for BSD users (Free BSD & Mac OSX)
+Note for BSD users
 ------------------
 You must manually install from sources.
 You'll need GNU make (not bmake) and gnu-sed (or gsed) installed.
