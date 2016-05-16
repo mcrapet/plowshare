@@ -2637,7 +2637,7 @@ set_exit_trap() {
 # Better than "which" (external) executable
 #
 # $1: Executable to check
-# $?: zero means not found
+# $?: one means not found
 check_exec() {
     command -v "$1" >/dev/null 2>&1
 }
