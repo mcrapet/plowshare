@@ -24,8 +24,8 @@ set -o pipefail
 # Each time an API is updated, this value will be increased
 declare -r PLOWSHARE_API_VERSION=4
 
-# User configuration directory (contains plowshare.conf, exec/, storage/)
-declare -r PLOWSHARE_CONFDIR="$HOME/.config/plowshare"
+# User configuration directory (contains plowshare.conf, exec/, storage/, modules.d/)
+declare -r PLOWSHARE_CONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}/plowshare"
 
 # Global error codes
 # 0 means success or link alive
@@ -3123,7 +3123,7 @@ translate_exec() {
 
 # Check for positive speed rate
 # Ki is kibi (2^10 = 1024). Alias: K
-# Mi is mebi (2^20 = 1024^2 = 1048576). Alias:m
+# Mi is mebi (2^20 = 1024^2 = 1048576). Alias: m
 # k  is kilo (10^3 = 1000)
 # M  is mega (10^6 = 1000000)
 #

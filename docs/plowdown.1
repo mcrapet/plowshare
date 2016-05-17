@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "April 24, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "May 17, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -428,6 +428,18 @@ One file per module (hoster).
 .I ~/.config/plowshare/storage/
 Directory used for storing data (one file per module) among sessions.
 See \fB--cache=shared\fR switch.
+
+.\" ****************************************************************************
+.\" * Environment Variables                                                    *
+.\" ****************************************************************************
+.SH "ENVIRONMENT VARIABLES"
+The following environment variables may affect plowdown:
+.TP
+.I DISPLAY
+The X11 display server address is considered to display captchas.
+.TP
+.I XDG_CONFIG_HOME
+The directory to store user configuration files. If not defined, \fB~/.config\fR is assumed.
 
 .\" ****************************************************************************
 .\" * Exit codes                                                               *

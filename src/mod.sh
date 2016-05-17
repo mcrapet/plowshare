@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Easy module management (installation/update) utility
-# Copyright (c) 2015 Plowshare team
+# Copyright (c) 2015-2016 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -23,17 +23,10 @@ declare -r VERSION='GIT-snapshot'
 # Default repository source
 declare -r LEGACY_MODULES='https://github.com/mcrapet/plowshare-modules-legacy.git'
 
-declare -r MAIN_OPTIONS="
-HELP,h,help,,Show help info and exit
-GETVERSION,,version,,Output plowmod version information and exit
-VERBOSE,v,verbose,c|0|1|2|3|4=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
-QUIET,q,quiet,,Alias for -v0
-NO_COLOR,,no-color,,Disables log notice & log error output coloring
-MOD_DIR,,modules-directory,D=DIR,For maintainers only. Set modules directory (default is ~/.config/plowshare/modules.d)"
-declare -r ACTION_OPTIONS="
+declare -r ACTION_OPTIONS='
 DO_INSTALL,i,install,,Install one or several given repositories to modules directory
 DO_STATUS,s,status,,Print current modules configuration
-DO_UPDATE,u,update,,Update modules directory (requires git)"
+DO_UPDATE,u,update,,Update modules directory (requires git)'
 
 # This function is duplicated from download.sh
 absolute_path() {
@@ -237,6 +230,14 @@ set -e # enable exit checking
 
 source "$LIBDIR/core.sh"
 
+declare -r MAIN_OPTIONS="
+HELP,h,help,,Show help info and exit
+GETVERSION,,version,,Output plowmod version information and exit
+VERBOSE,v,verbose,c|0|1|2|3|4=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
+QUIET,q,quiet,,Alias for -v0
+NO_COLOR,,no-color,,Disables log notice & log error output coloring
+MOD_DIR,,modules-directory,D=DIR,For maintainers only. Set modules directory (default is ${PLOWSHARE_CONFDIR/#$HOME/\~}/modules.d)"
+
 # Process command-line (plowmod options).
 # Note: Ignore returned UNUSED_ARGS[@], it will be empty.
 eval "$(process_core_options 'plowmod' "$MAIN_OPTIONS$ACTION_OPTIONS" "$@")" || exit
@@ -332,6 +333,8 @@ elif [ -n "$DO_UPDATE" ]; then
         mod_update "$U" || RETVAL=$?
         RETVALS+=($RETVAL)
     done < <(find "$DDIR" -mindepth 2 -maxdepth 2 -name config)
+    test "$RETVAL" || \
+        log_notice 'plowmod: no directory found, have you invoked "plowmod --install" first?'
 fi
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
