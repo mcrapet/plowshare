@@ -61,6 +61,9 @@ $ yum install plowshare
 
 Note: You'll probably need to be root to install the plowshare package.
 
+# Mac OS X (with Homebrew)
+$ brew plowshare
+
 2) Manual method: from git sources
 
 $ git clone https://github.com/mcrapet/plowshare.git
@@ -72,8 +75,8 @@ $ sudo make install
 # (make sure you have $HOME/local/bin in you PATH)
 $ make install PREFIX=$HOME/local
 
-Note for BSD users (Free BSD & Mac OSX)
-------------------
+Note for FreeBSD users
+----------------------
 You must manually install from sources.
 You'll need GNU make (not bmake) and gnu-sed (or gsed) installed.
 Don't forget to properly define GNU_SED variable.
@@ -84,7 +87,7 @@ $ make install patch_gnused GNU_SED=/opt/bin/gnu-sed PREFIX=/usr
 Advanced users and maintainers
 ------------------------------
 
-# If you are on a cross compilation environment:
+# If you are on a cross-compilation environment:
 # (default prefix is /usr)
 $ make install DESTDIR=/media/rootfs
 or
