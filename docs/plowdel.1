@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdel" "1" "April 24, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowdel" "1" "May 21, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdel \- Delete files from file sharing websites links
@@ -65,7 +65,7 @@ Use CaptchaCoin service to solve captchas.
 Use Death by Captcha service to solve captchas.
 .TP
 .BI "   " " " --captchamethod= METHOD
-Force specific captcha solving method. Available values:
+Force specific captcha solving method (if unspecified it is autodetected). Available values:
 .RS
 \fBimgur\fR: upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
 .RE
@@ -84,6 +84,7 @@ Force specific captcha solving method. Available values:
 .RE
 .RS
 \fBx11\fR: display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
+\fIDISPLAY\fR environment variable must not be empty.
 .RE
 .TP
 .BI "   " " " --captchaprogram= PROGRAM
@@ -183,8 +184,7 @@ Output version information and exit.
 .BI -a, " " --auth= "USER:PASSWORD"
 Use premium account. Free account can be used sometimes.
 .P
-All switches are not implemented nor required for all modules.
-See help message for detailed modules option list.
+All switches are not implemented nor required for all modules. See help message for detailed modules option list.
 
 .\" ****************************************************************************
 .\" * Files                                                                    *
@@ -207,6 +207,21 @@ Additional directory considered when searching for executable. See \fB--captchap
 User directory considered when searching for modules at startup
 (plowdel will try to open \fB~/.config/plowshare/modules.d/*/config\fR).
 One file per module (hoster).
+
+.\" ****************************************************************************
+.\" * Environment Variables                                                    *
+.\" ****************************************************************************
+.SH "ENVIRONMENT VARIABLES"
+The following environment variables may affect plowdel:
+.TP
+.I DISPLAY
+The X11 display server address is considered to display captchas. See \fB--captchamethod=x11\fR documentation below.
+.TP
+.I FRAMEBUFFER
+This variable is considered to display captchas. See \fB--captchamethod=fb\fR documentation below.
+.TP
+.I XDG_CONFIG_HOME
+The directory to store user configuration files. If not defined, \fB~/.config\fR is assumed.
 
 .\" ****************************************************************************
 .\" * Exit codes                                                               *

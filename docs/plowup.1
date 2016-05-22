@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "May 17, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "May 21, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -97,7 +97,7 @@ Use CaptchaCoin service to solve captchas.
 Use Death by Captcha service to solve captchas.
 .TP
 .BI "   " " " --captchamethod= METHOD
-Force specific captcha solving method. Available values:
+Force specific captcha solving method (if unspecified it is autodetected). Available values:
 .RS
 \fBimgur\fR: upload image to Imgur.com service, print image url in console and prompt for manual entering. Useful for NAS and embedded devices.
 .RE
@@ -116,6 +116,7 @@ Force specific captcha solving method. Available values:
 .RE
 .RS
 \fBx11\fR: display image in an X11 window and prompt for manual entering. Looks for viewers: display, feh, sxiv, qiv.
+\fIDISPLAY\fR environment variable must not be empty.
 .RE
 .TP
 .BI "   " " " --captchaprogram= PROGRAM
@@ -384,8 +385,7 @@ Asynchronous remote upload (only start upload, don't wait for link).
 .B "   " --private
 Do not allow others to download the file.
 .P
-All switches are not implemented nor required for all modules.
-See long help message for detailed modules option list.
+All switches are not implemented nor required for all modules. See long help message for detailed modules option list.
 
 .\" ****************************************************************************
 .\" * Files                                                                    *
@@ -406,12 +406,10 @@ Additional directory considered when searching for executable. See \fB--captchap
 .TP
 .I ~/.config/plowshare/modules.d/
 User directory considered when searching for modules at startup
-(plowup will try to open \fB~/.config/plowshare/modules.d/*/config\fR).
-One file per module (hoster).
+(plowup will try to open \fB~/.config/plowshare/modules.d/*/config\fR). One file per module (hoster).
 .TP
 .I ~/.config/plowshare/storage/
-Directory used for storing data (one file per module) among sessions.
-See \fB--cache=shared\fR switch.
+Directory used for storing data (one file per module) among sessions. See \fB--cache=shared\fR switch.
 
 .\" ****************************************************************************
 .\" * Environment Variables                                                    *
@@ -420,7 +418,10 @@ See \fB--cache=shared\fR switch.
 The following environment variables may affect plowup:
 .TP
 .I DISPLAY
-The X11 display server address is considered to display captchas.
+The X11 display server address is considered to display captchas. See \fB--captchamethod=x11\fR documentation below.
+.TP
+.I FRAMEBUFFER
+This variable is considered to display captchas. See \fB--captchamethod=fb\fR documentation below.
 .TP
 .I XDG_CONFIG_HOME
 The directory to store user configuration files. If not defined, \fB~/.config\fR is assumed.
