@@ -142,10 +142,19 @@ mark_queue() {
         if [ 'file' = "$1" ]; then
             if test -w "$FILE"; then
                 local -r D=$'\001' # sed separator
-                test "$FILENAME" && FILENAME="${FILENAME//&/\\&}\n"
-                sed -i -e "s$D^[[:space:]]*\(${URL//\\/\\\\/}[[:space:]]*\)\$$D$FILENAME$STATUS \1$D" "$FILE" &&
-                    log_notice "link marked in file \`$FILE' ($STATUS)" ||
+                local SRET=0
+                if [ -z "$FILENAME" ]; then
+                    sed -i -e "s$D^[[:space:]]*\(${URL//\\/\\\\/}[[:space:]]*\)\$$D$STATUS \1$D" "$FILE" || SRET=$?
+                else
+                    # Don't write filename if it is already present
+                    sed -i -e "\\$D^[[:space:]]*#[[:space:]]*${FILENAME:2}\r\?\$$D{N}" \
+                        -e "s$D^\([[:space:]]*#[[:space:]]*${FILENAME:2}\r\?\n\)\?[[:space:]]*\(${URL//\\/\\\\/}[[:space:]]*\r\?\)\$$D${FILENAME//&/\\&}\n$STATUS \2$D" "$FILE" || SRET=$?
+                fi
+                if [ $SRET -eq 0 ]; then
+                    log_notice "link marked in file \`$FILE' ($STATUS)"
+                else
                     log_error "failed marking link in file \`$FILE' ($STATUS)"
+                fi
             else
                 log_error "Can't mark link, no write permission ($FILE)"
             fi
