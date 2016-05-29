@@ -3352,7 +3352,8 @@ check_argument_type() {
 # $1: program name (used for error reporting only)
 # $2: option list (one per line)
 # $3: step number (-1, 0 or 1). Always declare UNUSED_ARGS & UNUSED_OPTS arrays.
-#     -1: check plow* args and declare readonly variables
+#     -1: check plow* args and declare readonly variables.
+#         CLOSE_OPT variable can contain a close match heuristic (possible command-line use typo)
 #      0: check all module args
 #      1: declare module_vars_set & module_vars_unset functions
 # $4..$n: arguments
@@ -3539,18 +3540,31 @@ process_options() {
 
         if [ -z "$FOUND" ]; then
             # Check for user typo: -option instead of --option
+            # Note: COLOR may not be defined here (STEP < 0)
             if [[ $ARG =~ ^-[[:alnum:]][[:alnum:]-]+ ]]; then
                 if find_in_array OPTS_NAME_LONG[@] "-${BASH_REMATCH[0]}"; then
-                    log_error "$NAME: did you mean \`-${BASH_REMATCH[0]}\` (with two dashes ?)"
+                    log_error "$NAME: unknown command-line option \`$ARG\`, do you mean \`-${BASH_REMATCH[0]}\` (with two dashes)?"
                     echo "exit $ERR_BAD_COMMAND_LINE"
                     return $ERR_BAD_COMMAND_LINE
                 fi
             fi
 
+            # Restrict to MAIN_OPTIONS & EARLY_OPTIONS because an unused module switch could be found
+            # Will detect: "--print" instead of "--printf" and "--noplowsharerc" instead of "--no-plowsharerc"
+            if [ $STEP -lt 0 ]; then
+                [[ $ARG = --??* ]] && \
+                    CLOSE_OPT=$(close_match_in_array OPTS_NAME_LONG[@] "$ARG") && \
+                        declare -p CLOSE_OPT
+            fi
+
             if [ $STEP -eq 0 ]; then
                 # Accept '-' (stdin semantic) argument
                 if [[ $ARG = -?* ]]; then
-                    log_error "$NAME: unknown command-line option $ARG"
+                    if [[ $CLOSE_OPT ]]; then
+                        log_error "$NAME: unknown command-line option \`$ARG\`, do you mean \`$CLOSE_OPT\` (close match)?"
+                    else
+                        log_error "$NAME: unknown command-line option \`$ARG\`"
+                    fi
                     echo "exit $ERR_BAD_COMMAND_LINE"
                     return $ERR_BAD_COMMAND_LINE
                 fi
@@ -3623,7 +3637,7 @@ timeout_update() {
     (( PS_TIMEOUT -= WAIT ))
 }
 
-# Look for one element in a array
+# Look for one element in an array
 # $1: array[@]
 # $2: element to find
 # $3: alternate element to find (can be null)
@@ -3632,6 +3646,23 @@ find_in_array() {
     local ELT
     for ELT in "${!1}"; do
         [ "$ELT" = "$2" -o "$ELT" = "$3" ] && return 0
+    done
+    return 1
+}
+
+# Look for a close match in an array (of command line options)
+# $1: array[@]
+# $2: element to find (string)
+# $?: 0 for success (close element found), not found otherwise
+# stdout: array element, undefined if not found.
+close_match_in_array() {
+    local ELT
+    local S=${2/#--no/--no-?}
+    for ELT in "${!1}"; do
+        if [[ $ELT =~ ^$S.?$ ]]; then
+            echo "$ELT"
+            return 0
+        fi
     done
     return 1
 }
