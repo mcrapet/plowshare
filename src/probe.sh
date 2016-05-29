@@ -463,6 +463,9 @@ for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
             eval "$(process_module_options "$MODULE" PROBE \
                 "${COMMAND_LINE_MODULE_OPTS[@]}")" || true
 
+            [ "${#UNUSED_OPTS[@]}" -eq 0 ] || \
+                log_notice "$MODULE: unused command line switches: ${UNUSED_OPTS[*]}"
+
             ${MODULE}_vars_set
             probe "$MODULE" "$URL" "$ITEM" || PRETVAL=$?
             ${MODULE}_vars_unset
