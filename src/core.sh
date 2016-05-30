@@ -1330,7 +1330,7 @@ captcha_process() {
         METHOD_SOLVE='online,prompt'
     fi
 
-    if [[ "$METHOD_SOLVE" = *online* ]]; then
+    if [[ $METHOD_SOLVE = *online* ]]; then
         if service_antigate_ready "$CAPTCHA_ANTIGATE"; then
             METHOD_SOLVE=antigate
             : ${METHOD_VIEW:=log}
@@ -1367,7 +1367,7 @@ captcha_process() {
     fi
 
     # 1) Probe for X11/Xorg viewers
-    if [[ "$METHOD_VIEW" = *view-x* ]]; then
+    if [[ $METHOD_VIEW = *view-x* ]]; then
         if test -z "$DISPLAY"; then
             log_notice 'DISPLAY variable not exported! Skip X11 viewers probing.'
         elif check_exec 'display'; then
@@ -1384,7 +1384,7 @@ captcha_process() {
     fi
 
     # 2) Probe for framebuffer viewers
-    if [[ "$METHOD_VIEW" = *view-fb* ]]; then
+    if [[ $METHOD_VIEW = *view-fb* ]]; then
         if test -n "$FRAMEBUFFER"; then
             log_notice 'FRAMEBUFFER variable is not empty, use it.'
             FBDEV=$FRAMEBUFFER
@@ -1406,7 +1406,7 @@ captcha_process() {
     # 3) Probe for ascii viewers
     # Try to maximize the image size on terminal
     local MAX_OUTPUT_WIDTH MAX_OUTPUT_HEIGHT
-    if [[ "$METHOD_VIEW" = *view-aa* ]]; then
+    if [[ $METHOD_VIEW = *view-aa* ]]; then
         # libcaca
         if check_exec img2txt; then
             METHOD_VIEW=img2txt
@@ -1420,7 +1420,7 @@ captcha_process() {
             log_notice 'No ascii viewer found to display captcha image'
         fi
 
-        if [[ "$METHOD_VIEW" != *view-aa* ]]; then
+        if [[ $METHOD_VIEW != *view-aa* ]]; then
             if check_exec tput; then
                 local TYPE
                 if [ -z "$TERM" -o "$TERM" = 'dumb' ]; then
@@ -2327,9 +2327,9 @@ split_auth() {
         return $ERR_LOGIN_FAILED
     fi
 
-    [[ "$2" ]] && unset "$2" && eval $2=\$__STR__
+    [[ $2 ]] && unset "$2" && eval $2=\$__STR__
 
-    if [[ "$3" ]]; then
+    if [[ $3 ]]; then
         # Sanity check
         if [ "$2" = "$3" ]; then
             log_error "$FUNCNAME: user and password varname must not be the same"
