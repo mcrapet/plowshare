@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowmod" "1" "April 24, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowmod" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowmod \- Simple plowshare modules management tool
@@ -53,16 +53,15 @@ Remote repository sources (URLs) can be only git repositories for now.
 .SS Action options
 .TP
 .B -i, --install
-Install from scratch from one or several URLs to plowshare modules directory (see \fB--modules-directory\fR switch below).
-For now, this is a simple \fBgit clone\fR.
+Install from scratch from one or several URLs to plowshare modules directory (see \fB--modules-directory\fR switch below). \
+For now, this is a simple \fBgit clone\fR. \
 From repository URL, a sub-directory name is figured out (some kind of basename) and will be created in plowshare modules directory.
 .TP
 .B -s, --status
 Print some useful information about modules directories found and possible conflicts (when using \fB-v3\fR switch).
 .TP
 .B -u, --update
-Browse plowshare modules directory (each sub-directory) and try to update sources.
-For now, this is a simple \fBgit pull\fR.
+Browse plowshare modules directory (each sub-directory) and try to update sources. For now, this is a simple \fBgit pull\fR.
 .SS Logging options
 .TP
 .BI -v, " " --verbose= LEVEL
@@ -91,7 +90,7 @@ Alias for \fB-v0\fR. Do not print any debug messages.
 Disables log messages (stderr only) output coloring.
 .TP
 .BI "   " " " --modules-directory= DIR
-Set plowshare modules directory. Default is \fI~/.config/plowshare/modules.d/\fR.
+Set plowshare modules directory. Default is \fI~/.config/plowshare/modules.d/\fR. \
 You should not modify this unless you are a package maintainer or want to embed plowshare into PHP.
 .SS Generic program information
 .TP
@@ -107,12 +106,11 @@ Output version information and exit.
 .SH "FILES"
 .TP
 .I ~/.config/plowshare/modules.d/
-User plowshare modules directory for installation or update of repository sources.
-This location prevails over ones listed below.
+User plowshare modules directory for installation or update of repository sources. This location prevails over ones listed below.
 .TP
 .I /usr/share/plowshare/modules/
 .B (replace /usr with your installation prefix)
-Since plowshare is not delivered with modules anymore, this is unused.
+Since plowshare is not delivered with modules anymore, this is unused. \
 This is still supported for compatibility purpose but you are discouraged using it.
 .TP
 .I ~/.config/plowshare/modules/

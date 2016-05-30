@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowprobe" "1" "March 24, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowprobe" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowprobe \- Gather information from file sharing download links
@@ -33,8 +33,7 @@ plowprobe \- Gather information from file sharing download links
 .SH DESCRIPTION
 .B plowprobe
 is a command-line tool designed for retrieving metadata from file-sharing
-download links. Information are printed on stdout (only alive links).
-Provided links can also be downloaded with plowdown(1).
+download links. Information are printed on stdout (only alive links). Provided links can also be downloaded with plowdown(1).
 
 .\" ****************************************************************************
 .\" * Options                                                                  *
@@ -91,14 +90,13 @@ same as \fB%u\fR but url is escaped for JSON usage
 .TP
 \fI%v\fR
 alternate or refactored download url.
-This can be for example fixing primary hostname (to avoid HTTP 301 redirection), or force HTTPS protocol.
+This can be for example fixing primary hostname (to avoid HTTP 301 redirection), or force HTTPS protocol. \
 If not available, alias to \fB%u\fR.
 .TP
 \fI%V\fR
 same as \fB%v\fR but url is escaped for JSON usage
 .P
-Note: Metadata are often not fully available from hosters nor implemented by all
-modules.
+Note: Metadata are often not fully available from hosters nor implemented by all modules.
 .SS Logging options
 .TP
 .BI -v, " " --verbose= LEVEL
@@ -136,8 +134,7 @@ Echo module name for each URL and exit. Faster than \fB--printf=%m\fR. Useful fo
 Do not use curl config file (~/.curlrc).
 .TP
 .BI "   " " " --curlrc= FILE
-Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists.
-This option has no effect when
+Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists. This option has no effect when
 .B --no\-curlrc
 is defined.
 .TP
@@ -145,8 +142,7 @@ is defined.
 Do not consider any configuration file.
 .TP
 .BI "   " " " --plowsharerc= FILE
-Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
-This option has no effect when
+Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf). This option has no effect when
 .B --no\-plowsharerc
 is defined.
 .TP
@@ -187,8 +183,7 @@ The file format is described in
 .TP
 .I ~/.config/plowshare/modules.d/
 User directory considered when searching for modules at startup
-(plowprobe will try to open \fB~/.config/plowshare/modules.d/*/config\fR).
-One file per module (hoster).
+(plowprobe will try to open \fB~/.config/plowshare/modules.d/*/config\fR). One file per module (hoster).
 
 .\" ****************************************************************************
 .\" * Exit codes                                                               *

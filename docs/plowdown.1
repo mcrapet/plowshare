@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "May 21, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -56,17 +56,16 @@ Set maximum retries for download failures. Apply on module exit status: \fB3\fR 
 Default option value is 2 (i.e. 3 tries) and applies for one single URL download.
 .TP
 .BI -t, " " --timeout= SECS
-Cancel download after \fISECS\fR seconds of waits. Apply on module exit status: \fB10\fR (temporary unavailable error).
-This error can be returned in various cases: unallowed parallel download, daily downloads limit reached, remote hoster overloaded.
+Cancel download after \fISECS\fR seconds of waits. Apply on module exit status: \fB10\fR (temporary unavailable error). \
+This error can be returned in various cases: unallowed parallel download, daily downloads limit reached, remote hoster overloaded. \
 Default option value is disabled (no timeout, infinite) and applies for one single URL download.
 .TP
 .B -x, --no-overwrite
-Do not overwrite existing files. Existing file will be preserved and filename will be
-suffixed with .1, .2, and so on.
+Do not overwrite existing files. Existing file will be preserved and filename will be suffixed with .1, .2, and so on. \
 Default option value is disabled: files are overwritten (whatever their size) or resumed (if module supports it).
 .TP
 .BI "   " " " --cache= METHOD
-Cache policy regarding module storage space.
+Cache policy regarding module storage space. \
 Each module is able to save data (credentials, authentication session, or tokens)
 in order to be reused later.
 Available values:
@@ -159,8 +158,7 @@ Note: plowdown legacy exit errors can also be returned, for example: \fB1\fR (fa
 .SS Tuning settings
 .TP
 .BI "   " " " --min-space= LIMIT
-Define threshold amount of available disk space before quitting plowdown.
-You must specify a suffix.  Suffixes are:
+Define threshold amount of available disk space before quitting plowdown. You must specify a suffix. Suffixes are:
 .RS
 \fBM\fR  for megabytes (MB i.e. 1000^2),
 .RE
@@ -345,8 +343,7 @@ If no module is found for link, simply download it (HTTP GET).
 Do not use curl config file (~/.curlrc).
 .TP
 .BI "   " " " --curlrc= FILE
-Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists.
-This option has no effect when
+Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists. This option has no effect when
 .B --no\-curlrc
 is defined.
 .TP
@@ -354,8 +351,7 @@ is defined.
 Do not consider any configuration file.
 .TP
 .BI "   " " " --plowsharerc= FILE
-Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
-This option has no effect when
+Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf). This option has no effect when
 .B --no\-plowsharerc
 is defined.
 .TP
@@ -420,7 +416,7 @@ The file format is described in
 .BR plowshare.conf (5).
 .TP
 .I ~/.config/plowshare/exec/
-Additional directory considered when searching for executable.
+Additional directory considered when searching for executable. \
 See \fB--captchaprogram\fR, \fB--run-before\fR and \fB--run-after\fR switches.
 .TP
 .I ~/.config/plowshare/modules.d/

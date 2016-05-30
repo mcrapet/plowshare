@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdel" "1" "May 21, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowdel" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdel \- Delete files from file sharing websites links
@@ -147,8 +147,7 @@ Disables log messages (stderr only) output coloring.
 Do not use curl config file (~/.curlrc).
 .TP
 .BI "   " " " --curlrc= FILE
-Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists.
-This option has no effect when
+Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists. This option has no effect when
 .B --no\-curlrc
 is defined.
 .TP
@@ -156,8 +155,7 @@ is defined.
 Do not consider any configuration file.
 .TP
 .BI "   " " " --plowsharerc= FILE
-Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
-This option has no effect when
+Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf). This option has no effect when
 .B --no\-plowsharerc
 is defined.
 .TP
@@ -205,8 +203,7 @@ Additional directory considered when searching for executable. See \fB--captchap
 .TP
 .I ~/.config/plowshare/modules.d/
 User directory considered when searching for modules at startup
-(plowdel will try to open \fB~/.config/plowshare/modules.d/*/config\fR).
-One file per module (hoster).
+(plowdel will try to open \fB~/.config/plowshare/modules.d/*/config\fR). One file per module (hoster).
 
 .\" ****************************************************************************
 .\" * Environment Variables                                                    *

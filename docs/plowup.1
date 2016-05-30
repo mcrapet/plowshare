@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "May 21, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -59,7 +59,7 @@ This error mainly occurs on remote upload operations.
 Default option value is disabled (no timeout, infinite) and applies for one single upload.
 .TP
 .BI "   " " " --cache= METHOD
-Cache policy regarding module storage space.
+Cache policy regarding module storage space. \
 Each module is able to save data (credentials, authentication session, or tokens)
 in order to be reused later.
 Available values:
@@ -167,8 +167,7 @@ Limit upload maximum speed in bytes per second. Suffixes are:
 .RE
 .TP
 .BI "   " " " --min-rate= SPEED
-Limit upload minimum speed in bytes per second (for a delay of 30 seconds).
-Suffixes are the same than \fB--max-rate\fR.
+Limit upload minimum speed in bytes per second (for a delay of 30 seconds). Suffixes are the same than \fB--max-rate\fR.
 .TP
 .BI "   " " " --temp-directory= DIRECTORY
 Directory for temporary files: cookies, images, ...
@@ -323,8 +322,7 @@ Disables log messages (stderr only) output coloring.
 Do not use curl config file (~/.curlrc).
 .TP
 .BI "   " " " --curlrc= FILE
-Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists.
-This option has no effect when
+Force using an alternate curl configuration file. Replaces ~/.curlrc if it exists. This option has no effect when
 .B --no\-curlrc
 is defined.
 .TP
@@ -332,8 +330,7 @@ is defined.
 Do not consider any configuration file.
 .TP
 .BI "   " " " --plowsharerc= FILE
-Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf).
-This option has no effect when
+Force using an alternate configuration file (instead of per-user or systemwide plowshare.conf). This option has no effect when
 .B --no\-plowsharerc
 is defined.
 .TP
