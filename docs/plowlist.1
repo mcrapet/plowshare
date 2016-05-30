@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowlist" "1" "April 24, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowlist" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowlist \- List links from shared folders websites
@@ -47,6 +47,13 @@ If your machine has several network interfaces, force using \fIIFACE\fR interfac
 .TP
 .B -R, --recursive
 Recurse into sub folders.
+.TP
+.BI -t, " " --timeout= SECS
+This is useful for mirroring/multi-upload services. \
+Remote links may not be avaialble or partially, in this case, module exit status is \fB10\fR (temporary unavailable error). \
+plowlist will wait exponentially until \fISECS\fR (seconds) is reached. \
+When unspecified, this option is zero (no wait, same legacy behavior) and applies for one single URL listing.
+Note: Don't give a too big value here (I'll advise few minutes), some hosters may be stuck in some "queued for upload" state.
 .TP
 .BI "   " " " --printf= FORMAT
 Print results (on stdout) in a given format (for each non-dead link). Default format string is \fI"%F%u%n"\fR. Interpreted sequences are:
@@ -146,8 +153,7 @@ Output version information and exit.
 .BI -p, " " --link-password= PASSWORD
 Used for password-protected folders.
 .P
-All switches are not implemented nor required for all modules.
-See help message for detailed modules option list.
+All switches are not implemented nor required for all modules. See help message for detailed modules option list.
 
 .\" ****************************************************************************
 .\" * Files                                                                    *
@@ -182,6 +188,8 @@ Fatal error. Upstream site updated or unexpected result.
 No available module (provided URL is not supported).
 .IP 3
 Network error. Mostly curl related.
+.IP 5
+Timeout reached (refer to \fB-t\fR/\fB--timeout\fR command-line option).
 .IP 10
 Links are temporarily unavailable. This is used by mirroring/multi-upload services, maybe uploads are still being processed.
 .IP 11

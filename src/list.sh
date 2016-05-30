@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Retrieve list of links from a shared-folder (sharing site) url
-# Copyright (c) 2010-2015 Plowshare team
+# Copyright (c) 2010-2016 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -34,6 +34,7 @@ QUIET,q,quiet,,Alias for -v0
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 RECURSE,R,recursive,,Recurse into sub folders
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default is \"%F%u%n\".
+TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits. May be useful for multiupload hosters.
 NO_COLOR,,no-color,,Disables log notice & log error output coloring
 NO_MODULE_FALLBACK,,fallback,,If no module is found for link, simply list all URLs contained in page
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
@@ -301,30 +302,44 @@ for URL in "${COMMAND_LINE_ARGS[@]}"; do
 
     FUNCTION=${MODULE}_list
     log_notice "Retrieving list ($MODULE): $URL"
+    timeout_init $TIMEOUT
 
     if ! module_config_has_subfolders "$MODULE" && test -n "$RECURSE"; then
         log_notice 'recursive flag has no sense here, ignoring'
     fi
 
-    ${MODULE}_vars_set
-    $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
-        pretty_print "${PRINTF_FORMAT:-%F%u%n}" "$MODULE" || LRETVAL=$?
-    ${MODULE}_vars_unset
+    AWAIT=3
+    while :; do
+        LRETVAL=0
 
-    if [ $LRETVAL -eq 0 ]; then
-        : # everything went fine
-    elif [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
-        log_error 'Non existing or empty folder'
-        [ -z "$RECURSE" -a -z "$NO_MODULE_FALLBACK" ] && \
-            module_config_has_subfolders "$MODULE" && \
-            log_notice 'Try adding -R/--recursive option to look into sub folders'
-    elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
-        log_error 'You must provide a valid password'
-    elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
-        log_error 'Links are temporarily unavailable. Maybe uploads are still being processed'
-    else
-        log_error "Failed inside ${FUNCTION}() [$LRETVAL]"
-    fi
+        ${MODULE}_vars_set
+        $FUNCTION "${UNUSED_OPTIONS[@]}" "$URL" "$RECURSE" | \
+            pretty_print "${PRINTF_FORMAT:-%F%u%n}" "$MODULE" || LRETVAL=$?
+        ${MODULE}_vars_unset
+
+        if [ $LRETVAL -eq 0 ]; then
+            : # everything went fine
+        elif [ $LRETVAL -eq $ERR_LINK_DEAD ]; then
+            log_error 'Non existing or empty folder'
+            [ -z "$RECURSE" -a -z "$NO_MODULE_FALLBACK" ] && \
+                module_config_has_subfolders "$MODULE" && \
+                log_notice 'Try adding -R/--recursive option to look into sub folders'
+        elif [ $LRETVAL -eq $ERR_LINK_PASSWORD_REQUIRED ]; then
+            log_error 'You must provide a valid password'
+        elif [ $LRETVAL -eq $ERR_LINK_TEMP_UNAVAILABLE ]; then
+            if [[ $TIMEOUT -gt 0 ]]; then
+                log_notice 'Links are temporarily unavailable. Exponentially wait.'
+                wait $(( (2 ** AWAIT++ - 1) / 2)) || { LRETVAL=$?; break; }
+                continue
+            else
+                log_error 'Links are temporarily unavailable. Maybe uploads are still being processed.'
+            fi
+        else
+            log_error "Failed inside ${FUNCTION}() [$LRETVAL]"
+        fi
+        break
+    done
+
     RETVALS=(${RETVALS[@]} $LRETVAL)
 done
 
