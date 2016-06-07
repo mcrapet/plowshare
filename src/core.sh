@@ -357,10 +357,19 @@ delete_first_line() {
     sed -ne "$((N+1)),\$p"
 }
 
-# Delete last line of a text
+# Delete last line(s) of a text
+# $1: (optional) How many tail lines to delete (default is 1)
 # stdin: input string (multiline)
 delete_last_line() {
-    sed -e '$d'
+    local -r N=${1:-1}
+
+    if (( N < 1 )); then
+        log_error "$FUNCNAME: negative index not expected"
+        return $ERR_FATAL
+    fi
+
+    # Equivalent to `head -n -1` (if $1=1)
+    sed -ne :a -e "1,$N!{P;N;D;};N;ba"
 }
 
 # Check if a string ($2) matches a regexp ($1)
