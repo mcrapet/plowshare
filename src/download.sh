@@ -822,6 +822,7 @@ Your plowshare installation has currently no module.
 In order to use plowdown you must install some modules. Here is a quick start:
 $ plowmod --install
 -------------------------------------------------------------------------------"
+    exit $ERR_NOMODULE
 fi
 
 if [ $# -lt 1 ]; then
