@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowmod" "1" "May 30, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowmod" "1" "June 8, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowmod \- Simple plowshare modules management tool
@@ -115,6 +115,15 @@ This is still supported for compatibility purpose but you are discouraged using 
 .TP
 .I ~/.config/plowshare/modules/
 Obsolete user modules directory. Prefer using \fB~/.config/plowshare/modules.d/xxx/\fR instead.
+
+.\" ****************************************************************************
+.\" * Environment Variables                                                    *
+.\" ****************************************************************************
+.SH "ENVIRONMENT VARIABLES"
+The following environment variables may affect plowdown:
+.TP
+.I XDG_CONFIG_HOME
+The directory to store user configuration files. If not defined, \fB~/.config\fR is assumed.
 
 .\" ****************************************************************************
 .\" * Exit codes                                                               *
