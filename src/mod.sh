@@ -160,7 +160,7 @@ mod_status() {
     fi
 
     # Check for first install
-    N=$(grep '^[^#]' "${SRCS[@]/%/\/config}" | wc -l)
+    N=$(grep '^[^#]' "${SRCS[@]/%//config}" | wc -l)
     if (( N == 0 )); then
         log_error \
 "-------------------------------------------------------------------------------
