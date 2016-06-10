@@ -96,8 +96,14 @@ mod_install() {
             log_notice 'WARNING: directory already exists! Do a git pull.'
             git -C "$L" pull --quiet
         else
-            log_error 'ERROR: directory exists but it does not appear to be a git repository, abort'
-            RET=$ERR_FATAL
+            # Check for empty directory (find -empty)
+            if [[ ! $(ls -1A "$L" 2>/dev/null) ]] && [ -w "$L" ]; then
+                # Be stupid for now and git clone. See --depth later.
+                git clone --quiet "$R" "$L"
+            else
+                log_error 'ERROR: directory exists but it does not appear to be a git repository, abort'
+                RET=$ERR_FATAL
+            fi
         fi
     else
         # Be stupid for now and git clone. See --depth later.
