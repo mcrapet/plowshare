@@ -62,7 +62,7 @@ EOH
     print_options "$ACTION_OPTIONS"
     cat <<EOH
 
-For install, if no source repository is specified use:
+For install, if no source repository is specified, it uses:
 $LEGACY_MODULES
 
 Available options:
@@ -334,7 +334,7 @@ elif [ -n "$DO_UPDATE" ]; then
         RETVALS+=($RETVAL)
     done < <(find "$DDIR" -mindepth 2 -maxdepth 2 -name config)
     test "$RETVAL" || \
-        log_notice 'plowmod: no directory found, have you invoked "plowmod --install" first?'
+        log_notice "plowmod: no directory found, have you invoked \`plowmod --install' first?"
 fi
 
 if [ ${#RETVALS[@]} -eq 0 ]; then
