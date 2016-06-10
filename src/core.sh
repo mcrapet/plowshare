@@ -22,7 +22,7 @@
 set -o pipefail
 
 # Each time an API is updated, this value will be increased
-declare -r PLOWSHARE_API_VERSION=4
+declare -r PLOWSHARE_API_VERSION=5
 
 # User configuration directory (contains plowshare.conf, exec/, storage/, modules.d/)
 declare -r PLOWSHARE_CONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}/plowshare"
@@ -3362,7 +3362,7 @@ check_argument_type() {
 # $2: option list (one per line)
 # $3: step number (-1, 0 or 1). Always declare UNUSED_ARGS & UNUSED_OPTS arrays.
 #     -1: check plow* args and declare readonly variables.
-#         CLOSE_OPT variable can contain a close match heuristic (possible command-line use typo)
+#         CLOSE_OPT variable can contain a close match heuristic (possible command-line user typo)
 #      0: check all module args
 #      1: declare module_vars_set & module_vars_unset functions
 # $4..$n: arguments
