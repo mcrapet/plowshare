@@ -26,7 +26,8 @@ HELPFUL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Output plowprobe version information and exit
 ALLMODULES,,modules,,Output available modules (one per line) and exit. Useful for wrappers.
 EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file
+NO_COLOR,,no-color,,Disables log notice & log error output coloring"
 
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,c|0|1|2|3|4=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
@@ -34,7 +35,6 @@ QUIET,q,quiet,,Alias for -v0
 GET_MODULE,,get-module,,Retrieve module name and exit. Faster than --printf=%m
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 PRINTF_FORMAT,,printf,s=FORMAT,Print results in a given format (for each link). Default is \"%F%u%n\".
-NO_COLOR,,no-color,,Disables log notice & log error output coloring
 TRY_REDIRECTION,,follow,,If no module is found for link, follow HTTP redirects (curl -L). Default is disabled.
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
@@ -301,7 +301,14 @@ fi
 
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_options '[Pp]lowprobe' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
+    process_configfile_options '[Pp]lowprobe' "${MAIN_OPTIONS}
+NO_COLOR,,no-color,,x" "$EXT_PLOWSHARERC"
+
+if [ -n "$NO_COLOR" ]; then
+    unset COLOR
+else
+    declare -r COLOR=yes
+fi
 
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
@@ -315,12 +322,6 @@ if [ -n "$QUIET" ]; then
     declare -r VERBOSE=0
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
-fi
-
-if [ -n "$NO_COLOR" ]; then
-    unset COLOR
-else
-    declare -r COLOR=yes
 fi
 
 if [ "${#MODULES}" -le 0 ]; then

@@ -3461,7 +3461,7 @@ process_options() {
                         fi
                     else
                         if [ $# -eq 0 ]; then
-                            log_error "$NAME: missing parameter for $ARG"
+                            log_error "$NAME ($ARG): argument required"
                             echo "exit $ERR_BAD_COMMAND_LINE"
                             return $ERR_BAD_COMMAND_LINE
                         fi
@@ -3523,7 +3523,7 @@ process_options() {
                         fi
                     else
                         if [ $# -eq 0 ]; then
-                            log_error "$NAME: missing parameter for $ARG"
+                            log_error "$NAME ($ARG): argument required"
                             echo "exit $ERR_BAD_COMMAND_LINE"
                             return $ERR_BAD_COMMAND_LINE
                         fi

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Delete files from file sharing websites
-# Copyright (c) 2010-2015 Plowshare team
+# Copyright (c) 2010-2016 Plowshare team
 #
 # This file is part of Plowshare.
 #
@@ -26,7 +26,8 @@ HELPFUL,H,longhelp,,Exhaustive help info (with modules command-line options)
 GETVERSION,,version,,Output plowdel version information and exit
 ALLMODULES,,modules,,Output available modules (one per line) and exit. Useful for wrappers.
 EXT_PLOWSHARERC,,plowsharerc,f=FILE,Force using an alternate configuration file (overrides default search path)
-NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file"
+NO_PLOWSHARERC,,no-plowsharerc,,Do not use any plowshare.conf configuration file
+NO_COLOR,,no-color,,Disables log notice & log error output coloring"
 
 declare -r MAIN_OPTIONS="
 VERBOSE,v,verbose,c|0|1|2|3|4=LEVEL,Verbosity level: 0=none, 1=err, 2=notice (default), 3=dbg, 4=report
@@ -39,7 +40,6 @@ CAPTCHA_ANTIGATE,,antigate,s=KEY,Antigate.com captcha key
 CAPTCHA_BHOOD,,captchabhood,a=USER:PASSWD,CaptchaBrotherhood account
 CAPTCHA_COIN,,captchacoin,s=KEY,captchacoin.com API key
 CAPTCHA_DEATHBY,,deathbycaptcha,a=USER:PASSWD,DeathByCaptcha account
-NO_COLOR,,no-color,,Disables log notice & log error output coloring
 EXT_CURLRC,,curlrc,f=FILE,Force using an alternate curl configuration file (overrides ~/.curlrc)
 NO_CURLRC,,no-curlrc,,Do not use curlrc config file"
 
@@ -112,7 +112,14 @@ fi
 
 # Get configuration file options. Command-line is partially parsed.
 test -z "$NO_PLOWSHARERC" && \
-    process_configfile_options '[Pp]lowdel' "$MAIN_OPTIONS" "$EXT_PLOWSHARERC"
+    process_configfile_options '[Pp]lowdel' "${MAIN_OPTIONS}
+NO_COLOR,,no-color,,x" "$EXT_PLOWSHARERC"
+
+if [ -n "$NO_COLOR" ]; then
+    unset COLOR
+else
+    declare -r COLOR=yes
+fi
 
 declare -a COMMAND_LINE_MODULE_OPTS COMMAND_LINE_ARGS RETVALS
 COMMAND_LINE_ARGS=("${UNUSED_ARGS[@]}")
@@ -126,12 +133,6 @@ if [ -n "$QUIET" ]; then
     declare -r VERBOSE=0
 elif [ -z "$VERBOSE" ]; then
     declare -r VERBOSE=2
-fi
-
-if [ -n "$NO_COLOR" ]; then
-    unset COLOR
-else
-    declare -r COLOR=yes
 fi
 
 if [ $# -lt 1 ]; then
