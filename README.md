@@ -38,7 +38,7 @@ All scripts share the same verbose options:
 
 Getting help:
 - `--help`
-- `--longhelp` (*plowdown* & *plowup* only, prints modules command-line options)
+- `--longhelp` (additionally prints modules command-line options)
 
 Exhaustive documentation is available in manpages.
 
@@ -59,6 +59,7 @@ $ plowdown -a 'myuser:mypassword' http://rapidgator.net/file/49b1b874
 ```
 
 **Note**: `:` is the separator character for login and password.
+Enclosing string using single quotes ensure against shell expansion.
 
 Download a list of links (one link per line):
 
@@ -568,7 +569,7 @@ For historical reasons or design choices, there are several known limitations to
 1. You cannot enter through command-line several credentials for different hosts.
    It's because the modules option `-a`, `--auth`, `-b` or `--auth-free` have the same switch name.
    But you can do it with the configuration file.
-2. Same restriction for passwords (*plowdown*). Only one password can be defined with `-p`, `--link-password` switch name.
+2. Same restriction for passwords (also a module option). Only one password can be defined with `-p`, `--link-password` switch name.
 
 ### Implement your own modules
 

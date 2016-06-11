@@ -1,3 +1,13 @@
+plowshare (2.1.5) stable; urgency=low
+
+  * Various documentation and help improvements
+  * [plowlist] Add -t/--timeout command-line switch (useful for mirroring/multiupload hosters)
+  * API function delete_last_line: add second optional argument (number of lines).
+    Bump PLOWSHARE_API_VERSION to 5.
+  * [core] Consider $XDG_CONFIG_HOME (default is ~/.config)
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Fri, 10 Jun 2016 18:19:57 +0200
+
 plowshare (2.1.4) stable; urgency=low
 
   * [plowup] allow local/remote filename having , or ; characters.
