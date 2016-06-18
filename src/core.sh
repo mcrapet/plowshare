@@ -22,7 +22,7 @@
 set -o pipefail
 
 # Each time an API is updated, this value will be increased
-declare -r PLOWSHARE_API_VERSION=5
+declare -r PLOWSHARE_API_VERSION=6
 
 # User configuration directory (contains plowshare.conf, exec/, storage/, modules.d/)
 declare -r PLOWSHARE_CONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}/plowshare"
@@ -370,6 +370,119 @@ delete_last_line() {
 
     # Equivalent to `head -n -1` (if $1=1)
     sed -ne :a -e "1,$N!{P;N;D;};N;ba"
+}
+
+# Delete lines up to regexp (included).
+# In a nutshell: eat lines until regexp is met, if nothing match,
+# delete lines until the end of input data (not really useful).
+# In vim, it would look like this: ":.,/regex/d" or ":.+5,/regex/+1d" ($3=5,$2=1).
+#
+# Examples:
+# $ echo -e "aa\nbb\ncc\ndd\ee" >/tmp/f
+# $ delete_filter_line 'cc'     </tmp/f         # Returns: dd\nee
+# $ delete_filter_line 'cc' -1  </tmp/f         # Returns: cc\ndd\nee
+# $ delete_filter_line 'cc' -2  </tmp/f         # Returns: bb\ncc\ndd\nee
+# $ delete_filter_line 'cc' 1   </tmp/f         # Returns: ee
+#
+# $1: stop condition regex
+#     This is non greedy, first occurrence is taken
+# $2: (optional): offset, how many line to skip (default is 0) after matching regexp.
+#     Example ($2=-1): delete lines from line $3 to regexp (excluded)
+# $3: (optional): start line number (start at index 1, default is 1)
+# stdin: text data (multiline)
+# stdout: result
+delete_filter_line() {
+    local -i FUZZ=${2:-0}
+    local -i N=${3:-1}
+    local -r D=$'\001' # Change sed separator to allow '/' characters in regexp
+    local STR FILTER
+
+    if [[ ! $1 ]]; then
+        log_error "$FUNCNAME: invalid regexp, must not be empty"
+        return $ERR_FATAL
+    elif [ $N -le 0 ]; then
+        log_error "$FUNCNAME: wrong argument, start line must be strictly positive ($N given)"
+        return $ERR_FATAL
+    elif [ $N -gt 1 -a $FUZZ -lt -1 ]; then
+        log_debug "$FUNCNAME: before context ($FUZZ) could duplicates lines (already printed before line $N), continue anyway"
+    fi
+
+    # Notes:
+    # - We need to be careful when regex matches the first line ($3)
+    # - This head lines skip ($3) makes things really more complicated
+
+    (( --N ))
+    FILTER="\\${D}$1${D}" # /$1/
+
+    if [ $FUZZ -eq 0 ]; then
+        if (( $N > 0 )); then
+            # Line $N must be displayed
+            STR=$(sed -e "${N}p" -e "$N,${FILTER}d")
+        else
+            # 0,/regexp/ is valid, match can occur on first line
+            STR=$(sed -e "$N,${FILTER}d")
+        fi
+
+    elif [ $FUZZ -eq 1 ]; then
+        if (( $N > 0 )); then
+            STR=$(sed -e "${N}p" -e "$N,${FILTER}{${FILTER}N;d}")
+        else
+            STR=$(sed -e "$N,${FILTER}{${FILTER}N;d}")
+        fi
+
+    elif [ $FUZZ -eq -1 ]; then
+        if (( $N > 0 )); then
+            # If regexp matches at line $N do not print it twice
+            STR=$(sed -e "${N}p" -e "$N,${FILTER}{${N}d;${FILTER}p;d}")
+        else
+            STR=$(sed -e "$N,${FILTER}{${FILTER}p;d}")
+        fi
+
+    else
+        local -i FUZZ_ABS=$(( FUZZ < 0 ? -FUZZ : FUZZ ))
+
+        [ $FUZZ_ABS -gt 10 ] &&
+            log_notice "$FUNCNAME: are you sure you want to skip $((N+1)) lines?"
+
+        if [ $FUZZ -gt 0 ]; then
+            local SKIPS='N'
+
+            # printf '=%.0s' {1..n}
+            while (( --FUZZ_ABS )); do
+                SKIPS+=';N'
+            done
+
+            if (( $N > 0 )); then
+                STR=$(sed -e "${N}p" -e "$N,${FILTER}{${FILTER}{${SKIPS}};d}")
+            else
+                STR=$(sed -e "$N,${FILTER}{${FILTER}{${SKIPS}};d}")
+            fi
+        else
+            local LINES='.*'
+
+            while (( --FUZZ_ABS )); do
+                LINES+='\n.*'
+            done
+
+            if (( $N > 0 )); then
+                # Notes: could display duplicated lines when fuzz is below $N
+                # This is not a bug, just a side effect...
+                STR=$(sed -e "${N}p" -e "1h;1!H;x;s/^.*\\n\\($LINES\)$/\\1/;x" \
+                          -e "$N,${FILTER}{${N}d;${FILTER}{g;p};d}")
+            else
+                STR=$(sed -e "1h;1!H;x;s/^.*\\n\\($LINES\)$/\\1/;x" \
+                          -e "$N,${FILTER}{${FILTER}{g;p};d}")
+            fi
+        fi
+    fi
+
+    if [ -z "$STR" ]; then
+        log_error "$FUNCNAME failed (sed): \"$N,/$1/d\" (skip $FUZZ)"
+        log_notice_stack
+        return $ERR_FATAL
+    fi
+
+    echo "$STR"
 }
 
 # Check if a string ($2) matches a regexp ($1)
