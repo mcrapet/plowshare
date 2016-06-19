@@ -2734,17 +2734,9 @@ strip() {
     sed -e 's/\xC2\?\xA0/ /g' -e 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
-# Do some cleanups before exiting program
-exit_handler() {
-    # Restore proper colors (just in case)
-    log_notice_norc ''
-
-    # Remove temporal files created by create_tempfile
-    rm -f "$TMPDIR/$(basename_file $0).$$".*
-}
-
-# Install exit handler
-set_exit_trap() {
+# Initialize plowcore:
+# - install handlers
+core_init() {
     if [ -z "$TMPDIR" ]; then
         log_error 'ERROR: $TMPDIR is not defined.'
         return $ERR_SYSTEM
@@ -2752,7 +2744,11 @@ set_exit_trap() {
         log_error 'ERROR: $TMPDIR is not a directory.'
         return $ERR_SYSTEM
     fi
-    trap exit_handler EXIT
+
+    # Shutdown cleanups:
+    # - Restore proper colors (just in case)
+    # - Remove temporal files created by create_tempfile
+    trap 'log_notice_norc ""; rm -f "$TMPDIR/$(basename_file $0).$$".*' EXIT TERM
 }
 
 # Check existence of executable in $PATH

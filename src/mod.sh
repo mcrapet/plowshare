@@ -317,7 +317,7 @@ if check_exec 'git'; then
     log_report "[git ] $(git --version)"
 fi
 
-set_exit_trap
+core_init
 
 declare -a RETVALS
 

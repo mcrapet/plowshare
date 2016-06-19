@@ -427,7 +427,7 @@ fi
 # Remove module name from argument list
 unset COMMAND_LINE_ARGS[0]
 
-set_exit_trap
+core_init
 
 UCOOKIE=$(create_tempfile) || exit
 URESULT=$(create_tempfile) || exit
