@@ -83,6 +83,7 @@ declare -r ERR_FATAL_MULTIPLE=100         # 100 + (n) with n = first error code 
 #
 # Global variables defined here (FIXME later):
 #   - PS_TIMEOUT       (plowdown, plowup) Timeout (in seconds) for one item
+#   - CONT_SIGNAL      SIGCONT signal received
 
 # log_report for a file
 # $1: filename
@@ -1389,10 +1390,21 @@ wait() {
     local MSG="Waiting $VALUE $UNIT_STR..."
     local CLEAR="     \b\b\b\b\b"
     if test -t 2; then
+        local START_DATE=$(date +%s)
+        CONT_SIGNAL=
         while [ "$REMAINING" -gt 0 ]; do
             log_notice_norc "\r$MSG $(splitseconds $REMAINING) left$CLEAR"
             sleep 1
-            (( --REMAINING ))
+            if [[ $CONT_SIGNAL ]]; then
+                local -i TMP_SECS
+                (( TMP_SECS = TOTAL_SECS - (CONT_SIGNAL - START_DATE) ))
+                (( TMP_SECS >= 0 )) || TMP_SECS=0
+                CONT_SIGNAL=
+                log_debug "SIGCONT detected, adjust wait time ($REMAINING => $TMP_SECS)"
+                REMAINING=$TMP_SECS
+            else
+                (( --REMAINING ))
+            fi
         done
         log_notice_norc "\r$MSG done$CLEAR\n"
     else
@@ -2749,6 +2761,9 @@ core_init() {
     # - Restore proper colors (just in case)
     # - Remove temporal files created by create_tempfile
     trap 'log_notice_norc ""; rm -f "$TMPDIR/$(basename_file $0).$$".*' EXIT TERM
+
+    # SIGCONT notification
+    trap 'CONT_SIGNAL=$(date +%s)' CONT
 }
 
 # Check existence of executable in $PATH
