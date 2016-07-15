@@ -907,7 +907,7 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-core_init
+core_init 'plowdown'
 
 # Remember last host because hosters may require waiting between
 # successive downloads.

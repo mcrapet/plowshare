@@ -383,7 +383,7 @@ if [ ${#COMMAND_LINE_ARGS[@]} -eq 0 ]; then
     exit $ERR_BAD_COMMAND_LINE
 fi
 
-core_init
+core_init 'plowprobe'
 
 for ITEM in "${COMMAND_LINE_ARGS[@]}"; do
 

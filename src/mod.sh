@@ -317,7 +317,7 @@ if check_exec 'git'; then
     log_report "[git ] $(git --version)"
 fi
 
-core_init
+core_init 'plowmod'
 
 declare -a RETVALS
 

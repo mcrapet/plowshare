@@ -27,6 +27,10 @@ declare -r PLOWSHARE_API_VERSION=6
 # User configuration directory (contains plowshare.conf, exec/, storage/, modules.d/)
 declare -r PLOWSHARE_CONFDIR="${XDG_CONFIG_HOME:-$HOME/.config}/plowshare"
 
+# Dependencies
+declare -r PLOWCORE_JS=${PLOWSHARE_JS:-js}
+declare -r PLOWCORE_CURL=${PLOWSHARE_CURL:-curl}
+
 # Global error codes
 # 0 means success or link alive
 declare -r ERR_FATAL=1                    # Unexpected result (upstream site updated, etc)
@@ -173,11 +177,11 @@ curl() {
     fi
 
     if test $VERBOSE -lt 4; then
-        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
+        command "$PLOWCORE_CURL" "${OPTIONS[@]}" "${CURL_ARGS[@]}" || DRETVAL=$?
     else
         local FILESIZE TEMPCURL=$(create_tempfile)
         log_report "${OPTIONS[@]}" "${CURL_ARGS[@]}"
-        command curl "${OPTIONS[@]}" "${CURL_ARGS[@]}" --show-error --silent >"$TEMPCURL" 2>&1 || DRETVAL=$?
+        command "$PLOWCORE_CURL" "${OPTIONS[@]}" "${CURL_ARGS[@]}" --show-error --silent >"$TEMPCURL" 2>&1 || DRETVAL=$?
         FILESIZE=$(get_filesize "$TEMPCURL")
         log_report "Received $FILESIZE bytes. DRETVAL=$DRETVAL"
         log_report '=== CURL BEGIN ==='
@@ -1334,7 +1338,7 @@ post_login() {
 # Detect if a JavaScript interpreter is installed
 # $? is zero on success
 detect_javascript() {
-    if ! type -P js >/dev/null 2>&1; then
+    if ! type -P "$PLOWCORE_JS" >/dev/null 2>&1; then
         log_notice 'Javascript interpreter not found. Please install one!'
         return $ERR_SYSTEM
     fi
@@ -1356,7 +1360,7 @@ javascript() {
     logcat_report "$TEMPSCRIPT"
     log_report '=== JAVASCRIPT END ==='
 
-    command js "$TEMPSCRIPT"
+    command "$PLOWCORE_JS" "$TEMPSCRIPT"
     rm -f "$TEMPSCRIPT"
     return 0
 }
@@ -2606,7 +2610,7 @@ storage_set() {
     local -A OBJ
 
     if [ -z "$MODULE" ]; then
-        log_error "$FUNCNAME: \$MODULE is undefined, abort."
+        log_error "$FUNCNAME: \$MODULE is undefined, abort"
         return $ERR_NOMODULE
     fi
 
@@ -2661,7 +2665,7 @@ storage_get() {
     local -A OBJ
 
     if [ -z "$MODULE" ]; then
-        log_error "$FUNCNAME: \$MODULE is undefined, abort."
+        log_error "$FUNCNAME: \$MODULE is undefined, abort"
         return $ERR_NOMODULE
     fi
 
@@ -2695,7 +2699,7 @@ storage_reset() {
     local CONFIG
 
     if [ -z "$MODULE" ]; then
-        log_error "$FUNCNAME: \$MODULE is undefined, abort."
+        log_error "$FUNCNAME: \$MODULE is undefined, abort"
         return $ERR_NOMODULE
     fi
 
@@ -2746,15 +2750,33 @@ strip() {
     sed -e 's/\xC2\?\xA0/ /g' -e 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
-# Initialize plowcore:
-# - install handlers
+# Initialize plowcore: check environment variables and install signal handlers
+# $1: program name (used for error reporting only)
 core_init() {
+    local -r NAME=${1:-ERROR}
+
     if [ -z "$TMPDIR" ]; then
-        log_error 'ERROR: $TMPDIR is not defined.'
+        log_error "$NAME: \$TMPDIR is undefined, abort"
         return $ERR_SYSTEM
     elif [ ! -d "$TMPDIR" ]; then
-        log_error 'ERROR: $TMPDIR is not a directory.'
+        log_error "$NAME: \$TMPDIR is not a directory, abort"
         return $ERR_SYSTEM
+    fi
+
+    if [ -n "$PLOWSHARE_CURL" ]; then
+        if ! type -P "$PLOWSHARE_CURL" >/dev/null 2>&1; then
+            log_error "$NAME: \$PLOWSHARE_CURL is invalid, abort"
+            return $ERR_SYSTEM
+        fi
+        log_debug "using custom curl: $PLOWSHARE_CURL"
+    fi
+
+    if [ -n "$PLOWSHARE_JS" ]; then
+        if ! type -P "$PLOWSHARE_JS" >/dev/null 2>&1; then
+            log_error "$NAME: \$PLOWSHARE_JS is invalid, abort"
+            return $ERR_SYSTEM
+        fi
+        log_debug "using custom js: $PLOWSHARE_JS"
     fi
 
     # Shutdown cleanups:

@@ -427,7 +427,7 @@ fi
 # Remove module name from argument list
 unset COMMAND_LINE_ARGS[0]
 
-core_init
+core_init 'plowup'
 
 UCOOKIE=$(create_tempfile) || exit
 URESULT=$(create_tempfile) || exit

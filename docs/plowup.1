@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowup" "1" "July 1, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowup" "1" "July 13, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowup \- Simple upload manager for file sharing websites
@@ -423,6 +423,12 @@ This variable is considered to display captchas. See \fB--captchamethod=fb\fR do
 .I HOME
 Search for user configuration directory in \fB~/.config/plowshare\fR (see FILES section above).
 If found, \fB~/.curlrc\fR will be used (use \fB--no-curlrc\fR to disable it).
+.TP
+.I PLOWSHARE_CURL
+Specifies an alternate curl command (\fB$PATH\fR search is considered). If not defined, \fBcurl\fR is used.
+.TP
+.I PLOWSHARE_JS
+Specifies an alternate js command (\fB$PATH\fR search is considered). If not defined, \fBjs\fR is used.
 .TP
 .I XDG_CONFIG_HOME
 The directory to store user configuration files. If not defined, \fB~/.config\fR is assumed.

@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowmod" "1" "July 1, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowmod" "1" "July 13, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowmod \- Simple plowshare modules management tool
@@ -124,6 +124,9 @@ The following environment variables may affect plowmod:
 .TP
 .I HOME
 Search for user configuration directory in \fB~/.config/plowshare\fR (see FILES section above).
+.TP
+.I PLOWSHARE_CURL
+Specifies an alternate curl command (\fB$PATH\fR search is considered). If not defined, \fBcurl\fR is used.
 .TP
 .I XDG_CONFIG_HOME
 The directory to store user configuration files. If not defined, \fB~/.config\fR is assumed.
