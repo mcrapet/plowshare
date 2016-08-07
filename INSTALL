@@ -62,7 +62,7 @@ $ yum install plowshare
 Note: You'll probably need to be root to install the plowshare package.
 
 # Mac OS X (with Homebrew)
-$ brew plowshare
+$ brew install plowshare
 
 2) Manual method: from git sources
 
