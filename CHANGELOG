@@ -1,3 +1,13 @@
+plowshare (2.1.6) stable; urgency=low
+
+  * API function delete_filter_line: eat lines until regexp is met.
+    Bump PLOWSHARE_API_VERSION to 6.
+  * [core] Handle CONT signal (wait time will be updated on ^Z) (#56)
+  * [core] Introduce PLOWSHARE_CURL and PLOWSHARE_JS environment variables
+    to override default curl and js commands.
+
+ -- Matthieu Crapet <mcrapet@gmail.com>  Sun, 30 Oct 2016 10:45:08 +0100
+
 plowshare (2.1.5) stable; urgency=low
 
   * Various documentation and help improvements
