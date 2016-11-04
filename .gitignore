@@ -2,3 +2,7 @@
 *.rej
 *~
 *.*.swp
+debian/*.log
+debian/*.substvars
+debian/*/*/*
+debian/files
