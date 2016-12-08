@@ -532,7 +532,7 @@ Example 3: Use multiple connections for final download (usually only for premium
 ```sh
 $ cat finalaria.sh
 #!/bin/bash
-aria2c -x2 $4
+aria2c -x2 $4 >/dev/tty
 
 $ plowdown -a user:password --skip-final --run-after ./finalaria.sh \
     http://depositfiles.com/files/fv2u9xqya
