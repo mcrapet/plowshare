@@ -3273,7 +3273,7 @@ translate_exec() {
         return $ERR_FATAL
     fi
 
-    echo "$F"
+    quote "$F"
 }
 
 # Check for positive speed rate
