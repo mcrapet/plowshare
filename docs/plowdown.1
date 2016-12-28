@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "July 13, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "December 28, 2016" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -205,7 +205,7 @@ Note: Depending hosters, final (generated) link may have restrictions: validity 
 limitation (usually one unique HTTP GET request for anonymous users), same IP address, etc.
 .TP
 .BI "   " " " --run-before= PROGRAM
-Call external program or script before new link processing. Provided executable can be located in \fIPATH\fR environment variable.
+Call external program or script before new link processing (before calling module download function). Provided executable can be located in \fIPATH\fR environment variable.
 Messages can be sent to stderr, stdout is trashed.
 
 Three arguments are given:
