@@ -92,6 +92,7 @@ mod_install() {
     log_notice "- installing new directory: $L"
 
     if [ -d "$L" -a -n "$HAVE_GIT" ]; then
+        # Note: git -C <path> is available since v1.8.5
         if git -C "$L" rev-parse --is-inside-work-tree &>/dev/null; then
             log_notice 'WARNING: directory already exists! Do a git pull.'
             git -C "$L" pull --quiet
@@ -123,6 +124,7 @@ mod_update() {
 
     if [ -d "$L" ]; then
         if [ -n "$HAVE_GIT" ]; then
+            # Note: git -C <path> is available since v1.8.5
             if git -C "$L" rev-parse --is-inside-work-tree &>/dev/null; then
                 git -C "$L" pull --quiet
             else
