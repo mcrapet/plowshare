@@ -2965,8 +2965,8 @@ process_configfile_options() {
 
     if [ -z "$3" ]; then
         CONFIG="$PLOWSHARE_CONFDIR/plowshare.conf"
-        test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
-        test -f "$CONFIG" || return 0
+        test -r "$CONFIG" || CONFIG='/etc/plowshare.conf'
+        test -r "$CONFIG" || return 0
     else
         CONFIG=$3
     fi
@@ -3011,25 +3011,28 @@ process_configfile_module_options() {
 
     if [ -z "$4" ]; then
         CONFIG="$PLOWSHARE_CONFDIR/plowshare.conf"
-        test -f "$CONFIG" || CONFIG='/etc/plowshare.conf'
-        test -f "$CONFIG" || return 0
+        test -r "$CONFIG" || CONFIG='/etc/plowshare.conf'
+        test -r "$CONFIG" || return 0
     else
         CONFIG=$4
     fi
 
-    # Security check
-    if [ -f "$CONFIG" ]; then
-        if [ -O "$CONFIG" ]; then
-            # First 10 characters: access rights (human readable form)
-            local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
+    # Security check (but don't check permission/ownership on global config)
+    if [ -r "$CONFIG" ]; then
+        if [ "$CONFIG" != '/etc/plowshare.conf' ]; then
+            if [ -O "$CONFIG" ]; then
+                # First 10 characters: access rights (human readable form)
+                local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
 
-            if [[ ${FILE_PERM:4:6} != '------' ]]; then
-                log_notice "WARNING: Wrong configuration file permissions. Fix it with: chmod 600 $CONFIG"
+                if [[ ${FILE_PERM:4:6} != '------' ]]; then
+                    log_notice "WARNING: Wrong configuration file permissions. Fix it with: chmod 600 $CONFIG"
+                fi
+            else
+                log_notice "WARNING: Bad configuration file ownership. Fix it with: chown $USER $CONFIG"
             fi
-        else
-            log_notice "WARNING: Bad configuration file ownership. Fix it with: chown $USER $CONFIG"
         fi
     else
+        log_error "ERROR: cannot access file \`$CONFIG'"
         return 0
     fi
 
