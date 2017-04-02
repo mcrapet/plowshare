@@ -96,7 +96,7 @@ _plowdown()
             COMPREPLY=( $( compgen -W '0 1 2 3 4' -- $cur ) )
             return 0
             ;;
-        -a|-b|-p|--auth-free|--auth|--link-password|--9kweu|--antigate|--captchabhood|--captchacoin|--deathbycaptcha|--min-space|--max-rate|-r|--max-retries|-t|--timeout|--printf)
+        -a|-b|-p|--auth-free|--auth|--link-password|--9kweu|--antigate|--captchabhood|--captchacoin|--deathbycaptcha|--min-space|--max-rate|--min-rate|-r|--max-retries|-t|--timeout|--printf)
             # argument required but no completion available
             return 0
             ;;
@@ -125,7 +125,7 @@ _plowdown()
     if [[ $cur = -* ]]; then
         COMPREPLY=( $( compgen -W '--help --longhelp --version --quiet --verbose \
             -v -q -i -o -m -r -t -x \
-            --min-space --max-rate --interface --mark-downloaded --no-overwrite --cache \
+            --min-space --max-rate --min-rate --interface --mark-downloaded --no-overwrite --cache \
             --output-directory --temp-directory --temp-rename --timeout --max-retries \
             --captchamethod --captchaprogram --9kweu --antigate --captchabhood --captchacoin --deathbycaptcha \
             --fallback --printf --run-before --run-after --no-curlrc --curlrc --no-plowsharerc --plowsharerc' -- $cur ) )

@@ -38,6 +38,7 @@ OUTPUT_DIR,o,output-directory,D=DIR,Directory where files will be saved
 TEMP_DIR,,temp-directory,D=DIR,Directory for temporary files (final link download, cookies, images)
 TEMP_RENAME,,temp-rename,,Append .part suffix to filename while file is being downloaded
 MAX_LIMIT_RATE,,max-rate,r=SPEED,Limit maximum speed to bytes/sec (accept usual suffixes)
+MIN_LIMIT_RATE,,min-rate,r=SPEED,Limit minimum speed to bytes/sec (during 30 seconds)
 MIN_LIMIT_SPACE,,min-space,R=LIMIT,Set the minimum amount of disk space to exit.
 INTERFACE,i,interface,s=IFACE,Force IFACE network interface
 TIMEOUT,t,timeout,n=SECS,Timeout after SECS seconds of waits
@@ -841,6 +842,13 @@ if [ -n "$EXT_PLOWSHARERC" ]; then
     else
         log_notice 'plowdown: using alternate configuration file'
     fi
+fi
+
+if [ -n "$MAX_LIMIT_RATE" -a -n "$MIN_LIMIT_RATE" ]; then
+  if (( MAX_LIMIT_RATE < MIN_LIMIT_RATE )); then
+      log_error "--min-rate ($MIN_LIMIT_RATE) is greater than --max-rate ($MAX_LIMIT_RATE)"
+      exit $ERR_BAD_COMMAND_LINE
+  fi
 fi
 
 if [ -n "$TEMP_DIR" ]; then

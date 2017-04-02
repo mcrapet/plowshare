@@ -1,4 +1,4 @@
-.\" Copyright (c) 2010\-2016 Plowshare Team
+.\" Copyright (c) 2010\-2017 Plowshare Team
 .\"
 .\" This is free documentation; you can redistribute it and/or
 .\" modify it under the terms of the GNU General Public License as
@@ -19,7 +19,7 @@
 .\" License along with this manual; if not, see
 .\" <http://www.gnu.org/licenses/>.
 
-.TH "plowdown" "1" "December 28, 2016" "GPL" "Plowshare for Bash 4"
+.TH "plowdown" "1" "April 2, 2017" "GPL" "Plowshare for Bash 4"
 
 .SH NAME
 plowdown \- Simple download manager for file sharing websites
@@ -186,6 +186,9 @@ Limit download speed in bytes per second. Suffixes are:
 .RS
 \fBm\fR or \fBMi\fR  for mebibytes (mB or MiB i.e. 1024^2).
 .RE
+.TP
+.BI "   " " " --min-rate= SPEED
+Limit download minimum speed in bytes per second (for a delay of 30 seconds). Suffixes are the same than \fB--max-rate\fR.
 .TP
 .BI "   " " " --temp-directory= DIRECTORY
 Directory for temporary files: final link download, cookies, images, ...
@@ -498,7 +501,7 @@ is invoked with multiple links or link-list files and one or several errors occu
 .SH AUTHORS
 Plowshare was initially written by Arnau Sanchez. See the AUTHORS file for a list of some of the many other contributors.
 
-Plowshare is (C) 2010-2016 The Plowshare Team
+Plowshare is (C) 2010-2017 The Plowshare Team
 .SH "SEE ALSO"
 .BR plowup (1),
 .BR plowdel (1),
