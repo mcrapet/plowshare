@@ -47,7 +47,7 @@ No compiler is required, it's only Bash scripts!
 This is the easiest method, Plowshare is available for several Linux distribution:
 
 # Archlinux (https://www.archlinux.org/packages/community/any/plowshare/)
-$ yaourt -Sy plowshare
+$ pacman -Syu plowshare
 
 # Gentoo (http://packages.gentoo.org/package/net-misc/plowshare)
 $ emerge -av plowshare
