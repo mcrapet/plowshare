@@ -3022,7 +3022,7 @@ process_configfile_module_options() {
         if [ "$CONFIG" != '/etc/plowshare.conf' ]; then
             if [ -O "$CONFIG" ]; then
                 # First 10 characters: access rights (human readable form)
-                local FILE_PERM=$(ls -l "$CONFIG" 2>/dev/null)
+                local FILE_PERM=$(ls -l -L "$CONFIG" 2>/dev/null)
 
                 if [[ ${FILE_PERM:4:6} != '------' ]]; then
                     log_notice "WARNING: Wrong configuration file permissions. Fix it with: chmod 600 $CONFIG"
