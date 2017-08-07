@@ -15,7 +15,7 @@ Plowshare is divided into 6 scripts:
 Plowshare itself doesn't support any websites (named *module*). It's just the core engine.
 Concerning modules, few are available separately and must be installed in user directory (see [below](#install)).
 
-### Features
+### Features
 
 - Small footprint (few shell scripts). No java, no python. Run fast on embedded devices.
 - Few dependencies and portable. [Bash](https://www.gnu.org/software/bash/) and [cURL](http://curl.haxx.se/) are enough for most hosters.
@@ -65,7 +65,7 @@ Download a list of links (one link per line):
 
 ```sh
 $ cat file_with_links.txt
-# This is a comment
+# This is a comment
 http://depositfiles.com/files/abcdefghi
 http://www.rapidshare.com/files/86545320/Tux-Trainer_25-01-2008.rar
 $ plowdown file_with_links.txt
