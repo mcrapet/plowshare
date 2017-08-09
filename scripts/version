@@ -8,17 +8,25 @@ if [ $# -ne 0 ]; then
   echo 'warning: this script does not take any argument.' >&2
 fi
 
+DATE_FMT="%Y-%m-%d"
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date +%s)}"
+date=$(date -u -d "@$SOURCE_DATE_EPOCH" "+$DATE_FMT" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "+$DATE_FMT" 2>/dev/null || date -u "+$DATE_FMT")
+
 # Check environment variable PLOWSHARE_FORCE_VERSION
 # For example: "1.0.1"
 if [ -n "$PLOWSHARE_FORCE_VERSION" ]; then
-  date=$(date +'%Y-%m-%d')
   echo "v${PLOWSHARE_FORCE_VERSION#v} ($date)"
 elif git rev-parse --is-inside-work-tree 1>/dev/null 2>&1; then
   rev=$(git describe --always --tags)
   date=$(git log "$rev" -n1 --pretty=%ci | cut -d' ' -f1)
   echo "$rev ($date)"
 else
+  # take version from a directory name like /path/to/plowshare-2.1.7
+  v="v`pwd | sed 's/.*-//'`"
+  if echo "$v" | grep -q '^v[0-9.]*$' ; then
+    echo "$v ($date)"
+    exit 0
+  fi
   echo 'warning: unable to detect plowshare version.' >&2
-  date=$(date +'%Y-%m-%d')
   echo "UNKNOWN ($date)"
 fi
