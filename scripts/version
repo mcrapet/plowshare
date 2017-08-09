@@ -21,6 +21,12 @@ elif git rev-parse --is-inside-work-tree 1>/dev/null 2>&1; then
   date=$(git log "$rev" -n1 --pretty=%ci | cut -d' ' -f1)
   echo "$rev ($date)"
 else
+  # take version from a directory name like /path/to/plowshare-2.1.7
+  v="v`pwd | sed 's/.*-//'`"
+  if echo "$v" | grep -q '^v[0-9.]*$' ; then
+    echo "$v ($date)"
+    exit 0
+  fi
   echo 'warning: unable to detect plowshare version.' >&2
   echo "UNKNOWN ($date)"
 fi
