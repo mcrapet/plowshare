@@ -1,5 +1,9 @@
 #!/bin/sh -e
 #
+# Checked environment variables:
+# - PLOWSHARE_FORCE_VERSION
+# - SOURCE_DATE_EPOCH (see reproducible-builds.org)
+#
 # Note:
 # Choose "git describe" revision syntax: v1.0.1-17-g390e0fa
 # over usual (distro) one: 1.0.1~git20140411-390e0fa
@@ -8,17 +12,33 @@ if [ $# -ne 0 ]; then
   echo 'warning: this script does not take any argument.' >&2
 fi
 
+datefmt='%Y-%m-%d'
+if [ -n "$SOURCE_DATE_EPOCH" ]; then
+  if date --version 2>/dev/null | head -n1 | grep -q GNU; then
+    date=$(date -u -d "@$SOURCE_DATE_EPOCH" +$datefmt)
+  else
+    date=$(date -u -r "$SOURCE_DATE_EPOCH" +$datefmt)
+  fi
+else
+  date=$(date -u +$datefmt)
+fi
+
 # Check environment variable PLOWSHARE_FORCE_VERSION
 # For example: "1.0.1"
 if [ -n "$PLOWSHARE_FORCE_VERSION" ]; then
-  date=$(date +'%Y-%m-%d')
   echo "v${PLOWSHARE_FORCE_VERSION#v} ($date)"
 elif git rev-parse --is-inside-work-tree 1>/dev/null 2>&1; then
   rev=$(git describe --always --tags)
   date=$(git log "$rev" -n1 --pretty=%ci | cut -d' ' -f1)
   echo "$rev ($date)"
 else
-  echo 'warning: unable to detect plowshare version.' >&2
-  date=$(date +'%Y-%m-%d')
-  echo "UNKNOWN ($date)"
+  # Check directory name. For example: plowshare-2.1.7
+  dir=$(basename "$PWD")
+  v=${dir##*-}
+  if echo $v | grep -q '[2-9]\(\.[0-9]\)\{2\}'; then
+    echo "v$v ($date)"
+  else
+    echo 'warning: unable to detect plowshare version.' >&2
+    echo "UNKNOWN ($date)"
+  fi
 fi
