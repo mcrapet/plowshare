@@ -1249,7 +1249,7 @@ create_tempfile() {
     local -r SUFFIX=$1
     local FILE="$TMPDIR/$(basename_file "$0").$$.$RANDOM$SUFFIX"
 
-    if touch "$FILE" && chmod 600 "$FILE"; then
+    if touch "$FILE" && chmod 644 "$FILE"; then
         echo "$FILE"
         return 0
     fi
