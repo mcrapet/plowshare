@@ -94,7 +94,7 @@ mod_install() {
     if [ -d "$L" -a -n "$HAVE_GIT" ]; then
         # Note: git -C <path> is available since v1.8.5
         if git -C "$L" rev-parse --is-inside-work-tree &>/dev/null; then
-            log_notice 'WARNING: directory already exists! Do a git pull.'
+            log_notice 'WARNING: directory already exists, just updating it (plowmod -u)'
             git -C "$L" pull --quiet
         else
             # Check for empty directory (find -empty)
